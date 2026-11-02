@@ -40,6 +40,8 @@ mockups/
 # Local test artifacts (do not commit)
 supabase/functions/concierge-recommend/test-fixtures.db
 supabase/.temp/
+scripts/.rec_edges_progress.json
+scripts/.realm_descriptor_progress.json
 
 # Fastlane
 fastlane/report.xml
@@ -76,4 +78,12 @@ fastlane/README.md
 /reports/local-cicd/
 /reports/local-dashboard/
 /reports/media-relations/
+/reports/series-enrichment/
 /reports/synopsis-enrichment/
+
+# Generated test result bundles and Python caches
+*.xcresult/
+__pycache__/
+
+# Playwright MCP scratch output
+.playwright-mcp/

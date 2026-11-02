@@ -1,0 +1,3 @@
+Evidence layer: direct Swift frontend SYNTAX ONLY; not typecheck/build/native execution.
+Command: swiftc -frontend -enable-bare-slash-regex -parse [all 207 app/package/native test files]
+Exit: 0

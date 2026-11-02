@@ -1,40 +1,76 @@
 import SwiftUI
 
+/// Where a glass surface sits. `canvas` is the original light glass for app
+/// backgrounds; `onImage` is the monochrome dark variant for hero art (smoked
+/// black fill, white hairline, no color tint) so white type stays legible over
+/// busy covers. Both stay inside the Kuro glass vocabulary — no third style.
+enum KuroGlassTone {
+    case canvas
+    case onImage
+}
+
 /// A reusable "glass morphism" surface. Looks best when there's *something* behind it,
 /// even if it's just a subtle gradient.
 struct KuroGlassCard<Content: View>: View {
     let cornerRadius: CGFloat
+    let tone: KuroGlassTone
     let content: Content
 
-    init(cornerRadius: CGFloat = 22, @ViewBuilder content: () -> Content) {
+    init(cornerRadius: CGFloat = 22, tone: KuroGlassTone = .canvas, @ViewBuilder content: () -> Content) {
         self.cornerRadius = cornerRadius
+        self.tone = tone
         self.content = content()
     }
 
     var body: some View {
         content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.kuroSecondaryBackground.opacity(0.96))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.70),
-                                        Color.white.opacity(0.18),
-                                        Color.black.opacity(0.06)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.8
-                            )
-                    )
-                    .shadow(color: Color.black.opacity(0.14), radius: 22, x: 0, y: 12)
-                    .shadow(color: Color.white.opacity(0.55), radius: 1, x: 0, y: 1)
-            )
+            .background(glassBackground)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var glassBackground: some View {
+        switch tone {
+        case .canvas:
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.kuroSecondaryBackground.opacity(0.96))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.70),
+                                    Color.white.opacity(0.18),
+                                    Color.black.opacity(0.06)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.8
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.14), radius: 22, x: 0, y: 12)
+                .shadow(color: Color.white.opacity(0.55), radius: 1, x: 0, y: 1)
+        case .onImage:
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.kuroBlack65)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.kuroWhite55,
+                                    Color.kuroWhite20,
+                                    Color.kuroWhite04
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.8
+                        )
+                )
+                .shadow(color: Color.kuroBlack25, radius: 22, x: 0, y: 12)
+        }
     }
 }
 

@@ -1,0 +1,12 @@
+{
+  "build": "17",
+  "bundleIdentifier": "com.Kuro.app",
+  "bundleTreeSHA256": "dd5304ded6b5ebb2d8a62e36c35ff80ed08367b00d5e719648c1ae18964079df",
+  "configuration": "Debug simulator",
+  "debugDylibSHA256": "49ee785bd2e7e88603d71589d4f88ae927a4ba3b16a826bc62f57a5b270ed037",
+  "executable": "Kuro",
+  "executableSHA256": "1960147f3298abb820021ff82b680017d4709af3127b4b4f0fe4feb681470c6a",
+  "infoPlistSHA256": "bda6299ce62ee851bb4b7c34a42e1a77aa9621a0d84399e1bf4c1a32a320c1a9",
+  "sourceInputsSHA256": "61f2497710e151bd4ebc1885e1fd4de832db429f4c9d67e1791b087cca56ecb5",
+  "version": "1.0"
+}

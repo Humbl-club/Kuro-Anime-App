@@ -1,0 +1,69 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:24: NOTICE:  TEST ok: anime external ID beats an unrelated internal PK
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:25: NOTICE:  TEST ok: wrong anime was never added
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:26: NOTICE:  TEST ok: manga external ID beats an unrelated internal PK
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:27: NOTICE:  TEST ok: private notes remain owner-only list data
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:28: NOTICE:  TEST ok: entry privacy retained
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:29: NOTICE:  TEST ok: no import notes become comments
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:34: NOTICE:  TEST ok: chunk retry adds no duplicate counts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:35: NOTICE:  TEST ok: unique added counters stay at two
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:36: NOTICE:  TEST ok: both-media Home publication includes manga
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:39: NOTICE:  TEST ok: status-only concurrent edit conflicts despite equal progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:40: NOTICE:  TEST ok: local dropped state remains
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:42: NOTICE:  TEST ok: ready job start is a replay
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:48: NOTICE:  TEST ok: status-only mutation applies
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:50: NOTICE:  TEST ok: unchanged status-only retry ignores later progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:51: NOTICE:  TEST ok: same ID different base revision is rejected
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:59: NOTICE:  TEST ok: foreign season unit is not accepted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:71: NOTICE:  TEST ok: one active Home card for two approved seasons
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:72: NOTICE:  TEST ok: selected season resolves its own catalogue title
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:73: NOTICE:  TEST ok: selected season resolves its own progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:74: NOTICE:  TEST ok: season browse never advances first-season progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:76: NOTICE:  TEST ok: finish publishes revision floors for BOTH Home media
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:82: NOTICE:  TEST ok: episode page is bounded to twenty
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:83: NOTICE:  TEST ok: episode page has deterministic cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:86: NOTICE:  TEST ok: second episode page has no duplicate first rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:88: NOTICE:  TEST ok: initial detail unit cursor uses same deterministic ordering
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:90: NOTICE:  TEST ok: detail exposes its actual final-unit page cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:98: NOTICE:  TEST ok: status-only write retains the exact source unit
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:100: NOTICE:  TEST ok: status-only write retains fractional chapter label
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:104: NOTICE:  TEST ok: direct SDK unit write also checks title ownership (raised: INVALID_UNIT_OWNER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:108: NOTICE:  TEST ok: stale revision returns conflict
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:111: NOTICE:  TEST ok: lost conflict response replay stays conflict, never success
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:118: NOTICE:  TEST ok: Coming Up page stays bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:119: NOTICE:  TEST ok: Coming Up count retains all tracked releases
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:120: NOTICE:  TEST ok: source day remains a day rather than midnight
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:121: NOTICE:  TEST ok: day precision never fabricates instant
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:123: NOTICE:  TEST ok: Coming Up second page also bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:125: NOTICE:  TEST ok: Coming Up cursor pages have no repeated IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:129: NOTICE:  TEST ok: legacy chapter creates exactly one canonical unit
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:130: NOTICE:  TEST ok: legacy date-only source stays date-only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:132: NOTICE:  TEST ok: source remap withdraws the old release
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:133: NOTICE:  TEST ok: source remap preserves old unit identity safely
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:134: NOTICE:  TEST ok: source remap creates the new target once
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:143: NOTICE:  TEST ok: club mate tracking is initially visible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:144: NOTICE:  TEST ok: spoiler metadata reaches private reader
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:146: NOTICE:  TEST ok: viewer downgrade hides peer activity
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:147: NOTICE:  TEST ok: viewer downgrade hides peer comments
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:151: NOTICE:  TEST ok: private provider entry never contributes named tracking
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:153: NOTICE:  TEST ok: club removal immediately hides peer comments
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:164: NOTICE:  TEST ok: large Collection child array is bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:165: NOTICE:  TEST ok: large Collection group retains total
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:168: NOTICE:  TEST ok: large Collection group exposes its remaining five children
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:170: NOTICE:  TEST ok: Collection child pages never duplicate IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:173: NOTICE:  TEST ok: another account cannot page private Collection children
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:177: NOTICE:  TEST ok: finish replay cannot reopen an exhausted import
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:185: NOTICE:  TEST ok: unsupported source privacy cannot publish a previously private entry
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:187: NOTICE:  TEST ok: unsupported source hidden flag cannot clear local preference
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:189: NOTICE:  TEST ok: unsupported source custom lists survive merge
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:191: NOTICE:  TEST ok: absent repeat count survives merge
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:197: NOTICE:  TEST ok: catalogue uniqueness rejects a duplicate provider identity (raised: duplicate key value violates unique constraint "anime_anilist_id_key")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:205: NOTICE:  TEST ok: unresolved provider reference stays unmatched despite catalogue fallback
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:207: NOTICE:  TEST ok: unresolved target writes neither internal row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:215: NOTICE:  TEST ok: pending announcements bounded before JSON aggregation
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:216: NOTICE:  TEST ok: pending count is full eligible window
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:218: NOTICE:  TEST ok: pending second page has no repeated event IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:220: NOTICE:  TEST ok: initial Home includes independent pending cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:225: NOTICE:  TEST ok: empty account pending pager cannot derive another account follows/library
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:243: NOTICE:  TEST ok: rename retains metadata section identity
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:245: NOTICE:  TEST ok: split cour creates one logical section
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:247: NOTICE:  TEST ok: split cour retains both distinct source children

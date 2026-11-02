@@ -1,0 +1,351 @@
+{
+  "functions": [
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "53c11ab49d0ee0a6a44f5654d1619378",
+      "args": "p_user_id uuid, p_session_id uuid, p_idempotency_key text, p_items jsonb",
+      "name": "apply_import_session",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "81278aee04d7cdef1fbfd4903f1e64ca",
+      "args": "p_user_id uuid",
+      "name": "begin_account_deletion",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "3caa54a22adcebfc507472b215d6ed2a",
+      "args": "p_kind text, p_ip text, p_window_seconds integer DEFAULT 60, p_max_user integer DEFAULT 40, p_max_ip integer DEFAULT 120",
+      "name": "check_concierge_rate_limit",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "2b9fb90f3b72758f716590b0dc193c2f",
+      "args": "p_rail_id text, p_limit integer DEFAULT 30, p_exclude_seen boolean DEFAULT true",
+      "name": "curated_rail_cards",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "TABLE(media_type text, media_id integer, title_english text, title_romaji text, title_native text, cover_image_medium text, average_score integer, year integer, format text, status text, site_url text, genres text[], signals text[])"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "a0eabbe415edf871e0cc555efe5b7474",
+      "args": "p_user_id uuid",
+      "name": "delete_account_club_memberships",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "1f1808a7b455487cdb733df649adeaa4",
+      "args": "p_user_id text",
+      "name": "delete_user_concierge_data",
+      "config": [
+        "search_path=public"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "06f57eb8a0ea4e15d5144dcb067bd29e",
+      "args": "",
+      "name": "get_concierge_config",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "da59aaba5a9f459dfe65572b50edc285",
+      "args": "p_key text",
+      "name": "is_flag_enabled",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "boolean"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "f13b8f38334846be7b631a823b12cc33",
+      "args": "p_reserved_tokens integer, p_actual_tokens integer, p_model text DEFAULT NULL::text",
+      "name": "llm_budget_finalize",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "ffca3d7f31f9ae74b52f696f00394c2b",
+      "args": "p_reserved_tokens integer, p_max_daily_tokens integer DEFAULT 20000, p_max_daily_calls integer DEFAULT 80, p_model text DEFAULT NULL::text",
+      "name": "llm_budget_reserve",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "6c29ae5edbe0ad24d8d4b6afc74e0158",
+      "args": "p_reserved_tokens integer, p_actual_tokens integer",
+      "name": "llm_global_budget_finalize",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "04ddb7085031f1b23929ece4ce586fd7",
+      "args": "p_reserved_tokens integer, p_max_daily_tokens integer, p_max_daily_calls integer",
+      "name": "llm_global_budget_reserve",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "b8d2be64d7435c77a839eff591f7a070",
+      "args": "p_kind text, p_status text DEFAULT 'success'::text, p_input_chars integer DEFAULT NULL::integer, p_items_count integer DEFAULT NULL::integer, p_latency_ms integer DEFAULT NULL::integer, p_token_in integer DEFAULT NULL::integer, p_token_out integer DEFAULT NULL::integer, p_error text DEFAULT NULL::text",
+      "name": "log_concierge_run",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "void"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "a97cc99b28c56e89dc3da299e94af95e",
+      "args": "p_query text, p_media_type text DEFAULT NULL::text, p_year_min integer DEFAULT NULL::integer, p_year_max integer DEFAULT NULL::integer, p_format text DEFAULT NULL::text, p_excluded_genres text[] DEFAULT '{}'::text[], p_limit integer DEFAULT 10",
+      "name": "rag_retrieve_candidates",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "TABLE(entity_id uuid, anilist_id integer, media_type text, canonical_title text, year integer, final_score numeric, popularity integer, match_source text)"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "0fd12a8932492496af07a95433d72a58",
+      "args": "p_media_type text, p_categories text[] DEFAULT NULL::text[], p_limit integer DEFAULT 10, p_allow_gimmicks boolean DEFAULT false, p_focus_tag_ids integer[] DEFAULT NULL::integer[]",
+      "name": "recommend_ids_premium",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "TABLE(media_id integer, match_count integer, score real)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "3e09eb2d645d5163980dc3e8741a497a",
+      "args": "p_media_type text, p_seed_ids integer[], p_limit integer DEFAULT 10, p_allow_gimmicks boolean DEFAULT false",
+      "name": "recommend_ids_similar_to_seeds",
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "return": "TABLE(media_id integer, overlap_count integer, score real)"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "cb64606a4010d094d866e9406e56f7a9",
+      "args": "p_query text, p_media_type text DEFAULT NULL::text, p_limit integer DEFAULT 12",
+      "name": "search_titles",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "TABLE(media_type text, media_id integer, variant_type text, title_raw text, score real, year integer, format text, cover_image_medium text)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "md5": "1808b43293b62b1cca54e1158aa4de4a",
+      "args": "p_user_id uuid, p_session_id uuid",
+      "name": "undo_import_session",
+      "config": [
+        "search_path=public, extensions"
+      ],
+      "return": "jsonb"
+    }
+  ],
+  "relations": [
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "account_deletion_barriers"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "anime"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "club_members"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "concierge_mode_cache"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "editorial_boosts"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "editorial_tag_boosts"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "episodes"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "feature_flags"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "manga"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "profiles"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "rag_retrieval_cache"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "tags"
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "title_aliases"
+    },
+    {
+      "rls": false,
+      "kind": "v",
+      "name": "user_lists"
+    }
+  ],
+  "captured_at": "2026-10-07T22:51:43.888002+00:00"
+}

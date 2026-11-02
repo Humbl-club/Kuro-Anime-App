@@ -1,0 +1,325 @@
+[
+  {
+    "snapshot": {
+      "observed_at": "2026-09-25T22:16:11.233442+00:00",
+      "statement_window": {
+        "dealloc": 0,
+        "stats_reset": "2026-08-04T19:53:24.968064+00:00"
+      },
+      "top_cost": [
+        {
+          "queryid": "-8797001082340220221",
+          "calls": 15060,
+          "total_exec_ms": 384678623.3,
+          "mean_exec_ms": 25543.07,
+          "max_exec_ms": 597951.65,
+          "rows": 15060,
+          "shared_blks_read": 84648798,
+          "temp_blks_read": 710404096,
+          "temp_blks_written": 871431881,
+          "operation": "similar rebuild"
+        },
+        {
+          "queryid": "2582459874571565942",
+          "calls": 54,
+          "total_exec_ms": 7223626,
+          "mean_exec_ms": 133770.85,
+          "max_exec_ms": 136524.59,
+          "rows": 54,
+          "shared_blks_read": 355911,
+          "temp_blks_read": 160454250,
+          "temp_blks_written": 301785,
+          "operation": "rebuild_media_realm_tier"
+        },
+        {
+          "queryid": "-3272118731462632404",
+          "calls": 5019,
+          "total_exec_ms": 5379325.7,
+          "mean_exec_ms": 1071.79,
+          "max_exec_ms": 7949.95,
+          "rows": 5019,
+          "shared_blks_read": 17326905,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "catalog/inspection"
+        },
+        {
+          "queryid": "-6556992292508814483",
+          "calls": 292458,
+          "total_exec_ms": 4613653.8,
+          "mean_exec_ms": 15.78,
+          "max_exec_ms": 14906.02,
+          "rows": 292458,
+          "shared_blks_read": 34,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "list_changes"
+        },
+        {
+          "queryid": "2513578264372708583",
+          "calls": 52,
+          "total_exec_ms": 1052500.3,
+          "mean_exec_ms": 20240.39,
+          "max_exec_ms": 23288.67,
+          "rows": 13076180,
+          "shared_blks_read": 145099,
+          "temp_blks_read": 3137316,
+          "temp_blks_written": 4768140,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "queryid": "7669735568293383556",
+          "calls": 52,
+          "total_exec_ms": 800994.3,
+          "mean_exec_ms": 15403.74,
+          "max_exec_ms": 17161.33,
+          "rows": 20090980,
+          "shared_blks_read": 839020,
+          "temp_blks_read": 1478081,
+          "temp_blks_written": 1480005,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "queryid": "1093793170265349656",
+          "calls": 984,
+          "total_exec_ms": 285350,
+          "mean_exec_ms": 289.99,
+          "max_exec_ms": 7861.42,
+          "rows": 984,
+          "shared_blks_read": 2657438,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "catalog/inspection"
+        },
+        {
+          "queryid": "8155291966402198186",
+          "calls": 25,
+          "total_exec_ms": 185793.2,
+          "mean_exec_ms": 7431.73,
+          "max_exec_ms": 14947.19,
+          "rows": 25,
+          "shared_blks_read": 0,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "4431234196050940276",
+          "calls": 49,
+          "total_exec_ms": 170314.3,
+          "mean_exec_ms": 3475.8,
+          "max_exec_ms": 7766.7,
+          "rows": 49,
+          "shared_blks_read": 402734,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "catalog/inspection"
+        },
+        {
+          "queryid": "-6648899717030237145",
+          "calls": 4868,
+          "total_exec_ms": 168030.9,
+          "mean_exec_ms": 34.52,
+          "max_exec_ms": 455.17,
+          "rows": 4868,
+          "shared_blks_read": 7,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "-3184538003301221482",
+          "calls": 52,
+          "total_exec_ms": 166030.3,
+          "mean_exec_ms": 3192.89,
+          "max_exec_ms": 8797.58,
+          "rows": 2169492,
+          "shared_blks_read": 720049,
+          "temp_blks_read": 10814,
+          "temp_blks_written": 10610,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "queryid": "-1827392617710207541",
+          "calls": 52,
+          "total_exec_ms": 165403.6,
+          "mean_exec_ms": 3180.84,
+          "max_exec_ms": 3661.73,
+          "rows": 126672,
+          "shared_blks_read": 64721,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "queryid": "9127394102623443866",
+          "calls": 5027,
+          "total_exec_ms": 158413.9,
+          "mean_exec_ms": 31.51,
+          "max_exec_ms": 317.15,
+          "rows": 5027,
+          "shared_blks_read": 55922,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "catalog/inspection"
+        },
+        {
+          "queryid": "8043747244698754564",
+          "calls": 4997,
+          "total_exec_ms": 135277.9,
+          "mean_exec_ms": 27.07,
+          "max_exec_ms": 488.66,
+          "rows": 4997,
+          "shared_blks_read": 2346,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "compute_queue"
+        },
+        {
+          "queryid": "1367172117836610478",
+          "calls": 52,
+          "total_exec_ms": 133145.7,
+          "mean_exec_ms": 2560.5,
+          "max_exec_ms": 3522.02,
+          "rows": 1126736,
+          "shared_blks_read": 83434,
+          "temp_blks_read": 5821,
+          "temp_blks_written": 5617,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "queryid": "149797073654710700",
+          "calls": 5245,
+          "total_exec_ms": 132026.5,
+          "mean_exec_ms": 25.17,
+          "max_exec_ms": 451.28,
+          "rows": 5245,
+          "shared_blks_read": 532,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "3978379762897124254",
+          "calls": 52,
+          "total_exec_ms": 70199.3,
+          "mean_exec_ms": 1349.99,
+          "max_exec_ms": 2504.26,
+          "rows": 97448,
+          "shared_blks_read": 98191,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "queryid": "-4687241006659027406",
+          "calls": 52,
+          "total_exec_ms": 70058.6,
+          "mean_exec_ms": 1347.28,
+          "max_exec_ms": 2312.47,
+          "rows": 52,
+          "shared_blks_read": 147536,
+          "temp_blks_read": 471,
+          "temp_blks_written": 472,
+          "operation": "catalog/inspection"
+        },
+        {
+          "queryid": "8663260955128525519",
+          "calls": 1,
+          "total_exec_ms": 69436.4,
+          "mean_exec_ms": 69436.37,
+          "max_exec_ms": 69436.37,
+          "rows": 1,
+          "shared_blks_read": 2,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "1261216022860156106",
+          "calls": 1,
+          "total_exec_ms": 68867.3,
+          "mean_exec_ms": 68867.32,
+          "max_exec_ms": 68867.32,
+          "rows": 1,
+          "shared_blks_read": 0,
+          "temp_blks_read": 0,
+          "temp_blks_written": 0,
+          "operation": "other SQL (text intentionally not exported)"
+        }
+      ],
+      "top_mean": [
+        {
+          "queryid": "2582459874571565942",
+          "calls": 54,
+          "mean_exec_ms": 133770.85,
+          "max_exec_ms": 136524.59,
+          "operation": "rebuild_media_realm_tier"
+        },
+        {
+          "queryid": "-8797001082340220221",
+          "calls": 15060,
+          "mean_exec_ms": 25543.07,
+          "max_exec_ms": 597951.65,
+          "operation": "rebuild_media_similar_titles"
+        },
+        {
+          "queryid": "2513578264372708583",
+          "calls": 52,
+          "mean_exec_ms": 20240.39,
+          "max_exec_ms": 23288.67,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "7669735568293383556",
+          "calls": 52,
+          "mean_exec_ms": 15403.74,
+          "max_exec_ms": 17161.33,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "8155291966402198186",
+          "calls": 25,
+          "mean_exec_ms": 7431.73,
+          "max_exec_ms": 14947.19,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "4431234196050940276",
+          "calls": 49,
+          "mean_exec_ms": 3475.8,
+          "max_exec_ms": 7766.7,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "-3184538003301221482",
+          "calls": 52,
+          "mean_exec_ms": 3192.89,
+          "max_exec_ms": 8797.58,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "-1827392617710207541",
+          "calls": 52,
+          "mean_exec_ms": 3180.84,
+          "max_exec_ms": 3661.73,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "1367172117836610478",
+          "calls": 52,
+          "mean_exec_ms": 2560.5,
+          "max_exec_ms": 3522.02,
+          "operation": "other SQL (text intentionally not exported)"
+        },
+        {
+          "queryid": "3978379762897124254",
+          "calls": 52,
+          "mean_exec_ms": 1349.99,
+          "max_exec_ms": 2504.26,
+          "operation": "other SQL (text intentionally not exported)"
+        }
+      ]
+    }
+  }
+]

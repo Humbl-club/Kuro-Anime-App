@@ -1,0 +1,27 @@
+{
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "approved_at": "2026-10-08T00:19:13.183480+00:00",
+  "authorization": "User: you have my approval of the exact backend",
+  "atomic_sql_sha256": "ca18fb6931c3afac3f8eec9fe85e0de9c9a903132780dbdb2448cf62a3a11fd8",
+  "migrations": [
+    "20261007040000",
+    "20261007130000",
+    "20261008100000",
+    "20261008110000"
+  ],
+  "edge_slugs": [
+    "concierge-import-anilist",
+    "concierge-apply",
+    "concierge-undo",
+    "delete-account",
+    "concierge-recommend",
+    "concierge-retrieve-assist"
+  ],
+  "exclusions": [
+    "Global Home activation",
+    "TestFlight",
+    "Backfill",
+    "Worker scheduling"
+  ],
+  "status": "APPROVED; effective deployment evidence separate"
+}

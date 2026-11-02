@@ -1,0 +1,73 @@
+{
+  "status": "INTEGRATION IN PROGRESS",
+  "scope": "simulator only",
+  "sql_selected": {
+    "distinct_suites": 16,
+    "assertions": 511,
+    "latest_suites": 6,
+    "latest_assertions": 258,
+    "latest_exit": 0,
+    "live_services": false,
+    "historical_replay": "INCOMPLETE"
+  },
+  "backend_imports": {
+    "suites": 4,
+    "tests_passed": 52,
+    "failed": 0,
+    "entrypoints_typecheck": true,
+    "hosted": false
+  },
+  "native_remaining_initial": {
+    "cases": 362,
+    "passed": 359,
+    "failed": 3,
+    "parameterized_device_executions_passed": 897,
+    "fixture_repairs_independently_accepted": true,
+    "latest_affected_rerun": "Final Collection9PASS; serial club4/reminder11PASS; earlier failure and interrupted clone logs retained"
+  },
+  "atomic_rehearsal": {
+    "path": "docs/handoffs/2026-10-07-integrated-release-evidence/simulator-home-import-atomic-DRAFT.sql",
+    "sha256": "40afa78f535e79dd9b25651cf21ddefe243a10d7e06ade11c235d4feb2707c4d",
+    "bytes": 421450,
+    "status": "REHEARSED in disposable audited fixture; SOURCE-ACCEPTED; NOT DEPLOYED",
+    "history": "Original exact source recorded per new identity in the same transaction; lifecycle standalone BEGIN/COMMIT omitted only from execution",
+    "guards": "Current deletion helper hash, absent candidate history/tables, disabled global flags, all20 RLS, unchanged legacy-field digests; bounded lock and statement waits",
+    "rehearsal": {
+      "runner_exit": 0,
+      "assertions": 31,
+      "inputs": "Exact assembled transaction/history bytes; three candidate migrations excluded from prior fixture replay",
+      "evidence": "simulator-atomic-rehearsal-result.log",
+      "limitations": "Local platform stubs and incomplete historical replay; not a live schema clone or GoTrue/Storage/Realtime/PostgREST qualification"
+    }
+  },
+  "live_mutations": true,
+  "remaining": [
+    "Real simulator Home/import/recovery journeys after required server integration",
+    "Specific live production grant/migration action approval",
+    "Live revocation/deletion cleanup and normal-use performance proof",
+    "Controlled MAL consent, both-medium account import, reconnect and actual recovery after live integration"
+  ],
+  "native_remaining_final": {
+    "unique_cases": 362,
+    "passed": 362,
+    "failed": 0,
+    "method": "Reuse unchanged cases; replace affected suites with latest independently accepted fixture results",
+    "runs": "simulator-native-reconciled.json",
+    "earlier_separate_sdk_cases": 19,
+    "earlier_separate_import_outcome_cases": 6,
+    "total_distinct_native_cases": 387,
+    "hosted_or_installed_private_journey": false
+  },
+  "simulator_install": "../2026-10-08-simulator-qualification/mal-registration-install.json",
+  "latest_access_attempt": "../2026-10-08-simulator-qualification/qualification.md",
+  "live_mutations_scope": "One owner-authorized persistent ordinary GoTrue development account; no existing account/schema/flag/deployment changes",
+  "development_account": "development-account-sign-in.json",
+  "installed_auth_qualification": {
+    "normal_password_form": "PASS",
+    "normal_restart_restore": "PASS",
+    "isolated_callback_restart": "PASS",
+    "normal_sign_out": "PASS",
+    "source_changes_required": false
+  },
+  "MAL_registration": "VERIFIED owner screenshots: PUBLISHED native iOS; installed simulator configuration matches; OAuth/import BLOCKED by missing live foundation contracts"
+}

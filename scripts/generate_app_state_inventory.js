@@ -34,7 +34,7 @@ function listFiles(dir, predicate = () => true) {
       const p = path.join(cur, e.name);
       if (e.isDirectory()) {
         // Skip build artifacts.
-        if (e.name === 'node_modules' || e.name === 'DerivedData' || e.name === 'build' || e.name.startsWith('.git')) continue;
+        if (e.name === 'node_modules' || e.name === 'DerivedData' || e.name === 'build' || e.name === '.build' || e.name.startsWith('.git')) continue;
         stack.push(p);
       } else if (e.isFile()) {
         if (predicate(p)) out.push(p);
@@ -95,9 +95,11 @@ function main() {
   const branch = sh('git rev-parse --abbrev-ref HEAD');
 
   const swift = listFiles(path.join(ROOT, 'Kuro'), p => p.endsWith('.swift')).map(rel);
+  const packageSwift = fs.existsSync(path.join(ROOT, 'Packages'))
+    ? listFiles(path.join(ROOT, 'Packages'), p => p.endsWith('.swift')).map(rel) : [];
   const migrations = listFiles(path.join(ROOT, 'supabase', 'migrations'), p => p.endsWith('.sql')).map(rel);
   const edgeIndex = listFiles(path.join(ROOT, 'supabase', 'functions'), p => p.endsWith('index.ts')).map(rel);
-  const scripts = listFiles(path.join(ROOT, 'scripts'), p => p.endsWith('.js') || p.endsWith('.sql') || p.endsWith('.ts') || p.endsWith('.md')).map(rel);
+  const scripts = listFiles(path.join(ROOT, 'scripts'), p => /\.(js|mjs|sql|ts|md|sh|swift|py)$/.test(p)).map(rel);
 
   const inventory = [];
   inventory.push('## 2.1) Auto-generated inventory (exhaustive file lists)');
@@ -112,6 +114,10 @@ function main() {
 
   inventory.push(`### iOS (Swift) files (count: ${swift.length})`);
   inventory.push(mdList(swift, { max: 2000 }));
+  inventory.push('');
+
+  inventory.push(`### Local package Swift files (count: ${packageSwift.length}, including package manifests and tests)`);
+  inventory.push(mdList(packageSwift, { max: 2000 }));
   inventory.push('');
 
   inventory.push(`### Supabase migrations (count: ${migrations.length})`);

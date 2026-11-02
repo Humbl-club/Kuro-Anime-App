@@ -1,0 +1,34 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:19: NOTICE:  TEST ok: owner inserts a watching row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:22: NOTICE:  TEST ok: inserted revision starts at 1
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:24: NOTICE:  TEST ok: inserted lifecycle is assigned
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:35: NOTICE:  TEST ok: progress mutation applies
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:37: NOTICE:  TEST ok: progress is the absolute position
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:39: NOTICE:  TEST ok: notes are not overwritten
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:41: NOTICE:  TEST ok: revision advanced once
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:51: NOTICE:  TEST ok: identical replay is already applied
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:53: NOTICE:  TEST ok: replay does not move progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:55: NOTICE:  TEST ok: replay does not advance revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:66: NOTICE:  TEST ok: same mutation id with a different payload is rejected
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:68: NOTICE:  TEST ok: rejected payload leaves progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:78: NOTICE:  TEST ok: stale base revision conflicts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:80: NOTICE:  TEST ok: conflict leaves the newer progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:91: NOTICE:  TEST ok: fractional label applies
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:93: NOTICE:  TEST ok: fractional label does not round the integer progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:95: NOTICE:  TEST ok: fractional label is stored
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:98: NOTICE:  TEST ok: home bundle returns the caller watching row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:100: NOTICE:  TEST ok: home bundle media id is the caller row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:104: NOTICE:  TEST ok: owner deletes the row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:113: NOTICE:  TEST ok: old lifecycle cannot recreate the row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:115: NOTICE:  TEST ok: row stays absent
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:119: NOTICE:  TEST ok: other user home bundle is empty
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:129: NOTICE:  TEST ok: other user cannot target a row they do not own
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:133: NOTICE:  TEST ok: anon cannot read the home bundle (raised: UNAUTHENTICATED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:138: NOTICE:  TEST ok: MAL account input uses the structured job contract
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:151: NOTICE:  TEST ok: MAL export chunk applies by mal id
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:153: NOTICE:  TEST ok: MAL progress is stored on the catalogue id
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:155: NOTICE:  TEST ok: MAL raw score is kept beside the integer rating
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:157: NOTICE:  TEST ok: MAL note stays on the list row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:167: NOTICE:  TEST ok: previous span is present before the failed publish
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:176: NOTICE:  TEST ok: unresolved target does not publish (raised: UNRESOLVED_TARGET)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:178: NOTICE:  TEST ok: failed publish keeps the previous span
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/80_series_home_foundation.sql:183: NOTICE:  TEST ok: authenticated cannot publish mappings (raised: NOT_AUTHORIZED)

@@ -1,0 +1,35 @@
+# Migrations in supabase/prepared-migrations/ (deliberately OUTSIDE supabase/migrations/ so
+# no `supabase db push` or scripts/local_cd.sh can deploy them) that are PREPARED ONLY:
+# NOT applied to production. Deployment is a separate, explicit human approval.
+#
+# The local DB fixture (scripts/db/run_local_db_tests.sh) INCLUDES these by default,
+# so the RLS tests assert the post-fix behavior. `--exclude-pending` rebuilds the
+# fixture without them (the deployed-chain state; the matching tests then FAIL on
+# purpose, which is the red half of the red/green evidence).
+#
+# To deploy after approval: `git mv supabase/prepared-migrations/<file> supabase/migrations/`,
+# delete its line below, then push through the normal approved deployment path.
+#
+# When a file here is deployed, delete its line (never edit the migration itself).
+# One basename per line; '#' starts a comment.
+
+# Corrected 2026-11-01 (lane backend/SQL). Removed because they ARE live:
+#   - the nine 20261005* club/deletion files: they are in supabase/migrations/ (the deployed
+#     chain); the byte-identical copies still in supabase/prepared-migrations/ are applied
+#     once by scripts/db/replay_migrations.sh (dedupe by basename).
+#   - 20261007040000, 20261007130000, 20261008100000, 20261008110000: applied atomically on
+#     2026-10-08 (docs/handoffs/2026-10-08-backend-integration/approved-deployment-live-evidence.md,
+#     "four recorded identities"); their file headers saying "prepared, NOT deployed" are stale.
+# Kept: 20261007120000_feature_flag_overrides.sql is NOT live (PGRST205 on 2026-11-01).
+
+20261007120000_feature_flag_overrides.sql
+
+# 2026-11-01 overnight production pass (prepared only; owner approval required to deploy).
+20261101000000_release_schedule_and_themes_v2.sql
+20261101010000_perf_hotpaths.sql
+20261101010100_perf_drop_duplicate_indexes.sql
+20261101020000_bridge_identity_fix.sql
+20261101030000_auth_hardening.sql
+
+# 2026-11-02 contact form (prepared only; owner approval required to deploy).
+20261102100000_contact_messages.sql

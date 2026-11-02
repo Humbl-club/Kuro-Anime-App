@@ -1,0 +1,8 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:23: NOTICE:  TEST ok: A begins
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:30: NOTICE:  TEST ok: A applies position 5 and holds the row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:32: NOTICE:  TEST ok: B begins
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:39: NOTICE:  TEST ok: B waits on account admission or list row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:41: NOTICE:  TEST ok: B is specifically blocked by A holding the tracking admission
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:42: NOTICE:  TEST ok: A commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:43: NOTICE:  TEST ok: B conflicts instead of rewinding
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/92_series_progress_race.sql:46: NOTICE:  TEST ok: canonical progress is the first commit

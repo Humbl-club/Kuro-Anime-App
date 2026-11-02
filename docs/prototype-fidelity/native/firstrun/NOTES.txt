@@ -1,0 +1,59 @@
+First-run lane (plan Task 8, amendment 10) fixture renders. Rendered by KuroTests/FirstRunSnapshotTests
+with TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1, at 1 px = 1 pt like the references (since round 2, 2026-11-02). This file is maintained by hand (the tests only add a line if a
+render fails).
+
+What each render shows
+- home-new-{anime,manga}-{320,390,430}.png, -de-390, -ax5-390: only the block under the opening line is
+  HomeNewAccount (the prototype's empty-home block, Import, then "A first favourite." with starter picks).
+  The harness stands the rest of the page in with the Taste opening (the shared switch with the first
+  pick's art, YOUR COLLECTION / Begin here.) and the Taste footer. No header is drawn.
+- home-new-{anime,manga}-homeview-{320,390,430}.png (Task 10): the integrated HomeView for a new account
+  (newAccountLatch true, empty Library, empty Home pages, seeded Discover bundle), rendered through
+  HomeAnimeLaneTests' harness at 1 px = 1 pt on the medium's pager canvas. These are the primary renders
+  for ref-home-new-*; the harness renders above remain lane evidence (see ../INDEX.md).
+- home-new-*-prototype-block-390.png: the block with no picks (the bundle read failed or was empty).
+- home-new-*-loader-390.png: HomeNewAccount through its own loader over a seeded Discover bundle.
+- taste-busy-{anime,manga}-390.png: personal (because-you) picks through the page's own path: the rows
+  carry a synopsis (the premise) and no banner; the catalogue read (TasteCardDetails, CatalogStore's
+  cached detail read) lends the first anime pick its banner, so busy anime opens with the landscape card.
+- taste-new-{anime,manga}-390.png: Discover bundle picks (anime rows have a banner, no synopsis), completed
+  by the same catalogue read: the premise is the first sentence of the catalogue synopsis (never a
+  placeholder; a title without one shows none). New-account Taste shows two cards (visibleCount).
+- taste-busy-*-de-390.png, -ax5-390.png: German copy (fixture override \.tasteGerman) and accessibility
+  size 5 (one manga leaf per row, portrait cover above the copy, kicker stacked over the opening line).
+- taste-busy-anime-planned-390.png: after a real one-tap Plan through TastePlanController. The key is dark
+  ("Planned") and the prototype toast reads "Added to your list." with Undo and the dismiss x.
+- taste-loading-{anime,manga}-390.png: branded skeleton, blocks in kuroBlack08 (visible on both canvases).
+- taste-live-new-anime-390.png: TastePicksView itself over the seeded bundle and catalogue (new account).
+- collection-empty-invitation-390.png: the invitation block as EditorialCollectionView.libraryInvitation
+  composes it (FirstRunInvitation + Import / Find a title) under a compact switch. The full page is not
+  hosted: its feed read needs the network, and with no client it resolves to the failed state.
+- search-no-history-390.png: EditorialSearchView with no history.
+- pager-home-new-{anime,manga}-390.png, pager-taste-{busy,new}-{anime,manga}-390.png (round 3): the
+  pager's column, ContentView's KuroHeaderNew (Series Home order: Taste, Home, ...) over the page, on the
+  pager canvas, so the header can be set beside the references' header bar. Evidence for the lead: the
+  header is ContentView's (outside this lane).
+- Raster (round 3): every render is drawn at the screen scale and block-averaged to 1 px = 1 pt
+  (KuroTests/FixtureRaster.swift); 1 pt rules and borders on the point grid are single crisp pixels, as
+  in the references.
+
+Open items for the lead / Task 10 (outside this lane)
+1. Busy landscape banner: closed in round 2 by the catalogue read (a title the catalogue holds a banner
+   for gets the landscape card). A title with no banner anywhere stays a portrait card. Returning
+   banner_image from fetch_because_you_rail would save the read (backend, optional).
+2. Taste medium switch: closed (amendment 16, Home's KuroPosterMediumSwitch and KuroArtWordFill).
+3. Pager canvas. ContentView paints .taste with kuroCanvasHome (#fffef8). TastePicksView paints
+   kuroCanvasHomeManga (#f5f5f3) for manga, and its background now ignores the safe area. On iPad the
+   .kuroReadableWidth() side margins still show #fffef8 beside #f5f5f3 for manga. Fix in ContentView
+   (lift Taste's medium into an owner the pager reads and extend Section.canvas for .taste) or accept.
+4. Plan toast host on Home. HomeNewAccount uses the Home page's TastePlanController when HomeView installs
+   .tastePlanHost(controller) outside its ScrollView (toast fixed at the screen foot). Without that, the
+   block installs its own and the toast draws at the foot of the block. Lane 4 should also latch its
+   new-account mount condition (TastePageCopy.latchNewAccount), so the first Plan does not unmount the block.
+5. AX5 renders change the process-wide KuroTypeScale for the length of one render and restore it after.
+   They run only with KURO_WRITE_SNAPSHOTS=1, so ordinary and full-suite runs never touch the scale.
+6. New-account premises: closed in round 2 by the per-title catalogue read (TasteCardDetails, at most four
+   cached reads per medium; the page waits at most a second for them, later reads fill in). A synopsis on the bundle rows
+   (backend) would save the reads (optional).
+7. The new-account latch clears when the Library leaves .loaded or the page is mounted again. The pager
+   keeps the current page and its neighbours mounted, so it holds while the user stays near Taste.

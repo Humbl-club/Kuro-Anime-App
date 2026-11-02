@@ -1,0 +1,254 @@
+{
+  "head": "a7f39b66237bc5a9558b5ab2a6758cd1b085e466",
+  "branch": "kuro/taste-overhaul",
+  "status_path_count": 352,
+  "files": {
+    "Kuro/Home/HomeStore.swift": "d64bfdd746b19d6e5583521835ad4b8d09936c68b0ab93b635c912b336b2bc7d",
+    "Kuro/Home/HomeContracts.swift": "c75adfadee7b6d2822a8ebc85833c556ac700a09d74d6e4f5ad80fc84f11c120",
+    "Kuro/Views/Home/HomeView.swift": "a4726b1555b5cd680842c0b757a8912aba814ff1f71bee648ebe8c0ae7f949eb",
+    "Kuro/Views/Home/SeriesDetailViews.swift": "abd741001d17a17084b240e03a68b5ad8425de9b96d919f220dca75dee6ada46",
+    "Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift": "998299221c99a56afee39e8b1e8a0a9b6ab985ffd82b2a6be4781562749a6836",
+    "Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift": "7d54e10d69f9f4866429827882b025c75096a74153009c452a8cdadeddba4c4a",
+    "Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift": "e20e2020b0101676ab6dc96a59e2f1c8b6dd748848bc0bde78b85252a0ce5166",
+    "Kuro/Imports/ImportsService.swift": "68eb526128555644be7ab3b0bd133882394d3c9fbfa8a6a7b5127e700a42b55b",
+    "Kuro/Clubs/ClubsStore.swift": "b3c8620cdc5c2baad2a809a112107b299398bf3143ed6b9d01d10b47d66b936e",
+    "Kuro/ContentView.swift": "0bf1e3505ba6cc1b04d9a1c5059092d262710fc9138f14397332846d79f11d0b",
+    "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql": "479e6c5210b9414416ab78b9ebb26912792ea96143beb6ebdfb767ad6dff0589",
+    "KuroTests/HomeCompositionSnapshotTests.swift": "3d9c46eca8a80943c843a0a6f2fff2f301a5302056ee4d534d8e787f9fa8e3f9",
+    "scripts/db/explain_series_inner_plans.sh": "83b6abd12822bb75f303d7a7a25064c96d068652f6f2aae1a0513ee99244c359",
+    "docs/handoffs/2026-10-07-home-series-evidence/ledger.md": "d9284b21100f9baa55a36728b36a7b45d8eded99a57816d54c9aa1889971d9ae",
+    "docs/handoffs/2026-10-07-home-series-evidence/composition-differences.md": "76960fbed6c5ebf6bc7a29c340cd9f0aff44e7f39e82353340d14920b69766b8"
+  },
+  "design_manifest": [
+    {
+      "path": "tools/design-directions/assets/anime0-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/anime0.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/anime1-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/anime1.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/anime2.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/anime3-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/anime3.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/detail-character-180.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/detail-character-181.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/detail-character-182.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/detail-character-21.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/detail-character-22.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/detail-character-23.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/detail-character-24.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/fonts/BodoniModa-Italic-Variable.ttf",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/fonts/BodoniModa-Variable.ttf",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-anime-12-cover.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-anime-15-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-anime-15-cover.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-anime-16-cover.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-anime-22-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-anime-22-cover.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-manga-13-cover.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-manga-14-cover.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-manga-16-cover.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/journal-manga-23-cover.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/manga0-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/manga0.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/manga1-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/manga1.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/manga2.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/manga3-banner.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/manga3.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/medium-diptych-v43.jpg",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/assets/medium-objects-v47.png",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/instrument-art-materials.js",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/instrument-detail-data.js",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/instrument.css",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/instrument.html",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/instrument.js",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/journal-data.js",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/manga-directions.css",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/manga-directions.js",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/manga-library.html",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/manga-philosophies.css",
+      "exists": true,
+      "matches": true
+    },
+    {
+      "path": "tools/design-directions/manga-philosophies.js",
+      "exists": true,
+      "matches": true
+    }
+  ]
+}

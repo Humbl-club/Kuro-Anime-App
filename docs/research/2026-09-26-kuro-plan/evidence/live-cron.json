@@ -1,0 +1,368 @@
+[
+  {
+    "snapshot": {
+      "observed_at": "2026-09-25T22:16:55.196151+00:00",
+      "jobs": [
+        {
+          "jobid": 111,
+          "name": "manga-chapter-enrich-nightly-sweep",
+          "schedule": "35 3 * * *",
+          "active": true,
+          "operation": "chapter enrichment dispatch"
+        },
+        {
+          "jobid": 51,
+          "name": "realm-tier-refresh",
+          "schedule": "50 4 * * *",
+          "active": true,
+          "operation": "rebuild_media_realm_tier"
+        },
+        {
+          "jobid": 54,
+          "name": "realm-similar-nightly",
+          "schedule": "10 5 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 110,
+          "name": "mirror-images-staff",
+          "schedule": "0 3 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 112,
+          "name": "manga-chapter-enrich-15m",
+          "schedule": "*/15 * * * *",
+          "active": true,
+          "operation": "chapter enrichment dispatch"
+        },
+        {
+          "jobid": 15,
+          "name": "kuro-import-runs-retention",
+          "schedule": "10 1 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 113,
+          "name": "kuro-refresh-matviews",
+          "schedule": "30 1 * * *",
+          "active": true,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "jobid": 16,
+          "name": "concierge_housekeeping_daily",
+          "schedule": "0 4 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 18,
+          "name": "rag-cache-cleanup",
+          "schedule": "15 * * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 30,
+          "name": "cleanup-cron-history",
+          "schedule": "0 5 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 87,
+          "name": "realm-similar-drive-5m",
+          "schedule": "*/5 * * * *",
+          "active": true,
+          "operation": "rebuild_media_similar_titles"
+        },
+        {
+          "jobid": 35,
+          "name": "manga-source-review-auto-expire-daily",
+          "schedule": "20 4 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 37,
+          "name": "taste-profile-drain-15m",
+          "schedule": "*/15 * * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 43,
+          "name": "outbound-link-ledger-retention",
+          "schedule": "40 4 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 44,
+          "name": "taste-tag-vectors-refresh",
+          "schedule": "50 3 * * *",
+          "active": true,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "jobid": 45,
+          "name": "taste-tag-stats-decay",
+          "schedule": "10 4 * * 0",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 107,
+          "name": "mirror-images-anime-manga-200",
+          "schedule": "15 2 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 108,
+          "name": "mirror-images-anime-manga-400",
+          "schedule": "30 2 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 109,
+          "name": "mirror-images-character",
+          "schedule": "45 2 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        },
+        {
+          "jobid": 99,
+          "name": "realm-membership-refresh",
+          "schedule": "30 4 * * *",
+          "active": true,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "jobid": 100,
+          "name": "realm-affinity-refresh",
+          "schedule": "40 4 * * *",
+          "active": true,
+          "operation": "materialized-view refresh"
+        },
+        {
+          "jobid": 101,
+          "name": "kuro-import-anime-hourly",
+          "schedule": "5 * * * *",
+          "active": true,
+          "operation": "bulk import dispatch"
+        },
+        {
+          "jobid": 102,
+          "name": "kuro-import-anime-weekly",
+          "schedule": "0 * * * *",
+          "active": true,
+          "operation": "bulk import dispatch"
+        },
+        {
+          "jobid": 103,
+          "name": "kuro-import-manga-hourly",
+          "schedule": "35 * * * *",
+          "active": true,
+          "operation": "bulk import dispatch"
+        },
+        {
+          "jobid": 104,
+          "name": "kuro-import-manga-weekly",
+          "schedule": "10 * * * *",
+          "active": true,
+          "operation": "bulk import dispatch"
+        },
+        {
+          "jobid": 106,
+          "name": "mirror-images-anime-manga-0",
+          "schedule": "0 2 * * *",
+          "active": true,
+          "operation": "other scheduled task"
+        }
+      ],
+      "last_24h": [
+        {
+          "jobid": 15,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.29,
+          "max_seconds": 0.29
+        },
+        {
+          "jobid": 16,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.58,
+          "max_seconds": 0.58
+        },
+        {
+          "jobid": 18,
+          "status": "succeeded",
+          "runs": 24,
+          "mean_seconds": 0.07,
+          "max_seconds": 0.18
+        },
+        {
+          "jobid": 30,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 2.13,
+          "max_seconds": 2.13
+        },
+        {
+          "jobid": 35,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.02,
+          "max_seconds": 0.02
+        },
+        {
+          "jobid": 37,
+          "status": "succeeded",
+          "runs": 96,
+          "mean_seconds": 0.04,
+          "max_seconds": 0.15
+        },
+        {
+          "jobid": 43,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.04,
+          "max_seconds": 0.04
+        },
+        {
+          "jobid": 44,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 16.16,
+          "max_seconds": 16.16
+        },
+        {
+          "jobid": 51,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 133.57,
+          "max_seconds": 133.57
+        },
+        {
+          "jobid": 54,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.37,
+          "max_seconds": 0.37
+        },
+        {
+          "jobid": 87,
+          "status": "succeeded",
+          "runs": 287,
+          "mean_seconds": 25.89,
+          "max_seconds": 442.59
+        },
+        {
+          "jobid": 99,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 23.33,
+          "max_seconds": 23.33
+        },
+        {
+          "jobid": 100,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 1.31,
+          "max_seconds": 1.31
+        },
+        {
+          "jobid": 101,
+          "status": "succeeded",
+          "runs": 24,
+          "mean_seconds": 0.04,
+          "max_seconds": 0.13
+        },
+        {
+          "jobid": 102,
+          "status": "succeeded",
+          "runs": 24,
+          "mean_seconds": 0.06,
+          "max_seconds": 0.15
+        },
+        {
+          "jobid": 103,
+          "status": "succeeded",
+          "runs": 24,
+          "mean_seconds": 0.04,
+          "max_seconds": 0.12
+        },
+        {
+          "jobid": 104,
+          "status": "succeeded",
+          "runs": 24,
+          "mean_seconds": 0.02,
+          "max_seconds": 0.08
+        },
+        {
+          "jobid": 106,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.01,
+          "max_seconds": 0.01
+        },
+        {
+          "jobid": 107,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.05,
+          "max_seconds": 0.05
+        },
+        {
+          "jobid": 108,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.06,
+          "max_seconds": 0.06
+        },
+        {
+          "jobid": 109,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.04,
+          "max_seconds": 0.04
+        },
+        {
+          "jobid": 110,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.08,
+          "max_seconds": 0.08
+        },
+        {
+          "jobid": 111,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 0.01,
+          "max_seconds": 0.01
+        },
+        {
+          "jobid": 112,
+          "status": "succeeded",
+          "runs": 96,
+          "mean_seconds": 0.06,
+          "max_seconds": 0.23
+        },
+        {
+          "jobid": 113,
+          "status": "succeeded",
+          "runs": 1,
+          "mean_seconds": 10.76,
+          "max_seconds": 10.76
+        }
+      ]
+    }
+  }
+]

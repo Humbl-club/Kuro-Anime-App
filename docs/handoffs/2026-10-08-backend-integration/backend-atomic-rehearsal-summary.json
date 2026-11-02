@@ -1,0 +1,40 @@
+{
+  "verdict": "PASS: exact bundle and affected local SQL only",
+  "bundle_sha256": "1f20a5219293d850f53b4c72a2cf20b8989a0d755a26919f3bcca16f9102700d",
+  "bundle_bytes": 510389,
+  "assertions": {
+    "atomic_contract": 9,
+    "SQL81": 40,
+    "SQL94": 69
+  },
+  "total_assertions": 118,
+  "source_pin": "/private/tmp/kuro-backend-atomic-final-source-pin.json",
+  "changed_sql_after_run": [],
+  "metadata_changed_after_run": [
+    "/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-deployment-DRAFT.json"
+  ],
+  "manifest_inputs_reverified": "current manifest still declares same3 exact SQL identities/hashes",
+  "rehearsal_sql": "/private/tmp/kuro-backend-atomic-final-rehearsal.sql",
+  "rehearsal_log": "/private/tmp/kuro-backend-atomic-final-rehearsal.log",
+  "replay_reports": "/private/tmp/kuro-backend-atomic-final-replay",
+  "excluded_candidates": [
+    "20261007040000",
+    "20261007130000",
+    "20261008100000"
+  ],
+  "preserved_history": "fixture-prior statements/name unchanged; exact full original text MD5 verified for all3 added histories",
+  "historical_replay": {
+    "baseline-first": {
+      "applied": 193,
+      "failed": 62,
+      "excluded": 3
+    },
+    "strict": {
+      "applied": 145,
+      "failed": 110,
+      "excluded": 3
+    }
+  },
+  "teardown": "private mmap cluster stopped and removed",
+  "live": "NOT PROVEN; no deployments or hosted writes"
+}

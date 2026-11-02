@@ -1,0 +1,1476 @@
+{
+  "evidence_layer": "Actual Xcode simulator cases, reconciled unchanged cases plus affected reruns; not one all-green full rerun or hosted proof",
+  "runs": [
+    {
+      "run": "native-remaining",
+      "cases": 362,
+      "passed": 359,
+      "failed": 3
+    },
+    {
+      "run": "native-repaired-serial",
+      "cases": 24,
+      "passed": 23,
+      "failed": 1
+    },
+    {
+      "run": "native-collection-final",
+      "cases": 9,
+      "passed": 9,
+      "failed": 0
+    }
+  ],
+  "unique_remaining_cases": 362,
+  "accepted_passed": 362,
+  "unresolved": [],
+  "cases": {
+    "DetailTruthfulnessTests/testVerifiedProviderItems()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailTruthfulnessTests/testSanitizeMediaDescription()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/fmThreshold()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/gateThresholds()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/listCountCap()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/pasteAutoSend(text:expected:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/pastedSegment(text:titleLike:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/pasteAutoSendIntentGate()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/lowSignalGate(text:asks:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/importLookingTextPasses()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/pasteDetection()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/parserClarification()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/pastedListText(text:isList:count:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/keywordRouting(text:isImport:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeRoutingTests/inputIntent(text:expected:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "QuickStatusChangeTests/completingWithUnknownTotalLeavesProgressAlone()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "QuickStatusChangeTests/completingWithKnownTotalMarksEveryEpisode()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "QuickStatusChangeTests/ratingNotesAndVerdictAreNeverNamed()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "QuickStatusChangeTests/nonCompletedStatusNeverSendsTheProjectionsProgress(status:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "QuickStatusChangeTests/completingNeverLowersTheProgressHeld()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testEmptyString()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testOriginalCreatorAlias()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testWhitespaceHandling()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testDirectorExact()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testCastFilterBackground()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testCharacterDesignChief()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testUnrecognizedRole()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testDirectorCaseInsensitive()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testCastSortMainFirst()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testRolePriorityOrder()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testMusicAlias()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CreditRoleTests/testSeriesCompositionExact()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RoutingTests/updateTable()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RoutingTests/destinationTable()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RoutingTests/doubleTapNeverStacks()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RoutingTests/identityTable()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EditorialSearchTests/testFilterOnlySearchAllowed()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EditorialSearchTests/testTypedQueryStillRequiresMinimumLength()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EditorialSearchTests/testEmptyQueryWithoutFiltersBlocked()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/deletionBarrierIsTerminal()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/lateParseOfPreviousAccountIsDropped(answer:handOver:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/exportTextNamesUnresolvedIds()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/exportTextKeepsEqualIdsApart()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/structuredImportDurableReplayAndFieldAbsence()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/profileCoordinatorRetainsRecoveryAndRejectsAnotherAccount()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/applyAndUndoRefreshLibraryOnce()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/profileRetryDispatchesBeforeReconciliation()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/lateServerWriteOfPreviousAccountIsDropped(call:answer:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/dismissedProfileCardDropsLateUndo()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/edgeRequestShapes(call:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/lostApplyReplaysAndProfileUndoKeepsItsSession()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/profileStructuredRetryResumesFrozenPage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsContractTests/exportTextOfEndedAccountIsDropped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "BannerCenterTests/newestWinsAndAutoClears()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AuthCallbackGuardTests/serviceRejectsCallback(token:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AuthCallbackGuardTests/decision(_:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubDisclosureRepairTests/failedRefreshLeavesNoOldDisclosure()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubDisclosureRepairTests/committedMembershipWriteSurvivesOwnSignal(join:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubDisclosureRepairTests/staleFailureCannotRevokeRejoin()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubDisclosureRepairTests/firstAggregateCannotRefillAfterDisclosure()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/lateDeliveryOfPreviousAccountIsDropped(answer:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/foregroundNotificationDrainsOnce()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/outboxClearedOnAccountTransition(end:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/personalisedReadsOfEndedAccountAreDropped(read:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/outboxIsBounded()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/tasteRequestShapes()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/nextSuccessDrainsBackedOffSignals()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteContractTests/supersededSignalIsNeverDeliveredLater()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "FixtureHostTests/testHostIsFixtureHost()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "FixtureHostTests/composedClientIsDenied()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "FixtureHostTests/sharedSessionIsDenied()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "FixtureHostTests/fixtureStorageIsInMemory()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeContractTests/lateRecommendOfPreviousAccountIsDropped(answer:handOver:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeContractTests/warmupAndFeedbackRequestShapes()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryRealtimeTests/remountWaitsForThePendingTeardown()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryRealtimeTests/oldTeardownLeavesTheNewAccountsChannel()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryRealtimeTests/lateEventOfEndedAccountSchedulesNothing(transition:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PrivateStateResetTests/transitionClearsPrivateState(transition:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PrivateStateResetTests/accountSwitchClearsConciergeClubsCollection()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PrivateStateResetTests/deletedAccountPrefsAreRemoved()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DeepLinkRouterTests/testJoinValidCode()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DeepLinkRouterTests/testJoinLowercasedCode()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DeepLinkRouterTests/testJoinGarbageRejected()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DeepLinkRouterTests/testJoinShortestValidCode()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DeepLinkRouterTests/testClubLinkUnaffected()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LateRealtimeEventTests/staleEventsScheduleNothing()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ReleasesContractTests/lateUpcomingOfPreviousAccountIsDropped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ReleasesContractTests/countdownTimerStopsAndStaysStopped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ReleasesContractTests/coldStartReadsUpcomingOnce()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ReleasesContractTests/lateUpcomingIsRejectedByItsContext(outcome:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CatalogCacheContractTests/equalIdsStayDistinct()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CatalogCacheContractTests/publicCachesSurviveAccountTransitions()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CatalogCacheContractTests/duplicateReadsJoinAndWarmReadsAreFree()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testStableKeyFormat()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsAnimeTVDub()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsEmpty()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testConfidenceWord()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testDeckCardDecoding()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsOtherAnimeFormat()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testTasteProfileVectorRealmsMissing()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testProfileTopGenresOrdering()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testTasteProfileVectorRealmsDecoding()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testTasteRealmHumanize()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testTasteProfileVectorDecoding()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsMovie()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsManga()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testTasteProfileVectorMissingFields()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testDeckCardMissingOptionals()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsLanguageUnknown()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testDeckCardMetaDecodingManga()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsSubOnlyWhenNoDub()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testCaptionLine()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckTests/testMetaChipsSingular()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CollectionRequestCountTests/coldStartAndOneChangeRequestCounts()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRevocationCounterTests/myClubsReadOfBeforeTheRevocationIsDropped(revocation:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRevocationCounterTests/loadingSnapshotOfBeforeTheLeaveIsDropped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRevocationCounterTests/staleMembershipLossDoesNotRevokeTheRejoinedClub()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryFacadeTests/toggleFlipsSynchronously()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/conciergeWritersRefreshLibrary()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/batchRemovalRefreshesPagesOnce()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/changeSinksFireOncePerAppliedChange()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/cancelledCallerDoesNotCancelRefresh()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/sessionFunnelBindsAndResets()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/forwardersRegisterObservation()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/releasesReArmReminders()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/oldTeardownTailKeepsNewAccountReminders()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/serverWriteRefreshIsFresh()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryFacadeTests/accountSwitchMidWriteIsRejected()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "LibraryActionsPrimitiveTests/removeHandsBackTheStoresOutcome()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryActionsPrimitiveTests/noSessionSendsNothing()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryActionsPrimitiveTests/applyHandsBackTheStoresOutcome()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryActionsPrimitiveTests/saveHandsBackTheStoresOutcome()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ConciergeWorkflowLifetimeTests/heldIntent(scopeChange:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRPCContractTests/errorCodeCarriers(carrier:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRPCContractTests/errorCodeMapping(errorCase:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRPCContractTests/boundaryKeepsTransportAndCancellation()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRPCContractTests/requestShape(operation:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportLoadStateGateTests/trackedTitleIsKnownBeforeTheLoad()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportLoadStateGateTests/serverAnsweredLinesKeepTheServersAnswer(state:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportLoadStateGateTests/unknownPickIsNeverAnAdd(state:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportLoadStateGateTests/autoApplyWaitsForTheLoadedLibrary(state:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SocialActivityContractTests/transitionEmptiesFriendCounts()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SocialActivityContractTests/lateFriendCountsAreRejectedByTheirContext()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SocialActivityContractTests/lateRevokedFriendActivityIsNotHandedOut()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SocialActivityContractTests/staleCommentWriteIsNotHandedOut()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SocialActivityContractTests/invalidationEmptiesFriendCounts()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SocialActivityContractTests/lateFriendActivityIsNotHandedOut()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AdaptationLadderTests/testLadderResponseDecodesEditorialFields()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AdaptationLadderTests/testMediaLadderItemToMangaMedia()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AdaptationLadderTests/testLadderHasContentWithSource()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AdaptationLadderTests/testEmptyLadderHasNoContent()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AdaptationLadderTests/testMediaLadderItemToAnimeMedia()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AdaptationLadderTests/testCuratedLadderHasContent()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityContractTests/clubInvalidationDropsOnlyThatClub()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityContractTests/publicCachesStayWarmAcrossAccounts()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityContractTests/privateSelectionIsAccountScoped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportsParseSnapshotTests/preChangeParseIsSuperseded()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubAuthorDecodingTests/nullAuthorsDecode()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/fallbacks(fallback:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/documentedDivergence(divergence:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/railAndPollSheetsKeepTheirText()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/revocationKeepsItsOutcome(surface:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/revocationDivergence(divergence:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/nonServerErrors()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/serverCodeInEveryCarrier(code:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/viewsKeepTheirOutcome(surface:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/detailsFromRealisticPostgrestBody()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubErrorTests/liveAnswer(answer:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SearchContractTests/cursorContinuity()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SearchContractTests/newQueryCancelsOldQueryPage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportApplyGateTests/storeLoadStates()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportApplyGateTests/canApplyOnlyWhenLoaded(state:expected:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportApplyGateTests/blockedConfirmRefreshRetriesAFailedLoad()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportApplyGateTests/accountSwitchClosesTheGate()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PendingReminderTests/airingReminders(transition:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PendingReminderTests/revokedPermissionIsSeenWithoutANewPrompt()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PendingReminderTests/pausedCleanupKeepsTheNextAccountsReminders()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PendingReminderTests/scheduleOutcomeFollowsPermission(_:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EntityWorkIdentityTests/testMixedMediaIDsStayDistinct()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EntityWorkIdentityTests/testDuplicateMediaRowsStayDistinct()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/incrementSendsOnlyProgress()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/outOfRangeRatingIsRejectedLocally()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/equalIdsStayDistinct()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/favoriteWritesDatabaseScale()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/clearingVerdictSendsNull()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/addToListKeepsExistingEntry()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/userIdIsSentAsCanonicalLowerCase()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryHTTPContractTests/listReadsAreCoalesced()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RuntimeFlagsTests/privateReleaseCohort()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RuntimeFlagsTests/obsoleteFlagsBootstrapDoesNothing()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RuntimeFlagsTests/debugOverrides(_:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RuntimeFlagsTests/refreshCachesIntoInjectedStore()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RuntimeFlagsTests/ownersReadInjectedFlags(enabled:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RuntimeFlagsTests/staleReleaseCohortResponse()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RuntimeFlagsTests/rolloutBuckets(_:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/savingThroughTheStoreChangesExactlyTheEditedFields()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/completingWithUnknownTotalKeepsTheEnteredProgress()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/unratedTitleThatStaysUnratedDoesNotTouchTheRating()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/verdictIsNeverPartOfTheEdit()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/emptyingAnExistingRatingClearsIt()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/blankNoteOnATitleWithoutNoteIsNotSent()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/untrackedTitleStartsPlannedAndEmpty()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/statusChangeOnExistingEntryNamesStatusAndProgressAndKeepsTheVerdict()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/completingWithNoProgressMarksEveryKnownEpisode()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/notesAreTrimmed()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/outOfScaleScoreIsNeverSentAndNeverClears()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/emptyingAnExistingNoteClearsIt()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TrackingDraftTests/prefillUsesTheDatabaseRatingScale()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "HomeCompositionSnapshotTests/homeMediums()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "HomeCompositionSnapshotTests/detailShells()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "HomeCompositionSnapshotTests/releasePagerOrder()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "HomeCompositionSnapshotTests/selectedEdition()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "HomeCompositionSnapshotTests/exactUnitCursor()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CredentialLeaseTests/credentialChangeWaitsForObsoleteWrites()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CredentialLeaseTests/outboundLinkTapIsBoundToItsAccount()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CredentialLeaseTests/lateSuccessOfEndedAccountHandsOutNothing(family:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CredentialLeaseTests/preDispatchSwitchSendsNothingAsB()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TelemetryAttributionTests/interactionAcrossTransitionIsDropped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityNoteTests/testEnglishSubtitles()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityNoteTests/testNoMetadata()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityNoteTests/testEnglishDub()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityNoteTests/testGermanAudioWithoutOriginalLanguage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityNoteTests/testEnglishAudio()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityNoteTests/testAvailabilityFallback()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ProviderAvailabilityNoteTests/testGermanDub()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testShortInputNotImport()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testVibeRequestsNotImport()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testRegexBoundaries()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testSegmentTitleLike()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testExplicitStatusKeywords()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testGermanVibeWithStaffel()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testGermanImportLanguage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testSegmentVibeNotTitleLike()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testGermanVibeRequestsNotImport()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testMultiLineInput()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testCommaSeparatedTitles()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testSoftPartialMarkers()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testCaughtUpPatterns()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testStandalonePastTense()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testProgressPatterns()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testIPrefixPatterns()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testCaseInsensitive()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportIntentTests/testEmptyAndWhitespace()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PostgrestLibraryTransportTests/saveIsInsertIgnoringDuplicates()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PostgrestLibraryTransportTests/removeIsScopedDelete()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PostgrestLibraryTransportTests/failureMapping(_:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PostgrestLibraryTransportTests/fetchAllRequestsAndDecoding()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "PostgrestLibraryTransportTests/editSendsMaskedPatch()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TelemetryOwnerTests/endedAccountEventsAreDropped(transition:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TelemetryOwnerTests/outboundLinkRequestShape()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TelemetryOwnerTests/currentAccountEventsAreKept()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SessionEntryPointTests/entryResetsPrivateState(entry:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SessionEntryPointTests/sameUserEventsKeepState(event:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRealtimeSerializationTests/stopDuringSubscribeWins(superseder:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRealtimeSerializationTests/concurrentSubscribesOpenOneChannel(second:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRealtimeSerializationTests/resubscribeWaitsForThePendingTeardown()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsBundleCacheTests/bundleCacheIsKeyedByAccountAndClub()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsLibraryChangeTests/postWriteRefreshNeverReturnsAPreWriteBundle()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsLibraryChangeTests/libraryChangeRefreshesBundlesHoldingTheTitle()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsLibraryChangeTests/libraryChangeOfEndedAccountIsIgnored()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RetryAndTimedCacheTests/ownerTTL(age:requests:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RetryAndTimedCacheTests/trimEvictsOldest()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "RetryAndTimedCacheTests/retryPolicy(_:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/synopsisSourceDigestIsFNV1aOfUTF8()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/changedTitleOrGenresMissesTheCachedHook()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/animeAndMangaWithTheSameDescriptionGenerateSeparateHooks()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/storedTextOnlyResultDoesNotSatisfyAMediaRequest()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/animeAndMangaWithTheSameIdDoNotShareCachedText()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/textOnlyEntryDoesNotSatisfyAMediaLookup()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/stubSynopsisReturnsNoAssist()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/changedDescriptionDoesNotReturnTheOldText()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/stubClassificationReturnsNoAssist()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/stubDisambiguationReturnsNoAssist()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "SynopsisCacheTests/stubCollectionSearchReturnsNoAssist()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AuthErrorMappingTests/testWrappedCannotConnectTransportMessage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AuthErrorMappingTests/testOfflineTransportMessage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AuthErrorMappingTests/testTimeoutTransportMessage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AuthErrorMappingTests/testInvalidCredentialsMessage()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubDetailLifecycleRulesTests/addToClubSheetRevocationRule(selection:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubDetailLifecycleRulesTests/privateClubHidesMemberInitials()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/outboundURLSchemeAllowlist()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/verifiedVersusCatalogFallback(verifiedIsStale:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/outboundURLGuarantee()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/snapshotDropsNonHTTPLinks()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/supersededResolutionDoesNotPublish()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/flagOffUsesCatalogOnly()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/refreshRequestedWritesOnce()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DetailProviderLinksTests/primaryFollowsNextEpisodeSite()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "StaleUserListsCompletionTests/staleCompletionIsDropped(outcome:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/ratingDiff()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/trackedIsTheUnionOfServerAndLibrary(source:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/ambiguousAdaptationBlocksAutoApply(adaptation:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/autoApplyPlanUnknownTitle()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/applyItemRules(rule:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/firstParseEntryPoint()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/autoApplyThreshold(score:expected:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/preselectionActionDivergence()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/sharedDecisionsMatchTheViewCompositions()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/progressOnlyUpdateRequestShape()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/clarificationReparseEntryPoint()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/libraryLookupBoundary()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/autoApplyNeedsAllItems()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/statusDiffIsNormalized()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/autoApplyPlan(rule:surface:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/applyItemLimitCapsAndReportsOmitted()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/preselection(rule:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/conciergePlanEntryPoint()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/profilePlanEntryPoint()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/expectedStatusIsTheServersRawListType()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/equalNumericIdsStayDistinct()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/itemAction(rule:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/exclusionsAndSelections()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/preselectionOrder()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/selectedCandidateIsReconciled()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ImportReconcilerTests/duplicates()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryViewActionsTests/noSessionNoWriteNoBanner()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryViewActionsTests/heartProgressAndRemoval()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryViewActionsTests/markProgressRoutesThroughLibraryActions()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryViewActionsTests/failureShowsTheBanner()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryViewActionsTests/addThenRemoveAfterCompletion()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryViewActionsTests/doubleTapIgnoredWhileInFlight()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "LibraryViewActionsTests/toggleAddsAsPlannedAndRemoves()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsViewRulesTests/revocationSignalIsObservablePerClub(trigger:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsViewRulesTests/accountTransitionSignalsTheViews()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsViewRulesTests/keyedStopNeverClosesAnotherClubsChannel()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DiscoveryContentRulesTests/rules(_:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CollectionContractTests/keysetCursorContinuity()": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/batchAccountSwitchKeepsNewAccountScope()": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/lateAnswerIsRejectedByItsContext(outcome:)": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/sinkRefreshIsLatestWins()": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/skippedRemovalInsideDeferredBatch()": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/secondFetchSupersedesFirst()": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/supersededLoadMoreKeepsTheNewFlag()": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "CollectionContractTests/batchStatusRefreshesTheVisibleFeedOnce()": {
+      "result": "Passed",
+      "evidence": "native-collection-final"
+    },
+    "DiscoveryContractTests/browseSendsCursorVerbatim()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DiscoveryContractTests/bundleIsAccountScoped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DiscoveryContractTests/bundleCacheIsKeyedByUser()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "DiscoveryContractTests/defaultFormatRequestShape()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsAccountTransitionTests/lateMembershipLossOfEndedAccountRevokesNothing()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsAccountTransitionTests/transitionClearsClubsAndDropsLateAnswers(outcome:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "AssistantCompositionTests/viewsGetTheInjectedFMService()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EntityDiscoveryFilterTests/testCharacterMediaFilter()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EntityDiscoveryFilterTests/testEraBuckets()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EntityDiscoveryFilterTests/testStaffRoleGrouping()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "EntityDiscoveryFilterTests/testAuthorRoleGrouping()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "TasteDeckBannerTests/bannerMatchesTheOutbox(outbox:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CompositionGraphTests/accountScopedListMembership(kind:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "CompositionGraphTests/singleConstructionPath(kind:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRealtimeTests/membershipSignalRevokesThroughTheBoundedReRead()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "ClubsRealtimeTests/rejoinAfterRevocationKeepsTheNewChannel()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "ClubsRealtimeTests/channelLifecycleAcrossAccounts()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "ClubsRealtimeTests/clubChangeDropsTheOldChannelsEvents()": {
+      "result": "Passed",
+      "evidence": "native-repaired-serial"
+    },
+    "ClubsRevocationTests/membershipLossInvalidatesTheClub(trigger:)": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    },
+    "ClubsRevocationTests/inFlightBundleOfLeftClubIsDropped()": {
+      "result": "Passed",
+      "evidence": "native-remaining"
+    }
+  }
+}

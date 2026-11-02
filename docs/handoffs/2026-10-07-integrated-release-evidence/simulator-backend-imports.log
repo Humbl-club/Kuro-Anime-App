@@ -1,0 +1,28 @@
+=== Edge function suites (production handlers/rules, offline) ===
+
+--- deno test _shared
+a thrown limiter call fails closed as a retryable 503 ... ok (0ms)
+missing result, empty data and a shape without a boolean allowed fail closed ... ok (0ms)
+
+ok | 13 passed | 0 failed (108ms)
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-apply/index.ts
+--- deno test concierge-apply
+taste semantics: list writes carry the import context of their session, which does not outlive the transaction ... ok (0ms)
+request shape: an invalid idempotencyKey is 400; an empty item list writes nothing ... ok (0ms)
+
+ok | 22 passed | 0 failed (37ms)
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-undo/index.ts
+--- deno test concierge-undo
+identity: another user's session id is reported as not found and their rows stay ... ok (0ms)
+only the most recent applied session can be undone (409); a malformed sessionId is 400 without a transaction call ... ok (11ms)
+
+ok | 10 passed | 0 failed (34ms)
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-import-anilist/index.ts
+--- deno test concierge-import-anilist
+stream cursor is bound to provider selection and failure never returns partial success ... ok (0ms)
+original score scale and ordered custom shelves survive the structured stream ... ok (0ms)
+
+ok | 7 passed | 0 failed (37ms)
+
+suites: 4, tests passed: 52, failing suites: 0, empty suites: 0
+Edge function suites PASSED.

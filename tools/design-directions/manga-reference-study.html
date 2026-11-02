@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kuro — a better reading space</title>
+<style>
+:root{color-scheme:light;--ink:#202321;--muted:#626660;--paper:#f5f5f0;--line:#dedfd7}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-underline-offset:4px}button,summary{cursor:pointer}button,a,summary{-webkit-tap-highlight-color:transparent}button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #353c34;outline-offset:4px}header,main,footer{max-width:1180px;margin:auto;padding:28px}header{padding-top:42px}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}h1{font:normal clamp(36px,5vw,64px)/1.04 Georgia,serif;letter-spacing:-.04em;margin:22px 0 16px;max-width:760px}header p{max-width:660px;color:var(--muted)}.nav{display:flex;justify-content:space-between;gap:20px;align-items:center}.nav a{padding:10px 0;font-size:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:34px 28px}.study{min-width:0;border-top:1px solid var(--line);padding-top:18px}.study h2{margin:0;font-size:21px;letter-spacing:-.04em}.top{display:flex;align-items:center;justify-content:space-between;gap:16px}.top a{font-size:12px;padding:12px 0}.caption{margin:2px 0 16px;color:var(--muted);font-size:13px}.media{height:310px;background:#eceee8;border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}.media img{width:100%;height:100%;object-fit:contain}.media button{width:100%;height:100%;border:0;background:#202522;color:#fff;text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;font:inherit}.media button strong{font:normal 42px Georgia,serif;letter-spacing:-.04em}.media button span{font-size:12px;letter-spacing:.06em}.media button:active{background:#343c36}.media iframe,.media video{width:100%;height:100%;border:0}.phone{background:#e7e9e2}.phone img{width:auto;max-width:100%;height:100%}.take{display:flex;align-items:flex-start;gap:14px;padding-top:16px}.take small{font-size:10px;letter-spacing:.1em;text-transform:uppercase;flex-shrink:0;padding-top:4px;color:var(--muted)}.take p{margin:0;font-size:16px;letter-spacing:-.02em}details{margin-top:15px;color:var(--muted);font-size:13px}summary{padding:10px 0;font-size:12px}details p{margin:8px 0;max-width:60ch}.wide{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:28px}.wide .content{display:flex;flex-direction:column;justify-content:center}.wide .media{height:300px}.proposal{border-top:1px solid var(--line);margin-top:44px;padding-top:26px}.proposal h2{font:normal 34px Georgia,serif;margin:8px 0 22px}.principles{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.principles strong{font-size:17px;display:block;margin-bottom:8px}.principles p{font-size:14px;color:var(--muted);margin:0}.note{font-size:12px;color:var(--muted);margin:24px 0 0}footer{font-size:12px;color:var(--muted);padding-bottom:40px}.failure{padding:18px;text-align:center;font-size:13px}.media:has(.failure){height:180px}@media(max-width:700px){header,main,footer{padding-left:20px;padding-right:20px}.grid,.wide,.principles{grid-template-columns:1fr}.wide{gap:0}.wide .content{padding-top:16px}.media{height:290px}h1{max-width:340px}.top a{flex-shrink:0}.nav{align-items:flex-start}.proposal h2{font-size:29px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+<div class="nav"><span class="eyebrow">Kuro / reference study</span><a href="instrument.html?switch=poster&amp;medium=manga">Back to current Home ↗</a></div>
+<h1>A reading space.<br>With its own character.</h1>
+<p>Fresh references for artwork, materials and everyday interactions. Actual published product media; the Kuro translations below are proposals.</p>
+</header>
+<main>
+<div class="grid">
+<article class="study">
+<div class="top"><h2>mymind</h2><a href="https://mymind.com/" target="_blank" rel="noopener noreferrer">Original ↗</a></div>
+<p class="caption">Content gets its own visual identity.</p>
+<div class="media"><img src="https://mymind.com/assets/uploads/2025/12/BKMRK.webp" alt="mymind’s published book, film, article and album card treatments"></div>
+<div class="take"><small>For Kuro</small><p>Let Manga feel like a publication. Let Anime feel like a scene.</p></div>
+<details><summary>What to borrow</summary><p>Different content types receive different materials while the surrounding interface stays quiet. Cover identity does more work than background decoration.</p><p>Our translation: a stable reading layout with complete covers and consistent controls; only the artwork changes character. Avoid film perforations and fake book thickness as literal decoration.</p></details>
+</article>
+<article class="study">
+<div class="top"><h2>!Boring</h2><a href="https://notbor.ing/words/the-most-satisfying-checkbox" target="_blank" rel="noopener noreferrer">Breakdown ↗</a></div>
+<p class="caption">The action is designed as carefully as the object.</p>
+<div class="media" id="boring-media"><button id="play-boring" type="button"><strong>Press. Build. Settle.</strong><span>▶ Watch the original interaction</span></button></div>
+<div class="take"><small>For Kuro</small><p>One small chapter action. A recognisable, satisfying response.</p></div>
+<details><summary>What to borrow</summary><p>The creator explains immediate feedback, buildup, cancellation, completion, sound and haptics as connected states. This is an older design breakdown, useful for its method rather than proof of a current native build.</p><p>Our translation: one-tap progress with an authored transition and a coherent Undo. Keep artwork opening and progress updating separate. No mandatory long press, sound, confetti or full-screen button.</p></details>
+</article>
+<article class="study">
+<div class="top"><h2>Panels</h2><a href="https://www.panels.app/" target="_blank" rel="noopener noreferrer">Original ↗</a></div>
+<p class="caption">An actual comic library, built around covers.</p>
+<div class="media"><video controls playsinline preload="none" poster="https://firebasestorage.googleapis.com/v0/b/snikt-ccad1.appspot.com/o/panels_website%2Fhero_mac_wide.png?alt=media&amp;token=6cae86aa-1324-400a-8c2c-19eac4bfe673" src="https://www.panels.app/mac_library_web.mp4" aria-label="Panels published library demonstration"></video></div>
+<div class="take"><small>For Kuro</small><p>Many current reads should still look like a collection.</p></div>
+<details><summary>What to borrow</summary><p>Full covers and repeated library geometry make a large collection recognisable. The published demos distinguish library browsing from reading.</p><p>Our translation: two priority reads followed by an efficient, consistent continuation area. Keep title, chapter and control positions predictable. Kuro remains a tracker; this does not propose a licensed comic reader.</p></details>
+</article>
+<article class="study">
+<div class="top"><h2>MusicHarbor</h2><a href="https://marcosatanaka.com/press-kit/musicharbor/musicharbor-press-kit.html" target="_blank" rel="noopener noreferrer">Press kit ↗</a></div>
+<p class="caption">A useful structure for many releases.</p>
+<div class="media phone"><img src="https://marcosatanaka.com/press-kit/musicharbor/iPhone/iphone-1.png" alt="MusicHarbor’s official release screenshot, grouping several covers under Today and This Month"></div>
+<div class="take"><small>For Kuro</small><p>Give each date room for several titles.</p></div>
+<details><summary>What to borrow</summary><p>The inspected release screenshot groups multiple artwork tiles by time. This is a structure reference, rather than the visual style we should copy.</p><p>Our translation: Today, Tomorrow and Later in one scroll, with compact repeated artwork within each date. Unknown manga release dates must remain unknown. No extra Home submenu or one-title-per-day limit.</p></details>
+</article>
+<article class="study wide">
+<div class="media"><img src="https://sublime.app/assets/collection-design-Y-vflECd.avif" alt="Sublime’s published design collection, combining different visual references"></div>
+<div class="content"><div class="top"><h2>Sublime</h2><a href="https://sublime.app/" target="_blank" rel="noopener noreferrer">Original ↗</a></div><p class="caption">Image and written thought can have equal presence.</p><div class="take"><small>For Kuro</small><p>A club thought can be part of the composition, rather than more metadata.</p></div><details><summary>What to borrow</summary><p>The published collection material makes images and other saved fragments visually distinct. Its content arrangement is more relevant here than its animated landing-page scenery.</p><p>Our translation: one short, attributed private-club thought beside artwork. More discussion opens on the detail page. No public feed, collage navigation or infinite canvas on Home.</p></details></div>
+</article>
+</div>
+<section class="proposal"><span class="eyebrow">A direction to explore / not yet implemented</span><h2>More character. Less machinery.</h2><div class="principles"><div><strong>A reading composition</strong><p>Artwork and title form the identity. Chapter progress becomes one compact, distinctive control—not a dashboard attached to every cover.</p></div><div><strong>One movement language</strong><p>Press, chapter change and Undo relate to each other. Opening a cover keeps its spatial origin. Reduced Motion keeps the same clear states.</p></div><div><strong>A private margin</strong><p>Named club readers and a short thought sit near the title they belong to. Releases have their own chronological rhythm.</p></div></div><p class="note">Keep the selected Poster switch and Sunday Club. Current Manga Home v53 is unchanged and remains review-pending.</p></section>
+</main>
+<footer>Reviewed 3 October 2026 · Official websites, published screenshots and demos · No hands-on native interaction or haptic validation · Remote media needs internet and remains owned by its original creators.</footer>
+<script>
+document.getElementById('play-boring').addEventListener('click',()=>{const iframe=document.createElement('iframe');iframe.src='https://player.vimeo.com/video/715398709';iframe.title='!Boring’s published checkbox interaction';iframe.allow='fullscreen; picture-in-picture';iframe.allowFullscreen=true;document.getElementById('boring-media').replaceChildren(iframe)});
+document.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{const p=document.createElement('p');p.className='failure';p.textContent='Source image is unavailable. Open the original reference above.';img.replaceWith(p)}));
+</script>
+</body>
+</html>

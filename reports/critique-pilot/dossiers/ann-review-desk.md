@@ -1,0 +1,18 @@
+# Anime News Network — review desk — site dossier (Round 0, 2026-08-05)
+
+**Status: ACTIVE** (reviews published daily; most recent entries dated 2026-08-04 at time of scouting)
+
+**Scope note (honesty):** this dossier covers ONLY ANN's named-critic review section (`/review/`), not the news aggregator, not the Encyclopedia user ratings. Is it "niche critique"? Not really — it is a mainstream professional desk. But it is genuine long-form, bylined, argued criticism, and it is the largest consistent EN review archive in the medium. It qualifies for the pilot as a critique desk; it should never be mistaken for an indie voice.
+
+- **Name:** Anime News Network — Reviews
+- **URL:** https://www.animenewsnetwork.com/review/
+- **Anime/manga/both:** Both — plus light novels, games, live-action (media type is encoded in review URLs; pilot should filter to anime/manga/LN).
+- **Language:** English
+- **Named critics:** Yes — every review page carries a real-name byline (verified: Jeremy Tauber on the example below). Bylines are NOT shown on the index pages, only on article pages. Long-standing desk names include Rebecca Silverman, Richard Eisenbeis, James Beckett, Caitlin Moore (the AniFem team page notes Caitlin does her seasonal work at ANN).
+- **Review depth:** ~1,800-2,000 words on the example measured. Letter grades (overall + sub-grades for story/animation/art/music). ARGUES: the example review analyzed framing, editing transitions, and direction with named film-reference points — real craft argument, not reaction. Depth varies by reviewer and format (episode-batch reviews vs series reviews vs volume reviews).
+- **Archive size estimate:** Archive page (`/review/archive`) runs 2001 → present, organized year/month with per-month counts. 236 reviews in Jan-Aug 2026; historical average ~25-35/month. Rough total ≈ 7,000-9,000 reviews across all media types (ESTIMATE extrapolated from monthly counts, not summed exactly).
+- **robots.txt + TOS posture:** **Permissive for our purpose.** robots.txt (fetched in full) disallows only `/sponsor/`, `/search`, `/video/`, account/admin paths and some Encyclopedia query permutations; review pages are not disallowed; `Crawl-delay: 2` for all bots; no AI-crawler blocks. Copyright policy (fetched): "quoting an excerpt of an article is permitted"; wholesale reproduction requires rewriting + attribution + link ("The material must be properly attributed to the original source", "Cutting and pasting an entire article is not permitted. However quoting an excerpt of an article is permitted."). No scraping/automation clause found in the copyright policy. The `animenewsnetwork.org/terms/` page failed with a TLS error this pass — TOS text unverified; flag for a re-check before blessing.
+- **Accessibility:** Excellent — full chronological archive index at `/review/archive` with per-month listing, stable review URLs, `Crawl-delay: 2` explicitly stated. Fetches worked without a block.
+- **Lens/voice:** Professional deadline criticism: broad coverage, grade-anchored, per-critic personality within a house format. Best value: consistent grades + explicit content commentary across a very large title set; weakest on avant-garde craft depth relative to specialist desks.
+- **Proposed trust tier:** **B** — professional named critics and huge argued archive, but mainstream/deadline-driven and reviewer-variable, so it weights below specialist Tier A craft desks. (Tier-weight B×0.8 per plan §5.)
+- **Example review URL (visited):** https://www.animenewsnetwork.com/review/botan-kamiina-fully-blossoms-when-drunk/.239829 — Jeremy Tauber, grade A, ~1,800-2,000 words; quotes verified on page: "More than the alcohol itself, it is the anime's cinematic style that lets the characters' emotions fully blossom…"

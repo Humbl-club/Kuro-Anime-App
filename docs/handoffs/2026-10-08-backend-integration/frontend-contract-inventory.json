@@ -1,0 +1,629 @@
+{
+  "rpcs": {
+    "get_media_ladder": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 720
+      }
+    ],
+    "enqueue_media_relation_refresh": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 753
+      }
+    ],
+    "get_manga_chapter_status": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 904
+      }
+    ],
+    "fetch_my_clubs_loading": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 400
+      }
+    ],
+    "fetch_my_clubs_enriched": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 402
+      }
+    ],
+    "create_club": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 461
+      }
+    ],
+    "join_club": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 475
+      }
+    ],
+    "leave_club": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 490
+      }
+    ],
+    "fetch_club_bundle": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 528
+      }
+    ],
+    "fetch_club_bundle_loading": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 561
+      }
+    ],
+    "add_club_rail_item": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 612
+      }
+    ],
+    "cast_club_vote": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 625
+      }
+    ],
+    "create_club_rail": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 637
+      }
+    ],
+    "create_club_poll": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 650
+      }
+    ],
+    "toggle_club_reaction": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 665
+      }
+    ],
+    "check_club_activity_since": [
+      {
+        "file": "Kuro/Clubs/ClubsStore.swift",
+        "line": 758
+      }
+    ],
+    "collection_feed_page": [
+      {
+        "file": "Kuro/Collection/CollectionStore.swift",
+        "line": 316
+      }
+    ],
+    "collection_series_page_v1": [
+      {
+        "file": "Kuro/Collection/CollectionStore.swift",
+        "line": 484
+      }
+    ],
+    "collection_series_children_v1": [
+      {
+        "file": "Kuro/Collection/CollectionStore.swift",
+        "line": 514
+      }
+    ],
+    "apply_progress_mutations_v1": [
+      {
+        "file": "Kuro/Composition/PostgrestLibraryTransport.swift",
+        "line": 78
+      },
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 645
+      }
+    ],
+    "apply_remove_mutations_v1": [
+      {
+        "file": "Kuro/Composition/PostgrestLibraryTransport.swift",
+        "line": 87
+      }
+    ],
+    "discover_bundle": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 114
+      }
+    ],
+    "browse_anime_page": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 190
+      }
+    ],
+    "browse_manga_page": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 232
+      }
+    ],
+    "fetch_daily_feature": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 251
+      }
+    ],
+    "fetch_because_you_rail": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 271
+      }
+    ],
+    "fetch_tonight_shelf": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 291
+      }
+    ],
+    "fetch_realm_hidden_gem": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 311
+      }
+    ],
+    "recommend_ids_similar_to_seeds": [
+      {
+        "file": "Kuro/Discovery/RecommendationsReader.swift",
+        "line": 80
+      }
+    ],
+    "series_detail_bundle_v1": [
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 96
+      }
+    ],
+    "series_units_page_v1": [
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 108
+      }
+    ],
+    "series_editions_page_v1": [
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 118
+      }
+    ],
+    "home_bundle_v1": [
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 302
+      },
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 354
+      },
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 444
+      }
+    ],
+    "home_events_page_v1": [
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 388
+      }
+    ],
+    "home_pending_page_v1": [
+      {
+        "file": "Kuro/Home/HomeStore.swift",
+        "line": 413
+      }
+    ],
+    "check_email_exists": [
+      {
+        "file": "Kuro/Identity/AuthService.swift",
+        "line": 165
+      }
+    ],
+    "start_library_import_v1": [
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 277
+      }
+    ],
+    "import_job_status_v1": [
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 287
+      }
+    ],
+    "apply_import_chunk_v1": [
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 292
+      }
+    ],
+    "finish_library_import_v1": [
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 302
+      }
+    ],
+    "batch_provider_availability_for_media_v2": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 324
+      }
+    ],
+    "batch_providers_for_media": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 370
+      }
+    ],
+    "enqueue_media_availability_refresh": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 415
+      }
+    ],
+    "get_provider_availability_refresh_queue_summary": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 449
+      }
+    ],
+    "get_media_availability_status": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 484
+      }
+    ],
+    "save_user_streaming_services": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 540
+      }
+    ],
+    "club_shared_providers": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 573
+      }
+    ],
+    "search_anime_page": [
+      {
+        "file": "Kuro/Search/SearchStore.swift",
+        "line": 413
+      }
+    ],
+    "search_manga_page": [
+      {
+        "file": "Kuro/Search/SearchStore.swift",
+        "line": 447
+      }
+    ],
+    "friend_activity_page_v1": [
+      {
+        "file": "Kuro/Social/SocialActivityStore.swift",
+        "line": 160
+      }
+    ],
+    "fetch_friend_activity_for_title": [
+      {
+        "file": "Kuro/Social/SocialActivityStore.swift",
+        "line": 163
+      }
+    ],
+    "upsert_title_comment_scoped_v1": [
+      {
+        "file": "Kuro/Social/SocialActivityStore.swift",
+        "line": 183
+      }
+    ],
+    "upsert_title_comment": [
+      {
+        "file": "Kuro/Social/SocialActivityStore.swift",
+        "line": 186
+      }
+    ],
+    "delete_title_comment": [
+      {
+        "file": "Kuro/Social/SocialActivityStore.swift",
+        "line": 197
+      }
+    ],
+    "toggle_comment_reaction": [
+      {
+        "file": "Kuro/Social/SocialActivityStore.swift",
+        "line": 210
+      }
+    ],
+    "count_friends_tracking": [
+      {
+        "file": "Kuro/Social/SocialActivityStore.swift",
+        "line": 259
+      }
+    ],
+    "fetch_taste_deck_batch": [
+      {
+        "file": "Kuro/Taste/TasteStore.swift",
+        "line": 132
+      }
+    ],
+    "fetch_my_taste_profile": [
+      {
+        "file": "Kuro/Taste/TasteStore.swift",
+        "line": 152
+      }
+    ],
+    "fetch_personalized_new_to_you": [
+      {
+        "file": "Kuro/Taste/TasteStore.swift",
+        "line": 175
+      }
+    ],
+    "record_taste_deck_signal": [
+      {
+        "file": "Kuro/Taste/TasteStore.swift",
+        "line": 227
+      }
+    ],
+    "record_outbound_link": [
+      {
+        "file": "Kuro/Telemetry/OutboundLinkTelemetry.swift",
+        "line": 46
+      }
+    ]
+  },
+  "tables": {
+    "anime": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 96
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 193
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 342
+      },
+      {
+        "file": "Kuro/Discovery/RecommendationsReader.swift",
+        "line": 96
+      },
+      {
+        "file": "Kuro/Releases/ReminderScheduler.swift",
+        "line": 182
+      }
+    ],
+    "manga": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 141
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 249
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 373
+      },
+      {
+        "file": "Kuro/Discovery/RecommendationsReader.swift",
+        "line": 118
+      }
+    ],
+    "anime_characters": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 415
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 665
+      }
+    ],
+    "anime_staff": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 446
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 597
+      }
+    ],
+    "anime_studios": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 477
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 568
+      }
+    ],
+    "manga_characters": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 508
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 672
+      }
+    ],
+    "manga_authors": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 539
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 631
+      }
+    ],
+    "external_links": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 804
+      }
+    ],
+    "episodes": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 825
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 847
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 920
+      }
+    ],
+    "chapters": [
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 864
+      },
+      {
+        "file": "Kuro/Catalog/CatalogStore.swift",
+        "line": 886
+      }
+    ],
+    "mv_anime_trending": [
+      {
+        "file": "Kuro/Discovery/DiscoveryStore.swift",
+        "line": 140
+      }
+    ],
+    "profiles": [
+      {
+        "file": "Kuro/Identity/AuthService.swift",
+        "line": 107
+      }
+    ],
+    "streaming_services": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 493
+      }
+    ],
+    "user_streaming_services": [
+      {
+        "file": "Kuro/Providers/ProviderAvailabilityStore.swift",
+        "line": 516
+      }
+    ],
+    "user_airing_next": [
+      {
+        "file": "Kuro/Releases/ReleasesStore.swift",
+        "line": 136
+      }
+    ],
+    "concierge_events": [
+      {
+        "file": "Kuro/Services/ConciergeAnalytics.swift",
+        "line": 115
+      }
+    ],
+    "feature_flags": [
+      {
+        "file": "Kuro/Services/FeatureFlags.swift",
+        "line": 110
+      }
+    ],
+    "feature_flag_overrides": [
+      {
+        "file": "Kuro/Services/FeatureFlags.swift",
+        "line": 126
+      }
+    ],
+    "realm_meta": [
+      {
+        "file": "Kuro/Taste/TasteStore.swift",
+        "line": 195
+      }
+    ]
+  },
+  "edge_functions": {
+    "concierge-parse": [
+      {
+        "file": "Kuro/Concierge/ConciergeStore.swift",
+        "line": 75
+      },
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 193
+      }
+    ],
+    "concierge-recommend": [
+      {
+        "file": "Kuro/Concierge/ConciergeStore.swift",
+        "line": 113
+      }
+    ],
+    "concierge-retrieve-feedback": [
+      {
+        "file": "Kuro/Concierge/ConciergeStore.swift",
+        "line": 160
+      }
+    ],
+    "delete-account": [
+      {
+        "file": "Kuro/Identity/AuthService.swift",
+        "line": 146
+      }
+    ],
+    "concierge-apply": [
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 234
+      }
+    ],
+    "concierge-import-anilist": [
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 355
+      },
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 425
+      },
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 444
+      }
+    ],
+    "concierge-undo": [
+      {
+        "file": "Kuro/Imports/ImportsService.swift",
+        "line": 395
+      }
+    ]
+  },
+  "candidate_migrations": [
+    {
+      "id": "20261007040000",
+      "path": "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql",
+      "sha256": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261007130000",
+      "path": "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql",
+      "sha256": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    }
+  ],
+  "limitations": "Static literal call sites; dynamic helper/worker contracts reviewed separately. Declaration does not prove deployed compatibility."
+}

@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "runId": "20261006T233132Z",
+  "email": "kuro-probe-journal-20261006T233132Z@mailbox.invalid",
+  "selectOk": true,
+  "insertDenied": true,
+  "updateDenied": true,
+  "deleteDenied": true,
+  "selectCount": 0,
+  "insertCode": "42501",
+  "updateCode": "42501",
+  "deleteCode": "42501",
+  "itemInsertDenied": true
+}
+[cleanup] deleted kuro-probe-journal-20261006T233132Z@mailbox.invalid

@@ -1,0 +1,8 @@
+{
+  "client-call-register.csv": 381,
+  "social-call-register.csv": 55,
+  "edge-call-register.csv": 229,
+  "operational-call-register.csv": 427,
+  "rpc-review-register.csv": 57,
+  "interpretation": "Static records, not additive unique requests or runtime request counts. See each lane coverage statement."
+}

@@ -1,0 +1,209 @@
+path,lines,kind,capability_owner,git_state,note
+Kuro/Catalog/CatalogCreditsModels.swift,285,owner,Catalog,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Catalog/CatalogDetailModels.swift,122,owner,Catalog,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Catalog/CatalogModels.swift,251,owner,Catalog,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Catalog/CatalogRPCParams.swift,37,owner,Catalog,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Catalog/CatalogStore.swift,939,owner,Catalog,untracked,
+Kuro/Catalog/DiscoveryContentRules.swift,57,owner,Catalog,untracked,
+Kuro/Catalog/MediaDisplayModels.swift,284,owner,Catalog,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Catalog/MediaLadderModels.swift,119,owner,Catalog,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Catalog/MissingSupabaseConfiguration.swift,10,owner,Catalog,untracked,
+Kuro/Clubs/ClubModels.swift,199,owner,Clubs,untracked,
+Kuro/Clubs/ClubRPCParams.swift,117,owner,Clubs,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Clubs/ClubRealtimeCoordinator.swift,386,owner,Clubs,untracked,
+Kuro/Clubs/ClubsLibrarySink.swift,24,owner,Clubs,untracked,
+Kuro/Clubs/ClubsStore.swift,1018,owner,Clubs,untracked,
+Kuro/Collection/CollectionRPCParams.swift,74,owner,Collection,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Collection/CollectionStore.swift,589,owner,Collection,untracked,
+Kuro/Composition/AccountScopedState.swift,23,owner,Composition,untracked,
+Kuro/Composition/AppComposition.swift,663,owner,Composition,untracked,
+Kuro/Composition/BannerCenter.swift,42,owner,Composition,untracked,
+Kuro/Composition/FixtureHost.swift,86,owner,Composition,untracked,Current source snapshot
+Kuro/Composition/LibraryChangeSinks.swift,70,owner,Composition,untracked,
+Kuro/Composition/LibraryRefreshHook.swift,40,owner,Composition,untracked,
+Kuro/Composition/PostgrestLibraryTransport.swift,143,owner,Composition,untracked,
+Kuro/Composition/PostgrestRequestEncoding.swift,27,owner,Composition,untracked,Current source snapshot
+Kuro/Concierge/ConciergeFunctions.swift,104,owner,Concierge,untracked,
+Kuro/Concierge/ConciergeRecommendModels.swift,64,owner,Concierge,untracked,
+Kuro/Concierge/ConciergeRouting.swift,408,owner,Concierge,untracked,
+Kuro/Concierge/ConciergeStore.swift,174,owner,Concierge,untracked,
+Kuro/Concierge/ConciergeWorkflowLifetime.swift,69,owner,Concierge,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/ContentView.swift,929,app,AppShell,tracked,
+Kuro/Design/Color+Hex.swift,37,design,DesignSystem,tracked,
+Kuro/Design/FlowLayout.swift,57,design,DesignSystem,untracked,
+Kuro/Design/KuroDesignSystem.swift,716,design,DesignSystem,tracked,
+Kuro/Discovery/DiscoverCards.swift,249,owner,Discovery,untracked,
+Kuro/Discovery/DiscoveryRPCParams.swift,138,owner,Discovery,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Discovery/DiscoveryStore.swift,324,owner,Discovery,untracked,
+Kuro/Discovery/RecommendationsReader.swift,135,owner,Discovery,untracked,
+Kuro/Home/HomeContracts.swift,571,owner,Home,untracked,Home/series work separately reviewed
+Kuro/Home/HomePersonalSnapshot.swift,153,owner,Home,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Home/HomeStore.swift,648,owner,Home,untracked,Home/series work separately reviewed
+Kuro/Identity/AuthCallbackGuard.swift,55,owner,Identity,untracked,
+Kuro/Identity/AuthService.swift,285,owner,Identity,untracked,
+Kuro/Identity/IdentityStore.swift,38,owner,Identity,untracked,
+Kuro/Identity/SessionController.swift,832,owner,Identity,untracked,
+Kuro/Imports/ImportLibraryProjectionModels.swift,83,owner,Imports,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Imports/ImportModels.swift,516,owner,Imports,untracked,
+Kuro/Imports/ImportReconciler.swift,644,owner,Imports,untracked,
+Kuro/Imports/ImportsService+MALAccount.swift,46,owner,Imports,untracked,Integrated continuation; source/local proof only
+Kuro/Imports/ImportsService.swift,739,owner,Imports,untracked,
+Kuro/Imports/MALNativeAccountConnector.swift,357,owner,Imports,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Imports/ProfileImportCoordinator.swift,624,owner,Imports,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Infrastructure/MemoryPressure.swift,33,owner,Infrastructure,untracked,
+Kuro/Infrastructure/Retry.swift,37,owner,Infrastructure,untracked,
+Kuro/Infrastructure/TimedCache.swift,20,owner,Infrastructure,untracked,
+Kuro/KuroApp.swift,191,app,AppShell,tracked,
+Kuro/Library/LibraryActions.swift,291,owner,Library,untracked,
+Kuro/Library/LibraryRealtime.swift,302,owner,Library,untracked,
+Kuro/Models/DiscoverBundle.swift,47,models,SharedModels,tracked,
+Kuro/Providers/ProviderAvailabilityModels.swift,174,owner,Providers,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Providers/ProviderAvailabilityStore+DetailLinks.swift,169,owner,ProviderAvailability,untracked,
+Kuro/Providers/ProviderAvailabilityStore+LegalLinks.swift,120,owner,ProviderAvailability,untracked,
+Kuro/Providers/ProviderAvailabilityStore.swift,597,owner,ProviderAvailability,untracked,
+Kuro/Providers/ProviderLinkBuilders.swift,143,owner,ProviderAvailability,untracked,
+Kuro/Providers/ProviderRPCParams.swift,78,owner,Providers,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Releases/ReleasesStore.swift,235,owner,Releases,untracked,
+Kuro/Releases/ReminderScheduler.swift,256,owner,Releases,untracked,
+Kuro/Search/SearchRPCParams.swift,86,owner,Search,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Search/SearchStore.swift,458,owner,Search,untracked,
+Kuro/Services/AppConfig.swift,53,service,RuntimeConfig,tracked,
+Kuro/Services/AppleFMService.swift,853,service,DeviceIntelligence,tracked,
+Kuro/Services/ConciergeAnalytics.swift,172,service,Telemetry,tracked,
+Kuro/Services/DeepLinkRouter.swift,101,service,AppShell,tracked,
+Kuro/Services/FeatureFlags.swift,367,service,RuntimeConfig,tracked,
+Kuro/Services/ImagePipeline.swift,176,service,ImagePipeline,tracked,
+Kuro/Services/KuroDiskDetailCache.swift,98,service,ImagePipeline,tracked,
+Kuro/Services/KuroPerf.swift,30,service,Telemetry,tracked,
+Kuro/Services/NetworkMonitor.swift,45,service,RuntimeConfig,tracked,
+Kuro/Services/TextNormalization.swift,271,service,SharedText,tracked,
+Kuro/Social/SocialActivityStore.swift,277,owner,SocialActivity,untracked,
+Kuro/Social/SocialRPCParams.swift,68,owner,Social,untracked,"Integrated release continuation; source ownership, not production qualification"
+Kuro/Taste/TasteModels.swift,312,owner,Taste,untracked,
+Kuro/Taste/TasteStore.swift,394,owner,Taste,untracked,
+Kuro/Telemetry/InteractionTelemetry.swift,119,owner,Telemetry,untracked,
+Kuro/Telemetry/OutboundLinkTelemetry.swift,79,owner,Telemetry,untracked,
+Kuro/Views/AddToListSheet.swift,591,view,Library,tracked,
+Kuro/Views/AuthView.swift,1439,view,Identity,tracked,
+Kuro/Views/BrowseComponents.swift,809,view,Discovery,tracked,
+Kuro/Views/BrowseView.swift,580,view,Discovery,tracked,
+Kuro/Views/ClubCreateSheets.swift,311,view,Clubs,tracked,
+Kuro/Views/ClubDetailSheets.swift,675,view,Clubs,tracked,
+Kuro/Views/ClubDetailShellComponents.swift,371,view,Clubs,tracked,
+Kuro/Views/ClubDetailTabComponents.swift,1402,view,Clubs,tracked,
+Kuro/Views/ClubDetailView.swift,1100,view,Clubs,tracked,
+Kuro/Views/ClubViewLifecycle.swift,165,view,SharedPresentation,untracked,
+Kuro/Views/ClubsView.swift,884,view,Clubs,tracked,
+Kuro/Views/ConciergeAniListImportCoordinator.swift,179,view,Imports,tracked,
+Kuro/Views/ConciergeComponents.swift,1594,view,Concierge,tracked,
+Kuro/Views/ConciergeEditorialShell.swift,89,view,Concierge,tracked,
+Kuro/Views/ConciergeImportCards.swift,944,view,Imports,tracked,
+Kuro/Views/ConciergeInputField.swift,542,view,Concierge,tracked,
+Kuro/Views/ConciergeRecommendationRails.swift,690,view,Concierge,tracked,
+Kuro/Views/ConciergeResponseStage.swift,10,view,Concierge,tracked,
+Kuro/Views/ConciergeView+AniListImport.swift,674,view,Imports,tracked,
+Kuro/Views/ConciergeView.swift,1531,view,Concierge,tracked,
+Kuro/Views/CountdownTimer.swift,80,view,Releases,tracked,
+Kuro/Views/DetailPages/AdaptationPathSection.swift,419,view,Catalog,tracked,
+Kuro/Views/DetailPages/AnimeDetailView.swift,1521,view,Catalog,tracked,
+Kuro/Views/DetailPages/CastSection.swift,310,view,Catalog,tracked,
+Kuro/Views/DetailPages/ClubActivitySection.swift,461,view,Clubs,tracked,
+Kuro/Views/DetailPages/CreditsSection.swift,246,view,Catalog,tracked,
+Kuro/Views/DetailPages/DetailSharedComponents.swift,265,view,Catalog,untracked,
+Kuro/Views/DetailPages/EntityDetailSheets.swift,723,view,Catalog,tracked,
+Kuro/Views/DetailPages/ExternalLinksSection.swift,82,view,Catalog,tracked,
+Kuro/Views/DetailPages/FriendsActivitySection.swift,556,view,SocialActivity,tracked,
+Kuro/Views/DetailPages/MangaDetailView.swift,1461,view,Catalog,tracked,
+Kuro/Views/DetailPages/MediaDetailSheet.swift,147,view,Catalog,tracked,
+Kuro/Views/DetailPages/ProviderLinkViews.swift,262,view,Catalog,untracked,
+Kuro/Views/DiscoverOneThingCard.swift,152,view,Discovery,tracked,
+Kuro/Views/DiscoverViewModel.swift,61,view,Discovery,tracked,
+Kuro/Views/EditorialCollectionComponents.swift,883,view,Library,tracked,
+Kuro/Views/EditorialCollectionView.swift,940,view,Library,tracked,
+Kuro/Views/EditorialDiscoverRouting.swift,50,view,Discovery,tracked,
+Kuro/Views/EditorialDiscoverView.swift,1375,view,Discovery,tracked,
+Kuro/Views/EditorialSearchView.swift,740,view,Search,tracked,
+Kuro/Views/Home/HomeCalendarPresentation.swift,58,presentation helper,Home,untracked,Display-only Gregorian source-day grouping; no new lifecycle owner or transport.
+Kuro/Views/Home/HomeView.swift,767,view,Home,untracked,Presentation fidelity independently reviewed; cohesive account-keyed rendering; Library retains mutation/recovery policy. Size remains a semantic review signal.
+Kuro/Views/Home/SeriesDetailViews.swift,875,view,Home,untracked,Presentation fidelity independently reviewed; cohesive account-keyed rendering; Library retains mutation/recovery policy. Size remains a semantic review signal.
+Kuro/Views/KuroCachedAsyncImage.swift,86,view,ImagePipeline,tracked,
+Kuro/Views/KuroCardText.swift,34,view,SharedPresentation,tracked,
+Kuro/Views/KuroConciergeMark.swift,77,view,Concierge,tracked,
+Kuro/Views/KuroDeliberateTap.swift,26,view,SharedPresentation,tracked,
+Kuro/Views/KuroGestureCoordinator.swift,35,view,AppShell,tracked,
+Kuro/Views/KuroGesturePolicy.swift,10,view,AppShell,tracked,
+Kuro/Views/KuroGlass.swift,147,view,DesignSystem,tracked,
+Kuro/Views/KuroInteractionEnvironment.swift,16,view,SharedPresentation,tracked,
+Kuro/Views/KuroLoadMoreSentinel.swift,51,view,SharedPresentation,tracked,
+Kuro/Views/KuroPagingGesture.swift,81,view,AppShell,tracked,
+Kuro/Views/KuroRefinedCard.swift,385,view,SharedPresentation,tracked,
+Kuro/Views/KuroToast.swift,100,view,SharedPresentation,tracked,
+Kuro/Views/KuroTransientBanner.swift,26,view,SharedPresentation,tracked,
+Kuro/Views/LibraryViewActions.swift,64,view,SharedPresentation,untracked,
+Kuro/Views/OnboardingView.swift,252,view,AppShell,tracked,
+Kuro/Views/ProfileFreshnessCard.swift,164,view,ProviderAvailability,tracked,
+Kuro/Views/ProfileView.swift,1089,view,Identity,tracked,
+Kuro/Views/QuickVerdictActionCard.swift,717,view,Library,tracked,
+Kuro/Views/Routing/KuroRoutes.swift,244,view,AppShell (typed routes),untracked,
+Kuro/Views/SharedCards/AddToClubRailSheet.swift,302,view,SharedPresentation,untracked,
+Kuro/Views/SharedCards/CompactAnimeCard.swift,112,view,SharedPresentation,untracked,
+Kuro/Views/SharedCards/GridAnimeCard.swift,192,view,SharedPresentation,untracked,
+Kuro/Views/TasteDeckView.swift,1304,view,Taste,tracked,live at HEAD; dewired in the user working tree
+Kuro/Views/TastePicksView.swift,200,view,Taste,untracked,user WIP (untracked); mechanical edits only per R-E6-1
+Kuro/Views/TrackingDraft.swift,92,view,SharedPresentation,untracked,
+KuroTests/AccountLifecycleTests.swift,840,test,(tests),untracked,
+KuroTests/AssistantContractTests.swift,1237,test,(tests),untracked,
+KuroTests/ClubDisclosureRepairTests.swift,100,test,Tests,untracked,Integrated continuation; source/local proof only
+KuroTests/ClubErrorTests.swift,510,test,(tests),untracked,
+KuroTests/ClubsContractTests.swift,1248,test,(tests),untracked,
+KuroTests/ClubsViewRulesTests.swift,331,test,(tests),untracked,
+KuroTests/CollectionContractTests.swift,611,test,(tests),untracked,
+KuroTests/ConciergeRoutingTests.swift,403,test,(tests),untracked,
+KuroTests/CredentialLeaseTests.swift,286,test,(tests),untracked,Current source snapshot; no acceptance implied
+KuroTests/DetailProviderLinksTests.swift,372,test,(tests),untracked,
+KuroTests/FixtureHostTests.swift,56,test,(tests),untracked,Current source snapshot; no acceptance implied
+KuroTests/HomeCompositionSnapshotTests.swift,271,test,(tests),untracked,Current source snapshot; no acceptance implied
+KuroTests/IdentityCompositionTests.swift,1017,test,(tests),untracked,
+KuroTests/ImportReconcilerTests.swift,1383,test,(tests),untracked,
+KuroTests/KuroTests.swift,1120,test,(tests),tracked,
+KuroTests/LibraryFacadeTests.swift,461,test,(tests),untracked,
+KuroTests/LibraryHTTPContractTests.swift,256,test,(tests),untracked,
+KuroTests/LibraryTestSupport.swift,176,test,(tests),untracked,
+KuroTests/LibraryViewActionsTests.swift,321,test,(tests),untracked,
+KuroTests/MultiUserPageOrchestrationTests.swift,311,test,(tests),untracked,Current source snapshot; no acceptance implied
+KuroTests/PersonalDataHTTPContractTests.swift,593,test,(tests),untracked,
+KuroTests/PostgrestLibraryTransportTests.swift,238,test,(tests),untracked,
+KuroTests/PublicDataHTTPContractTests.swift,495,test,(tests),untracked,
+KuroTests/RoutingTests.swift,160,test,(tests),untracked,
+KuroTests/SharedInfrastructureTests.swift,574,test,(tests),untracked,
+KuroTests/StubPostgREST.swift,525,test,(tests),untracked,
+KuroTests/SynopsisCacheTests.swift,207,test,(tests),untracked,Current source snapshot; no acceptance implied
+KuroTests/TasteDeckBannerTests.swift,54,test,(tests),untracked,
+KuroTests/TrackingDraftTests.swift,208,test,(tests),untracked,
+KuroUITests/KuroUITests.swift,296,test,(tests),tracked,
+KuroUITests/KuroUITestsLaunchTests.swift,33,test,(tests),tracked,
+KuroUITests/SnapshotHelper.swift,313,test,(tests),tracked,
+Packages/KuroModules/Package.swift,47,package,KuroModules,untracked,
+Packages/KuroModules/Sources/KuroCore/AccountActionScope.swift,64,contract,KuroCore,untracked,Integrated continuation; source/local proof only
+Packages/KuroModules/Sources/KuroCore/AccountScopedLoads.swift,86,package,KuroCore,untracked,
+Packages/KuroModules/Sources/KuroCore/AccountSession.swift,187,package,KuroCore,untracked,
+Packages/KuroModules/Sources/KuroCore/MediaKey.swift,19,package,KuroCore,untracked,
+Packages/KuroModules/Sources/KuroLibrary/LibraryContracts.swift,187,package,KuroLibrary,untracked,
+Packages/KuroModules/Sources/KuroLibrary/LibraryImportBatch.swift,345,package,KuroLibrary,untracked,Current source snapshot; product qualification separate
+Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift,389,owner,KuroLibrary,untracked,"Integrated release continuation; source ownership, not production qualification"
+Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift,473,package,KuroLibrary,untracked,
+Packages/KuroModules/Sources/KuroLibrary/LibraryValues.swift,270,package,KuroLibrary,untracked,
+Packages/KuroModules/Sources/KuroLibrary/MALAccountList.swift,131,contract,KuroLibrary,untracked,Integrated continuation; source/local proof only
+Packages/KuroModules/Sources/KuroLibrary/MALExportParser.swift,213,package,KuroLibrary,untracked,Current source snapshot; product qualification separate
+Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift,641,package,KuroLibrary,untracked,Current source snapshot; product qualification separate
+Packages/KuroModules/Sources/KuroLibrary/SeriesGrouping.swift,59,package,KuroLibrary,untracked,Current source snapshot; product qualification separate
+Packages/KuroModules/Sources/KuroSupabase/LibraryFenceTransport.swift,106,package,KuroSupabase,untracked,Current source snapshot; product qualification separate
+Packages/KuroModules/Sources/KuroSupabase/LibraryRowTransport.swift,153,package,KuroSupabase,untracked,
+Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift,502,package,KuroSupabase,untracked,
+Packages/KuroModules/Sources/KuroSupabase/UserIdText.swift,18,package,KuroSupabase,untracked,
+Packages/KuroModules/Tests/KuroCoreTests/AccountSessionTests.swift,321,package-test,KuroCore,untracked,
+Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift,265,test,Tests,untracked,Integrated continuation; source/local proof only
+Packages/KuroModules/Tests/KuroLibraryTests/LibraryStoreTests.swift,721,package-test,KuroLibrary,untracked,
+Packages/KuroModules/Tests/KuroLibraryTests/SeriesHomeFoundationTests.swift,484,package-test,KuroModules,untracked,Current source snapshot; product qualification separate
+Packages/KuroModules/Tests/KuroLibraryTests/Support/ControlledBackend.swift,278,package-test,KuroLibrary,untracked,
+Packages/KuroModules/Tests/KuroSupabaseTests/SupabaseLibraryBackendTests.swift,478,package-test,KuroSupabase,untracked,

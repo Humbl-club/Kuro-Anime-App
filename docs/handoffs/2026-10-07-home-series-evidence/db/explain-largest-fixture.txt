@@ -1,0 +1,66 @@
+STATUS: inner-query EXPLAIN at fixture_rows=1000000
+Machine: Darwin 27.0.0 arm64, free disk via df -h /tmp above in session notes
+Generated: 2026-10-07T12:28:10Z
+USER: 11111111-1111-4111-8111-111111111111
+
+======== 1. Home active page (inner of home_bundle_v1 anime branch) ========
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1.27..229.21 rows=12 width=515)
+   ->  Limit  (cost=1.27..248.21 rows=13 width=515)
+         ->  Nested Loop Left Join  (cost=1.27..15897475.70 rows=836927 width=515)
+               ->  Nested Loop Left Join  (cost=1.12..15759391.35 rows=836927 width=367)
+                     ->  Nested Loop Left Join  (cost=0.98..15590703.15 rows=836927 width=315)
+                           Join Filter: (sp.anime_id = l.anime_id)
+                           ->  Nested Loop  (cost=0.98..525992.15 rows=836927 width=283)
+                                 ->  Index Scan using idx_anime_user_lists_home_active on anime_user_lists l  (cost=0.55..107692.02 rows=836927 width=97)
+                                       Index Cond: (user_id = '11111111-1111-4111-8111-111111111111'::text)
+                                 ->  Index Scan using anime_pkey on anime a  (cost=0.42..0.50 rows=1 width=190)
+                                       Index Cond: (id = l.anime_id)
+                           ->  Materialize  (cost=0.00..28.00 rows=1200 width=36)
+                                 ->  Seq Scan on series_entry_spans sp  (cost=0.00..22.00 rows=1200 width=36)
+                     ->  Index Scan using series_sections_pkey on series_sections sec  (cost=0.15..0.20 rows=1 width=84)
+                           Index Cond: (id = sp.section_id)
+               ->  Index Scan using artwork_materials_pkey on artwork_materials mat  (cost=0.15..0.17 rows=1 width=224)
+                     Index Cond: (image_url = COALESCE(a.banner_image, a.cover_image_large))
+(17 rows)
+
+
+======== 2. Detail user row (inner of series_detail_bundle_v1) ========
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Index Scan using anime_user_lists_pkey on anime_user_lists l  (cost=0.42..8.45 rows=1 width=121)
+   Index Cond: ((user_id = '11111111-1111-4111-8111-111111111111'::text) AND (anime_id = 1))
+(2 rows)
+
+
+======== 3. Collection group-then-limit (inner of collection_series_page_v1) ========
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=331918.60..331918.67 rows=30 width=72)
+   ->  Sort  (cost=331918.60..334418.60 rows=1000000 width=72)
+         Sort Key: (max(l.updated_at)) DESC, (COALESCE((sp.series_id)::text, ('entry:anime:'::text || (l.anime_id)::text))) DESC
+         ->  GroupAggregate  (cost=150917.66..302384.14 rows=1000000 width=72)
+               Group Key: (COALESCE((sp.series_id)::text, ('entry:anime:'::text || (l.anime_id)::text)))
+               ->  Gather Merge  (cost=150917.66..267384.14 rows=1000000 width=157)
+                     Workers Planned: 2
+                     ->  Sort  (cost=149917.64..150959.31 rows=416667 width=157)
+                           Sort Key: (COALESCE((sp.series_id)::text, ('entry:anime:'::text || (l.anime_id)::text))), l.updated_at DESC
+                           ->  Hash Join  (cost=53919.15..78268.33 rows=416667 width=157)
+                                 Hash Cond: (a.id = l.anime_id)
+                                 ->  Parallel Seq Scan on anime a  (cost=0.00..13411.67 rows=416667 width=80)
+                                 ->  Hash  (cost=41419.15..41419.15 rows=1000000 width=65)
+                                       ->  Hash Right Join  (cost=41394.00..41419.15 rows=1000000 width=65)
+                                             Hash Cond: (sp.anime_id = l.anime_id)
+                                             ->  Seq Scan on series_entry_spans sp  (cost=0.00..22.00 rows=1200 width=20)
+                                             ->  Hash  (cost=28894.00..28894.00 rows=1000000 width=49)
+                                                   ->  Seq Scan on anime_user_lists l  (cost=0.00..28894.00 rows=1000000 width=49)
+                                                         Filter: (user_id = '11111111-1111-4111-8111-111111111111'::text)
+(19 rows)
+
+
+======== Table stats ========
+anime_user_lists rows=1000000
+anime rows=1000000
+
+NOTE: sizes above 1000000 that could not be loaded remain NOT RUN in the ledger.

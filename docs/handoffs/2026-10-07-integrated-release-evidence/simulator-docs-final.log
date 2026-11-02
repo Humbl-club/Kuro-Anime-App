@@ -1,0 +1,8 @@
+=== Current-State Docs Check ===
+
+PASS
+- app_swift=151
+- package_swift=24
+- migrations=245
+
+Current-state docs PASSED.

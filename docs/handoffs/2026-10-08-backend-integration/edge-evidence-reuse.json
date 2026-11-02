@@ -1,0 +1,35 @@
+{
+  "checkpoint": "docs/handoffs/2026-10-07-integrated-release-evidence/source-checkpoint.json",
+  "closures": [
+    {
+      "slug": "concierge-import-anilist",
+      "unchanged_since_checkpoint": true,
+      "changed_paths": []
+    },
+    {
+      "slug": "concierge-apply",
+      "unchanged_since_checkpoint": true,
+      "changed_paths": []
+    },
+    {
+      "slug": "concierge-undo",
+      "unchanged_since_checkpoint": true,
+      "changed_paths": []
+    },
+    {
+      "slug": "delete-account",
+      "unchanged_since_checkpoint": true,
+      "changed_paths": []
+    },
+    {
+      "slug": "concierge-recommend",
+      "unchanged_since_checkpoint": true,
+      "changed_paths": []
+    },
+    {
+      "slug": "concierge-retrieve-assist",
+      "unchanged_since_checkpoint": true,
+      "changed_paths": []
+    }
+  ]
+}

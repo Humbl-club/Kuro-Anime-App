@@ -1,0 +1,23 @@
+
+  
+   ID                                   | NAME                        | SLUG                        | STATUS | VERSION | UPDATED_AT (UTC)    
+  --------------------------------------|-----------------------------|-----------------------------|--------|---------|---------------------
+   afd4e1f4-146f-4398-9ae7-c18f1e54ed05 | bulk-import-anime           | bulk-import-anime           | ACTIVE | 79      | 2026-04-23 01:30:07 
+   3bcfba40-f614-4677-8f17-37efc2a4b131 | bulk-import-manga           | bulk-import-manga           | ACTIVE | 78      | 2026-04-23 01:30:08 
+   7f20eab3-a5f9-4624-9cf3-b1f415080c50 | mirror-images               | mirror-images               | ACTIVE | 17      | 2026-07-31 04:00:51 
+   5d3c1b51-1f31-48bb-ad64-7e7588d287aa | concierge-parse             | concierge-parse             | ACTIVE | 45      | 2026-02-24 23:24:17 
+   2e7ddb4c-b2ae-4330-97ce-7a65cb00fa7d | concierge-apply             | concierge-apply             | ACTIVE | 26      | 2026-10-06 17:24:08 
+   ce2779b0-b0e9-42ce-a10e-2c7bd11f0942 | concierge-undo              | concierge-undo              | ACTIVE | 17      | 2026-10-06 17:24:09 
+   4ba43353-970d-4844-aa40-505aca90c814 | concierge-recommend         | concierge-recommend         | ACTIVE | 49      | 2026-02-24 23:24:20 
+   12545148-7e61-48d0-bff9-722cb84dbdea | concierge-resolve           | concierge-resolve           | ACTIVE | 16      | 2026-02-24 23:24:20 
+   d977eaa3-bf4c-4a43-97ef-0acff7f99734 | concierge-retrieve-assist   | concierge-retrieve-assist   | ACTIVE | 8       | 2026-10-06 22:39:06 
+   5de77232-617e-497c-9164-ec287e2dbb50 | concierge-retrieve-feedback | concierge-retrieve-feedback | ACTIVE | 5       | 2026-02-24 23:24:22 
+   94797f3c-2f58-4e8a-9fd6-5ff26a86ffba | delete-account              | delete-account              | ACTIVE | 9       | 2026-10-05 20:16:44 
+   2356317d-8125-4005-a1e8-444b21068760 | auth-callback               | auth-callback               | ACTIVE | 4       | 2026-02-24 23:24:25 
+   65b2ae20-2127-4b02-b5b4-7de23ee5344c | concierge-import-anilist    | concierge-import-anilist    | ACTIVE | 5       | 2026-07-31 04:00:52 
+   7f435c35-7982-4376-8da7-c7c8cc1079b5 | manga-chapter-enrich        | manga-chapter-enrich        | ACTIVE | 66      | 2026-04-23 01:30:09 
+   be426403-15b8-4b7c-9f53-c01118ec1c7f | manga-source-review-action  | manga-source-review-action  | ACTIVE | 5       | 2026-02-24 23:24:27 
+   b6ffd9d8-ef42-4921-8836-7b24337dee61 | realm-describe              | realm-describe              | ACTIVE | 9       | 2026-08-07 00:36:49 
+
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.78.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

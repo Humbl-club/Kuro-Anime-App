@@ -1,0 +1,62 @@
+const ART = [
+  {
+    "kind": "anime",
+    "title": "Attack on Titan",
+    "image": "assets/anime0.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/2/cover_large.jpg",
+    "banner": "assets/anime0-banner.jpg",
+    "banner_source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/2/banner.jpg"
+  },
+  {
+    "kind": "anime",
+    "title": "Demon Slayer: Kimetsu no Yaiba",
+    "image": "assets/anime1.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/3/cover_large.jpg",
+    "banner": "assets/anime1-banner.jpg",
+    "banner_source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/3/banner.jpg"
+  },
+  {
+    "kind": "anime",
+    "title": "JUJUTSU KAISEN",
+    "image": "assets/anime2.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/5/cover_large.jpg"
+  },
+  {
+    "kind": "anime",
+    "title": "Death Note",
+    "image": "assets/anime3.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/4/cover_large.jpg",
+    "banner": "assets/anime3-banner.jpg",
+    "banner_source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/4/banner.jpg"
+  },
+  {
+    "kind": "manga",
+    "title": "Chainsaw Man",
+    "image": "assets/manga0.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/manga/2/cover_large.png",
+    "banner": "assets/manga0-banner.jpg",
+    "banner_source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/manga/2/banner.jpg"
+  },
+  {
+    "kind": "manga",
+    "title": "Solo Leveling",
+    "image": "assets/manga1.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/manga/3/cover_large.jpg",
+    "banner": "assets/manga1-banner.jpg",
+    "banner_source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/manga/3/banner.jpg"
+  },
+  {
+    "kind": "manga",
+    "title": "Jujutsu Kaisen",
+    "image": "assets/manga2.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/manga/4/cover_large.jpg"
+  },
+  {
+    "kind": "manga",
+    "title": "Berserk",
+    "image": "assets/manga3.jpg",
+    "source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/manga/5/cover_large.jpg",
+    "banner": "assets/manga3-banner.jpg",
+    "banner_source": "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/manga/5/banner.jpg"
+  }
+];

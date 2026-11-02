@@ -3,13 +3,14 @@
 // match confidence indicators, and candidate selection.
 // iOS 26+ optimized with smooth 60fps animations.
 
+import KuroCore
 import SwiftUI
 
 // Prototype UI uses the real Concierge models without leaking names into the rest of the module.
-typealias ProtoConciergeCandidate = SupabaseService.ConciergeCandidate
-typealias ProtoConciergeParseItemParsed = SupabaseService.ConciergeParseItemParsed
-typealias ProtoConciergeExistingEntry = SupabaseService.ConciergeExistingEntry
-typealias ProtoConciergeParseItem = SupabaseService.ConciergeParseItem
+typealias ProtoConciergeCandidate = ConciergeCandidate
+typealias ProtoConciergeParseItemParsed = ConciergeParseItemParsed
+typealias ProtoConciergeExistingEntry = ConciergeExistingEntry
+typealias ProtoConciergeParseItem = ConciergeParseItem
 
 // MARK: - Import Section Type
 
@@ -145,12 +146,7 @@ struct ImportConfirmCard: View {
 
     @State private var isExpanded: Bool = false
     @State private var showReasoningTooltip: Bool = false
-    @State private var previewMedia: MediaPreviewTarget? = nil
-
-    private struct MediaPreviewTarget: Identifiable {
-        let id: Int
-        let kind: MediaKind
-    }
+    @Environment(\.kuroRoutes) private var routes
 
     private var posterURL: URL? {
         guard let path = selectedCandidate?.cover_image_medium else { return nil }
@@ -169,9 +165,6 @@ struct ImportConfirmCard: View {
                 if matchPercentage < 0.80 && canExpand && !isExpanded {
                     isExpanded = true
                 }
-            }
-            .sheet(item: $previewMedia) { target in
-                MediaDetailSheet(kind: target.kind, id: target.id)
             }
     }
 
@@ -304,7 +297,7 @@ struct ImportConfirmCard: View {
 
             // Reasoning tooltip (auto-selected only)
             if isAutoSelected && showReasoningTooltip {
-                ReasoningTooltip(reason: autoReason?.isEmpty == false ? autoReason! : "Selected based on your text")
+                ReasoningTooltip(reason: autoReason.flatMap { $0.isEmpty ? nil : $0 } ?? "Selected based on your text")
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 8)
             }
@@ -411,7 +404,7 @@ struct ImportConfirmCard: View {
     private func openPreview() {
         guard let candidate = selectedCandidate else { return }
         let kind: MediaKind = candidate.media_type.lowercased() == "manga" ? .manga : .anime
-        previewMedia = MediaPreviewTarget(id: candidate.media_id, kind: kind)
+        routes.openMedia(MediaRoute(kind: kind, id: candidate.media_id))
         KuroAccessibility.impactHaptic(.light)
     }
 
@@ -422,19 +415,24 @@ struct ImportConfirmCard: View {
         KuroAccessibility.impactHaptic(.light)
     }
 
+    /// Renders `ImportReconciler.diff`, the same rule that made this line an Update.
     private func diffSection(existing: ProtoConciergeExistingEntry, parsed: ProtoConciergeParseItemParsed) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let status = parsed.status, status.uppercased() != existing.status.uppercased() {
-                diffLine(from: existing.status.uppercased(), to: status.uppercased())
+        let diff = ImportReconciler.diff(existing: existing, parsed: parsed) ?? ImportDiff()
+        return VStack(alignment: .leading, spacing: 4) {
+            if let status = diff.status {
+                diffLine(from: status.from.uppercased(), to: status.to)
             }
-            if let ep = parsed.progressEpisodes, ep != (existing.progress_episodes ?? 0) {
-                diffLine(from: "Ep \(existing.progress_episodes ?? 0)", to: "Ep \(ep)")
+            if let ep = diff.progressEpisodes {
+                diffLine(from: "Ep \(ep.from)", to: "Ep \(ep.to)")
             }
-            if let ch = parsed.progressChapters, ch != (existing.progress_chapters ?? 0) {
-                diffLine(from: "Ch \(existing.progress_chapters ?? 0)", to: "Ch \(ch)")
+            if let ch = diff.progressChapters {
+                diffLine(from: "Ch \(ch.from)", to: "Ch \(ch.to)")
             }
-            if let vol = parsed.progressVolumes, vol != (existing.progress_volumes ?? 0) {
-                diffLine(from: "Vol \(existing.progress_volumes ?? 0)", to: "Vol \(vol)")
+            if let vol = diff.progressVolumes {
+                diffLine(from: "Vol \(vol.from)", to: "Vol \(vol.to)")
+            }
+            if let rating = diff.rating {
+                diffLine(from: "Rating \(rating.from.map { "\($0)" } ?? "–")", to: "Rating \(rating.to.map { "\($0)" } ?? "–")")
             }
         }
     }

@@ -3,9 +3,12 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
-const REPORT_DIR = process.env.CATALOG_SAFETY_REPORTS_DIR || '/Applications/Kuro/reports/catalog-safety';
+const REPORT_DIR = process.env.CATALOG_SAFETY_REPORTS_DIR || path.join(
+  execFileSync('/bin/bash', [path.join(__dirname, 'kuro_project_root.sh')], { encoding: 'utf8' }).trim(),
+  'reports', 'catalog-safety',
+);
 const PORT = Number(process.env.CATALOG_SAFETY_DASHBOARD_PORT || 8788);
 const LABEL = process.env.CATALOG_SAFETY_LAUNCHD_LABEL || 'com.kuro.catalog-safety';
 

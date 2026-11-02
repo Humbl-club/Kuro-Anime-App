@@ -1,0 +1,231 @@
+ M CLAUDE.md
+ M CURRENT_APP_STATE.md
+ M CURRENT_APP_STATE_PLAIN.md
+ M IMPLEMENTATION_PLAN_Variation1.md
+ M Kuro.xcodeproj/project.pbxproj
+ M Kuro/ContentView.swift
+ M Kuro/KuroApp.swift
+ M Kuro/Models/SupabaseModels.swift
+ M Kuro/Services/ConciergeAnalytics.swift
+ M Kuro/Services/FeatureFlags.swift
+ M Kuro/Services/KuroDiskDetailCache.swift
+ M Kuro/Services/SupabaseRPCParams.swift
+ D Kuro/Services/SupabaseService+Browse.swift
+ D Kuro/Services/SupabaseService+ClubRealtime.swift
+ D Kuro/Services/SupabaseService+Clubs.swift
+ D Kuro/Services/SupabaseService+Collection.swift
+ D Kuro/Services/SupabaseService+Concierge.swift
+ D Kuro/Services/SupabaseService+Discover.swift
+ D Kuro/Services/SupabaseService+Monetization.swift
+ D Kuro/Services/SupabaseService+Recommendations.swift
+ D Kuro/Services/SupabaseService+Social.swift
+ D Kuro/Services/SupabaseService+Streaming.swift
+ D Kuro/Services/SupabaseService+Taste.swift
+ D Kuro/Services/SupabaseService+UserLists.swift
+ D Kuro/Services/SupabaseService.swift
+ M Kuro/Views/AddToListSheet.swift
+ M Kuro/Views/AuthView.swift
+ M Kuro/Views/BrowseComponents.swift
+ M Kuro/Views/BrowseView.swift
+ D Kuro/Views/Cards.swift
+ M Kuro/Views/ClubCreateSheets.swift
+ M Kuro/Views/ClubDetailSheets.swift
+ M Kuro/Views/ClubDetailShellComponents.swift
+ M Kuro/Views/ClubDetailTabComponents.swift
+ M Kuro/Views/ClubDetailView.swift
+ M Kuro/Views/ClubsView.swift
+ D Kuro/Views/ConciergeActionFooter.swift
+ M Kuro/Views/ConciergeAniListImportCoordinator.swift
+ M Kuro/Views/ConciergeComponents.swift
+ D Kuro/Views/ConciergeComposerDock.swift
+ M Kuro/Views/ConciergeImportCards.swift
+ M Kuro/Views/ConciergeInputField.swift
+ D Kuro/Views/ConciergeIntentDeck.swift
+ M Kuro/Views/ConciergeRecommendationRails.swift
+ M Kuro/Views/ConciergeView+AniListImport.swift
+ M Kuro/Views/ConciergeView.swift
+ M Kuro/Views/DetailPages/AdaptationPathSection.swift
+ M Kuro/Views/DetailPages/AnimeDetailView.swift
+ M Kuro/Views/DetailPages/ClubActivitySection.swift
+ M Kuro/Views/DetailPages/EntityDetailSheets.swift
+ M Kuro/Views/DetailPages/ExternalLinksSection.swift
+ M Kuro/Views/DetailPages/FriendsActivitySection.swift
+ M Kuro/Views/DetailPages/MangaDetailView.swift
+ M Kuro/Views/DetailPages/MediaDetailSheet.swift
+ M Kuro/Views/DiscoverOneThingCard.swift
+ D Kuro/Views/EditorialCards.swift
+ M Kuro/Views/EditorialCollectionComponents.swift
+ M Kuro/Views/EditorialCollectionView.swift
+ M Kuro/Views/EditorialDiscoverView.swift
+ M Kuro/Views/EditorialSearchView.swift
+ M Kuro/Views/GenreHubView.swift
+ M Kuro/Views/KuroConciergeMark.swift
+ M Kuro/Views/KuroRefinedCard.swift
+ M Kuro/Views/OnboardingView.swift
+ D Kuro/Views/PosterView.swift
+ M Kuro/Views/ProfileFreshnessCard.swift
+ M Kuro/Views/ProfileView.swift
+ M Kuro/Views/QuickVerdictActionCard.swift
+ M Kuro/Views/TasteDeckView.swift
+ D Kuro/Views/UIComponents.swift
+ M KuroTests/KuroTests.swift
+ M docs/documentation-surface-map.md
+ M scripts/generate_app_state_sources.js
+ M scripts/quality-gates/check_docs_current_state.py
+ M scripts/quality-gates/router_test_cases.js
+ M scripts/quality-gates/run_all.sh
+ M scripts/quality-gates/test_concierge_corpora.sh
+ M scripts/quality-gates/test_router_offline.sh
+ M supabase/functions/concierge-apply/index.ts
+ M supabase/functions/concierge-parse/index.ts
+ M supabase/functions/concierge-recommend/index.ts
+ M supabase/functions/concierge-resolve/index.ts
+ M supabase/functions/concierge-undo/index.ts
+ M supabase/functions/delete-account/index.ts
+ M tools/design-directions/INSTRUMENT_README.md
+ M tools/design-directions/instrument.css
+ M tools/design-directions/instrument.html
+ M tools/design-directions/instrument.js
+?? AGENTS.md
+?? Kuro/Catalog/
+?? Kuro/Clubs/
+?? Kuro/Collection/
+?? Kuro/Composition/
+?? Kuro/Concierge/
+?? Kuro/Design/FlowLayout.swift
+?? Kuro/Discovery/
+?? Kuro/Identity/
+?? Kuro/Imports/
+?? Kuro/Infrastructure/
+?? Kuro/Library/
+?? Kuro/Providers/
+?? Kuro/Releases/
+?? Kuro/Search/
+?? Kuro/Social/
+?? Kuro/Taste/
+?? Kuro/Telemetry/
+?? Kuro/Views/ClubViewLifecycle.swift
+?? Kuro/Views/DetailPages/DetailSharedComponents.swift
+?? Kuro/Views/DetailPages/ProviderLinkViews.swift
+?? Kuro/Views/LibraryViewActions.swift
+?? Kuro/Views/Routing/
+?? Kuro/Views/SharedCards/
+?? Kuro/Views/TastePicksView.swift
+?? Kuro/Views/TrackingDraft.swift
+?? KuroTests/AccountLifecycleTests.swift
+?? KuroTests/AssistantContractTests.swift
+?? KuroTests/ClubErrorTests.swift
+?? KuroTests/ClubsContractTests.swift
+?? KuroTests/ClubsViewRulesTests.swift
+?? KuroTests/CollectionContractTests.swift
+?? KuroTests/ConciergeRoutingTests.swift
+?? KuroTests/DetailProviderLinksTests.swift
+?? KuroTests/IdentityCompositionTests.swift
+?? KuroTests/ImportReconcilerTests.swift
+?? KuroTests/LibraryFacadeTests.swift
+?? KuroTests/LibraryHTTPContractTests.swift
+?? KuroTests/LibraryTestSupport.swift
+?? KuroTests/LibraryViewActionsTests.swift
+?? KuroTests/PersonalDataHTTPContractTests.swift
+?? KuroTests/PostgrestLibraryTransportTests.swift
+?? KuroTests/PublicDataHTTPContractTests.swift
+?? KuroTests/RoutingTests.swift
+?? KuroTests/SharedInfrastructureTests.swift
+?? KuroTests/StubPostgREST.swift
+?? KuroTests/TasteDeckBannerTests.swift
+?? KuroTests/TrackingDraftTests.swift
+?? Packages/
+?? canvases-canonical/kuro-map3-string-audit.canvas.tsx
+?? docs/handoffs/
+?? docs/modules/
+?? docs/plans/
+?? docs/research/
+?? scripts/capture_screen_canvas.py
+?? scripts/db/
+?? scripts/export_screen_canvas.py
+?? scripts/quality-gates/check_architecture.sh
+?? scripts/quality-gates/test_packages.sh
+?? scripts/serve_design_share.py
+?? scripts/serve_live_preview.py
+?? supabase/functions/_shared/test_fake_supabase.ts
+?? supabase/functions/concierge-apply/apply_plan.ts
+?? supabase/functions/concierge-apply/handler.ts
+?? supabase/functions/concierge-apply/handler_test.ts
+?? supabase/functions/concierge-parse/rules.ts
+?? supabase/functions/concierge-parse/rules_corpus_test.ts
+?? supabase/functions/concierge-recommend/router.ts
+?? supabase/functions/concierge-recommend/router_corpus_test.ts
+?? supabase/functions/concierge-recommend/router_modes.fixture.json
+?? supabase/functions/concierge-recommend/router_test.ts
+?? supabase/functions/concierge-recommend/router_test_support.ts
+?? supabase/functions/concierge-undo/handler.ts
+?? supabase/functions/concierge-undo/handler_test.ts
+?? supabase/functions/concierge-undo/undo_plan.ts
+?? supabase/functions/delete-account/adapters.ts
+?? supabase/functions/delete-account/deletion.ts
+?? supabase/functions/delete-account/deletion_test.ts
+?? supabase/functions/delete-account/fake_backend.ts
+?? supabase/functions/delete-account/handler.ts
+?? supabase/functions/delete-account/handler_test.ts
+?? supabase/functions/delete-account/real_client_shapes.ts
+?? supabase/prepared-migrations/
+?? supabase/tests/
+?? tools/design-directions/README.md
+?? tools/design-directions/aperture.css
+?? tools/design-directions/aperture.html
+?? tools/design-directions/aperture.js
+?? tools/design-directions/archive/
+?? tools/design-directions/art.js
+?? tools/design-directions/art.json
+?? tools/design-directions/assets/aperture-review.png
+?? tools/design-directions/assets/detail-character-180.png
+?? tools/design-directions/assets/detail-character-181.png
+?? tools/design-directions/assets/detail-character-182.png
+?? tools/design-directions/assets/detail-character-21.png
+?? tools/design-directions/assets/detail-character-22.png
+?? tools/design-directions/assets/detail-character-23.png
+?? tools/design-directions/assets/detail-character-24.png
+?? tools/design-directions/assets/fonts/
+?? tools/design-directions/assets/medium-diptych-v43.jpg
+?? tools/design-directions/assets/medium-diptych-v43.png
+?? tools/design-directions/assets/medium-diptych-v43.prompt.txt
+?? tools/design-directions/assets/medium-objects-v47.png
+?? tools/design-directions/assets/medium-objects-v47.prompt.txt
+?? tools/design-directions/assets/original-discover-review.png
+?? tools/design-directions/assets/world-landscape.png
+?? tools/design-directions/assets/world-paper.png
+?? tools/design-directions/build_art_materials.py
+?? tools/design-directions/composition-review.html
+?? tools/design-directions/flow.html
+?? tools/design-directions/folio.html
+?? tools/design-directions/home-profile.js
+?? tools/design-directions/index.html
+?? tools/design-directions/instrument-art-materials.js
+?? tools/design-directions/instrument-detail-data.js
+?? tools/design-directions/interlude.html
+?? tools/design-directions/journal.css
+?? tools/design-directions/journal.html
+?? tools/design-directions/journal.js
+?? tools/design-directions/manga-crosscut.html
+?? tools/design-directions/manga-directions.css
+?? tools/design-directions/manga-directions.js
+?? tools/design-directions/manga-four.html
+?? tools/design-directions/manga-library.html
+?? tools/design-directions/manga-options.html
+?? tools/design-directions/manga-philosophies.css
+?? tools/design-directions/manga-philosophies.js
+?? tools/design-directions/manga-reference-study.html
+?? tools/design-directions/modern.css
+?? tools/design-directions/modern.html
+?? tools/design-directions/modern.js
+?? tools/design-directions/panels.html
+?? tools/design-directions/reference-atlas.html
+?? tools/design-directions/references.html
+?? tools/design-directions/studies.html
+?? tools/design-directions/switch-options.html
+?? tools/design-directions/world-art.json
+?? tools/design-directions/world.css
+?? tools/design-directions/world.html
+?? tools/design-directions/world.js
+?? tools/live-preview/
+?? tools/screen-canvas/

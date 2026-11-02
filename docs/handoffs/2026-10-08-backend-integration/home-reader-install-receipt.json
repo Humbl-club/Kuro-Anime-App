@@ -1,0 +1,22 @@
+{
+  "configuration": "Debug simulator",
+  "version": "1.0",
+  "build": "17",
+  "bundleIdentifier": "com.Kuro.app",
+  "executable": "Kuro",
+  "executableSHA256": "ba0c82574e0c3850faee84fcd07ccbeced6d20f80a299cce6eb2d45f188b51dc",
+  "debugDylibSHA256": "60f6d5a51402ae10765df592841cdd40e2b2dfa4b9a6cc52175ae7013c1aa9f3",
+  "infoPlistSHA256": "bda6299ce62ee851bb4b7c34a42e1a77aa9621a0d84399e1bf4c1a32a320c1a9",
+  "bundleTreeSHA256": "8d8416665076ff2ad29d788591d76ce1290d6f1551a51aa40575633a29987d98",
+  "sourceInputsSHA256": "5e6cf0cd40ed5c10a894be3c0bb418ca1647b59dde49ccda5e9dd15fb1ef14d2",
+  "status": "PASS",
+  "recordedAt": "2026-10-08T00:38:46.991328+00:00",
+  "deviceId": "7FC4B58A-430C-457D-A017-6B0095723F3F",
+  "evidenceLayer": "simulator install only",
+  "existingDataErased": false,
+  "launchArguments": [],
+  "launched": false,
+  "matchesBuiltBundle": true,
+  "simctlInstallExit": 0,
+  "installedPath": "/Users/max/Library/Developer/CoreSimulator/Devices/7FC4B58A-430C-457D-A017-6B0095723F3F/data/Containers/Bundle/Application/3BE1EF5B-126D-44DF-9D7A-D3A1D5E4F3A8/Kuro.app"
+}

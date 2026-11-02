@@ -1,0 +1,461 @@
+{"seed_key": "ANIME:11", "id": 7, "v": "relevant", "why": "grand-adventure shounen canon, crew journey, top craft", "conf": 0.95}
+{"seed_key": "ANIME:11", "id": 12, "v": "relevant", "why": "epic adventure shounen with found-family stakes", "conf": 0.85}
+{"seed_key": "ANIME:11", "id": 14, "v": "relevant", "why": "big-three peer, long-haul underdog adventure", "conf": 0.95}
+{"seed_key": "ANIME:11", "id": 26, "v": "relevant", "why": "big-three continuation register, same long-arc adventure", "conf": 0.9}
+{"seed_key": "ANIME:11", "id": 91, "v": "relevant", "why": "Jump long-runner underdog adventure, close feel", "conf": 0.8}
+{"seed_key": "ANIME:11", "id": 108, "v": "relevant", "why": "big-three peer, sprawling arc-based battle adventure", "conf": 0.9}
+{"seed_key": "ANIME:11", "id": 149, "v": "relevant", "why": "guild found-family adventure, One Piece's nearest imitator", "conf": 0.75}
+{"seed_key": "ANIME:11", "id": 244, "v": "relevant", "why": "ancestral long-run battle adventure, direct Oda lineage", "conf": 0.85}
+{"seed_key": "ANIME:11", "id": 295, "v": "relevant", "why": "gag treasure-hunt adventure that shaped Oda directly", "conf": 0.9}
+{"seed_key": "ANIME:11", "id": 364, "v": "relevant", "why": "Jump exploration-comedy crew energy, mid-franchise entry", "conf": 0.55}
+{"seed_key": "ANIME:11", "id": 369, "v": "relevant", "why": "big-three spectacle continuation, same rail neighborhood", "conf": 0.85}
+{"seed_key": "ANIME:11", "id": 519, "v": "not_relevant", "why": "stylized dialogue-driven two-hander, not crew adventure register", "conf": 0.65}
+{"seed_key": "ANIME:11", "id": 1482, "v": "franchise", "why": "One Piece film", "conf": 1.0}
+{"seed_key": "ANIME:11", "id": 2809, "v": "franchise", "why": "One Piece special", "conf": 1.0}
+{"seed_key": "ANIME:11", "id": 3477, "v": "franchise", "why": "One Piece special", "conf": 1.0}
+{"seed_key": "ANIME:11", "id": 3687, "v": "franchise", "why": "One Piece recap special", "conf": 1.0}
+{"seed_key": "ANIME:11", "id": 4355, "v": "not_relevant", "why": "episodic gag fantasy, lighter than epic voyage register", "conf": 0.5}
+{"seed_key": "ANIME:91", "id": 3, "v": "relevant", "why": "polished underdog battle shounen, same Jump register", "conf": 0.8}
+{"seed_key": "ANIME:91", "id": 6, "v": "relevant", "why": "powerless-underdog-in-power-society, nearest neighbor", "conf": 0.95}
+{"seed_key": "ANIME:91", "id": 11, "v": "relevant", "why": "Jump long-runner adventure canon", "conf": 0.85}
+{"seed_key": "ANIME:91", "id": 12, "v": "relevant", "why": "fantasy shounen epic, higher craft same neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:91", "id": 14, "v": "relevant", "why": "Asta is the Naruto underdog pattern outright", "conf": 0.95}
+{"seed_key": "ANIME:91", "id": 97, "v": "not_relevant", "why": "cozy action-comedy family register, not underdog battle", "conf": 0.75}
+{"seed_key": "ANIME:91", "id": 108, "v": "relevant", "why": "Jump supernatural battle long-runner kin", "conf": 0.85}
+{"seed_key": "ANIME:91", "id": 115, "v": "relevant", "why": "loud squad-based flashy battle shounen, close feel", "conf": 0.8}
+{"seed_key": "ANIME:91", "id": 137, "v": "relevant", "why": "underdog hero-school shounen, mid-season entry", "conf": 0.75}
+{"seed_key": "ANIME:91", "id": 149, "v": "relevant", "why": "magic-guild shounen, Tabata's direct stylistic ancestor", "conf": 0.9}
+{"seed_key": "ANIME:91", "id": 237, "v": "relevant", "why": "magic-world muscle underdog, near-parody of seed premise", "conf": 0.85}
+{"seed_key": "ANIME:91", "id": 281, "v": "relevant", "why": "same polished battle-shounen wave, weaker season entry", "conf": 0.7}
+{"seed_key": "ANIME:91", "id": 295, "v": "relevant", "why": "ancestral battle-shounen lineage, gag-underdog roots", "conf": 0.7}
+{"seed_key": "ANIME:91", "id": 309, "v": "not_relevant", "why": "storybook fable register, quiet not loud shounen", "conf": 0.55}
+{"seed_key": "ANIME:91", "id": 720, "v": "relevant", "why": "Jump adventure canon, examination-and-growth structure", "conf": 0.8}
+{"seed_key": "ANIME:91", "id": 763, "v": "relevant", "why": "no-magic underdog at magic academy, premise sibling", "conf": 0.9}
+{"seed_key": "ANIME:91", "id": 1492, "v": "not_relevant", "why": "grim seinen-toned dark fantasy, not loud underdog shounen", "conf": 0.6}
+{"seed_key": "ANIME:91", "id": 12860, "v": "relevant", "why": "underdog magic-academy shounen continuation", "conf": 0.85}
+{"seed_key": "ANIME:3", "id": 2, "v": "relevant", "why": "modern dark action epic, loss-driven spectacle", "conf": 0.7}
+{"seed_key": "ANIME:3", "id": 5, "v": "relevant", "why": "polished demon-battle shounen wave, closest peer", "conf": 0.95}
+{"seed_key": "ANIME:3", "id": 7, "v": "relevant", "why": "battle-shounen canon, comparable craft ceiling", "conf": 0.85}
+{"seed_key": "ANIME:3", "id": 12, "v": "relevant", "why": "sibling-bond battle epic, earnest register match", "conf": 0.85}
+{"seed_key": "ANIME:3", "id": 26, "v": "relevant", "why": "earnest battle-shounen canon, breath-technique lineage", "conf": 0.85}
+{"seed_key": "ANIME:3", "id": 91, "v": "relevant", "why": "Jump battle underdog, louder but same neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:3", "id": 99, "v": "not_relevant", "why": "edgy shock-death schlock, clearly lower craft register", "conf": 0.6}
+{"seed_key": "ANIME:3", "id": 100, "v": "relevant", "why": "earnest hero battle shounen, same register", "conf": 0.75}
+{"seed_key": "ANIME:3", "id": 108, "v": "relevant", "why": "sword-and-demon battle shounen ancestor", "conf": 0.85}
+{"seed_key": "ANIME:3", "id": 114, "v": "relevant", "why": "battle lineage canon, campier flavor same family", "conf": 0.6}
+{"seed_key": "ANIME:3", "id": 119, "v": "franchise", "why": "Demon Slayer arc continuation", "conf": 1.0}
+{"seed_key": "ANIME:3", "id": 153, "v": "relevant", "why": "period demon-slaying odyssey, higher-art same theme", "conf": 0.8}
+{"seed_key": "ANIME:3", "id": 189, "v": "relevant", "why": "dark period Jump demon-hunt wave, direct peer", "conf": 0.9}
+{"seed_key": "ANIME:3", "id": 333, "v": "not_relevant", "why": "vampire-corps formula at clearly lower craft register", "conf": 0.55}
+{"seed_key": "ANIME:3", "id": 369, "v": "relevant", "why": "lavish sword-battle spectacle, same neighborhood", "conf": 0.85}
+{"seed_key": "ANIME:3", "id": 806, "v": "not_relevant", "why": "ufotable polish but lore-dense VN trilogy finale", "conf": 0.5}
+{"seed_key": "ANIME:3", "id": 1456, "v": "relevant", "why": "Jump period swordsman drama, adjacent register", "conf": 0.55}
+{"seed_key": "ANIME:3", "id": 2879, "v": "not_relevant", "why": "brutal seinen tragedy, not earnest shounen register", "conf": 0.6}
+{"seed_key": "ANIME:5", "id": 3, "v": "relevant", "why": "polished dark battle-shounen wave, closest peer", "conf": 0.95}
+{"seed_key": "ANIME:5", "id": 7, "v": "relevant", "why": "Gege's declared blueprint, battle-shounen canon", "conf": 0.9}
+{"seed_key": "ANIME:5", "id": 14, "v": "relevant", "why": "sorcery-school battle shounen ancestor", "conf": 0.8}
+{"seed_key": "ANIME:5", "id": 31, "v": "relevant", "why": "same dark Jump wave, devils and doom", "conf": 0.9}
+{"seed_key": "ANIME:5", "id": 92, "v": "relevant", "why": "urban spirit-battle action, phantoms and duo dynamics", "conf": 0.8}
+{"seed_key": "ANIME:5", "id": 105, "v": "relevant", "why": "monster-cohabiting-body theme, darker philosophical action", "conf": 0.65}
+{"seed_key": "ANIME:5", "id": 106, "v": "relevant", "why": "same polished demon-battle spectacle register", "conf": 0.75}
+{"seed_key": "ANIME:5", "id": 108, "v": "relevant", "why": "cursed-spirit exorcism lineage, Kubo blueprint", "conf": 0.9}
+{"seed_key": "ANIME:5", "id": 113, "v": "relevant", "why": "exorcist-school shounen, genuinely same premise family", "conf": 0.7}
+{"seed_key": "ANIME:5", "id": 119, "v": "relevant", "why": "dark demon-battle wave peer", "conf": 0.8}
+{"seed_key": "ANIME:5", "id": 142, "v": "franchise", "why": "JJK prequel film", "conf": 1.0}
+{"seed_key": "ANIME:5", "id": 153, "v": "not_relevant", "why": "somber period fable, not urban curse-battle energy", "conf": 0.5}
+{"seed_key": "ANIME:5", "id": 178, "v": "relevant", "why": "high-energy urban occult battles, same modern wave", "conf": 0.85}
+{"seed_key": "ANIME:5", "id": 369, "v": "relevant", "why": "soul-reaper spectacle, direct stylistic ancestor", "conf": 0.9}
+{"seed_key": "ANIME:5", "id": 2945, "v": "not_relevant", "why": "whimsical school-romance supernatural, wrong register", "conf": 0.65}
+{"seed_key": "ANIME:5", "id": 3837, "v": "not_relevant", "why": "languid CLAMP mood piece, not battle register", "conf": 0.6}
+{"seed_key": "ANIME:5", "id": 22440, "v": "relevant", "why": "exorcist-school battle shounen continuation", "conf": 0.6}
+{"seed_key": "ANIME:2", "id": 3, "v": "relevant", "why": "dark spectacle with loss, adjacent earnest register", "conf": 0.5}
+{"seed_key": "ANIME:2", "id": 10, "v": "franchise", "why": "AoT season", "conf": 1.0}
+{"seed_key": "ANIME:2", "id": 12, "v": "relevant", "why": "military conspiracies, truth-of-world reveals, epic register", "conf": 0.8}
+{"seed_key": "ANIME:2", "id": 19, "v": "relevant", "why": "hidden horrific world order, twisty despair kin", "conf": 0.9}
+{"seed_key": "ANIME:2", "id": 26, "v": "not_relevant", "why": "earnest ninja shounen, not bleak mystery-war register", "conf": 0.6}
+{"seed_key": "ANIME:2", "id": 102, "v": "relevant", "why": "bleak war epic, revenge and cost of violence", "conf": 0.9}
+{"seed_key": "ANIME:2", "id": 105, "v": "relevant", "why": "monster horror with philosophical dread", "conf": 0.8}
+{"seed_key": "ANIME:2", "id": 179, "v": "relevant", "why": "walls-vs-monsters formula follower, genuinely close feel", "conf": 0.65}
+{"seed_key": "ANIME:2", "id": 204, "v": "relevant", "why": "war dehumanization, young soldiers, bleak register", "conf": 0.85}
+{"seed_key": "ANIME:2", "id": 255, "v": "not_relevant", "why": "breezy workplace monster-corps romp, wrong tone", "conf": 0.5}
+{"seed_key": "ANIME:2", "id": 346, "v": "relevant", "why": "deliberate AoT-alike, same director's siege desperation", "conf": 0.7}
+{"seed_key": "ANIME:2", "id": 379, "v": "relevant", "why": "dark societal-truth dystopia, high register", "conf": 0.8}
+{"seed_key": "ANIME:2", "id": 385, "v": "relevant", "why": "bleak war tragedy continuation, register match", "conf": 0.85}
+{"seed_key": "ANIME:2", "id": 444, "v": "relevant", "why": "existential world-mystery and loss, high craft", "conf": 0.6}
+{"seed_key": "ANIME:2", "id": 477, "v": "relevant", "why": "class-rage dark shounen wave, adjacent energy", "conf": 0.55}
+{"seed_key": "ANIME:2", "id": 897, "v": "relevant", "why": "fortress-vs-monster premise with smart world-truth twist", "conf": 0.5}
+{"seed_key": "ANIME:2", "id": 1676, "v": "relevant", "why": "siege-desperation kin, weaker sequel entry", "conf": 0.5}
+{"seed_key": "ANIME:2", "id": 2163, "v": "franchise", "why": "AoT recap film", "conf": 1.0}
+{"seed_key": "ANIME:2", "id": 22396, "v": "franchise", "why": "AoT recap film", "conf": 1.0}
+{"seed_key": "ANIME:9", "id": 5, "v": "relevant", "why": "urban curse-battle darkness, more shounen energy", "conf": 0.7}
+{"seed_key": "ANIME:9", "id": 31, "v": "relevant", "why": "urban devil tragedy, body horror kin", "conf": 0.85}
+{"seed_key": "ANIME:9", "id": 105, "v": "relevant", "why": "monster-within identity, the canonical companion", "conf": 0.95}
+{"seed_key": "ANIME:9", "id": 134, "v": "relevant", "why": "bleak monster-identity despair, register match", "conf": 0.7}
+{"seed_key": "ANIME:9", "id": 136, "v": "franchise", "why": "Tokyo Ghoul sequel", "conf": 1.0}
+{"seed_key": "ANIME:9", "id": 175, "v": "not_relevant", "why": "infamously collapsed adaptation, register broken", "conf": 0.7}
+{"seed_key": "ANIME:9", "id": 213, "v": "relevant", "why": "tragic youths against world, urban night melancholy", "conf": 0.55}
+{"seed_key": "ANIME:9", "id": 224, "v": "relevant", "why": "monstrous-outcast gore tragedy, schlockier same lineage", "conf": 0.6}
+{"seed_key": "ANIME:9", "id": 249, "v": "relevant", "why": "branded-outcast gore thriller, genuinely close feel", "conf": 0.55}
+{"seed_key": "ANIME:9", "id": 255, "v": "not_relevant", "why": "monster-within premise but breezy tone", "conf": 0.55}
+{"seed_key": "ANIME:9", "id": 743, "v": "not_relevant", "why": "half-yokai identity echo, warmer shounen register", "conf": 0.5}
+{"seed_key": "ANIME:9", "id": 756, "v": "relevant", "why": "cold urban immortal-outcast thriller, canonical neighbor", "conf": 0.8}
+{"seed_key": "ANIME:9", "id": 806, "v": "not_relevant", "why": "VN lore epic, different neighborhood despite darkness", "conf": 0.5}
+{"seed_key": "ANIME:9", "id": 878, "v": "relevant", "why": "urban mutant crime noir, adjacent mid register", "conf": 0.5}
+{"seed_key": "ANIME:9", "id": 1071, "v": "not_relevant", "why": "near-identical premise, clunky craft fails register", "conf": 0.55}
+{"seed_key": "ANIME:9", "id": 1519, "v": "relevant", "why": "rain-soaked urban murder tragedy, high craft kin", "conf": 0.55}
+{"seed_key": "ANIME:9", "id": 3907, "v": "relevant", "why": "human-demon merging ur-text of this lineage", "conf": 0.7}
+{"seed_key": "ANIME:9", "id": 4238, "v": "relevant", "why": "urban outcast thriller kin, recap-film entry", "conf": 0.6}
+{"seed_key": "ANIME:9", "id": 8973, "v": "not_relevant", "why": "grounded detective drama, no monstrous identity register", "conf": 0.55}
+{"seed_key": "ANIME:93", "id": 28, "v": "relevant", "why": "isekai canon peer, mind-screw stakes", "conf": 0.75}
+{"seed_key": "ANIME:93", "id": 118, "v": "relevant", "why": "flamboyant gambling mind-games, register match", "conf": 0.7}
+{"seed_key": "ANIME:93", "id": 125, "v": "relevant", "why": "isekai canon, comfy power-fantasy neighbor", "conf": 0.7}
+{"seed_key": "ANIME:93", "id": 131, "v": "relevant", "why": "strategist mind-games power fantasy, adjacent", "conf": 0.6}
+{"seed_key": "ANIME:93", "id": 143, "v": "relevant", "why": "game-world domination power fantasy", "conf": 0.8}
+{"seed_key": "ANIME:93", "id": 212, "v": "relevant", "why": "isekai canon continuation", "conf": 0.65}
+{"seed_key": "ANIME:93", "id": 277, "v": "relevant", "why": "strategist trapped-in-game isekai, very close", "conf": 0.85}
+{"seed_key": "ANIME:93", "id": 355, "v": "relevant", "why": "gate-to-fantasy-world neighbor, different flavor", "conf": 0.6}
+{"seed_key": "ANIME:93", "id": 759, "v": "relevant", "why": "gifted kids in gift-game world, premise twin", "conf": 0.85}
+{"seed_key": "ANIME:93", "id": 975, "v": "not_relevant", "why": "mellow economics romance journey, wrong register", "conf": 0.65}
+{"seed_key": "ANIME:93", "id": 1313, "v": "not_relevant", "why": "cozy gag slice-of-life, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:93", "id": 1322, "v": "not_relevant", "why": "gentle fantasy academia, no game-brain register", "conf": 0.6}
+{"seed_key": "ANIME:93", "id": 1367, "v": "relevant", "why": "games-decide-everything clone, but craft collapses", "conf": 0.45}
+{"seed_key": "ANIME:93", "id": 1482, "v": "not_relevant", "why": "shounen heist film, wrong neighborhood", "conf": 0.8}
+{"seed_key": "ANIME:93", "id": 1804, "v": "not_relevant", "why": "mellow romance journey OVA, wrong register", "conf": 0.65}
+{"seed_key": "ANIME:93", "id": 4225, "v": "not_relevant", "why": "90s fantasy action romp, no games or isekai", "conf": 0.6}
+{"seed_key": "ANIME:93", "id": 4355, "v": "not_relevant", "why": "party comedy fantasy, lacks game-brain isekai hook", "conf": 0.5}
+{"seed_key": "ANIME:93", "id": 5929, "v": "unknown", "why": "cannot place this music short", "conf": 0.7}
+{"seed_key": "ANIME:93", "id": 7204, "v": "unknown", "why": "too obscure to place confidently", "conf": 0.7}
+{"seed_key": "ANIME:93", "id": 16389, "v": "not_relevant", "why": "donghua cultivation gag, not game-brain isekai", "conf": 0.5}
+{"seed_key": "ANIME:125", "id": 11, "v": "not_relevant", "why": "grand crew voyage, not comfy isekai power fantasy", "conf": 0.6}
+{"seed_key": "ANIME:125", "id": 95, "v": "relevant", "why": "civilization-building appeal, adjacent shounen energy", "conf": 0.6}
+{"seed_key": "ANIME:125", "id": 106, "v": "not_relevant", "why": "battle-shounen tragedy film, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:125", "id": 121, "v": "relevant", "why": "isekai canon peer, party-building fantasy", "conf": 0.85}
+{"seed_key": "ANIME:125", "id": 130, "v": "relevant", "why": "reincarnation isekai canon, higher craft", "conf": 0.85}
+{"seed_key": "ANIME:125", "id": 143, "v": "relevant", "why": "monster-protagonist nation-building power fantasy", "conf": 0.9}
+{"seed_key": "ANIME:125", "id": 150, "v": "not_relevant", "why": "stylish battle shounen, wrong neighborhood", "conf": 0.65}
+{"seed_key": "ANIME:125", "id": 161, "v": "not_relevant", "why": "Ghibli film masterwork, different world entirely", "conf": 0.7}
+{"seed_key": "ANIME:125", "id": 223, "v": "relevant", "why": "isekai power-fantasy comedy peer", "conf": 0.8}
+{"seed_key": "ANIME:125", "id": 277, "v": "relevant", "why": "world-building strategy isekai, close feel", "conf": 0.8}
+{"seed_key": "ANIME:125", "id": 347, "v": "relevant", "why": "isekai comedy peer, same comfort register", "conf": 0.75}
+{"seed_key": "ANIME:125", "id": 373, "v": "not_relevant", "why": "mellow economics-romance journey, not power fantasy", "conf": 0.55}
+{"seed_key": "ANIME:125", "id": 397, "v": "relevant", "why": "comfy overpowered game-world romp", "conf": 0.75}
+{"seed_key": "ANIME:125", "id": 466, "v": "relevant", "why": "isekai comedy power fantasy, settlement building", "conf": 0.8}
+{"seed_key": "ANIME:125", "id": 491, "v": "relevant", "why": "reincarnated-as-monster premise sibling", "conf": 0.85}
+{"seed_key": "ANIME:125", "id": 1165, "v": "not_relevant", "why": "elegiac prestige fantasy, quality isn't this neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:125", "id": 1561, "v": "not_relevant", "why": "guild battle shounen, not isekai comfort", "conf": 0.5}
+{"seed_key": "ANIME:125", "id": 3870, "v": "not_relevant", "why": "high-concept battle shounen, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:125", "id": 4355, "v": "not_relevant", "why": "party gag fantasy, adjacent era not isekai", "conf": 0.5}
+{"seed_key": "ANIME:125", "id": 12860, "v": "not_relevant", "why": "academy underdog shounen, not isekai power fantasy", "conf": 0.5}
+{"seed_key": "ANIME:189", "id": 3, "v": "relevant", "why": "period demon-slaying peer, same wave", "conf": 0.9}
+{"seed_key": "ANIME:189", "id": 5, "v": "relevant", "why": "dark MAPPA battle wave, direct peer", "conf": 0.85}
+{"seed_key": "ANIME:189", "id": 26, "v": "relevant", "why": "ninja battle-shounen kin, more earnest register", "conf": 0.55}
+{"seed_key": "ANIME:189", "id": 31, "v": "relevant", "why": "dark Jump wave peer, death-soaked register", "conf": 0.8}
+{"seed_key": "ANIME:189", "id": 102, "v": "relevant", "why": "historical violence with philosophical undertow", "conf": 0.7}
+{"seed_key": "ANIME:189", "id": 114, "v": "not_relevant", "why": "camp battle style, wrong tone for grim elegance", "conf": 0.5}
+{"seed_key": "ANIME:189", "id": 128, "v": "relevant", "why": "dark sorcery battle continuation, register match", "conf": 0.85}
+{"seed_key": "ANIME:189", "id": 153, "v": "relevant", "why": "somber period demon-slaying, very close", "conf": 0.85}
+{"seed_key": "ANIME:189", "id": 254, "v": "not_relevant", "why": "urban grail-war lore, different neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:189", "id": 281, "v": "relevant", "why": "period demon-hunt wave, weaker entry", "conf": 0.7}
+{"seed_key": "ANIME:189", "id": 477, "v": "relevant", "why": "dark shounen wave energy, adjacent", "conf": 0.55}
+{"seed_key": "ANIME:189", "id": 519, "v": "relevant", "why": "stylized period sword journey with duo dynamic", "conf": 0.6}
+{"seed_key": "ANIME:189", "id": 994, "v": "relevant", "why": "period samurai shounen canon", "conf": 0.7}
+{"seed_key": "ANIME:189", "id": 1114, "v": "relevant", "why": "period samurai Jump, playful but same setting family", "conf": 0.6}
+{"seed_key": "ANIME:189", "id": 1140, "v": "relevant", "why": "dark battle wave continuation", "conf": 0.8}
+{"seed_key": "ANIME:189", "id": 1141, "v": "relevant", "why": "period sword-action masterwork, register match", "conf": 0.85}
+{"seed_key": "ANIME:189", "id": 1301, "v": "franchise", "why": "Hell's Paradise sequel", "conf": 1.0}
+{"seed_key": "ANIME:189", "id": 1456, "v": "relevant", "why": "period swordsman drama, adjacent register", "conf": 0.65}
+{"seed_key": "ANIME:189", "id": 2919, "v": "unknown", "why": "cannot judge this 2026 adaptation confidently", "conf": 0.5}
+{"seed_key": "ANIME:189", "id": 16572, "v": "relevant", "why": "period samurai remake continuation", "conf": 0.65}
+{"seed_key": "ANIME:229", "id": 3, "v": "relevant", "why": "ufotable supernatural sword spectacle, adjacent", "conf": 0.5}
+{"seed_key": "ANIME:229", "id": 5, "v": "relevant", "why": "secret sorcerer society battles, modern spectacle", "conf": 0.6}
+{"seed_key": "ANIME:229", "id": 150, "v": "not_relevant", "why": "pop-gothic school action, different register", "conf": 0.5}
+{"seed_key": "ANIME:229", "id": 319, "v": "franchise", "why": "UBW continuation", "conf": 1.0}
+{"seed_key": "ANIME:229", "id": 354, "v": "relevant", "why": "urban magic-faction battles, LN neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:229", "id": 420, "v": "not_relevant", "why": "mid music-magic action, register drop", "conf": 0.55}
+{"seed_key": "ANIME:229", "id": 523, "v": "relevant", "why": "Fate-patterned modern battle royale of creations", "conf": 0.6}
+{"seed_key": "ANIME:229", "id": 771, "v": "not_relevant", "why": "long-runner shounen spectacle, different neighborhood", "conf": 0.45}
+{"seed_key": "ANIME:229", "id": 817, "v": "relevant", "why": "Type-Moon urban dark fantasy, ufotable film craft", "conf": 0.8}
+{"seed_key": "ANIME:229", "id": 1114, "v": "not_relevant", "why": "period samurai comedy, wrong neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:229", "id": 1140, "v": "relevant", "why": "dark urban sorcery spectacle, adjacent", "conf": 0.55}
+{"seed_key": "ANIME:229", "id": 1873, "v": "not_relevant", "why": "sentimental recap film, wrong register", "conf": 0.5}
+{"seed_key": "ANIME:229", "id": 1875, "v": "franchise", "why": "Fate franchise entry", "conf": 0.95}
+{"seed_key": "ANIME:229", "id": 2019, "v": "franchise", "why": "Fate spinoff", "conf": 0.95}
+{"seed_key": "ANIME:229", "id": 2115, "v": "not_relevant", "why": "Type-Moon kin but notoriously weak adaptation", "conf": 0.6}
+{"seed_key": "ANIME:229", "id": 2318, "v": "not_relevant", "why": "legendary-heroes battle premise, clearly lower craft", "conf": 0.6}
+{"seed_key": "ANIME:229", "id": 2344, "v": "franchise", "why": "Fate franchise entry", "conf": 0.95}
+{"seed_key": "ANIME:229", "id": 2956, "v": "not_relevant", "why": "dark magical-girl drama, wrong neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:229", "id": 7037, "v": "not_relevant", "why": "kids adventure shounen, wrong neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:229", "id": 12907, "v": "franchise", "why": "Fate/Grand Order entry", "conf": 0.95}
+{"seed_key": "ANIME:102", "id": 2, "v": "relevant", "why": "bleak war epic, canonical companion", "conf": 0.85}
+{"seed_key": "ANIME:102", "id": 12, "v": "relevant", "why": "war-scarred epic journey, adjacent register", "conf": 0.6}
+{"seed_key": "ANIME:102", "id": 20, "v": "relevant", "why": "war-cost epic continuation, register match", "conf": 0.75}
+{"seed_key": "ANIME:102", "id": 27, "v": "relevant", "why": "bleak war epic peak, same neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:102", "id": 153, "v": "relevant", "why": "period violence and humanity, close register", "conf": 0.8}
+{"seed_key": "ANIME:102", "id": 186, "v": "relevant", "why": "contemplative suffering-and-growth journey", "conf": 0.6}
+{"seed_key": "ANIME:102", "id": 256, "v": "franchise", "why": "Vinland Saga sequel", "conf": 1.0}
+{"seed_key": "ANIME:102", "id": 309, "v": "relevant", "why": "gentler but epic-journey heart, high craft", "conf": 0.5}
+{"seed_key": "ANIME:102", "id": 412, "v": "relevant", "why": "medieval violence and ambition, canonical companion", "conf": 0.9}
+{"seed_key": "ANIME:102", "id": 557, "v": "relevant", "why": "historical seinen adventure, violence with levity", "conf": 0.8}
+{"seed_key": "ANIME:102", "id": 793, "v": "relevant", "why": "medieval dark-fantasy grimness, adjacent", "conf": 0.55}
+{"seed_key": "ANIME:102", "id": 959, "v": "relevant", "why": "prestige historical seinen of ideas", "conf": 0.8}
+{"seed_key": "ANIME:102", "id": 1456, "v": "relevant", "why": "historical swordsman atonement theme, mid craft", "conf": 0.5}
+{"seed_key": "ANIME:102", "id": 1546, "v": "relevant", "why": "war epic of ambition, direct kin", "conf": 0.85}
+{"seed_key": "ANIME:102", "id": 1614, "v": "relevant", "why": "historical seinen adventure continuation", "conf": 0.7}
+{"seed_key": "ANIME:102", "id": 2088, "v": "relevant", "why": "historical tragedy, high-art register", "conf": 0.75}
+{"seed_key": "ANIME:102", "id": 2495, "v": "relevant", "why": "war epic continuation", "conf": 0.75}
+{"seed_key": "ANIME:102", "id": 2879, "v": "relevant", "why": "medieval mercenary tragedy, canonical companion", "conf": 0.8}
+{"seed_key": "ANIME:102", "id": 4794, "v": "relevant", "why": "war-and-power philosophy epic, space setting aside", "conf": 0.5}
+{"seed_key": "ANIME:102", "id": 5248, "v": "relevant", "why": "seinen war drama, sober adult register", "conf": 0.5}
+{"seed_key": "ANIME:233", "id": 145, "v": "not_relevant", "why": "elegiac journey fantasy, not court-intrigue procedural", "conf": 0.5}
+{"seed_key": "ANIME:233", "id": 181, "v": "not_relevant", "why": "dark psychological manhunt, different neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:233", "id": 312, "v": "relevant", "why": "East-Asian court fantasy, heroine growth", "conf": 0.8}
+{"seed_key": "ANIME:233", "id": 323, "v": "relevant", "why": "period banter-mystery pairing, adjacent", "conf": 0.5}
+{"seed_key": "ANIME:233", "id": 380, "v": "relevant", "why": "court herbalist heroine, premise sibling", "conf": 0.85}
+{"seed_key": "ANIME:233", "id": 465, "v": "franchise", "why": "Apothecary Diaries sequel", "conf": 1.0}
+{"seed_key": "ANIME:233", "id": 468, "v": "relevant", "why": "elegant period crime mind-games, adjacent", "conf": 0.6}
+{"seed_key": "ANIME:233", "id": 722, "v": "relevant", "why": "historical romance melodrama, adjacent register", "conf": 0.55}
+{"seed_key": "ANIME:233", "id": 770, "v": "relevant", "why": "period mystery-solving girl-led duo", "conf": 0.7}
+{"seed_key": "ANIME:233", "id": 850, "v": "relevant", "why": "resourceful heroine in stratified society", "conf": 0.6}
+{"seed_key": "ANIME:233", "id": 959, "v": "relevant", "why": "prestige historical drama of sharp minds", "conf": 0.55}
+{"seed_key": "ANIME:233", "id": 1322, "v": "not_relevant", "why": "fantasy academia, not court intrigue", "conf": 0.5}
+{"seed_key": "ANIME:233", "id": 1342, "v": "relevant", "why": "period supernatural sleuthing with sharp banter", "conf": 0.65}
+{"seed_key": "ANIME:233", "id": 1564, "v": "relevant", "why": "elegant political-intrigue procedural, adjacent", "conf": 0.6}
+{"seed_key": "ANIME:233", "id": 1890, "v": "relevant", "why": "inner-palace mysteries, near-identical neighborhood", "conf": 0.9}
+{"seed_key": "ANIME:233", "id": 2624, "v": "relevant", "why": "palace-court intrigue fantasy, very close", "conf": 0.8}
+{"seed_key": "ANIME:233", "id": 3509, "v": "relevant", "why": "meticulous historical society drama, quiet craft", "conf": 0.55}
+{"seed_key": "ANIME:233", "id": 8658, "v": "relevant", "why": "clever woman navigating historical empire, close spirit", "conf": 0.6}
+{"seed_key": "ANIME:233", "id": 22555, "v": "not_relevant", "why": "modern school everyday-mystery, different neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:98", "id": 12, "v": "not_relevant", "why": "battle-adventure shounen, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:98", "id": 15, "v": "relevant", "why": "prestige emotional spectacle, more pop-romantic", "conf": 0.6}
+{"seed_key": "ANIME:98", "id": 16, "v": "relevant", "why": "quiet emotional prestige, KyoAni sibling", "conf": 0.85}
+{"seed_key": "ANIME:98", "id": 23, "v": "relevant", "why": "tearjerker music romance, register match", "conf": 0.75}
+{"seed_key": "ANIME:98", "id": 138, "v": "relevant", "why": "grief-processing tearjerker canon", "conf": 0.75}
+{"seed_key": "ANIME:98", "id": 145, "v": "relevant", "why": "quiet melancholy journey through loss", "conf": 0.85}
+{"seed_key": "ANIME:98", "id": 160, "v": "relevant", "why": "sincere tearjerker register", "conf": 0.7}
+{"seed_key": "ANIME:98", "id": 259, "v": "relevant", "why": "healing fantasy, wounded soul learning to feel", "conf": 0.7}
+{"seed_key": "ANIME:98", "id": 300, "v": "relevant", "why": "grief and family tearjerker canon", "conf": 0.75}
+{"seed_key": "ANIME:98", "id": 345, "v": "franchise", "why": "Violet Evergarden film", "conf": 1.0}
+{"seed_key": "ANIME:98", "id": 388, "v": "relevant", "why": "artificial girl learning heart, action-tinged kin", "conf": 0.6}
+{"seed_key": "ANIME:98", "id": 409, "v": "relevant", "why": "gentle prestige romance drama", "conf": 0.65}
+{"seed_key": "ANIME:98", "id": 487, "v": "relevant", "why": "bittersweet journey vignettes, lighter craft", "conf": 0.5}
+{"seed_key": "ANIME:98", "id": 501, "v": "relevant", "why": "letters, war, motherhood grief masterwork", "conf": 0.85}
+{"seed_key": "ANIME:98", "id": 1327, "v": "relevant", "why": "quiet wartime melancholy, prestige register", "conf": 0.7}
+{"seed_key": "ANIME:98", "id": 5503, "v": "relevant", "why": "quiet wartime melancholy, extended cut", "conf": 0.65}
+{"seed_key": "ANIME:98", "id": 5566, "v": "not_relevant", "why": "vintage children's melodrama serial, register mismatch", "conf": 0.5}
+{"seed_key": "ANIME:153", "id": 3, "v": "relevant", "why": "period demon slaying, more earnest shounen energy", "conf": 0.7}
+{"seed_key": "ANIME:153", "id": 5, "v": "not_relevant", "why": "urban ensemble battle energy, not somber fable", "conf": 0.5}
+{"seed_key": "ANIME:153", "id": 102, "v": "relevant", "why": "period violence and soul, register match", "conf": 0.85}
+{"seed_key": "ANIME:153", "id": 106, "v": "relevant", "why": "period demon-battle tragedy film", "conf": 0.6}
+{"seed_key": "ANIME:153", "id": 114, "v": "not_relevant", "why": "camp battle style, wrong register", "conf": 0.65}
+{"seed_key": "ANIME:153", "id": 186, "v": "relevant", "why": "episodic sorrow journey about being human", "conf": 0.75}
+{"seed_key": "ANIME:153", "id": 189, "v": "relevant", "why": "dark period demon-hunt peer", "conf": 0.8}
+{"seed_key": "ANIME:153", "id": 200, "v": "relevant", "why": "period yokai epic, nature-and-violence register", "conf": 0.8}
+{"seed_key": "ANIME:153", "id": 222, "v": "relevant", "why": "wandering-era journey with style, playful tone", "conf": 0.55}
+{"seed_key": "ANIME:153", "id": 309, "v": "relevant", "why": "disabled underdog journey, fable warmth kin", "conf": 0.65}
+{"seed_key": "ANIME:153", "id": 519, "v": "relevant", "why": "period sword journey duo, stylized kin", "conf": 0.7}
+{"seed_key": "ANIME:153", "id": 1141, "v": "relevant", "why": "wandering ronin and child duo, extremely close", "conf": 0.9}
+{"seed_key": "ANIME:153", "id": 1412, "v": "not_relevant", "why": "danmei romance fantasy register, different neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:153", "id": 1456, "v": "relevant", "why": "period swordsman atonement, adjacent", "conf": 0.6}
+{"seed_key": "ANIME:153", "id": 1699, "v": "relevant", "why": "somber period sword tragedy masterpiece", "conf": 0.9}
+{"seed_key": "ANIME:153", "id": 2879, "v": "relevant", "why": "dark fate-and-body epic, adjacent register", "conf": 0.7}
+{"seed_key": "ANIME:153", "id": 7113, "v": "not_relevant", "why": "schlock yokai OVA, junk register", "conf": 0.6}
+{"seed_key": "ANIME:23", "id": 15, "v": "relevant", "why": "prestige emotional romance spectacle", "conf": 0.7}
+{"seed_key": "ANIME:23", "id": 16, "v": "relevant", "why": "guilt-and-healing youth weeper, canonical companion", "conf": 0.9}
+{"seed_key": "ANIME:23", "id": 98, "v": "relevant", "why": "prestige tearjerker register", "conf": 0.75}
+{"seed_key": "ANIME:23", "id": 138, "v": "relevant", "why": "grief tearjerker canon", "conf": 0.85}
+{"seed_key": "ANIME:23", "id": 160, "v": "relevant", "why": "terminal-illness weeper, nearly same story register", "conf": 0.9}
+{"seed_key": "ANIME:23", "id": 218, "v": "not_relevant", "why": "battle-of-wits romcom register, not weeper", "conf": 0.55}
+{"seed_key": "ANIME:23", "id": 236, "v": "relevant", "why": "earnest romance melodrama, adjacent", "conf": 0.5}
+{"seed_key": "ANIME:23", "id": 241, "v": "relevant", "why": "doomed-love countdown tearjerker", "conf": 0.65}
+{"seed_key": "ANIME:23", "id": 300, "v": "relevant", "why": "tearjerker canon, family grief", "conf": 0.8}
+{"seed_key": "ANIME:23", "id": 311, "v": "relevant", "why": "quiet healing plus performance pressure, deep kin", "conf": 0.8}
+{"seed_key": "ANIME:23", "id": 409, "v": "relevant", "why": "art, disability, gentle romance kin", "conf": 0.7}
+{"seed_key": "ANIME:23", "id": 475, "v": "relevant", "why": "music-drama craft, adolescent striving", "conf": 0.7}
+{"seed_key": "ANIME:23", "id": 537, "v": "relevant", "why": "healing drama peak, register match", "conf": 0.8}
+{"seed_key": "ANIME:23", "id": 916, "v": "relevant", "why": "music, trauma, confession — same creative team register", "conf": 0.75}
+{"seed_key": "ANIME:23", "id": 1159, "v": "relevant", "why": "grief tearjerker, recap-film entry", "conf": 0.6}
+{"seed_key": "ANIME:23", "id": 1401, "v": "relevant", "why": "classical-music romance, comedic josei register", "conf": 0.7}
+{"seed_key": "ANIME:23", "id": 2279, "v": "franchise", "why": "Your lie in April OVA", "conf": 1.0}
+{"seed_key": "ANIME:160", "id": 15, "v": "relevant", "why": "emotional youth prestige film", "conf": 0.7}
+{"seed_key": "ANIME:160", "id": 16, "v": "relevant", "why": "sincere youth weeper, canonical companion", "conf": 0.85}
+{"seed_key": "ANIME:160", "id": 23, "v": "relevant", "why": "terminal-illness tearjerker twin", "conf": 0.9}
+{"seed_key": "ANIME:160", "id": 98, "v": "relevant", "why": "prestige tearjerker register", "conf": 0.7}
+{"seed_key": "ANIME:160", "id": 138, "v": "relevant", "why": "grief tearjerker canon", "conf": 0.8}
+{"seed_key": "ANIME:160", "id": 241, "v": "relevant", "why": "doomed-love countdown romance", "conf": 0.7}
+{"seed_key": "ANIME:160", "id": 247, "v": "relevant", "why": "emotional supernatural youth film, adjacent", "conf": 0.6}
+{"seed_key": "ANIME:160", "id": 252, "v": "relevant", "why": "aching quiet romance melancholy", "conf": 0.7}
+{"seed_key": "ANIME:160", "id": 283, "v": "relevant", "why": "preventing a death, sincere school weeper", "conf": 0.75}
+{"seed_key": "ANIME:160", "id": 331, "v": "relevant", "why": "doomed gentle love, very close feel", "conf": 0.8}
+{"seed_key": "ANIME:160", "id": 390, "v": "relevant", "why": "bittersweet youth film canon", "conf": 0.65}
+{"seed_key": "ANIME:160", "id": 409, "v": "relevant", "why": "tender romance drama kin", "conf": 0.75}
+{"seed_key": "ANIME:160", "id": 911, "v": "relevant", "why": "love-and-loss film, same wave", "conf": 0.65}
+{"seed_key": "ANIME:160", "id": 916, "v": "relevant", "why": "trauma and confession weeper", "conf": 0.7}
+{"seed_key": "ANIME:160", "id": 1159, "v": "relevant", "why": "grief weeper, recap-film entry", "conf": 0.6}
+{"seed_key": "ANIME:160", "id": 1203, "v": "relevant", "why": "adolescent drama film, mid-franchise entry", "conf": 0.5}
+{"seed_key": "ANIME:160", "id": 16693, "v": "not_relevant", "why": "boxing drama classic, wrong neighborhood entirely", "conf": 0.8}
+{"seed_key": "ANIME:167", "id": 8, "v": "relevant", "why": "bored-overpowered deadpan gag kin", "conf": 0.8}
+{"seed_key": "ANIME:167", "id": 22, "v": "relevant", "why": "psychic schoolboy comedy, premise sibling with heart", "conf": 0.85}
+{"seed_key": "ANIME:167", "id": 123, "v": "relevant", "why": "psychic comedy-drama continuation", "conf": 0.8}
+{"seed_key": "ANIME:167", "id": 166, "v": "not_relevant", "why": "romance drama film, wrong neighborhood", "conf": 0.8}
+{"seed_key": "ANIME:167", "id": 190, "v": "not_relevant", "why": "emotional shoujo drama, wrong neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:167", "id": 207, "v": "relevant", "why": "absurdist rapid-fire gag canon", "conf": 0.9}
+{"seed_key": "ANIME:167", "id": 237, "v": "relevant", "why": "deadpan overpowered gag register", "conf": 0.7}
+{"seed_key": "ANIME:167", "id": 270, "v": "relevant", "why": "absurdist school gag canon", "conf": 0.85}
+{"seed_key": "ANIME:167", "id": 352, "v": "relevant", "why": "deadpan perfect-student gag, extremely close", "conf": 0.85}
+{"seed_key": "ANIME:167", "id": 448, "v": "relevant", "why": "deadpan gag register, limited animation", "conf": 0.65}
+{"seed_key": "ANIME:167", "id": 459, "v": "relevant", "why": "school gag comedy, warmer register", "conf": 0.5}
+{"seed_key": "ANIME:167", "id": 474, "v": "relevant", "why": "deadpan psychic comedy, very close", "conf": 0.85}
+{"seed_key": "ANIME:167", "id": 484, "v": "relevant", "why": "unhinged school gag energy", "conf": 0.8}
+{"seed_key": "ANIME:167", "id": 1028, "v": "not_relevant", "why": "sincere romcom register, not gag machine", "conf": 0.6}
+{"seed_key": "ANIME:167", "id": 1161, "v": "relevant", "why": "deadpan gag comedy, adjacent register", "conf": 0.6}
+{"seed_key": "ANIME:167", "id": 1208, "v": "not_relevant", "why": "romcom drama, wrong neighborhood", "conf": 0.65}
+{"seed_key": "ANIME:167", "id": 1226, "v": "not_relevant", "why": "sincere gentle slice, not gag register", "conf": 0.7}
+{"seed_key": "ANIME:167", "id": 1376, "v": "not_relevant", "why": "poignant melancholy dramedy, different register", "conf": 0.6}
+{"seed_key": "ANIME:167", "id": 2050, "v": "not_relevant", "why": "shoujo supernatural romance, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:167", "id": 49332, "v": "unknown", "why": "cannot place this obscure film", "conf": 0.8}
+{"seed_key": "ANIME:416", "id": 220, "v": "relevant", "why": "hobby-club comfort canon", "conf": 0.8}
+{"seed_key": "ANIME:416", "id": 271, "v": "relevant", "why": "hobby girls comedy, higher energy same genre", "conf": 0.7}
+{"seed_key": "ANIME:416", "id": 414, "v": "relevant", "why": "girls' outdoor journey with heart, more dramatic", "conf": 0.7}
+{"seed_key": "ANIME:416", "id": 552, "v": "relevant", "why": "cozy quiet travel, melancholy-tinged kin", "conf": 0.7}
+{"seed_key": "ANIME:416", "id": 761, "v": "relevant", "why": "countryside iyashikei canon", "conf": 0.9}
+{"seed_key": "ANIME:416", "id": 917, "v": "relevant", "why": "gentle hobby heart, romance-leaning register", "conf": 0.55}
+{"seed_key": "ANIME:416", "id": 1105, "v": "franchise", "why": "Laid-Back Camp sequel", "conf": 1.0}
+{"seed_key": "ANIME:416", "id": 1691, "v": "relevant", "why": "hobby-craft iyashikei kin", "conf": 0.8}
+{"seed_key": "ANIME:416", "id": 1692, "v": "relevant", "why": "solitary-hobby iyashikei, very close feel", "conf": 0.8}
+{"seed_key": "ANIME:416", "id": 2150, "v": "relevant", "why": "outdoor hobby girls, near-identical neighborhood", "conf": 0.85}
+{"seed_key": "ANIME:416", "id": 2296, "v": "relevant", "why": "collecting-hobby iyashikei, close", "conf": 0.7}
+{"seed_key": "ANIME:416", "id": 2491, "v": "relevant", "why": "fishing hobby club, near-identical register", "conf": 0.8}
+{"seed_key": "ANIME:416", "id": 2623, "v": "unknown", "why": "cannot place this title confidently", "conf": 0.6}
+{"seed_key": "ANIME:416", "id": 2884, "v": "relevant", "why": "countryside iyashikei entry", "conf": 0.7}
+{"seed_key": "ANIME:416", "id": 4200, "v": "relevant", "why": "outdoor hobby continuation", "conf": 0.8}
+{"seed_key": "ANIME:416", "id": 4874, "v": "relevant", "why": "photography iyashikei, gentle register match", "conf": 0.75}
+{"seed_key": "ANIME:416", "id": 12987, "v": "relevant", "why": "countryside iyashikei film", "conf": 0.8}
+{"seed_key": "ANIME:416", "id": 13147, "v": "relevant", "why": "same author's hobby road-trip register", "conf": 0.85}
+{"seed_key": "ANIME:416", "id": 13220, "v": "relevant", "why": "club-girls comedy, gag-leaning adjacent", "conf": 0.55}
+{"seed_key": "ANIME:16", "id": 15, "v": "relevant", "why": "prestige youth film wave", "conf": 0.7}
+{"seed_key": "ANIME:16", "id": 23, "v": "relevant", "why": "guilt-and-healing weeper, canonical companion", "conf": 0.9}
+{"seed_key": "ANIME:16", "id": 98, "v": "relevant", "why": "prestige emotional register", "conf": 0.8}
+{"seed_key": "ANIME:16", "id": 138, "v": "relevant", "why": "guilt and grief among youths", "conf": 0.85}
+{"seed_key": "ANIME:16", "id": 160, "v": "relevant", "why": "sincere youth weeper", "conf": 0.8}
+{"seed_key": "ANIME:16", "id": 165, "v": "not_relevant", "why": "romcom-forward register, drama secondary", "conf": 0.5}
+{"seed_key": "ANIME:16", "id": 186, "v": "relevant", "why": "same author's pain-and-connection epic", "conf": 0.75}
+{"seed_key": "ANIME:16", "id": 300, "v": "relevant", "why": "tearjerker canon, redemption register", "conf": 0.75}
+{"seed_key": "ANIME:16", "id": 311, "v": "relevant", "why": "isolation-and-healing drama, deep kin", "conf": 0.85}
+{"seed_key": "ANIME:16", "id": 409, "v": "relevant", "why": "disability, withdrawal, tender growth", "conf": 0.8}
+{"seed_key": "ANIME:16", "id": 773, "v": "relevant", "why": "deaf-heroine communication romance, direct kin", "conf": 0.8}
+{"seed_key": "ANIME:16", "id": 789, "v": "relevant", "why": "quiet youth romance film, gentle register", "conf": 0.6}
+{"seed_key": "ANIME:16", "id": 916, "v": "relevant", "why": "trauma, muteness, making amends — very close", "conf": 0.8}
+{"seed_key": "ANIME:16", "id": 1159, "v": "relevant", "why": "grief weeper, recap entry", "conf": 0.6}
+{"seed_key": "ANIME:16", "id": 1203, "v": "relevant", "why": "adolescent psychological drama, mid-franchise film", "conf": 0.5}
+{"seed_key": "ANIME:16", "id": 1219, "v": "relevant", "why": "same director's quiet masterwork, spiritual sibling", "conf": 0.9}
+{"seed_key": "ANIME:104", "id": 90, "v": "relevant", "why": "school romance canon, supernatural-tinged", "conf": 0.6}
+{"seed_key": "ANIME:104", "id": 94, "v": "relevant", "why": "school romcom canon", "conf": 0.7}
+{"seed_key": "ANIME:104", "id": 127, "v": "relevant", "why": "school romcom canon continuation", "conf": 0.65}
+{"seed_key": "ANIME:104", "id": 148, "v": "relevant", "why": "hidden-self couple sweetness, very close", "conf": 0.85}
+{"seed_key": "ANIME:104", "id": 177, "v": "relevant", "why": "hiding-true-self romance, direct premise kin", "conf": 0.8}
+{"seed_key": "ANIME:104", "id": 185, "v": "relevant", "why": "gentle school connection romance", "conf": 0.7}
+{"seed_key": "ANIME:104", "id": 235, "v": "relevant", "why": "odd-couple school romance kin", "conf": 0.75}
+{"seed_key": "ANIME:104", "id": 262, "v": "relevant", "why": "earnest shoujo school romance", "conf": 0.7}
+{"seed_key": "ANIME:104", "id": 273, "v": "relevant", "why": "earnest shoujo romance canon", "conf": 0.75}
+{"seed_key": "ANIME:104", "id": 278, "v": "relevant", "why": "established-couple sweetness register", "conf": 0.7}
+{"seed_key": "ANIME:104", "id": 328, "v": "relevant", "why": "couple-first school romance feel, weaker craft", "conf": 0.45}
+{"seed_key": "ANIME:104", "id": 335, "v": "relevant", "why": "multi-couple confession vignettes, close feel", "conf": 0.8}
+{"seed_key": "ANIME:104", "id": 456, "v": "relevant", "why": "childhood-friends romance comedy kin", "conf": 0.7}
+{"seed_key": "ANIME:104", "id": 503, "v": "franchise", "why": "Horimiya companion series", "conf": 1.0}
+{"seed_key": "ANIME:104", "id": 521, "v": "relevant", "why": "sincere school romance, modern canon kin", "conf": 0.8}
+{"seed_key": "ANIME:104", "id": 528, "v": "relevant", "why": "wholesome doting-couple register, LN flavor", "conf": 0.6}
+{"seed_key": "ANIME:104", "id": 534, "v": "relevant", "why": "earnest cross-divide school romance, acclaimed", "conf": 0.8}
+{"seed_key": "ANIME:104", "id": 738, "v": "relevant", "why": "odd-couple school romcom classic", "conf": 0.7}
+{"seed_key": "ANIME:104", "id": 3380, "v": "not_relevant", "why": "sibling gag comedy, not romance register", "conf": 0.6}
+{"seed_key": "ANIME:336", "id": 510, "v": "relevant", "why": "grief-processing prestige, gentler register", "conf": 0.55}
+{"seed_key": "ANIME:336", "id": 841, "v": "relevant", "why": "war-era Ghibli melancholy, adult register", "conf": 0.8}
+{"seed_key": "ANIME:336", "id": 856, "v": "not_relevant", "why": "heroic adventure register, not war weeper", "conf": 0.5}
+{"seed_key": "ANIME:336", "id": 992, "v": "relevant", "why": "postwar misery and endurance, register kin", "conf": 0.7}
+{"seed_key": "ANIME:336", "id": 1017, "v": "not_relevant", "why": "comedic humanist register, tonally opposite", "conf": 0.5}
+{"seed_key": "ANIME:336", "id": 1072, "v": "not_relevant", "why": "space-opera epic, wrong neighborhood despite mastery", "conf": 0.7}
+{"seed_key": "ANIME:336", "id": 1199, "v": "relevant", "why": "children in catastrophe, sibling loss — devastating kin", "conf": 0.9}
+{"seed_key": "ANIME:336", "id": 1225, "v": "relevant", "why": "Takahata tragedy masterwork, register match", "conf": 0.85}
+{"seed_key": "ANIME:336", "id": 1327, "v": "relevant", "why": "WWII homefront tragedy, closest neighbor", "conf": 0.95}
+{"seed_key": "ANIME:336", "id": 1822, "v": "relevant", "why": "children ground down by war, brutal kin", "conf": 0.8}
+{"seed_key": "ANIME:336", "id": 2838, "v": "not_relevant", "why": "Takahata warmth without tragedy register", "conf": 0.5}
+{"seed_key": "ANIME:336", "id": 2939, "v": "relevant", "why": "firebombed-childhood war tragedy, direct neighbor", "conf": 0.9}
+{"seed_key": "ANIME:336", "id": 4255, "v": "relevant", "why": "postwar children's tragedy, direct neighbor", "conf": 0.85}
+{"seed_key": "ANIME:336", "id": 4888, "v": "relevant", "why": "orphan hardship melodrama, vintage weeper register", "conf": 0.5}
+{"seed_key": "ANIME:336", "id": 5354, "v": "relevant", "why": "schoolgirls in Okinawa battle, devastating kin", "conf": 0.8}
+{"seed_key": "ANIME:336", "id": 5503, "v": "relevant", "why": "WWII homefront tragedy, extended cut", "conf": 0.9}
+{"seed_key": "ANIME:336", "id": 10350, "v": "not_relevant", "why": "game-promo fantasy short, junk fit", "conf": 0.9}
+{"seed_key": "ANIME:336", "id": 22516, "v": "not_relevant", "why": "cozy orphaned-brothers slice, wrong register", "conf": 0.55}
+{"seed_key": "ANIME:493", "id": 122, "v": "relevant", "why": "VN-register ensemble trauma with comedy, Key kin", "conf": 0.7}
+{"seed_key": "ANIME:493", "id": 129, "v": "relevant", "why": "Key-style tragicomedy drama", "conf": 0.65}
+{"seed_key": "ANIME:493", "id": 131, "v": "relevant", "why": "dark school LN, stoic-operator lead kin", "conf": 0.6}
+{"seed_key": "ANIME:493", "id": 160, "v": "not_relevant", "why": "straight sincere weeper, no VN-route register", "conf": 0.5}
+{"seed_key": "ANIME:493", "id": 168, "v": "relevant", "why": "girl-of-the-arc trauma-solving structure kin", "conf": 0.6}
+{"seed_key": "ANIME:493", "id": 191, "v": "not_relevant", "why": "ecchi harem battle romp, junk-fun register", "conf": 0.6}
+{"seed_key": "ANIME:493", "id": 239, "v": "not_relevant", "why": "power-fantasy school battler, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:493", "id": 240, "v": "not_relevant", "why": "sci-fi magic-school LN, different register", "conf": 0.5}
+{"seed_key": "ANIME:493", "id": 283, "v": "not_relevant", "why": "sincere shoujo weeper, no VN structure", "conf": 0.5}
+{"seed_key": "ANIME:493", "id": 504, "v": "not_relevant", "why": "animal-society drama, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:493", "id": 546, "v": "relevant", "why": "trauma-arc dialogue drama, deeper franchise entry", "conf": 0.55}
+{"seed_key": "ANIME:493", "id": 826, "v": "not_relevant", "why": "junk LN action, register collapse", "conf": 0.75}
+{"seed_key": "ANIME:493", "id": 916, "v": "relevant", "why": "broken kids healing at school, thematic kin", "conf": 0.5}
+{"seed_key": "ANIME:493", "id": 970, "v": "relevant", "why": "operative-in-school comedy-military blend, premise kin", "conf": 0.5}
+{"seed_key": "ANIME:493", "id": 1203, "v": "relevant", "why": "adolescent trauma-supernatural drama, adjacent", "conf": 0.5}
+{"seed_key": "ANIME:493", "id": 1379, "v": "relevant", "why": "VN assassin tragedy, Grisaia's thriller side", "conf": 0.7}
+{"seed_key": "ANIME:493", "id": 1548, "v": "not_relevant", "why": "dark magical-girl tragedy, different neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:493", "id": 2358, "v": "relevant", "why": "VN trauma tearjerker, register match", "conf": 0.7}
+{"seed_key": "ANIME:493", "id": 2523, "v": "franchise", "why": "Grisaia spinoff sequel", "conf": 1.0}
+{"seed_key": "ANIME:493", "id": 13336, "v": "not_relevant", "why": "classic shoujo psychodrama, different register", "conf": 0.55}
+{"seed_key": "ANIME:4", "id": 19, "v": "relevant", "why": "cat-and-mouse mind games against captor", "conf": 0.8}
+{"seed_key": "ANIME:4", "id": 24, "v": "relevant", "why": "taut mystery thriller register", "conf": 0.7}
+{"seed_key": "ANIME:4", "id": 105, "v": "relevant", "why": "dark philosophical thriller-adjacent", "conf": 0.55}
+{"seed_key": "ANIME:4", "id": 109, "v": "relevant", "why": "god-power anti-hero mind games, canonical companion", "conf": 0.9}
+{"seed_key": "ANIME:4", "id": 112, "v": "relevant", "why": "judgment-of-souls psychological games", "conf": 0.7}
+{"seed_key": "ANIME:4", "id": 159, "v": "relevant", "why": "anti-hero strategist epic continuation", "conf": 0.85}
+{"seed_key": "ANIME:4", "id": 181, "v": "relevant", "why": "prestige cat-and-mouse manhunt, canonical", "conf": 0.9}
+{"seed_key": "ANIME:4", "id": 213, "v": "relevant", "why": "intellect-versus-state thriller", "conf": 0.7}
+{"seed_key": "ANIME:4", "id": 468, "v": "relevant", "why": "justice-by-murder mastermind, direct premise kin", "conf": 0.8}
+{"seed_key": "ANIME:4", "id": 721, "v": "not_relevant", "why": "same creators, botched execution breaks register", "conf": 0.55}
+{"seed_key": "ANIME:4", "id": 741, "v": "relevant", "why": "psychological dread, surreal Kon register", "conf": 0.55}
+{"seed_key": "ANIME:4", "id": 744, "v": "relevant", "why": "detective psychological sci-fi, mind-dive games", "conf": 0.65}
+{"seed_key": "ANIME:4", "id": 780, "v": "relevant", "why": "killer-among-us deception games, genuinely close", "conf": 0.6}
+{"seed_key": "ANIME:4", "id": 874, "v": "not_relevant", "why": "ensemble battle action, scheming is secondary", "conf": 0.5}
+{"seed_key": "ANIME:4", "id": 966, "v": "relevant", "why": "prestige murder investigation, moral weight", "conf": 0.7}
+{"seed_key": "ANIME:4", "id": 1067, "v": "relevant", "why": "elegant crime mind-games continuation", "conf": 0.75}
+{"seed_key": "ANIME:4", "id": 1364, "v": "relevant", "why": "murder psychology art film, adjacent", "conf": 0.5}
+{"seed_key": "ANIME:4", "id": 1777, "v": "relevant", "why": "locked-room genius mind games", "conf": 0.6}
+{"seed_key": "ANIME:181", "id": 4, "v": "relevant", "why": "cat-and-mouse moral thriller, canonical companion", "conf": 0.85}
+{"seed_key": "ANIME:181", "id": 158, "v": "relevant", "why": "crime-philosophy procedural thriller", "conf": 0.8}
+{"seed_key": "ANIME:181", "id": 184, "v": "relevant", "why": "crime tragedy thriller, humane register", "conf": 0.7}
+{"seed_key": "ANIME:181", "id": 213, "v": "relevant", "why": "somber intellect thriller", "conf": 0.7}
+{"seed_key": "ANIME:181", "id": 261, "v": "not_relevant", "why": "pulp gunplay register, not slow-burn psychology", "conf": 0.5}
+{"seed_key": "ANIME:181", "id": 286, "v": "relevant", "why": "psychological horror prestige, canonical", "conf": 0.9}
+{"seed_key": "ANIME:181", "id": 329, "v": "relevant", "why": "grounded revenge crime drama, sober register", "conf": 0.7}
+{"seed_key": "ANIME:181", "id": 412, "v": "not_relevant", "why": "medieval fantasy epic, different world despite darkness", "conf": 0.5}
+{"seed_key": "ANIME:181", "id": 490, "v": "relevant", "why": "grounded mystery thriller, masterful register", "conf": 0.8}
+{"seed_key": "ANIME:181", "id": 741, "v": "relevant", "why": "psychological prestige, societal dread", "conf": 0.7}
+{"seed_key": "ANIME:181", "id": 966, "v": "relevant", "why": "Urasawa's own prestige mystery, nearest kin", "conf": 0.95}
+{"seed_key": "ANIME:181", "id": 992, "v": "relevant", "why": "grim humane endurance drama", "conf": 0.7}
+{"seed_key": "ANIME:181", "id": 1067, "v": "relevant", "why": "elegant crime mind games, adjacent", "conf": 0.6}
+{"seed_key": "ANIME:181", "id": 1102, "v": "relevant", "why": "cerebral crime procedural, thinking-adult register", "conf": 0.6}
+{"seed_key": "ANIME:181", "id": 1528, "v": "not_relevant", "why": "thriller premise with collapsed execution", "conf": 0.6}
+{"seed_key": "ANIME:181", "id": 1564, "v": "relevant", "why": "slow adult political intrigue, adjacent", "conf": 0.55}
+{"seed_key": "ANIME:24", "id": 4, "v": "relevant", "why": "serial-killer thriller canon", "conf": 0.7}
+{"seed_key": "ANIME:24", "id": 15, "v": "not_relevant", "why": "romance spectacle, time-slip alone insufficient", "conf": 0.5}
+{"seed_key": "ANIME:24", "id": 19, "v": "relevant", "why": "suspense mystery against hidden threat", "conf": 0.7}
+{"seed_key": "ANIME:24", "id": 28, "v": "relevant", "why": "die-and-retry to save people, thriller tension", "conf": 0.65}
+{"seed_key": "ANIME:24", "id": 29, "v": "relevant", "why": "time travel to undo tragedy, canonical companion", "conf": 0.9}
+{"seed_key": "ANIME:24", "id": 124, "v": "relevant", "why": "time-leap to save loved ones, premise kin", "conf": 0.7}
+{"seed_key": "ANIME:24", "id": 157, "v": "relevant", "why": "retry-to-save continuation, register kin", "conf": 0.55}
+{"seed_key": "ANIME:24", "id": 181, "v": "relevant", "why": "serial-killer cat-and-mouse prestige", "conf": 0.7}
+{"seed_key": "ANIME:24", "id": 195, "v": "relevant", "why": "death investigation threaded through drama", "conf": 0.55}
+{"seed_key": "ANIME:24", "id": 213, "v": "relevant", "why": "somber thriller register", "conf": 0.6}
+{"seed_key": "ANIME:24", "id": 246, "v": "not_relevant", "why": "redo-youth premise but slice-romance register", "conf": 0.5}
+{"seed_key": "ANIME:24", "id": 247, "v": "not_relevant", "why": "emotional supernatural drama, no thriller drive", "conf": 0.45}
+{"seed_key": "ANIME:24", "id": 283, "v": "relevant", "why": "letters to prevent a death, sincere kin", "conf": 0.7}
+{"seed_key": "ANIME:24", "id": 303, "v": "relevant", "why": "time-tragedy thriller continuation", "conf": 0.8}
+{"seed_key": "ANIME:24", "id": 316, "v": "relevant", "why": "loop murder mystery saving loved one, near-perfect", "conf": 0.9}
+{"seed_key": "ANIME:24", "id": 437, "v": "relevant", "why": "alter-the-past thriller, direct kin", "conf": 0.85}
+{"seed_key": "ANIME:24", "id": 1777, "v": "relevant", "why": "locked-room mystery register, adjacent", "conf": 0.5}
+{"seed_key": "ANIME:24", "id": 2056, "v": "not_relevant", "why": "VN tearjerker register, mystery secondary", "conf": 0.5}
+{"seed_key": "ANIME:24", "id": 2524, "v": "relevant", "why": "past-altering thriller continuation", "conf": 0.75}
+{"seed_key": "ANIME:24", "id": 4762, "v": "not_relevant", "why": "blockbuster detective franchise film, formula register", "conf": 0.5}

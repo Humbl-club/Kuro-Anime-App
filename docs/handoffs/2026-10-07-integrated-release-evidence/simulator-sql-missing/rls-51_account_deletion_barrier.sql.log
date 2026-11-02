@@ -1,0 +1,27 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:43: NOTICE:  TEST ok: an end user cannot start a deletion barrier (service role only) (denied: permission denied for function begin_account_deletion)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:45: NOTICE:  TEST ok: an end user cannot read barrier rows (denied: permission denied for table account_deletion_barriers)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:47: NOTICE:  TEST ok: anon cannot start a deletion barrier (denied: permission denied for function begin_account_deletion)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:52: NOTICE:  TEST ok: before: owner writes a list row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:57: NOTICE:  TEST ok: begin_account_deletion succeeds
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:58: NOTICE:  TEST ok: begin_account_deletion is idempotent (retry)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:60: NOTICE:  TEST ok: exactly one barrier row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:65: NOTICE:  TEST ok: F38: new list row refused (anime, own JWT) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:67: NOTICE:  TEST ok: F38: new list row refused (manga, own JWT) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:69: NOTICE:  TEST ok: F38: notes-only update of a surviving row refused (the evidence's second leak) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:71: NOTICE:  TEST ok: F38: an upper-case spelling of the same id is refused too (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:73: NOTICE:  TEST ok: F38: joining a club refused (no new membership during deletion) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:74: NOTICE:  TEST ok: F38: creating a club refused (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:76: NOTICE:  TEST ok: deletes are never blocked (cleanup and retries proceed)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:80: NOTICE:  TEST ok: F38: a service-role writer acting for the user is refused as well (e.g. an import) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:82: NOTICE:  TEST ok: F38: legacy anime_comments write for the user refused (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:84: NOTICE:  TEST ok: F38: concierge_runs write for the user refused (its FK only SETs NULL, the prompt would survive) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:89: NOTICE:  TEST ok: another user writes normally
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:90: NOTICE:  TEST ok: another user joins clubs normally
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:96: NOTICE:  TEST ok: F38: no list row survives the deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:99: NOTICE:  TEST ok: F38: a late write with the deleted user's JWT is still refused (barrier outlives the auth user) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:109: NOTICE:  TEST ok: retention: a finished deletion older than 7 days is purged by the next deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:111: NOTICE:  TEST ok: retention: an old barrier of a user who still exists (interrupted deletion) is kept
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:115: NOTICE:  TEST ok: posture: barrier table has RLS enabled
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:117: NOTICE:  TEST ok: posture: begin_account_deletion is SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:121: NOTICE:  TEST ok: posture: only service_role may EXECUTE begin_account_deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:125: NOTICE:  TEST ok: posture: the barrier trigger guards every no-cascade user-keyed table and new memberships

@@ -1,0 +1,24 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:29: NOTICE:  TEST ok: A: writer opens a transaction
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:33: NOTICE:  TEST ok: A: writer inserts a list row (uncommitted, holds the user's shared lock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:37: NOTICE:  TEST ok: A: the deletion barrier WAITS for the in-flight writer (advisory lock wait observed)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:38: NOTICE:  TEST ok: A: writer commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:40: NOTICE:  TEST ok: A: the barrier is established after the writer committed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:42: NOTICE:  TEST ok: A: the writer's row exists before cleanup (it committed before the barrier)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:47: NOTICE:  ACCOUNT_DELETION_IN_PROGRESS
+DETAIL:  this account is being deleted; no new data is accepted for it
+HINT:  ACCOUNT_DELETION_IN_PROGRESS
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:47: NOTICE:  TEST ok: A: a notes-only update of the surviving row is refused once the barrier exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:51: NOTICE:  TEST ok: A: cleanup deletes the user's list rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:57: NOTICE:  ACCOUNT_DELETION_IN_PROGRESS
+DETAIL:  this account is being deleted; no new data is accepted for it
+HINT:  ACCOUNT_DELETION_IN_PROGRESS
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:57: NOTICE:  TEST ok: A: a write after the cleanup is refused (ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:62: NOTICE:  TEST ok: A: F38 closed -- no private list row survives the deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:67: NOTICE:  TEST ok: B: the deletion takes the barrier first (transaction still open)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:72: NOTICE:  TEST ok: B: the concurrent write WAITS for the deletion's exclusive lock
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:73: NOTICE:  TEST ok: B: deletion commits the barrier
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:75: NOTICE:  ACCOUNT_DELETION_IN_PROGRESS
+DETAIL:  this account is being deleted; no new data is accepted for it
+HINT:  ACCOUNT_DELETION_IN_PROGRESS
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:75: NOTICE:  TEST ok: B: the waiting write is then refused (ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:78: NOTICE:  TEST ok: B: nothing was written for the user

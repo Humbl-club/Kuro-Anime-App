@@ -1,0 +1,37 @@
+[
+  {
+    "slug": "concierge-apply",
+    "started_at": "2026-10-08T00:20:09.560168+00:00",
+    "ended_at": "2026-10-08T00:20:10.563291+00:00",
+    "exit_code": 0,
+    "log": "approved-deploy-concierge-apply.log"
+  },
+  {
+    "slug": "concierge-undo",
+    "started_at": "2026-10-08T00:20:10.564721+00:00",
+    "ended_at": "2026-10-08T00:20:11.284020+00:00",
+    "exit_code": 0,
+    "log": "approved-deploy-concierge-undo.log"
+  },
+  {
+    "slug": "delete-account",
+    "started_at": "2026-10-08T00:20:11.285054+00:00",
+    "ended_at": "2026-10-08T00:20:12.149878+00:00",
+    "exit_code": 0,
+    "log": "approved-deploy-delete-account.log"
+  },
+  {
+    "slug": "concierge-recommend",
+    "started_at": "2026-10-08T00:20:12.152218+00:00",
+    "ended_at": "2026-10-08T00:20:13.335061+00:00",
+    "exit_code": 0,
+    "log": "approved-deploy-concierge-recommend.log"
+  },
+  {
+    "slug": "concierge-retrieve-assist",
+    "started_at": "2026-10-08T00:20:13.335792+00:00",
+    "ended_at": "2026-10-08T00:20:14.468122+00:00",
+    "exit_code": 0,
+    "log": "approved-deploy-concierge-retrieve-assist.log"
+  }
+]

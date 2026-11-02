@@ -1,0 +1,162 @@
+[
+ {
+  "realm": "arthouse-experimental",
+  "family": "craft-art"
+ },
+ {
+  "realm": "auteur-cinema",
+  "family": "craft-art"
+ },
+ {
+  "realm": "classic-serial-canon",
+  "family": "craft-art"
+ },
+ {
+  "realm": "coming-of-age",
+  "family": "emotional-core"
+ },
+ {
+  "realm": "quiet-melancholy",
+  "family": "emotional-core"
+ },
+ {
+  "realm": "romance-slow-burn",
+  "family": "emotional-core"
+ },
+ {
+  "realm": "slice-of-life-iyashikei",
+  "family": "emotional-core"
+ },
+ {
+  "realm": "tragedy-tearjerker",
+  "family": "emotional-core"
+ },
+ {
+  "realm": "battle-shounen",
+  "family": "epic-adventure"
+ },
+ {
+  "realm": "dark-fantasy",
+  "family": "epic-adventure"
+ },
+ {
+  "realm": "grand-adventure",
+  "family": "epic-adventure"
+ },
+ {
+  "realm": "historical-epic",
+  "family": "epic-adventure"
+ },
+ {
+  "realm": "isekai-reincarnation",
+  "family": "epic-adventure"
+ },
+ {
+  "realm": "sword-samurai",
+  "family": "epic-adventure"
+ },
+ {
+  "realm": "crime-underworld",
+  "family": "intense"
+ },
+ {
+  "realm": "supernatural-yokai",
+  "family": "intense"
+ },
+ {
+  "realm": "war-military",
+  "family": "intense"
+ },
+ {
+  "realm": "comedy-parody",
+  "family": "laughter"
+ },
+ {
+  "realm": "romantic-comedy",
+  "family": "laughter"
+ },
+ {
+  "realm": "food-craft",
+  "family": "life-world"
+ },
+ {
+  "realm": "music-performance",
+  "family": "life-world"
+ },
+ {
+  "realm": "sports-competition",
+  "family": "life-world"
+ },
+ {
+  "realm": "workplace-adult-life",
+  "family": "life-world"
+ },
+ {
+  "realm": "horror-dread",
+  "family": "mind-thrill"
+ },
+ {
+  "realm": "mind-game-strategy",
+  "family": "mind-thrill"
+ },
+ {
+  "realm": "mystery-detective",
+  "family": "mind-thrill"
+ },
+ {
+  "realm": "psychological-thriller",
+  "family": "mind-thrill"
+ },
+ {
+  "realm": "ecchi-fanservice",
+  "family": "otaku-register"
+ },
+ {
+  "realm": "gag-short-form",
+  "family": "otaku-register"
+ },
+ {
+  "realm": "moe-cgdct",
+  "family": "otaku-register"
+ },
+ {
+  "realm": "bl-yuri",
+  "family": "relationships-identity"
+ },
+ {
+  "realm": "family-generations",
+  "family": "relationships-identity"
+ },
+ {
+  "realm": "idol-showbiz",
+  "family": "relationships-identity"
+ },
+ {
+  "realm": "gekiga-alternative",
+  "family": "seinen-alternative"
+ },
+ {
+  "realm": "seinen-drama",
+  "family": "seinen-alternative"
+ },
+ {
+  "realm": "cyberpunk-dystopia",
+  "family": "speculative-worlds"
+ },
+ {
+  "realm": "mecha",
+  "family": "speculative-worlds"
+ },
+ {
+  "realm": "sci-fi-space",
+  "family": "speculative-worlds"
+ },
+ {
+  "realm": "time-parallel-worlds",
+  "family": "speculative-worlds"
+ },
+ {
+  "realm": "kids-family",
+  "family": "young"
+ }
+]

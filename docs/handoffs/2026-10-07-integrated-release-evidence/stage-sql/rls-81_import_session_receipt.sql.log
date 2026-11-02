@@ -1,0 +1,20 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:14: NOTICE:  TEST ok: pending migration: internal progress writer exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:16: NOTICE:  TEST ok: pending migration: fence helper exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:18: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE the internal progress writer
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:20: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE the fence helper
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:38: NOTICE:  TEST ok: local progress receipt applies
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:40: NOTICE:  TEST ok: local progress is 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:45: NOTICE:  TEST ok: one local receipt exists before import
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:60: NOTICE:  TEST ok: apply moved progress to 7
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:63: NOTICE:  TEST ok: apply wrote rating without dropping notes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:66: NOTICE:  TEST ok: apply left a progress receipt (local + import)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:73: NOTICE:  TEST ok: import apply receipt uses the deterministic mutation id
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:93: NOTICE:  TEST ok: idempotent apply is replayed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:98: NOTICE:  TEST ok: idempotent apply does not move progress again
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:101: NOTICE:  TEST ok: idempotent apply does not advance revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:104: NOTICE:  TEST ok: idempotent apply does not write a second import receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:109: NOTICE:  TEST ok: undo reports undone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:114: NOTICE:  TEST ok: undo restored progress to the pre-import local value
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:121: NOTICE:  TEST ok: undo left a progress receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:138: NOTICE:  TEST ok: fresh apply moved progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:141: NOTICE:  TEST ok: fresh apply wrote exactly one receipt

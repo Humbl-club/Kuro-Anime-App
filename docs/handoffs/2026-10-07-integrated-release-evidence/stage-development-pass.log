@@ -1,0 +1,31 @@
+Development checks; local/source proof only.
+--- architecture: PASS
+Command: bash scripts/quality-gates/check_architecture.sh 
+=== Architecture boundaries ===
+--- 1 retired facade
+ok:   no SupabaseService references in code (Kuro/, KuroTests/)
+--- 2 flags injection
+ok:   no FeatureFlags.shared reads
+--- 3 SDK imports in views
+ok:   no SDK import in Kuro/Views or ContentView.swift
+--- 4 tracking tables
+ok:   anime_user_lists/manga_user_lists/user_lists named only in the Library transport and realtime owner
+--- 5 package purity
+ok:   no Supabase/SwiftUI/UIKit imports in Packages/*/Sources
+--- 6 tracking writes
+ok:   retired facade writers not defined outside Kuro/Library/LibraryActions.swift (views excluded: private UI handlers may share a name)
+ok:   no direct LibraryStore writes in views (all view writes go through LibraryActions)
+--- 7 view client boundary
+ok:   no SupabaseClient construction or client.auth/database/functions/channel call in Kuro/Views or ContentView.swift
+
+Architecture boundaries PASSED.
+--- docs: PASS
+Command: bash scripts/quality-gates/check_docs_current_state.sh 
+=== Current-State Docs Check ===
+
+PASS
+- app_swift=151
+- package_swift=24
+- migrations=245
+
+Current-state docs PASSED.

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Hooks are opt-in via `git config core.hooksPath .githooks` and are not active unless that is set.
 # Pre-commit hook: fast checks on staged files only.
 # Runs: secrets scan + migration hygiene.
 # Install: git config core.hooksPath .githooks

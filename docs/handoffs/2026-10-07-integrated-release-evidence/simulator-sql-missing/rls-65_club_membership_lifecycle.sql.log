@@ -1,0 +1,48 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:48: NOTICE:  TEST ok: a direct table DELETE of another member's row cannot see it (0 rows)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:49: NOTICE:  TEST ok: owner removes member 4 through remove_club_member
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:51: NOTICE:  TEST ok: removal recorded a block for (club, member 4), visible to the owner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:54: NOTICE:  TEST ok: F35: removed member cannot rejoin with the still-valid invite code (raised: REMOVED_FROM_CLUB)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:55: NOTICE:  TEST ok: removed member cannot read block rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:57: NOTICE:  TEST ok: plain member cannot read block rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:59: NOTICE:  TEST ok: plain member cannot remove anyone (NOT_ADMIN) (raised: NOT_ADMIN)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:61: NOTICE:  TEST ok: plain member cannot restore a removed member (NOT_ADMIN) (raised: NOT_ADMIN)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:63: NOTICE:  TEST ok: nobody writes block rows through the table API (denied: permission denied for table club_member_blocks)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:65: NOTICE:  TEST ok: owner restores member 4
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:66: NOTICE:  TEST ok: restoring again is a no-op
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:68: NOTICE:  TEST ok: F35: restored member rejoins with a valid invite code
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:74: NOTICE:  TEST ok: admin removes plain member 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:76: NOTICE:  TEST ok: F35: member removed by an admin cannot rejoin (raised: REMOVED_FROM_CLUB)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:78: NOTICE:  TEST ok: admin restores member 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:86: NOTICE:  TEST ok: admin cannot delete the OWNER row through the table API (0 rows)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:88: NOTICE:  TEST ok: admin cannot remove the OWNER through the RPC (NOT_ADMIN) (raised: NOT_ADMIN)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:90: NOTICE:  TEST ok: nobody removes themself through the RPC (CANNOT_REMOVE_SELF; leave_club is the path) (raised: CANNOT_REMOVE_SELF)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:93: NOTICE:  TEST ok: owner cannot delete their own row through the table API (0 rows; leave_club transfers ownership)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:94: NOTICE:  TEST ok: club still has exactly one owner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:100: NOTICE:  TEST ok: member 3 leaves through leave_club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:102: NOTICE:  TEST ok: leave records no block
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:104: NOTICE:  TEST ok: F35: voluntary leaver rejoins with a still-valid invite code
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:106: NOTICE:  TEST ok: a non-owner may still delete their own row (equivalent to leave, 1 row)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:107: NOTICE:  TEST ok: ...which is not a block either
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:111: NOTICE:  TEST ok: member 3 leaves again
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:113: NOTICE:  TEST ok: a voluntary leaver still needs a VALID code (expired -> CODE_EXPIRED) (raised: CODE_EXPIRED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:123: NOTICE:  TEST ok: owner leaves through leave_club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:126: NOTICE:  TEST ok: ownership went to the admin (2) although member 4 joined earlier
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:128: NOTICE:  TEST ok: a leaver is not blocked but not a member any more (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:133: NOTICE:  TEST ok: solo owner leaves
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:135: NOTICE:  TEST ok: solo club deleted when its last member leaves
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:144: NOTICE:  TEST ok: F39: an empty (orphaned) club cannot be joined (reported like an invalid code) (raised: INVALID_CODE)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:146: NOTICE:  TEST ok: ...and nobody became a member of it
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:168: NOTICE:  TEST ok: end user cannot call delete_account_club_memberships (denied: permission denied for function delete_account_club_memberships)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:172: NOTICE:  TEST ok: club lifecycle for account deletion requires the deletion barrier first (DELETION_NOT_STARTED) (raised: DELETION_NOT_STARTED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:177: NOTICE:  TEST ok: F37: solo club of the deleted owner is deleted now (not left for a later sweep)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:178: NOTICE:  TEST ok: F37: ...with its rail
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:179: NOTICE:  TEST ok: F37: shared club survives
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:181: NOTICE:  TEST ok: F37: shared club ownership went to the admin (8)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:183: NOTICE:  TEST ok: F37: other members' content is preserved (7's rail item)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:184: NOTICE:  TEST ok: F37: the deleted user holds no membership anywhere
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:186: NOTICE:  TEST ok: F37: club L (owner 2) is untouched apart from the departure
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:188: NOTICE:  TEST ok: F37: lifecycle reports what it did
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:190: NOTICE:  TEST ok: retry after completion is a no-op
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:193: NOTICE:  TEST ok: F37: auth deletion afterwards leaves the shared club owned
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:206: NOTICE:  TEST ok: safety net: solo club of a cascaded owner is deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:208: NOTICE:  TEST ok: safety net: shared club gets a new owner (5)

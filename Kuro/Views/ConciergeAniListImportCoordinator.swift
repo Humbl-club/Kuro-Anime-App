@@ -1,10 +1,12 @@
 import Foundation
 import Observation
+import KuroCore
+import KuroLibrary
 
 @MainActor
 @Observable
 final class ConciergeAniListImportCoordinator {
-    struct Request: Sendable {
+    struct Request: Equatable, Sendable {
         let username: String
         let types: [String]
         let statuses: [String]
@@ -20,9 +22,61 @@ final class ConciergeAniListImportCoordinator {
     }
 
     var phase: Phase = .form
-    var preview: SupabaseService.ConciergeAniListPreviewResponse? = nil
+    var preview: ConciergeAniListPreviewResponse? = nil
     var errorMessage: String? = nil
     var retryAfterSeconds: Int? = nil
+    var preparedImport: ImportOutcome?
+    private let scope = AccountActionScope()
+    @ObservationIgnored private var preparedActionId: String?
+    @ObservationIgnored private var preparationTask: Task<ImportOutcome?, Never>?
+
+    func activate(using service: ImportsService) { scope.activate(session: service.accountSession) }
+    func stop() { scope.deactivate(); preparationTask?.cancel(); preparationTask = nil; reset() }
+
+    /// Foundation path reads complete structured source pages; approval happens in the shared review.
+    func prepare(using service: ImportsService, username: String, types: [String], statuses: [String]) async -> ImportOutcome? {
+        guard let origin = scope.capture(session: service.accountSession), !isPreviewing else { return nil }
+        let selected = Request(username: username.trimmingCharacters(in: .whitespacesAndNewlines), types: types.sorted(), statuses: statuses.sorted(), maxItems: 0)
+        let retryingOriginal = phase == .error && request == selected
+        if !retryingOriginal { preparedActionId = nil }
+        request = selected
+        phase = .previewing; errorMessage = nil
+        let task = Task { @MainActor () -> ImportOutcome? in
+            guard self.scope.isCurrent(origin, session: service.accountSession), !Task.isCancelled else { return nil }
+            do {
+                let result: ImportOutcome
+                if retryingOriginal {
+                    guard let actionId = self.preparedActionId else {
+                        throw ImportFailure.invalidInput("No saved input is available for this action. Edit the form to start a new review.")
+                    }
+                    result = try await service.resumeImport(actionId: actionId)
+                } else {
+                    result = try await service.prepareAniListImport(username: selected.username, types: types, statuses: statuses,
+                        onActionId: { [weak self] actionId in
+                            guard let self, self.scope.isCurrent(origin, session: service.accountSession) else { return }
+                            self.preparedActionId = actionId
+                        })
+                }
+                guard self.scope.isCurrent(origin, session: service.accountSession), !Task.isCancelled else { return nil }
+                self.preparedImport = result; self.phase = .ready
+                return result
+            } catch is CancellationError { return nil }
+            catch {
+                guard self.scope.isCurrent(origin, session: service.accountSession), !Task.isCancelled else { return nil }
+                self.fail((error as? ImportFailure)?.localizedDescription ?? error.localizedDescription)
+                return nil
+            }
+        }
+        preparationTask = task
+        let result = await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        if scope.isCurrent(origin, session: service.accountSession) { preparationTask = nil }
+        return result
+    }
+
+    func pauseForDisabledFoundation() {
+        phase = .error
+        errorMessage = "Library synchronization is unavailable. Resume this same import when it is enabled again."
+    }
 
     private var request: Request? = nil
     private var previewText: String? = nil
@@ -42,16 +96,18 @@ final class ConciergeAniListImportCoordinator {
         retryAfterSeconds = nil
         request = nil
         previewText = nil
+        preparedImport = nil; preparedActionId = nil
     }
 
     func loadPreview(
-        using service: SupabaseService,
+        using service: ImportsService,
         isGermanLocale: Bool,
         username: String,
         types: [String],
         statuses: [String],
         maxItems: Int = 200
     ) async {
+        guard let origin = scope.capture(session: service.accountSession) else { return }
         let normalizedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
         let request = Request(username: normalizedUsername, types: types, statuses: statuses, maxItems: maxItems)
 
@@ -69,6 +125,7 @@ final class ConciergeAniListImportCoordinator {
                 statuses: statuses,
                 maxItems: maxItems
             )
+            guard scope.isCurrent(origin, session: service.accountSession) else { return }
 
             guard response.success else {
                 fail(
@@ -82,14 +139,16 @@ final class ConciergeAniListImportCoordinator {
             self.previewText = response.text?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
             phase = .ready
         } catch {
+            guard scope.isCurrent(origin, session: service.accountSession) else { return }
             fail(localizedErrorMessage(error, isGermanLocale: isGermanLocale))
         }
     }
 
     func confirmImport(
-        using service: SupabaseService,
+        using service: ImportsService,
         isGermanLocale: Bool
-    ) async -> SupabaseService.ConciergeAniListImportResponse? {
+    ) async -> ConciergeAniListImportResponse? {
+        guard let origin = scope.capture(session: service.accountSession) else { return nil }
         guard let request else {
             fail(localizedMissingPreviewRequest(isGermanLocale: isGermanLocale))
             return nil
@@ -107,6 +166,7 @@ final class ConciergeAniListImportCoordinator {
                 maxItems: request.maxItems,
                 cachedText: previewText
             )
+            guard scope.isCurrent(origin, session: service.accountSession) else { return nil }
 
             guard response.success else {
                 fail(
@@ -125,6 +185,7 @@ final class ConciergeAniListImportCoordinator {
             previewText = importText
             return response
         } catch {
+            guard scope.isCurrent(origin, session: service.accountSession) else { return nil }
             fail(localizedErrorMessage(error, isGermanLocale: isGermanLocale))
             return nil
         }

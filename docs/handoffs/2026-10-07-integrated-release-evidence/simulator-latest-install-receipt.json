@@ -1,0 +1,90 @@
+{
+  "captured_at": "2026-10-07T21:57:24.809207+00:00",
+  "evidence_layer": "Actual normally signed Debug simulator build; install/launch0; genuine password session via supported callback; Profile identity verified; restart restore FAIL",
+  "target": "simulator only",
+  "app_path": "/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app",
+  "bundle_id": "com.Kuro.app",
+  "version": "1.0",
+  "build": "17",
+  "sdk": "iphonesimulator27.0",
+  "bundle_files": [
+    [
+      "AppIcon60x60@2x.png",
+      "64885e10b5a5a5c6d47ca50c708b250d53ddcf4589262361bf50f48f044e523d"
+    ],
+    [
+      "AppIcon76x76@2x~ipad.png",
+      "c65d63971a8dfbec089463dd30287f86b542287cfe35cf6d4d8f3fe9adde0b9d"
+    ],
+    [
+      "Assets.car",
+      "2dbac1154a94058067ff76cf2e7cb1fc6943c342d1ae52d535b52505aed2c961"
+    ],
+    [
+      "Info.plist",
+      "dc36ac337d6a706f4cc6c49b9c4d0b25cdc76b537016d4f89177b37bacff619f"
+    ],
+    [
+      "Kuro",
+      "dd54ac4452d2f37399fa9feafe9c960a274b622fd1ca87fb783ddf2042be4817"
+    ],
+    [
+      "Kuro.debug.dylib",
+      "fbb53a10e1b5f9dd1400ba695835b624b2544730b4d71562e2d1d5a37e27305b"
+    ],
+    [
+      "PkgInfo",
+      "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+    ],
+    [
+      "PrivacyInfo.xcprivacy",
+      "0441b32cd4410d141275220713d5fd439b49a48bfe7fd434bd71b9f5a7e47efc"
+    ],
+    [
+      "_CodeSignature/CodeResources",
+      "6b4f10b4562af4f971d7cad543bca15b213891412d2222464c2456899931a70d"
+    ],
+    [
+      "__preview.dylib",
+      "77dff5a86c9834c98c34611619ca1c30bf9ad29b1a21b39d55178b459d69bb57"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/Info.plist",
+      "d29b3ea018ee60444369666b7e1e3337a409f024a412e1a0228ecb08c415f054"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/PrivacyInfo.xcprivacy",
+      "42fb8a30dd8d7ba0900e1bf17fe64ed8c12cfdb8a9c791ab6b4e1eceb0f299c0"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeDirectory",
+      "0d8efa77dc8f96a033b50b4a9a53f8cbbba4346a8a95a7854b8e21c70f7c475e"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeRequirements",
+      "987920904eab650e75788c054aa0b0524e6a80bfc71aa32df8d237a61743f986"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeResources",
+      "992cb9b56db418544103d3f0d9cfe363d28882ab1d8aa3cac3cd2099aa799d4d"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeSignature",
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    ]
+  ],
+  "bundle_sha256": "e0caff88ccb7266c2669c9edaa9f01d011d35438a59b50a2771ac4306b21d0c2",
+  "simulator_udid": "B9BC0BAE-3BBA-49C9-9591-B24BC5612804",
+  "simulator": "iPhone17Pro/iOS26.0",
+  "install_exit": 0,
+  "launch_exit": 0,
+  "visible_surface": "Retained ordinary development account Profile",
+  "screenshot": "development-account-profile.png",
+  "screenshot_sha256": "1f721d1d91a735ae82fcbe77a0370c388353de8a26ebf7f0bd27d3d28f2ce10e",
+  "backend_deploy": false,
+  "archive_upload": false,
+  "MAL_registration_approved": false,
+  "session_restore": "FAIL; unresolved",
+  "production_source_changed_this_initiative": false,
+  "normal_build_log_sha256": "ea3faa06498e1c03b38c1faead404be9885ab0b2ffd2e245a9b5c0162a935c83"
+}

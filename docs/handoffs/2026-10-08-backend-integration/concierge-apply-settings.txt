@@ -1,0 +1,197 @@
+- link "Skip to content":
+  - /url: "#main"
+  - generic: Skip to content
+- banner:
+  - link "Supabase Back to organization home":
+    - /url: /dashboard/org/guekoxfjllunvqjmhxgb
+    - img "Supabase"
+    - generic: Back to organization home
+  - link "Humbl-club's Org Pro":
+    - /url: /dashboard/org/guekoxfjllunvqjmhxgb
+    - generic: Humbl-club's Org
+    - generic: Pro
+  - button "Show organizations":
+  - link "AniThing is Possible":
+    - /url: /dashboard/project/bkdifromsqxkndnllmdj
+    - generic "AniThing is Possible"
+  - button "Show organization projects":
+  - link "main Production":
+    - /url: /dashboard/project/bkdifromsqxkndnllmdj
+    - generic "main"
+    - generic: Production
+  - button "Show project branches":
+  - button "Connect":
+    - generic: Connect
+  - button "Feedback":
+    - generic: Feedback
+  - button "Search...":
+    - paragraph: Search...
+    - generic: ⌘K
+  - button "Help":
+    - generic: Help
+  - button "Advisor Center":
+    - generic: Advisor Center
+  - button "SQL Editor":
+    - generic: SQL Editor
+  - button "AI Assistant":
+    - generic: AI Assistant
+  - button "Humbl-club":
+    - img "Humbl-club"
+- navigation:
+  - list:
+    - link "Project Overview":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj
+      - generic: Project Overview
+    - link "Table Editor":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/editor
+      - generic: Table Editor
+    - link "SQL Editor":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/sql
+      - generic: SQL Editor
+  - list:
+    - link "Database":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/database/schemas
+      - generic: Database
+    - link "Authentication":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/auth/users
+      - generic: Authentication
+    - link "Storage":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/storage/files
+      - generic: Storage
+    - link "Edge Functions":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions
+      - generic: Edge Functions
+    - link "Compute New":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/compute
+      - generic: Compute
+      - generic: New
+    - link "Realtime":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/realtime/inspector
+      - generic: Realtime
+  - list:
+    - link "Advisors":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/advisors/security
+      - generic: Advisors
+    - link "Observability":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/observability
+      - generic: Observability
+    - link "Logs":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/logs
+      - generic: Logs
+    - link "Integrations":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/integrations
+      - generic: Integrations
+  - list:
+    - link "Project Settings":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/settings/general
+      - generic: Project Settings
+- button "Sidebar control":
+- main:
+  - heading "Edge Functions" [level=4]
+  - menu "Sidebar":
+    - list:
+      - generic: Manage
+      - link "Functions":
+        - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions
+        - menuitem "Functions":
+          - generic: Functions
+      - link "Secrets":
+        - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/secrets
+        - menuitem "Secrets":
+          - generic: Secrets
+  - separator [disabled]:
+  - main:
+    - navigation "breadcrumb":
+      - list:
+        - link "Edge Functions":
+          - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions
+        - link "concierge-apply":
+          - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-apply
+    - link "Docs":
+      - /url: https://supabase.com/docs/guides/functions
+      - generic: Docs
+    - button "Download":
+      - generic: Download
+    - button "Test":
+      - generic: Test
+    - heading "concierge-apply" [level=1]
+    - generic: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-apply
+    - button:
+    - button "a day ago":
+      - generic: a day ago
+    - navigation:
+      - menu:
+        - link "Overview":
+          - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-apply
+        - link "Invocations":
+          - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-apply/invocations
+        - link "Logs":
+          - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-apply/logs
+        - link "Code":
+          - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-apply/code
+        - link "Settings" [active]:
+          - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-apply/details
+    - heading "Function configuration" [level=2]
+    - textbox "Name": concierge-apply
+    - generic: Name
+    - generic: Your slug and endpoint URL will remain the same
+    - switch "Verify JWT with legacy secret" [checked]
+    - checkbox [checked]
+    - generic: Verify JWT with legacy secret
+    - paragraph:
+      - text: Requires a JWT signed
+      - emphasis: only by the legacy secret
+      - text: in the
+      - code: Authorization
+      - text: header. The
+      - code: anon
+      - text: key satisfies this.
+    - paragraph: "Recommended: OFF with JWT and custom auth logic in your function code."
+    - button "Save changes" [disabled]:
+      - generic: Save changes
+    - heading "Invoke function" [level=2]
+    - tablist:
+      - tab "cURL" [selected]
+      - tab "JavaScript"
+      - tab "Swift"
+      - tab "Flutter"
+      - tab "Python"
+      - button "Show anon key":
+        - generic: Show anon key
+    - tabpanel "cURL":
+      - code: "curl -L -X POST 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-apply' \\ -H 'Authorization: Bearer SUPABASE_PUBLISHABLE_KEY' \\ -H 'apikey: SUPABASE_PUBLISHABLE_KEY' \\ -H 'Content-Type: application/json' \\ --data '{\"name\":\"Functions\"}'"
+      - button "Copy":
+    - heading "Develop locally" [level=2]
+    - text: "> 1. Download the function"
+    - generic: $
+    - generic: supabase functions download concierge-apply
+    - button:
+    - text: "> Deploy a new version"
+    - generic: $
+    - generic: supabase functions deploy concierge-apply
+    - button:
+    - text: "> Delete the function"
+    - generic: $
+    - generic: supabase functions delete concierge-apply
+    - button:
+    - heading "Delete function" [level=2]
+    - alert:
+      - paragraph: Once your function is deleted, it can no longer be restored
+      - paragraph: Make sure you have made a backup if you want to restore your edge function
+      - button "Delete edge function":
+        - generic: Delete edge function
+- button "Close banner":
+- generic: Preview
+- paragraph: User growth
+- paragraph: Track how your user base is trending.
+- paragraph:
+  - generic: select
+  - generic: date_trunc('week', last_sign_in_at) as week,
+  - generic: count(distinct id) as active_users
+- paragraph: Explorer & Notebooks
+- paragraph: New unified workspace for querying data and chatting with Assistant.
+- button "Enable Explorer":
+  - generic: Enable Explorer
+- alert: concierge-apply | Settings | Edge Functions | AniThing is Possible | Humbl-club's Org | Supabase
+- alert
+- alert

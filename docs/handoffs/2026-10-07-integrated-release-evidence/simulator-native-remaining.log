@@ -1,0 +1,1221 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination "platform=iOS Simulator,id=B9BC0BAE-3BBA-49C9-9591-B24BC5612804" -parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 1 test "-only-testing:KuroTests" "-skip-testing:KuroTests/SessionSDKTests" "-skip-testing:KuroTests/ImportApplyOutcomeTests" -resultBundlePath .codex-artifacts/simulator-integration/native-remaining.xcresult
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  swift-crypto: https://github.com/apple/swift-crypto.git @ 3.15.1
+  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.5.1
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.0.6
+  KuroModules: /Users/max/Kuro-Anime-App/Packages/KuroModules @ local
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.54.1
+  swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.3.2
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.7.0
+  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.5.0
+
+Writing result bundle at path:
+	/Users/max/Kuro-Anime-App/.codex-artifacts/simulator-integration/native-remaining.xcresult
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (37 targets)
+    Target 'KuroUITests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'KuroTests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'Kuro' in project 'Kuro'
+        ➜ Explicit dependency on target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase-product' in project 'KuroModules'
+    Target 'KuroSupabase-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore' in project 'KuroModules' (no dependencies)
+    Target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Crypto-product' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'swift-crypto_Crypto' in project 'swift-crypto' (no dependencies)
+    Target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay' (no dependencies)
+    Target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'HTTPTypes' in project 'swift-http-types' (no dependencies)
+    Target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'ConcurrencyExtras' in project 'swift-concurrency-extras'
+    Target 'ConcurrencyExtras' in project 'swift-concurrency-extras' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/max/Kuro-Anime-App/Kuro.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+note: Disabling hardened runtime with ad-hoc codesigning. (in target 'Kuro' from project 'Kuro')
+Testing started
+Test suite 'DetailTruthfulnessTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ConciergeRoutingTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'QuickStatusChangeTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'CreditRoleTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'RoutingTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'EditorialSearchTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ImportsContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'BannerCenterTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'AuthCallbackGuardTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubDisclosureRepairTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'TasteContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'FixtureHostTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ConciergeContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'LibraryRealtimeTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'PrivateStateResetTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'DeepLinkRouterTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'LateRealtimeEventTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ReleasesContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'CatalogCacheContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'TasteDeckTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'CollectionRequestCountTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'MultiUserPageOrchestrationTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsRevocationCounterTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'LibraryFacadeTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'LibraryActionsPrimitiveTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ConciergeWorkflowLifetimeTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsRPCContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ImportLoadStateGateTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'SocialActivityContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'AdaptationLadderTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ProviderAvailabilityContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ImportsParseSnapshotTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubAuthorDecodingTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubErrorTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'SearchContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ImportApplyGateTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'PendingReminderTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'EntityWorkIdentityTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'LibraryHTTPContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'RuntimeFlagsTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'TrackingDraftTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'HomeCompositionSnapshotTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'CredentialLeaseTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'TelemetryAttributionTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ProviderAvailabilityNoteTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ImportIntentTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'PostgrestLibraryTransportTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'TelemetryOwnerTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'SessionEntryPointTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsRealtimeSerializationTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsBundleCacheTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsLibraryChangeTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'RetryAndTimedCacheTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'SynopsisCacheTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'AuthErrorMappingTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubDetailLifecycleRulesTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'DetailProviderLinksTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'StaleUserListsCompletionTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ImportReconcilerTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'LibraryViewActionsTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsViewRulesTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'DiscoveryContentRulesTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'CollectionContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'DiscoveryContractTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsAccountTransitionTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'AssistantCompositionTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'EntityDiscoveryFilterTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'TasteDeckBannerTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'CompositionGraphTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsRealtimeTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test suite 'ClubsRevocationTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (43001)'
+Test case 'DetailTruthfulnessTests/testVerifiedProviderItems()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'DetailTruthfulnessTests/testSanitizeMediaDescription()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'EditorialSearchTests/testTypedQueryStillRequiresMinimumLength()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'EditorialSearchTests/testFilterOnlySearchAllowed()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'EditorialSearchTests/testEmptyQueryWithoutFiltersBlocked()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testOriginalCreatorAlias()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'AuthCallbackGuardTests/decision(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'CreditRoleTests/testWhitespaceHandling()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testCastFilterBackground()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testUnrecognizedRole()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testCharacterDesignChief()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testEmptyString()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'CreditRoleTests/testDirectorCaseInsensitive()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testRolePriorityOrder()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testDirectorExact()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testCastSortMainFirst()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testMusicAlias()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'CreditRoleTests/testSeriesCompositionExact()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'DeepLinkRouterTests/testJoinValidCode()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'DeepLinkRouterTests/testJoinLowercasedCode()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'DeepLinkRouterTests/testJoinShortestValidCode()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'DeepLinkRouterTests/testJoinGarbageRejected()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'TasteDeckTests/testConfidenceWord()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'TasteDeckTests/testProfileTopGenresOrdering()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'TasteDeckTests/testTasteRealmHumanize()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'DeepLinkRouterTests/testClubLinkUnaffected()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'TasteDeckTests/testMetaChipsMovie()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'TasteDeckTests/testMetaChipsEmpty()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'TasteDeckTests/testDeckCardMissingOptionals()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'TasteDeckTests/testMetaChipsLanguageUnknown()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'TasteDeckTests/testDeckCardMetaDecodingManga()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'TasteDeckTests/testStableKeyFormat()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'TasteDeckTests/testMetaChipsSubOnlyWhenNoDub()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.003 seconds)
+Test case 'TasteDeckTests/testTasteProfileVectorDecoding()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.003 seconds)
+Test case 'TasteDeckTests/testMetaChipsManga()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'TasteDeckTests/testDeckCardDecoding()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.003 seconds)
+Test case 'TasteDeckTests/testMetaChipsAnimeTVDub()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'TasteDeckTests/testTasteProfileVectorRealmsMissing()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.004 seconds)
+Test case 'TasteDeckTests/testMetaChipsOtherAnimeFormat()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'TasteDeckTests/testTasteProfileVectorMissingFields()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'TasteDeckTests/testMetaChipsSingular()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'TasteDeckTests/testCaptionLine()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'TasteDeckTests/testTasteProfileVectorRealmsDecoding()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.006 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.018 seconds)
+Test case 'ClubAuthorDecodingTests/nullAuthorsDecode()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.006 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.018 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.021 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.017 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.021 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.035 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.003 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.018 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.003 seconds)
+Test case 'ClubErrorTests/fallbacks(fallback:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.003 seconds)
+Test case 'ClubErrorTests/revocationKeepsItsOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.008 seconds)
+Test case 'ClubErrorTests/revocationDivergence(divergence:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/revocationKeepsItsOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.008 seconds)
+Test case 'ClubErrorTests/revocationKeepsItsOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.008 seconds)
+Test case 'ClubErrorTests/revocationKeepsItsOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.011 seconds)
+Test case 'ClubErrorTests/revocationKeepsItsOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.011 seconds)
+Test case 'ClubErrorTests/revocationDivergence(divergence:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.009 seconds)
+Test case 'ClubErrorTests/revocationKeepsItsOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.011 seconds)
+Test case 'ClubErrorTests/revocationDivergence(divergence:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.009 seconds)
+Test case 'EntityWorkIdentityTests/testMixedMediaIDsStayDistinct()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/nonServerErrors()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/revocationKeepsItsOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.011 seconds)
+Test case 'EntityWorkIdentityTests/testDuplicateMediaRowsStayDistinct()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/detailsFromRealisticPostgrestBody()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'ClubErrorTests/serverCodeInEveryCarrier(code:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.004 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.004 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.003 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.004 seconds)
+Test case 'ClubErrorTests/liveAnswer(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.004 seconds)
+Test case 'ImportIntentTests/testShortInputNotImport()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testExplicitStatusKeywords()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testSegmentVibeNotTitleLike()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testGermanVibeWithStaffel()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testMultiLineInput()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testSegmentTitleLike()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ImportIntentTests/testRegexBoundaries()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testGermanImportLanguage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ImportIntentTests/testGermanVibeRequestsNotImport()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testVibeRequestsNotImport()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'ImportIntentTests/testCommaSeparatedTitles()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'ImportIntentTests/testStandalonePastTense()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testSoftPartialMarkers()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testCaughtUpPatterns()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ImportIntentTests/testEmptyAndWhitespace()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'ImportIntentTests/testIPrefixPatterns()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthErrorMappingTests/testWrappedCannotConnectTransportMessage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'ImportIntentTests/testCaseInsensitive()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthErrorMappingTests/testOfflineTransportMessage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'ImportIntentTests/testProgressPatterns()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'AuthErrorMappingTests/testTimeoutTransportMessage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'AuthErrorMappingTests/testInvalidCredentialsMessage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'EntityDiscoveryFilterTests/testCharacterMediaFilter()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'EntityDiscoveryFilterTests/testStaffRoleGrouping()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.001 seconds)
+Test case 'EntityDiscoveryFilterTests/testEraBuckets()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.002 seconds)
+Test case 'EntityDiscoveryFilterTests/testAuthorRoleGrouping()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.000 seconds)
+Test case 'ClubErrorTests/documentedDivergence(divergence:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.105 seconds)
+Test case 'ClubErrorTests/documentedDivergence(divergence:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.088 seconds)
+Test case 'ClubErrorTests/documentedDivergence(divergence:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.105 seconds)
+Test case 'ClubErrorTests/railAndPollSheetsKeepTheirText()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.087 seconds)
+Test case 'ClubErrorTests/documentedDivergence(divergence:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.102 seconds)
+Test case 'PendingReminderTests/airingReminders(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.085 seconds)
+Test case 'PendingReminderTests/airingReminders(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.087 seconds)
+Test case 'ClubErrorTests/viewsKeepTheirOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.093 seconds)
+Test case 'ClubErrorTests/viewsKeepTheirOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.093 seconds)
+Test case 'ClubErrorTests/viewsKeepTheirOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.093 seconds)
+Test case 'ClubErrorTests/viewsKeepTheirOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.093 seconds)
+Test case 'ClubErrorTests/viewsKeepTheirOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.093 seconds)
+Test case 'ClubErrorTests/viewsKeepTheirOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.082 seconds)
+Test case 'ClubErrorTests/viewsKeepTheirOutcome(surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.093 seconds)
+Test case 'SynopsisCacheTests/changedTitleOrGenresMissesTheCachedHook()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.078 seconds)
+Test case 'SynopsisCacheTests/stubClassificationReturnsNoAssist()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.078 seconds)
+Test case 'SynopsisCacheTests/storedTextOnlyResultDoesNotSatisfyAMediaRequest()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.079 seconds)
+Test case 'SynopsisCacheTests/stubCollectionSearchReturnsNoAssist()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.077 seconds)
+Test case 'SynopsisCacheTests/stubDisambiguationReturnsNoAssist()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.077 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'SynopsisCacheTests/stubSynopsisReturnsNoAssist()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.076 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'SynopsisCacheTests/animeAndMangaWithTheSameDescriptionGenerateSeparateHooks()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.078 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'DiscoveryContentRulesTests/rules(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.075 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PostgrestLibraryTransportTests/removeIsScopedDelete()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.092 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.092 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.092 seconds)
+Test case 'PostgrestLibraryTransportTests/editSendsMaskedPatch()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.092 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.092 seconds)
+Test case 'PostgrestLibraryTransportTests/failureMapping(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.092 seconds)
+Test case 'PostgrestLibraryTransportTests/fetchAllRequestsAndDecoding()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.092 seconds)
+Test case 'PostgrestLibraryTransportTests/saveIsInsertIgnoringDuplicates()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.094 seconds)
+Test case 'PendingReminderTests/airingReminders(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.668 seconds)
+Test case 'ImportLoadStateGateTests/serverAnsweredLinesKeepTheServersAnswer(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.677 seconds)
+Test case 'ImportLoadStateGateTests/unknownPickIsNeverAnAdd(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.683 seconds)
+Test case 'RuntimeFlagsTests/obsoleteFlagsBootstrapDoesNothing()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.690 seconds)
+Test case 'ImportLoadStateGateTests/autoApplyWaitsForTheLoadedLibrary(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.699 seconds)
+Test case 'RetryAndTimedCacheTests/ownerTTL(age:requests:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.052 seconds)
+Test case 'RetryAndTimedCacheTests/retryPolicy(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.056 seconds)
+Test case 'RetryAndTimedCacheTests/retryPolicy(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.060 seconds)
+Test case 'RetryAndTimedCacheTests/retryPolicy(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.063 seconds)
+Test case 'RetryAndTimedCacheTests/retryPolicy(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.063 seconds)
+Test case 'RetryAndTimedCacheTests/retryPolicy(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.077 seconds)
+Test case 'RetryAndTimedCacheTests/retryPolicy(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.099 seconds)
+Test case 'LibraryViewActionsTests/noSessionNoWriteNoBanner()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.163 seconds)
+Test case 'PendingReminderTests/airingReminders(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.362 seconds)
+Test case 'PendingReminderTests/airingReminders(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.403 seconds)
+Test case 'RuntimeFlagsTests/refreshCachesIntoInjectedStore()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.431 seconds)
+Test case 'DiscoveryContractTests/browseSendsCursorVerbatim()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.629 seconds)
+Test case 'RoutingTests/updateTable()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'QuickStatusChangeTests/nonCompletedStatusNeverSendsTheProjectionsProgress(status:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'QuickStatusChangeTests/completingWithKnownTotalMarksEveryEpisode()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'QuickStatusChangeTests/ratingNotesAndVerdictAreNeverNamed()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/fmThreshold()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'QuickStatusChangeTests/completingWithUnknownTotalLeavesProgressAlone()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'RoutingTests/destinationTable()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'QuickStatusChangeTests/nonCompletedStatusNeverSendsTheProjectionsProgress(status:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'QuickStatusChangeTests/nonCompletedStatusNeverSendsTheProjectionsProgress(status:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'RoutingTests/doubleTapNeverStacks()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'RoutingTests/identityTable()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'QuickStatusChangeTests/completingNeverLowersTheProgressHeld()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/gateThresholds()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'QuickStatusChangeTests/nonCompletedStatusNeverSendsTheProjectionsProgress(status:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'QuickStatusChangeTests/nonCompletedStatusNeverSendsTheProjectionsProgress(status:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/listCountCap()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSendIntentGate()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pasteAutoSend(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pasteDetection()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedSegment(text:titleLike:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/importLookingTextPasses()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/parserClarification()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/clarificationReroute(kind:value:recommends:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.794 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.790 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.791 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.792 seconds)
+Test case 'ConciergeRoutingTests/lowSignalGate(text:asks:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.799 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/pastedListText(text:isList:count:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.793 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.799 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.799 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.799 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.799 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.801 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.797 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.801 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.798 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.801 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.796 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.801 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.801 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.801 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.800 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.801 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.945 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.945 seconds)
+Test case 'ConciergeRoutingTests/inputIntent(text:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.945 seconds)
+Test case 'ConciergeRoutingTests/keywordRouting(text:isImport:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.946 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.944 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.945 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.944 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.944 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.944 seconds)
+Test case 'FixtureHostTests/testHostIsFixtureHost()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.943 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.944 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.944 seconds)
+Test case 'LateRealtimeEventTests/staleEventsScheduleNothing()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.943 seconds)
+Test case 'PrivateStateResetTests/deletedAccountPrefsAreRemoved()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.943 seconds)
+Test case 'ConciergeRoutingTests/onDeviceRouting(intent:confidence:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.944 seconds)
+Test case 'AdaptationLadderTests/testLadderResponseDecodesEditorialFields()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'PendingReminderTests/airingReminders(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.889 seconds)
+Test case 'AdaptationLadderTests/testLadderHasContentWithSource()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.900 seconds)
+Test case 'AdaptationLadderTests/testMediaLadderItemToMangaMedia()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.900 seconds)
+Test case 'AdaptationLadderTests/testEmptyLadderHasNoContent()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.900 seconds)
+Test case 'AdaptationLadderTests/testCuratedLadderHasContent()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.900 seconds)
+Test case 'AdaptationLadderTests/testMediaLadderItemToAnimeMedia()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.900 seconds)
+Test case 'PendingReminderTests/airingReminders(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.921 seconds)
+Test case 'TrackingDraftTests/verdictIsNeverPartOfTheEdit()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.888 seconds)
+Test case 'TrackingDraftTests/emptyingAnExistingRatingClearsIt()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.888 seconds)
+Test case 'TrackingDraftTests/blankNoteOnATitleWithoutNoteIsNotSent()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.889 seconds)
+Test case 'TrackingDraftTests/emptyingAnExistingNoteClearsIt()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.886 seconds)
+Test case 'TrackingDraftTests/statusChangeOnExistingEntryNamesStatusAndProgressAndKeepsTheVerdict()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.888 seconds)
+Test case 'TrackingDraftTests/untrackedTitleStartsPlannedAndEmpty()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.887 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.886 seconds)
+Test case 'TrackingDraftTests/outOfScaleScoreIsNeverSentAndNeverClears()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.887 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.885 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.886 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.887 seconds)
+Test case 'TrackingDraftTests/notesAreTrimmed()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.887 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.886 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.887 seconds)
+Test case 'TrackingDraftTests/completingWithUnknownTotalKeepsTheEnteredProgress()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.889 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.885 seconds)
+Test case 'TrackingDraftTests/completingWithNoProgressMarksEveryKnownEpisode()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.888 seconds)
+Test case 'ProviderAvailabilityNoteTests/testEnglishSubtitles()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.883 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.887 seconds)
+Test case 'TrackingDraftTests/prefillUsesTheDatabaseRatingScale()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.887 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.885 seconds)
+Test case 'TrackingDraftTests/scoreIsSentOnTheDatabaseScale(score:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.886 seconds)
+Test case 'ProviderAvailabilityNoteTests/testNoMetadata()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.884 seconds)
+Test case 'ProviderAvailabilityNoteTests/testAvailabilityFallback()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.883 seconds)
+Test case 'ProviderAvailabilityNoteTests/testEnglishAudio()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.884 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ProviderAvailabilityNoteTests/testGermanAudioWithoutOriginalLanguage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.883 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/addToClubSheetRevocationRule(selection:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/privateClubHidesMemberInitials()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/addToClubSheetRevocationRule(selection:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'TrackingDraftTests/unratedTitleThatStaysUnratedDoesNotTouchTheRating()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.892 seconds)
+Test case 'ClubDetailLifecycleRulesTests/addToClubSheetRevocationRule(selection:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.884 seconds)
+Test case 'ProviderAvailabilityNoteTests/testEnglishDub()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.884 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.882 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.882 seconds)
+Test case 'ClubDetailLifecycleRulesTests/addToClubSheetRevocationRule(selection:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'SynopsisCacheTests/animeAndMangaWithTheSameIdDoNotShareCachedText()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.880 seconds)
+Test case 'SynopsisCacheTests/synopsisSourceDigestIsFNV1aOfUTF8()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.880 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.882 seconds)
+Test case 'SynopsisCacheTests/textOnlyEntryDoesNotSatisfyAMediaLookup()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.880 seconds)
+Test case 'ClubDetailLifecycleRulesTests/addToClubSheetRevocationRule(selection:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'AssistantCompositionTests/viewsGetTheInjectedFMService()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'TasteDeckBannerTests/bannerMatchesTheOutbox(outbox:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'TasteDeckBannerTests/bannerMatchesTheOutbox(outbox:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'TasteDeckBannerTests/bannerMatchesTheOutbox(outbox:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'SynopsisCacheTests/changedDescriptionDoesNotReturnTheOldText()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.879 seconds)
+Test case 'ProviderAvailabilityNoteTests/testGermanDub()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.884 seconds)
+Test case 'TasteDeckBannerTests/bannerMatchesTheOutbox(outbox:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/ratingDiff()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.877 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.882 seconds)
+Test case 'ClubDetailLifecycleRulesTests/lifecycleDecisions(scenario:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.882 seconds)
+Test case 'ImportReconcilerTests/trackedIsTheUnionOfServerAndLibrary(source:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/trackedIsTheUnionOfServerAndLibrary(source:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.877 seconds)
+Test case 'ImportReconcilerTests/trackedIsTheUnionOfServerAndLibrary(source:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/ambiguousAdaptationBlocksAutoApply(adaptation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.877 seconds)
+Test case 'ImportReconcilerTests/ambiguousAdaptationBlocksAutoApply(adaptation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.877 seconds)
+Test case 'ImportReconcilerTests/ambiguousAdaptationBlocksAutoApply(adaptation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.877 seconds)
+Test case 'ImportReconcilerTests/ambiguousAdaptationBlocksAutoApply(adaptation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/ambiguousAdaptationBlocksAutoApply(adaptation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.880 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.882 seconds)
+Test case 'ImportReconcilerTests/firstParseEntryPoint()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ImportReconcilerTests/ambiguousAdaptationBlocksAutoApply(adaptation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.877 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ImportReconcilerTests/autoApplyThreshold(score:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.881 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlanUnknownTitle()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.882 seconds)
+Test case 'ImportReconcilerTests/trackedIsTheUnionOfServerAndLibrary(source:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.878 seconds)
+Test case 'ImportReconcilerTests/applyItemRules(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.884 seconds)
+Test case 'ImportReconcilerTests/autoApplyThreshold(score:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.889 seconds)
+Test case 'ImportReconcilerTests/autoApplyThreshold(score:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.888 seconds)
+Test case 'ImportReconcilerTests/preselectionActionDivergence()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (1.888 seconds)
+Test case 'ImportReconcilerTests/sharedDecisionsMatchTheViewCompositions()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyThreshold(score:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyNeedsAllItems()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/libraryLookupBoundary()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/clarificationReparseEntryPoint()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/progressOnlyUpdateRequestShape()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.043 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.043 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.043 seconds)
+Test case 'ImportReconcilerTests/statusDiffIsNormalized()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.043 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/applyItemLimitCapsAndReportsOmitted()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.043 seconds)
+Test case 'ImportReconcilerTests/conciergePlanEntryPoint()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.043 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.046 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/profilePlanEntryPoint()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.038 seconds)
+Test case 'ImportReconcilerTests/preselection(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/equalNumericIdsStayDistinct()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.038 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.045 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/expectedStatusIsTheServersRawListType()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.038 seconds)
+Test case 'ImportReconcilerTests/itemAction(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.038 seconds)
+Test case 'ImportReconcilerTests/exclusionsAndSelections()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.038 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.044 seconds)
+Test case 'ImportReconcilerTests/preselectionOrder()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.039 seconds)
+Test case 'ImportReconcilerTests/itemAction(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.051 seconds)
+Test case 'ImportReconcilerTests/itemAction(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.050 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.056 seconds)
+Test case 'ImportReconcilerTests/selectedCandidateIsReconciled()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.050 seconds)
+Test case 'ImportReconcilerTests/itemAction(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.050 seconds)
+Test case 'ImportReconcilerTests/duplicates()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.039 seconds)
+Test case 'ImportReconcilerTests/itemAction(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.051 seconds)
+Test case 'ImportReconcilerTests/autoApplyPlan(rule:surface:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.057 seconds)
+Test case 'ImportReconcilerTests/itemAction(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.050 seconds)
+Test case 'ClubsRPCContractTests/errorCodeCarriers(carrier:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.185 seconds)
+Test case 'ClubsRPCContractTests/errorCodeCarriers(carrier:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.185 seconds)
+Test case 'ClubsRPCContractTests/errorCodeCarriers(carrier:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.189 seconds)
+Test case 'ClubsRPCContractTests/errorCodeCarriers(carrier:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.189 seconds)
+Test case 'ClubsRPCContractTests/errorCodeCarriers(carrier:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.189 seconds)
+Test case 'ImportReconcilerTests/itemAction(rule:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.051 seconds)
+Test case 'ClubsRPCContractTests/errorCodeCarriers(carrier:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.189 seconds)
+Test case 'ClubsRPCContractTests/boundaryKeepsTransportAndCancellation()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.195 seconds)
+Test case 'ImportApplyGateTests/canApplyOnlyWhenLoaded(state:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.169 seconds)
+Test case 'ImportApplyGateTests/canApplyOnlyWhenLoaded(state:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.170 seconds)
+Test case 'ImportApplyGateTests/canApplyOnlyWhenLoaded(state:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.170 seconds)
+Test case 'ImportApplyGateTests/canApplyOnlyWhenLoaded(state:expected:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.171 seconds)
+Test case 'CompositionGraphTests/accountScopedListMembership(kind:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.066 seconds)
+Test case 'CompositionGraphTests/singleConstructionPath(kind:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.071 seconds)
+Test case 'CompositionGraphTests/accountScopedListMembership(kind:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.071 seconds)
+Test case 'RuntimeFlagsTests/debugOverrides(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.121 seconds)
+Test case 'RuntimeFlagsTests/debugOverrides(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.121 seconds)
+Test case 'RuntimeFlagsTests/debugOverrides(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.121 seconds)
+Test case 'RuntimeFlagsTests/debugOverrides(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.121 seconds)
+Test case 'RuntimeFlagsTests/debugOverrides(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.119 seconds)
+Test case 'RuntimeFlagsTests/debugOverrides(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.121 seconds)
+Test case 'RuntimeFlagsTests/rolloutBuckets(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.113 seconds)
+Test case 'RuntimeFlagsTests/ownersReadInjectedFlags(enabled:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.114 seconds)
+Test case 'HomeCompositionSnapshotTests/releasePagerOrder()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.112 seconds)
+Test case 'RuntimeFlagsTests/rolloutBuckets(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.114 seconds)
+Test case 'RuntimeFlagsTests/rolloutBuckets(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.113 seconds)
+Test case 'HomeCompositionSnapshotTests/selectedEdition()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.112 seconds)
+Test case 'CompositionGraphTests/singleConstructionPath(kind:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.075 seconds)
+Test case 'RuntimeFlagsTests/rolloutBuckets(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.114 seconds)
+Test case 'RuntimeFlagsTests/rolloutBuckets(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.114 seconds)
+Test case 'HomeCompositionSnapshotTests/exactUnitCursor()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.111 seconds)
+Test case 'RetryAndTimedCacheTests/trimEvictsOldest()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.113 seconds)
+Test case 'TelemetryOwnerTests/outboundLinkRequestShape()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.119 seconds)
+Test case 'DetailProviderLinksTests/outboundURLSchemeAllowlist()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.113 seconds)
+Test case 'RetryAndTimedCacheTests/ownerTTL(age:requests:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.117 seconds)
+Test case 'DetailProviderLinksTests/outboundURLGuarantee()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.115 seconds)
+Test case 'DetailProviderLinksTests/flagOffUsesCatalogOnly()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.122 seconds)
+Test case 'PendingReminderTests/scheduleOutcomeFollowsPermission(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.177 seconds)
+Test case 'PendingReminderTests/scheduleOutcomeFollowsPermission(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.177 seconds)
+Test case 'FixtureHostTests/composedClientIsDenied()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.371 seconds)
+Test case 'ImportLoadStateGateTests/trackedTitleIsKnownBeforeTheLoad()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.212 seconds)
+Test case 'RuntimeFlagsTests/privateReleaseCohort()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.218 seconds)
+Test case 'RuntimeFlagsTests/ownersReadInjectedFlags(enabled:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.211 seconds)
+Test case 'ClubsViewRulesTests/accountTransitionSignalsTheViews()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.218 seconds)
+Test case 'DetailProviderLinksTests/primaryFollowsNextEpisodeSite()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.220 seconds)
+Test case 'TrackingDraftTests/savingThroughTheStoreChangesExactlyTheEditedFields()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.237 seconds)
+Test case 'ConciergeWorkflowLifetimeTests/heldIntent(scopeChange:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.346 seconds)
+Test case 'ConciergeWorkflowLifetimeTests/heldIntent(scopeChange:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.346 seconds)
+Test case 'ConciergeWorkflowLifetimeTests/heldIntent(scopeChange:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.346 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.555 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.555 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.555 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.555 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.562 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.560 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.568 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.566 seconds)
+Test case 'CatalogCacheContractTests/duplicateReadsJoinAndWarmReadsAreFree()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.595 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.569 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.569 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.569 seconds)
+Test case 'SearchContractTests/newQueryCancelsOldQueryPage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.520 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.573 seconds)
+Test case 'ClubsRealtimeSerializationTests/concurrentSubscribesOpenOneChannel(second:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.496 seconds)
+Test case 'ClubsRealtimeSerializationTests/stopDuringSubscribeWins(superseder:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.496 seconds)
+Test case 'ClubsRealtimeSerializationTests/stopDuringSubscribeWins(superseder:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.497 seconds)
+Test case 'ClubsRealtimeSerializationTests/concurrentSubscribesOpenOneChannel(second:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.682 seconds)
+Test case 'TelemetryOwnerTests/currentAccountEventsAreKept()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.683 seconds)
+Test case 'ClubsRealtimeSerializationTests/resubscribeWaitsForThePendingTeardown()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.684 seconds)
+Test case 'DetailProviderLinksTests/verifiedVersusCatalogFallback(verifiedIsStale:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.683 seconds)
+Test case 'DetailProviderLinksTests/verifiedVersusCatalogFallback(verifiedIsStale:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.684 seconds)
+Test case 'DetailProviderLinksTests/snapshotDropsNonHTTPLinks()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.685 seconds)
+Test case 'DetailProviderLinksTests/supersededResolutionDoesNotPublish()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.688 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.690 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.690 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.692 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.694 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.696 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.697 seconds)
+Test case 'ClubDisclosureRepairTests/failedRefreshLeavesNoOldDisclosure()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.834 seconds)
+Test case 'PendingReminderTests/revokedPermissionIsSeenWithoutANewPrompt()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.784 seconds)
+Test case 'ReleasesContractTests/countdownTimerStopsAndStaysStopped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.849 seconds)
+Test case 'ReleasesContractTests/coldStartReadsUpcomingOnce()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.868 seconds)
+Test case 'LibraryFacadeTests/sessionFunnelBindsAndResets()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.867 seconds)
+Test case 'LibraryActionsPrimitiveTests/noSessionSendsNothing()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.858 seconds)
+Test case 'ImportLoadStateGateTests/serverAnsweredLinesKeepTheServersAnswer(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.788 seconds)
+Test case 'SearchContractTests/cursorContinuity()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.853 seconds)
+Test case 'ImportLoadStateGateTests/unknownPickIsNeverAnAdd(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.791 seconds)
+Test case 'ImportLoadStateGateTests/unknownPickIsNeverAnAdd(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.792 seconds)
+Test case 'ImportLoadStateGateTests/autoApplyWaitsForTheLoadedLibrary(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.787 seconds)
+Test case 'ImportLoadStateGateTests/serverAnsweredLinesKeepTheServersAnswer(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.792 seconds)
+Test case 'ImportLoadStateGateTests/autoApplyWaitsForTheLoadedLibrary(state:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.789 seconds)
+Test case 'FixtureHostTests/sharedSessionIsDenied()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.586 seconds)
+Test case 'TelemetryAttributionTests/interactionAcrossTransitionIsDropped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.838 seconds)
+Test case 'ClubsViewRulesTests/keyedStopNeverClosesAnotherClubsChannel()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.827 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.830 seconds)
+Test case 'DiscoveryContractTests/bundleCacheIsKeyedByUser()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.834 seconds)
+Test case 'TasteContractTests/tasteRequestShapes()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.984 seconds)
+Test case 'ReleasesContractTests/lateUpcomingIsRejectedByItsContext(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.983 seconds)
+Test case 'ImportsContractTests/edgeRequestShapes(call:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.984 seconds)
+Test case 'ImportsContractTests/edgeRequestShapes(call:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.985 seconds)
+Test case 'ImportsContractTests/edgeRequestShapes(call:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.994 seconds)
+Test case 'ImportsContractTests/edgeRequestShapes(call:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.998 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.002 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.002 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.002 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.002 seconds)
+Test case 'ClubsRPCContractTests/errorCodeMapping(errorCase:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.009 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.974 seconds)
+Test case 'SocialActivityContractTests/staleCommentWriteIsNotHandedOut()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.912 seconds)
+Test case 'SocialActivityContractTests/lateFriendActivityIsNotHandedOut()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.912 seconds)
+Test case 'RuntimeFlagsTests/staleReleaseCohortResponse()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.903 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.962 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.962 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.962 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (2.972 seconds)
+Test case 'PendingReminderTests/scheduleOutcomeFollowsPermission(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.021 seconds)
+Test case 'PendingReminderTests/scheduleOutcomeFollowsPermission(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.021 seconds)
+Test case 'PendingReminderTests/scheduleOutcomeFollowsPermission(_:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.021 seconds)
+Test case 'ImportsContractTests/exportTextNamesUnresolvedIds()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.111 seconds)
+Test case 'ClubDisclosureRepairTests/firstAggregateCannotRefillAfterDisclosure()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.113 seconds)
+Test case 'ImportsContractTests/exportTextKeepsEqualIdsApart()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.111 seconds)
+Test case 'TasteContractTests/outboxClearedOnAccountTransition(end:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.114 seconds)
+Test case 'AuthCallbackGuardTests/serviceRejectsCallback(token:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.140 seconds)
+Test case 'AuthCallbackGuardTests/serviceRejectsCallback(token:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.150 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.123 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.124 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.124 seconds)
+Test case 'ProviderAvailabilityContractTests/publicCachesStayWarmAcrossAccounts()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.129 seconds)
+Test case 'ClubsRPCContractTests/requestShape(operation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.129 seconds)
+Test case 'SocialActivityContractTests/lateFriendCountsAreRejectedByTheirContext()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.054 seconds)
+Test case 'TelemetryOwnerTests/endedAccountEventsAreDropped(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.063 seconds)
+Test case 'TelemetryOwnerTests/endedAccountEventsAreDropped(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.072 seconds)
+Test case 'DiscoveryContractTests/lateAnswerOfEndedAccountIsDropped(surface:transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.073 seconds)
+Test case 'DiscoveryContractTests/defaultFormatRequestShape()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.075 seconds)
+Test case 'LibraryRealtimeTests/remountWaitsForThePendingTeardown()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.316 seconds)
+Test case 'ReleasesContractTests/lateUpcomingOfPreviousAccountIsDropped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.316 seconds)
+Test case 'SessionEntryPointTests/entryResetsPrivateState(entry:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.216 seconds)
+Test case 'SessionEntryPointTests/sameUserEventsKeepState(event:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.216 seconds)
+Test case 'SessionEntryPointTests/sameUserEventsKeepState(event:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.216 seconds)
+Test case 'SessionEntryPointTests/sameUserEventsKeepState(event:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.227 seconds)
+Test case 'SessionEntryPointTests/entryResetsPrivateState(entry:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.228 seconds)
+Test case 'SessionEntryPointTests/sameUserEventsKeepState(event:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.227 seconds)
+Test case 'SessionEntryPointTests/sameUserEventsKeepState(event:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.231 seconds)
+Test case 'DetailProviderLinksTests/refreshRequestedWritesOnce()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.229 seconds)
+Test case 'PendingReminderTests/pausedCleanupKeepsTheNextAccountsReminders()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.275 seconds)
+Test case 'ClubsLibraryChangeTests/libraryChangeOfEndedAccountIsIgnored()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.229 seconds)
+Test case 'TasteContractTests/personalisedReadsOfEndedAccountAreDropped(read:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.569 seconds)
+Test case 'TasteContractTests/personalisedReadsOfEndedAccountAreDropped(read:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.569 seconds)
+Test case 'TasteContractTests/personalisedReadsOfEndedAccountAreDropped(read:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.572 seconds)
+Test case 'LibraryFacadeTests/oldTeardownTailKeepsNewAccountReminders()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.592 seconds)
+Test case 'PrivateStateResetTests/transitionClearsPrivateState(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.599 seconds)
+Test case 'PrivateStateResetTests/accountSwitchClearsConciergeClubsCollection()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.599 seconds)
+Test case 'LibraryHTTPContractTests/equalIdsStayDistinct()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.526 seconds)
+Test case 'LibraryHTTPContractTests/incrementSendsOnlyProgress()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.527 seconds)
+Test case 'LibraryHTTPContractTests/outOfRangeRatingIsRejectedLocally()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.527 seconds)
+Test case 'LibraryHTTPContractTests/clearingVerdictSendsNull()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.525 seconds)
+Test case 'LibraryHTTPContractTests/userIdIsSentAsCanonicalLowerCase()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.524 seconds)
+Test case 'FixtureHostTests/fixtureStorageIsInMemory()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (0.731 seconds)
+Test case 'LibraryHTTPContractTests/addToListKeepsExistingEntry()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.526 seconds)
+Test case 'CollectionContractTests/keysetCursorContinuity()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.518 seconds)
+Test case 'DiscoveryContractTests/bundleIsAccountScoped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.517 seconds)
+Test case 'ClubDisclosureRepairTests/committedMembershipWriteSurvivesOwnSignal(join:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.658 seconds)
+Test case 'HomeCompositionSnapshotTests/homeMediums()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.584 seconds)
+Test case 'ClubDisclosureRepairTests/committedMembershipWriteSurvivesOwnSignal(join:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.711 seconds)
+Test case 'ImportsContractTests/edgeRequestShapes(call:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.713 seconds)
+Test case 'ImportsContractTests/exportTextOfEndedAccountIsDropped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.713 seconds)
+Test case 'SessionEntryPointTests/entryResetsPrivateState(entry:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.601 seconds)
+Test case 'SessionEntryPointTests/entryResetsPrivateState(entry:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.610 seconds)
+Test case 'SocialActivityContractTests/lateRevokedFriendActivityIsNotHandedOut()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.627 seconds)
+Test case 'CollectionContractTests/secondFetchSupersedesFirst()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.608 seconds)
+Test case 'BannerCenterTests/newestWinsAndAutoClears()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.749 seconds)
+Test case 'TasteContractTests/lateDeliveryOfPreviousAccountIsDropped(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.751 seconds)
+Test case 'TasteContractTests/lateDeliveryOfPreviousAccountIsDropped(answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.751 seconds)
+Test case 'ImportsContractTests/deletionBarrierIsTerminal()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.744 seconds)
+Test case 'LibraryRealtimeTests/oldTeardownLeavesTheNewAccountsChannel()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.743 seconds)
+Test case 'ImportsContractTests/profileRetryDispatchesBeforeReconciliation()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.744 seconds)
+Test case 'HomeCompositionSnapshotTests/detailShells()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.724 seconds)
+Test case 'PrivateStateResetTests/transitionClearsPrivateState(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.857 seconds)
+Test case 'ImportApplyGateTests/storeLoadStates()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.814 seconds)
+Test case 'ClubsRealtimeTests/clubChangeDropsTheOldChannelsEvents()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.747 seconds)
+Test case 'ImportsContractTests/lateServerWriteOfPreviousAccountIsDropped(call:answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.880 seconds)
+Test case 'ImportsContractTests/lateServerWriteOfPreviousAccountIsDropped(call:answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.880 seconds)
+Test case 'ImportsContractTests/lateServerWriteOfPreviousAccountIsDropped(call:answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.880 seconds)
+Test case 'ImportsContractTests/lateServerWriteOfPreviousAccountIsDropped(call:answer:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.880 seconds)
+Test case 'SocialActivityContractTests/invalidationEmptiesFriendCounts()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.795 seconds)
+Test case 'ClubsRealtimeTests/rejoinAfterRevocationKeepsTheNewChannel()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.780 seconds)
+Test case 'LibraryActionsPrimitiveTests/removeHandsBackTheStoresOutcome()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.900 seconds)
+Test case 'LibraryFacadeTests/forwardersRegisterObservation()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.909 seconds)
+Test case 'ImportsParseSnapshotTests/preChangeParseIsSuperseded()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.919 seconds)
+Test case 'CatalogCacheContractTests/publicCachesSurviveAccountTransitions()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.927 seconds)
+Test case 'ClubsRevocationCounterTests/loadingSnapshotOfBeforeTheLeaveIsDropped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.855 seconds)
+Test case 'LibraryHTTPContractTests/favoriteWritesDatabaseScale()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.832 seconds)
+Test case 'LibraryHTTPContractTests/listReadsAreCoalesced()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.822 seconds)
+Test case 'LibraryViewActionsTests/failureShowsTheBanner()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.817 seconds)
+Test case 'TasteContractTests/outboxClearedOnAccountTransition(end:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.952 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.940 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.939 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.927 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.941 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.946 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.940 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.946 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.939 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.929 seconds)
+Test case 'StaleUserListsCompletionTests/staleCompletionIsDropped(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.831 seconds)
+Test case 'StaleUserListsCompletionTests/staleCompletionIsDropped(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.831 seconds)
+Test case 'CollectionRequestCountTests/coldStartAndOneChangeRequestCounts()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.978 seconds)
+Test case 'LibraryFacadeTests/serverWriteRefreshIsFresh()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.975 seconds)
+Test case 'ProviderAvailabilityContractTests/clubInvalidationDropsOnlyThatClub()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.977 seconds)
+Test case 'ConciergeContractTests/warmupAndFeedbackRequestShapes()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.940 seconds)
+Test case 'ProviderAvailabilityContractTests/privateSelectionIsAccountScoped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.902 seconds)
+Test case 'ClubsRevocationCounterTests/myClubsReadOfBeforeTheRevocationIsDropped(revocation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.905 seconds)
+Test case 'ClubsRevocationCounterTests/myClubsReadOfBeforeTheRevocationIsDropped(revocation:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.905 seconds)
+Test case 'ClubsViewRulesTests/revocationSignalIsObservablePerClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.859 seconds)
+Test case 'ClubsViewRulesTests/revocationSignalIsObservablePerClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.859 seconds)
+Test case 'CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.865 seconds)
+Test case 'LibraryViewActionsTests/doubleTapIgnoredWhileInFlight()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.876 seconds)
+Test case 'LibraryActionsPrimitiveTests/saveHandsBackTheStoresOutcome()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.969 seconds)
+Test case 'CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.889 seconds)
+Test case 'SocialActivityContractTests/transitionEmptiesFriendCounts()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.911 seconds)
+Test case 'CollectionContractTests/lateAnswerIsRejectedByItsContext(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.890 seconds)
+Test case 'CollectionContractTests/lateAnswerIsRejectedByItsContext(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.890 seconds)
+Test case 'LibraryViewActionsTests/markProgressRoutesThroughLibraryActions()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.889 seconds)
+Test case 'CollectionContractTests/supersededLoadMoreKeepsTheNewFlag()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.891 seconds)
+Test case 'CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.894 seconds)
+Test case 'ClubsAccountTransitionTests/lateMembershipLossOfEndedAccountRevokesNothing()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.888 seconds)
+Test case 'ImportsContractTests/dismissedProfileCardDropsLateUndo()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.024 seconds)
+Test case 'LibraryFacadeTests/cancelledCallerDoesNotCancelRefresh()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.022 seconds)
+Test case 'ImportsContractTests/lostApplyReplaysAndProfileUndoKeepsItsSession()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.025 seconds)
+Test case 'ImportApplyGateTests/blockedConfirmRefreshRetriesAFailedLoad()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.982 seconds)
+Test case 'ImportApplyGateTests/accountSwitchClosesTheGate()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.982 seconds)
+Test case 'ClubsViewRulesTests/revocationSignalIsObservablePerClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.900 seconds)
+Test case 'ClubsViewRulesTests/revocationSignalIsObservablePerClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.900 seconds)
+Test case 'CollectionContractTests/sinkRefreshIsLatestWins()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.902 seconds)
+Test case 'ClubsRealtimeTests/membershipSignalRevokesThroughTheBoundedReRead()' failed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.899 seconds)
+Test case 'LibraryViewActionsTests/toggleAddsAsPlannedAndRemoves()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.900 seconds)
+Test case 'TasteContractTests/nextSuccessDrainsBackedOffSignals()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.041 seconds)
+Test case 'LibraryFacadeTests/accountSwitchMidWriteIsRejected()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.016 seconds)
+Test case 'CollectionContractTests/skippedRemovalInsideDeferredBatch()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.916 seconds)
+Test case 'ClubsBundleCacheTests/bundleCacheIsKeyedByAccountAndClub()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.919 seconds)
+Test case 'ClubsLibraryChangeTests/postWriteRefreshNeverReturnsAPreWriteBundle()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.924 seconds)
+Test case 'ClubsRevocationTests/membershipLossInvalidatesTheClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.888 seconds)
+Test case 'ClubsRevocationTests/membershipLossInvalidatesTheClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.888 seconds)
+Test case 'CatalogCacheContractTests/equalIdsStayDistinct()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.088 seconds)
+Test case 'ImportsContractTests/lateParseOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.100 seconds)
+Test case 'ImportsContractTests/lateParseOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.102 seconds)
+Test case 'ImportsContractTests/lateParseOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.103 seconds)
+Test case 'ImportsContractTests/lateParseOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.103 seconds)
+Test case 'ClubsRealtimeTests/channelLifecycleAcrossAccounts()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.993 seconds)
+Test case 'TasteContractTests/supersededSignalIsNeverDeliveredLater()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.124 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.117 seconds)
+Test case 'ClubsRPCContractTests/everyMethodThrowsClubErrors(method:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.119 seconds)
+Test case 'ConciergeContractTests/lateRecommendOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.117 seconds)
+Test case 'ConciergeContractTests/lateRecommendOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.117 seconds)
+Test case 'ConciergeContractTests/lateRecommendOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.118 seconds)
+Test case 'ConciergeContractTests/lateRecommendOfPreviousAccountIsDropped(answer:handOver:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.119 seconds)
+Test case 'ClubsRevocationTests/membershipLossInvalidatesTheClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.948 seconds)
+Test case 'ClubsRevocationTests/membershipLossInvalidatesTheClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.946 seconds)
+Test case 'ClubsRevocationTests/membershipLossInvalidatesTheClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.949 seconds)
+Test case 'ClubsRevocationTests/membershipLossInvalidatesTheClub(trigger:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.949 seconds)
+Test case 'LibraryFacadeTests/toggleFlipsSynchronously()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.133 seconds)
+Test case 'TasteContractTests/foregroundNotificationDrainsOnce()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.144 seconds)
+Test case 'LibraryActionsPrimitiveTests/applyHandsBackTheStoresOutcome()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.091 seconds)
+Test case 'ClubsAccountTransitionTests/transitionClearsClubsAndDropsLateAnswers(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.010 seconds)
+Test case 'ClubsAccountTransitionTests/transitionClearsClubsAndDropsLateAnswers(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.010 seconds)
+Test case 'ClubsRevocationTests/inFlightBundleOfLeftClubIsDropped()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (3.955 seconds)
+Test case 'CollectionContractTests/batchStatusRefreshesTheVisibleFeedOnce()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.017 seconds)
+Test case 'LibraryViewActionsTests/addThenRemoveAfterCompletion()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.024 seconds)
+Test case 'ClubDisclosureRepairTests/staleFailureCannotRevokeRejoin()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.166 seconds)
+Test case 'LibraryRealtimeTests/lateEventOfEndedAccountSchedulesNothing(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.173 seconds)
+Test case 'LibraryFacadeTests/batchRemovalRefreshesPagesOnce()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.173 seconds)
+Test case 'LibraryFacadeTests/conciergeWritersRefreshLibrary()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.174 seconds2026-10-07 23:19:06.572 xcodebuild[37516:52112632] [MT] IDETestOperationsObserverDebug: 166.923 elapsed -- Testing started completed.
+2026-10-07 23:19:06.572 xcodebuild[37516:52112632] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-07 23:19:06.572 xcodebuild[37516:52112632] [MT] IDETestOperationsObserverDebug: 166.923 sec, +166.923 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/max/Kuro-Anime-App/.codex-artifacts/simulator-integration/native-remaining.xcresult
+
+Failing tests:
+	LibraryFacadeTests.releasesReArmReminders()
+	LibraryFacadeTests.releasesReArmReminders()
+	LibraryFacadeTests.releasesReArmReminders()
+	LibraryFacadeTests.releasesReArmReminders()
+	LibraryFacadeTests.releasesReArmReminders()
+	CollectionContractTests.batchAccountSwitchKeepsNewAccountScope()
+	CollectionContractTests.batchAccountSwitchKeepsNewAccountScope()
+	ClubsRealtimeTests.membershipSignalRevokesThroughTheBoundedReRead()
+
+** TEST FAILED **
+
+)
+Test case 'LibraryFacadeTests/releasesReArmReminders()' failed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.179 seconds)
+Test case 'LibraryRealtimeTests/lateEventOfEndedAccountSchedulesNothing(transition:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.186 seconds)
+Test case 'ClubsRevocationCounterTests/staleMembershipLossDoesNotRevokeTheRejoinedClub()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.093 seconds)
+Test case 'CredentialLeaseTests/lateSuccessOfEndedAccountHandsOutNothing(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.094 seconds)
+Test case 'CredentialLeaseTests/lateSuccessOfEndedAccountHandsOutNothing(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.104 seconds)
+Test case 'CredentialLeaseTests/lateSuccessOfEndedAccountHandsOutNothing(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.107 seconds)
+Test case 'ImportsContractTests/applyAndUndoRefreshLibraryOnce()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.233 seconds)
+Test case 'ClubsLibraryChangeTests/libraryChangeRefreshesBundlesHoldingTheTitle()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.106 seconds)
+Test case 'ImportsContractTests/profileCoordinatorRetainsRecoveryAndRejectsAnotherAccount()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.239 seconds)
+Test case 'LibraryFacadeTests/changeSinksFireOncePerAppliedChange()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.242 seconds)
+Test case 'LibraryViewActionsTests/heartProgressAndRemoval()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.121 seconds)
+Test case 'ImportsContractTests/structuredImportDurableReplayAndFieldAbsence()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.282 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.172 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.178 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.182 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.187 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.189 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.194 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchForEveryFamily(family:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.197 seconds)
+Test case 'CredentialLeaseTests/outboundLinkTapIsBoundToItsAccount()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.206 seconds)
+Test case 'CredentialLeaseTests/preDispatchSwitchSendsNothingAsB()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.210 seconds)
+Test case 'CredentialLeaseTests/credentialChangeWaitsForObsoleteWrites()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.217 seconds)
+Test case 'ImportsContractTests/profileStructuredRetryResumesFrozenPage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.346 seconds)
+Test case 'TasteContractTests/outboxIsBounded()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (4.364 seconds)
+Test case 'ReleasesContractTests/lateUpcomingIsRejectedByItsContext(outcome:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (8.994 seconds)
+Test case 'CollectionContractTests/batchAccountSwitchKeepsNewAccountScope()' failed on 'Clone 1 of iPhone 17 Pro - Kuro (43001)' (60.000 seconds)

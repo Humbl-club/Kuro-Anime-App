@@ -1,0 +1,311 @@
+{
+  "capturedAt": "2026-10-08T01:20:01.876187+00:00",
+  "workspace": "/Users/max/Kuro-Anime-App",
+  "branch": "codex/integrated-testflight",
+  "HEAD": "a7f39b66237bc5a9558b5ab2a6758cd1b085e466",
+  "origin": "https://github.com/Humbl-club/Kuro-Anime-App.git",
+  "upstreamConfigured": false,
+  "freshRemoteHeads": {
+    "refs/heads/kuro/taste-overhaul": "0edeff5b88e9459bb427b7fe63d6561d22506cc0",
+    "refs/heads/main": "10f3c9acca5c90250e2289fa0191a36acfb7935b"
+  },
+  "remoteCheckArtifact": "remote-branches.txt",
+  "cachedOriginMatchesFreshRemote": {
+    "refs/heads/kuro/taste-overhaul": true,
+    "refs/heads/main": true
+  },
+  "currentBranchReturnedByRemoteCheck": false,
+  "dirtyCountsBeforeHandoff": {
+    "trackedModified": 110,
+    "trackedDeleted": 23,
+    "untrackedFiles": 1861,
+    "totalPaths": 1994
+  },
+  "dirtyCountsAtSnapshot": {
+    "trackedModified": 110,
+    "trackedDeleted": 23,
+    "untrackedFiles": 1869,
+    "totalPaths": 2002
+  },
+  "aheadBehind": {
+    "origin/main": {
+      "ahead": 46,
+      "behind": 0
+    },
+    "origin/kuro/taste-overhaul": {
+      "ahead": 14,
+      "behind": 0
+    }
+  },
+  "committedNotOnMain": [
+    {
+      "sha": "a7f39b66237bc5a9558b5ab2a6758cd1b085e466",
+      "subject": "Stop deleted accounts from leaving public media behind."
+    },
+    {
+      "sha": "471c609943d2374c6dda940aebdfde2fcb077d50",
+      "subject": "design(home): save approved artwork season markers"
+    },
+    {
+      "sha": "697a5bc4548cc6b6492113f8481fb8bc8403030c",
+      "subject": "Auth: remove Zen TV from welcome screen (owner request)"
+    },
+    {
+      "sha": "39fb922276fa7ade6c0bbfaa5205980128e6143e",
+      "subject": "docs(schema-crossref): fix media_realm_tier type \u2014 matview not table"
+    },
+    {
+      "sha": "ee0cb540c5f0b53d0b6386373236b9e26379715d",
+      "subject": "docs(canvases): verify + commit follow-up maps and migration (2026-08-10)"
+    },
+    {
+      "sha": "8eb4441ac919a09bca5b5156b2f5778069075c7d",
+      "subject": "docs(canvases): verified and corrected canonical trilogy maps (Map 1/2/3) against live codebase as of 2026-08-09"
+    },
+    {
+      "sha": "81bf82b2a4a0ab9fd1e73a3ae2e7c46ac82268ad",
+      "subject": "realm-describe: 429 fallback to llama-3.1-8b-instant with honest model stamping"
+    },
+    {
+      "sha": "960ec1f985639af2d5f84f0bed5e7c5c9a5e616c",
+      "subject": "Review counter-resolutions: 15m cron command rebuilt, harness re-measured (0.794), drain loop"
+    },
+    {
+      "sha": "ff6caba156e7dff10ef290891b4cb3b4f09beb2d",
+      "subject": "Docs: fix-up wave 2 change logs + count sync (232 migrations)"
+    },
+    {
+      "sha": "a21c02f929bd00a32094659fe25dc6b4fe52ec42",
+      "subject": "Serving hardening: own-franchise exclusion at read path, compilation bridges, gem sanitize, edge floor 2.4, cron timeout guards, impressions GDPR delete"
+    },
+    {
+      "sha": "29514eb78dea1974fd84deb8f5dbb2ab502ac4cf",
+      "subject": "Cleanup wave: cap Discover hero at 520, deck actions a11y sizing, purge .bak bundle resources"
+    },
+    {
+      "sha": "b6f9d66558466bd64dbab78adbd9b9fc13eae2c9",
+      "subject": "Docs: record 2026-08-06 independent review + fix wave; correct counts (231 migrations) and false baseline claim"
+    },
+    {
+      "sha": "ae89ced0a73b62825255fe3260680a3826194515",
+      "subject": "Deep review wave 2: security revokes, poison cleanup, mirror cron re-arm, serving fixes"
+    },
+    {
+      "sha": "49f3227839d6c73285d33004b6bf40690a5696b6",
+      "subject": "Deck UX deep-review fixes: gesture trap, signal retry, loading retry, a11y"
+    },
+    {
+      "sha": "0edeff5b88e9459bb427b7fe63d6561d22506cc0",
+      "subject": "Full work record for external (Kimi) review \u2014 31 commits, 5 eras, soft spots named"
+    },
+    {
+      "sha": "754d21cf6f9dc864f31e98d262efd0bb161b3b5b",
+      "subject": "Docs: pilot + canonicalization change-log entries"
+    },
+    {
+      "sha": "64431bbf443f2d2771e21b649828d050b48b2b21",
+      "subject": "Critique pilot gate report: parser proven (100% fidelity), coverage structural"
+    },
+    {
+      "sha": "14d5cd54c25a0d94ebf665c70808afe9ed12a9e8",
+      "subject": "Entry-point canonicalization: rails recommend franchises via their entry points"
+    },
+    {
+      "sha": "7d5702ebcb7ed5a74b8e0d2fb90fbd7ec62783e4",
+      "subject": "Critique ingestion schema: 6 tables + atomic ingest RPC + blessed slate seed"
+    },
+    {
+      "sha": "0a02576aaeb98c48c147afd25b1c795d71e1d271",
+      "subject": "Close-out artifacts: plan entry, Kincaid permission draft, magical-girl realm proposal"
+    },
+    {
+      "sha": "84e22f02a47c26030d16ee89a0974e58ef8a4c58",
+      "subject": "Edges-first serving fork: gold gated P@10 0.512 -> 0.823"
+    },
+    {
+      "sha": "797a5b67bf210dedbd5fbb5a5d448d6afba72678",
+      "subject": "Gold eval post-correction: 0.512 gated (neutral on metric, composition improved)"
+    },
+    {
+      "sha": "2ca774d7a4a969740b4a0acb46b34cae4bfd9f6c",
+      "subject": "Apply 393 double-judged realm corrections via conditional-ordering override layer"
+    },
+    {
+      "sha": "e68381f3bbe240610b27c9fff2ba5201868fdda2",
+      "subject": "Realm assignment audit: 3,000 served titles, 13.4% misassigned"
+    },
+    {
+      "sha": "e6da8f82fc71fd91eda5beff60c56c62e347f42f",
+      "subject": "Fix One Thing lowercase argument (smoke-test find) + smoke evidence"
+    },
+    {
+      "sha": "75f23cb9c8930e9ece3b478ac8ed50920f096b02",
+      "subject": "Fix two pre-existing gate failures found by full QA run"
+    },
+    {
+      "sha": "32d55673712d44afa187c4ad87733e80dc004821",
+      "subject": "Gold scoreboard v1: Fable 5 pooled judgments replace circular heuristic"
+    },
+    {
+      "sha": "105b736b5701362004dd507d09e352978d27bd8d",
+      "subject": "Handoff fix (--judgments flag doesn't exist; tool flow) + owner slate-v2 redirect note"
+    },
+    {
+      "sha": "a0e32875f1f17c90ef8f1c0bf053255b5ee46027",
+      "subject": "Phase 2 handoff + Round 0 slate proposal + Round 1 draft shortlist"
+    },
+    {
+      "sha": "4e3c683d56714b2ff396ba901ab04db45aa4bb44",
+      "subject": "Docs triad: Phase 1 realm repair record + Round 0 dossiers"
+    },
+    {
+      "sha": "0fb7dc53628da4aaaafbd82ecbddb23779d34038",
+      "subject": "Phase 1 Fix 6: hygiene \u2014 secret-scraper family dropped, definer views secured"
+    },
+    {
+      "sha": "8090a2aa7d9b627252ea0532e3c1a7dd10fa6cb8",
+      "subject": "Phase 1 Fix 5: precomputed similarity serving + franchise-safe blending"
+    },
+    {
+      "sha": "60972e7699e1ec93bb5790220f091230bc54c0ff",
+      "subject": "Phase 1 Fix 3+4: tier from effective membership, staged rebuild replaces dead cron"
+    },
+    {
+      "sha": "c958f72e15a47487a8542fcd0ed944770fce7a30",
+      "subject": "Add autonomous Phase 1-3 run prompt (owner-authored)"
+    },
+    {
+      "sha": "c40bd6ef5f18c8df6a445af20e5fb76fccf08a77",
+      "subject": "Phase 1 Fix 1+2: restore penalty operator, gates become costs"
+    },
+    {
+      "sha": "6c2aed92191edad2747483850dbbcd4a9094a510",
+      "subject": "Expand decision-lock spec into the single canonical plan"
+    },
+    {
+      "sha": "b18acc55a31d15becba745a8fa01692b63637545",
+      "subject": "Decision lock: realm repair + critique ingestion plan (2026-08-04)"
+    },
+    {
+      "sha": "ba198c3b100865858cd9e228eb995e00e73bda98",
+      "subject": "Docs + evidence: Realm Graph status, curation sources research, gold-set eval artifacts"
+    },
+    {
+      "sha": "e10a25d8e22522c8627bb20cc186632eaf410fd5",
+      "subject": "Discover realm rails iOS: The Shelf + Hidden Gem behind discover_realm_rails_v1"
+    },
+    {
+      "sha": "51c013e24e43d1bd6c49a52190ff19748d3f1547",
+      "subject": "Realm Graph Aug-2 follow-ons: membership deltas, SA gate harden, realm rails, curation expand"
+    },
+    {
+      "sha": "1a89f0a8910488531488af4472b756d4203eea21",
+      "subject": "Lock descriptor upserts to service_role after security review."
+    },
+    {
+      "sha": "90a865912b5484f31042e1877628330212c44766",
+      "subject": "Ship Realm Graph Stage 2b Groq descriptor pipeline."
+    },
+    {
+      "sha": "fef6c805d462df1af8bb1f01d70ade54cc5b3d5d",
+      "subject": "Leanings sheet: YOUR REALMS section \u2014 Realm Graph profile decoding + realm_meta fetch"
+    },
+    {
+      "sha": "99ffb267552279e8feaab02cb984b8e90a5386e7",
+      "subject": "The One Thing: substantive-argument rule (label >=4 words else sentence-cased synopsis trim)"
+    },
+    {
+      "sha": "81f7fa3615c09670d1d58a91a2dc05cae592324f",
+      "subject": "Discover P1: The One Thing hero, Because-You rail, glass/chrome pass, monochrome score chips"
+    },
+    {
+      "sha": "0b4f499bedb0d137601d24dd000adb2534fe82c6",
+      "subject": "Overnight swarm: taste deck v2, taste math v2, clubs trust pack, image convergence, monetization ledger"
+    }
+  ],
+  "installedSourcePins": {
+    "path": "docs/handoffs/2026-10-08-backend-integration/home-medium-switch-source.after.json",
+    "inputCount": 223,
+    "mismatches": []
+  },
+  "approvedSQLInputMatches": [
+    {
+      "path": "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql",
+      "expectedSHA256": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+      "matches": true
+    },
+    {
+      "path": "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql",
+      "expectedSHA256": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+      "matches": true
+    },
+    {
+      "path": "supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql",
+      "expectedSHA256": "af22886f86a23d7e5314f49de59b63185a28b3c5b47c98a4f84f2a00b7f4eccd",
+      "matches": true
+    },
+    {
+      "path": "supabase/prepared-migrations/20261008110000_import_review_recovery_v2.sql",
+      "expectedSHA256": "552fcafe1e98d98ce9ec23e59c627f3ccfdbd3261517e4cff74c86a472cd2e6d",
+      "matches": true
+    }
+  ],
+  "approvedEdgeClosureMatches": {
+    "concierge-import-anilist": {
+      "fileCount": 7,
+      "mismatches": []
+    },
+    "concierge-apply": {
+      "fileCount": 6,
+      "mismatches": []
+    },
+    "concierge-undo": {
+      "fileCount": 4,
+      "mismatches": []
+    },
+    "delete-account": {
+      "fileCount": 4,
+      "mismatches": []
+    },
+    "concierge-recommend": {
+      "fileCount": 8,
+      "mismatches": []
+    },
+    "concierge-retrieve-assist": {
+      "fileCount": 4,
+      "mismatches": []
+    }
+  },
+  "installedArtifact": {
+    "deviceId": "7FC4B58A-430C-457D-A017-6B0095723F3F",
+    "bundleIdentifier": "com.Kuro.app",
+    "version": "1.0",
+    "build": "17",
+    "installedPath": "/Users/max/Library/Developer/CoreSimulator/Devices/7FC4B58A-430C-457D-A017-6B0095723F3F/data/Containers/Bundle/Application/7A09E233-9CA3-42F3-B0DD-6085C61FBF99/Kuro.app",
+    "freshReadOnlyHashChecks": {
+      "Kuro": {
+        "sha256": "6b5d4e39c6629d37a8a5c1659ede33142a904674d4e2601f01f11c482936ac38",
+        "matchesReceipt": true
+      },
+      "Kuro.debug.dylib": {
+        "sha256": "b1a26dc29cc59a52d643ddda85c78c60d7bcd1ff261bc3c7c2467c4460819109",
+        "matchesReceipt": true
+      },
+      "Info.plist": {
+        "sha256": "bda6299ce62ee851bb4b7c34a42e1a77aa9621a0d84399e1bf4c1a32a320c1a9",
+        "matchesReceipt": true
+      }
+    },
+    "bundleTreeHashRecordedInPriorInstallReceipt": "431a94a3c854a835fbafa93673a507b86c0c1682720dbf595f24914a959774ac",
+    "fullBundleTreeRecomputedThisInitiative": false,
+    "receipt": "docs/handoffs/2026-10-08-backend-integration/home-medium-switch-install-receipt.json",
+    "verificationNote": "Direct read at receipt path matches all three component hashes. Earlier read-only simctl lookup succeeded in this initiative; a later sandboxed repeat was denied access to CoreSimulatorService. No install or launch."
+  },
+  "limitations": [
+    "Snapshot hashes are provenance, not a source archive or code review.",
+    "Ignored files are not enumerated; provision credentials separately.",
+    "Git/live metadata/installed component checks do not prove all user journeys.",
+    "Handoff-folder hashes excluded to avoid self-reference.",
+    "No runtime, Git-delivery or hosted mutations in this initiative."
+  ]
+}

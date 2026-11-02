@@ -1,0 +1,409 @@
+{
+  "ok": false,
+  "status": "FAIL",
+  "exitCode": 1,
+  "runId": "20261008T002143803Z-b748586d",
+  "target": "https://bkdifromsqxkndnllmdj.supabase.co",
+  "storageResponses": {
+    "initialUpload": {
+      "status": 200,
+      "body": {
+        "Key": "media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+        "Id": "99f7c82b-af97-4c06-9761-475248addace"
+      },
+      "path": "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+      "bucket": "media",
+      "userId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53"
+    },
+    "originBefore": {
+      "status": 200,
+      "path": "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+      "bucket": "media"
+    },
+    "overlappingUpload": {
+      "tokenSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "path": "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png",
+      "bucket": "media",
+      "userId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "startedAt": "2026-10-08T00:21:44.811Z",
+      "startedNs": "369106306762916",
+      "endedAt": "2026-10-08T00:21:45.221Z",
+      "endedNs": "369106717042291",
+      "status": 200,
+      "body": {
+        "Key": "media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png",
+        "Id": "6a480322-8b8c-489f-a64b-eae81960937e"
+      }
+    },
+    "deleteAccount": {
+      "tokenSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "userId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "startedAt": "2026-10-08T00:21:45.012Z",
+      "startedNs": "369106507983750",
+      "endedAt": "2026-10-08T00:21:46.554Z",
+      "endedNs": "369108049589250",
+      "status": 200,
+      "body": {
+        "success": true
+      }
+    },
+    "deletedUserRead": {
+      "status": 403,
+      "endedAt": "2026-10-08T00:21:46.582Z"
+    },
+    "oldTokenUpload": {
+      "startedAt": "2026-10-08T00:21:46.582Z",
+      "startedNs": "369108078083708",
+      "tokenSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "path": "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-after.png",
+      "bucket": "media",
+      "userId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "status": 400,
+      "body": {
+        "statusCode": "403",
+        "error": "Unauthorized",
+        "message": "ACCOUNT_DELETION_IN_PROGRESS",
+        "code": "AccessDenied"
+      },
+      "endedAt": "2026-10-08T00:21:46.803Z"
+    },
+    "adminAuthRead": {
+      "status": 404,
+      "userId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53"
+    },
+    "adminObjects": {
+      "status": 200,
+      "rows": [],
+      "prefix": "1506f9cf-f3fa-4606-99c9-fa01fca00d53/",
+      "bucket": "media"
+    },
+    "originReads": {
+      "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png": {
+        "status": 200,
+        "body": null
+      },
+      "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png": {
+        "status": 400,
+        "body": {
+          "statusCode": "404",
+          "error": "not_found",
+          "message": "Object not found",
+          "code": "NoSuchKey"
+        }
+      },
+      "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-after.png": {
+        "status": 400,
+        "body": {
+          "statusCode": "404",
+          "error": "not_found",
+          "message": "Object not found",
+          "code": "NoSuchKey"
+        }
+      }
+    }
+  },
+  "requestCount": 16,
+  "protocol": [
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/7157ad87-3d95-494f-8efe-6ee7dfb7a880",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:21:43.806Z",
+      "status": 404,
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:21:43.985Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/list/media",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:21:44.007Z",
+      "requestBody": {
+        "prefix": "kuro-preflight-20261008T002143803Z-b748586d/",
+        "limit": 1
+      },
+      "status": 200,
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:21:44.150Z"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:44.208Z",
+      "requestBody": {
+        "email": "kuro-probe-storage-owner-20261008T002143803Z-b748586d@mailbox.invalid"
+      },
+      "status": 200,
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422504,
+        "user": {
+          "id": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-storage-owner-20261008t002143803z-b748586d@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:21:44.337007406Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:21:44.343641965Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-storage-owner-20261008t002143803z-b748586d@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "1506f9cf-f3fa-4606-99c9-fa01fca00d53"
+          },
+          "identities": [
+            {
+              "identity_id": "b703aded-2330-4bac-bd63-cc23983cfaf1",
+              "id": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+              "user_id": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+              "identity_data": {
+                "email": "kuro-probe-storage-owner-20261008t002143803z-b748586d@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "1506f9cf-f3fa-4606-99c9-fa01fca00d53"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:21:44.325188238Z",
+              "created_at": "2026-10-08T00:21:44.325234Z",
+              "updated_at": "2026-10-08T00:21:44.325234Z",
+              "email": "kuro-probe-storage-owner-20261008t002143803z-b748586d@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:21:44.31028Z",
+          "updated_at": "2026-10-08T00:21:44.357766Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:21:44.382Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+      "actorUserId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:44.409Z",
+      "credentialSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "status": 200,
+      "responseBody": {
+        "Key": "media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+        "Id": "99f7c82b-af97-4c06-9761-475248addace"
+      },
+      "endedAt": "2026-10-08T00:21:44.558Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:44.610Z",
+      "status": 200,
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:21:44.797Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png",
+      "actorUserId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:44.811Z",
+      "credentialSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "status": 200,
+      "responseBody": {
+        "Key": "media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png",
+        "Id": "6a480322-8b8c-489f-a64b-eae81960937e"
+      },
+      "endedAt": "2026-10-08T00:21:45.221Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:45.012Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "status": 200,
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:21:46.554Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:46.555Z",
+      "credentialSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "status": 403,
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:21:46.582Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-after.png",
+      "actorUserId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:46.756Z",
+      "credentialSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "status": 400,
+      "responseBody": {
+        "statusCode": "403",
+        "error": "Unauthorized",
+        "message": "ACCOUNT_DELETION_IN_PROGRESS",
+        "code": "AccessDenied"
+      },
+      "endedAt": "2026-10-08T00:21:46.803Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:46.958Z",
+      "credentialSha256": "1ad02f0f2a60efad78d9b17575c57e312ae4f8bb0098c20797b0c3a1651304a8",
+      "status": 403,
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:21:46.985Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:21:47.159Z",
+      "status": 404,
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:21:47.189Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:21:47.360Z",
+      "status": 404,
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:21:47.389Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/list/media",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:21:47.561Z",
+      "requestBody": {
+        "prefix": "1506f9cf-f3fa-4606-99c9-fa01fca00d53/",
+        "limit": 100
+      },
+      "status": 200,
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:21:47.601Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:47.762Z",
+      "status": 200,
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:21:47.787Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:47.964Z",
+      "status": 400,
+      "responseBody": {
+        "statusCode": "404",
+        "error": "not_found",
+        "message": "Object not found",
+        "code": "NoSuchKey"
+      },
+      "endedAt": "2026-10-08T00:21:48.105Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-after.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:21:48.164Z",
+      "status": 400,
+      "responseBody": {
+        "statusCode": "404",
+        "error": "not_found",
+        "message": "Object not found",
+        "code": "NoSuchKey"
+      },
+      "endedAt": "2026-10-08T00:21:48.320Z"
+    }
+  ],
+  "resources": {
+    "accounts": [
+      {
+        "email": "kuro-probe-storage-owner-20261008T002143803Z-b748586d@mailbox.invalid",
+        "userId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53"
+      }
+    ],
+    "clubs": [],
+    "journals": [],
+    "objects": [
+      "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+      "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png",
+      "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-after.png"
+    ]
+  },
+  "cleanup": [
+    {
+      "type": "account",
+      "email": "kuro-probe-storage-owner-20261008T002143803Z-b748586d@mailbox.invalid",
+      "userId": "1506f9cf-f3fa-4606-99c9-fa01fca00d53",
+      "status": "PASS"
+    },
+    {
+      "type": "storage",
+      "paths": [
+        "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-seed.png",
+        "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-race.png",
+        "1506f9cf-f3fa-4606-99c9-fa01fca00d53/kuro-20261008T002143803Z-b748586d-after.png"
+      ],
+      "status": "FAIL"
+    }
+  ],
+  "error": "Physical Auth/media cleanup or public-origin absence failed; inspect recorded emergency cleanup"
+}

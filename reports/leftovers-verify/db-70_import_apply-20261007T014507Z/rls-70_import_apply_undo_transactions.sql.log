@@ -1,0 +1,96 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:20: NOTICE:  TEST ok: fixture: import_sessions exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:21: NOTICE:  TEST ok: fixture: import_session_items exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:22: NOTICE:  TEST ok: fixture: anime_user_lists exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:23: NOTICE:  TEST ok: fixture: manga_user_lists exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:24: NOTICE:  TEST ok: fixture: taste_import_context exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:25: NOTICE:  TEST ok: fixture: taste_signal_events exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:27: NOTICE:  TEST ok: fixture: check_concierge_rate_limit exists (the limiter both handlers gate on)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:29: NOTICE:  TEST ok: fixture: taste_capture trigger on anime_user_lists exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:31: NOTICE:  TEST ok: pending migration: apply_import_session exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:33: NOTICE:  TEST ok: pending migration: undo_import_session exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:36: NOTICE:  TEST ok: pending migration: journal columns after_values / reverted_at exist
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:40: NOTICE:  TEST ok: pending migration: import_sessions.idempotency_key + partial unique index per user
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:44: NOTICE:  TEST ok: grant: anon cannot EXECUTE apply_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:46: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE apply_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:48: NOTICE:  TEST ok: grant: anon cannot EXECUTE undo_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:50: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE undo_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:53: NOTICE:  TEST ok: grant: anon/authenticated cannot EXECUTE the outcome helper
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:56: NOTICE:  TEST ok: grant: service_role can EXECUTE both RPCs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:61: NOTICE:  TEST ok: posture: both RPCs are SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:72: NOTICE:  TEST ok: grant: authenticated calling apply_import_session is refused (42501) (denied: permission denied for function apply_import_session)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:74: NOTICE:  TEST ok: grant: authenticated calling undo_import_session is refused (42501) (denied: permission denied for function undo_import_session)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:77: NOTICE:  TEST ok: grant: anon calling apply_import_session is refused (42501) (denied: permission denied for function apply_import_session)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:97: NOTICE:  TEST ok: A: applied lists the add and the update in request order
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:98: NOTICE:  TEST ok: A: skipped lists the skip item
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:99: NOTICE:  TEST ok: A: no conflicts, no errors
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:100: NOTICE:  TEST ok: A: undoable, not replayed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:103: NOTICE:  TEST ok: A: session is applied, owned by the JWT user, carries the key
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:106: NOTICE:  TEST ok: A: new row written with the insert values (progress default 0, no rating/notes)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:109: NOTICE:  TEST ok: A: existing row: only the written fields changed, authored notes kept
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:113: NOTICE:  TEST ok: A: add journal: after image is the whole inserted row, no before image
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:116: NOTICE:  TEST ok: A: update journal: after image = the written fields only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:119: NOTICE:  TEST ok: A: update journal: before image = the whole row before the import
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:122: NOTICE:  TEST ok: A: three journal rows (applied, applied, skipped)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:124: NOTICE:  TEST ok: A: taste events of the import exist (planned_add, rating_high) - not vacuous
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:127: NOTICE:  TEST ok: A: every taste event of the import is import-origin for this session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:129: NOTICE:  TEST ok: A: taste_import_context is gone after commit (never leaks to later edits)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:136: NOTICE:  TEST ok: A: a later manual edit is NOT import-origin
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:148: NOTICE:  TEST ok: F: replay returns the stored outcome with replayed=true
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:149: NOTICE:  TEST ok: F: replay wrote no list row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:150: NOTICE:  TEST ok: F: still one session for the key
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:151: NOTICE:  TEST ok: F: no journal rows added
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:161: NOTICE:  TEST ok: G: user B undoing user A's session is reported as not found
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:162: NOTICE:  TEST ok: G: ...and A's session stays applied
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:164: NOTICE:  TEST ok: G: ...and A's rows are untouched
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:167: NOTICE:  TEST ok: G: keys are per user: B's apply with A's key is a new Apply, not A's replay
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:169: NOTICE:  TEST ok: G: B's write went to B's row only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:185: NOTICE:  TEST ok: H: undo of an older session is refused as not_latest
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:188: NOTICE:  TEST ok: H: ...and nothing was reverted, the session stays applied
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:190: NOTICE:  TEST ok: H: ...and no taste context is left behind
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:224: NOTICE:  TEST ok: B: undo result
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:227: NOTICE:  TEST ok: B F08: later rating and notes edits survive; untouched written fields revert
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:229: NOTICE:  TEST ok: B F09: a row deleted after an update import stays deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:231: NOTICE:  TEST ok: B: an untouched update is fully restored
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:233: NOTICE:  TEST ok: B: an untouched add is deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:235: NOTICE:  TEST ok: B F08: an add edited later is kept as edited
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:240: NOTICE:  TEST ok: B: reverted entries
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:245: NOTICE:  TEST ok: B: skipped entries explain every kept change
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:246: NOTICE:  TEST ok: B: session cancelled only after every item resolved
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:249: NOTICE:  TEST ok: B: reverted_at marks exactly the reverted items
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:252: NOTICE:  TEST ok: B: revert writes are import-origin for the undone session (taste semantics kept)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:257: NOTICE:  TEST ok: B: a second undo is the idempotent already_undone outcome
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:272: NOTICE:  TEST ok: C F10: a journal insert failure on item 2 aborts the whole Apply (raised: injected journal failure)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:275: NOTICE:  TEST ok: C F10: no list write of item 1 survives (no unjournaled write)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:279: NOTICE:  TEST ok: C: no session, no journal rows, no taste context, no taste events
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:285: NOTICE:  TEST ok: C: the retry with the same key is a fresh Apply (the failed one left nothing to replay)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:301: NOTICE:  TEST ok: D F11: a failed session transition aborts the whole Apply (raised: injected finalisation failure)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:305: NOTICE:  TEST ok: D F11: no list row, no session, no journal survive
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:322: NOTICE:  TEST ok: E: the accepted manga add is applied
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:324: NOTICE:  TEST ok: E: the stale update is a conflict (compare-and-set under the row lock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:326: NOTICE:  TEST ok: E: the rejected item (unknown catalog id) is an isolated item error with a fixed message (no schema names)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:328: NOTICE:  TEST ok: E F12: the session is applied and undoable
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:330: NOTICE:  TEST ok: E: the conflicted row is untouched
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:337: NOTICE:  TEST ok: E F12: undo of the partial session removes exactly the accepted write
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:357: NOTICE:  TEST ok: I F13: a compensation failure on item 2 aborts the whole Undo (raised: injected compensation failure)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:362: NOTICE:  TEST ok: I F13: item 1 was not removed, the session stays applied, nothing is marked reverted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:370: NOTICE:  TEST ok: I F13: the retry completes every item and only then cancels the session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:393: NOTICE:  TEST ok: J: legacy update journal (after image in action.after) is restored
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:395: NOTICE:  TEST ok: J: legacy add journal is deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:411: NOTICE:  TEST ok: L: malformed journal descriptors do not abort the Apply
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:415: NOTICE:  TEST ok: L: each malformed descriptor is replaced by its default (raw, parsed, candidates, confidence)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:434: NOTICE:  TEST ok: L: undo reverts the restorable field, keeps the unrestorable ones and says why
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:436: NOTICE:  TEST ok: L: a journal row with a malformed identity is skipped with a warning, not a failed Undo
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:451: NOTICE:  TEST ok: M R1: 1500000000 (applied) and 2147483647 (skipped) come back as numbers, never null
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:465: NOTICE:  TEST ok: N A1: [add 3, update 5] on one title: Undo (last write first) removes the row entirely
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:470: NOTICE:  TEST ok: N A1: ...reported in request order, nothing mislabelled as a later edit
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:473: NOTICE:  TEST ok: L: ...and the row is exactly that
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:521: NOTICE:  TEST ok: K1 F08 race: the concurrent edit committed during Undo survives; the untouched field reverts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:523: NOTICE:  TEST ok: K1: ...and Undo reports the kept field
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:537: NOTICE:  TEST ok: K2: the concurrent duplicate returns the first outcome as a replay
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:541: NOTICE:  TEST ok: K2: one session, one journal row, the first write only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:579: NOTICE:  TEST ok: K3 R2: the Apply commits (no deadlock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:580: NOTICE:  TEST ok: K3 R2: the user's concurrent save commits (not a deadlock victim)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:583: NOTICE:  TEST ok: K3 R2: the manual edit applies on top of the import (both survive)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:605: NOTICE:  TEST ok: K4 R2: the Undo commits (no deadlock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:606: NOTICE:  TEST ok: K4 R2: the user's concurrent save commits (not a deadlock victim)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:610: NOTICE:  TEST ok: K4 R2: Undo reverted its fields, the manual edit applies on top, the add is gone

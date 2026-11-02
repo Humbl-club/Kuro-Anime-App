@@ -3,9 +3,12 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
-const REPORT_DIR = process.env.PROVIDER_AVAILABILITY_REPORTS_DIR || '/Applications/Kuro/reports/provider-availability';
+const REPORT_DIR = process.env.PROVIDER_AVAILABILITY_REPORTS_DIR || path.join(
+  execFileSync('/bin/bash', [path.join(__dirname, 'kuro_project_root.sh')], { encoding: 'utf8' }).trim(),
+  'reports', 'provider-availability',
+);
 const PORT = Number(process.env.PROVIDER_AVAILABILITY_DASHBOARD_PORT || 8789);
 const LABEL = process.env.PROVIDER_AVAILABILITY_LAUNCHD_LABEL || 'com.kuro.provider-availability';
 

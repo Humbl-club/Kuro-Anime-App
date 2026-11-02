@@ -1,0 +1,23 @@
+{
+  "evidence_layer": "actual Xcode Debug build and simulator install/launch; onboarding visually verified",
+  "captured_at": "2026-10-07T20:10:28.793754+00:00",
+  "target": "simulator only; no TestFlight or physical delivery",
+  "bundle_id": "com.Kuro.app",
+  "version": "1.0",
+  "build": "17",
+  "sdk": "iphonesimulator27.0",
+  "app_path": "/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app",
+  "info_plist_sha256": "dc36ac337d6a706f4cc6c49b9c4d0b25cdc76b537016d4f89177b37bacff619f",
+  "executable_sha256": "2e471e3e5d6b29ef7a75be2af1efab09ece06dfc8df00d05f813755c925520ed",
+  "simulator": "iPhone 17 Pro / iOS26.0",
+  "simulator_udid": "B9BC0BAE-3BBA-49C9-9591-B24BC5612804",
+  "launch_receipt": "com.Kuro.app: 40180",
+  "build_status": "BUILD SUCCEEDED",
+  "install_exit": 0,
+  "launch_exit": 0,
+  "visible_surface": "onboarding; no user account entered and no private workflow qualified",
+  "MAL_registration_approved": false,
+  "no_archive_upload_deploy": true,
+  "screenshot": "simulator-only-installed.png",
+  "screenshot_sha256": "cdb464bed15621954937be8ba52c3e1c172ccd9840c4bb8c5c8fc51946353b5f"
+}

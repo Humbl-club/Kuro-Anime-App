@@ -1,0 +1,6 @@
+[
+  {
+    "observed_at": "2026-09-25 22:28:17.872746+00",
+    "user_lists_definition": " SELECT aul.id,\n    aul.user_id,\n    aul.anime_id AS media_id,\n    'anime'::text AS media_type,\n    aul.list_type AS status,\n    aul.progress,\n    NULL::integer AS progress_volumes,\n        CASE\n            WHEN aul.rating IS NULL THEN NULL::integer\n            ELSE aul.rating * 10\n        END AS score,\n    aul.notes,\n    NULL::timestamp with time zone AS started_at,\n    NULL::timestamp with time zone AS completed_at,\n    false AS private,\n    aul.created_at,\n    aul.updated_at\n   FROM anime_user_lists aul\nUNION ALL\n SELECT mul.id,\n    mul.user_id,\n    mul.manga_id AS media_id,\n    'manga'::text AS media_type,\n    mul.list_type AS status,\n    mul.progress,\n    NULL::integer AS progress_volumes,\n        CASE\n            WHEN mul.rating IS NULL THEN NULL::integer\n            ELSE mul.rating * 10\n        END AS score,\n    mul.notes,\n    NULL::timestamp with time zone AS started_at,\n    NULL::timestamp with time zone AS completed_at,\n    false AS private,\n    mul.created_at,\n    mul.updated_at\n   FROM manga_user_lists mul;"
+  }
+]

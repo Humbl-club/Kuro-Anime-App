@@ -1,16 +1,29 @@
 import SwiftUI
 
 // MARK: - Character Section (compact, importance-first preview)
+//
+// Navigation contract (docs/superpowers/specs/2026-11-02-navigation-contract-design.md): a character
+// opens its page by PUSHING it inside the journey (`routes.openCharacter`), and "See all" pushes the
+// character directory (`JourneyPage.seeAll`, `CastDirectory.journeyID`), whose characters push in turn.
+// Nothing here presents a sheet.
+
+/// The character directory's journey identity (pure, tested in NaventityTests).
+enum CastDirectory {
+    /// `characters:<ids>`: stable for one title's cast (the same characters in the same order), so a
+    /// second "See all" on the same title pops back to the open directory (N5) instead of a copy.
+    static func journeyID(characterIDs: [Int]) -> String {
+        "characters:" + characterIDs.map(String.init).joined(separator: "-")
+    }
+}
 
 struct CastSection: View {
     let characters: [(character: Character, role: String)]
 
-    @State private var selectedCharacter: Character?
-    @State private var showAllCharacters = false
+    @Environment(\.kuroRoutes) private var routes
 
     private let previewLimit = 8
     private let displayLimit = 10
-    private let sectionTitle = "CHARACTERS"
+    private var sectionTitle: String { KuroLocale.text("Characters", "Figuren") }
 
     private var filtered: [(character: Character, role: String)] {
         characters
@@ -30,6 +43,15 @@ struct CastSection: View {
         Array(filtered.prefix(displayLimit))
     }
 
+    private func openDirectory() {
+        let title = sectionTitle
+        let items = displayedCharacters
+        let id = CastDirectory.journeyID(characterIDs: items.map(\.character.id))
+        routes.openPage(.seeAll(AnyJourneyPage(id: id, title: title) {
+            CharacterDirectoryPage(title: title, characters: items)
+        }))
+    }
+
     var body: some View {
         if !displayedCharacters.isEmpty {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
@@ -37,44 +59,41 @@ struct CastSection: View {
                     Text(sectionTitle)
                         .font(.kuroCaption(weight: .semibold))
                         .tracking(1.6)
+                        .textCase(.uppercase)
                         .foregroundColor(.kuroBlack80)
+                        .accessibilityAddTraits(.isHeader)
 
                     Spacer()
 
                     if displayedCharacters.count > previewLimit {
-                        Button("See All") {
-                            showAllCharacters = true
+                        Button {
+                            openDirectory()
+                        } label: {
+                            Text(KuroLocale.text("See all", "Alle ansehen"))
+                                .font(.kuroMeta(weight: .medium))
+                                .foregroundColor(.kuroBlack80)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
-                        .font(.kuroMicro(weight: .medium))
-                        .foregroundColor(.kuroBlack80)
-                        .buttonStyle(.plain)
+                        .buttonStyle(KuroPressStyle())
                     }
                 }
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 14) {
                         ForEach(displayedCharacters.prefix(previewLimit), id: \.character.id) { item in
-                            CastCircleItem(
-                                character: item.character,
-                                role: item.role
-                            )
-                            .onTapGesture {
-                                selectedCharacter = item.character
+                            Button {
+                                routes.openCharacter(item.character)
+                            } label: {
+                                CastCircleItem(character: item.character, role: item.role)
+                                    .contentShape(Rectangle())
                             }
+                            .buttonStyle(KuroPressStyle())
                         }
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .sheet(isPresented: $showAllCharacters) {
-                CharacterDirectorySheet(
-                    title: sectionTitle,
-                    characters: displayedCharacters
-                )
-            }
-            .sheet(item: $selectedCharacter) { character in
-                CharacterDetailSheet(character: character)
-            }
         }
     }
 }
@@ -87,12 +106,9 @@ private struct CastCircleItem: View {
 
     private var isMain: Bool { role.uppercased() == "MAIN" }
     private var isSupporting: Bool { role.uppercased() == "SUPPORTING" }
-    private var displayName: String { (character.nameFull ?? "Unknown").uppercased() }
+    private var displayName: String { (character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased() }
     private var roleLabel: String? {
-        if isMain { return "MAIN" }
-        if isSupporting { return "SUPPORTING" }
-        let trimmed = role.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed.uppercased()
+        DetailCopy.characterRole(role, german: KuroLocale.isGerman)?.uppercased()
     }
 
     private var resolvedImageURL: URL? {
@@ -118,7 +134,7 @@ private struct CastCircleItem: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(character.nameFull ?? "Unknown"), \((roleLabel ?? "character").lowercased())")
+        .accessibilityLabel("\(character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman)), \(DetailCopy.characterRole(role, german: KuroLocale.isGerman) ?? KuroLocale.text("Character", "Figur"))")
     }
 
     private func imageItem(url: URL) -> some View {
@@ -138,7 +154,7 @@ private struct CastCircleItem: View {
             .clipShape(Circle())
             .overlay(
                 Circle()
-                    .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                    .stroke(Color.kuroBlack08, lineWidth: 0.5)
             )
 
             Text(displayName)
@@ -190,23 +206,24 @@ private struct CastCircleItem: View {
 
     private func roleBadge(_ label: String) -> some View {
         Text(label)
-            .font(.system(size: 8, weight: .semibold))
+            .font(.kuroCustom(8, weight: .semibold, maxSize: 13))
             .tracking(1.0)
-            .foregroundColor(.black.opacity(0.55))
+            .foregroundColor(.kuroTextSecondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(
-                Capsule().fill(Color.black.opacity(0.06))
+                Capsule().fill(Color.kuroBlack06)
             )
     }
 }
 
-private struct CharacterDirectorySheet: View {
+/// The full character list as a journey page ("See all"): pushed by `CastSection`, each character
+/// pushes its page. No stack and no Close of its own (the journey chrome draws back and ✕).
+private struct CharacterDirectoryPage: View {
     let title: String
     let characters: [(character: Character, role: String)]
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedCharacter: Character?
+    @Environment(\.kuroRoutes) private var routes
 
     private let columns = [
         GridItem(.adaptive(minimum: 76, maximum: 88), spacing: 16)
@@ -221,29 +238,29 @@ private struct CharacterDirectorySheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        KuroJourneyAwareStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: KuroSpacing.lg) {
                     EntitySectionLead(
                         text: characters.count >= 10
-                            ? "Showing the top 10 character slice Kuro keeps for this title, ordered by series importance."
-                            : "Showing the importance-ordered character slice Kuro keeps for this title."
+                            ? KuroLocale.text("The ten most important characters, main roles first.", "Die zehn wichtigsten Figuren, Hauptrollen zuerst.")
+                            : KuroLocale.text("The characters by importance, main roles first.", "Die Figuren nach Bedeutung, Hauptrollen zuerst.")
                     )
 
                     HStack(spacing: 8) {
                         CharacterDirectoryStatPill(
-                            title: "TOTAL",
+                            title: KuroLocale.text("TOTAL", "GESAMT"),
                             value: "\(characters.count)"
                         )
                         if mainCount > 0 {
                             CharacterDirectoryStatPill(
-                                title: "MAIN",
+                                title: KuroLocale.text("MAIN", "HAUPTROLLEN"),
                                 value: "\(mainCount)"
                             )
                         }
                         if supportingCount > 0 {
                             CharacterDirectoryStatPill(
-                                title: "SUPPORTING",
+                                title: KuroLocale.text("SUPPORTING", "NEBENROLLEN"),
                                 value: "\(supportingCount)"
                             )
                         }
@@ -251,31 +268,25 @@ private struct CharacterDirectorySheet: View {
 
                     LazyVGrid(columns: columns, alignment: .leading, spacing: 18) {
                         ForEach(characters, id: \.character.id) { item in
-                            CastCircleItem(character: item.character, role: item.role)
-                                .onTapGesture {
-                                    selectedCharacter = item.character
-                                }
+                            Button {
+                                routes.openCharacter(item.character)
+                            } label: {
+                                CastCircleItem(character: item.character, role: item.role)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(KuroPressStyle())
                         }
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
-                .padding(.vertical, KuroSpacing.lg)
+                .padding(.horizontal, KuroDesignSpacing.padding)
+                .padding(.top, KuroJourneyChrome.barHeight + KuroSpacing.md)
+                .padding(.bottom, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .foregroundColor(.kuroBlack80)
-                }
-            }
+            // No artwork: the compact bar (with the title) from the start.
+            .kuroJourneyChrome(title: title, collapseProgress: 1)
         }
-        .sheet(item: $selectedCharacter) { character in
-            CharacterDetailSheet(character: character)
-        }
+        .routePresenter()
     }
 }
 
@@ -286,7 +297,7 @@ private struct CharacterDirectoryStatPill: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.kuroCustom(9, weight: .semibold, maxSize: 14))
                 .tracking(1.0)
                 .foregroundColor(.kuroTextTertiary)
 
@@ -299,7 +310,7 @@ private struct CharacterDirectoryStatPill: View {
         .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(Color.black.opacity(0.04))
+                .fill(Color.kuroBlack04)
         )
     }
 }

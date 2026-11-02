@@ -1,0 +1,195 @@
+<!doctype html>
+<!--
+  ENTWURF / DRAFT FOR LEGAL REVIEW.
+  Kontaktformular: zweiter schneller Kontaktweg nach § 5 Abs. 1 Nr. 2 DDG (neben der E-Mail-Adresse).
+  Sendet an die Supabase Edge Function `contact-submit` (supabase/functions/contact-submit/handler.ts).
+  Der eingebettete Schlüssel ist der ÖFFENTLICHE anon key (auch in der App, Config/Shared.xcconfig);
+  er erlaubt nur, was die Function und die RLS erlauben.
+  Das Inline-Skript ist per CSP-Hash freigegeben (vercel.json, script-src 'sha256-…'). Nach JEDER
+  Änderung am Skript den Hash neu berechnen (Befehl in PLACEHOLDERS.md, Abschnitt 4), sonst blockiert
+  der Browser das Skript.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Kontakt · Kuro</title>
+<meta name="description" content="Kontaktformular für die Kuro-App. Contact form for the Kuro app.">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="draft" role="note">Entwurf zur rechtlichen Prüfung · Draft for legal review.</div>
+<header class="site"><div class="wrap">
+  <a class="wordmark" href="/">KURO</a>
+  <nav class="site" aria-label="Rechtliches">
+    <a href="/datenschutz">Datenschutz</a>
+    <a href="/impressum">Impressum</a>
+    <a href="/nutzungsbedingungen">Nutzungsbedingungen</a>
+    <a href="/kontakt" aria-current="page">Kontakt</a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+
+<h1>Kontakt <span class="h1-en" lang="en">Contact</span></h1>
+<p class="lede" lang="de">Schreiben Sie uns über dieses Formular oder per E-Mail an <a href="mailto:contact@lazy.space">contact@lazy.space</a>. Wir antworten an die E-Mail-Adresse, die Sie angeben.</p>
+<p class="lede" lang="en">Write to us with this form or by email to <a href="mailto:contact@lazy.space">contact@lazy.space</a>. We reply to the email address you enter.</p>
+<p class="note" lang="de">Rechtswidrige Inhalte in der App können Sie mit dem Thema „Inhalt melden“ melden (siehe <a href="/nutzungsbedingungen#de-7">Nutzungsbedingungen, Abschnitt 7</a>). Bitte nennen Sie dabei: wo sich der Inhalt befindet (Club, Titel, möglichst mit Bildschirmfoto), warum er rechtswidrig ist, Ihren Namen (außer bei Meldungen zu Darstellungen sexuellen Missbrauchs von Kindern) und die Erklärung, dass Ihre Angaben nach bestem Wissen richtig und vollständig sind. Wir bestätigen den Eingang per E-Mail. Für Anfragen zu Ihren Datenschutzrechten wählen Sie „Datenschutz“.</p>
+<p class="note" lang="en">To report illegal content in the app choose “Report content” (see <a href="/nutzungsbedingungen#en-7">Terms, section 7</a>) and include: where the content is (club, title, ideally with a screenshot), why it is illegal, your name (except for reports of child sexual abuse material), and a statement that your information is accurate and complete to the best of your knowledge. We confirm receipt by email. For privacy requests choose “Privacy”.</p>
+
+<noscript><p class="box">Das Formular benötigt JavaScript. Bitte schreiben Sie uns stattdessen an <a href="mailto:contact@lazy.space">contact@lazy.space</a>. <span lang="en">The form needs JavaScript. Please email <a href="mailto:contact@lazy.space">contact@lazy.space</a> instead.</span></p></noscript>
+
+<form id="contact-form" class="contact" novalidate>
+  <div class="field">
+    <label for="topic">Thema <span lang="en">· Topic</span></label>
+    <select id="topic" name="topic" required>
+      <option value="general">Allgemeine Frage · General question</option>
+      <option value="support">Hilfe zur App · App support</option>
+      <option value="privacy">Datenschutz · Privacy</option>
+      <option value="legal_notice">Rechtlicher Hinweis · Legal notice</option>
+      <option value="report_content">Inhalt melden · Report content</option>
+      <option value="other">Sonstiges · Other</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="email">E-Mail <span lang="en">· Email</span></label>
+    <input id="email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" aria-describedby="email-error">
+    <p class="field-error" id="email-error" hidden>Bitte eine gültige E-Mail-Adresse angeben. <span lang="en">Please enter a valid email address.</span></p>
+  </div>
+
+  <div class="field">
+    <label for="name">Name <span class="optional">(optional)</span></label>
+    <input id="name" name="name" type="text" maxlength="120" autocomplete="name" aria-describedby="name-error">
+    <p class="field-error" id="name-error" hidden>Höchstens 120 Zeichen. <span lang="en">At most 120 characters.</span></p>
+  </div>
+
+  <div class="field">
+    <label for="message">Nachricht <span lang="en">· Message</span></label>
+    <textarea id="message" name="message" required maxlength="4000" rows="8" aria-describedby="message-hint message-error"></textarea>
+    <p class="field-hint" id="message-hint">Höchstens 4.000 Zeichen. <span lang="en">At most 4,000 characters.</span></p>
+    <p class="field-error" id="message-error" hidden>Bitte eine Nachricht eingeben (höchstens 4.000 Zeichen). <span lang="en">Please enter a message (at most 4,000 characters).</span></p>
+  </div>
+
+  <div class="hp" aria-hidden="true">
+    <label for="kuro-hp">Dieses Feld bitte leer lassen · Leave this field empty</label>
+    <input id="kuro-hp" name="kuro_hp_field" type="text" tabindex="-1" autocomplete="off">
+  </div>
+
+  <div class="field field-check">
+    <input id="consent" name="consent" type="checkbox" required aria-describedby="consent-error">
+    <label for="consent">Ich habe die <a href="/datenschutz#kontaktformular">Hinweise zum Kontaktformular in der Datenschutzerklärung</a> gelesen. Meine Angaben werden nur zur Bearbeitung meiner Anfrage verwendet. <span lang="en">I have read the <a href="/datenschutz#contact-form">privacy information on the contact form</a>. My details are used only to handle my request.</span></label>
+  </div>
+  <p class="field-error" id="consent-error" hidden>Bitte bestätigen. <span lang="en">Please confirm.</span></p>
+
+  <button type="submit" id="submit" class="submit">Senden · Send</button>
+  <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+</form>
+
+</div></main>
+
+<footer class="site"><div class="wrap">
+  <a href="/">Kuro</a> · <a href="/datenschutz">Datenschutz / Privacy</a> · <a href="/impressum">Impressum / Legal notice</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen / Terms</a> · <a href="/kontakt">Kontakt / Contact</a><br>
+  Diese Seite setzt keine Cookies und lädt keine externen Inhalte. Das Formular sendet Ihre Angaben nur beim Absenden an unser Backend. · This site sets no cookies and loads no external content. The form sends your details to our backend only when you submit it.
+</div></footer>
+<script>
+(function () {
+  "use strict";
+  var ENDPOINT = "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/contact-submit";
+  var ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo";
+  var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  var LOCALE_RE = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})?$/;
+  var TEXT = {
+    sending: "Wird gesendet … · Sending …",
+    sent: "Danke! Ihre Nachricht ist angekommen. Wir antworten an die angegebene E-Mail-Adresse. · Thank you! Your message has arrived. We will reply to the email address you entered.",
+    invalid: "Bitte prüfen Sie die markierten Felder. · Please check the marked fields.",
+    limited: "Zu viele Nachrichten in kurzer Zeit. Bitte versuchen Sie es in einer Stunde erneut oder schreiben Sie an contact@lazy.space. · Too many messages in a short time. Please try again in an hour or email contact@lazy.space.",
+    failed: "Senden fehlgeschlagen. Bitte versuchen Sie es erneut oder schreiben Sie an contact@lazy.space. · Sending failed. Please try again or email contact@lazy.space."
+  };
+  var form = document.getElementById("contact-form");
+  var button = document.getElementById("submit");
+  var statusLine = document.getElementById("form-status");
+  var sending = false;
+
+  function field(id) { return document.getElementById(id); }
+
+  function setStatus(text, kind) {
+    statusLine.textContent = text;
+    statusLine.className = "form-status" + (kind ? " is-" + kind : "");
+  }
+
+  function markField(id, invalid) {
+    var input = document.getElementById(id);
+    var error = document.getElementById(id + "-error");
+    if (input) { if (invalid) { input.setAttribute("aria-invalid", "true"); } else { input.removeAttribute("aria-invalid"); } }
+    if (error) { error.hidden = !invalid; }
+  }
+
+  function localErrors(data) {
+    var bad = [];
+    if (!EMAIL_RE.test(data.email) || data.email.length > 254) { bad.push("email"); }
+    if (data.name && data.name.length > 120) { bad.push("name"); }
+    if (!data.message || data.message.length > 4000) { bad.push("message"); }
+    if (data.consent !== true) { bad.push("consent"); }
+    return bad;
+  }
+
+  function showErrors(fields) {
+    ["email", "name", "message", "consent"].forEach(function (id) { markField(id, fields.indexOf(id) !== -1); });
+    var first = ["email", "name", "message", "consent"].filter(function (id) { return fields.indexOf(id) !== -1; })[0];
+    if (first) { document.getElementById(first).focus(); }
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    if (sending) { return; }
+    var locale = (navigator.language || "").slice(0, 10);
+    var data = {
+      topic: field("topic").value,
+      email: field("email").value.trim(),
+      name: field("name").value.trim() || null,
+      message: field("message").value.trim(),
+      locale: LOCALE_RE.test(locale) ? locale : null,
+      website: field("kuro-hp").value,
+      consent: field("consent").checked
+    };
+    var bad = localErrors(data);
+    showErrors(bad);
+    if (bad.length) { setStatus(TEXT.invalid, "error"); return; }
+
+    sending = true;
+    button.disabled = true;
+    setStatus(TEXT.sending, "");
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
+      body: JSON.stringify(data),
+      credentials: "omit",
+      referrerPolicy: "no-referrer"
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (body) {
+        if (response.ok && body && body.ok === true) {
+          form.reset();
+          showErrors([]);
+          setStatus(TEXT.sent, "success");
+        } else if (response.status === 400 && body && body.fields) {
+          showErrors(body.fields);
+          setStatus(TEXT.invalid, "error");
+        } else if (response.status === 429) {
+          setStatus(TEXT.limited, "error");
+        } else {
+          setStatus(TEXT.failed, "error");
+        }
+      });
+    }, function () {
+      setStatus(TEXT.failed, "error");
+    }).then(function () {
+      sending = false;
+      button.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

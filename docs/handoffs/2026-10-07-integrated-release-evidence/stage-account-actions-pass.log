@@ -1,0 +1,12 @@
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite "Presentation action admission" started.
+◇ Test "An operation ignoring cancellation cannot publish after its presentation ends" started.
+◇ Test "A queued intent cannot dispatch under another account or a remounted screen" started.
+◇ Test case passing 1 argument change → "remount" to "A queued intent cannot dispatch under another account or a remounted screen" started.
+◇ Test case passing 1 argument change → "account" to "A queued intent cannot dispatch under another account or a remounted screen" started.
+✔ Test "An operation ignoring cancellation cannot publish after its presentation ends" passed after 0.001 seconds.
+✔ Test "A queued intent cannot dispatch under another account or a remounted screen" with 2 test cases passed after 0.001 seconds.
+✔ Suite "Presentation action admission" passed after 0.001 seconds.
+✔ Test run with 2 tests in 1 suite passed after 0.001 seconds.

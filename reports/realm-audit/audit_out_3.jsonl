@@ -1,0 +1,500 @@
+{"mt": "ANIME", "id": 1419, "v": "ok"}
+{"mt": "ANIME", "id": 12860, "v": "ok"}
+{"mt": "ANIME", "id": 1438, "v": "ok"}
+{"mt": "ANIME", "id": 1420, "v": "ok"}
+{"mt": "ANIME", "id": 1439, "v": "ok"}
+{"mt": "ANIME", "id": 1431, "v": "ok"}
+{"mt": "ANIME", "id": 1547, "v": "ok"}
+{"mt": "ANIME", "id": 1426, "v": "ok"}
+{"mt": "ANIME", "id": 1433, "v": "ok"}
+{"mt": "ANIME", "id": 1421, "v": "wrong", "suggest": "sports-competition", "why": "boxing drama, not dystopian sci-fi", "conf": 0.6}
+{"mt": "MANGA", "id": 129, "v": "ok"}
+{"mt": "ANIME", "id": 1449, "v": "ok"}
+{"mt": "MANGA", "id": 144, "v": "ok"}
+{"mt": "ANIME", "id": 1424, "v": "ok"}
+{"mt": "ANIME", "id": 1441, "v": "wrong", "suggest": "sports-competition", "why": "skating sports action, ecchi incidental", "conf": 0.65}
+{"mt": "ANIME", "id": 1459, "v": "ok"}
+{"mt": "ANIME", "id": 1436, "v": "wrong", "suggest": "sports-competition", "why": "karuta competition core, romance secondary", "conf": 0.65}
+{"mt": "ANIME", "id": 1518, "v": "ok"}
+{"mt": "ANIME", "id": 1601, "v": "wrong", "suggest": "romantic-comedy", "why": "gag-forward maid comedy, not slow burn", "conf": 0.55}
+{"mt": "ANIME", "id": 1475, "v": "ok"}
+{"mt": "ANIME", "id": 1461, "v": "ok"}
+{"mt": "MANGA", "id": 140, "v": "ok"}
+{"mt": "ANIME", "id": 1565, "v": "ok"}
+{"mt": "ANIME", "id": 1447, "v": "wrong", "suggest": "sports-competition", "why": "male swim-team sports, not CGDCT", "conf": 0.85}
+{"mt": "ANIME", "id": 1512, "v": "ok"}
+{"mt": "ANIME", "id": 1609, "v": "ok"}
+{"mt": "MANGA", "id": 133, "v": "ok"}
+{"mt": "ANIME", "id": 1572, "v": "ok"}
+{"mt": "ANIME", "id": 1482, "v": "ok"}
+{"mt": "MANGA", "id": 132, "v": "ok"}
+{"mt": "ANIME", "id": 1466, "v": "ok"}
+{"mt": "MANGA", "id": 138, "v": "wrong", "suggest": "dark-fantasy", "why": "gothic dark-fantasy mystery", "conf": 0.55}
+{"mt": "ANIME", "id": 1546, "v": "ok"}
+{"mt": "ANIME", "id": 1465, "v": "wrong", "suggest": "psychological-thriller", "why": "killing-game thriller, not cyberpunk", "conf": 0.7}
+{"mt": "ANIME", "id": 1491, "v": "ok"}
+{"mt": "MANGA", "id": 136, "v": "ok"}
+{"mt": "ANIME", "id": 1502, "v": "ok"}
+{"mt": "ANIME", "id": 1468, "v": "ok"}
+{"mt": "ANIME", "id": 1455, "v": "ok"}
+{"mt": "ANIME", "id": 1499, "v": "ok"}
+{"mt": "ANIME", "id": 1487, "v": "wrong", "suggest": "comedy-parody", "why": "Gintama is parody comedy first", "conf": 0.65}
+{"mt": "ANIME", "id": 1489, "v": "ok"}
+{"mt": "MANGA", "id": 153, "v": "ok"}
+{"mt": "ANIME", "id": 1480, "v": "ok"}
+{"mt": "ANIME", "id": 1514, "v": "ok"}
+{"mt": "ANIME", "id": 1515, "v": "ok"}
+{"mt": "ANIME", "id": 1478, "v": "wrong", "suggest": "grand-adventure", "why": "whimsical magic adventure, not CGDCT", "conf": 0.55}
+{"mt": "ANIME", "id": 1507, "v": "ok"}
+{"mt": "ANIME", "id": 1504, "v": "ok"}
+{"mt": "ANIME", "id": 1485, "v": "wrong", "suggest": "comedy-parody", "why": "Gintama comedy-drama, samurai is setting", "conf": 0.5}
+{"mt": "ANIME", "id": 1471, "v": "ok"}
+{"mt": "ANIME", "id": 1570, "v": "ok"}
+{"mt": "ANIME", "id": 1483, "v": "ok"}
+{"mt": "ANIME", "id": 1493, "v": "ok"}
+{"mt": "MANGA", "id": 137, "v": "ok"}
+{"mt": "MANGA", "id": 143, "v": "ok"}
+{"mt": "ANIME", "id": 1509, "v": "ok"}
+{"mt": "ANIME", "id": 1594, "v": "ok"}
+{"mt": "ANIME", "id": 1503, "v": "wrong", "suggest": "romantic-comedy", "why": "teasing romcom, not a kids show", "conf": 0.75}
+{"mt": "MANGA", "id": 141, "v": "ok"}
+{"mt": "MANGA", "id": 139, "v": "ok"}
+{"mt": "ANIME", "id": 1530, "v": "wrong", "suggest": "sci-fi-space", "why": "space-race romance drama", "conf": 0.55}
+{"mt": "ANIME", "id": 1481, "v": "wrong", "suggest": "workplace-adult-life", "why": "restaurant workplace sitcom, food incidental", "conf": 0.7}
+{"mt": "ANIME", "id": 1561, "v": "ok"}
+{"mt": "ANIME", "id": 1531, "v": "wrong", "suggest": "mystery-detective", "why": "magical detective casework", "conf": 0.7}
+{"mt": "ANIME", "id": 1569, "v": "wrong", "suggest": "comedy-parody", "why": "Gintama comedy-drama finale", "conf": 0.5}
+{"mt": "ANIME", "id": 1506, "v": "ok"}
+{"mt": "ANIME", "id": 1764, "v": "wrong", "suggest": "grand-adventure", "why": "fan-tribute adventure special, not war", "conf": 0.7}
+{"mt": "ANIME", "id": 1494, "v": "ok"}
+{"mt": "ANIME", "id": 1497, "v": "ok"}
+{"mt": "ANIME", "id": 1495, "v": "ok"}
+{"mt": "ANIME", "id": 1496, "v": "ok"}
+{"mt": "ANIME", "id": 1520, "v": "ok"}
+{"mt": "ANIME", "id": 1540, "v": "ok"}
+{"mt": "ANIME", "id": 1574, "v": "ok"}
+{"mt": "ANIME", "id": 1529, "v": "ok"}
+{"mt": "ANIME", "id": 1513, "v": "ok"}
+{"mt": "ANIME", "id": 1525, "v": "wrong", "suggest": "romantic-comedy", "why": "martial-arts romcom, ecchi incidental", "conf": 0.7}
+{"mt": "ANIME", "id": 1557, "v": "ok"}
+{"mt": "ANIME", "id": 1593, "v": "ok"}
+{"mt": "MANGA", "id": 151, "v": "ok"}
+{"mt": "MANGA", "id": 146, "v": "ok"}
+{"mt": "ANIME", "id": 1519, "v": "ok"}
+{"mt": "ANIME", "id": 1580, "v": "ok"}
+{"mt": "ANIME", "id": 1542, "v": "wrong", "suggest": "comedy-parody", "why": "gag arc of a parody series", "conf": 0.7}
+{"mt": "ANIME", "id": 1523, "v": "ok"}
+{"mt": "MANGA", "id": 145, "v": "ok"}
+{"mt": "ANIME", "id": 1551, "v": "ok"}
+{"mt": "ANIME", "id": 1535, "v": "ok"}
+{"mt": "ANIME", "id": 1641, "v": "ok"}
+{"mt": "ANIME", "id": 1614, "v": "ok"}
+{"mt": "ANIME", "id": 1674, "v": "ok"}
+{"mt": "ANIME", "id": 1532, "v": "ok"}
+{"mt": "ANIME", "id": 1533, "v": "ok"}
+{"mt": "MANGA", "id": 148, "v": "ok"}
+{"mt": "MANGA", "id": 152, "v": "wrong", "suggest": "romance-slow-burn", "why": "romance first, sports backdrop", "conf": 0.65}
+{"mt": "ANIME", "id": 1528, "v": "ok"}
+{"mt": "ANIME", "id": 1548, "v": "ok"}
+{"mt": "ANIME", "id": 1647, "v": "ok"}
+{"mt": "MANGA", "id": 149, "v": "ok"}
+{"mt": "ANIME", "id": 12801, "v": "ok"}
+{"mt": "ANIME", "id": 1575, "v": "ok"}
+{"mt": "ANIME", "id": 1584, "v": "ok"}
+{"mt": "ANIME", "id": 1587, "v": "ok"}
+{"mt": "ANIME", "id": 1563, "v": "wrong", "suggest": "arthouse-experimental", "why": "Yuasa surreal comedy, not sober drama", "conf": 0.55}
+{"mt": "ANIME", "id": 1541, "v": "ok"}
+{"mt": "ANIME", "id": 1589, "v": "ok"}
+{"mt": "ANIME", "id": 1588, "v": "ok"}
+{"mt": "ANIME", "id": 1568, "v": "ok"}
+{"mt": "ANIME", "id": 1559, "v": "ok"}
+{"mt": "ANIME", "id": 1622, "v": "ok"}
+{"mt": "ANIME", "id": 1586, "v": "ok"}
+{"mt": "ANIME", "id": 1555, "v": "wrong", "suggest": "arthouse-experimental", "why": "Ikuhara surreal allegory over comedy", "conf": 0.5}
+{"mt": "ANIME", "id": 1564, "v": "ok"}
+{"mt": "ANIME", "id": 1545, "v": "ok"}
+{"mt": "ANIME", "id": 1591, "v": "ok"}
+{"mt": "ANIME", "id": 1718, "v": "ok"}
+{"mt": "ANIME", "id": 1677, "v": "ok"}
+{"mt": "MANGA", "id": 147, "v": "ok"}
+{"mt": "ANIME", "id": 1562, "v": "ok"}
+{"mt": "ANIME", "id": 1579, "v": "wrong", "suggest": "tragedy-tearjerker", "why": "Key TV tearjerker, not auteur film", "conf": 0.7}
+{"mt": "ANIME", "id": 1656, "v": "ok"}
+{"mt": "ANIME", "id": 1592, "v": "ok"}
+{"mt": "ANIME", "id": 1566, "v": "ok"}
+{"mt": "ANIME", "id": 1651, "v": "ok"}
+{"mt": "ANIME", "id": 1600, "v": "ok"}
+{"mt": "ANIME", "id": 1585, "v": "ok"}
+{"mt": "ANIME", "id": 1620, "v": "ok"}
+{"mt": "ANIME", "id": 1595, "v": "ok"}
+{"mt": "ANIME", "id": 1583, "v": "ok"}
+{"mt": "ANIME", "id": 1577, "v": "ok"}
+{"mt": "ANIME", "id": 1599, "v": "ok"}
+{"mt": "ANIME", "id": 1582, "v": "wrong", "suggest": "romance-slow-burn", "why": "action-romance, not comedy", "conf": 0.55}
+{"mt": "ANIME", "id": 1597, "v": "ok"}
+{"mt": "ANIME", "id": 1658, "v": "wrong", "suggest": "time-parallel-worlds", "why": "parallel-world romance, no space", "conf": 0.7}
+{"mt": "ANIME", "id": 1605, "v": "ok"}
+{"mt": "ANIME", "id": 1617, "v": "ok"}
+{"mt": "MANGA", "id": 155, "v": "ok"}
+{"mt": "ANIME", "id": 1615, "v": "ok"}
+{"mt": "ANIME", "id": 1638, "v": "ok"}
+{"mt": "ANIME", "id": 1986, "v": "ok"}
+{"mt": "ANIME", "id": 1635, "v": "ok"}
+{"mt": "ANIME", "id": 1632, "v": "wrong", "suggest": "isekai-reincarnation", "why": "game-world isekai serial", "conf": 0.7}
+{"mt": "ANIME", "id": 1631, "v": "ok"}
+{"mt": "ANIME", "id": 1625, "v": "ok"}
+{"mt": "MANGA", "id": 154, "v": "wrong", "suggest": "tragedy-tearjerker", "why": "immortality tearjerker journey", "conf": 0.55}
+{"mt": "ANIME", "id": 1670, "v": "ok"}
+{"mt": "ANIME", "id": 1704, "v": "ok"}
+{"mt": "ANIME", "id": 1627, "v": "ok"}
+{"mt": "ANIME", "id": 1619, "v": "ok"}
+{"mt": "ANIME", "id": 1661, "v": "ok"}
+{"mt": "ANIME", "id": 1644, "v": "ok"}
+{"mt": "ANIME", "id": 1643, "v": "ok"}
+{"mt": "ANIME", "id": 1616, "v": "ok"}
+{"mt": "ANIME", "id": 1639, "v": "ok"}
+{"mt": "ANIME", "id": 1648, "v": "ok"}
+{"mt": "ANIME", "id": 1903, "v": "wrong", "suggest": "tragedy-tearjerker", "why": "immortality tearjerker journey", "conf": 0.55}
+{"mt": "ANIME", "id": 1666, "v": "wrong", "suggest": "crime-underworld", "why": "mercenary gun-thriller, not military", "conf": 0.5}
+{"mt": "ANIME", "id": 1630, "v": "ok"}
+{"mt": "ANIME", "id": 1610, "v": "ok"}
+{"mt": "ANIME", "id": 1650, "v": "ok"}
+{"mt": "ANIME", "id": 1689, "v": "wrong", "suggest": "sports-competition", "why": "street-racing sports series", "conf": 0.8}
+{"mt": "MANGA", "id": 156, "v": "ok"}
+{"mt": "ANIME", "id": 1634, "v": "ok"}
+{"mt": "ANIME", "id": 1659, "v": "ok"}
+{"mt": "ANIME", "id": 1669, "v": "wrong", "suggest": "sports-competition", "why": "racing first, romance subplot", "conf": 0.7}
+{"mt": "ANIME", "id": 1623, "v": "wrong", "suggest": "sports-competition", "why": "intense badminton drama, not CGDCT", "conf": 0.85}
+{"mt": "MANGA", "id": 158, "v": "ok"}
+{"mt": "MANGA", "id": 157, "v": "ok"}
+{"mt": "ANIME", "id": 1685, "v": "ok"}
+{"mt": "MANGA", "id": 162, "v": "ok"}
+{"mt": "ANIME", "id": 1649, "v": "ok"}
+{"mt": "ANIME", "id": 1655, "v": "ok"}
+{"mt": "ANIME", "id": 1654, "v": "ok"}
+{"mt": "ANIME", "id": 1688, "v": "ok"}
+{"mt": "ANIME", "id": 1653, "v": "ok"}
+{"mt": "ANIME", "id": 2180, "v": "wrong", "suggest": "food-craft", "why": "comfy isekai cooking, not epic quest", "conf": 0.5}
+{"mt": "MANGA", "id": 165, "v": "ok"}
+{"mt": "ANIME", "id": 1749, "v": "ok"}
+{"mt": "ANIME", "id": 1679, "v": "ok"}
+{"mt": "ANIME", "id": 1663, "v": "ok"}
+{"mt": "ANIME", "id": 1727, "v": "ok"}
+{"mt": "ANIME", "id": 1676, "v": "ok"}
+{"mt": "ANIME", "id": 1694, "v": "ok"}
+{"mt": "MANGA", "id": 168, "v": "ok"}
+{"mt": "ANIME", "id": 1680, "v": "ok"}
+{"mt": "ANIME", "id": 3003, "v": "ok"}
+{"mt": "ANIME", "id": 1671, "v": "ok"}
+{"mt": "MANGA", "id": 167, "v": "ok"}
+{"mt": "ANIME", "id": 1687, "v": "ok"}
+{"mt": "ANIME", "id": 1729, "v": "ok"}
+{"mt": "ANIME", "id": 1726, "v": "ok"}
+{"mt": "MANGA", "id": 181, "v": "ok"}
+{"mt": "ANIME", "id": 1711, "v": "ok"}
+{"mt": "ANIME", "id": 1682, "v": "ok"}
+{"mt": "ANIME", "id": 1747, "v": "ok"}
+{"mt": "ANIME", "id": 1735, "v": "ok"}
+{"mt": "ANIME", "id": 1709, "v": "ok"}
+{"mt": "ANIME", "id": 1683, "v": "ok"}
+{"mt": "ANIME", "id": 1755, "v": "ok"}
+{"mt": "ANIME", "id": 1696, "v": "ok"}
+{"mt": "ANIME", "id": 1668, "v": "wrong", "suggest": "gag-short-form", "why": "newlywed otaku gag shorts", "conf": 0.5}
+{"mt": "ANIME", "id": 1732, "v": "ok"}
+{"mt": "MANGA", "id": 178, "v": "ok"}
+{"mt": "ANIME", "id": 1746, "v": "ok"}
+{"mt": "ANIME", "id": 1722, "v": "ok"}
+{"mt": "ANIME", "id": 1723, "v": "ok"}
+{"mt": "ANIME", "id": 1706, "v": "ok"}
+{"mt": "ANIME", "id": 1675, "v": "ok"}
+{"mt": "ANIME", "id": 1714, "v": "ok"}
+{"mt": "ANIME", "id": 1699, "v": "ok"}
+{"mt": "ANIME", "id": 1700, "v": "ok"}
+{"mt": "ANIME", "id": 1710, "v": "wrong", "suggest": "battle-shounen", "why": "song-powered battle action, not idols", "conf": 0.65}
+{"mt": "ANIME", "id": 1698, "v": "wrong", "suggest": "dark-fantasy", "why": "melancholy fantasy journey, not thriller", "conf": 0.5}
+{"mt": "ANIME", "id": 1708, "v": "ok"}
+{"mt": "MANGA", "id": 164, "v": "ok"}
+{"mt": "MANGA", "id": 169, "v": "ok"}
+{"mt": "ANIME", "id": 1741, "v": "ok"}
+{"mt": "ANIME", "id": 1693, "v": "wrong", "suggest": "sports-competition", "why": "volleyball team drama", "conf": 0.5}
+{"mt": "MANGA", "id": 166, "v": "wrong", "suggest": "romantic-comedy", "why": "childhood-friend romcom, not gag strip", "conf": 0.6}
+{"mt": "ANIME", "id": 1885, "v": "ok"}
+{"mt": "ANIME", "id": 1797, "v": "ok"}
+{"mt": "ANIME", "id": 1713, "v": "wrong", "suggest": "cyberpunk-dystopia", "why": "tech-society hero satire, no space", "conf": 0.5}
+{"mt": "ANIME", "id": 1725, "v": "ok"}
+{"mt": "MANGA", "id": 172, "v": "ok"}
+{"mt": "MANGA", "id": 170, "v": "ok"}
+{"mt": "ANIME", "id": 1720, "v": "wrong", "suggest": "gag-short-form", "why": "crude girls-talk shorts, no romance", "conf": 0.55}
+{"mt": "ANIME", "id": 1789, "v": "ok"}
+{"mt": "ANIME", "id": 1738, "v": "ok"}
+{"mt": "MANGA", "id": 174, "v": "ok"}
+{"mt": "ANIME", "id": 1877, "v": "ok"}
+{"mt": "ANIME", "id": 1748, "v": "ok"}
+{"mt": "ANIME", "id": 2205, "v": "ok"}
+{"mt": "MANGA", "id": 175, "v": "ok"}
+{"mt": "MANGA", "id": 171, "v": "ok"}
+{"mt": "ANIME", "id": 24865, "v": "unknown"}
+{"mt": "ANIME", "id": 1758, "v": "ok"}
+{"mt": "ANIME", "id": 1776, "v": "ok"}
+{"mt": "ANIME", "id": 1769, "v": "ok"}
+{"mt": "ANIME", "id": 1766, "v": "ok"}
+{"mt": "ANIME", "id": 1779, "v": "ok"}
+{"mt": "ANIME", "id": 1777, "v": "ok"}
+{"mt": "ANIME", "id": 1759, "v": "ok"}
+{"mt": "ANIME", "id": 1767, "v": "ok"}
+{"mt": "ANIME", "id": 1750, "v": "ok"}
+{"mt": "MANGA", "id": 186, "v": "wrong", "suggest": "sword-samurai", "why": "murim martial-arts manhwa", "conf": 0.6}
+{"mt": "MANGA", "id": 183, "v": "ok"}
+{"mt": "ANIME", "id": 1753, "v": "ok"}
+{"mt": "ANIME", "id": 1752, "v": "ok"}
+{"mt": "MANGA", "id": 177, "v": "ok"}
+{"mt": "ANIME", "id": 1868, "v": "ok"}
+{"mt": "ANIME", "id": 1778, "v": "ok"}
+{"mt": "ANIME", "id": 1812, "v": "ok"}
+{"mt": "ANIME", "id": 1791, "v": "ok"}
+{"mt": "ANIME", "id": 1786, "v": "wrong", "suggest": "battle-shounen", "why": "team battle shounen, no mecha", "conf": 0.7}
+{"mt": "ANIME", "id": 12489, "v": "wrong", "suggest": "seinen-drama", "why": "surreal seinen action drama, not yuri", "conf": 0.55}
+{"mt": "ANIME", "id": 1775, "v": "ok"}
+{"mt": "ANIME", "id": 1780, "v": "ok"}
+{"mt": "ANIME", "id": 1805, "v": "ok"}
+{"mt": "MANGA", "id": 176, "v": "ok"}
+{"mt": "ANIME", "id": 1808, "v": "ok"}
+{"mt": "ANIME", "id": 1799, "v": "ok"}
+{"mt": "ANIME", "id": 1801, "v": "ok"}
+{"mt": "ANIME", "id": 3657, "v": "ok"}
+{"mt": "ANIME", "id": 1891, "v": "ok"}
+{"mt": "ANIME", "id": 1853, "v": "ok"}
+{"mt": "MANGA", "id": 188, "v": "ok"}
+{"mt": "ANIME", "id": 1811, "v": "ok"}
+{"mt": "ANIME", "id": 1787, "v": "ok"}
+{"mt": "ANIME", "id": 1976, "v": "ok"}
+{"mt": "ANIME", "id": 1848, "v": "wrong", "suggest": "romantic-comedy", "why": "teasing ecchi romcom, not iyashikei", "conf": 0.55}
+{"mt": "MANGA", "id": 198, "v": "ok"}
+{"mt": "MANGA", "id": 197, "v": "ok"}
+{"mt": "ANIME", "id": 1819, "v": "ok"}
+{"mt": "ANIME", "id": 1851, "v": "ok"}
+{"mt": "ANIME", "id": 1807, "v": "ok"}
+{"mt": "ANIME", "id": 1814, "v": "wrong", "suggest": "coming-of-age", "why": "kids' AR adventure, not dystopian noir", "conf": 0.5}
+{"mt": "ANIME", "id": 2040, "v": "wrong", "suggest": "sports-competition", "why": "racing sports drama season", "conf": 0.5}
+{"mt": "ANIME", "id": 1795, "v": "wrong", "suggest": "moe-cgdct", "why": "CGDCT spinoff, not battle series", "conf": 0.7}
+{"mt": "ANIME", "id": 1804, "v": "ok"}
+{"mt": "ANIME", "id": 1834, "v": "ok"}
+{"mt": "ANIME", "id": 1788, "v": "ok"}
+{"mt": "ANIME", "id": 1800, "v": "ok"}
+{"mt": "ANIME", "id": 1850, "v": "ok"}
+{"mt": "ANIME", "id": 1794, "v": "ok"}
+{"mt": "ANIME", "id": 1824, "v": "ok"}
+{"mt": "ANIME", "id": 1806, "v": "ok"}
+{"mt": "ANIME", "id": 1829, "v": "ok"}
+{"mt": "ANIME", "id": 1810, "v": "ok"}
+{"mt": "ANIME", "id": 1826, "v": "ok"}
+{"mt": "ANIME", "id": 1822, "v": "ok"}
+{"mt": "MANGA", "id": 184, "v": "ok"}
+{"mt": "ANIME", "id": 1840, "v": "ok"}
+{"mt": "MANGA", "id": 202, "v": "wrong", "suggest": "sports-competition", "why": "philosophical boxing webtoon", "conf": 0.7}
+{"mt": "ANIME", "id": 1852, "v": "ok"}
+{"mt": "ANIME", "id": 2073, "v": "ok"}
+{"mt": "ANIME", "id": 1890, "v": "ok"}
+{"mt": "ANIME", "id": 1857, "v": "ok"}
+{"mt": "ANIME", "id": 5258, "v": "ok"}
+{"mt": "ANIME", "id": 2029, "v": "ok"}
+{"mt": "MANGA", "id": 191, "v": "ok"}
+{"mt": "ANIME", "id": 1940, "v": "ok"}
+{"mt": "ANIME", "id": 1881, "v": "ok"}
+{"mt": "MANGA", "id": 195, "v": "ok"}
+{"mt": "MANGA", "id": 187, "v": "wrong", "suggest": "sports-competition", "why": "street cycling sports webtoon", "conf": 0.6}
+{"mt": "ANIME", "id": 1844, "v": "ok"}
+{"mt": "ANIME", "id": 1838, "v": "ok"}
+{"mt": "ANIME", "id": 1837, "v": "ok"}
+{"mt": "ANIME", "id": 1985, "v": "ok"}
+{"mt": "MANGA", "id": 192, "v": "ok"}
+{"mt": "ANIME", "id": 1836, "v": "ok"}
+{"mt": "ANIME", "id": 1854, "v": "ok"}
+{"mt": "ANIME", "id": 1849, "v": "ok"}
+{"mt": "MANGA", "id": 193, "v": "wrong", "suggest": "romantic-comedy", "why": "Takagi-style teasing romcom", "conf": 0.6}
+{"mt": "ANIME", "id": 1863, "v": "ok"}
+{"mt": "MANGA", "id": 190, "v": "wrong", "suggest": "mind-game-strategy", "why": "school manipulation mind games", "conf": 0.6}
+{"mt": "ANIME", "id": 1882, "v": "ok"}
+{"mt": "ANIME", "id": 1825, "v": "ok"}
+{"mt": "MANGA", "id": 212, "v": "ok"}
+{"mt": "ANIME", "id": 1860, "v": "ok"}
+{"mt": "ANIME", "id": 1876, "v": "ok"}
+{"mt": "ANIME", "id": 1841, "v": "ok"}
+{"mt": "ANIME", "id": 1889, "v": "ok"}
+{"mt": "ANIME", "id": 1956, "v": "ok"}
+{"mt": "ANIME", "id": 1912, "v": "ok"}
+{"mt": "ANIME", "id": 1831, "v": "wrong", "suggest": "sports-competition", "why": "boys gymnastics sports, not CGDCT", "conf": 0.75}
+{"mt": "ANIME", "id": 1866, "v": "wrong", "suggest": "ecchi-fanservice", "why": "ecchi harem, fanservice-first", "conf": 0.55}
+{"mt": "ANIME", "id": 1902, "v": "ok"}
+{"mt": "ANIME", "id": 1867, "v": "ok"}
+{"mt": "ANIME", "id": 1859, "v": "ok"}
+{"mt": "ANIME", "id": 1843, "v": "ok"}
+{"mt": "ANIME", "id": 2454, "v": "wrong", "suggest": "sports-competition", "why": "serious Oguri Cap racing drama", "conf": 0.75}
+{"mt": "ANIME", "id": 1845, "v": "ok"}
+{"mt": "MANGA", "id": 199, "v": "ok"}
+{"mt": "ANIME", "id": 5816, "v": "unknown"}
+{"mt": "MANGA", "id": 194, "v": "ok"}
+{"mt": "MANGA", "id": 196, "v": "wrong", "suggest": "romantic-comedy", "why": "newlywed romcom, not family saga", "conf": 0.6}
+{"mt": "ANIME", "id": 1869, "v": "ok"}
+{"mt": "MANGA", "id": 206, "v": "ok"}
+{"mt": "ANIME", "id": 1905, "v": "ok"}
+{"mt": "ANIME", "id": 1856, "v": "ok"}
+{"mt": "ANIME", "id": 1870, "v": "ok"}
+{"mt": "ANIME", "id": 1919, "v": "ok"}
+{"mt": "ANIME", "id": 1871, "v": "ok"}
+{"mt": "ANIME", "id": 1873, "v": "ok"}
+{"mt": "ANIME", "id": 1898, "v": "ok"}
+{"mt": "ANIME", "id": 1879, "v": "ok"}
+{"mt": "ANIME", "id": 4282, "v": "ok"}
+{"mt": "ANIME", "id": 1893, "v": "ok"}
+{"mt": "ANIME", "id": 1878, "v": "ok"}
+{"mt": "ANIME", "id": 1899, "v": "ok"}
+{"mt": "ANIME", "id": 1929, "v": "ok"}
+{"mt": "ANIME", "id": 1904, "v": "ok"}
+{"mt": "MANGA", "id": 200, "v": "wrong", "suggest": "coming-of-age", "why": "youth love-triangle drama, not BL genre", "conf": 0.6}
+{"mt": "ANIME", "id": 1892, "v": "ok"}
+{"mt": "ANIME", "id": 2850, "v": "ok"}
+{"mt": "ANIME", "id": 1908, "v": "ok"}
+{"mt": "ANIME", "id": 1978, "v": "ok"}
+{"mt": "ANIME", "id": 1910, "v": "ok"}
+{"mt": "ANIME", "id": 1909, "v": "ok"}
+{"mt": "ANIME", "id": 1936, "v": "ok"}
+{"mt": "ANIME", "id": 2066, "v": "ok"}
+{"mt": "ANIME", "id": 2038, "v": "ok"}
+{"mt": "MANGA", "id": 204, "v": "ok"}
+{"mt": "ANIME", "id": 1906, "v": "ok"}
+{"mt": "ANIME", "id": 1917, "v": "wrong", "suggest": "comedy-parody", "why": "vulgar death-metal gag comedy", "conf": 0.7}
+{"mt": "ANIME", "id": 1924, "v": "ok"}
+{"mt": "ANIME", "id": 1913, "v": "ok"}
+{"mt": "ANIME", "id": 1923, "v": "wrong", "suggest": "comedy-parody", "why": "parody series film, samurai is setting", "conf": 0.55}
+{"mt": "ANIME", "id": 1982, "v": "wrong", "suggest": "sports-competition", "why": "racing finale, not melancholy", "conf": 0.8}
+{"mt": "ANIME", "id": 2148, "v": "ok"}
+{"mt": "ANIME", "id": 1918, "v": "ok"}
+{"mt": "ANIME", "id": 1951, "v": "wrong", "suggest": "historical-epic", "why": "portal kingdom-building epic, not war show", "conf": 0.55}
+{"mt": "ANIME", "id": 1974, "v": "wrong", "suggest": "romantic-comedy", "why": "newlywed romcom special", "conf": 0.6}
+{"mt": "ANIME", "id": 21900, "v": "ok"}
+{"mt": "ANIME", "id": 1952, "v": "ok"}
+{"mt": "ANIME", "id": 1915, "v": "ok"}
+{"mt": "ANIME", "id": 2033, "v": "ok"}
+{"mt": "ANIME", "id": 2318, "v": "wrong", "suggest": "battle-shounen", "why": "gods-vs-humans tournament battles", "conf": 0.6}
+{"mt": "ANIME", "id": 1920, "v": "ok"}
+{"mt": "ANIME", "id": 1964, "v": "ok"}
+{"mt": "ANIME", "id": 1926, "v": "wrong", "suggest": "slice-of-life-iyashikei", "why": "gentle boys' friendship SoL, not CGDCT", "conf": 0.6}
+{"mt": "ANIME", "id": 1948, "v": "ok"}
+{"mt": "ANIME", "id": 1928, "v": "ok"}
+{"mt": "ANIME", "id": 1973, "v": "ok"}
+{"mt": "ANIME", "id": 7208, "v": "ok"}
+{"mt": "ANIME", "id": 1945, "v": "ok"}
+{"mt": "ANIME", "id": 1954, "v": "ok"}
+{"mt": "ANIME", "id": 2016, "v": "ok"}
+{"mt": "MANGA", "id": 205, "v": "ok"}
+{"mt": "ANIME", "id": 1933, "v": "ok"}
+{"mt": "ANIME", "id": 1947, "v": "ok"}
+{"mt": "ANIME", "id": 1939, "v": "wrong", "suggest": "grand-adventure", "why": "action-adventure film, not canon shelf", "conf": 0.55}
+{"mt": "ANIME", "id": 1961, "v": "ok"}
+{"mt": "ANIME", "id": 1980, "v": "wrong", "suggest": "slice-of-life-iyashikei", "why": "clumsy handsome-guys comedy, not CGDCT", "conf": 0.6}
+{"mt": "MANGA", "id": 215, "v": "ok"}
+{"mt": "ANIME", "id": 1970, "v": "ok"}
+{"mt": "ANIME", "id": 1968, "v": "wrong", "suggest": "dark-fantasy", "why": "gothic doll battles, not family saga", "conf": 0.55}
+{"mt": "ANIME", "id": 2041, "v": "ok"}
+{"mt": "ANIME", "id": 1925, "v": "ok"}
+{"mt": "MANGA", "id": 208, "v": "ok"}
+{"mt": "ANIME", "id": 1941, "v": "ok"}
+{"mt": "ANIME", "id": 1931, "v": "ok"}
+{"mt": "MANGA", "id": 224, "v": "ok"}
+{"mt": "ANIME", "id": 2013, "v": "wrong", "suggest": "crime-underworld", "why": "supervillain heist crime story", "conf": 0.65}
+{"mt": "ANIME", "id": 2009, "v": "wrong", "suggest": "arthouse-experimental", "why": "absurdist surreal journey, not melancholy", "conf": 0.5}
+{"mt": "ANIME", "id": 1958, "v": "wrong", "suggest": "time-parallel-worlds", "why": "reset-power puzzle drama, no yokai", "conf": 0.7}
+{"mt": "MANGA", "id": 211, "v": "ok"}
+{"mt": "ANIME", "id": 4661, "v": "ok"}
+{"mt": "ANIME", "id": 22069, "v": "ok"}
+{"mt": "MANGA", "id": 214, "v": "ok"}
+{"mt": "ANIME", "id": 2007, "v": "ok"}
+{"mt": "MANGA", "id": 209, "v": "ok"}
+{"mt": "ANIME", "id": 2035, "v": "ok"}
+{"mt": "ANIME", "id": 1977, "v": "ok"}
+{"mt": "ANIME", "id": 2044, "v": "ok"}
+{"mt": "ANIME", "id": 1988, "v": "ok"}
+{"mt": "ANIME", "id": 2142, "v": "ok"}
+{"mt": "ANIME", "id": 2042, "v": "ok"}
+{"mt": "ANIME", "id": 1979, "v": "ok"}
+{"mt": "MANGA", "id": 220, "v": "ok"}
+{"mt": "ANIME", "id": 2045, "v": "ok"}
+{"mt": "ANIME", "id": 1989, "v": "ok"}
+{"mt": "MANGA", "id": 219, "v": "ok"}
+{"mt": "MANGA", "id": 217, "v": "ok"}
+{"mt": "MANGA", "id": 231, "v": "wrong", "suggest": "psychological-thriller", "why": "Urasawa conspiracy thriller", "conf": 0.5}
+{"mt": "MANGA", "id": 247, "v": "ok"}
+{"mt": "ANIME", "id": 1998, "v": "ok"}
+{"mt": "MANGA", "id": 210, "v": "wrong", "suggest": "bl-yuri", "why": "yuri romance webcomic, not CGDCT", "conf": 0.7}
+{"mt": "ANIME", "id": 1967, "v": "ok"}
+{"mt": "MANGA", "id": 213, "v": "ok"}
+{"mt": "MANGA", "id": 218, "v": "ok"}
+{"mt": "ANIME", "id": 1965, "v": "ok"}
+{"mt": "MANGA", "id": 225, "v": "ok"}
+{"mt": "ANIME", "id": 1981, "v": "ok"}
+{"mt": "ANIME", "id": 1993, "v": "ok"}
+{"mt": "ANIME", "id": 1972, "v": "ok"}
+{"mt": "ANIME", "id": 2189, "v": "ok"}
+{"mt": "ANIME", "id": 2154, "v": "ok"}
+{"mt": "ANIME", "id": 2296, "v": "ok"}
+{"mt": "ANIME", "id": 2037, "v": "ok"}
+{"mt": "ANIME", "id": 2004, "v": "ok"}
+{"mt": "ANIME", "id": 2012, "v": "ok"}
+{"mt": "ANIME", "id": 1990, "v": "ok"}
+{"mt": "ANIME", "id": 2011, "v": "ok"}
+{"mt": "ANIME", "id": 2428, "v": "wrong", "suggest": "sports-competition", "why": "figure-skating competition drama", "conf": 0.6}
+{"mt": "MANGA", "id": 222, "v": "ok"}
+{"mt": "MANGA", "id": 221, "v": "ok"}
+{"mt": "ANIME", "id": 2080, "v": "ok"}
+{"mt": "ANIME", "id": 2053, "v": "wrong", "suggest": "comedy-parody", "why": "yakuza-househusband gag comedy", "conf": 0.55}
+{"mt": "MANGA", "id": 226, "v": "ok"}
+{"mt": "ANIME", "id": 2015, "v": "ok"}
+{"mt": "MANGA", "id": 227, "v": "ok"}
+{"mt": "ANIME", "id": 1996, "v": "ok"}
+{"mt": "MANGA", "id": 236, "v": "ok"}
+{"mt": "ANIME", "id": 2010, "v": "ok"}
+{"mt": "ANIME", "id": 2021, "v": "ok"}
+{"mt": "ANIME", "id": 2055, "v": "ok"}
+{"mt": "ANIME", "id": 2008, "v": "ok"}
+{"mt": "ANIME", "id": 2031, "v": "wrong", "suggest": "slice-of-life-iyashikei", "why": "iyashikei archetype, not CGDCT", "conf": 0.55}
+{"mt": "ANIME", "id": 12950, "v": "ok"}
+{"mt": "ANIME", "id": 5271, "v": "ok"}
+{"mt": "ANIME", "id": 2046, "v": "ok"}
+{"mt": "ANIME", "id": 2050, "v": "ok"}
+{"mt": "ANIME", "id": 2022, "v": "wrong", "suggest": "workplace-adult-life", "why": "restaurant workplace sitcom, food incidental", "conf": 0.7}
+{"mt": "ANIME", "id": 2024, "v": "ok"}
+{"mt": "ANIME", "id": 4717, "v": "ok"}
+{"mt": "MANGA", "id": 233, "v": "wrong", "suggest": "psychological-thriller", "why": "Urasawa conspiracy thriller, robot incidental", "conf": 0.75}
+{"mt": "ANIME", "id": 2120, "v": "ok"}
+{"mt": "MANGA", "id": 223, "v": "ok"}
+{"mt": "ANIME", "id": 2027, "v": "ok"}
+{"mt": "MANGA", "id": 255, "v": "ok"}
+{"mt": "ANIME", "id": 22138, "v": "ok"}
+{"mt": "ANIME", "id": 2028, "v": "wrong", "suggest": "music-performance", "why": "piano prodigy competition drama", "conf": 0.7}
+{"mt": "ANIME", "id": 2020, "v": "ok"}
+{"mt": "MANGA", "id": 228, "v": "ok"}
+{"mt": "ANIME", "id": 2047, "v": "ok"}
+{"mt": "ANIME", "id": 2136, "v": "ok"}
+{"mt": "ANIME", "id": 2084, "v": "ok"}
+{"mt": "ANIME", "id": 2095, "v": "ok"}
+{"mt": "ANIME", "id": 2032, "v": "wrong", "suggest": "dark-fantasy", "why": "gacha action fantasy, not classic canon", "conf": 0.5}
+{"mt": "ANIME", "id": 2075, "v": "ok"}
+{"mt": "MANGA", "id": 235, "v": "ok"}
+{"mt": "MANGA", "id": 269, "v": "ok"}
+{"mt": "ANIME", "id": 2107, "v": "ok"}
+{"mt": "ANIME", "id": 2067, "v": "wrong", "suggest": "comedy-parody", "why": "prince-tutoring comedy, no romance", "conf": 0.6}
+{"mt": "ANIME", "id": 2036, "v": "ok"}
+{"mt": "ANIME", "id": 2059, "v": "ok"}
+{"mt": "ANIME", "id": 2093, "v": "ok"}
+{"mt": "ANIME", "id": 2131, "v": "wrong", "suggest": "coming-of-age", "why": "bittersweet chuunibyou drama, not romcom", "conf": 0.6}
+{"mt": "ANIME", "id": 2048, "v": "ok"}
+{"mt": "MANGA", "id": 244, "v": "wrong", "suggest": "comedy-parody", "why": "heartwarming demon-school comedy", "conf": 0.55}
+{"mt": "ANIME", "id": 2103, "v": "ok"}
+{"mt": "ANIME", "id": 2057, "v": "ok"}
+{"mt": "ANIME", "id": 2201, "v": "ok"}
+{"mt": "ANIME", "id": 2056, "v": "ok"}
+{"mt": "ANIME", "id": 2151, "v": "wrong", "suggest": "battle-shounen", "why": "streamer brawl action, not organized crime", "conf": 0.55}
+{"mt": "ANIME", "id": 6768, "v": "unknown"}
+{"mt": "ANIME", "id": 2081, "v": "ok"}
+{"mt": "ANIME", "id": 2101, "v": "ok"}

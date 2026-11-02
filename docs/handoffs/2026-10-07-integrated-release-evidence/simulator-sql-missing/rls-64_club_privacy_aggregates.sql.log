@@ -1,0 +1,58 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:79: NOTICE:  TEST ok: legit: a member downgrades their own sharing level (own row, sharing_level only)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:91: NOTICE:  TEST ok: legit: member 4 downgrades to status in the progress club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:94: NOTICE:  TEST ok: legit: member 5 opts out (private) in the progress club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:119: NOTICE:  TEST ok: F34 raw (private club): member reads ONLY their own vote row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:121: NOTICE:  TEST ok: F34 raw (private club): ...and it is their own
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:123: NOTICE:  TEST ok: F34 raw (private club): member reads ONLY their own reaction rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:125: NOTICE:  TEST ok: F34 raw (private club): member reads ONLY their own membership row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:127: NOTICE:  TEST ok: F34 raw (status club): member reads ONLY their own membership row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:129: NOTICE:  TEST ok: F34 raw (progress club): member reads ONLY their own membership row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:131: NOTICE:  TEST ok: F34 raw: other members' list rows stay invisible (owner-only list policy unchanged)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:134: NOTICE:  TEST ok: F34 raw: even the OWNER reads only their own membership row through the table API
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:138: NOTICE:  TEST ok: F34 raw: outsider reads 0 votes / reactions / memberships
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:142: NOTICE:  TEST ok: F34 raw: anon reads 0 votes / reactions / memberships
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:150: NOTICE:  TEST ok: F36 private: member_count is all 4 members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:152: NOTICE:  TEST ok: F36 private: poll vote counts include all 3 voters
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:154: NOTICE:  TEST ok: F36 private: reaction totals are complete anonymous counts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:156: NOTICE:  TEST ok: F36 private: anonymous tracking count = the 3 OTHER members who track the item
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:157: NOTICE:  TEST ok: F34 private: no per-member statuses
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:158: NOTICE:  TEST ok: F34 private: members list is only the caller
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:161: NOTICE:  TEST ok: F34 private: caller's own status/progress/rating are returned to the caller
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:163: NOTICE:  TEST ok: F34 private: no other member's notes or rating text anywhere in the bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:165: NOTICE:  TEST ok: F36 loading bundle (private): member_count is all 4 members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:170: NOTICE:  TEST ok: F36 status: per-status counts over status-visible members (1 WATCHING, 2 COMPLETED, 3 WATCHING; 5 private-excluded)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:172: NOTICE:  TEST ok: F36 status: member_statuses lists the 3 status-visible members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:175: NOTICE:  TEST ok: F34 status: the private-downgraded member 5 is absent from member_statuses
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:178: NOTICE:  TEST ok: F34 status: no progress numbers at status level
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:180: NOTICE:  TEST ok: F34 status: no anonymous _tracking_count key in a status club (per-status counts only)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:183: NOTICE:  TEST ok: F34 status: member_statuses never carry rating or notes keys
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:184: NOTICE:  TEST ok: F34 status: no notes anywhere in the bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:190: NOTICE:  TEST ok: F36 progress: per-status counts over the 4 members who share status; opted-out member 5 (PAUSED) is not counted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:192: NOTICE:  TEST ok: F36 progress: member_statuses lists the 4 status-sharing members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:195: NOTICE:  TEST ok: F34 progress: the opted-out (private) member 5 is absent from member_statuses
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:198: NOTICE:  TEST ok: F36 progress: progress visible for a member at effective progress level (member 3: 7)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:201: NOTICE:  TEST ok: F34 progress: member 4 downgraded to status -> status shown, progress withheld
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:202: NOTICE:  TEST ok: F36 progress: member list (>=3 members) is complete
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:203: NOTICE:  TEST ok: F34 progress: no notes anywhere in the bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:212: NOTICE:  TEST ok: k rule (progress duo): no cross-member count that would identify the other member
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:213: NOTICE:  TEST ok: k rule (status duo): no cross-member count
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:214: NOTICE:  TEST ok: k rule (private duo): no cross-member count
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:218: NOTICE:  TEST ok: F34 duo: no per-member statuses below 3 members (all three levels)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:219: NOTICE:  TEST ok: F34 duo: members list is only the caller below 3 members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:220: NOTICE:  TEST ok: duo: the caller still gets their own status for the item
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:221: NOTICE:  TEST ok: duo: reaction/vote aggregates keep their shape (empty reactions object)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:227: NOTICE:  TEST ok: legit: member 3 leaves the private club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:230: NOTICE:  TEST ok: departed: member_count drops to 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:232: NOTICE:  TEST ok: departed: the leaver's vote is excluded from poll counts (3 -> 2)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:234: NOTICE:  TEST ok: departed: the leaver's reaction is excluded from totals
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:236: NOTICE:  TEST ok: departed: tracking count covers current other members only (1, 4)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:239: NOTICE:  TEST ok: departed: the leaver's vote row is kept (excluded, not deleted)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:245: NOTICE:  TEST ok: outsider: fetch_club_bundle raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:246: NOTICE:  TEST ok: outsider: fetch_club_bundle_loading raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:248: NOTICE:  TEST ok: departed member: fetch_club_bundle raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:250: NOTICE:  TEST ok: anon: no EXECUTE on fetch_club_bundle (denied: permission denied for function fetch_club_bundle)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:251: NOTICE:  TEST ok: anon: no EXECUTE on fetch_club_bundle_loading (denied: permission denied for function fetch_club_bundle_loading)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:254: NOTICE:  TEST ok: posture: fetch_club_bundle is SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:256: NOTICE:  TEST ok: posture: fetch_club_bundle_loading is SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:260: NOTICE:  TEST ok: posture: no PUBLIC EXECUTE on either bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:263: NOTICE:  TEST ok: posture: authenticated may EXECUTE both bundles

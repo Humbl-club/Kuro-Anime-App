@@ -1,0 +1,15 @@
+{
+  "slug": "concierge-import-anilist",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "captured_at": "2026-10-07T22:42:40.597Z",
+  "code_url": "https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-import-anilist/code",
+  "method": "Visible file tree; select/copy from deployed Code editor; no deployment",
+  "files": [
+    {
+      "deployed_name": "index.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-import-anilist/index.ts",
+      "bytes": 10720,
+      "sha256": "aebf8b0281a85c144f4da234fe8ba7f28e9cb9c0ad667662e584f68d8e5f4f35"
+    }
+  ]
+}

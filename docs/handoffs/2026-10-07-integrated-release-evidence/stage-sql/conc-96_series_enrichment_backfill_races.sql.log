@@ -1,0 +1,19 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:19: NOTICE:  TEST ok: backfill starts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:22: NOTICE:  TEST ok: one bounded source row queued
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:25: NOTICE:  could not obtain lock on row in relation "anime"
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:25: NOTICE:  TEST ok: backfill locks source against non-key update
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:26: NOTICE:  TEST ok: source starts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:29: NOTICE:  TEST ok: source update waits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:30: NOTICE:  TEST ok: backfill releases its locks
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:31: NOTICE:  TEST ok: source update completes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:32: NOTICE:  TEST ok: new source commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:34: NOTICE:  TEST ok: new source replaces old backfill payload
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:38: NOTICE:  TEST ok: source begins next revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:40: NOTICE:  TEST ok: source writes next revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:41: NOTICE:  TEST ok: backfill begins behind source
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:45: NOTICE:  TEST ok: backfill waits for newer source
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:46: NOTICE:  TEST ok: source releases next revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:48: NOTICE:  TEST ok: waited backfill still processes one row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:49: NOTICE:  TEST ok: waited backfill commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:51: NOTICE:  TEST ok: waited backfill retains latest payload
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/96_series_enrichment_backfill_races.sql:54: NOTICE:  TEST ok: queued snapshot matches catalogue source

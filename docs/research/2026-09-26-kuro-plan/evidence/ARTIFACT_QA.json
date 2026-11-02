@@ -1,0 +1,47 @@
+{
+  "MAX_BRIEF": {
+    "pages": 2,
+    "out_of_page_text": [],
+    "text_characters": 1593
+  },
+  "KURO_FULL_REVIEW": {
+    "pages": 143,
+    "out_of_page_text": [],
+    "text_characters": 490277,
+    "sections_present": {
+      "A01": true,
+      "A10": true,
+      "Phase 0": true,
+      "Phase 8": true,
+      "C15": true,
+      "E5": true,
+      "OP08": true,
+      "AnimeThemes": true,
+      "110 selected": true
+    }
+  },
+  "swift_hash_mismatch": [],
+  "registers": {
+    "operational-call-register.csv": {
+      "rows": 427,
+      "bad_locations": []
+    },
+    "social-call-register.csv": {
+      "rows": 55,
+      "bad_locations": []
+    },
+    "edge-call-register.csv": {
+      "rows": 229,
+      "bad_locations": []
+    },
+    "rpc-review-register.csv": {
+      "rows": 57,
+      "bad_locations": []
+    },
+    "client-call-register.csv": {
+      "rows": 381,
+      "bad_locations": []
+    }
+  },
+  "jwt_pattern_files": []
+}

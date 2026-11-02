@@ -1,0 +1,14 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:17: NOTICE:  TEST ok: job start persists exactly one baseline
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:21: NOTICE:  TEST ok: persisted baseline captures the actual entry lifecycle and revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:27: NOTICE:  TEST ok: barrier denies new import job (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:28: NOTICE:  TEST ok: barrier denies follow update (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:33: NOTICE:  TEST ok: tracked deletion succeeds after barrier
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:35: NOTICE:  TEST ok: internal tombstone remains until auth cascade
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:38: NOTICE:  TEST ok: job cascade purges baselines
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:40: NOTICE:  TEST ok: job cascade purges import action
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:42: NOTICE:  TEST ok: follow state purged
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:44: NOTICE:  TEST ok: home publication purged
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:46: NOTICE:  TEST ok: tombstone purged
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:49: NOTICE:  TEST ok: old JWT cannot create job after deletion (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:51: NOTICE:  TEST ok: old JWT cannot recreate follow (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:53: NOTICE:  TEST ok: other account retained

@@ -1,0 +1,24 @@
+{
+  "target": "Installed simulator against reviewed live backend; no TestFlight",
+  "gates": {
+    "source_safety": {
+      "status": "PASS",
+      "evidence": "Previously accepted changed auth/mutation/SQL/journal scope retained; final reader and medium-selection fixes independently accepted. SQL265, package95 baseline, native r5/r6, affected Home6, reader2 and actual Home/SQLite selection harness reused without unchanged suite reruns. Full public-CDN deletion qualification remains separate."
+    },
+    "product_integration": {
+      "status": "BLOCKED",
+      "evidence": "Actual restored Home and deliberate Anime/Manga selection pass on exact installed candidate. Registered MAL login reached, then dismissed after user clarified no MAL user account is available. Controlled MAL account authorization is specifically blocked; actual included AniList/XML/recovery/results journeys remain independently executable and pending."
+    },
+    "backend_qualification": {
+      "status": "FAIL",
+      "evidence": "Approved four-input SQL/six closures deployed/effective verified; v2 import142 requests/2accounts and Realtime23requests/3accounts PASS with admin cleanup. Storage account/origin removal and old-token denial PASS, but previously cached public URL does not become absent within observed60second window; full producer remains FAIL and earlier evidence preserved. All recorded URLs laterNoSuchKey; no larger arbitrary retry used to award PASS."
+    },
+    "simulator_delivery": {
+      "status": "BLOCKED",
+      "evidence": "Exact final Debug1.0(17),223stableinputs, installed byte-for-byte; data/Keychain retained. Both local Home flags only; global rollout unchanged. Actual restored Home and Anime to Manga selection verified. Full provider/recovery/navigation/cleanup journeys remain pending; no whole-scope pass."
+    }
+  },
+  "source_inputs": 223,
+  "installed_artifact": "home-medium-switch-install-receipt.json",
+  "live_evidence": "approved-deployment-live-evidence.md"
+}

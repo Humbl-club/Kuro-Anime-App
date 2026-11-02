@@ -1,0 +1,83 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "B9BC0BAE-3BBA-49C9-9591-B24BC5612804",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23A5326a",
+        "osVersion" : "26.0",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 4,
+      "passedTests" : 25,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "Kuro · Built with macOS 27.0.1",
+  "expectedFailures" : 0,
+  "failedTests" : 4,
+  "finishTime" : 1791404903.877,
+  "passedTests" : 21,
+  "result" : "Failed",
+  "runtimeWarnings" : [
+
+  ],
+  "skippedTests" : 0,
+  "startTime" : 1791404753.756,
+  "statistics" : [
+    {
+      "subtitle" : "7 test runs",
+      "title" : "3 tests ran with dynamic parameters"
+    }
+  ],
+  "testFailures" : [
+    {
+      "failureText" : "Expectation failed: await ending.value == nil",
+      "targetName" : "KuroTests",
+      "testIdentifier" : 16,
+      "testIdentifierString" : "SessionSDKTests/credentialEndSerializesWithNewSignIn(deletion:)",
+      "testIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/SessionSDKTests/credentialEndSerializesWithNewSignIn(deletion:)",
+      "testName" : "Held sign-out/deletion cannot clear a newer SDK sign-in"
+    },
+    {
+      "failureText" : "Expectation failed: thrown == nil\nthrown → .storage(\"account data removed; WAL cleanup could not complete\")",
+      "targetName" : "KuroTests",
+      "testIdentifier" : 2,
+      "testIdentifierString" : "SessionSDKTests/deletionEndsTheSessionOnlyWhenConfirmed(deletion:)",
+      "testIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/SessionSDKTests/deletionEndsTheSessionOnlyWhenConfirmed(deletion:)",
+      "testName" : "Account deletion: only a confirmed deletion ends the session and removes the SDK session; a failure leaves session, identity and Library untouched (retryable)"
+    },
+    {
+      "failureText" : "Expectation failed: order.error == nil\norder.error → .storage(\"account data removed; WAL cleanup could not complete\")",
+      "targetName" : "KuroTests",
+      "testIdentifier" : 15,
+      "testIdentifierString" : "SessionSDKTests/deletionReachesTheSDKBeforeTheChannelTeardown()",
+      "testIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/SessionSDKTests/deletionReachesTheSDKBeforeTheChannelTeardown()",
+      "testName" : "Account deletion (E1 S1): the local SDK sign-out (scope local) is issued before the awaited channel teardown: with the teardown held, the logout request still arrives"
+    },
+    {
+      "failureText" : "Expectation failed: current != original\ncurrent → AccountContext(userId: \"6F1C4C3E-0A7B-4D7E-9C55-3D2A1B0C9E8A\", generation: 1)\noriginal → AccountContext(userId: \"6F1C4C3E-0A7B-4D7E-9C55-3D2A1B0C9E8A\", generation: 1)",
+      "targetName" : "KuroTests",
+      "testIdentifier" : 18,
+      "testIdentifierString" : "SessionSDKTests/staleAccountConfirmationCannotEndNewAccount()",
+      "testIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/SessionSDKTests/staleAccountConfirmationCannotEndNewAccount()",
+      "testName" : "A stale account confirmation cannot delete or sign out the newly active account"
+    }
+  ],
+  "title" : "Test - Kuro",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "18% of duration",
+      "text" : "1 longest test run with outlier durations exceeding 0.79s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 25
+}

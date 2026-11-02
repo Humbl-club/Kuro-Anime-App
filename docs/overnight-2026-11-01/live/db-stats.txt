@@ -1,0 +1,10 @@
+Initialising login role...
+Connecting to remote database...
+
+  
+   Name     | Database Size | Total Index Size | Total Table Size | Total Toast Size | Time Since Stats Reset  | Index Hit Rate | Table Hit Rate | WAL Size 
+  ----------|---------------|------------------|------------------|------------------|-------------------------|----------------|----------------|----------
+   postgres | 1193 MB       | 380 MB           | 505 MB           | 0 bytes          | 88 days 05:36:33.918769 | 1.00           | 0.99           | 240 MB   
+
+A new version of Supabase CLI is available: v2.122.0 (currently installed v2.78.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

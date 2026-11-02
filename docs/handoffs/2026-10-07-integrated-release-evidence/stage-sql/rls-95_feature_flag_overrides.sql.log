@@ -1,0 +1,8 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:11: NOTICE:  TEST ok: owner reads only own cohort
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:12: NOTICE:  TEST ok: owner sees assigned decision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:13: NOTICE:  TEST ok: client cannot insert cohort (denied: permission denied for table feature_flag_overrides)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:14: NOTICE:  TEST ok: client cannot update cohort (denied: permission denied for table feature_flag_overrides)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:15: NOTICE:  TEST ok: client cannot delete cohort (denied: permission denied for table feature_flag_overrides)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:17: NOTICE:  TEST ok: anonymous cannot read private cohort (denied: permission denied for table feature_flag_overrides)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:20: NOTICE:  TEST ok: account deletion cascades cohort
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_feature_flag_overrides.sql:21: NOTICE:  TEST ok: global rollout unchanged

@@ -1,0 +1,473 @@
+              make_user               
+--------------------------------------
+ abcdef00-0000-4000-8000-000000000980
+(1 row)
+
+ pg_advisory_xact_lock 
+-----------------------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:115: NOTICE:  trigger "list_account_write_lock" for relation "public.anime_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:118: NOTICE:  trigger "list_account_write_lock" for relation "public.manga_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:166: NOTICE:  trigger "list_entry_revision_fence" for relation "public.anime_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:171: NOTICE:  trigger "list_entry_revision_fence" for relation "public.manga_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:501: NOTICE:  policy "series_public_read" for relation "public.series" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:503: NOTICE:  policy "series_sections_public_read" for relation "public.series_sections" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:505: NOTICE:  policy "series_spans_public_read" for relation "public.series_entry_spans" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:507: NOTICE:  policy "provider_refs_public_read" for relation "public.provider_entry_refs" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:509: NOTICE:  policy "mapping_revisions_public_read" for relation "public.mapping_revisions" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:511: NOTICE:  policy "mapping_spans_public_read" for relation "public.mapping_revision_spans" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:513: NOTICE:  policy "units_public_read" for relation "public.catalogue_units" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:515: NOTICE:  policy "materials_public_read" for relation "public.artwork_materials" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:517: NOTICE:  policy "detail_copy_public_read" for relation "public.detail_copy" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:519: NOTICE:  policy "themes_public_read" for relation "public.theme_links" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:521: NOTICE:  policy "coverage_public_read" for relation "public.adaptation_coverage" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:523: NOTICE:  policy "releases_public_read" for relation "public.release_events" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:526: NOTICE:  policy "user_series_intent_own" for relation "public.user_series_intent" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:532: NOTICE:  policy "home_publications_own" for relation "public.home_publications" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:537: NOTICE:  policy "library_import_jobs_own_select" for relation "public.library_import_jobs" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:542: NOTICE:  policy "library_import_items_own_select" for relation "public.library_import_items" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:3559: NOTICE:  trigger "series_bridge_episodes" for relation "public.episodes" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:3561: NOTICE:  trigger "series_bridge_chapters" for relation "public.chapters" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:3976: NOTICE:  trigger "series_unit_owner" for relation "public.anime_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:3978: NOTICE:  trigger "series_unit_owner" for relation "public.manga_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4032: NOTICE:  trigger "series_club_disclosure" for relation "public.club_members" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4035: NOTICE:  trigger "series_club_disclosure" for relation "public.clubs" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4063: NOTICE:  trigger "series_list_disclosure" for relation "public.anime_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4066: NOTICE:  trigger "series_list_disclosure" for relation "public.manga_user_lists" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4117: NOTICE:  trigger "series_enrichment_source" for relation "public.anime" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4120: NOTICE:  trigger "series_enrichment_source" for relation "public.manga" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4133: NOTICE:  trigger "series_enrichment_delete" for relation "public.anime" does not exist, skipping
+psql:/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql:4136: NOTICE:  trigger "series_enrichment_delete" for relation "public.manga" does not exist, skipping
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:13: NOTICE:  TEST ok: Existing migration history remains byte-identical
+ ok 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:14: NOTICE:  TEST ok: Exactly four new migration histories
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:15: NOTICE:  TEST ok: Exact original history source 20261007040000
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:16: NOTICE:  TEST ok: Exact original history source 20261007130000
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:17: NOTICE:  TEST ok: Exact original history source 20261008100000
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:18: NOTICE:  TEST ok: Exact original history source 20261008110000
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:19: NOTICE:  TEST ok: Preexisting anime progress preserved
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:20: NOTICE:  TEST ok: Preexisting manga progress preserved
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:21: NOTICE:  TEST ok: Preexisting anime private note preserved
+ eq 
+----
+ 
+(1 row)
+
+psql:/private/tmp/kuro-import-v2-atomic-rehearsal.sql:22: NOTICE:  TEST ok: Preexisting manga private note preserved
+ eq 
+----
+ 
+(1 row)
+
+EXACT BUNDLE: original histories, legacy data and install guards passed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:16: NOTICE:  TEST ok: pending migration: internal progress writer exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:18: NOTICE:  TEST ok: pending migration: fence helper exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:20: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE the internal progress writer
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:22: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE the fence helper
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:40: NOTICE:  TEST ok: local progress receipt applies
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:42: NOTICE:  TEST ok: local progress is 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:47: NOTICE:  TEST ok: one local receipt exists before import
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:62: NOTICE:  TEST ok: apply moved progress to 7
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:65: NOTICE:  TEST ok: apply wrote rating without dropping notes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:68: NOTICE:  TEST ok: apply left a progress receipt (local + import)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:75: NOTICE:  TEST ok: import apply receipt uses the deterministic mutation id
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:95: NOTICE:  TEST ok: idempotent apply is replayed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:100: NOTICE:  TEST ok: idempotent apply does not move progress again
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:103: NOTICE:  TEST ok: idempotent apply does not advance revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:106: NOTICE:  TEST ok: idempotent apply does not write a second import receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:111: NOTICE:  TEST ok: undo reports undone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:116: NOTICE:  TEST ok: undo restored progress to the pre-import local value
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:123: NOTICE:  TEST ok: undo left a progress receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:140: NOTICE:  TEST ok: fresh apply moved progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:143: NOTICE:  TEST ok: fresh apply wrote exactly one receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:172: NOTICE:  TEST ok: status-only apply changes status while preserving precise tracking and unrelated fields
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:175: NOTICE:  TEST ok: status-only apply advances the confirmed revision once
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:177: NOTICE:  TEST ok: status-only undo reports undone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:182: NOTICE:  TEST ok: status-only undo restores status without dropping precise tracking or unrelated fields
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:188: NOTICE:  TEST ok: status-only Apply and Undo each leave a deterministic applied receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:201: NOTICE:  TEST ok: explicit progress Apply clears obsolete unit and label while retaining status
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:206: NOTICE:  TEST ok: explicit progress journal includes the exact prior tracking value
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:213: NOTICE:  TEST ok: progress Undo restores integer compatibility, selected edition unit and fractional label
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:216: NOTICE:  TEST ok: coupled precise Undo uses one confirmed revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:239: NOTICE:  TEST ok: newer exact tracking edit survives progress Undo while status restores independently
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:241: NOTICE:  TEST ok: coupled tracking conflict is disclosed by Undo
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:283: NOTICE:  TEST ok: Undo keeps both newly journaled and historical imported rows with later exact edits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:285: NOTICE:  TEST ok: Undo discloses both protected imported entries
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:288: NOTICE:  TEST ok: legacy Undo honestly skips the title whose entry lifetime cannot be established
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:297: NOTICE:  TEST ok: explicit zero progress remains a real write and preserves omitted status
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:330: NOTICE:  TEST ok: remove and re-add changed both entry lifetimes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:334: NOTICE:  TEST ok: Undo preserves the equal-looking replacement of an import-created entry
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:338: NOTICE:  TEST ok: Undo preserves all values of the replacement of an updated entry
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:341: NOTICE:  TEST ok: Undo discloses both removed lifetimes rather than claiming either was reverted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql:346: NOTICE:  TEST ok: lifecycle skips produce no mutation receipts for replacement entries
+SQL81: complete
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:24: NOTICE:  TEST ok: anime external ID beats an unrelated internal PK
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:25: NOTICE:  TEST ok: wrong anime was never added
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:26: NOTICE:  TEST ok: manga external ID beats an unrelated internal PK
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:27: NOTICE:  TEST ok: private notes remain owner-only list data
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:28: NOTICE:  TEST ok: entry privacy retained
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:29: NOTICE:  TEST ok: no import notes become comments
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:34: NOTICE:  TEST ok: chunk retry adds no duplicate counts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:35: NOTICE:  TEST ok: unique added counters stay at two
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:36: NOTICE:  TEST ok: both-media Home publication includes manga
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:39: NOTICE:  TEST ok: status-only concurrent edit conflicts despite equal progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:40: NOTICE:  TEST ok: local dropped state remains
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:42: NOTICE:  TEST ok: ready job start is a replay
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:48: NOTICE:  TEST ok: status-only mutation applies
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:50: NOTICE:  TEST ok: unchanged status-only retry ignores later progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:51: NOTICE:  TEST ok: same ID different base revision is rejected
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:59: NOTICE:  TEST ok: foreign season unit is not accepted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:71: NOTICE:  TEST ok: one active Home card for two approved seasons
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:72: NOTICE:  TEST ok: selected season resolves its own catalogue title
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:73: NOTICE:  TEST ok: selected season resolves its own progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:74: NOTICE:  TEST ok: season browse never advances first-season progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:76: NOTICE:  TEST ok: finish publishes revision floors for BOTH Home media
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:82: NOTICE:  TEST ok: episode page is bounded to twenty
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:83: NOTICE:  TEST ok: episode page has deterministic cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:86: NOTICE:  TEST ok: second episode page has no duplicate first rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:88: NOTICE:  TEST ok: initial detail unit cursor uses same deterministic ordering
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:90: NOTICE:  TEST ok: detail exposes its actual final-unit page cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:98: NOTICE:  TEST ok: status-only write retains the exact source unit
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:100: NOTICE:  TEST ok: status-only write retains fractional chapter label
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:104: NOTICE:  TEST ok: direct SDK unit write also checks title ownership (raised: INVALID_UNIT_OWNER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:108: NOTICE:  TEST ok: stale revision returns conflict
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:111: NOTICE:  TEST ok: lost conflict response replay stays conflict, never success
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:118: NOTICE:  TEST ok: Coming Up page stays bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:119: NOTICE:  TEST ok: Coming Up count retains all tracked releases
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:120: NOTICE:  TEST ok: source day remains a day rather than midnight
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:121: NOTICE:  TEST ok: day precision never fabricates instant
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:123: NOTICE:  TEST ok: Coming Up second page also bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:125: NOTICE:  TEST ok: Coming Up cursor pages have no repeated IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:129: NOTICE:  TEST ok: legacy chapter creates exactly one canonical unit
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:130: NOTICE:  TEST ok: legacy date-only source stays date-only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:132: NOTICE:  TEST ok: source remap withdraws the old release
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:133: NOTICE:  TEST ok: source remap preserves old unit identity safely
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:134: NOTICE:  TEST ok: source remap creates the new target once
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:143: NOTICE:  TEST ok: club mate tracking is initially visible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:144: NOTICE:  TEST ok: spoiler metadata reaches private reader
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:146: NOTICE:  TEST ok: viewer downgrade hides peer activity
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:147: NOTICE:  TEST ok: viewer downgrade hides peer comments
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:151: NOTICE:  TEST ok: private provider entry never contributes named tracking
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:153: NOTICE:  TEST ok: club removal immediately hides peer comments
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:164: NOTICE:  TEST ok: large Collection child array is bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:165: NOTICE:  TEST ok: large Collection group retains total
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:168: NOTICE:  TEST ok: large Collection group exposes its remaining five children
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:170: NOTICE:  TEST ok: Collection child pages never duplicate IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:173: NOTICE:  TEST ok: another account cannot page private Collection children
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:177: NOTICE:  TEST ok: finish replay cannot reopen an exhausted import
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:185: NOTICE:  TEST ok: unsupported source privacy cannot publish a previously private entry
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:187: NOTICE:  TEST ok: unsupported source hidden flag cannot clear local preference
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:189: NOTICE:  TEST ok: unsupported source custom lists survive merge
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:191: NOTICE:  TEST ok: absent repeat count survives merge
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:197: NOTICE:  TEST ok: catalogue uniqueness rejects a duplicate provider identity (raised: duplicate key value violates unique constraint "anime_anilist_id_key")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:205: NOTICE:  TEST ok: unresolved provider reference stays unmatched despite catalogue fallback
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:207: NOTICE:  TEST ok: unresolved target writes neither internal row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:215: NOTICE:  TEST ok: pending announcements bounded before JSON aggregation
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:216: NOTICE:  TEST ok: pending count is full eligible window
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:218: NOTICE:  TEST ok: pending second page has no repeated event IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:220: NOTICE:  TEST ok: initial Home includes independent pending cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:225: NOTICE:  TEST ok: empty account pending pager cannot derive another account follows/library
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:243: NOTICE:  TEST ok: rename retains metadata section identity
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:245: NOTICE:  TEST ok: split cour creates one logical section
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql:247: NOTICE:  TEST ok: split cour retains both distinct source children
+SQL94: complete
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:14: NOTICE:  TEST ok: catalogue change enqueues exactly one source job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:17: NOTICE:  TEST ok: unclaimed null lease cannot finish
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:18: NOTICE:  TEST ok: unclaimed job did not write story
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:21: NOTICE:  TEST ok: claim is bounded to one
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:24: NOTICE:  TEST ok: wrong lease cannot publish
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:26: NOTICE:  TEST ok: failed extraction schedules retry without deleting last good
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:29: NOTICE:  TEST ok: retry starts at sixty seconds
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:33: NOTICE:  TEST ok: retry gets a new claim token
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:35: NOTICE:  TEST ok: old claim is rejected after reclaim
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:40: NOTICE:  TEST ok: low-contrast material rejected (raised: INVALID_MATERIAL)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:44: NOTICE:  TEST ok: current claim publishes sourced copy and material
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:46: NOTICE:  TEST ok: material identity is current exactly once
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:48: NOTICE:  TEST ok: themes remain search candidates rather than invented Spotify IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:50: NOTICE:  TEST ok: finish cannot reuse consumed claim
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:55: NOTICE:  TEST ok: reviewed story takes priority over source bridge
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:56: NOTICE:  TEST ok: end user cannot claim enrichment jobs (denied: permission denied for function claim_series_enrichment_v1)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:57: NOTICE:  TEST ok: enrichment job payload not readable by user (denied: permission denied for table series_enrichment_jobs)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:62: NOTICE:  TEST ok: source change schedules fresh extraction
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:64: NOTICE:  TEST ok: old source snapshot cannot replace new story
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:66: NOTICE:  TEST ok: pending enrichment retains approved copy
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:74: NOTICE:  TEST ok: unknown theme match retains prior bridge row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:79: NOTICE:  TEST ok: known empty authoritative set retires old producer themes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:81: NOTICE:  TEST ok: known empty set preserves reviewed links
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:89: NOTICE:  TEST ok: cross-URL digest cannot mutate prior artwork identity (raised: INVALID_MATERIAL_IDENTITY)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:92: NOTICE:  TEST ok: separate URL and digest retain distinct current palettes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:95: NOTICE:  TEST ok: new catalogue title queues a producer job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:98: NOTICE:  TEST ok: catalogue deletion removes its queued job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:99: NOTICE:  TEST ok: deleted title cannot consume a subsequent claim
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:109: NOTICE:  TEST ok: edition index is bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:110: NOTICE:  TEST ok: edition overflow gives independent keyset
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:112: NOTICE:  TEST ok: remaining editions are reachable
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:114: NOTICE:  TEST ok: unit cursor retains exact decimal string
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:115: NOTICE:  TEST ok: cursor JSON type is string
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:118: NOTICE:  TEST ok: no fractional unit is skipped by subsequent cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:120: NOTICE:  TEST ok: initial detail uses one source edition
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:122: NOTICE:  TEST ok: initial detail edition index bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:143: NOTICE:  TEST ok: default null member level inherits club for direct reads
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:147: NOTICE:  TEST ok: private discussion first page bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:148: NOTICE:  TEST ok: own comment is pinned outside first page
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:149: NOTICE:  TEST ok: pinned own reaction count is real
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:150: NOTICE:  TEST ok: status visibility hides episode count
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:158: NOTICE:  TEST ok: private list entry removed from friend tracking
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:161: NOTICE:  TEST ok: list privacy notifies the viewers own metadata row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:163: NOTICE:  TEST ok: viewer cannot read peer metadata signal
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:168: NOTICE:  TEST ok: direct RLS hides downgraded peer comment
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:171: NOTICE:  TEST ok: paged private discussion also hides downgraded peer
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:176: NOTICE:  TEST ok: removed user has no remaining membership authority
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:178: NOTICE:  TEST ok: removed user loses the club discussion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:181: NOTICE:  TEST ok: removed user receives terminal membership signal
+95_series_producers_disclosure.sql: complete
+              make_user               |              make_user               
+--------------------------------------+--------------------------------------
+ abcdef00-0000-4000-8000-000000000098 | abcdef00-0000-4000-8000-000000000099
+(1 row)
+
+ as_user 
+---------
+ 
+(1 row)
+
+ reset 
+-------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:17: NOTICE:  TEST ok: job start persists exactly one baseline
+ eq 
+----
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:21: NOTICE:  TEST ok: persisted baseline captures the actual entry lifecycle and revision
+ ok 
+----
+ 
+(1 row)
+
+                       begin_account_deletion                        
+---------------------------------------------------------------------
+ {"success": true, "started_at": "2026-10-08T01:55:38.232407+02:00"}
+(1 row)
+
+ as_user 
+---------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:27: NOTICE:  TEST ok: barrier denies new import job (denied: ACCOUNT_DELETION_IN_PROGRESS)
+ denied 
+--------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:28: NOTICE:  TEST ok: barrier denies follow update (denied: ACCOUNT_DELETION_IN_PROGRESS)
+ denied 
+--------
+ 
+(1 row)
+
+ reset 
+-------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:33: NOTICE:  TEST ok: tracked deletion succeeds after barrier
+ eq 
+----
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:35: NOTICE:  TEST ok: internal tombstone remains until auth cascade
+ ok 
+----
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:38: NOTICE:  TEST ok: job cascade purges baselines
+ eq 
+----
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:40: NOTICE:  TEST ok: job cascade purges import action
+ eq 
+----
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:42: NOTICE:  TEST ok: follow state purged
+ eq 
+----
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:44: NOTICE:  TEST ok: home publication purged
+ eq 
+----
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:46: NOTICE:  TEST ok: tombstone purged
+ eq 
+----
+ 
+(1 row)
+
+ as_user 
+---------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:49: NOTICE:  TEST ok: old JWT cannot create job after deletion (denied: ACCOUNT_DELETION_IN_PROGRESS)
+ denied 
+--------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:51: NOTICE:  TEST ok: old JWT cannot recreate follow (denied: ACCOUNT_DELETION_IN_PROGRESS)
+ denied 
+--------
+ 
+(1 row)
+
+ reset 
+-------
+ 
+(1 row)
+
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/96_series_account_lifecycle.sql:53: NOTICE:  TEST ok: other account retained
+ ok 
+----
+ 
+(1 row)
+
+96_series_account_lifecycle.sql: complete
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:29: NOTICE:  TEST ok: v2 job starts in preparation
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:30: NOTICE:  TEST ok: start replay keeps the same job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:31: NOTICE:  TEST ok: start replay rejects changed selection (raised: IDEMPOTENCY_CONFLICT)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:32: NOTICE:  TEST ok: v1 cannot apply to a v2 job (raised: CONTRACT_VERSION_MISMATCH)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:48: NOTICE:  TEST ok: staging changes no existing precise tracking
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:49: NOTICE:  TEST ok: staging adds no new Library titles
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:50: NOTICE:  TEST ok: one completed stream cannot hide another incomplete stream
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:51: NOTICE:  TEST ok: application is blocked before all selected source streams finish (raised: JOB_NOT_APPLYING)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:54: NOTICE:  TEST ok: overflow becomes an invalid review disposition, not a cast exception
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:56: NOTICE:  TEST ok: identical effective values are classified existing
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:58: NOTICE:  TEST ok: unmatched review retains the source title
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:65: NOTICE:  TEST ok: reviewing requires both source streams exhausted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:68: NOTICE:  TEST ok: compatible source memberships are unioned once
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:70: NOTICE:  TEST ok: contradictory source duplicate requires review
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:71: NOTICE:  TEST ok: source_changed cannot bypass review with add (raised: SOURCE_CHANGED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:72: NOTICE:  TEST ok: a resolved catalogue identity cannot be overridden (raised: MAPPING_ALREADY_RESOLVED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:79: NOTICE:  TEST ok: manual matching an existing title captures a fresh review baseline
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:81: NOTICE:  TEST ok: manual matching shows actual current values before approval
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:82: NOTICE:  TEST ok: Apply cannot install an unreviewed manual identity (raised: UNREVIEWED_MAPPING)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:86: NOTICE:  TEST ok: manual approval without target seal cannot use a replacement match (raised: UNREVIEWED_MAPPING)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:87: NOTICE:  TEST ok: old manual target cannot approve the newly staged match (raised: UNREVIEWED_MAPPING)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:88: NOTICE:  TEST ok: rejected stale match added neither target
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:93: NOTICE:  TEST ok: same-target manual replay cannot refresh the reviewed baseline
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:109: NOTICE:  TEST ok: disjoint chunks share one immutable confirmation action
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:110: NOTICE:  TEST ok: an earlier lost chunk response stays exact after subsequent chunks
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:113: NOTICE:  TEST ok: default keep preserves all existing Kuro fields
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:114: NOTICE:  TEST ok: explicit keep and identical items count unchanged
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:115: NOTICE:  TEST ok: all valid new statuses and manual new identity add
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:116: NOTICE:  TEST ok: later edit and tombstone race plus source_changed count conflicts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:117: NOTICE:  TEST ok: later edit is preserved
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:118: NOTICE:  TEST ok: reviewed-missing add/remove is not silently recreated
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:119: NOTICE:  TEST ok: manual matching does not mutate global provider identities
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:120: NOTICE:  TEST ok: lost response replays the original complete chunk response
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:121: NOTICE:  TEST ok: attempted approval body cannot be rewritten (raised: DECISION_ALREADY_FINAL)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:123: NOTICE:  TEST ok: source finalization keeps projection readiness honest
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:124: NOTICE:  TEST ok: saved result is durable and terminal
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:126: NOTICE:  TEST ok: official planning and hold aliases survive in Library
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:127: NOTICE:  TEST ok: terminal job cannot reopen with a new approval action (raised: JOB_NOT_APPLYING)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:131: NOTICE:  TEST ok: item paging returns bounded pages
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:132: NOTICE:  TEST ok: item pages have no repeated identity
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:134: NOTICE:  TEST ok: outsider cannot read private results (raised: NOT_AUTHORIZED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:135: NOTICE:  TEST ok: outsider cannot stop the import (raised: NOT_AUTHORIZED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:136: NOTICE:  TEST ok: outsider job list is empty
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:144: NOTICE:  TEST ok: first bounded Undo uses the same immutable response on retry
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:145: NOTICE:  TEST ok: Undo cursor cannot be skipped ahead (raised: INVALID_UNDO_CURSOR)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:147: NOTICE:  TEST ok: guarded Undo cumulative reverted is correct
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:148: NOTICE:  TEST ok: guarded Undo cumulative skipped is correct
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:149: NOTICE:  TEST ok: bounded Undo reaches undone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:150: NOTICE:  TEST ok: later edits survive compensation
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:151: NOTICE:  TEST ok: replacement lifetimes survive compensation
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:152: NOTICE:  TEST ok: unchanged/kept entries are not part of Undo
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:164: NOTICE:  TEST ok: approved subset preserves unapproved note, memberships, repeats and precise tracking
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:169: NOTICE:  TEST ok: guarded existing-entry Undo restores the exact before-image
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:181: NOTICE:  TEST ok: identical effective input is counted unchanged
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:182: NOTICE:  TEST ok: identical import does not bump the Library revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:183: NOTICE:  TEST ok: identical import does not bump Home publication
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:192: NOTICE:  TEST ok: changed approved progress clears obsolete unit/label and preserves unapproved notes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:195: NOTICE:  TEST ok: stop preserves the committed progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:196: NOTICE:  TEST ok: cancel replay is idempotent
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:197: NOTICE:  TEST ok: cancel prevents subsequent application (raised: JOB_NOT_APPLYING)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:200: NOTICE:  TEST ok: Undo of a partially cancelled import restores precise progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:205: NOTICE:  TEST ok: source preparation enforces the100item bound (raised: INVALID_PAYLOAD)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:217: NOTICE:  TEST ok: positive approved score is one coupled value with unapproved precise progress preserved
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:218: NOTICE:  TEST ok: explicit new review may re-add a title removed before this review
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:222: NOTICE:  TEST ok: score compensation restores its original scale and normalized value
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:230: NOTICE:  TEST ok: unavailable progress preserves integer, unit and fractional label
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:238: NOTICE:  TEST ok: merged duplicate unit and label must agree with catalogue identity
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:239: NOTICE:  TEST ok: merged incompatible precision cannot be approved (raised: ITEM_REQUIRES_REVIEW)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:241: NOTICE:  TEST ok: rejected duplicate precision keeps the actual Library unit and label
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:250: NOTICE:  TEST ok: post-coverage optional field expansion is source_changed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:251: NOTICE:  TEST ok: old privacy approval cannot apply an unseen source field (raised: SOURCE_CHANGED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:253: NOTICE:  TEST ok: rejected expanded approval preserves both privacy legs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:261: NOTICE:  TEST ok: missing optional evidence does not manufacture a source contradiction
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:264: NOTICE:  TEST ok: known optional evidence and valid memberships merge canonically
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:273: NOTICE:  TEST ok: retained v1 job still applies through its original contract
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:274: NOTICE:  TEST ok: retained v1 finalization response remains compatible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:284: NOTICE:  TEST ok: latest ten terminal jobs retain detailed history
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:285: NOTICE:  TEST ok: older jobs explicitly report unavailable history
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:286: NOTICE:  TEST ok: pruning retains original result counts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:287: NOTICE:  TEST ok: pruned history cannot pretend Undo is available (raised: HISTORY_UNAVAILABLE)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:290: NOTICE:  TEST ok: job history pages are bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:291: NOTICE:  TEST ok: opaque job cursors never duplicate a job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/97_import_review_recovery_v2.sql:292: NOTICE:  TEST ok: private normalization helpers are not an alternate writer API
+97_import_review_recovery_v2.sql: complete

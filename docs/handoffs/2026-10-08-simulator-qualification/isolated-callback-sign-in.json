@@ -1,0 +1,52 @@
+{
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "scope": "One ordinary retained development account, authorized by owner; not a deletion-test account",
+  "created_at": "2026-10-07T22:22:43.446539+00:00",
+  "status": "PASS: actual Kuro callback sign-in and ordinary restart restore",
+  "calls": [
+    {
+      "path": "/auth/v1/settings",
+      "status": 200
+    },
+    {
+      "path": "/auth/v1/token",
+      "status": 200
+    },
+    {
+      "path": "/auth/v1/user",
+      "status": 200
+    }
+  ],
+  "ui_password_form_exercised": false,
+  "secret_output": false,
+  "callback_handlers": [
+    "com.Kuro.app"
+  ],
+  "simulator_udid": "7FC4B58A-430C-457D-A017-6B0095723F3F",
+  "signup_available": true,
+  "email_auto_confirm": true,
+  "account_created_this_attempt": false,
+  "user_id": "9625cae4-cd7c-44ff-9783-595b53464146",
+  "ordinary_role": "authenticated",
+  "password_sign_in": "PASS",
+  "authenticated_user": "PASS",
+  "simulator_callback_exit": 0,
+  "credential_storage": "Private local mode0600 file outside repository; password/tokens not emitted",
+  "retained_by_owner_request": true,
+  "cleanup": "NOT APPLICABLE: persistent development account intentionally retained",
+  "no_deploy_flags_admin_grants": true,
+  "updated_at": "2026-10-07T22:25:50.835850+00:00",
+  "installed_ui": "Discover loaded and Profile displayed the same retained development email and build1.0(17)",
+  "ordinary_restart": "PASS",
+  "ordinary_sign_out": "PASS: Profile sign-out returned immediately to AuthView",
+  "final_normal_password_sign_in": "PASS: actual app email/password form, no callback or auth-bypass flag",
+  "earlier_restore_verdict": "Invalid as current-artifact proof: original simulator has both com.Kuro.app and com.Kuro.canvaspreview claiming kuro. Preserve historical observations; do not infer a production restore defect.",
+  "bundle_sha256": "e0caff88ccb7266c2669c9edaa9f01d011d35438a59b50a2771ac4306b21d0c2",
+  "screenshot": "qualified-signed-in.png",
+  "screenshot_sha256": "39850d5985444a6a958d4c9cc8adcc5309d301de7260b36ee1d92ca6344e5eb8",
+  "MAL_registration": "Owner reports completed registration with supplied values; public Client ID still pending; results page remains site-policy blocked",
+  "MAL_account_consent_import": "NOT RUN; no client configured",
+  "Home_import_jobs": "NOT RUN: required candidate RPCs remain absent live",
+  "deployment": false,
+  "TestFlight": false
+}

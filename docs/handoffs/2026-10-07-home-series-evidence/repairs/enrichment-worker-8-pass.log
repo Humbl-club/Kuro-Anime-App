@@ -1,0 +1,11 @@
+./Users/max/Kuro-Anime-App/tools/design-directions/build_art_materials.py:37: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+  for pixel in image.getdata():
+/Users/max/Kuro-Anime-App/tools/design-directions/build_art_materials.py:37: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+  for pixel in image.getdata():
+.......
+----------------------------------------------------------------------
+Ran 8 tests in 0.069s
+
+OK
+{"medium": "anime", "media_id": 1, "outcome": "retry"}
+DRY CONTRACT: catalogue change -> leased bounded worker -> last-good copy/artwork/themes. No requests made.

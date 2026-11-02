@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-03-26** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-11-02** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -15,7 +15,7 @@ After **every single work initiative** — no matter how small — you MUST upda
 This is **not optional**. This is **not a suggestion**. Failure to update = incorrect system state = broken context for the next session.
 
 ### Rule 2: Update memory after EVERY change
-After every change, update `~/.claude/projects/-Applications-Kuro/memory/MEMORY.md` with:
+After every change, update `~/.claude/projects/-Users-max-Kuro-Anime-App/memory/MEMORY.md` with:
 - Any new files created or deleted
 - Any new patterns discovered
 - Any gotchas encountered
@@ -36,6 +36,11 @@ Never propose changes to code you haven't read. Always read the file first. Unde
 ### Rule 4: Match existing patterns exactly
 This codebase has established patterns. Match them. Don't introduce new paradigms, different naming conventions, or alternative approaches unless explicitly asked.
 
+> **Recorded exception (2026-10-05):** the modular-architecture migration ([execution brief](docs/plans/2026-10-05-modular-architecture-plan.md), whose prompt explicitly authorizes "the architectural pattern changes and related refactors described here") was an authorized exception to this rule and to DO-NOT #16. Its results are now **the existing patterns to match**: one `@MainActor @Observable final class` owner per capability in `Kuro/<Capability>/`; the object graph built once in `Kuro/Composition/AppComposition.swift` over one Supabase client and injected with `.environment(...)` / read with `@Environment(Type.self)`; account-scoped owners conform to `AccountScopedState` and are registered in `AppComposition.makeAccountScopedStates`; tracking reads/writes only through `LibraryStore` / `LibraryActions` (local package `Packages/KuroModules`). Do not reintroduce a shared all-purpose service, `FeatureFlags.shared`-style business singletons, SDK imports in views, or a second Supabase client. Guide: `docs/modules/README.md`. Gate status and open items: the [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md).
+
+### Rule 5: Navigation contract (binding since 2026-11-02)
+Every screen follows `docs/superpowers/specs/2026-11-02-navigation-contract-design.md`: pages (pager) → journeys (one sheet hosting a navigation stack; every further tap **pushes**) → tools (task sheets that close back to their page). Every pushed page has a back chevron and working edge swipe-back; every journey page has ✕, and ✕ / swipe-down collapses the whole journey to the page it started from; no duplicate pages in a stack; every sheet has a visible close/cancel; every tappable thing opens its target; deep links collapse everything first; detail/club/person pages have the shrinking header with back/✕ always visible; foldable sections animate and remember their state for the session. A new screen or tap target that breaks a rule there is a bug, not a style choice.
+
 ---
 
 ## WHAT THIS APP IS (exact description)
@@ -44,12 +49,17 @@ Kuro is a curated anime + manga iOS app. It lets users browse premium editorial 
 
 Latest notable shipped additions: Discover `NEW TO YOU` now rotates server-side per user (unseen titles first, then popularity/score/favourites), default anime Search/Browse/Discover now hide ancillary formats (`SPECIAL`, `MUSIC`, `TV_SHORT`) unless the user explicitly filters into them in Browse, and auth transport failures now surface clear offline/timeout/server messages instead of the generic "Cannot connect to the server."
 
-Current release-build status: Kuro-side archive warnings from `SupabaseService`, `GenreHubView`, `KuroRefinedCard`, and `KuroTests` were cleaned on 2026-03-09; the only remaining build/test warning is Xcode's App Intents metadata tool noting that no `AppIntents.framework` dependency is present.
+Current build status (2026-10-31, generic iOS Simulator compile): BUILD SUCCEEDED with 60 unique Kuro-side warnings plus the App Intents metadata note. 46 are `#IsolatedConformances` (become errors in Swift 6 mode), 8 `#ActorIsolatedCall`, 2 `#ImplicitStrongCapture`, plus single deprecation/unused-value/ViewBuilder/isolation warnings; worst files `ClubsStore`, `ImportsService`, `HomeStore`. The 2026-03-09 "only the App Intents warning" state no longer holds.
+
+Repository state (2026-10-31): all October work is committed LOCALLY on `codex/integrated-testflight` in five grouped commits (`076eed2` iOS, `cd65c05` backend, `a055e11` tooling, `9580268` docs/evidence, `a21a867` design tools) on top of `a7f39b6`; NOT pushed. Full pre-commit safety snapshot: `refs/backup/kuro-snapshot-20261031` + `~/Kuro-backups/kuro-snapshot-20261031-1f13f56.tar.gz`. Latest handoff authority: `docs/handoffs/2026-10-08-fresh-session/HANDOFF.md`; native design plan `docs/plans/2026-10-08-native-design-polish.md` (owner visual acceptance OPEN).
+
+**Overnight production pass (2026-11-01, branch `kuro/overnight-2026-11-01`, local only, NOT pushed, NOTHING deployed):** spec `docs/superpowers/specs/2026-11-01-overnight-production-pass-design.md` (lead's labelled decisions D1–D16 + shared data contracts), design authority `docs/overnight-2026-11-01/understand/DESIGN_RULEBOOK.md`, audit reports `docs/overnight-2026-11-01/understand/`, shared component API `docs/overnight-2026-11-01/FOUNDATION_API.md`, morning report `docs/overnight-2026-11-01/REPORT.md`. New backend work is PREPARED ONLY in `supabase/prepared-migrations/20261101*.sql` + `supabase/functions/release-intake/` (unscheduled); the client silently falls back while those RPCs are absent live.
 
 Runtime cleanup status: remaining delayed main-queue UI resets in `ContentView`, `Cards`, and `ConciergeInputField` were moved to cancellable task-based timing on 2026-03-10 so dismissed views no longer keep fire-and-forget `DispatchQueue.main.asyncAfter` callbacks alive.
 
 **Tech stack (exact):**
 - **Frontend**: iOS SwiftUI, `@Observable` pattern (NOT Combine — never use `ObservableObject`, `@Published`, `sink`, `assign`)
+- **Client architecture** (since 2026-10-05, executed locally): capability owners in `Kuro/<Capability>/` built by the composition root `Kuro/Composition/AppComposition.swift`; Library tracking domain in the local Swift package `Packages/KuroModules` (`KuroCore`, `KuroLibrary`, `KuroSupabase`). `SupabaseService` is retired and deleted.
 - **Backend**: Supabase — PostgreSQL + Edge Functions (Deno/TypeScript) + Storage + RPC + RLS
 - **On-device AI**: Apple Foundation Models (iOS 26+) for classification tasks
 - **Server-side AI**: Groq (narration only — never for routing/classification)
@@ -126,19 +136,25 @@ Runtime cleanup status: remaining delayed main-queue UI resets in `ContentView`,
 - Isolation rule:
   - do not share lock files, launchd label, report directories, or dashboard port with synopsis pipeline.
 
-### Navigation (5-page swipe pager)
-Pages swipe left-to-right in this exact order:
-1. **Concierge** — inline editorial shell for imports + recommendations
-2. **Discover** — curated editorial sections (Essentials, Classics, Trending, etc.)
-3. **Browse** — full catalog with filters (genre, status, length, decade, format, sort)
-4. **Collection** — user's personal anime/manga list
-5. **Clubs** — private groups (2-20 members) with shared rails, polls, reactions, chat
+### Navigation (flag-aware swipe pager, `KuroMainView.pagerOrder` in `Kuro/ContentView.swift`)
+Pager order depends on flags (checked in this order):
+1. `series_home_native_v1` ON (also needs `series_foundation_v1` and post-sign-in hydration): **Taste** ← **Home** → **Discover** → **Collection** → **Clubs**. Browse and Concierge are not pages in this mode.
+2. else `taste_deck_v1` ON (100% live): **Taste** → **Discover** → **Browse** → **Collection** → **Clubs**; Concierge is a sheet (Profile row / `kuro://concierge`).
+3. else legacy: **Concierge** → Discover → Browse → Collection → Clubs.
 
-**Search is NOT a page.** It opens as a sheet from the magnifying glass icon in the header.
+The Taste page renders `TastePicksView` (`TasteDeckView` appears unreferenced). Home (`Kuro/Views/Home/HomeView.swift`) shows an Anime/Manga switch with three shelf scenes (`invitation` / `saved` / `inProgress`, `HomeShelfPolicy`); in `invitation` the shared `HomePagePicture` is pinned full-screen behind the header.
+
+**Live vs simulator:** since 2026-11-02 20:53 UTC both `series_*` flags are enabled at 100% (owner request "roll out the new home to everyone"), so every signed-in install shows order 1 (Taste ← Home → Discover → Collection → Clubs). Rollback: `update feature_flags set enabled=false, rollout_percentage=0 where flag_name in ('series_foundation_v1','series_home_native_v1')`; apps keep a 24h offline cache of these two flags. Owned simulator: `7FC4B58A-430C-457D-A017-6B0095723F3F` ("iPhone 17 Pro Kuro Qualification") — always target it by UUID.
+
+**Journeys (navigation contract, Rule 5; integrated 2026-11-02):** everything opened from a page or the header is ONE sheet hosting a navigation stack (`JourneyHost`): a title / club / person / studio / author / season overview / See all from the pager opens a root journey through `.kuroRootNavigation` (KuroRootView); Profile, Search and Concierge are `ShellJourneyHost` journeys registered as navigation layers. Every tap inside a journey pushes (`routes.openMedia/openClub/openPage/openCharacter/…`; a page already in the stack is popped back to, N5); Back + edge swipe-back pop one level; ✕ / swipe-down close the whole journey; tools (tracking editor, add to club, verdict, providers, create club/rail/poll, contact, import) open over the current page and close back to it (`KuroDiscardGuard` blocks swipe-down on unsaved input). Deep links collapse everything first (`KuroNavigationCoordinator.collapseThenOpen` / `collapseThen`, onboarding cover finishes first, 700 ms dismissal wait). Profile → Your lists says "Opens Collection" and closes Profile (N11). An account change rebuilds `ContentView` (`.id(currentUserId)`), so root journeys close with it.
+
+**Search is NOT a page.** It opens as a journey sheet from the magnifying glass icon in the header (✕ top-right; results push).
 - Search now exposes server-backed refinement chips (`TRENDING`, `NEW`, `CLASSICS`, `HIDDEN GEMS`, plus anime-only `AIRING`) on top of query + scope.
 - Discover remains editorial-first: any chip inside a single rail is a local rail refinement, not a global catalog filter.
 
-Default page on launch: **Discover** (index 1).
+Default page on launch: `selection` starts at **Discover**; with `series_home_native_v1` effective it switches to **Home** once `SessionController.bootstrapAfterAuth` has hydrated the foundation flags (unless a deep link / start argument already chose a page).
+
+Flag-on world regains Browse through `routes.openBrowse()` (Discover "Browse the catalogue" and Search idle state; gated by `DiscoverBrowseEntry.isOffered(flags:)` so the live world, which has a Browse page, never opens a second one). iPhone is portrait-only; on iPad each page is a 680 pt readable column (`.kuroReadableWidth()`).
 
 ### Concierge (AI assistant)
 - **Architecture**: Deterministic-first NLP parser → LLM fallback (Groq for narration only)
@@ -173,12 +189,12 @@ Default page on launch: **Discover** (index 1).
 - Mode classification, disambiguation, synopsis condensation, NL collection search intent
 - `AppleFMService.swift`: `@MainActor @Observable`, fresh session per request, `#available(iOS 26, *)`
 - 4 `@Generable` structs — reasoning properties BEFORE selection properties (sequential generation order)
-- Graceful fallback via `StubFMProvider` on non-FM-capable devices
+- Graceful fallback on non-FM-capable devices: `AppleFMService` itself checks availability (`isAvailable`: `#available(iOS 26, *)` + `SystemLanguageModel.default.isAvailable`) and each capability returns `nil` when unavailable, so callers take their non-FM path. `StubFMProvider` is defined but never instantiated (verified 2026-10-05)
 - **NO ENTITLEMENT NEEDED** — just `import FoundationModels` + availability guard
 
 ### Feature Flags (staged rollout)
 Server-controlled via `feature_flags` DB table, cached in UserDefaults, deterministic hash rollout.
-All 15 flags defined in `FeatureFlags.swift`:
+Flags defined in `FeatureFlags.swift` (selected):
 - `rag_assist_v1` — RAG retrieval assist
 - `fm_assist_v1` — Apple Foundation Models assist
 - `clarify_v2` — improved clarification flow
@@ -194,13 +210,21 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `clubs_notifications_v1` (100%) — in-app badges
 - `streaming_availability_v1` (0%) — where-to-watch/read provider filters and shared availability UI
 - `credits_cast_v1` (100%) — characters, staff, studios, authors on detail pages
-- Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args
+- `taste_deck_v1` (100%) — Taste page at pager index 0 (renders `TastePicksView`)
+- `series_foundation_v1` (100% live since 2026-11-02 20:53 UTC; owner override row also present) — revision-fenced progress writes via the SQLite `ProgressOutbox`, import publication
+- `series_home_native_v1` (100% live since 2026-11-02 20:53 UTC; owner override row also present) — Home page; requires `series_foundation_v1`. Titles open the same prototype detail pages (`AnimeDetailPage` / `MangaDetailPage` as journey pages) in both flag worlds; `SeriesAnimeDetailView` / `SeriesMangaDetailView` (`Kuro/Views/Home/SeriesDetailViews.swift`) are referenced only by `HomeCompositionSnapshotTests` (verified 2026-11-02)
+- `personalized_new_to_you_v1` (0%) — Because-You / personalized NTY
+- `discover_realm_rails_v1` (0%) — Discover Shelf + Hidden Gem (realm Stage 4)
+- Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args; per-account overrides table `feature_flag_overrides` is LIVE since 2026-11-02 (owner account contact@lazy.space has both `series_*` flags on; rows are written with the service role only) and every build reads it since build 21. Only the two `series_*` flags get a 24h offline cache.
+- Access (since 2026-10-05): one `FeatureFlags` instance built by `AppComposition` and injected — views use `@Environment(FeatureFlags.self)`, owners receive it by initializer. `FeatureFlags.shared` no longer exists (`scripts/quality-gates/check_architecture.sh` fails on it).
 
 ### Deep Linking
 `kuro://` scheme routes (registered via `Info.plist` at project root):
 - `kuro://anime/12345` → anime detail sheet
 - `kuro://manga/67890` → manga detail sheet
 - `kuro://club/uuid` → club detail sheet
+- `kuro://join/<code>` → join club by invite code
+- `kuro://mal/callback` → MAL native OAuth callback (Debug simulator only; `MAL_REGISTRATION_APPROVED=NO` in Release)
 - `kuro://collection` → Collection page
 - `kuro://discover` → Discover page
 - `kuro://concierge?prompt=action` → Concierge with pre-filled prompt
@@ -211,17 +235,17 @@ All 15 flags defined in `FeatureFlags.swift`:
 2. Supabase verifies token server-side
 3. Supabase 303-redirects to `redirectTo` URL: `kuro://auth/callback#access_token=...&refresh_token=...&type=signup`
 4. iOS intercepts the `kuro://` custom scheme (registered in `Info.plist`)
-5. `KuroApp.swift:33` `.onOpenURL` fires → `DeepLink.from(url:)` parses the URL
+5. `KuroApp.swift` `.onOpenURL` fires → `DeepLink.from(url:)` parses the URL
 6. `DeepLinkRouter.parseAuthParams()` extracts tokens from URL fragment (Supabase) or query params (edge function fallback)
-7. Auth callbacks are handled at app level (line 37, before auth gate) — NOT passed to ContentView
-8. `SupabaseService.handleAuthCallback()` (line 483) calls `client.auth.setSession()` with the tokens
+7. Auth callbacks are handled at app level (before auth gate) — NOT passed to ContentView
+8. `SessionController.handleAuthCallback(accessToken:refreshToken:)` first runs the fail-closed `AuthCallbackGuard` (while signed in, only a token whose `sub` is the current user and whose `exp` is ≥60 s ahead proceeds), then calls `client.auth.setSession()` and re-checks the session
 9. User is signed in immediately — no manual login step
 
-**Key code locations:**
-- `SupabaseService.authCallbackURL` (line 420): `kuro://auth/callback`
-- `signUpWithEmail` (line 422): passes `redirectTo: Self.authCallbackURL`
-- `resetPassword` (line 478): passes `redirectTo: Self.authCallbackURL`
-- `handleAuthCallback` (line 483): `setSession()` + `ensureProfileRow()` + `bootstrapAfterAuth()`
+**Key code locations (since 2026-10-05; `SupabaseService` is retired):**
+- `AuthService.authCallbackURL` (`Kuro/Identity/AuthService.swift`): `kuro://auth/callback`
+- `SessionController.signUpWithEmail` → `AuthService.signUp`: no `redirectTo` (email confirmation is disabled)
+- `AuthService.resetPassword`: passes `redirectTo: Self.authCallbackURL`
+- `SessionController.handleAuthCallback` (`Kuro/Identity/SessionController.swift`): guard → `setSession()` → session re-check → `ensureProfileRow()` → `bootstrapAfterAuth()`
 
 **Fallback path:** `auth-callback` edge function (315 lines) — dark-themed HTML page with Cormorant serif, grain overlay, animated K logo, type-specific status messages (signup/recovery/magiclink/email_change/invite), "Open Kuro" CTA button after 4s timeout. Used when direct `kuro://` redirect fails.
 
@@ -239,47 +263,62 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 ---
 
-## FILE MAP (exact, current as of 2026-03-24)
+## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 88 Swift files in `Kuro/`
+### iOS app — 224 Swift files in `Kuro/`
+
+Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 67 in `KuroTests/` and 5 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
 **Entry points:**
-- `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
-- `ContentView.swift` — 5-page swipe pager, header (KURO wordmark / section title / search + profile), deep link sheet presentation
+- `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + `AppComposition` owners injected with `.environment(...)`, `.onOpenURL` deep link handler
+- `ContentView.swift` — flag-aware swipe pager (see Navigation), header `KuroHeaderNew` (KURO wordmark / section title / search + profile; clear fill on Home), deep link sheet presentation, onboarding `fullScreenCover`
 
-**Services (21 files):**
-- `SupabaseService.swift` — core data layer, auth/bootstrap, detail data, caching, `fmService`, `withRetry` helper
-- `SupabaseService+Browse.swift` — browse page keyset paging + browse query helpers
-- `SupabaseService+Clubs.swift` — club CRUD, bundle fetch/cache, reactions, polls, notifications, entity fetches, media ladder
-- `SupabaseService+ClubRealtime.swift` — Supabase Realtime subscriptions for live club updates
-- `SupabaseService+Collection.swift` — user collection queries, prefetch helpers
-- `SupabaseService+Concierge.swift` — concierge RPC calls and session management
-- `SupabaseService+Recommendations.swift` — similar-title recommendation hydration and batched ID fetches
-- `SupabaseService+Social.swift` — title comments, reactions, friend activity RPCs
-- `SupabaseService+Streaming.swift` — provider registry/availability, user streaming service selection, and club shared-provider helpers
-- `SupabaseService+UserLists.swift` — anime/manga user list mutations (add, remove, update, toggle, batch)
-- `AppleFMService.swift` — on-device FM (4 capabilities, FMProvider protocol, StubFMProvider fallback)
+**Composition root (`Kuro/Composition/`, 8 files):**
+- `AppComposition.swift` — builds the object graph ONCE (`makeGraph`; KuroTests use `testingGraph`) over one Supabase client and one `AccountSessionCoordinator`; `makeAccountScopedStates` is the one ordered list of account-scoped owners; `memoryPressureOwners`
+- `AccountScopedState.swift` (`cancelAccountWork()`, `clearPrivateState()`), `LibraryChangeSinks.swift`, `LibraryRefreshHook.swift`, `PostgrestLibraryTransport.swift` (SDK binding of the Library list adapter), `PostgrestRequestEncoding.swift`, `BannerCenter.swift`, `FixtureHost.swift` (DEBUG test-host fixture composition: fixture URL/key, in-memory auth, deny-all URL session)
+
+**Capability owners (one folder each; `@MainActor @Observable final class`):**
+- `Identity/` — `IdentityStore` (UI auth state), `AuthService` (SDK auth transport, `check_email_exists`, `delete-account`), `SessionController` (session funnel: restore, auth events, sign-in/out, callbacks, deletion; single Library read at bootstrap), `AuthCallbackGuard` (since 2026-11-01: a signed-out callback is accepted only with a matching `PendingAuthFlow` record written when this device started a reset/magic-link flow; PKCE `?code=` exchange; `type=recovery` → set-new-password), `PendingAuthFlow`, `AuthCopy` (EN/DE auth error mapping by SDK error code), `OnboardingCompletion` (per-account onboarding key)
+- `Library/` — `LibraryActions` (the one view-facing writer mapping + banners: `save`, `apply`, `remove`, `toggleInCollection`, `incrementProgress`, `publishImport`), `LibraryRealtime` (user-list channel); the store itself is `LibraryStore` in `Packages/KuroModules`
+- `Home/` — `HomeStore` (Home bundle, medium selection, builds/attaches the SQLite `ProgressOutbox`, drains progress through `apply_progress_mutations_v1`), `HomeContracts`, `HomePersonalSnapshot`; views in `Kuro/Views/Home/` (`HomeView`, `SeriesDetailViews`, `HomeShelfPolicy`, `HomePagePicture`, `HomeCalendarPresentation`)
+- `Catalog/` — `CatalogStore` (detail, credits/entities, relations, ladder, links, episodes/chapters; public caches)
+- `Discovery/` — `DiscoveryStore` (Discover bundle, Browse paging), `RecommendationsReader`, `DiscoverCards`
+- `Search/` — `SearchStore`
+- `Collection/` — `CollectionStore` (card pages + feed; no tracking fields)
+- `Releases/` — `ReleasesStore` (`user_airing_next`, countdowns; since 2026-11-01 also the release schedule + songs read model: `user_release_schedule_v1` / `media_release_schedule_v1` / `media_themes_v1` with silent fallback to `user_airing_next` while those prepared RPCs are not deployed), `ReleaseModels` (`ReleaseScheduleItem`, `ReleaseBasis` confirmed/announced/estimated, `release_precision`, `ThemeSong`), `ReleaseCopy` (certainty wording EN/DE; never a time unless precision = instant), `ReminderScheduler` (device notifications)
+- `Providers/` — `ProviderAvailabilityStore` (+ `LegalLinks`, + `DetailLinks`: the detail pages' one `ProviderLinkSnapshot` API and the one `validatedOutboundURL`), `ProviderLinkBuilders` (pure link builders)
+- `Social/` — `SocialActivityStore`
+- `Clubs/` — `ClubsStore` (throws typed `ClubError`), `ClubRealtimeCoordinator`, `ClubsLibrarySink`, `ClubModels`
+- `Imports/` (11 files) — `ImportsService` (+`Workflow`, `WorkflowRPC`, `WorkflowSources`, `MALAccount`: import v2 staged review, Stop, guarded Undo, journal checkpoints), `ImportReconciler` (pure reconcile/auto-apply rules), `ImportModels`, `ImportLibraryProjectionModels`, `ImportWorkflowPresentation`, `ProfileImportCoordinator` (AniList / MAL XML / MAL account entry), `MALNativeAccountConnector` (Debug-simulator MAL OAuth, public client, no secret)
+- `Concierge/` — `ConciergeStore`, `ConciergeFunctions`, `ConciergeRecommendModels`, `ConciergeRouting` (pure clarification gate, FM/keyword routing, input-field intent/paste rules)
+- `Taste/` — `TasteStore` (deck, signals + bounded outbox, profile, personalised NEW TO YOU), `TasteModels`
+- `Telemetry/` — `InteractionTelemetry`, `OutboundLinkTelemetry`
+- `Support/` (2026-11-02) — `SupportStore` (the in-app contact form: account-scoped draft, validation, one `contact-submit` call with the signed-in session, no auto-retry; registered in `makeAccountScopedStates` before interaction telemetry)
+- `Infrastructure/` — `TimedCache`, `withRetry` (`Retry.swift`), `MemoryPressure.swift`
+
+**Local package (`Packages/KuroModules`, linked into the app):** `KuroCore` (`MediaKind`, `MediaKey`, `AccountContext`, `AccountSessionCoordinator`, `AccountScopedLoads`), `KuroLibrary` (tracking values/contracts + `LibraryStore`, durable SQLite `ProgressOutbox` + `LibraryProgress`, import workflow/journal/batch (file-backed, file-protected), `MALExportParser`, `MALAccountList`, `SeriesGrouping`), `KuroSupabase` (`SupabaseLibraryBackend`, `LibraryRowTransport`, `LibraryFenceTransport` (revision-fenced writes when `series_foundation_v1` is on), `UserIdText`). No SwiftUI/UIKit/supabase-swift imports; Swift 5 mode, explicit isolation policy in `Package.swift`.
+
+**Retired (2026-10-05):** `SupabaseService.swift` and its 12 extensions (`+Browse`, `+ClubRealtime`, `+Clubs`, `+Collection`, `+Concierge`, `+Discover`, `+Monetization`, `+Recommendations`, `+Social`, `+Streaming`, `+Taste`, `+UserLists`) — deleted; see the ownership map for where each part went.
+
+**Services (`Kuro/Services/`, 10 files):**
+- `AppleFMService.swift` — on-device FM (4 capabilities, FMProvider protocol; falls back by returning `nil` when FM is unavailable, `StubFMProvider` is unused); one instance injected by `AppComposition`
 - `AppConfig.swift` — reads SUPABASE_URL/ANON_KEY from Info.plist/env
 - `NetworkMonitor.swift` — NWPathMonitor connectivity, `isConnected`, offline banner
-- `FeatureFlags.swift` — server-controlled flags, UserDefaults cache, stable hash rollout
+- `FeatureFlags.swift` — server-controlled flags, UserDefaults cache, stable hash rollout (one injected instance; no `.shared`)
 - `DeepLinkRouter.swift` — `enum DeepLink`, `kuro://` URL parsing
 - `ConciergeAnalytics.swift` — concierge + club interaction telemetry
 - `TextNormalization.swift` — search/parsing text utilities
 - `ImagePipeline.swift` — NSCache (~80MB) + URLCache disk cache, downsampling, request dedup
 - `KuroDiskDetailCache.swift` — on-disk detail page cache
 - `KuroPerf.swift` — performance measurement utilities
-- `SupabaseRPCParams.swift` — RPC parameter structs
 
-**Concierge UI (13 files):**
+**Concierge UI (9 view files in `Kuro/Views/`; owners in `Kuro/Imports/` + `Kuro/Concierge/`):**
 - `ConciergeView.swift` — main concierge view controller
 - `ConciergeView+AniListImport.swift` — AniList import UI flow (extracted from ConciergeView)
 - `ConciergeAniListImportCoordinator.swift` — AniList import coordination logic
 - `ConciergeEditorialShell.swift` — editorial shell wrapper
 - `ConciergeComponents.swift` — shared components + curated copy layer (EN/DE mode titles)
 - `ConciergeInputField.swift` — text input field
-- `ConciergeComposerDock.swift` — input composer dock
-- `ConciergeActionFooter.swift` — action footer bar
-- `ConciergeIntentDeck.swift` — quick-action intent cards
 - `ConciergeImportCards.swift` — import preview/confirm cards
 - `ConciergeRecommendationRails.swift` — recommendation rail rendering
 - `ConciergeResponseStage.swift` — response stage rendering
@@ -302,21 +341,38 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `ProfileView.swift` — Profile menu (includes Clubs secondary access)
 - `ProfileFreshnessCard.swift` — profile-level provider refresh observability card
 - `AuthView.swift` — Authentication
-- Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`, `CastSection.swift`, `CreditsSection.swift`, `EntityDetailSheets.swift`
-- UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `QuickVerdictActionCard.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
-- Shared: `AddToListSheet.swift` — editorial "spread" list sheet (full-bleed poster hero, capsule status pills, serif score + dots, pull-quote notes, pinned save dock)
-- Shared: `PosterView.swift` — reusable poster image view
+- Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift` (load table in each file header), `DetailSharedComponents.swift` (shared chrome), `ProviderLinkViews.swift` (provider sheet), `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`, `CastSection.swift`, `CreditsSection.swift`, `EntityDetailSheets.swift`, `AdaptationPathSection.swift` — see `docs/modules/detail-pages.md`
+- Navigation contract foundation (2026-11-02, Rule 5): `Views/Routing/KuroJourney.swift` (`JourneyPage`, `AnyJourneyPage`/`JourneyPageContent` extension point, pure `JourneyPolicy` N5 dedupe, pure `NavigationCollapsePolicy` N10), `JourneyHost.swift` (`JourneyHost`, `JourneyNavigator`, `\.kuroJourney` `JourneyContext`, `.kuroLeavesJourney()`, `KuroJourneyAwareStack`), `KuroJourneyChrome.swift` (`.kuroJourneyChrome(title:collapseProgress:material:)`, `.kuroCollapseTracking`, `KuroCollapse`, `KuroInteractivePopEnabler`), `KuroNavigationCoordinator.swift` (root presenter `.kuroRootNavigation(_:)`, `\.kuroNavigation`, `.kuroNavigationLayer`), `Views/Shared/KuroFold.swift` (`KuroFoldMemory` `\.kuroFoldMemory`, `KuroFoldButton`), `.kuroJourneyRefreshable` (H4: no pull-to-refresh on a journey's first page), `Views/Routing/NavigationFixture.swift` (DEBUG only: `--kuro-nav-fixture` opens a fixture journey for the UI tests); gate `scripts/quality-gates/check_navigation.sh` (BLOCKING since the 2026-11-02 lane integration, 0 offenders). Lane files (integrated 2026-11-02): `Views/DetailPages/Prototype/DetailNavigation.swift` (detail chrome, pushes, `DetailFold`), `Catalog/EntityWorks.swift` (staff page anime + manga works), `Views/ShellJourneys.swift` (`ShellJourneyHost`, Profile/Search/Concierge/See all journeys, `ShellLinkPolicy`), `Views/Shared/KuroDiscardGuard.swift`. Tests: `KuroTests/JourneyPolicyTests.swift`, `NavdetailTests`, `NaventityTests`, `NavclubsTests`, `NavshellTests`, `NavigationEvidenceTests` (renders to `docs/navigation-2026-11-02/`), UI: `KuroUITests/NavigationContractUITests.swift` (offline, fixture host) and `NavshellUITests.swift` (reads live data)
+- Routing: `Views/Routing/KuroRoutes.swift` — typed navigation outputs `EnvironmentValues.kuroRoutes` (`openMedia`, `openClub`, `presentTrackingEditor`, `presentAddToClub`), `.routePresenter()` (one route slot per presentation context), pure `RoutePolicy`. Cross-feature detail/editor/club/add-to-club sheets are opened through routes, not constructed by the caller
+- Shared cards: `Views/SharedCards/` — `CompactAnimeCard.swift`, `GridAnimeCard.swift`, `AddToClubRailSheet.swift` (connected components, kept in the app by recorded decision)
+- UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `QuickVerdictActionCard.swift`, `GenreHubView.swift` (unreferenced by grep), `CountdownTimer.swift` (`EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `PosterView.swift` and the Concierge `ComposerDock`/`ActionFooter`/`IntentDeck` were deleted as dead code on 2026-10-05)
+- Shared components (`Views/Shared/`, 2026-11-01): `KuroMediumSwitch` (heavy sans uppercase, selected word filled with the title's `material:`), `KuroAdvanceKey` (44 pt +1; prototype raised faces `.light` / `.dark` (manga leaf) / `.ink` (dark gradient, keys without artwork, e.g. Folio) / `.material(ArtworkMaterial)`, `confirmTrigger` plays confirm/restore), `KuroMotionEffects.swift` (`.kuroConfirmStamp(trigger:)`, `.kuroRestore(trigger:)`, `.kuroCountRoll(value:pageTurn:)`, `.kuroPressSettle(trigger:)`, `KuroMotionAllowance`, `KuroMotion.playsMotion(reduceMotion:lowPower:)`, `KuroMotion.playsMotionNow(reduceMotion:)` for one-off animation sites), `KuroBrandedStates.swift` (the branded state family: `KuroBrandedState.resolve`, `KuroLoadingView(scope:label:)` (a label shows as a muted caption), `KuroBusyMark` (a working control's short scrub line), `KuroScrubLine(tint:track:)`, `KuroSkeleton(kind:)`, `KuroErrorView`, `KuroOfflineView(hasContent:retry:)`, `KuroEmptyView`, `KuroOutlineButton`; the only file in `Kuro/` allowed to use `ProgressView(`), `KuroReleaseLine`, `KuroStateView` (loading/empty/offline/failed/denied, `hasCachedContent`; a thin wrapper over the branded family), `KuroSectionHeader`, `KuroInkButton`/`KuroPressStyle`, `.kuroReadableWidth()`, `KuroThemeSongRow` (Listen → Apple Music / Spotify search URLs, nothing stored). Use these instead of re-inventing controls; `KuroDiscardGuard.swift` (2026-11-02, N7: `.kuroDiscardGuard(isDirty:isBusy:isConfirming:onDiscard:)` blocks swipe-down on unsaved input and asks "Discard changes?" on Cancel).
+- Lists (`Views/Lists/`, 2026-11-01): the "Folio" list experience used by Collection in both flag worlds (status word strip, Shelf/Index density, sort words, medium switch, +1 with caught-up guard + Undo via `CollectionStore.advanceFromList`/`undoListAdvance`, batch bar incl. Dropped) and `ProfileListsPreview` (Profile "Your lists").
+- About (`Views/About/`, 2026-11-01): `DataSourcesView` (Data sources & credits: AniList, MangaDex, MangaUpdates, AnimeThemes), `KuroLegalLinks` (Terms URL still nil until the owner confirms it; `kuro.app` did not resolve on 2026-11-02), `ContactSheet` (2026-11-02: Profile → About → Contact us, over `SupportStore`).
+- Shared: `AddToListSheet.swift` — editorial "spread" list sheet (full-bleed poster hero, capsule status pills, serif score + dots, pull-quote notes, pinned save dock); its save rule is `TrackingDraft.swift` (the one `LibraryEdit` a save sends)
+- Shared: `LibraryViewActions.swift` — typed-key adapters from views to `LibraryActions` (views never write `LibraryStore` directly); `ClubViewLifecycle.swift` — pure club-view lifecycle rule
 - Legacy/secondary: `DiscoverViewModel.swift`
 
-**Design (2 files):**
-- `KuroDesignSystem.swift` — colors, typography, spacing, radii, animations
+**Design (6 files):**
+- `ArtworkMaterial.swift` — `KuroRGB` + `ArtworkMaterial` (on-device port of the prototype's `art-hue-v1`; `derive(from:banner:)`, `fromHex(_:)`, white text ≥ 7:1, neutral base #3a3d3c)
+- `ArtworkMaterialStore.swift` — `@MainActor @Observable` store: seed colour first, derived material published later; memory + disk cache by image URL; built by `AppComposition`, read with `@Environment(ArtworkMaterialStore.self)`
+- `KuroDesignSystem.swift` — colors (neutral roles since 2026-11-01: `kuroCanvasPage` #FFFFFF, `kuroCanvasQuiet` #F6F6F6, `kuroInk` #252625 (prototype ink), prototype tokens `kuroCanvasHome`/`kuroPaper`/`kuroMuted`/`kuroLine`/`kuroKeyLight*`/`kuroKeyDark*`, `kuroInkSecondary` #5C5C5C, `kuroInkQuiet` #6B6B6B, `kuroHairline`, `kuroRoom` #222222; legacy names alias these), Dynamic-Type-reactive typography (`KuroTypeScale`; display roles in the prototype's sans with `KuroTypeRole.tracking`/`.kuroTracking(_:)`, serif `kuroEditorial(size:)`, `kuroMediumWord()`; roles `kuroTitleName`/`kuroMeta`/`kuroButtonLabel`), spacing, radii, animations (`KuroMotion.contact/settle/medium` on the prototype ease)
+- `KuroLocale.swift` — the one EN/DE switch (`KuroLocale.isGerman`, `KuroLocale.text(en, de)`); every user-facing string goes through it
 - `Color+Hex.swift` — hex color utility
+- `FlowLayout.swift` — wrapping layout primitive (detail pages, Browse, Profile, AddToList, Credits)
 
-**Models (2 files):**
-- `SupabaseModels.swift` — all Supabase data models
-- `DiscoverBundle.swift` — discover bundle response model
+**Models (1 file):**
+- `DiscoverBundle.swift` — discover bundle response model (`SupabaseModels.swift` was deleted; models now live with their owning capability folder)
 
-### Supabase — 162 migration files in repo, 15 deployed edge functions (as of 2026-03-18)
+### Supabase — 245 migration files in `supabase/migrations/`, 19 prepared files (+1 opt-in) in `supabase/prepared-migrations/` (5 of them are the unapplied 20261101* overnight files), 16 edge function directories (deployed list below as of 2026-07-31; `realm-describe` is deployed and dormant)
+
+**Migration history caveat (2026-10-08, do NOT "repair"):** live history has 249 identities = the 245 local + 4 applied from `prepared-migrations/` in one approved transaction (`20261007040000_series_home_foundation_v1`, `20261007130000_series_account_lifecycle`, `20261008100000_import_status_fence_preserves_units`, `20261008110000_import_review_recovery_v2`). The nine `20261005*` prepared files are byte-identical copies of applied migrations. `20261007120000_feature_flag_overrides` was applied and recorded on 2026-11-02 (owner request: new Home for the owner account); the `opt-in/` backfill is intentionally NOT applied. Never `supabase db push --include-all` or run history repair without an explicit new approval.
+
+**Go-live deployment (2026-11-02, owner-authorized; records in `docs/go-live/2026-11-02/`):** prepared migrations `20261101000000`, `20261101010000`, `20261101010100`, `20261101020000` and `20261102100000_contact_messages` applied and recorded in history (`20261101030000_auth_hardening` is NOT applied: only after the new app build is released). Functions: `bulk-import-anime` v84 / `bulk-import-manga` v83 (AniList 5,000-entry page-depth stop, character age / authors column fixes), `release-intake` (linked-first manga candidates), `manga-chapter-enrich` v67, `auth-callback` (`--no-verify-jwt`), `contact-submit` (`--no-verify-jwt`, secret-keyed rate-limit buckets). `IMPORT_SECRET` rotated; `CONTACT_IP_HASH_SECRET` and `MU_OFFICIAL_GROUP_IDS` set. There is no `supabase/config.toml`: `--no-verify-jwt` must be passed on every deploy of `auth-callback` and `contact-submit`. Client IP in Edge Functions: XFF[0] / `cf-connecting-ip` are set by the platform and not spoofable (live probe); never use the rightmost XFF entry.
+
+**Edge deployment (2026-10-08):** `concierge-apply` v27, `concierge-undo` v18, `delete-account` v10, `concierge-recommend` v50, `concierge-retrieve-assist` v9, `concierge-import-anilist` v6. The other functions' local handler/module refactors are NOT deployed — do not deploy them opportunistically.
+
+Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are split into handler/plan modules with offline `deno test` suites, and `concierge-recommend/router.ts` + `concierge-parse/rules.ts` hold the production rules the corpus gates execute (`docs/modules/edge-functions.md`). Their changes are prepared, NOT deployed (see the execution ledger). `supabase/tests/` holds the disposable local-PostgreSQL authorization tests.
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search
@@ -334,6 +390,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `manga-source-review-action` — approve/reject unresolved mappings and optionally trigger re-enrich
 - `delete-account` — GDPR account deletion
 - `auth-callback` — email verification fallback redirect page (verify_jwt: false)
+- `contact-submit` (LIVE since 2026-11-02; e-mail alert waits for the owner's Resend key) — contact form of the legal site (`web/legal/kontakt.html`) and the app's Contact sheet; deploy with `--no-verify-jwt`; user id only from a verified user JWT; limiter kind `contact` 5/h per HMAC-hashed IP and per user; service-role insert into `contact_messages` (prepared migration `20261102100000`); optional Resend notification
 
 **Database tables (key groups):**
 - Catalog: `anime`, `manga`, `episodes`, `chapters`, `volumes`, `characters`, `staff`, `studios`, `authors`, `tags`, `genres`, `external_links` + join tables
@@ -344,12 +401,15 @@ All 15 flags defined in `FeatureFlags.swift`:
 - Ops: `mirror_runs`, `import_state`, `feature_flags`
 
 **Cron jobs (pg_cron):**
-- Hourly: bulk-import-anime, bulk-import-manga (with IMPORT_SECRET header)
+- Hourly: bulk-import-anime, bulk-import-manga (with IMPORT_SECRET header); release-intake airing (job 116, :25)
+- Daily: release-intake manga (job 117, 03:50, limit 40), contact-messages-retention (job 119, 04:50, 12-month purge); weekly similar-titles re-stale (job 115)
+- Removed 2026-11-02: job 118 `kuro-import-cursor-depth-guard` (superseded by the importer's page-depth stop)
 - Daily: mirror-images (per-batch locks, 200 batch, 15-min spacing, IMPORT_SECRET auth), matview refresh, concierge housekeeping, cron history cleanup (14-day retention)
 - Unscheduled (deprecated): club message pruning (was 30-day, at 03:15 — chat replaced by social activity layer)
 
 ### Scripts & quality gates
-- `scripts/quality-gates/` — 11 files: 8 gate scripts (`check_secrets.sh`, `check_migrations.sh`, `test_concierge_corpora.sh`, `test_router_offline.sh`, `audit_rails.sh`, `check_docs_current_state.sh`, `build_ios.sh`, `test_ios_unit.sh`), `run_all.sh` orchestrator, `router_test_cases.js` offline router test data, and `check_docs_current_state.py` docs-current-state checker
+- `scripts/quality-gates/` — gate scripts (`check_secrets.sh`, `check_migrations.sh`, `test_concierge_corpora.sh`, `test_router_offline.sh`, `test_edge_functions.sh`, `check_live_services.sh`, `audit_rails.sh`, `check_docs_current_state.sh`, `test_packages.sh`, `check_architecture.sh`, `check_branded_states.sh` (2026-11-01: no stray `ProgressView(` anywhere in `Kuro/` outside `KuroBrandedStates.swift`; blocking since prototype-fidelity Task 10, 0 offenders), `build_ios.sh`, `test_ios_unit.sh`, `check_navigation.sh` (navigation contract; blocking since 2026-11-02, 0 offenders)); a gate registered with blocking flag `0` in `run_all.sh` is recorded as WARN, never FAIL; `run_all.sh` orchestrator, `router_test_cases.js` offline router test data, and `check_docs_current_state.py` docs-current-state checker (package-aware: also counts `Packages/` Swift files). The corpus/router gates now run the production `rules.ts`/`router.ts` with `deno`.
+- `scripts/db/` — disposable local database test harness (`run_local_db_tests.sh`, `guard_env.sh`, `test_guard_env.sh`, `replay_migrations.sh`); refuses production and non-local targets; not part of `run_all.sh`
 - `.githooks/pre-commit` — secrets + migration name checks
 - `scripts/` — 19+ operational scripts (imports, audits, load tests, generators), including `audit_curated_rails_quality.js` (rail quality checks)
 
@@ -377,13 +437,17 @@ All 15 flags defined in `FeatureFlags.swift`:
 - Subtle backgrounds: `Color.kuroBlack08` (black @ 0.08)
 - Status pill text: `black.opacity(0.55)` — pill background: `black.opacity(0.06)`
 - **NO colored status pills/dots anywhere.** Red ONLY for destructive actions (leave/delete).
+- Prototype palette (2026-11-01, owner-approved): `kuroInk` #252625, `kuroCanvasHome` #fffef8 (Home/Taste), `kuroPaper` #f5f5f4 (detail), `kuroMuted` #696c6b, `kuroLine`, key faces `kuroKeyLightTop/Bottom`, `kuroKeyDarkTop/Bottom`; per-title tint only via `ArtworkMaterial` / `@Environment(ArtworkMaterialStore.self)` (never a per-title colour table). Statuses stay monochrome.
 
-### Typography (serif for editorial, sans-serif for body)
-- `.kuroHero()` — 64pt serif, dramatic statements
-- `.kuroDisplay()` — 44pt serif, large section headers
-- `.kuroFeature()` — 34pt serif, feature titles
-- `.kuroHeadline()` — 26pt serif, card titles
-- `.kuroTitle()` — 19pt serif, secondary titles
+### Typography (since 2026-11-01: the prototype's sans for display roles; serif only for editorial headings)
+- `.kuroHero()` — 64pt sans heavy, dramatic statements
+- `.kuroDisplay()` — 44pt sans semibold, large section headers
+- `.kuroFeature()` — 34pt sans semibold, feature titles
+- `.kuroHeadline()` — 26pt sans semibold, card titles
+- `.kuroTitle()` — 19pt sans semibold, secondary titles
+- Tight tracking is opt-in: `.kuroTracking(.headline)` etc. (`KuroTypeRole.tracking`; a `Font` cannot carry it)
+- `.kuroEditorial(size:)` — system serif, only for the prototype's editorial headings (club name/quote, "Between us.", manga detail title/hook, "Your bookmark", manga row numbers, "Seen the anime?")
+- `.kuroMediumWord()` + `.kuroMediumWordStyle()` — the ANIME / MANGA switch words (heavy, uppercase, tracked)
 - `.kuroBody()` — 15pt sans-serif, descriptions
 - `.kuroCaption()` — 11pt sans-serif, small labels
 - `.kuroMicro()` — 9pt sans-serif, tiny metadata
@@ -454,8 +518,23 @@ supabase functions deploy <function-name> --project-ref bkdifromsqxkndnllmdj
 # List deployed edge functions
 supabase functions list --project-ref bkdifromsqxkndnllmdj
 
-# Run quality gates
+# Run quality gates (10 gates; SKIP_RAILS_AUDIT=1 skips the live-project rails audit)
 scripts/quality-gates/run_all.sh
+
+# App unit tests (simulator)
+xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:KuroTests
+
+# Local package tests (macOS host, no simulator/network) — also run by the swift-packages gate
+cd Packages/KuroModules && swift test
+
+# Architecture boundaries (retired SupabaseService, FeatureFlags.shared, SDK imports in views, tracking writers)
+scripts/quality-gates/check_architecture.sh
+
+# Local database authorization tests (throwaway PostgreSQL 17; refuses production/non-local targets; NOT a migration replay)
+scripts/db/run_local_db_tests.sh                 # --exclude-pending = deployed-chain state; --only <name>
+
+# Edge function rule/handler tests (offline, per function directory)
+deno test --no-prompt supabase/functions/concierge-apply/   # also concierge-undo, delete-account, concierge-recommend, concierge-parse
 
 # Check migration checksums (read-only by default)
 scripts/quality-gates/check_migrations.sh
@@ -466,8 +545,9 @@ scripts/quality-gates/check_migrations.sh
 - **Bundle ID**: `com.Kuro.app` (capital K — must match exactly)
 - **App Store Connect App ID**: 6759221230
 - **Team ID**: YLG68JL5Y7
-- **API Key**: Key ID `7L84A7P9X7`, Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
-- **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8`
+- **API Key**: Key ID `4Y9VLAQLQN` (since 2026-11-02; the old `7L84A7P9X7` file is not on this Mac; `fastlane/Fastfile` reads `KURO_ASC_KEY_ID`, default `4Y9VLAQLQN`), Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
+- **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_4Y9VLAQLQN.p8`
+- **Latest TestFlight build**: 22 (2026-11-02; navigation contract + live-walkthrough fixes on top of 21). Next is 23.
 - **Signing**: Automatic, `-allowProvisioningUpdates`
 
 ---
@@ -490,6 +570,7 @@ scripts/quality-gates/check_migrations.sh
 14. **Do NOT skip updating MEMORY.md** after changes (Rule 2).
 15. **Do NOT leave `print()` statements without `#if DEBUG` wrapping**.
 16. **Do NOT add features, refactor code, or make "improvements" beyond what was asked.**
+    *(Recorded exception, 2026-10-05: the modular-architecture migration was explicitly authorized by its execution brief; see the note under Rule 4. This rule applies unchanged to all other work.)*
 
 ---
 
@@ -511,6 +592,7 @@ scripts/quality-gates/check_migrations.sh
 4. Wrap all `print()` in `#if DEBUG`
 5. For background tasks: use `@State` task refs + `.onDisappear` cancellation
 6. Update the 3 MD files + MEMORY.md (including file inventory + counts)
+7. Put data access in the owning capability (`Kuro/<Capability>/`), never in a view; views read owners via `@Environment(Type.self)` and import no Supabase SDK module. Take the Supabase client by initializer from `AppComposition` (never create a second client). Account-scoped state: conform to `AccountScopedState`, capture the `AccountContext` at the start of every async operation and check `isCurrent` before every private write, and register the owner in `AppComposition.makeAccountScopedStates`. Open another feature's detail, tracking editor, club or add-to-club sheet through `@Environment(\.kuroRoutes)` instead of constructing it; a new sheet whose content contains routed cards must install its own `.routePresenter()` (see the header of `Kuro/Views/Routing/KuroRoutes.swift`). New capability or removal: follow `docs/modules/README.md` ("Add a capability" / "Remove a capability"), then run `scripts/quality-gates/check_architecture.sh`.
 
 ### When adding a new edge function:
 1. Create in `supabase/functions/<name>/index.ts`
@@ -523,11 +605,12 @@ scripts/quality-gates/check_migrations.sh
 ### Structured RPC error handling (club RPCs):
 - `add_club_rail_item()` uses `RAISE EXCEPTION ... DETAIL = 'ERROR_CODE'` for machine-readable errors
 - Error codes: `UNAUTHENTICATED`, `INVALID_MEDIA_TYPE`, `RAIL_NOT_FOUND`, `NOT_A_MEMBER`, `RAIL_LOCKED`, `MEDIA_NOT_FOUND`, `NOTE_TOO_LONG`, `DUPLICATE_ITEM`
-- iOS parses `PostgrestError` detail field to show typed error messages (not free-form string matching)
-- When adding new SECURITY DEFINER RPCs, follow this pattern: emit structured error codes in DETAIL so clients can branch without parsing messages
+- iOS classifies every club error through `ClubError(_:)` (`Kuro/Clubs/ClubsStore.swift`): the code is looked up in `PostgrestError` detail → hint → message, then SQLSTATE (`42501` → `permissionDenied`, `23505` → `uniqueViolation`); views branch on the typed `ClubError` (not free-form string matching)
+- **Verified caveat (2026-10-05, open):** supabase-swift 2.54.1 decodes the PostgREST error field `detail`, but PostgREST sends `details`, so codes raised ONLY in SQL DETAIL never reach the app (this pre-dates the migration; since `20260216193000` the DETAIL-based pattern has never worked). Only `add_club_rail_item` relies on DETAIL; its failures currently fall back to SQLSTATE or `.other`. Every other club RPC puts the code in the MESSAGE, which works. No security impact (the server still rejects). Owner-decided fix pending: put the code in HINT or MESSAGE server-side, or upgrade/patch the SDK.
+- When adding new SECURITY DEFINER RPCs, emit structured error codes, but until the caveat above is fixed put the code where the app can read it (the MESSAGE, e.g. `RAISE EXCEPTION 'CODE: text'`, or HINT) rather than relying on DETAIL alone
 
 ### Retry logic:
-- Use `SupabaseService.withRetry()` — exponential backoff (500ms, 1s), only retries `URLError`, not HTTP 4xx
+- Use `withRetry(...)` (`Kuro/Infrastructure/Retry.swift`, neutral free function; was `SupabaseService.withRetry()` until 2026-10-05) — exponential backoff (500ms, 1s), only retries `URLError`, not HTTP 4xx
 
 ### Accessibility:
 - Section headers: `.accessibilityAddTraits(.isHeader)`
@@ -543,11 +626,17 @@ scripts/quality-gates/check_migrations.sh
 | Complete technical state (14K+ lines) | `CURRENT_APP_STATE.md` |
 | Plain English overview | `CURRENT_APP_STATE_PLAIN.md` |
 | Implementation status tracker | `IMPLEMENTATION_PLAN_Variation1.md` |
-| Session memory / gotchas | `~/.claude/projects/-Applications-Kuro/memory/MEMORY.md` |
+| Session memory / gotchas | `~/.claude/projects/-Users-max-Kuro-Anime-App/memory/MEMORY.md` |
 | Clubs product spec | `docs/clubs-spec.md` |
 | Production blockers audit | `docs/production-blockers.md` |
 | Apple FM migration report | `docs/apple-fm-migration-report.md` |
 | Unified local ops dashboard | `scripts/unified_local_dashboard_server.js` |
+| Where each capability lives + add/remove-a-capability guide | `docs/modules/README.md` |
+| Modular architecture: gate status, rulings, test results, prepared-not-deployed, blockers | `docs/plans/2026-10-05-modular-architecture-execution-ledger.md` |
+| Modular architecture: contracts / final owner map | `docs/plans/2026-10-05-modular-architecture-contracts.md`, `docs/plans/2026-10-05-modular-architecture-ownership-map.md` |
+| Edge functions / ops scripts / SQL function index | `docs/modules/edge-functions.md`, `docs/modules/operations.md`, `docs/modules/sql-function-index.md` |
+| Local DB test harness (audited-schema fixture, not a replay) | `supabase/tests/README.md` |
+| Doc roles (keep/trim/archive) | `docs/documentation-surface-map.md` |
 
 ## CURRENT BEHAVIOR NOTE (2026-03-06)
 

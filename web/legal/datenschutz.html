@@ -1,0 +1,474 @@
+<!doctype html>
+<!--
+  ENTWURF / DRAFT FOR LEGAL REVIEW.
+  Dieser Text ist ein Entwurf und muss vor der Veröffentlichung von einer fachkundigen Person
+  (Rechtsanwalt/Datenschutzberater) geprüft werden. Gelb markierte Platzhalter [IN ECKIGEN KLAMMERN]
+  sind Pflichtangaben, die nicht im Repository stehen; siehe PLACEHOLDERS.md.
+  Faktengrundlage: Kuro-Quellcode und docs/app-store-metadata.md, Stand 2026-11-02.
+  This text is a draft and requires legal review before publication. The German version is binding.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Datenschutz · Kuro</title>
+<meta name="description" content="Datenschutzerklärung der Kuro-App (Anime & Manga). Privacy policy of the Kuro app.">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="draft" role="note">Entwurf zur rechtlichen Prüfung · Draft for legal review. Gelb markierte Angaben fehlen noch.</div>
+<header class="site"><div class="wrap">
+  <a class="wordmark" href="/">KURO</a>
+  <nav class="site" aria-label="Rechtliches">
+    <a href="/datenschutz" aria-current="page">Datenschutz</a>
+    <a href="/impressum">Impressum</a>
+    <a href="/nutzungsbedingungen">Nutzungsbedingungen</a>
+    <a href="/kontakt">Kontakt</a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+
+<!-- ======================= DEUTSCH (verbindlich) ======================= -->
+<section class="lang-section" id="de" lang="de">
+<h1>Datenschutzerklärung</h1>
+<p class="meta">Für die iOS-App „Kuro“ und diese Website · Stand: 2. November 2026 (Entwurf) · Die deutsche Fassung ist verbindlich.</p>
+<div class="langswitch"><a href="#de" aria-current="true">Deutsch</a><a href="#en" lang="en">English</a></div>
+
+<p class="lede">Kuro ist eine App, mit der Sie Anime und Manga verfolgen, kuratierte Empfehlungen entdecken und private Clubs mit Freunden teilen. Hier erklären wir, welche personenbezogenen Daten dabei verarbeitet werden, warum, wie lange und welche Rechte Sie haben.</p>
+
+<nav class="toc" aria-label="Inhalt">
+<ol>
+  <li><a href="#de-1">Verantwortlicher und Kontakt</a></li>
+  <li><a href="#de-2">Das Wichtigste in Kürze</a></li>
+  <li><a href="#de-3">Hosting und Speicherort</a></li>
+  <li><a href="#de-4">Verarbeitungen im Einzelnen</a></li>
+  <li><a href="#de-5">Speicherung auf Ihrem Gerät (§ 25 TDDDG)</a></li>
+  <li><a href="#de-6">Empfänger und Auftragsverarbeiter</a></li>
+  <li><a href="#de-7">Übermittlung in Drittländer</a></li>
+  <li><a href="#de-8">Speicherdauer und Kontolöschung</a></li>
+  <li><a href="#de-9">Ihre Rechte</a></li>
+  <li><a href="#de-10">Pflicht zur Bereitstellung, Profiling</a></li>
+  <li><a href="#de-11">Mindestalter</a></li>
+  <li><a href="#de-12">Datensicherheit</a></li>
+  <li><a href="#de-13">Änderungen dieser Erklärung</a></li>
+</ol>
+</nav>
+
+<h2 id="de-1">1. Verantwortlicher und Kontakt</h2>
+<p>Verantwortlich im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
+<address>
+Max Hufschlag, handelnd unter „Lazy“ (Einzelunternehmen)<br>
+Martinstraße 10–12<br>
+52062 Aachen, Deutschland<br>
+E-Mail: <a href="mailto:contact@lazy.space">contact@lazy.space</a><br>
+Weiterer Kontaktweg: <a href="/kontakt">Kontaktformular</a>
+</address>
+<p>Datenschutzbeauftragter: Ein Datenschutzbeauftragter ist nicht benannt, da die gesetzlichen Voraussetzungen (Art. 37 DSGVO, § 38 BDSG) nicht vorliegen.</p>
+<p>Für alle Fragen zum Datenschutz und zur Ausübung Ihrer Rechte genügt eine E-Mail an <a href="mailto:contact@lazy.space">contact@lazy.space</a>.</p>
+
+<h2 id="de-2">2. Das Wichtigste in Kürze</h2>
+<ul>
+  <li><strong>Keine Werbung, kein Verkauf von Daten, kein app-übergreifendes Tracking.</strong> Kuro enthält keine Werbe- oder Tracking-SDKs und keine Analyse-Tools von Drittanbietern. Wir führen kein Tracking im Sinne von Apples App Tracking Transparency durch.</li>
+  <li><strong>Eigene Nutzungsstatistik.</strong> Wir erfassen in unserer eigenen Datenbank einfache, Ihrem Konto zugeordnete Nutzungsereignisse (z. B. welche Funktion genutzt wurde und wie lange sie dauerte), um Kuro zu verbessern. Dem können Sie jederzeit widersprechen (<a href="#de-9">Abschnitt 9</a>).</li>
+  <li><strong>Server in der EU.</strong> Ihre Kontodaten liegen in einem Rechenzentrum in Frankfurt am Main (Deutschland).</li>
+  <li><strong>Optionale KI-Formulierung.</strong> Für kurze Begleittexte zu Empfehlungen kann Ihr Concierge-Text an Groq, Inc. (USA) übermittelt werden (<a href="#de-4-4">4.4</a>). Viele KI-Funktionen laufen dagegen ausschließlich auf Ihrem Gerät.</li>
+  <li><strong>Konto jederzeit löschbar</strong> – direkt in der App unter <em>Profil → Konto löschen</em>.</li>
+</ul>
+
+<h2 id="de-3">3. Hosting und Speicherort</h2>
+<p>Das Backend von Kuro (Datenbank, Anmeldung, Dateispeicher und Server-Funktionen) betreiben wir bei <strong>Supabase, Inc.</strong> (<mark class="ph">[ANSCHRIFT SUPABASE laut Auftragsverarbeitungsvertrag]</mark>) als Auftragsverarbeiter (Art. 28 DSGVO). Unsere Datenbank, die Anmeldung und der Dateispeicher liegen in der Region <strong>eu-central-1 (Frankfurt am Main)</strong>; Supabase nutzt dafür Infrastruktur von Amazon Web Services. Server-Funktionen (Edge Functions) werden von Supabase standardmäßig in einem Rechenzentrum nahe dem Nutzer ausgeführt, für Nutzer in Europa in der Regel in der EU. <mark class="ph">[prüfen: Ausführungsregion der Edge Functions; ggf. auf eu-central-1 festlegen]</mark> Zu möglichen Zugriffen aus Drittländern siehe <a href="#de-7">Abschnitt 7</a>.</p>
+
+<h2 id="de-4">4. Verarbeitungen im Einzelnen</h2>
+
+<h3 id="de-4-1">4.1 Nutzerkonto und Anmeldung</h3>
+<p><strong>Daten:</strong> E-Mail-Adresse, Passwort (nur als kryptografischer Hash gespeichert), eine zufällige Nutzerkennung (UUID), Zeitpunkte von Registrierung und Anmeldung, Sitzungs-Token, ein optionaler Anzeigename sowie Ihre Kontoeinstellungen (z. B. Inhaltsfilter).</p>
+<p><strong>Mit Apple anmelden:</strong> Wenn Sie „Mit Apple anmelden“ nutzen, erhalten wir von Apple eine Kennung, die von Ihnen freigegebene E-Mail-Adresse (ggf. eine anonyme Weiterleitungsadresse von Apple) und – nur bei der ersten Anmeldung und nur, wenn Sie das freigeben – Ihren Namen, den wir als Kontoname speichern. Apple ist für die Verarbeitung bei der Anmeldung selbst verantwortlich (<a href="https://www.apple.com/de/legal/privacy/" rel="noopener">Datenschutzrichtlinie von Apple</a>).</p>
+<p><strong>E-Mails:</strong> E-Mails zum Zurücksetzen des Passworts versenden wir über den Anmeldedienst von Supabase <mark class="ph">[ggf. E-MAIL-VERSANDDIENSTLEISTER, falls ein eigener SMTP-Dienst eingesetzt wird – Name, Sitz, Rechtsgrundlage der Übermittlung]</mark>.</p>
+<p><strong>Zweck und Rechtsgrundlage:</strong> Bereitstellung des Kontos und der App-Funktionen, Art. 6 Abs. 1 lit. b DSGVO (Vertrag über die Nutzung von Kuro).</p>
+
+<h3 id="de-4-2">4.2 Ihre Sammlung: Status, Fortschritt, Bewertungen, Notizen</h3>
+<p><strong>Daten:</strong> Welche Titel Sie verfolgen, Status (z. B. „schaue ich“), Folgen-/Kapitel-Fortschritt, Bewertungen, Notizen, eigene Listen sowie Änderungszeitpunkte. Ohne Verbindung gespeicherte Änderungen bleiben auf Ihrem Gerät und werden übertragen, sobald wieder eine Verbindung besteht.</p>
+<p><strong>Zweck und Rechtsgrundlage:</strong> Führen und Synchronisieren Ihrer Sammlung, Art. 6 Abs. 1 lit. b DSGVO.</p>
+
+<h3 id="de-4-3">4.3 Importe aus AniList und MyAnimeList</h3>
+<p>Importe finden nur statt, wenn Sie sie selbst starten.</p>
+<ul>
+  <li><strong>AniList:</strong> Sie geben einen AniList-Benutzernamen ein. Unser Server ruft die öffentlich sichtbare Liste dieses Kontos über die Schnittstelle von AniList ab. Dabei wird AniList nur der Benutzername übermittelt, keine Daten Ihres Kuro-Kontos.</li>
+  <li><strong>MyAnimeList-Konto verbinden</strong> (sofern in Ihrer App-Version verfügbar): Die Anmeldung erfolgt direkt zwischen Ihrem Gerät und MyAnimeList (OAuth). Die Zugangs-Token werden ausschließlich im Schlüsselbund (Keychain) Ihres Geräts gespeichert, nicht auf unseren Servern. Ihr Gerät ruft Ihre Listen direkt bei MyAnimeList ab. Anbieter ist MyAnimeList Co., Ltd. (Japan); es gelten deren Bedingungen und Datenschutzhinweise.</li>
+  <li><strong>MyAnimeList-Exportdatei:</strong> Die von Ihnen ausgewählte Datei wird auf Ihrem Gerät gelesen.</li>
+  <li><strong>Eingefügte Listen (Concierge):</strong> Text, den Sie zum Import einfügen, wird an unseren Server übermittelt und dort ausgewertet.</li>
+</ul>
+<p>In allen Fällen werden die erkannten Listeneinträge (Titel, Status, Fortschritt, Bewertung, ggf. Notizen) zur Zuordnung zu unserem Katalog an unseren Server übermittelt und – nach Ihrer Bestätigung – in Ihre Sammlung übernommen. Importvorgänge werden gespeichert, damit Sie sie prüfen und rückgängig machen können.</p>
+<p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO.</p>
+
+<h3 id="de-4-4">4.4 Concierge und KI-gestützte Texte</h3>
+<p>Der Concierge versteht Texteingaben wie „düster, kurz, kein Gore“ und schlägt passende Titel vor. Die Auswertung und Auswahl der Empfehlungen erfolgt auf unseren Servern regelbasiert, nicht durch ein externes Sprachmodell.</p>
+<p><strong>Daten:</strong> Ihr eingegebener Text, die erkannte Absicht, gelieferte Empfehlungen und ggf. Ihr Feedback zu Ergebnissen. Ein normalisierter Zwischenspeicher von Anfragen beschleunigt wiederholte Anfragen.</p>
+<p><strong>Groq (USA):</strong> Optional lassen wir zu den bereits ausgewählten Empfehlungen je einen kurzen, spoilerfreien Begleitsatz formulieren. Dazu übermitteln wir Ihren Eingabetext (vorher technisch bereinigt, auf 2.000 Zeichen gekürzt) zusammen mit den Titeln an <strong>Groq, Inc.</strong>, <mark class="ph">[ANSCHRIFT GROQ laut Auftragsverarbeitungsvertrag]</mark>, USA, als Auftragsverarbeiter. Die Bereinigung entfernt <em>keine</em> personenbezogenen Angaben. <strong>Bitte geben Sie im Concierge keine Angaben über sich oder andere Personen ein, die Sie nicht teilen möchten.</strong> Falls aktiviert, nutzen wir Groq außerdem zur Klärung mehrdeutiger Titel in Importen; dabei werden die betreffenden Listenzeilen übermittelt. <mark class="ph">[Groq-DPA, Aufbewahrung und Nutzung zu Trainingszwecken bei Groq prüfen und hier angeben]</mark></p>
+<p><strong>Auf dem Gerät:</strong> Auf unterstützten Geräten nutzt Kuro Apples On-Device-Sprachmodelle (Apple Foundation Models), z. B. für die Suche in Ihrer Sammlung in natürlicher Sprache oder kurze Inhaltsangaben. Diese Verarbeitung findet ausschließlich auf Ihrem Gerät statt; dabei werden keine Daten an uns oder an Apple übermittelt.</p>
+<p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Erbringung der von Ihnen angefragten Funktion); für den Zwischenspeicher und Feedback zur Verbesserung der Treffer Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an schnellen, treffenden Empfehlungen).</p>
+
+<h3 id="de-4-5">4.5 Persönliche Empfehlungen und Geschmacksprofil</h3>
+<p>Aus Ihrer Sammlung, Ihren Bewertungen und Ihren Reaktionen im Bereich „Taste“ (z. B. „mag ich / mag ich nicht“) berechnen wir ein Geschmacksprofil, um Ihnen passendere Titel zu zeigen. Außerdem speichern wir, welche Titel Ihnen im Bereich „Entdecken“ (z. B. „Neu für dich“) bereits angezeigt wurden, damit Sie dort abwechselnd neue Titel sehen.</p>
+<p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO, da personalisierte Entdeckung ein Kernbestandteil von Kuro ist. Es finden keine automatisierten Entscheidungen mit rechtlicher oder ähnlich erheblicher Wirkung statt (Art. 22 DSGVO).</p>
+
+<h3 id="de-4-6">4.6 Private Clubs und Aktivität unter Freunden</h3>
+<p><strong>Daten:</strong> Clubs, die Sie erstellen oder denen Sie per Einladungscode beitreten (Name, Mitgliedschaft, Rolle), geteilte Listen („Rails“), Umfragen und Stimmen, Reaktionen, Ihre Freigabestufe sowie kurze Kommentare und Reaktionen zu Titeln.</p>
+<p><strong>Wer sieht was:</strong> Club-Inhalte sind nur für Mitglieder des jeweiligen Clubs sichtbar. Je nach Ihrer Freigabestufe sehen andere Mitglieder nur zusammengefasste Zahlen, Ihren Namen und Status oder auch Ihren Fortschritt. Ihre Kommentare zu Titeln sind nur für Personen sichtbar, mit denen Sie mindestens einen Club teilen. Kuro bietet keine öffentlichen Profile und greift nicht auf Ihr Adressbuch zu.</p>
+<p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO. Aggregierte Club-Nutzungsdaten werten wir zur Verbesserung der Funktion aus (Art. 6 Abs. 1 lit. f DSGVO).</p>
+
+<h3 id="de-4-7">4.7 Erinnerungen an Veröffentlichungen</h3>
+<p>Erinnerungen an neue Folgen oder Kapitel plant Kuro als lokale Mitteilungen auf Ihrem Gerät, nachdem Sie dies in den iOS-Einstellungen erlaubt haben. Wir verwenden keine Push-Token und senden keine Mitteilungen über einen Server. Veröffentlichungstermine stammen aus unserem Katalog (siehe <a href="/#quellen">Datenquellen</a>). Welche Titel Sie verfolgen, wissen wir bereits aus Ihrer Sammlung (Art. 6 Abs. 1 lit. b DSGVO); die Planung der Mitteilungen selbst findet nur auf Ihrem Gerät statt. Sie können Mitteilungen jederzeit in den iOS-Einstellungen abschalten.</p>
+
+<h3 id="de-4-8">4.8 Nutzungsstatistik (eigene Auswertung)</h3>
+<p><strong>Daten:</strong> Ihre Nutzerkennung, der Name eines Ereignisses (z. B. Concierge-Anfrage gestellt, Ergebnis angezeigt), der App-Bereich, das Ergebnis, die Dauer in Millisekunden, die Sprache und der Regionscode Ihres Geräts (z. B. „DE“) sowie Zeitpunkte; außerdem, wenn Sie einen Link zu einem externen Anbieter (z. B. Streaming- oder Lese-Dienst) antippen, welcher Titel und welcher Anbieter das war. Der Inhalt Ihrer Notizen oder Kommentare ist nicht Teil dieser Ereignisse. Ohne Verbindung werden Ereignisse kurz auf dem Gerät zwischengespeichert; bei Abmeldung oder Kontowechsel werden zwischengespeicherte Ereignisse des bisherigen Kontos verworfen.</p>
+<p><strong>Zweck:</strong> Fehler und langsame Abläufe erkennen, Funktionen verbessern, die Nutzung externer Anbieter-Links verstehen. Diese Daten werden nicht an Dritte weitergegeben und nicht für Werbung genutzt.</p>
+<p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist der stabile Betrieb und die Weiterentwicklung der App. Sie können dieser Verarbeitung jederzeit widersprechen (Art. 21 DSGVO, <a href="#de-9">Abschnitt 9</a>).</p>
+<p><strong>Speicherdauer:</strong> derzeit 90 Tage, danach automatische Löschung.</p>
+
+<h3 id="de-4-9">4.9 Technische Zugriffsdaten und Missbrauchsschutz</h3>
+<p>Bei jeder Verbindung zu unseren Servern werden technisch bedingt Ihre IP-Adresse, Zeitpunkt, angefragte Schnittstelle und Statuscode verarbeitet und von Supabase in Protokollen gespeichert <mark class="ph">[SUPABASE-LOG-AUFBEWAHRUNG]</mark>. Zum Schutz vor Missbrauch begrenzen wir die Anzahl von Anfragen pro Konto und für einige Funktionen (z. B. AniList-Import, Concierge) auch pro IP-Adresse; dafür speichern wir die IP-Adresse zusammen mit einem Zähler für derzeit höchstens etwa zwei Tage.</p>
+<p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (Sicherheit und Verfügbarkeit des Dienstes).</p>
+
+<h3 id="de-4-10">4.10 Titelbilder und Katalogdaten</h3>
+<p>Titelbilder werden größtenteils aus unserem eigenen Speicher geladen. Bilder, die wir (noch) nicht gespiegelt haben, lädt Ihr Gerät direkt vom Server der jeweiligen Quelle (insbesondere dem Bild-Server von AniList). Dabei erhält dieser Server technisch bedingt Ihre IP-Adresse. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Darstellung der Inhalte). <mark class="ph">[prüfen: Anteil direkt geladener Bilder; Ziel: vollständige Spiegelung]</mark></p>
+
+<h3 id="de-4-11">4.11 Externe Links</h3>
+<p>Kuro verlinkt auf externe Angebote (z. B. offizielle Streaming- und Lese-Dienste, AniList, MangaDex). Wenn Sie einen solchen Link öffnen, verlassen Sie Kuro; für die Verarbeitung dort ist der jeweilige Anbieter verantwortlich.</p>
+
+<h3 id="de-4-12">4.12 Kontakt per E-Mail</h3>
+<p>Wenn Sie uns schreiben, verarbeiten wir Ihre E-Mail-Adresse und Ihre Nachricht, um Ihr Anliegen zu bearbeiten (Art. 6 Abs. 1 lit. b DSGVO bei Fragen zur Nutzung, sonst lit. f; bei Anfragen zu Ihren Rechten lit. c). Wir löschen die Korrespondenz, wenn sie nicht mehr erforderlich ist, spätestens nach Ablauf gesetzlicher Aufbewahrungsfristen. Für Nachrichten über das Kontaktformular oder aus der App gilt <a href="#kontaktformular">4.15</a>.</p>
+
+<h3 id="de-4-13">4.13 Diese Website</h3>
+<p>Diese Website wird bei <strong>Vercel Inc.</strong>, 440 N Barranca Ave #4133, Covina, CA 91723, USA, als Auftragsverarbeiter gehostet. Beim Aufruf verarbeitet Vercel technisch bedingt Ihre IP-Adresse, Datum und Uhrzeit, die aufgerufene Seite und Angaben zu Browser und Betriebssystem in Server-Protokollen <mark class="ph">[VERCEL-LOG-AUFBEWAHRUNG]</mark>. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (sichere Auslieferung der Website). Die Website setzt keine Cookies, lädt keine externen Schriftarten oder Skripte und nutzt keine Analyse-Werkzeuge.</p>
+
+<h3 id="de-4-14">4.14 App Store und TestFlight</h3>
+<p>Kuro wird über Apples App Store bzw. TestFlight verteilt. Für Download, Kauf, Bewertungen und Absturzberichte, die Sie mit Entwicklern teilen, ist Apple verantwortlich. Teilen Sie Diagnose- oder Absturzdaten mit App-Entwicklern (iOS-Einstellung), erhalten wir diese von Apple in anonymisierter bzw. aggregierter Form.</p>
+
+<h3 id="kontaktformular">4.15 Kontaktformular und Kontakt in der App</h3>
+<p>Sie können uns über das <a href="/kontakt">Kontaktformular</a> dieser Website oder in der App unter <em>Profil → Kontakt</em> schreiben. Dabei verarbeiten wir das gewählte Thema, Ihre E-Mail-Adresse, optional Ihren Namen, Ihre Nachricht, den Zeitpunkt und die Herkunft (Website oder App) sowie die Spracheinstellung Ihres Browsers bzw. Geräts. Schreiben Sie uns aus der App, verarbeiten wir zusätzlich die Kennung Ihres Kontos und die App-Version, damit wir Ihr Anliegen Ihrem Konto zuordnen können.</p>
+<p><strong>Zweck und Rechtsgrundlage:</strong> Wir verwenden die Angaben ausschließlich, um Ihre Anfrage zu bearbeiten und zu beantworten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit Ihre Anfrage die Nutzung von Kuro betrifft, im Übrigen Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse, Anfragen zu beantworten); bei Anfragen zu Ihren Datenschutzrechten zusätzlich Art. 6 Abs. 1 lit. c DSGVO. Die Angaben sind freiwillig; ohne E-Mail-Adresse und Nachricht können wir jedoch nicht antworten. Mit dem Kontrollkästchen im Formular bestätigen Sie nur, dass Sie diese Hinweise gelesen haben; es ist keine Einwilligung im Sinne von Art. 6 Abs. 1 lit. a DSGVO.</p>
+<p><strong>Speicherort und Missbrauchsschutz:</strong> Ihre Nachricht wird über eine Server-Funktion von Supabase (<a href="#de-3">Abschnitt 3</a>) in unserer Datenbank in der Region eu-central-1 (Frankfurt am Main) gespeichert. Zum Schutz vor Missbrauch begrenzen wir die Zahl der Nachrichten je Konto (derzeit fünf pro Stunde), je IP-Adresse bzw. bei IPv6 je Netzbereich (/64) (derzeit fünf pro Stunde über die Website, höchstens 30 pro Stunde aus der App) sowie insgesamt über die Website. Dafür speichern wir nicht die IP-Adresse selbst, sondern nur einen mit einem geheimen Schlüssel gebildeten Hashwert der Adresse bzw. des Netzbereichs; für die Begrenzung je Konto die Kennung Ihres Kontos; jeweils zusammen mit einem Zähler (ca. 2 Tage, <a href="#de-8">Abschnitt 8</a>). Ein für Menschen unsichtbares Feld hilft, automatisierte Einsendungen zu erkennen; solche Einsendungen speichern wir nicht.</p>
+<p><strong>Benachrichtigung per E-Mail:</strong> Falls eingerichtet, erhalten wir eine Kopie Ihrer Nachricht per E-Mail über den Versanddienst <strong>Resend, Inc.</strong> (<mark class="ph">[ANSCHRIFT RESEND laut Auftragsverarbeitungsvertrag]</mark>, USA) als Auftragsverarbeiter (Art. 28 DSGVO); zur Übermittlung in die USA siehe <a href="#de-7">Abschnitt 7</a>. <mark class="ph">[prüfen: Resend aktiv? Nur stehen lassen, wenn RESEND_API_KEY, CONTACT_NOTIFY_TO und CONTACT_NOTIFY_FROM eingerichtet sind; sonst diesen Absatz und die Resend-Angaben in Abschnitt 6 und 7 entfernen]</mark></p>
+<p><strong>Speicherdauer:</strong> Wir speichern Nachrichten 12 Monate ab Eingang; danach werden sie automatisch gelöscht. Löschen Sie vorher Ihr Konto, wird die Verknüpfung der Nachricht mit Ihrem Konto sofort entfernt; die Nachricht selbst wird mit Ablauf der 12 Monate gelöscht. Kopien in unserem E-Mail-Postfach löschen wir, sobald sie nicht mehr erforderlich sind, spätestens zum selben Zeitpunkt, es sei denn, gesetzliche Aufbewahrungspflichten oder die Abwehr von Rechtsansprüchen erfordern eine längere Speicherung. Ihre Rechte (Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch, Beschwerde) finden Sie in <a href="#de-9">Abschnitt 9</a>.</p>
+
+<h2 id="de-5">5. Speicherung auf Ihrem Gerät (§ 25 TDDDG)</h2>
+<p>Die App speichert Informationen auf Ihrem Gerät bzw. greift darauf zu. Das ist zulässig, soweit es unbedingt erforderlich ist, damit wir den von Ihnen ausdrücklich gewünschten Dienst bereitstellen können (§ 25 Abs. 2 Nr. 2 TDDDG). Gespeichert werden:</p>
+<ul>
+  <li>Anmeldesitzung und ggf. MyAnimeList-Token im iOS-Schlüsselbund,</li>
+  <li>App-Einstellungen, Sprache, Onboarding-Status und zwischengespeicherte Funktionsschalter (UserDefaults),</li>
+  <li>Zwischenspeicher für Bilder und Detailseiten, damit die App schneller lädt,</li>
+  <li>noch nicht übertragene Änderungen an Ihrer Sammlung sowie geplante Erinnerungen,</li>
+  <li>noch nicht übertragene Nutzungsereignisse (<a href="#de-4-8">4.8</a>) <mark class="ph">[rechtlich prüfen: Einordnung unter § 25 Abs. 2 Nr. 2 TDDDG oder Einwilligung erforderlich]</mark>.</li>
+</ul>
+<p>Kuro nutzt keine Werbe-ID (IDFA) und keine Fingerprinting-Techniken. Die Website speichert nichts auf Ihrem Gerät.</p>
+
+<h2 id="de-6">6. Empfänger und Auftragsverarbeiter</h2>
+<p>Wir geben Ihre Daten nur weiter, soweit es für die beschriebenen Zwecke nötig ist. Wir verkaufen keine Daten.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Empfänger</th><th>Zweck</th><th>Rolle / Ort</th></tr></thead>
+<tbody>
+<tr><td>Supabase, Inc. (mit Unterauftragsverarbeitern, u. a. Amazon Web Services)</td><td>Datenbank, Anmeldung, Server-Funktionen, Speicher, Passwort-E-Mails</td><td>Auftragsverarbeiter; Datenbank in Frankfurt (EU), Server-Funktionen nutzernah (siehe 3)</td></tr>
+<tr><td>Groq, Inc.</td><td>Optionale Begleittexte zu Empfehlungen; ggf. Klärung mehrdeutiger Importzeilen</td><td>Auftragsverarbeiter; USA</td></tr>
+<tr><td>Vercel Inc.</td><td>Hosting dieser Website</td><td>Auftragsverarbeiter; USA / globales Netz</td></tr>
+<tr><td>Resend, Inc. (falls eingerichtet) <mark class="ph">[prüfen: Resend aktiv?]</mark></td><td>E-Mail-Benachrichtigung über Nachrichten aus dem Kontaktformular (4.15)</td><td>Auftragsverarbeiter; USA</td></tr>
+<tr><td>Apple Inc. / Apple Distribution International Ltd.</td><td>Mit Apple anmelden, App Store, TestFlight</td><td>Eigener Verantwortlicher; Irland / USA</td></tr>
+<tr><td>AniList</td><td>Abruf öffentlicher Listen bei Import (nur Benutzername); Bildauslieferung</td><td>Eigener Verantwortlicher</td></tr>
+<tr><td>MyAnimeList Co., Ltd.</td><td>Kontoverbindung / Listenabruf direkt von Ihrem Gerät</td><td>Eigener Verantwortlicher; Japan</td></tr>
+<tr><td>Andere Club-Mitglieder</td><td>Club-Inhalte und Aktivität gemäß Ihrer Freigabestufe</td><td>Nutzer von Kuro</td></tr>
+</tbody>
+</table>
+</div>
+<p>Darüber hinaus geben wir Daten nur weiter, wenn wir gesetzlich dazu verpflichtet sind (z. B. an Behörden auf Grundlage einer Rechtsvorschrift).</p>
+
+<h2 id="de-7">7. Übermittlung in Drittländer</h2>
+<p>Bei Groq und Vercel (USA) sowie bei Supabase, Inc. und dessen Unterauftragsverarbeitern (soweit Zugriffe aus Drittländern, z. B. für Support oder Betrieb, möglich sind) können personenbezogene Daten in Länder außerhalb des Europäischen Wirtschaftsraums (EWR) gelangen, insbesondere in die USA. Wir stützen solche Übermittlungen auf einen Angemessenheitsbeschluss der EU-Kommission – für die USA auf das EU-U.S. Data Privacy Framework (Art. 45 DSGVO), soweit der Empfänger danach zertifiziert ist – und andernfalls auf die EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) mit ergänzenden Maßnahmen. Eine Kopie der Garantien erhalten Sie auf Anfrage. <mark class="ph">[prüfen und je Empfänger festlegen: DPF-Zertifizierung von Groq, Supabase, Vercel; abgeschlossene SCC]</mark></p>
+<p>Dasselbe gilt für <strong>Resend, Inc.</strong> (USA), falls die E-Mail-Benachrichtigung zum Kontaktformular eingerichtet ist (<a href="#kontaktformular">4.15</a>). <mark class="ph">[prüfen: DPF-Zertifizierung von Resend bzw. abgeschlossene SCC]</mark></p>
+<p>Für Japan (MyAnimeList) besteht ein Angemessenheitsbeschluss der EU-Kommission. Die Verbindung zu MyAnimeList stellen Sie selbst von Ihrem Gerät aus her.</p>
+
+<h2 id="de-8">8. Speicherdauer und Kontolöschung</h2>
+<p>Wir speichern Daten, solange Sie Ihr Konto nutzen, und löschen sie, wenn sie für den Zweck nicht mehr erforderlich sind. Derzeit gelten insbesondere folgende Fristen (danach automatische Löschung):</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Daten</th><th>Speicherdauer</th></tr></thead>
+<tbody>
+<tr><td>Konto, Sammlung, Notizen, Clubs, Kommentare, Geschmacksprofil</td><td>bis zur Löschung durch Sie bzw. bis zur Löschung des Kontos</td></tr>
+<tr><td>Abgeschlossene Importvorgänge</td><td>30 Tage nach Abschluss</td></tr>
+<tr><td>Concierge-Anfragen (Verlauf)</td><td>60 Tage</td></tr>
+<tr><td>Zwischenspeicher erkannter Concierge-Anfragen</td><td>30 Tage</td></tr>
+<tr><td>Zähler der KI-Nutzung pro Tag (Kontingent)</td><td>90 Tage</td></tr>
+<tr><td>Bereits angezeigte Titel in „Entdecken“</td><td>bis zur Löschung des Kontos <mark class="ph">[prüfen: kürzere Frist festlegen]</mark></td></tr>
+<tr><td>Rückmeldungen zur Texterkennung</td><td>14 Tage</td></tr>
+<tr><td>Nutzungsereignisse, Antippen externer Links, Club-Nutzungsdaten</td><td>90 Tage</td></tr>
+<tr><td>Rückmeldungen zu Suchtreffern</td><td>180 Tage</td></tr>
+<tr><td>Nachrichten über das Kontaktformular bzw. aus der App</td><td>12 Monate ab Eingang (die Verknüpfung mit dem Konto endet mit dessen Löschung)</td></tr>
+<tr><td>Missbrauchsschutz (Zähler mit IP-Adresse bzw. beim Kontaktformular mit einem Hashwert der IP-Adresse)</td><td>ca. 2 Tage</td></tr>
+<tr><td>Server-Protokolle / Sicherungskopien</td><td><mark class="ph">[SUPABASE-LOG-AUFBEWAHRUNG]</mark> / <mark class="ph">[BACKUP-AUFBEWAHRUNG]</mark></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">Die Fristen entsprechen der aktuellen Konfiguration unseres Backends. <mark class="ph">[vor Veröffentlichung gegen die produktive Konfiguration prüfen]</mark></p>
+<p><strong>Konto löschen:</strong> Sie können Ihr Konto jederzeit in der App unter <em>Profil → Konto löschen</em> löschen. Dabei löschen wir Ihr Konto und alle damit verknüpften Daten (Sammlung, Notizen, Importe, Concierge-Daten, Kommentare, Reaktionen, Stimmen, Nutzungsereignisse). Clubs, deren Eigentümer Sie sind, werden an ein anderes Mitglied übertragen oder, wenn keines mehr vorhanden ist, gelöscht. Inhalte, die Sie in Clubs eingebracht haben (z. B. hinzugefügte Titel oder erstellte Umfragen), bleiben für die übrigen Mitglieder erhalten, sind aber nicht mehr Ihnen zugeordnet. Haben Sie sich mit Apple angemeldet, versuchen wir dabei auch, die Verknüpfung mit Ihrer Apple-ID bei Apple zu widerrufen; Sie können sie zusätzlich in den Einstellungen Ihrer Apple-ID entfernen. Ein technischer Löschvermerk (ohne Inhalte) bleibt bis zu sieben Tage bestehen, damit nach der Löschung keine Daten mehr nachgeschrieben werden können. Nachrichten, die Sie uns über das Kontaktformular oder aus der App geschickt haben, werden von Ihrem Konto getrennt und 12 Monate nach Eingang gelöscht (<a href="#kontaktformular">4.15</a>). Auf Ihrem Gerät gespeicherte Daten entfernen Sie, indem Sie die App löschen.</p>
+
+<h2 id="de-9">9. Ihre Rechte</h2>
+<p>Sie haben nach der DSGVO das Recht auf</p>
+<ul>
+  <li>Auskunft über Ihre Daten (Art. 15),</li>
+  <li>Berichtigung unrichtiger Daten (Art. 16),</li>
+  <li>Löschung (Art. 17),</li>
+  <li>Einschränkung der Verarbeitung (Art. 18),</li>
+  <li>Datenübertragbarkeit, also Erhalt Ihrer bereitgestellten Daten in einem gängigen, maschinenlesbaren Format (Art. 20),</li>
+  <li>Widerspruch (Art. 21, siehe Kasten),</li>
+  <li>sowie darauf, keiner ausschließlich automatisierten Entscheidung mit rechtlicher Wirkung unterworfen zu werden (Art. 22) – solche Entscheidungen trifft Kuro nicht.</li>
+</ul>
+<p>Eine E-Mail an <a href="mailto:contact@lazy.space">contact@lazy.space</a> genügt. Wir antworten in der Regel innerhalb eines Monats (Art. 12 Abs. 3 DSGVO) und können Sie bitten, Ihre Identität zu bestätigen, z. B. über die mit Ihrem Konto verknüpfte E-Mail-Adresse.</p>
+
+<div class="box" id="de-widerspruch">
+<h3>Widerspruchsrecht (Art. 21 DSGVO)</h3>
+<p><strong>Soweit wir Daten auf Grundlage berechtigter Interessen verarbeiten (Art. 6 Abs. 1 lit. f DSGVO, insbesondere die Nutzungsstatistik in Abschnitt 4.8), können Sie dieser Verarbeitung jederzeit aus Gründen, die sich aus Ihrer besonderen Situation ergeben, widersprechen.</strong> Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die Ihre Interessen überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Wir nutzen Ihre Daten nicht für Direktwerbung. Ein formloser Widerspruch an <a href="mailto:contact@lazy.space">contact@lazy.space</a> genügt.</p>
+</div>
+
+<p><strong>Einwilligung und Widerruf:</strong> Derzeit stützen wir keine Verarbeitung auf eine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Freiwillige Funktionen wie die Verbindung mit MyAnimeList oder Erinnerungen können Sie jederzeit in der App bzw. in den iOS-Einstellungen beenden. Sollten wir künftig um Ihre Einwilligung bitten, können Sie diese jederzeit mit Wirkung für die Zukunft widerrufen; die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung bleibt unberührt.</p>
+<p><strong>Beschwerde:</strong> Sie können sich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), insbesondere in dem EU-Mitgliedstaat Ihres Aufenthaltsorts, Ihres Arbeitsplatzes oder des mutmaßlichen Verstoßes. Für uns zuständig ist: die Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen (LDI NRW), Kavalleriestraße 2–4, 40213 Düsseldorf, <a href="https://www.ldi.nrw.de">www.ldi.nrw.de</a>.</p>
+
+<h2 id="de-10">10. Pflicht zur Bereitstellung, Profiling</h2>
+<p>Für die Nutzung eines Kontos sind E-Mail-Adresse (bzw. die Anmeldung mit Apple) und ein Passwort erforderlich; ohne diese Angaben können wir kein Konto anlegen. Alle weiteren Angaben (Notizen, Bewertungen, Clubs, Importe, Concierge-Eingaben) sind freiwillig. Für persönliche Empfehlungen werten wir Ihre Sammlung und Reaktionen aus (Profiling im Sinne von Art. 4 Nr. 4 DSGVO, siehe 4.5); daran knüpfen keine Entscheidungen mit rechtlicher oder ähnlich erheblicher Wirkung an.</p>
+
+<h2 id="de-11">11. Mindestalter</h2>
+<p>Kuro richtet sich an Personen ab 16 Jahren. Personen unter 16 Jahren dürfen Kuro nur mit Einwilligung bzw. Zustimmung der Träger der elterlichen Verantwortung nutzen (Art. 8 Abs. 1 DSGVO). Erfahren wir, dass ein Konto ohne diese Zustimmung von einer Person unter 16 Jahren angelegt wurde, löschen wir es.</p>
+
+<h2 id="de-12">12. Datensicherheit</h2>
+<p>Wir setzen technische und organisatorische Maßnahmen nach Art. 32 DSGVO ein, u. a. verschlüsselte Übertragung (TLS), Zugriffsbeschränkungen auf Datenbankebene (Row-Level Security: jedes Konto kann nur seine eigenen Daten lesen und schreiben), Speicherung von Passwörtern nur als Hash, Ableitung der Nutzerkennung aus dem Anmelde-Token statt aus Eingaben sowie Speicherung von Zugangs-Token im iOS-Schlüsselbund.</p>
+
+<h2 id="de-13">13. Änderungen dieser Erklärung</h2>
+<p>Wir passen diese Erklärung an, wenn sich die App, unsere Dienstleister oder die Rechtslage ändern. Die jeweils aktuelle Fassung finden Sie unter dieser Adresse und in der App unter <em>Profil → Datenschutz</em>. Über wesentliche Änderungen informieren wir Sie in der App.</p>
+</section>
+
+<!-- ======================= ENGLISH (convenience translation) ======================= -->
+<section class="lang-section" id="en" lang="en">
+<h1>Privacy Policy</h1>
+<p class="meta">For the iOS app “Kuro” and this website · Last updated: 2 November 2026 (draft) · This is a convenience translation; the German version is legally binding.</p>
+<div class="langswitch"><a href="#de" lang="de">Deutsch</a><a href="#en" aria-current="true">English</a></div>
+
+<p class="lede">Kuro is an app for tracking anime and manga, discovering curated picks and sharing private clubs with friends. This policy explains which personal data is processed, why, for how long, and what rights you have.</p>
+
+<nav class="toc" aria-label="Contents">
+<ol>
+  <li><a href="#en-1">Controller and contact</a></li>
+  <li><a href="#en-2">Summary</a></li>
+  <li><a href="#en-3">Hosting and location</a></li>
+  <li><a href="#en-4">Processing in detail</a></li>
+  <li><a href="#en-5">Storage on your device (Section 25 TDDDG)</a></li>
+  <li><a href="#en-6">Recipients and processors</a></li>
+  <li><a href="#en-7">Transfers to third countries</a></li>
+  <li><a href="#en-8">Retention and account deletion</a></li>
+  <li><a href="#en-9">Your rights</a></li>
+  <li><a href="#en-10">Obligation to provide data, profiling</a></li>
+  <li><a href="#en-11">Minimum age</a></li>
+  <li><a href="#en-12">Security</a></li>
+  <li><a href="#en-13">Changes to this policy</a></li>
+</ol>
+</nav>
+
+<h2 id="en-1">1. Controller and contact</h2>
+<p>The controller under the General Data Protection Regulation (GDPR) is:</p>
+<address>
+Max Hufschlag, trading as “Lazy” (sole proprietorship)<br>
+Martinstraße 10–12<br>
+52062 Aachen, Germany<br>
+Email: <a href="mailto:contact@lazy.space">contact@lazy.space</a><br>
+Further contact: <a href="/kontakt">contact form</a>
+</address>
+<p>Data protection officer: No data protection officer is appointed, as the legal requirements (Art. 37 GDPR, Section 38 BDSG) are not met.</p>
+<p>For any privacy question or to exercise your rights, simply email <a href="mailto:contact@lazy.space">contact@lazy.space</a>.</p>
+
+<h2 id="en-2">2. Summary</h2>
+<ul>
+  <li><strong>No ads, no sale of data, no cross-app tracking.</strong> Kuro contains no advertising or tracking SDKs and no third-party analytics tools. We do not track you in the sense of Apple’s App Tracking Transparency.</li>
+  <li><strong>Our own usage statistics.</strong> We record simple usage events linked to your account in our own database (for example which feature was used and how long it took) to improve Kuro. You can object at any time (<a href="#en-9">section 9</a>).</li>
+  <li><strong>Servers in the EU.</strong> Your account data is stored in a data centre in Frankfurt am Main, Germany.</li>
+  <li><strong>Optional AI wording.</strong> To write short blurbs for recommendations, your Concierge text may be sent to Groq, Inc. (USA) (<a href="#en-4-4">4.4</a>). Many AI features, by contrast, run only on your device.</li>
+  <li><strong>Delete your account at any time</strong> in the app under <em>Profile → Delete account</em>.</li>
+</ul>
+
+<h2 id="en-3">3. Hosting and location</h2>
+<p>Kuro’s backend (database, sign-in, file storage and server functions) runs on <strong>Supabase, Inc.</strong> (<mark class="ph">[ANSCHRIFT SUPABASE laut Auftragsverarbeitungsvertrag]</mark>) as our processor (Art. 28 GDPR). Our database, sign-in and file storage are located in the region <strong>eu-central-1 (Frankfurt am Main)</strong> on Amazon Web Services infrastructure. Server functions (Edge Functions) are by default run by Supabase in a data centre close to the user, for users in Europe usually in the EU. <mark class="ph">[prüfen: Ausführungsregion der Edge Functions; ggf. auf eu-central-1 festlegen]</mark> For possible access from third countries see <a href="#en-7">section 7</a>.</p>
+
+<h2 id="en-4">4. Processing in detail</h2>
+
+<h3 id="en-4-1">4.1 Account and sign-in</h3>
+<p><strong>Data:</strong> email address, password (stored only as a cryptographic hash), a random user identifier (UUID), sign-up and sign-in times, session tokens, an optional display name and your account settings (e.g. content filters).</p>
+<p><strong>Sign in with Apple:</strong> if you use it, Apple gives us an identifier, the email address you choose to share (possibly an anonymous Apple relay address) and – only on first sign-in and only if you share it – your name, which we store as your account name. Apple is a separate controller for the sign-in itself (<a href="https://www.apple.com/legal/privacy/" rel="noopener">Apple Privacy Policy</a>).</p>
+<p><strong>Emails:</strong> password-reset emails are sent through Supabase’s authentication service <mark class="ph">[ggf. E-MAIL-VERSANDDIENSTLEISTER, falls ein eigener SMTP-Dienst eingesetzt wird – Name, Sitz, Rechtsgrundlage der Übermittlung]</mark>.</p>
+<p><strong>Purpose and legal basis:</strong> providing your account and the app, Art. 6(1)(b) GDPR (contract for the use of Kuro).</p>
+
+<h3 id="en-4-2">4.2 Your collection: status, progress, ratings, notes</h3>
+<p><strong>Data:</strong> which titles you track, status (e.g. “watching”), episode/chapter progress, ratings, notes, custom lists and change times. Changes made offline stay on your device and are sent once you are back online.</p>
+<p><strong>Purpose and legal basis:</strong> keeping and syncing your collection, Art. 6(1)(b) GDPR.</p>
+
+<h3 id="en-4-3">4.3 Imports from AniList and MyAnimeList</h3>
+<p>Imports only happen when you start them.</p>
+<ul>
+  <li><strong>AniList:</strong> you enter an AniList username. Our server fetches that account’s publicly visible list through AniList’s API. Only the username is sent to AniList, no data from your Kuro account.</li>
+  <li><strong>Connecting a MyAnimeList account</strong> (where available in your app version): sign-in happens directly between your device and MyAnimeList (OAuth). Access tokens are stored only in your device’s Keychain, not on our servers. Your device fetches your lists directly from MyAnimeList. The provider is MyAnimeList Co., Ltd. (Japan); its terms and privacy notice apply.</li>
+  <li><strong>MyAnimeList export file:</strong> the file you select is read on your device.</li>
+  <li><strong>Pasted lists (Concierge):</strong> text you paste for import is sent to and analysed on our server.</li>
+</ul>
+<p>In every case the recognised list entries (title, status, progress, rating, notes where present) are sent to our server to match them to our catalogue and – after you confirm – added to your collection. Import sessions are stored so that you can review and undo them.</p>
+<p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR.</p>
+
+<h3 id="en-4-4">4.4 Concierge and AI-assisted text</h3>
+<p>Concierge understands requests such as “dark, short, no gore” and suggests matching titles. Requests are interpreted and recommendations selected on our servers using rules, not by an external language model.</p>
+<p><strong>Data:</strong> the text you enter, the detected intent, the recommendations returned and any feedback you give on results. A normalised cache of requests speeds up repeat requests.</p>
+<p><strong>Groq (USA):</strong> optionally, we have one short, spoiler-free sentence written for each recommendation that has already been selected. For this we send your request text (technically cleaned and cut to 2,000 characters) together with the titles to <strong>Groq, Inc.</strong>, <mark class="ph">[ANSCHRIFT GROQ laut Auftragsverarbeitungsvertrag]</mark>, USA, as our processor. The cleaning does <em>not</em> remove personal information. <strong>Please do not enter details about yourself or others in Concierge that you do not want to share.</strong> Where enabled, we also use Groq to clarify ambiguous titles in imports; the affected list lines are sent for this. <mark class="ph">[Groq-DPA, Aufbewahrung und Nutzung zu Trainingszwecken bei Groq prüfen und hier angeben]</mark></p>
+<p><strong>On your device:</strong> on supported devices Kuro uses Apple’s on-device language models (Apple Foundation Models), e.g. for natural-language search in your collection or short synopses. This processing happens only on your device; no data is sent to us or to Apple for it.</p>
+<p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR (providing the feature you request); for the cache and feedback used to improve results, Art. 6(1)(f) GDPR (legitimate interest in fast, relevant recommendations).</p>
+
+<h3 id="en-4-5">4.5 Personal recommendations and taste profile</h3>
+<p>From your collection, your ratings and your reactions in “Taste” (e.g. like / dislike) we calculate a taste profile to show you better-matching titles. We also store which titles you have already been shown in Discover (e.g. “New to you”) so that you see fresh titles there.</p>
+<p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR, as personalised discovery is a core part of Kuro. There is no automated decision-making with legal or similarly significant effects (Art. 22 GDPR).</p>
+
+<h3 id="en-4-6">4.6 Private clubs and friend activity</h3>
+<p><strong>Data:</strong> clubs you create or join with an invite code (name, membership, role), shared lists (“rails”), polls and votes, reactions, your sharing level, and short comments and reactions on titles.</p>
+<p><strong>Who sees what:</strong> club content is visible only to members of that club. Depending on your sharing level, other members see only aggregate counts, your name and status, or also your progress. Your title comments are visible only to people who share at least one club with you. Kuro has no public profiles and does not access your address book.</p>
+<p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR. We analyse aggregated club usage to improve the feature (Art. 6(1)(f) GDPR).</p>
+
+<h3 id="en-4-7">4.7 Release reminders</h3>
+<p>Reminders for new episodes or chapters are scheduled as local notifications on your device after you allow them in iOS settings. We use no push tokens and send no notifications from a server. Release dates come from our catalogue (see <a href="/#sources">data sources</a>). We already know which titles you follow from your collection (Art. 6(1)(b) GDPR); the notifications themselves are scheduled only on your device. You can turn them off at any time in iOS settings.</p>
+
+<h3 id="en-4-8">4.8 Usage statistics (first-party)</h3>
+<p><strong>Data:</strong> your user ID, the name of an event (e.g. Concierge request made, result shown), the app area, the outcome, the duration in milliseconds, your device’s language and region code (e.g. “DE”) and timestamps; also, when you tap a link to an external provider (e.g. a streaming or reading service), which title and which provider. The content of your notes or comments is not part of these events. Offline, events are briefly queued on the device; on sign-out or account switch, queued events of the previous account are discarded.</p>
+<p><strong>Purpose:</strong> detecting errors and slow flows, improving features, understanding the use of external provider links. This data is not shared with third parties and not used for advertising.</p>
+<p><strong>Legal basis:</strong> Art. 6(1)(f) GDPR. Our legitimate interest is the stable operation and development of the app. You can object at any time (Art. 21 GDPR, <a href="#en-9">section 9</a>).</p>
+<p><strong>Retention:</strong> currently 90 days, then deleted automatically.</p>
+
+<h3 id="en-4-9">4.9 Technical access data and abuse prevention</h3>
+<p>Every connection to our servers necessarily involves your IP address, time, requested endpoint and status code, which Supabase stores in logs <mark class="ph">[SUPABASE-LOG-AUFBEWAHRUNG]</mark>. To prevent abuse we limit the number of requests per account and, for some features (e.g. AniList import, Concierge), also per IP address; for this we store the IP address with a counter for currently no more than about two days.</p>
+<p><strong>Legal basis:</strong> Art. 6(1)(f) GDPR (security and availability of the service).</p>
+
+<h3 id="en-4-10">4.10 Cover images and catalogue data</h3>
+<p>Most cover images are loaded from our own storage. Images we have not (yet) mirrored are loaded by your device directly from the source’s server (in particular AniList’s image server), which necessarily receives your IP address. Legal basis: Art. 6(1)(f) GDPR (displaying content). <mark class="ph">[prüfen: Anteil direkt geladener Bilder; Ziel: vollständige Spiegelung]</mark></p>
+
+<h3 id="en-4-11">4.11 External links</h3>
+<p>Kuro links to external services (e.g. official streaming and reading services, AniList, MangaDex). When you open such a link you leave Kuro; the respective provider is responsible for processing there.</p>
+
+<h3 id="en-4-12">4.12 Contacting us by email</h3>
+<p>If you write to us, we process your email address and message to handle your request (Art. 6(1)(b) GDPR for questions about using Kuro, otherwise (f); for requests about your rights (c)). We delete the correspondence when it is no longer needed, at the latest when statutory retention periods expire. Messages sent through the contact form or from the app are covered by <a href="#contact-form">4.15</a>.</p>
+
+<h3 id="en-4-13">4.13 This website</h3>
+<p>This website is hosted by <strong>Vercel Inc.</strong>, 440 N Barranca Ave #4133, Covina, CA 91723, USA, as our processor. When you visit, Vercel necessarily processes your IP address, date and time, the page requested and browser/operating-system information in server logs <mark class="ph">[VERCEL-LOG-AUFBEWAHRUNG]</mark>. Legal basis: Art. 6(1)(f) GDPR (secure delivery of the website). The website sets no cookies, loads no external fonts or scripts and uses no analytics.</p>
+
+<h3 id="en-4-14">4.14 App Store and TestFlight</h3>
+<p>Kuro is distributed through Apple’s App Store and TestFlight. Apple is responsible for downloads, purchases, reviews and crash reports you choose to share with developers. If you share diagnostics with app developers (an iOS setting), we receive them from Apple in anonymised or aggregated form.</p>
+
+<h3 id="contact-form">4.15 Contact form and contacting us in the app</h3>
+<p>You can write to us with the <a href="/kontakt">contact form</a> on this website or in the app under <em>Profile → Contact us</em>. We then process the topic you chose, your email address, optionally your name, your message, the time and the origin (website or app), and the language setting of your browser or device. If you write from the app, we also process your account identifier and the app version so that we can link your request to your account.</p>
+<p><strong>Purpose and legal basis:</strong> we use these details only to handle and answer your request. The legal basis is Art. 6(1)(b) GDPR where your request concerns your use of Kuro, otherwise Art. 6(1)(f) GDPR (our legitimate interest in answering requests); for requests about your data protection rights also Art. 6(1)(c) GDPR. Providing the details is voluntary, but without an email address and a message we cannot reply. The checkbox in the form only confirms that you have read this information; it is not consent under Art. 6(1)(a) GDPR.</p>
+<p><strong>Location and abuse prevention:</strong> your message is stored through a Supabase server function (<a href="#en-3">section 3</a>) in our database in the region eu-central-1 (Frankfurt am Main). To prevent abuse we limit the number of messages per account (currently five per hour), per IP address or, for IPv6, per network range (/64) (currently five per hour through the website, at most 30 per hour from the app), and in total through the website. For this we do not store the IP address itself, only a hash of the address or range created with a secret key; for the per-account limit, your account identifier; each together with a counter (about 2 days, <a href="#en-8">section 8</a>). A field invisible to people helps us recognise automated submissions; we do not store those.</p>
+<p><strong>Email notification:</strong> where set up, we receive a copy of your message by email through the delivery service <strong>Resend, Inc.</strong> (<mark class="ph">[ANSCHRIFT RESEND laut Auftragsverarbeitungsvertrag]</mark>, USA) as our processor (Art. 28 GDPR); for the transfer to the USA see <a href="#en-7">section 7</a>. <mark class="ph">[prüfen: Resend aktiv? Nur stehen lassen, wenn RESEND_API_KEY, CONTACT_NOTIFY_TO und CONTACT_NOTIFY_FROM eingerichtet sind; sonst diesen Absatz und die Resend-Angaben in Abschnitt 6 und 7 entfernen]</mark></p>
+<p><strong>Retention:</strong> we keep messages for 12 months from receipt; they are then deleted automatically. If you delete your account earlier, the link between the message and your account is removed immediately; the message itself is deleted when the 12 months end. Copies in our email inbox are deleted once no longer needed, at the latest at the same time, unless statutory retention obligations or the defence of legal claims require longer storage. Your rights (access, rectification, erasure, restriction, objection, complaint) are described in <a href="#en-9">section 9</a>.</p>
+
+<h2 id="en-5">5. Storage on your device (Section 25 TDDDG)</h2>
+<p>The app stores and accesses information on your device. This is permitted where it is strictly necessary to provide the service you have explicitly requested (Section 25(2) no. 2 of the German TDDDG). Stored are:</p>
+<ul>
+  <li>your sign-in session and, if used, MyAnimeList tokens in the iOS Keychain,</li>
+  <li>app settings, language, onboarding state and cached feature switches (UserDefaults),</li>
+  <li>caches for images and detail pages so the app loads faster,</li>
+  <li>collection changes not yet sent, and scheduled reminders,</li>
+  <li>usage events not yet sent (<a href="#en-4-8">4.8</a>) <mark class="ph">[rechtlich prüfen: Einordnung unter § 25 Abs. 2 Nr. 2 TDDDG oder Einwilligung erforderlich]</mark>.</li>
+</ul>
+<p>Kuro does not use the advertising identifier (IDFA) or fingerprinting. The website stores nothing on your device.</p>
+
+<h2 id="en-6">6. Recipients and processors</h2>
+<p>We share your data only where needed for the purposes described. We do not sell data.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Recipient</th><th>Purpose</th><th>Role / location</th></tr></thead>
+<tbody>
+<tr><td>Supabase, Inc. (with sub-processors including Amazon Web Services)</td><td>Database, sign-in, server functions, storage, password emails</td><td>Processor; database in Frankfurt (EU), server functions close to the user (see 3)</td></tr>
+<tr><td>Groq, Inc.</td><td>Optional recommendation blurbs; clarifying ambiguous import lines where enabled</td><td>Processor; USA</td></tr>
+<tr><td>Vercel Inc.</td><td>Hosting this website</td><td>Processor; USA / global network</td></tr>
+<tr><td>Resend, Inc. (where set up) <mark class="ph">[prüfen: Resend aktiv?]</mark></td><td>Email notification of contact form messages (4.15)</td><td>Processor; USA</td></tr>
+<tr><td>Apple Inc. / Apple Distribution International Ltd.</td><td>Sign in with Apple, App Store, TestFlight</td><td>Separate controller; Ireland / USA</td></tr>
+<tr><td>AniList</td><td>Fetching public lists on import (username only); image delivery</td><td>Separate controller</td></tr>
+<tr><td>MyAnimeList Co., Ltd.</td><td>Account connection / list retrieval directly from your device</td><td>Separate controller; Japan</td></tr>
+<tr><td>Other club members</td><td>Club content and activity according to your sharing level</td><td>Kuro users</td></tr>
+</tbody>
+</table>
+</div>
+<p>Beyond this we only disclose data where legally required (e.g. to authorities on a statutory basis).</p>
+
+<h2 id="en-7">7. Transfers to third countries</h2>
+<p>With Groq and Vercel (USA), and with Supabase, Inc. and its sub-processors (where access from third countries, e.g. for support or operations, is possible), personal data may reach countries outside the European Economic Area (EEA), in particular the USA. We base such transfers on an adequacy decision of the European Commission – for the USA the EU-U.S. Data Privacy Framework (Art. 45 GDPR) where the recipient is certified under it – and otherwise on the EU Standard Contractual Clauses (Art. 46(2)(c) GDPR) with supplementary measures. You can request a copy of the safeguards. <mark class="ph">[prüfen und je Empfänger festlegen: DPF-Zertifizierung von Groq, Supabase, Vercel; abgeschlossene SCC]</mark></p>
+<p>The same applies to <strong>Resend, Inc.</strong> (USA) if the email notification for the contact form is set up (<a href="#contact-form">4.15</a>). <mark class="ph">[prüfen: DPF-Zertifizierung von Resend bzw. abgeschlossene SCC]</mark></p>
+<p>For Japan (MyAnimeList) an adequacy decision of the European Commission exists. You establish the connection to MyAnimeList yourself from your device.</p>
+
+<h2 id="en-8">8. Retention and account deletion</h2>
+<p>We keep data while you use your account and delete it when it is no longer needed for its purpose. In particular, the following periods currently apply (then automatic deletion):</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Data</th><th>Retention</th></tr></thead>
+<tbody>
+<tr><td>Account, collection, notes, clubs, comments, taste profile</td><td>until you delete them or delete your account</td></tr>
+<tr><td>Completed import sessions</td><td>30 days after completion</td></tr>
+<tr><td>Concierge request history</td><td>60 days</td></tr>
+<tr><td>Cache of recognised Concierge requests</td><td>30 days</td></tr>
+<tr><td>Daily AI usage counters (quota)</td><td>90 days</td></tr>
+<tr><td>Titles already shown in Discover</td><td>until account deletion <mark class="ph">[prüfen: kürzere Frist festlegen]</mark></td></tr>
+<tr><td>Text-recognition feedback</td><td>14 days</td></tr>
+<tr><td>Usage events, external link taps, club usage data</td><td>90 days</td></tr>
+<tr><td>Search-result feedback</td><td>180 days</td></tr>
+<tr><td>Contact form and in-app contact messages</td><td>12 months from receipt (the link to the account ends when the account is deleted)</td></tr>
+<tr><td>Abuse prevention (counters with IP address, or for the contact form with a hash of the IP address)</td><td>about 2 days</td></tr>
+<tr><td>Server logs / backups</td><td><mark class="ph">[SUPABASE-LOG-AUFBEWAHRUNG]</mark> / <mark class="ph">[BACKUP-AUFBEWAHRUNG]</mark></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">These periods reflect the current configuration of our backend. <mark class="ph">[vor Veröffentlichung gegen die produktive Konfiguration prüfen]</mark></p>
+<p><strong>Deleting your account:</strong> you can delete your account at any time in the app under <em>Profile → Delete account</em>. We then delete your account and all data linked to it (collection, notes, imports, Concierge data, comments, reactions, votes, usage events). Clubs you own are transferred to another member or, if none remains, deleted. Content you contributed to clubs (e.g. titles added or polls created) remains available to the other members but is no longer attributed to you. If you signed in with Apple, we also try to revoke the link to your Apple ID with Apple; you can additionally remove it in your Apple ID settings. A technical deletion marker (without content) remains for up to seven days so that no data can be written after the deletion. Messages you sent us through the contact form or from the app are unlinked from your account and deleted 12 months after receipt (<a href="#contact-form">4.15</a>). Data stored on your device is removed by deleting the app.</p>
+
+<h2 id="en-9">9. Your rights</h2>
+<p>Under the GDPR you have the right to</p>
+<ul>
+  <li>access your data (Art. 15),</li>
+  <li>rectification of inaccurate data (Art. 16),</li>
+  <li>erasure (Art. 17),</li>
+  <li>restriction of processing (Art. 18),</li>
+  <li>data portability, i.e. receiving the data you provided in a common machine-readable format (Art. 20),</li>
+  <li>object (Art. 21, see box),</li>
+  <li>and not to be subject to a decision based solely on automated processing with legal effect (Art. 22) – Kuro makes no such decisions.</li>
+</ul>
+<p>An email to <a href="mailto:contact@lazy.space">contact@lazy.space</a> is enough. We usually respond within one month (Art. 12(3) GDPR) and may ask you to confirm your identity, e.g. via the email address linked to your account.</p>
+
+<div class="box" id="en-objection">
+<h3>Right to object (Art. 21 GDPR)</h3>
+<p><strong>Where we process data on the basis of legitimate interests (Art. 6(1)(f) GDPR, in particular the usage statistics in section 4.8), you may object to this processing at any time on grounds relating to your particular situation.</strong> We will then stop processing unless we can demonstrate compelling legitimate grounds that override your interests, or the processing serves the establishment, exercise or defence of legal claims. We do not use your data for direct marketing. An informal objection to <a href="mailto:contact@lazy.space">contact@lazy.space</a> is enough.</p>
+</div>
+
+<p><strong>Consent and withdrawal:</strong> we currently do not base any processing on consent (Art. 6(1)(a) GDPR). You can end optional features such as the MyAnimeList connection or reminders at any time in the app or in iOS settings. If we ask for your consent in future, you can withdraw it at any time with effect for the future; this does not affect the lawfulness of processing before the withdrawal.</p>
+<p><strong>Complaints:</strong> you may lodge a complaint with a data protection supervisory authority (Art. 77 GDPR), in particular in the EU member state of your habitual residence, place of work or the alleged infringement. The authority responsible for us is: the State Commissioner for Data Protection and Freedom of Information of North Rhine-Westphalia (LDI NRW), Kavalleriestraße 2–4, 40213 Düsseldorf, Germany, <a href="https://www.ldi.nrw.de">www.ldi.nrw.de</a>.</p>
+
+<h2 id="en-10">10. Obligation to provide data, profiling</h2>
+<p>An account requires an email address (or Sign in with Apple) and a password; without these we cannot create an account. Everything else (notes, ratings, clubs, imports, Concierge input) is voluntary. For personal recommendations we analyse your collection and reactions (profiling within the meaning of Art. 4(4) GDPR, see 4.5); no decisions with legal or similarly significant effects are based on it.</p>
+
+<h2 id="en-11">11. Minimum age</h2>
+<p>Kuro is intended for people aged 16 and over. People under 16 may use Kuro only with the consent of the holders of parental responsibility (Art. 8(1) GDPR). If we learn that an account was created by a person under 16 without such consent, we delete it.</p>
+
+<h2 id="en-12">12. Security</h2>
+<p>We use technical and organisational measures under Art. 32 GDPR, including encrypted transport (TLS), database-level access control (row-level security: each account can read and write only its own data), password storage only as hashes, deriving the user ID from the sign-in token rather than from input, and storing access tokens in the iOS Keychain.</p>
+
+<h2 id="en-13">13. Changes to this policy</h2>
+<p>We update this policy when the app, our service providers or the law change. The current version is always available at this address and in the app under <em>Profile → Privacy policy</em>. We will inform you in the app about material changes.</p>
+</section>
+
+</div></main>
+
+<footer class="site"><div class="wrap">
+  <a href="/">Kuro</a> · <a href="/datenschutz">Datenschutz / Privacy</a> · <a href="/impressum">Impressum / Legal notice</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen / Terms</a> · <a href="/kontakt">Kontakt / Contact</a><br>
+  Diese Seite setzt keine Cookies und lädt keine externen Inhalte. · This site sets no cookies and loads no external content.
+</div></footer>
+</body>
+</html>

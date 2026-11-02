@@ -1,0 +1,251 @@
+- link "Skip to content":
+  - /url: "#main"
+  - generic: Skip to content
+- banner:
+  - link "Supabase Back to organization home":
+    - /url: /dashboard/org/guekoxfjllunvqjmhxgb
+    - img "Supabase"
+    - generic: Back to organization home
+  - link "Humbl-club's Org Pro":
+    - /url: /dashboard/org/guekoxfjllunvqjmhxgb
+    - generic: Humbl-club's Org
+    - generic: Pro
+  - button "Show organizations":
+  - link "AniThing is Possible":
+    - /url: /dashboard/project/bkdifromsqxkndnllmdj
+    - generic "AniThing is Possible"
+  - button "Show organization projects":
+  - link "main Production":
+    - /url: /dashboard/project/bkdifromsqxkndnllmdj
+    - generic "main"
+    - generic: Production
+  - button "Show project branches":
+  - button "Connect":
+    - generic: Connect
+  - button "Feedback":
+    - generic: Feedback
+  - button "Search...":
+    - paragraph: Search...
+    - generic: ⌘K
+  - button "Help":
+    - generic: Help
+  - button "Advisor Center":
+    - generic: Advisor Center
+  - button "SQL Editor":
+    - generic: SQL Editor
+  - button "AI Assistant":
+    - generic: AI Assistant
+  - button "Humbl-club":
+    - img "Humbl-club"
+- navigation:
+  - list:
+    - link "Project Overview":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj
+      - generic: Project Overview
+    - link "Table Editor":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/editor
+      - generic: Table Editor
+    - link "SQL Editor":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/sql
+      - generic: SQL Editor
+  - list:
+    - link "Database":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/database/schemas
+      - generic: Database
+    - link "Authentication":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/auth/users
+      - generic: Authentication
+    - link "Storage":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/storage/files
+      - generic: Storage
+    - link "Edge Functions":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions
+      - generic: Edge Functions
+    - link "Compute New":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/compute
+      - generic: Compute
+      - generic: New
+    - link "Realtime":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/realtime/inspector
+      - generic: Realtime
+  - list:
+    - link "Advisors":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/advisors/security
+      - generic: Advisors
+    - link "Observability":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/observability
+      - generic: Observability
+    - link "Logs":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/logs
+      - generic: Logs
+    - link "Integrations":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/integrations
+      - generic: Integrations
+  - list:
+    - link "Project Settings":
+      - /url: /dashboard/project/bkdifromsqxkndnllmdj/settings/general
+      - generic: Project Settings
+- button "Sidebar control":
+- main:
+  - heading "Edge Functions" [level=4]
+  - menu "Sidebar":
+    - list:
+      - generic: Manage
+      - link "Functions":
+        - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions
+        - menuitem "Functions":
+          - generic: Functions
+      - link "Secrets":
+        - /url: /dashboard/project/bkdifromsqxkndnllmdj/functions/secrets
+        - menuitem "Secrets":
+          - generic: Secrets
+  - separator [disabled]:
+  - main:
+    - heading "Edge Functions" [level=1]
+    - generic: Run server-side logic close to your users
+    - link "Docs":
+      - /url: https://supabase.com/docs/guides/functions
+      - generic: Docs
+    - link "Examples":
+      - /url: https://github.com/supabase/supabase/tree/master/examples/edge-functions/supabase/functions
+      - generic: Examples
+    - button "Deploy a new function":
+      - generic: Deploy a new function
+    - textbox "Search function names"
+    - button "Sorted by name":
+      - generic: Sorted by name
+    - button "Refresh":
+      - generic: Refresh
+    - generic: Viewing 16 functions in total
+    - table:
+      - rowgroup:
+        - row "Name URL Updated":
+          - columnheader "Name"
+          - columnheader "URL"
+          - columnheader "Updated"
+      - rowgroup:
+        - row "auth-callback https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/auth-callback 7 months ago":
+          - cell "auth-callback":
+            - paragraph: auth-callback
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/auth-callback":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/auth-callback
+            - button:
+          - cell "7 months ago"
+        - row "bulk-import-anime https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-anime 5 months ago":
+          - cell "bulk-import-anime":
+            - paragraph: bulk-import-anime
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-anime":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-anime
+            - button:
+          - cell "5 months ago"
+        - row "bulk-import-manga https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-manga 5 months ago":
+          - cell "bulk-import-manga":
+            - paragraph: bulk-import-manga
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-manga":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-manga
+            - button:
+          - cell "5 months ago"
+        - row "concierge-apply https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-apply a day ago":
+          - cell "concierge-apply":
+            - paragraph: concierge-apply
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-apply":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-apply
+            - button:
+          - cell "a day ago"
+        - row "concierge-import-anilist https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-import-anilist 2 months ago":
+          - cell "concierge-import-anilist":
+            - paragraph: concierge-import-anilist
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-import-anilist":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-import-anilist
+            - button:
+          - cell "2 months ago"
+        - row "concierge-parse https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-parse 7 months ago":
+          - cell "concierge-parse":
+            - paragraph: concierge-parse
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-parse":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-parse
+            - button:
+          - cell "7 months ago"
+        - row "concierge-recommend https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-recommend 7 months ago":
+          - cell "concierge-recommend":
+            - paragraph: concierge-recommend
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-recommend":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-recommend
+            - button:
+          - cell "7 months ago"
+        - row "concierge-resolve https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-resolve 7 months ago":
+          - cell "concierge-resolve":
+            - paragraph: concierge-resolve
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-resolve":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-resolve
+            - button:
+          - cell "7 months ago"
+        - row "concierge-retrieve-assist https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-retrieve-assist a day ago":
+          - cell "concierge-retrieve-assist":
+            - paragraph: concierge-retrieve-assist
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-retrieve-assist":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-retrieve-assist
+            - button:
+          - cell "a day ago"
+        - row "concierge-retrieve-feedback https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-retrieve-feedback 7 months ago":
+          - cell "concierge-retrieve-feedback":
+            - paragraph: concierge-retrieve-feedback
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-retrieve-feedback":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-retrieve-feedback
+            - button:
+          - cell "7 months ago"
+        - row "concierge-undo https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-undo a day ago":
+          - cell "concierge-undo":
+            - paragraph: concierge-undo
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-undo":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/concierge-undo
+            - button:
+          - cell "a day ago"
+        - row "delete-account https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/delete-account 2 days ago":
+          - cell "delete-account":
+            - paragraph: delete-account
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/delete-account":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/delete-account
+            - button:
+          - cell "2 days ago"
+        - row "manga-chapter-enrich https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/manga-chapter-enrich 5 months ago":
+          - cell "manga-chapter-enrich":
+            - paragraph: manga-chapter-enrich
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/manga-chapter-enrich":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/manga-chapter-enrich
+            - button:
+          - cell "5 months ago"
+        - row "manga-source-review-action https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/manga-source-review-action 7 months ago":
+          - cell "manga-source-review-action":
+            - paragraph: manga-source-review-action
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/manga-source-review-action":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/manga-source-review-action
+            - button:
+          - cell "7 months ago"
+        - row "mirror-images https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images 2 months ago":
+          - cell "mirror-images":
+            - paragraph: mirror-images
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images
+            - button:
+          - cell "2 months ago"
+        - row "realm-describe https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/realm-describe 2 months ago":
+          - cell "realm-describe":
+            - paragraph: realm-describe
+          - cell "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/realm-describe":
+            - paragraph: https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/realm-describe
+            - button:
+          - cell "2 months ago"
+- button "Close banner":
+- generic: Preview
+- paragraph: User growth
+- paragraph: Track how your user base is trending.
+- paragraph:
+  - generic: select
+  - generic: date_trunc('week', last_sign_in_at) as week,
+  - generic: count(distinct id) as active_users
+- paragraph: Explorer & Notebooks
+- paragraph: New unified workspace for querying data and chatting with Assistant.
+- button "Enable Explorer":
+  - generic: Enable Explorer
+- alert: Edge Functions | Supabase

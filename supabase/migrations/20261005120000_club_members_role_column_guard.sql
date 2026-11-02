@@ -1,0 +1,68 @@
+-- ============================================================================
+-- club_members: members may update ONLY their own sharing_level
+--
+-- STATUS: PREPARED, NOT APPLIED TO PRODUCTION. Deployment needs a separate,
+--         explicit human approval. Listed in supabase/tests/pending_migrations.txt.
+--         This file lives in supabase/prepared-migrations/ so no push can deploy it by
+--         accident; after approval, `git mv` it into supabase/migrations/.
+--
+-- Finding (E2 backend harness, finding 1, observed in the local fixture):
+--   policy club_members_update_self is USING/WITH CHECK (user_id = auth.uid())
+--   with no column restriction, and `authenticated` holds the Supabase default
+--   table-level UPDATE grant. Any member could run
+--     update club_members set role = 'owner' where user_id = auth.uid()
+--   and then pass is_club_owner()/is_club_admin_or_owner() (rename the club,
+--   delete rails, remove members, read the invite code in fetch_club_bundle).
+--
+-- Fix: column-level least privilege. The policy stays as is (own row only); the
+-- table-level UPDATE grant is replaced by UPDATE(sharing_level), the only column
+-- the policy was documented for (20260209201000: "own row only (sharing_level
+-- changes)"). role / club_id / user_id / joined_at / created_at can no longer be
+-- written through the table API (42501). updated_at is still maintained by the
+-- club_members_set_updated_at trigger (trigger writes are not column-checked).
+--
+-- Why this cannot break a legitimate path (verified against the repo):
+--   * The iOS client never touches club_members directly (no .from("club_members")
+--     in Kuro/); all membership changes go through RPCs.
+--   * The only functions that UPDATE club_members are SECURITY DEFINER and owned
+--     by postgres (leave_club: ownership transfer). Column grants on
+--     `authenticated` do not apply to them. Membership INSERT stays RPC-only
+--     (create_club / join_club, SECURITY DEFINER); DELETE grant is unchanged.
+--   * There is no promote/demote RPC in the chain: after this file the only
+--     sanctioned role change is leave_club's ownership transfer.
+--
+-- NOT handled here (see the RLS hardening report):
+--   * Rows ALREADY escalated in production are not reverted. Read-only audit
+--     before/after deploy:
+--       select club_id, count(*) filter (where role = 'owner') as owners
+--         from public.club_members group by club_id
+--         having count(*) filter (where role = 'owner') <> 1;
+--       select club_id, user_id, joined_at from public.club_members where role = 'admin';
+--     (no sanctioned path has ever created an admin row, so every admin row
+--      deserves review; an owner that is not clubs.created_by is legitimate only
+--      after a leave_club transfer).
+--   * club_members_delete_self_or_admin still lets an admin delete the owner row.
+--
+-- Production parity: this repo chain is production's captured policy state;
+-- production can differ through changes made outside the chain. Verify read-only
+-- before deploying:
+--   select grantee, privilege_type from information_schema.role_table_grants
+--    where table_schema = 'public' and table_name = 'club_members'
+--      and grantee in ('anon', 'authenticated', 'PUBLIC');
+--   (a PUBLIC grant would survive the REVOKE below; it must be absent)
+-- Post-deploy verification (both must return false / true respectively):
+--   select has_column_privilege('authenticated', 'public.club_members', 'role', 'UPDATE');
+--   select has_column_privilege('authenticated', 'public.club_members', 'sharing_level', 'UPDATE');
+--
+-- Idempotent: REVOKE/GRANT can be re-run. REVOKE of the table privilege also
+-- removes any column-level UPDATE grants, so the GRANT that follows is the
+-- complete resulting state.
+-- Rollback (re-opens the escalation; do not use except to restore prior state):
+--   grant update on table public.club_members to anon, authenticated;
+-- ============================================================================
+
+revoke update on table public.club_members from anon, authenticated;
+grant update (sharing_level) on table public.club_members to authenticated;
+
+-- RLS stays enabled (no-op if already on).
+alter table public.club_members enable row level security;

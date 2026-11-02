@@ -1,0 +1,17 @@
+{
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "at": "2026-10-08T00:19:26.850315+00:00",
+  "read_only": true,
+  "http_status": 201,
+  "result": [
+    {
+      "database_name": "postgres",
+      "deletion_helper_md5": "371d495002a7e36cbe3c286d14a078e3",
+      "legacy_outcome": true,
+      "candidate_history": [],
+      "existing_foundation": [],
+      "anime_rows": 37,
+      "manga_rows": 11
+    }
+  ]
+}

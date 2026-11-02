@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "memberEvents": 1,
+  "outsiderEvents": 0,
+  "runId": "20261006T233205Z",
+  "outsiderSelectBlocked": true,
+  "beforeRevision": 2,
+  "afterRevision": 3,
+  "revisionBumped": true,
+  "rail": {
+    "title": "Probe rail",
+    "rail_id": "7b91d4ef-81be-4d42-be9d-c07e0ddec701",
+    "sort_order": 0
+  },
+  "passPath": "realtime"
+}
+[cleanup] deleted kuro-probe-member-20261006T233205Z@mailbox.invalid
+[cleanup] deleted kuro-probe-out-20261006T233205Z@mailbox.invalid

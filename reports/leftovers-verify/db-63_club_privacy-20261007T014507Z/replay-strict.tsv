@@ -1,0 +1,255 @@
+PASS	20250109_remote_applied_placeholder.sql	ORDER	
+PASS	20250909_remote_applied_placeholder.sql	ORDER	
+PASS	20250917_remote_applied_placeholder.sql	ORDER	
+PASS	20260203171100_concierge_core.sql	ORDER	
+PASS	20260203171110_concierge_title_search_rebuild.sql	ORDER	
+PASS	20260203181000_profiles_insert_policy.sql	ORDER	
+FAIL	20260203183000_concierge_recommend_rpc.sql	ORDER	ERROR:  relation "public.anime_tags" does not exist
+FAIL	20260203190000_editorial_recommend_engine.sql	ORDER	ERROR:  relation "public.tags" does not exist
+FAIL	20260203191500_recommend_focus_tags.sql	ORDER	ERROR:  relation "public.anime_tags" does not exist
+FAIL	20260203194500_recommend_focus_filter.sql	ORDER	ERROR:  relation "public.anime_tags" does not exist
+FAIL	20260203201000_editorial_story_boosts.sql	ORDER	ERROR:  relation "public.tags" does not exist
+FAIL	20260203203000_recommend_seed_similarity.sql	ORDER	ERROR:  relation "public.anime_tags" does not exist
+FAIL	20260203223000_scale_perf_bundle_and_indexes.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260203224500_browse_rpc_add_created_at.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260203233500_mirror_runs.sql	ORDER	
+FAIL	20260203235500_search_rpc_keyset.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260204010500_collection_paging_rpc.sql	ORDER	ERROR:  relation "public.anime_user_lists" does not exist
+PASS	20260204124500_title_aliases.sql	ORDER	
+FAIL	20260204133000_collection_feed_paging_rpc.sql	ORDER	ERROR:  relation "public.anime_user_lists" does not exist
+PASS	20260204221500_concierge_rate_limits_and_llm_budgets.sql	ORDER	
+FAIL	20260204233000_recommend_seed_similarity_allow_anon.sql	ORDER	ERROR:  relation "public.anime_tags" does not exist
+PASS	20260204233010_concierge_ops_observability_and_retention.sql	ORDER	
+FAIL	20260204234500_recommend_seed_similarity_ranked_tags.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260204235500_recommend_seed_similarity_genre_gate.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260204240500_backfill_anime_episodes_from_next_airing.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260205000500_concierge_global_llm_budget_and_default_tuning.sql	ORDER	
+PASS	20260205002000_concierge_budget_raise.sql	ORDER	
+PASS	20260205160000_admin_schema_snapshot.sql	ORDER	
+PASS	20260205190000_concierge_modes_config.sql	ORDER	
+FAIL	20260205231000_curated_rails.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260205232000_concierge_mode_cache.sql	ORDER	
+PASS	20260205232500_concierge_router_flag_and_retention.sql	ORDER	
+PASS	20260205233000_concierge_modes_v2_config.sql	ORDER	
+FAIL	20260205234000_curated_rails_seed.sql	ORDER	ERROR:  relation "public.curated_rails" does not exist
+FAIL	20260205235000_discover_bundle_use_curated_rails.sql	ORDER	ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+PASS	20260206100000_concierge_modes_v3_expanded.sql	ORDER	
+FAIL	20260206120000_curated_rails_expansion.sql	ORDER	ERROR:  relation "public.curated_rail_items" does not exist
+FAIL	20260206143000_fix_legacy_tags_and_comments.sql	ORDER	ERROR:  relation "public.tags" does not exist
+FAIL	20260206150000_security_hardening_rls_and_views.sql	ORDER	ERROR:  relation "public.editorial_boosts" does not exist
+FAIL	20260206162329_curated_rails_expansion.sql	ORDER	ERROR:  relation "public.curated_rail_items" does not exist
+FAIL	20260206164200_security_hardening_rls_and_views.sql	ORDER	ERROR:  relation "public.editorial_boosts" does not exist
+FAIL	20260207000000_search_titles_enrich_year_format.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260207011000_curated_rails_vibes_seed.sql	ORDER	ERROR:  relation "public.curated_rails" does not exist
+PASS	20260207012000_concierge_modes_v4_add_vibe_rail_ids.sql	ORDER	
+FAIL	20260207020000_curated_rails_more_vibes_seed.sql	ORDER	ERROR:  relation "public.curated_rails" does not exist
+PASS	20260207021000_concierge_modes_v5_add_more_vibe_rail_ids.sql	ORDER	
+FAIL	20260208022035_phase0_remove_sequels.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+PASS	20260208022043_concierge_mode_analytics.sql	ORDER	
+FAIL	20260208022110_add_sports_mode.sql	ORDER	ERROR:  relation "curated_rails" does not exist
+FAIL	20260208022136_phase0_remove_misclassified.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+FAIL	20260208022153_add_scifi_mode.sql	ORDER	ERROR:  relation "curated_rails" does not exist
+FAIL	20260208022239_add_horror_supernatural_mode.sql	ORDER	ERROR:  relation "curated_rails" does not exist
+FAIL	20260208022250_phase0_dedup_rails.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+FAIL	20260208022326_phase0_slim_and_rerank.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+FAIL	20260208022342_add_demographic_rails.sql	ORDER	ERROR:  relation "curated_rails" does not exist
+PASS	20260208022356_update_concierge_config_new_modes.sql	ORDER	
+FAIL	20260208022404_phase0_fix_classics.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+FAIL	20260208023052_phase0_backfill_underpopulated_rails.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+FAIL	20260208023221_phase0_dedup_backfilled_rails.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+FAIL	20260208023331_phase0_final_backfill.sql	ORDER	ERROR:  relation "curated_rail_items" does not exist
+FAIL	20260208090000_refine_short_and_fantasy_rails.sql	ORDER	ERROR:  relation "public.curated_rails" does not exist
+FAIL	20260208091500_curated_rails_premium_picks_seed.sql	ORDER	ERROR:  relation "public.curated_rails" does not exist
+PASS	20260208092000_concierge_modes_v6_add_premium_picks_rail_id.sql	ORDER	
+FAIL	20260209000000_search_titles_add_cover_image.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260209100000_concierge_modes_v7_german_synonyms.sql	ORDER	
+PASS	20260209110000_concierge_modes_v8_expanded.sql	ORDER	
+FAIL	20260209120000_new_vibe_rails.sql	ORDER	ERROR:  relation "public.curated_rails" does not exist
+PASS	20260209135229_import_reconciliation.sql	ORDER	
+PASS	20260209200000_clubs_foundation.sql	ORDER	
+PASS	20260209201000_clubs_rls_policies.sql	ORDER	
+PASS	20260209202000_clubs_rpcs.sql	ORDER	
+PASS	20260209220000_club_analytics.sql	ORDER	
+FAIL	20260209224945_fix_mirror_cron_contention.sql	ORDER	ERROR:  relation "public.import_locks" does not exist
+PASS	20260211030140_feature_flags.sql	ORDER	
+PASS	20260211100000_rag_tables.sql	ORDER	
+PASS	20260211110000_privacy_retention_and_gdpr.sql	ORDER	
+PASS	20260211113000_rag_retrieve_candidates.sql	ORDER	
+PASS	20260211154000_fetch_club_bundle_member_identity.sql	ORDER	
+FAIL	20260211162000_reduce_school_shoujo_overlap.sql	ORDER	ERROR:  relation "public.curated_rail_items" does not exist
+PASS	20260211170000_enable_concierge_intelligence_de_canary.sql	ORDER	
+PASS	20260213130000_clubs_concierge_swipe_flags.sql	ORDER	
+PASS	20260213143000_concierge_editorial_v1_flag.sql	ORDER	
+PASS	20260215124919_add_create_rail_and_poll_rpcs.sql	ORDER	
+PASS	20260215124946_create_club_rail_and_poll_rpcs.sql	ORDER	
+PASS	20260215125056_fix_invite_code_crypto_and_club_members_insert.sql	ORDER	
+PASS	20260215125312_club_reactions_and_invite_share.sql	ORDER	
+FAIL	20260215130000_fix_club_fk_housekeeping_gdpr.sql	ORDER	ERROR:  relation "public.club_rail_item_reactions" does not exist
+PASS	20260216015514_clubs_list_enrichment.sql	ORDER	
+PASS	20260216015733_club_reactions_in_bundle.sql	ORDER	
+FAIL	20260216015921_clubs_realtime_publication.sql	ORDER	ERROR:  relation "public.club_rail_item_reactions" does not exist
+PASS	20260216020023_club_messages.sql	ORDER	
+PASS	20260216193000_add_club_rail_item_structured_errors.sql	ORDER	
+FAIL	20260216200204_catalog_created_at_not_null.sql	ORDER	ERROR:  relation "anime" does not exist
+PASS	20260216200227_drop_unused_indexes_merge_policies_health_check.sql	ORDER	
+FAIL	20260216214047_fix_initplan_rls_club_messages_reactions.sql	ORDER	ERROR:  relation "public.club_rail_item_reactions" does not exist
+FAIL	20260216214050_authors_tags_created_at_not_null.sql	ORDER	ERROR:  relation "authors" does not exist
+PASS	20260218131735_fix_join_club_archived_check.sql	ORDER	
+PASS	20260218141739_capture_club_message_functions.sql	ORDER	
+PASS	20260218141754_update_join_create_club_functions.sql	ORDER	
+PASS	20260218141757_fix_storage_insert_policy.sql	ORDER	
+PASS	20260218173617_drop_duplicate_indexes.sql	ORDER	
+PASS	20260218173619_drop_dead_rag_cache_cleanup.sql	ORDER	
+PASS	20260219002612_critical_security_drop_and_revoke.sql	ORDER	
+PASS	20260219002639_drop_start_bulk_import_with_args.sql	ORDER	
+PASS	20260219002706_revoke_public_from_admin_functions.sql	ORDER	
+FAIL	20260219003105_add_user_lists_to_realtime_publication.sql	ORDER	ERROR:  relation "anime_user_lists" does not exist
+FAIL	20260219003111_anime_is_adult_not_null.sql	ORDER	ERROR:  relation "anime" does not exist
+PASS	20260219003305_drop_ambiguous_overloads.sql	ORDER	
+PASS	20260219003323_harden_toggle_reaction.sql	ORDER	
+PASS	20260219003339_harden_create_club.sql	ORDER	
+FAIL	20260219003351_tighten_club_write_policies.sql	ORDER	ERROR:  relation "public.club_rail_item_reactions" does not exist
+PASS	20260219003357_tighten_storage_update_policy.sql	ORDER	
+PASS	20260219003402_add_missing_fk_indexes.sql	ORDER	
+PASS	20260219003703_cron_cleanup_and_mirror_auth.sql	ORDER	
+PASS	20260219100000_critical_security_drop_and_revoke.sql	ORDER	
+PASS	20260219100001_drop_start_bulk_import_with_args.sql	ORDER	
+PASS	20260219100002_revoke_public_from_admin_functions.sql	ORDER	
+FAIL	20260219100003_add_user_lists_to_realtime_publication.sql	ORDER	ERROR:  relation "public.anime_user_lists" does not exist
+FAIL	20260219100004_anime_manga_is_adult_not_null.sql	ORDER	ERROR:  relation "anime" does not exist
+PASS	20260219100005_drop_ambiguous_overloads.sql	ORDER	
+PASS	20260219100006_harden_toggle_reaction.sql	ORDER	
+PASS	20260219100007_harden_create_club.sql	ORDER	
+FAIL	20260219100008_tighten_club_write_policies.sql	ORDER	ERROR:  relation "public.club_rail_item_reactions" does not exist
+PASS	20260219100009_tighten_storage_update_policy.sql	ORDER	
+PASS	20260219100010_add_missing_fk_indexes.sql	ORDER	
+PASS	20260219100011_cron_cleanup_and_mirror_auth.sql	ORDER	
+FAIL	20260219114953_set_not_null_on_nullable_required_columns.sql	ORDER	ERROR:  relation "anime" does not exist
+FAIL	20260219120000_set_not_null_on_nullable_required_columns.sql	ORDER	ERROR:  relation "anime" does not exist
+FAIL	20260219153000_manga_chapter_enrichment_v1.sql	ORDER	ERROR:  relation "public.manga" does not exist
+PASS	20260219234000_fix_manga_chapter_enrich_cron_secret.sql	ORDER	
+PASS	20260219235500_manga_review_approved_mapping_method.sql	ORDER	
+FAIL	20260220103000_manga_fuzzy_matcher_v2.sql	ORDER	ERROR:  relation "public.manga_source_links" does not exist
+FAIL	20260221120000_browse_filters_year_format.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260221150000_manga_fuzzy_matcher_method_allow_title_fuzzy.sql	ORDER	
+FAIL	20260221162000_manga_zero_touch_canonical_mapping.sql	ORDER	ERROR:  relation "public.manga" does not exist
+FAIL	20260221173000_manga_chapter_crunch_mode.sql	ORDER	ERROR:  relation "public.chapters" does not exist
+PASS	20260221190000_enable_swipe_tap_guard_v1.sql	ORDER	
+FAIL	20260221191000_synopsis_enhancement_fields.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260221192000_synopsis_enrichment_rpcs.sql	ORDER	
+FAIL	20260223002000_synopsis_retry_backoff_and_resume.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260224101000_catalog_safety_runner_v1.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260224150000_social_activity_layer.sql	ORDER	
+PASS	20260225100000_check_email_exists_rpc.sql	ORDER	
+FAIL	20260301100000_streaming_availability_v1.sql	ORDER	ERROR:  relation "public.external_links" does not exist
+FAIL	20260301153000_streaming_availability_country_lang_v1.sql	ORDER	ERROR:  relation "public.streaming_services" does not exist
+PASS	20260304100000_credits_cast_v1_flag.sql	ORDER	
+PASS	20260305151500_fix_delete_user_concierge_data_uuid_compare.sql	ORDER	
+PASS	20260305153000_fix_delete_user_concierge_data_import_sessions_and_coverage.sql	ORDER	
+PASS	20260305162000_cleanup_db_lint_warnings.sql	ORDER	
+PASS	20260306113000_provider_availability_note_contract.sql	ORDER	
+PASS	20260307120000_media_relations_ladder_v1.sql	ORDER	
+PASS	20260307150000_adaptation_ladder_v2_editorial_context.sql	ORDER	
+PASS	20260307163000_fix_adaptation_ladder_entry_point.sql	ORDER	
+PASS	20260311100000_ladder_source_author.sql	ORDER	
+PASS	20260313100000_slim_club_bundle_limits.sql	ORDER	
+PASS	20260313120000_social_activity_v1_rollout_100.sql	ORDER	
+PASS	20260316100000_fix_club_bundle_columns_and_reactions.sql	ORDER	
+PASS	20260316220000_clubs_list_cover_images_members.sql	ORDER	
+PASS	20260317063000_clubs_list_cover_image_large.sql	ORDER	
+PASS	20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql	ORDER	
+FAIL	20260318103000_import_track_and_worker_state.sql	ORDER	ERROR:  relation "public.manga" does not exist
+PASS	20260318104000_club_loading_rpcs.sql	ORDER	
+FAIL	20260319123000_provider_availability_request_priority.sql	ORDER	ERROR:  relation "public.provider_availability_refresh_state" does not exist
+FAIL	20260322110000_add_list_verdicts.sql	ORDER	ERROR:  relation "public.anime_user_lists" does not exist
+FAIL	20260324173000_search_title_priority.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260324180000_search_title_popularity_tiebreak.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260324213000_discover_airing_today_berlin_day.sql	ORDER	ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+PASS	20260326221000_discover_new_to_you_rotation.sql	ORDER	
+FAIL	20260326234000_exclude_ancillary_anime_from_default_surfaces.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260730160000_taste_signal_events_v1.sql	ORDER	ERROR:  relation "public.anime_user_lists" does not exist
+PASS	20260731010000_taste_deck_v1.sql	ORDER	
+FAIL	20260731011000_taste_profile_recompute_v1.sql	ORDER	ERROR:  relation "public.taste_profile_recompute_queue" does not exist
+FAIL	20260731012000_personalized_nty_and_flags_v1.sql	ORDER	ERROR:  relation "public.taste_profile_recompute_queue" does not exist
+FAIL	20260731020000_image_convergence_v1.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260731030000_outbound_link_ledger_v1.sql	ORDER	
+PASS	20260731040000_clubs_trust_pack_v1.sql	ORDER	
+FAIL	20260731050000_taste_deck_meta_v1.sql	ORDER	ERROR:  relation "public.provider_availability" does not exist
+FAIL	20260731060000_taste_math_v2.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260731070000_taste_math_v2_hotfix.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260731080000_taste_math_v2_fix2.sql	ORDER	ERROR:  relation "public.taste_profile_recompute_queue" does not exist
+PASS	20260731090000_taste_deck_pass_memory.sql	ORDER	
+PASS	20260731095000_deck_love_to_list.sql	ORDER	
+FAIL	20260731100000_discover_p1.sql	ORDER	ERROR:  relation "public.editorial_boosts" does not exist
+PASS	20260731110000_daily_feature_argument_polish.sql	ORDER	
+FAIL	20260731120000_realm_signatures_v1.sql	ORDER	ERROR:  relation "public.tags" does not exist
+PASS	20260731130000_canon_seed_v1.sql	ORDER	
+PASS	20260731140000_media_rec_edges_v1.sql	ORDER	
+FAIL	20260731150000_realm_graph_v1.sql	ORDER	ERROR:  relation "public.realm_signatures" does not exist
+FAIL	20260731160000_realm_gate_calibration.sql	ORDER	ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL	20260731170000_media_realm_llm_v1.sql	ORDER	ERROR:  relation "public.anime" does not exist
+FAIL	20260731180000_similarity_inclusion_fix.sql	ORDER	ERROR:  relation "public.media_tag_vectors" does not exist
+PASS	20260731190000_debug_functiondef.sql	ORDER	
+PASS	20260731191000_debug_functiondef2.sql	ORDER	
+PASS	20260731192000_debug_functiondef3.sql	ORDER	
+PASS	20260731193000_debug_sim_pair.sql	ORDER	
+FAIL	20260731194000_debug_sim_v42.sql	ORDER	ERROR:  relation "public.media_tag_vectors" does not exist
+PASS	20260731195000_debug_ranked_pair.sql	ORDER	
+FAIL	20260731200000_penalty_clamp_and_debug_cleanup.sql	ORDER	ERROR:  relation "public.media_tag_vectors" does not exist
+PASS	20260802010000_realm_describe_drain.sql	ORDER	
+PASS	20260802011000_ops_read_cron_secret_tmp.sql	ORDER	
+PASS	20260802012000_ops_list_cron_jobnames.sql	ORDER	
+PASS	20260802013000_ops_extract_literal_import_secret.sql	ORDER	
+PASS	20260802014000_realm_llm_upsert_rate_budget.sql	ORDER	
+PASS	20260802015000_pause_realm_describe_cron.sql	ORDER	
+PASS	20260802016000_realm_describe_cron_catchup.sql	ORDER	
+PASS	20260802017000_realm_llm_upsert_service_role_only.sql	ORDER	
+PASS	20260802120000_pause_realm_describe_cron_again.sql	ORDER	
+FAIL	20260802123000_media_realm_membership_delta_v1.sql	ORDER	ERROR:  relation "public.realm_meta" does not exist
+PASS	20260802124000_membership_delta_clamp_fix.sql	ORDER	
+FAIL	20260802125000_membership_delta_check_float4.sql	ORDER	ERROR:  relation "public.media_realm_membership_delta" does not exist
+FAIL	20260802140000_spirited_away_gate_harden.sql	ORDER	ERROR:  relation "public.realm_affinity_overrides" does not exist
+FAIL	20260802141000_canon_bless_and_discover_realm_rails.sql	ORDER	ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL	20260802150000_curation_sources_expand_v1.sql	ORDER	ERROR:  column "blessed" of relation "canon_seed" does not exist
+FAIL	20260804100000_similarity_penalty_and_costs.sql	ORDER	ERROR:  relation "public.realm_affinity_overrides" does not exist
+FAIL	20260804110000_totoro_credits_and_studio_main.sql	ORDER	ERROR:  relation "public.anime_staff" does not exist
+FAIL	20260804120000_tier_from_effective_and_cron.sql	ORDER	ERROR:  relation "public.media_realm_tier" does not exist
+FAIL	20260804121000_rebuild_tier_execute_service_role_only.sql	ORDER	ERROR:  function public.rebuild_media_realm_tier() does not exist
+FAIL	20260804130000_media_similar_titles_precompute.sql	ORDER	ERROR:  relation "public.media_tag_vectors" does not exist
+PASS	20260804131000_similar_builder_oom_fix.sql	ORDER	
+PASS	20260804132000_similar_driver_batch_100.sql	ORDER	
+PASS	20260804140000_franchise_components_and_blend_dedupe.sql	ORDER	
+FAIL	20260804150000_hygiene_ops_fn_and_view_advisors.sql	ORDER	ERROR:  relation "public.realm_affinity_effective" does not exist
+PASS	20260805100000_daily_feature_display_synopsis.sql	ORDER	
+FAIL	20260805110000_realm_audit_overrides.sql	ORDER	ERROR:  relation "public.realm_meta" does not exist
+FAIL	20260805112000_realm_audit_override_conditional_swap.sql	ORDER	ERROR:  relation "public.media_realm_membership" does not exist
+FAIL	20260805120000_edges_first_serving.sql	ORDER	ERROR:  relation "public.media_similar_titles" does not exist
+PASS	20260805130000_critique_ingestion_schema.sql	ORDER	
+FAIL	20260805140000_entry_point_canonicalization.sql	ORDER	ERROR:  relation "public.anime" does not exist
+PASS	20260805150000_entry_point_upward_tier_substitution.sql	ORDER	
+FAIL	20260806000000_security_and_mirror_repair.sql	ORDER	ERROR:  relation "public.media_similar_seed_state" does not exist
+PASS	20260806010000_serving_fixes_v1.sql	ORDER	
+FAIL	20260806020000_serving_hardening_v1.sql	ORDER	ERROR:  relation "public.media_similar_seed_state" does not exist
+PASS	20260807000000_baseline_capture_v1.sql	ORDER	
+FAIL	20260807010000_leftover_repairs_v1.sql	ORDER	ERROR:  relation "public.media_franchise_entry_points" does not exist
+PASS	20260810120000_clubs_trust_flags_promote_100.sql	ORDER	
+PASS	20261005120000_club_members_role_column_guard.sql	ORDER	
+PASS	20261005120000_club_members_role_column_guard.sql	ORDER	
+PASS	20261005120100_club_rails_insert_admin_only.sql	ORDER	
+PASS	20261005120100_club_rails_insert_admin_only.sql	ORDER	
+PASS	20261005120200_toggle_comment_reaction_visibility.sql	ORDER	
+PASS	20261005120200_toggle_comment_reaction_visibility.sql	ORDER	
+FAIL	20261005130000_import_apply_undo_transactions.sql	ORDER	ERROR:  import_apply_undo_transactions: a prerequisite table is missing (import_sessions, import_session_items, anime_user_lists, manga_user_lists, taste_import_context)
+FAIL	20261005130000_import_apply_undo_transactions.sql	ORDER	ERROR:  import_apply_undo_transactions: a prerequisite table is missing (import_sessions, import_session_items, anime_user_lists, manga_user_lists, taste_import_context)
+PASS	20261005140000_account_deletion_write_barrier.sql	ORDER	
+PASS	20261005140000_account_deletion_write_barrier.sql	ORDER	
+PASS	20261005150000_club_membership_lifecycle_and_privacy.sql	ORDER	
+PASS	20261005150000_club_membership_lifecycle_and_privacy.sql	ORDER	
+PASS	20261005160000_club_realtime_signals.sql	ORDER	
+PASS	20261005160000_club_realtime_signals.sql	ORDER	
+PASS	20261005170000_user_lists_view_security_invoker.sql	ORDER	
+PASS	20261005170000_user_lists_view_security_invoker.sql	ORDER	
+PASS	20261005180000_list_user_id_canonical_case.sql	ORDER	
+PASS	20261005180000_list_user_id_canonical_case.sql	ORDER	
+PASS	20261006120000_import_sessions_select_only.sql	ORDER	
+PASS	20261007040000_series_home_foundation_v1.sql	ORDER	

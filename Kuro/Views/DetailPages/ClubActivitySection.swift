@@ -1,98 +1,46 @@
+import KuroCore
 import SwiftUI
-import PostgREST
 
-// MARK: - Club Activity Section for Media Detail Views
-// Shows club context for a media item: which clubs have it in a rail,
-// aggregate member status counts, and (if sharing level allows) member details.
-// Privacy is enforced server-side; this view renders whatever data is returned.
-
-struct ClubActivitySection: View {
-    let mediaId: Int
-    let mediaType: String
-
-    @Environment(SupabaseService.self) private var supabaseService
-    @State private var showAddSheet = false
-
-    private var activities: [SupabaseService.ClubMediaActivity] {
-        supabaseService.clubActivityForMedia(mediaId: mediaId, mediaType: mediaType)
-    }
-
-    var body: some View {
-        let hasClubs = !supabaseService.myClubs.isEmpty
-        let currentUserId = supabaseService.currentUserId
-
-        if hasClubs || !activities.isEmpty {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                EditorialLayout.divider()
-
-                HStack(spacing: 10) {
-                    Text("CLUBS")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.6)
-                        .foregroundColor(.kuroBlack80)
-
-                    Spacer(minLength: 0)
-
-                    if hasClubs {
-                        Button {
-                            KuroAccessibility.impactHaptic(.light)
-                            showAddSheet = true
-                        } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "plus")
-                                        .font(.kuroMicro(weight: .semibold))
-                                    Text("ADD")
-                                        .font(.kuroMicro(weight: .medium))
-                                        .tracking(1.4)
-                                }
-                            .foregroundColor(.black.opacity(0.78))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(
-                                Capsule()
-                                    .stroke(Color.black.opacity(0.12), lineWidth: 0.8)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                if activities.isEmpty {
-                    Text("Add this to a club rail to watch together. No feeds, just shared rails.")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.black.opacity(0.50))
-                } else {
-                    ForEach(activities, id: \.club.id) { activity in
-                        ClubActivityCard(activity: activity, currentUserId: currentUserId)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .task {
-                // If the user just opened detail pages, the clubs list might not be warm yet.
-                if supabaseService.myClubs.isEmpty {
-                    await supabaseService.fetchMyClubs()
-                }
-            }
-            .sheet(isPresented: $showAddSheet) {
-                AddToClubRailSheet(mediaId: mediaId, mediaType: mediaType)
-                    .environment(supabaseService)
-            }
-        }
-    }
-}
+// MARK: - Club rail presence for the detail pages
+// Which of the viewer's clubs hold a title in a rail: aggregate member statuses and (when the club's
+// sharing level allows) member details. Privacy is enforced server-side; these views render whatever
+// the cached club bundles return. Since the prototype-fidelity pass (2026-11-01) the cards are drawn
+// inside the detail page's "Between us." card (`DetailBetweenUs`); the old standalone section and its
+// Add button are gone (Add to a club lives in the status mark's menu). Each card's club name opens the
+// club inside the journey (navigation contract N9).
 
 // MARK: - Card per club
 
-private struct ClubActivityCard: View {
-    let activity: SupabaseService.ClubMediaActivity
+struct ClubActivityCard: View {
+    let activity: ClubMediaActivity
     let currentUserId: String?
+    @Environment(\.kuroRoutes) private var routes
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            Text(activity.club.name)
-                .font(.kuroBody(weight: .medium))
-                .foregroundColor(.black.opacity(0.85))
+            // The club's name opens the club, pushed inside the journey (navigation contract N9: this card
+            // used to be a dead tap). Only the name row is the button: the member disclosure below keeps
+            // its own tap.
+            Button {
+                routes.openPage(DetailNavigation.clubPage(activity))
+            } label: {
+                HStack(spacing: KuroDesignSpacing.sm) {
+                    Text(activity.club.name)
+                        .font(.kuroBody(weight: .medium))
+                        .foregroundColor(.kuroBlack85)
+                        .multilineTextAlignment(.leading)
+                    Spacer(minLength: KuroDesignSpacing.sm)
+                    Image(systemName: "arrow.right")
+                        .font(.kuroCaption())
+                        .foregroundColor(.kuroInkQuiet)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(activity.club.name)
+            .accessibilityHint(KuroLocale.text("Opens the club.", "Öffnet den Club."))
 
             ForEach(activity.matchingItems, id: \.item.id) { match in
                 ClubActivityItemRow(
@@ -107,283 +55,13 @@ private struct ClubActivityCard: View {
     }
 }
 
-// MARK: - Add to Club Rail Sheet
-
-struct AddToClubRailSheet: View {
-    let mediaId: Int
-    let mediaType: String
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
-
-    @State private var selectedClubId: String? = nil
-    @State private var bundle: SupabaseService.ClubBundle? = nil
-    @State private var isLoading = false
-    @State private var errorText: String? = nil
-    @State private var isSubmitting = false
-    @State private var pendingRailId: String? = nil
-    @State private var loadBundleTask: Task<Void, Never>? = nil
-
-    private var clubsInteractionV2Enabled: Bool {
-        FeatureFlags.shared.isClubsInteractionV2Enabled
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
-                    Text("ADD TO CLUB")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(2.4)
-                        .foregroundColor(.black.opacity(0.60))
-                        .padding(.top, KuroDesignSpacing.md)
-
-                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                        Text("Choose a club")
-                            .font(.kuroCaption(weight: .medium))
-                            .foregroundColor(.black.opacity(0.55))
-
-                        ForEach(supabaseService.myClubs.filter { !$0.is_archived }) { club in
-                            Button {
-                                KuroAccessibility.impactHaptic(.light)
-                                selectClub(club.id)
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Text(club.name)
-                                        .font(.kuroBody(weight: .light))
-                                        .foregroundColor(.black.opacity(0.85))
-                                        .lineLimit(1)
-
-                                    Spacer(minLength: 0)
-
-                                    if selectedClubId == club.id {
-                                        Image(systemName: "checkmark")
-                                            .font(.kuroCaption(weight: .semibold))
-                                            .foregroundColor(.black.opacity(0.55))
-                                    } else {
-                                        Image(systemName: "chevron.right")
-                                            .font(.kuroCaption(weight: .regular))
-                                            .foregroundColor(.kuroTextTertiary)
-                                    }
-                                }
-                                .padding(.vertical, 10)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    EditorialLayout.divider()
-
-                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                        Text("Choose a rail")
-                            .font(.kuroCaption(weight: .medium))
-                            .foregroundColor(.black.opacity(0.55))
-
-                        if isLoading {
-                            HStack(spacing: 10) {
-                                ProgressView().scaleEffect(0.9).tint(.black.opacity(0.45))
-                                Text("Loading rails...")
-                                    .font(.kuroCaption(weight: .light))
-                                    .foregroundColor(.black.opacity(0.45))
-                            }
-                            .padding(.vertical, 6)
-                        } else if let errorText {
-                            Text(errorText)
-                                .font(.kuroCaption())
-                                .foregroundColor(.red.opacity(0.85))
-                        } else if let bundle {
-                            if bundle.rails.isEmpty {
-                                Text("No rails yet. Ask an admin to create one.")
-                                    .font(.kuroCaption(weight: .light))
-                                    .foregroundColor(.black.opacity(0.45))
-                            } else {
-                                ForEach(bundle.rails) { rail in
-                                    let canAdd = !(rail.is_locked && !["owner", "admin"].contains(bundle.my_role))
-
-                                    Button {
-                                        guard canAdd, !isSubmitting else { return }
-                                        KuroAccessibility.impactHaptic(.light)
-                                        Task { await addToRail(railId: rail.id, clubId: bundle.club.id) }
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            Text(rail.title)
-                                                .font(.kuroBody(weight: .light))
-                                                .foregroundColor(.black.opacity(canAdd ? 0.85 : 0.30))
-                                                .lineLimit(1)
-
-                                            Spacer(minLength: 0)
-
-                                            if rail.is_locked {
-                                                Image(systemName: "lock.fill")
-                                                    .font(.kuroMicro(weight: .regular))
-                                                    .foregroundColor(.kuroTextTertiary)
-                                            }
-
-                                            if clubsInteractionV2Enabled && pendingRailId == rail.id && isSubmitting {
-                                                ProgressView()
-                                                    .scaleEffect(0.8)
-                                                    .tint(.black.opacity(0.55))
-                                            } else if clubsInteractionV2Enabled && pendingRailId == rail.id {
-                                                Image(systemName: "checkmark")
-                                                    .font(.kuroCaption(weight: .semibold))
-                                                    .foregroundColor(.black.opacity(0.55))
-                                            } else {
-                                                Image(systemName: "plus")
-                                                    .font(.kuroCaption(weight: .semibold))
-                                                    .foregroundColor(.black.opacity(canAdd ? 0.55 : 0.20))
-                                            }
-                                        }
-                                        .padding(.vertical, 10)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(!canAdd || isSubmitting)
-                                }
-                            }
-                        } else {
-                            Text("Pick a club to see its rails.")
-                                .font(.kuroCaption(weight: .light))
-                                .foregroundColor(.black.opacity(0.45))
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, KuroDesignSpacing.xxl)
-            }
-            .background(Color.kuroBackground)
-            .safeAreaInset(edge: .bottom) {
-                Color.clear.frame(height: 24)
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .font(.kuroBody(weight: .light))
-                }
-            }
-        }
-        .task {
-            if supabaseService.myClubs.isEmpty {
-                await supabaseService.fetchMyClubs()
-            }
-            if clubsInteractionV2Enabled {
-                let eligible = supabaseService.myClubs.filter { !$0.is_archived }
-                guard selectedClubId == nil, !eligible.isEmpty else { return }
-                if let remembered = supabaseService.rememberedAddToClubId(),
-                   eligible.contains(where: { $0.id == remembered }) {
-                    selectClub(remembered)
-                } else if let first = eligible.first?.id {
-                    selectClub(first)
-                }
-            }
-        }
-        .onDisappear {
-            loadBundleTask?.cancel()
-        }
-    }
-
-    private func selectClub(_ clubId: String) {
-        selectedClubId = clubId
-        if clubsInteractionV2Enabled {
-            supabaseService.setRememberedAddToClubId(clubId)
-        }
-        loadBundleTask?.cancel()
-        bundle = nil
-        errorText = nil
-        isLoading = true
-        isSubmitting = false
-        pendingRailId = nil
-
-        loadBundleTask = Task {
-            defer {
-                // Ignore stale/cancelled completions so a newer request owns loading state.
-                if !Task.isCancelled, selectedClubId == clubId {
-                    isLoading = false
-                }
-            }
-            do {
-                let fetched = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: true)
-                guard !Task.isCancelled, selectedClubId == clubId else { return }
-                bundle = fetched
-            } catch {
-                guard !Task.isCancelled, selectedClubId == clubId else { return }
-                errorText = "Could not load rails."
-            }
-        }
-    }
-
-    private func addToRail(railId: String, clubId: String) async {
-        guard !isSubmitting else { return }
-        isSubmitting = true
-        pendingRailId = clubsInteractionV2Enabled ? railId : nil
-        let startedAt = supabaseService.beginInteractionTiming()
-        supabaseService.trackInteractionEvent(
-            "clubs_add_to_rail_tap",
-            surface: "club_activity_add_sheet",
-            result: "attempt",
-            extra: ["club_id": clubId]
-        )
-        defer { isSubmitting = false }
-        do {
-            _ = try await supabaseService.addRailItem(
-                railId: railId,
-                mediaType: mediaType.uppercased(),
-                mediaId: mediaId
-            )
-            // Refresh the club bundle so the club view and activity cache update quickly.
-            _ = try? await supabaseService.refreshClubBundle(clubId: clubId)
-            supabaseService.trackInteractionEvent(
-                "clubs_add_to_rail_success",
-                surface: "club_activity_add_sheet",
-                result: "ok",
-                startedAt: startedAt,
-                extra: ["club_id": clubId]
-            )
-            KuroAccessibility.successHaptic()
-            dismiss()
-        } catch {
-            KuroAccessibility.errorHaptic()
-            if errorCode(from: error) == .notAMember {
-                errorText = "You're no longer a member of this club."
-                bundle = nil
-            } else {
-                errorText = "Could not add to rail."
-            }
-            pendingRailId = nil
-            supabaseService.trackInteractionEvent(
-                "clubs_add_to_rail_error",
-                surface: "club_activity_add_sheet",
-                result: "error",
-                startedAt: startedAt,
-                extra: ["club_id": clubId]
-            )
-        }
-    }
-
-    private enum AddToRailErrorCode: String {
-        case notAMember = "NOT_A_MEMBER"
-    }
-
-    private func errorCode(from error: Error) -> AddToRailErrorCode? {
-        guard let pgError = error as? PostgrestError else { return nil }
-        let candidates = [pgError.detail, pgError.hint, pgError.message]
-        for raw in candidates {
-            guard let raw else { continue }
-            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
-            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-            if let code = AddToRailErrorCode(rawValue: normalized) { return code }
-        }
-        return nil
-    }
-}
-
 // MARK: - Row per rail item match
 
 private struct ClubActivityItemRow: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
     let memberCount: Int
     let sharingLevel: String
-    let members: [SupabaseService.ClubMember]
+    let members: [ClubMember]
     let currentUserId: String?
 
     @State private var showMembers = false
@@ -393,24 +71,27 @@ private struct ClubActivityItemRow: View {
         if let tracking = counts["_tracking_count"], tracking > 0 {
             let notStarted = max(0, memberCount - tracking)
             // Tracking count represents members with any started progress/status.
-            return "\(tracking) started \u{00B7} \(notStarted) not started"
+            return KuroLocale.text("\(tracking) started \u{00B7} \(notStarted) not started",
+                                   "\(tracking) begonnen \u{00B7} \(notStarted) noch nicht begonnen")
         }
+        let german = KuroLocale.isGerman
+        let kind: MediaKind = item.media_type.uppercased() == "MANGA" ? .manga : .anime
         var parts: [String] = []
         let watching = (counts["CURRENT"] ?? 0) + (counts["WATCHING"] ?? 0) + (counts["READING"] ?? 0)
         let completed = counts["COMPLETED"] ?? 0
         let planning = (counts["PLANNING"] ?? 0) + (counts["PLANNED"] ?? 0)
         let paused = (counts["PAUSED"] ?? 0) + (counts["ON_HOLD"] ?? 0)
         let dropped = counts["DROPPED"] ?? 0
-        if watching > 0 { parts.append("\(watching) watching") }
-        if completed > 0 { parts.append("\(completed) completed") }
-        if planning > 0 { parts.append("\(planning) planning") }
-        if paused > 0 { parts.append("\(paused) paused") }
-        if dropped > 0 { parts.append("\(dropped) dropped") }
+        // "3 Watching" / "3 schauen": a count of members, so German uses the plural verb or participle.
+        for (count, status) in [(watching, FolioStatus.watching), (completed, .completed), (planning, .planned),
+                                (paused, .paused), (dropped, .dropped)] where count > 0 {
+            parts.append(DetailCopy.statusCount(count, status: status, medium: kind, german: german))
+        }
         let tracked = counts
             .filter { $0.key != "_tracking_count" }
             .reduce(0) { $0 + $1.value }
         let notStarted = max(0, memberCount - tracked)
-        if notStarted > 0 { parts.append("\(notStarted) not started") }
+        if notStarted > 0 { parts.append(KuroLocale.text("\(notStarted) not started", "\(notStarted) noch nicht begonnen")) }
         return parts.joined(separator: " \u{00B7} ")
     }
 
@@ -420,7 +101,9 @@ private struct ClubActivityItemRow: View {
 
     /// Format progress with fraction when total is available.
     private func progressText(current: Int, total: Int?) -> String {
-        let prefix = item.media_type.uppercased() == "ANIME" ? "Ep" : "Ch"
+        let prefix = item.media_type.uppercased() == "ANIME"
+            ? KuroLocale.text("Ep.", "F.")
+            : KuroLocale.text("Ch.", "Kap.")
         if let total, total > 0 {
             return "\(prefix) \(current)/\(total)"
         }
@@ -432,19 +115,19 @@ private struct ClubActivityItemRow: View {
             if !aggregateText.isEmpty {
                 Text(aggregateText)
                     .font(.kuroCaption())
-                    .foregroundColor(.black.opacity(0.55))
+                    .foregroundColor(.kuroTextSecondary)
             }
 
             if let myStatus = item.my_status {
                 HStack(spacing: 6) {
-                    Text("You:")
+                    Text(KuroLocale.text("You:", "Du:"))
                         .font(.kuroCaption())
-                        .foregroundColor(.black.opacity(0.55))
-                    ClubStatusPill(status: myStatus)
+                        .foregroundColor(.kuroTextSecondary)
+                    ClubStatusPill(status: myStatus, mediaType: item.media_type, perspective: .own)
                     if let progress = item.my_progress, progress > 0 {
                         Text(progressText(current: progress, total: item.totalCount))
                             .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.45))
+                            .foregroundColor(.kuroInkQuiet)
                     }
                 }
             }
@@ -460,11 +143,13 @@ private struct ClubActivityItemRow: View {
                         totalCount: item.totalCount
                     )
                 } label: {
-                    Text(showMembers ? "Hide members" : "\(members.count) members")
+                    Text(showMembers
+                         ? KuroLocale.text("Hide members", "Mitglieder ausblenden")
+                         : KuroLocale.text("\(members.count) members", "\(members.count) Mitglieder"))
                         .font(.kuroCaption(weight: .medium))
-                        .foregroundColor(.black.opacity(0.55))
+                        .foregroundColor(.kuroTextSecondary)
                 }
-                .tint(.black.opacity(0.40))
+                .tint(.kuroInkQuiet)
             }
         }
     }
@@ -474,27 +159,25 @@ private struct ClubActivityItemRow: View {
 
 private struct ClubStatusPill: View {
     let status: String
+    let mediaType: String
+    /// `.own` for the viewer's row ("Schaue ich"), `.other` for another member ("Schaut").
+    let perspective: DetailCopy.Perspective
 
+    /// The status word for the medium (EN/DE); an unknown value keeps its own text.
     private var displayText: String {
-        switch status.uppercased() {
-        case "CURRENT", "WATCHING": return "Watching"
-        case "READING": return "Reading"
-        case "COMPLETED": return "Completed"
-        case "PLANNING", "PLANNED": return "Planning"
-        case "PAUSED", "ON_HOLD": return "Paused"
-        case "DROPPED": return "Dropped"
-        default: return status.capitalized
-        }
+        let kind: MediaKind = mediaType.uppercased() == "MANGA" ? .manga : .anime
+        return DetailCopy.listStatus(status, medium: kind, german: KuroLocale.isGerman, perspective: perspective)
+            ?? status.capitalized
     }
 
     var body: some View {
         Text(displayText)
             .font(.kuroCaption())
-            .foregroundColor(.black.opacity(0.55))
+            .foregroundColor(.kuroTextSecondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
             .background(
-                Capsule().fill(Color.black.opacity(0.06))
+                Capsule().fill(Color.kuroBlack06)
             )
     }
 }
@@ -502,8 +185,8 @@ private struct ClubStatusPill: View {
 // MARK: - Member Status List (inside disclosure)
 
 private struct ClubMemberStatusList: View {
-    let statuses: [SupabaseService.ClubRailItem.MemberItemStatus]
-    let members: [SupabaseService.ClubMember]
+    let statuses: [ClubRailItem.MemberItemStatus]
+    let members: [ClubMember]
     let currentUserId: String?
     let sharingLevel: String
     let mediaType: String
@@ -524,11 +207,11 @@ private struct ClubMemberStatusList: View {
     private let memberIndexById: [String: Int]
     private let roleById: [String: String]
     private let displayNameById: [String: String]
-    private let statusByUserId: [String: SupabaseService.ClubRailItem.MemberItemStatus]
+    private let statusByUserId: [String: ClubRailItem.MemberItemStatus]
 
     init(
-        statuses: [SupabaseService.ClubRailItem.MemberItemStatus],
-        members: [SupabaseService.ClubMember],
+        statuses: [ClubRailItem.MemberItemStatus],
+        members: [ClubMember],
         currentUserId: String?,
         sharingLevel: String,
         mediaType: String,
@@ -559,23 +242,32 @@ private struct ClubMemberStatusList: View {
         }
         self.displayNameById = nameMap
 
-        var statusMap: [String: SupabaseService.ClubRailItem.MemberItemStatus] = [:]
+        var statusMap: [String: ClubRailItem.MemberItemStatus] = [:]
         for s in statuses {
             statusMap[s.user_id] = s
         }
         self.statusByUserId = statusMap
     }
 
+    /// A club role as a word ("Owner" / "Inhaber"); other roles keep their own text.
+    static func roleWord(_ role: String) -> String {
+        switch role.lowercased() {
+        case "owner": return KuroLocale.text("Owner", "Inhaber")
+        case "admin": return KuroLocale.text("Admin", "Admin")
+        default: return role.capitalized
+        }
+    }
+
     private func memberLabel(_ userId: String) -> String {
-        if let currentUserId, userId == currentUserId { return "You" }
+        if let currentUserId, userId == currentUserId { return KuroLocale.text("You", "Du") }
         if let displayName = displayNameById[userId] { return displayName }
         if let role = roleById[userId], role.lowercased() != "member" {
-            return role.capitalized
+            return Self.roleWord(role)
         }
         // Stable short identifier from UUID (consistent across sessions)
         let compact = userId.replacingOccurrences(of: "-", with: "")
         let short = String(compact.prefix(6))
-        return short.isEmpty ? "Unknown" : short
+        return short.isEmpty ? DetailCopy.unknown(german: KuroLocale.isGerman) : short
     }
 
     private func memberInitial(_ label: String, userId: String) -> String {
@@ -588,7 +280,7 @@ private struct ClubMemberStatusList: View {
     }
 
     /// Whether the member updated their list entry within the last 7 days.
-    private func isActive(_ ms: SupabaseService.ClubRailItem.MemberItemStatus) -> Bool {
+    private func isActive(_ ms: ClubRailItem.MemberItemStatus) -> Bool {
         guard let raw = ms.updated_at else { return false }
         guard let date =
             Self.isoFormatterWithFractionalSeconds.date(from: raw) ??
@@ -600,7 +292,7 @@ private struct ClubMemberStatusList: View {
     }
 
     /// Progress fraction (0...1) for the progress bar. Returns nil if no progress data.
-    private func progressFraction(_ ms: SupabaseService.ClubRailItem.MemberItemStatus) -> Double? {
+    private func progressFraction(_ ms: ClubRailItem.MemberItemStatus) -> Double? {
         guard sharingLevel == "progress",
               let progress = ms.progress, progress > 0,
               let total = totalCount, total > 0 else { return nil }
@@ -609,7 +301,9 @@ private struct ClubMemberStatusList: View {
 
     /// Format progress text with fraction.
     private func progressText(_ progress: Int) -> String {
-        let prefix = mediaType.uppercased() == "ANIME" ? "Ep" : "Ch"
+        let prefix = mediaType.uppercased() == "ANIME"
+            ? KuroLocale.text("Ep.", "F.")
+            : KuroLocale.text("Ch.", "Kap.")
         if let total = totalCount, total > 0 {
             return "\(prefix) \(progress)/\(total)"
         }
@@ -618,7 +312,7 @@ private struct ClubMemberStatusList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            let merged = members.map { member -> SupabaseService.ClubRailItem.MemberItemStatus in
+            let merged = members.map { member -> ClubRailItem.MemberItemStatus in
                 if let existing = statusByUserId[member.user_id] {
                     return existing
                 }
@@ -656,23 +350,23 @@ private struct ClubMemberStatusList: View {
 
                         Text(initial)
                             .font(.kuroMicro(weight: .semibold))
-                            .foregroundColor(.black.opacity(0.50))
+                            .foregroundColor(.kuroInkQuiet)
                             .frame(width: 22, height: 22)
                             .background(
                                 RoundedRectangle(cornerRadius: KuroRadius.xs)
-                                    .fill(Color.black.opacity(0.06))
+                                    .fill(Color.kuroBlack06)
                             )
 
                         VStack(alignment: .leading, spacing: 1) {
                             HStack(spacing: 6) {
                                 Text(label)
                                     .font(.kuroCaption(weight: .medium))
-                                    .foregroundColor(.black.opacity(0.70))
+                                    .foregroundColor(.kuroBlack70)
 
                                 if let role = roleById[ms.user_id]?.uppercased(),
                                    role != "MEMBER",
                                    displayNameById[ms.user_id] != nil {
-                                    Text(role)
+                                    Text(Self.roleWord(role).uppercased())
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.0)
                                         .foregroundColor(.kuroTextTertiary)
@@ -680,16 +374,16 @@ private struct ClubMemberStatusList: View {
 
                                 if active && !isMe {
                                     Circle()
-                                        .fill(Color.black.opacity(0.30))
+                                        .fill(Color.kuroBlack30)
                                         .frame(width: 4, height: 4)
                                 }
                             }
 
                             HStack(spacing: 6) {
                                 if let status = ms.status {
-                                    ClubStatusPill(status: status)
+                                    ClubStatusPill(status: status, mediaType: mediaType, perspective: isMe ? .own : .other)
                                 } else {
-                                    Text("Not started")
+                                    Text(KuroLocale.text("Not started", "Noch nicht begonnen"))
                                         .font(.kuroCaption())
                                         .foregroundColor(.kuroTextTertiary)
                                 }
@@ -698,7 +392,7 @@ private struct ClubMemberStatusList: View {
                                    let progress = ms.progress, progress > 0 {
                                     Text(progressText(progress))
                                         .font(.kuroCaption())
-                                        .foregroundColor(.black.opacity(0.40))
+                                        .foregroundColor(.kuroInkQuiet)
                                         .monospacedDigit()
                                 }
                             }
@@ -712,10 +406,10 @@ private struct ClubMemberStatusList: View {
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: 1)
-                                    .fill(Color.black.opacity(0.06))
+                                    .fill(Color.kuroBlack06)
                                     .frame(height: 2)
                                 RoundedRectangle(cornerRadius: 1)
-                                    .fill(Color.black.opacity(0.25))
+                                    .fill(Color.kuroBlack25)
                                     .frame(width: geo.size.width * fraction, height: 2)
                             }
                         }

@@ -1,13 +1,27 @@
 import SwiftUI
+import KuroCore
+import KuroLibrary
 
 struct ConciergeAniListImportSheet: View {
-    let supabaseService: SupabaseService
+    let imports: ImportsService
     let isGermanLocale: Bool
-    let onImportCompleted: (SupabaseService.ConciergeAniListImportResponse) async -> Void
+    let onImportCompleted: (ConciergeAniListImportResponse) async -> Void
+    let usesStructuredImport: Bool
+    let onPrepared: ((ImportOutcome) -> Void)?
+
+    init(imports: ImportsService, isGermanLocale: Bool, usesStructuredImport: Bool = false,
+         onPrepared: ((ImportOutcome) -> Void)? = nil,
+         onImportCompleted: @escaping (ConciergeAniListImportResponse) async -> Void) {
+        self.imports = imports; self.isGermanLocale = isGermanLocale
+        self.usesStructuredImport = usesStructuredImport; self.onPrepared = onPrepared
+        self.onImportCompleted = onImportCompleted
+    }
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var coordinator = ConciergeAniListImportCoordinator()
+    @State private var selectedImportMode: Bool?
+    private var usesStructuredPath: Bool { selectedImportMode ?? usesStructuredImport }
     @State private var username: String = ""
     @State private var includeAnime: Bool = true
     @State private var includeManga: Bool = true
@@ -16,12 +30,18 @@ struct ConciergeAniListImportSheet: View {
     @State private var includePlanning: Bool = true
     @State private var includePaused: Bool = false
     @State private var includeDropped: Bool = false
+    @State private var includeRepeating: Bool = false
     @FocusState private var usernameFocused: Bool
+    /// The Stop confirmation is showing (N7).
+    @State private var confirmStop = false
+
+    /// AniList is being read or the import is being sent: closing would cancel it (N7).
+    private var isBusy: Bool { coordinator.isPreviewing || coordinator.isImporting }
 
     private var canPreview: Bool {
         !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (includeAnime || includeManga)
-            && (includeCurrent || includeCompleted || includePlanning || includePaused || includeDropped)
+            && (includeCurrent || includeCompleted || includePlanning || includePaused || includeDropped || includeRepeating)
     }
 
     private var selectedTypes: [String] {
@@ -38,6 +58,7 @@ struct ConciergeAniListImportSheet: View {
         if includePlanning { values.append("PLANNING") }
         if includePaused { values.append("PAUSED") }
         if includeDropped { values.append("DROPPED") }
+        if includeRepeating { values.append("REPEATING") }
         return values
     }
 
@@ -56,17 +77,35 @@ struct ConciergeAniListImportSheet: View {
             .background(Color.kuroBackground.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isGermanLocale ? "Fertig" : "Done") {
-                        dismiss()
+                    // N7: while AniList is read or the import is sent, closing would cancel it without a
+                    // word, so the control becomes Stop (confirmed), as in the import chooser.
+                    Button(isBusy ? ImportChooserTopControl.stopAction(german: isGermanLocale)
+                                  : (isGermanLocale ? "Fertig" : "Done")) {
+                        if isBusy { confirmStop = true } else { dismiss() }
                     }
                     .font(.kuroCaption(weight: .medium))
+                    .accessibilityHint(isBusy
+                                       ? (isGermanLocale ? "Hält den laufenden Import an." : "Stops the running import.")
+                                       : "")
                 }
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(isBusy)
+        .confirmationDialog(ImportChooserTopControl.stopTitle(german: isGermanLocale),
+                            isPresented: $confirmStop, titleVisibility: .visible) {
+            Button(ImportChooserTopControl.stopAction(german: isGermanLocale), role: .destructive) { stopImport() }
+            Button(isGermanLocale ? "Weiter importieren" : "Keep importing", role: .cancel) {}
+        } message: {
+            Text(ImportChooserTopControl.stopMessage(german: isGermanLocale))
+        }
         .onAppear {
+            coordinator.activate(using: imports)
             usernameFocused = true
         }
+        .onDisappear { coordinator.stop() }
+        .onChange(of: imports.accountSession.current) { _, _ in coordinator.stop(); dismiss() }
     }
 
     private var headerSection: some View {
@@ -75,9 +114,13 @@ struct ConciergeAniListImportSheet: View {
                 .font(.kuroCustom(26, weight: .ultraLight, design: .serif, relativeTo: .title2))
                 .foregroundStyle(Color.kuroBlack.opacity(0.84))
 
-            Text(isGermanLocale
-                ? "Erst Vorschau, dann Import. So siehst du Titel, Status und Umfang, bevor Kuro etwas übernimmt."
-                : "Preview first, then confirm. See titles, status, and scope before Kuro imports anything."
+            Text(usesStructuredPath
+                ? (isGermanLocale
+                    ? "Kuro liest die ganze ausgewählte Liste, du prüfst jeden Titel und bestätigst dann, was gespeichert wird. Deine Kuro-Werte bleiben, solange du keine Änderung wählst."
+                    : "Kuro reads the complete selected list, you review every title, then confirm what to save. Existing Kuro values stay unless you choose updates.")
+                : (isGermanLocale
+                    ? "Erst Vorschau, dann Import. So siehst du Titel, Status und Umfang, bevor Kuro etwas übernimmt."
+                    : "Preview first, then confirm. See titles, status, and scope before Kuro imports anything.")
             )
             .font(.kuroBody(weight: .light))
             .foregroundStyle(Color.kuroBlack.opacity(0.62))
@@ -110,6 +153,9 @@ struct ConciergeAniListImportSheet: View {
                 previewLoadingCard
             }
         case .ready:
+            if usesStructuredPath {
+                KuroLoadingView(scope: .inline, label: isGermanLocale ? "Prüfung wird geöffnet …" : "Opening your review …")
+            } else {
             VStack(alignment: .leading, spacing: 14) {
                 selectionSummaryCard
                 if let preview = coordinator.preview {
@@ -120,10 +166,11 @@ struct ConciergeAniListImportSheet: View {
                     primaryAction: { Task { await confirmImport() } },
                     secondaryTitle: isGermanLocale ? "FORMULAR ÄNDERN" : "EDIT FORM",
                     secondaryAction: {
-                        coordinator.reset()
+                        resetForm()
                         usernameFocused = true
                     }
                 )
+            }
             }
         case .importing:
             VStack(alignment: .leading, spacing: 14) {
@@ -152,18 +199,18 @@ struct ConciergeAniListImportSheet: View {
                         primaryAction: { Task { await confirmImport() } },
                         secondaryTitle: isGermanLocale ? "FORMULAR ÄNDERN" : "EDIT FORM",
                         secondaryAction: {
-                            coordinator.reset()
+                            resetForm()
                             usernameFocused = true
                         }
                     )
                 } else {
                     errorCard
                     actionButtons(
-                        primaryTitle: isGermanLocale ? "VORSCHAU ERNEUT VERSUCHEN" : "TRY PREVIEW AGAIN",
+                        primaryTitle: usesStructuredPath ? "RESUME SOURCE READING" : (isGermanLocale ? "VORSCHAU ERNEUT VERSUCHEN" : "TRY PREVIEW AGAIN"),
                         primaryAction: { Task { await startPreview() } },
                         secondaryTitle: isGermanLocale ? "FORMULAR ÄNDERN" : "EDIT FORM",
                         secondaryAction: {
-                            coordinator.reset()
+                            resetForm()
                             usernameFocused = true
                         }
                     )
@@ -208,16 +255,16 @@ struct ConciergeAniListImportSheet: View {
                 togglePill(title: isGermanLocale ? "Pausiert" : "On hold", isOn: $includePaused)
                 togglePill(title: isGermanLocale ? "Abgebrochen" : "Dropped", isOn: $includeDropped)
             }
+            togglePill(title: isGermanLocale ? "Wiederholung" : "Repeating", isOn: $includeRepeating)
 
             Button {
                 Task { await startPreview() }
             } label: {
                 HStack(spacing: 10) {
                     if coordinator.isPreviewing {
-                        ProgressView()
-                            .tint(Color.kuroWhite)
+                        KuroBusyMark(width: 24, tint: Color.kuroWhite, track: Color.kuroWhite.opacity(0.28))
                     }
-                    Text(isGermanLocale ? "VORSCHAU" : "PREVIEW")
+                    Text(usesStructuredPath ? "READ COMPLETE LIST FOR REVIEW" : (isGermanLocale ? "VORSCHAU" : "PREVIEW"))
                         .font(.kuroCaption(weight: .medium))
                         .tracking(2.0)
                 }
@@ -234,12 +281,18 @@ struct ConciergeAniListImportSheet: View {
             .padding(.top, 4)
 
             Text(isGermanLocale
-                ? "Nur öffentliche Listen sind im MVP vorgesehen. Private Einträge brauchen später OAuth."
-                : "This MVP uses public lists only. Private entries will need OAuth later."
+                ? "Kuro liest öffentliche AniList-Listen. Private Einträge bleiben privat und werden nicht übernommen."
+                : "Kuro reads public AniList lists. Private entries stay private and are not imported."
             )
             .font(.kuroMicro())
             .foregroundColor(.kuroTextTertiary)
             .padding(.top, 2)
+            if usesStructuredPath {
+                Text(isGermanLocale
+                    ? "Alle ausgewählten Seiten werden gelesen, bevor du bestätigst. Status, Fortschritt, Bewertung und Notizen bleiben standardmäßig unverändert. Fehlende Felder siehst du in der Prüfung; eine öffentliche Liste kann keine privaten AniList-Einträge zeigen."
+                    : "All selected pages are read before you confirm. Existing status, progress, rating and notes stay unchanged by default. Unavailable fields are shown in review; a public list cannot expose private AniList entries.")
+                    .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
+            }
         }
         .padding(16)
         .background(
@@ -266,7 +319,7 @@ struct ConciergeAniListImportSheet: View {
                 }
                 Spacer(minLength: 0)
                 Button {
-                    coordinator.reset()
+                    resetForm()
                     usernameFocused = true
                 } label: {
                     Text(isGermanLocale ? "ÄNDERN" : "EDIT")
@@ -293,6 +346,7 @@ struct ConciergeAniListImportSheet: View {
                 if includePlanning { summaryPill(isGermanLocale ? "Plan" : "Planning") }
                 if includePaused { summaryPill(isGermanLocale ? "Pausiert" : "Paused") }
                 if includeDropped { summaryPill(isGermanLocale ? "Abgebrochen" : "Dropped") }
+                if includeRepeating { summaryPill(isGermanLocale ? "Wiederholung" : "Repeating") }
             }
         }
         .padding(14)
@@ -307,7 +361,7 @@ struct ConciergeAniListImportSheet: View {
     }
 
     private func previewCard(
-        preview: SupabaseService.ConciergeAniListPreviewResponse,
+        preview: ConciergeAniListPreviewResponse,
         errorMessage: String?,
         isImporting: Bool
     ) -> some View {
@@ -408,9 +462,7 @@ struct ConciergeAniListImportSheet: View {
 
             if isImporting {
                 HStack(spacing: 8) {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .tint(.black.opacity(0.45))
+                    KuroBusyMark(width: 24)
                     Text(isGermanLocale ? "Import läuft..." : "Importing...")
                         .font(.kuroCaption(weight: .light))
                         .foregroundColor(.black.opacity(0.50))
@@ -431,9 +483,7 @@ struct ConciergeAniListImportSheet: View {
     private var previewLoadingCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                ProgressView()
-                    .scaleEffect(0.95)
-                    .tint(.black.opacity(0.45))
+                KuroBusyMark(width: 24)
                 Text(isGermanLocale ? "Vorschau wird geladen..." : "Loading preview...")
                     .font(.kuroCaption(weight: .light))
                     .foregroundColor(.kuroBlack60)
@@ -501,8 +551,7 @@ struct ConciergeAniListImportSheet: View {
             Button(action: primaryAction) {
                 HStack(spacing: 10) {
                     if coordinator.isImporting || coordinator.isPreviewing {
-                        ProgressView()
-                            .tint(Color.kuroWhite)
+                        KuroBusyMark(width: 24, tint: Color.kuroWhite, track: Color.kuroWhite.opacity(0.28))
                     }
                     Text(primaryTitle)
                         .font(.kuroCaption(weight: .medium))
@@ -607,7 +656,7 @@ struct ConciergeAniListImportSheet: View {
         }
     }
 
-    private func sampleRow(_ sample: SupabaseService.ConciergeAniListPreviewItem) -> some View {
+    private func sampleRow(_ sample: ConciergeAniListPreviewItem) -> some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(sample.titleDisplay)
@@ -632,7 +681,7 @@ struct ConciergeAniListImportSheet: View {
         )
     }
 
-    private func sampleMeta(_ sample: SupabaseService.ConciergeAniListPreviewItem) -> String {
+    private func sampleMeta(_ sample: ConciergeAniListPreviewItem) -> String {
         var parts: [String] = []
         parts.append(sample.status.uppercased())
         if let progress = sample.progress {
@@ -644,7 +693,7 @@ struct ConciergeAniListImportSheet: View {
         return parts.joined(separator: " • ")
     }
 
-    private func countSummary(_ preview: SupabaseService.ConciergeAniListPreviewResponse) -> String {
+    private func countSummary(_ preview: ConciergeAniListPreviewResponse) -> String {
         let count = preview.itemCount ?? 0
         let truncated = preview.truncated == true
         if isGermanLocale {
@@ -653,10 +702,34 @@ struct ConciergeAniListImportSheet: View {
         return truncated ? "\(count) items, truncated" : "\(count) items"
     }
 
+    /// Stop (confirmed): the running read or import is dropped and the form is shown again; the sheet
+    /// stays open.
+    private func stopImport() {
+        resetForm()
+        KuroAccessibility.impactHaptic(.light)
+        AccessibilityNotification.Announcement(ImportChooserTopControl.stoppedLine(german: isGermanLocale)).post()
+    }
+
+    private func resetForm() {
+        coordinator.stop()
+        coordinator.activate(using: imports)
+        selectedImportMode = nil
+    }
+
     private func startPreview() async {
         guard canPreview else { return }
+        let structured = usesStructuredPath
+        selectedImportMode = structured
+        if structured {
+            guard usesStructuredImport else { coordinator.pauseForDisabledFoundation(); return }
+            if let job = await coordinator.prepare(using: imports, username: username,
+                types: selectedTypes, statuses: selectedStatuses) {
+                dismiss(); onPrepared?(job)
+            }
+            return
+        }
         await coordinator.loadPreview(
-            using: supabaseService,
+            using: imports,
             isGermanLocale: isGermanLocale,
             username: username,
             types: selectedTypes,
@@ -665,7 +738,8 @@ struct ConciergeAniListImportSheet: View {
     }
 
     private func confirmImport() async {
-        guard let response = await coordinator.confirmImport(using: supabaseService, isGermanLocale: isGermanLocale) else {
+        guard !usesStructuredPath else { return }
+        guard let response = await coordinator.confirmImport(using: imports, isGermanLocale: isGermanLocale) else {
             return
         }
         dismiss()

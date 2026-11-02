@@ -1,0 +1,8 @@
+Deployed Functions on project bkdifromsqxkndnllmdj: delete-account
+You can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions
+Uploading asset (delete-account): supabase/functions/delete-account/index.ts
+Uploading asset (delete-account): supabase/functions/delete-account/handler.ts
+Uploading asset (delete-account): supabase/functions/delete-account/deletion.ts
+Uploading asset (delete-account): supabase/functions/delete-account/adapters.ts
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.78.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

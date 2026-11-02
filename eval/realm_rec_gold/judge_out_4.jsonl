@@ -1,0 +1,476 @@
+{"seed_key":"ANIME:250","id":129,"v":"not_relevant","why":"Key melodrama with powers; not nocturnal mood romance","conf":0.7}
+{"seed_key":"ANIME:250","id":168,"v":"relevant","why":"supernatural banter romance, stylish nocturnal register matches","conf":0.75}
+{"seed_key":"ANIME:250","id":246,"v":"not_relevant","why":"daytime redo-your-youth drama, different mood","conf":0.7}
+{"seed_key":"ANIME:250","id":251,"v":"relevant","why":"atmosphere-first quiet unconventional romance","conf":0.55}
+{"seed_key":"ANIME:250","id":302,"v":"not_relevant","why":"loud zombie comedy; shares dropout theme only","conf":0.6}
+{"seed_key":"ANIME:250","id":318,"v":"not_relevant","why":"frenetic surreal energy, opposite of languid night mood","conf":0.55}
+{"seed_key":"ANIME:250","id":323,"v":"not_relevant","why":"gothic vampire action-plot, not moody urban romance","conf":0.55}
+{"seed_key":"ANIME:250","id":424,"v":"relevant","why":"nocturnal vampire intimacy, stylish kindred","conf":0.75}
+{"seed_key":"ANIME:250","id":489,"v":"relevant","why":"same nocturnal vampire neighborhood","conf":0.75}
+{"seed_key":"ANIME:250","id":521,"v":"not_relevant","why":"daytime interior school romance; different atmosphere","conf":0.45}
+{"seed_key":"ANIME:250","id":527,"v":"not_relevant","why":"delicate daytime yuri, wrong mood","conf":0.6}
+{"seed_key":"ANIME:250","id":748,"v":"relevant","why":"Monogatari nocturne, kindred banter and melancholy","conf":0.65}
+{"seed_key":"ANIME:250","id":760,"v":"not_relevant","why":"sunny wholesome school life","conf":0.7}
+{"seed_key":"ANIME:250","id":782,"v":"not_relevant","why":"same author but gag candy comedy","conf":0.6}
+{"seed_key":"ANIME:250","id":833,"v":"not_relevant","why":"school romcom, wrong register","conf":0.65}
+{"seed_key":"ANIME:250","id":917,"v":"relevant","why":"insomniac teens, tender night wandering; closest match","conf":0.9}
+{"seed_key":"ANIME:250","id":1111,"v":"relevant","why":"strange languid intimacy with odd girl","conf":0.5}
+{"seed_key":"ANIME:250","id":1182,"v":"franchise","why":"direct sequel of seed","conf":0.95}
+{"seed_key":"ANIME:250","id":1203,"v":"relevant","why":"supernatural adolescent banter romance, adjacent","conf":0.45}
+{"seed_key":"ANIME:250","id":15789,"v":"relevant","why":"nocturnal vampire hangout vibes, lighter register","conf":0.6}
+{"seed_key":"ANIME:1621","id":4,"v":"not_relevant","why":"mainstream thriller, not literary anthology","conf":0.7}
+{"seed_key":"ANIME:1621","id":112,"v":"relevant","why":"somber artful morality vignettes","conf":0.55}
+{"seed_key":"ANIME:1621","id":132,"v":"not_relevant","why":"authors as action heroes; literary in name only","conf":0.75}
+{"seed_key":"ANIME:1621","id":486,"v":"relevant","why":"adult art-house psychological register","conf":0.5}
+{"seed_key":"ANIME:1621","id":741,"v":"relevant","why":"dark psychological anthology of societal malaise","conf":0.7}
+{"seed_key":"ANIME:1621","id":1438,"v":"relevant","why":"bleak literary adolescent psychology, alternative craft","conf":0.7}
+{"seed_key":"ANIME:1621","id":1514,"v":"not_relevant","why":"botched horror anthology, register mismatch","conf":0.6}
+{"seed_key":"ANIME:1621","id":2088,"v":"relevant","why":"classical literature, artful adaptation","conf":0.7}
+{"seed_key":"ANIME:1621","id":2796,"v":"relevant","why":"classical Japanese tale anthology, dark and stylized","conf":0.65}
+{"seed_key":"ANIME:1621","id":2939,"v":"relevant","why":"grim serious adult-animation gravitas","conf":0.5}
+{"seed_key":"ANIME:1621","id":2950,"v":"relevant","why":"dark literary anthology concept, weaker execution","conf":0.45}
+{"seed_key":"ANIME:1621","id":3666,"v":"relevant","why":"dense literary mystery novel adaptation","conf":0.65}
+{"seed_key":"ANIME:1621","id":4805,"v":"relevant","why":"experimental literary art animation","conf":0.7}
+{"seed_key":"ANIME:1621","id":4960,"v":"unknown","why":"cannot place standalone 2009 film; possibly seed's own arc","conf":0.35}
+{"seed_key":"ANIME:1621","id":5229,"v":"not_relevant","why":"children's tearjerker, not dark adult literature","conf":0.6}
+{"seed_key":"ANIME:1621","id":6279,"v":"not_relevant","why":"gentle war memoir, educational register","conf":0.4}
+{"seed_key":"ANIME:1621","id":6566,"v":"relevant","why":"classical literary adaptation, adult melancholy","conf":0.5}
+{"seed_key":"ANIME:1621","id":6655,"v":"relevant","why":"parallel Dazai adaptation, kindred literary spirit","conf":0.5}
+{"seed_key":"ANIME:1621","id":9516,"v":"not_relevant","why":"children's World Masterpiece Theater show","conf":0.8}
+{"seed_key":"ANIME:1621","id":10226,"v":"not_relevant","why":"modest war drama, different shelf","conf":0.45}
+{"seed_key":"ANIME:4152","id":256,"v":"relevant","why":"contemplative prestige historical seinen","conf":0.65}
+{"seed_key":"ANIME:4152","id":777,"v":"not_relevant","why":"gag comedy Edo parody, wrong register","conf":0.7}
+{"seed_key":"ANIME:4152","id":841,"v":"relevant","why":"adult historical drama of obsessive aesthete","conf":0.6}
+{"seed_key":"ANIME:4152","id":959,"v":"relevant","why":"historical drama of consuming intellectual passion","conf":0.7}
+{"seed_key":"ANIME:4152","id":989,"v":"relevant","why":"ravishing traditional-aesthetic adult craft","conf":0.6}
+{"seed_key":"ANIME:4152","id":1057,"v":"relevant","why":"adult devotion-to-traditional-art drama","conf":0.75}
+{"seed_key":"ANIME:4152","id":1072,"v":"not_relevant","why":"space opera politics; different world despite adult register","conf":0.4}
+{"seed_key":"ANIME:4152","id":1338,"v":"relevant","why":"artful adult passage through Japanese history","conf":0.55}
+{"seed_key":"ANIME:4152","id":1699,"v":"relevant","why":"prestige historical Japan, somber register","conf":0.5}
+{"seed_key":"ANIME:4152","id":2088,"v":"relevant","why":"classical historical artistry","conf":0.65}
+{"seed_key":"ANIME:4152","id":3612,"v":"relevant","why":"Sengoku intrigue with unusual angle","conf":0.45}
+{"seed_key":"ANIME:4152","id":4105,"v":"relevant","why":"Edo artist life, art and history entwined","conf":0.65}
+{"seed_key":"ANIME:4152","id":4398,"v":"not_relevant","why":"shounen Shinsengumi action","conf":0.65}
+{"seed_key":"ANIME:4152","id":4794,"v":"not_relevant","why":"space opera, different neighborhood","conf":0.4}
+{"seed_key":"ANIME:4152","id":5288,"v":"not_relevant","why":"moe gender-bent Sengoku fluff","conf":0.85}
+{"seed_key":"ANIME:4152","id":6912,"v":"relevant","why":"Tezuka's adult Bakumatsu drama, kindred","conf":0.65}
+{"seed_key":"ANIME:4152","id":7649,"v":"relevant","why":"connoisseurship obsession; gourmet as tea","conf":0.6}
+{"seed_key":"ANIME:4152","id":73487,"v":"relevant","why":"quiet alternative Edo character drama","conf":0.65}
+{"seed_key":"ANIME:374","id":111,"v":"relevant","why":"Ghibli childhood-wonder fantasy","conf":0.8}
+{"seed_key":"ANIME:374","id":161,"v":"relevant","why":"warm Ghibli family fantasy","conf":0.75}
+{"seed_key":"ANIME:374","id":166,"v":"not_relevant","why":"teen romance melodrama, not childlike wonder","conf":0.5}
+{"seed_key":"ANIME:374","id":200,"v":"not_relevant","why":"violent epic; wrong end of Ghibli","conf":0.5}
+{"seed_key":"ANIME:374","id":221,"v":"relevant","why":"gentle childhood magic, nearest sibling","conf":0.9}
+{"seed_key":"ANIME:374","id":334,"v":"relevant","why":"warm family-fantasy tenderness","conf":0.6}
+{"seed_key":"ANIME:374","id":375,"v":"relevant","why":"gentle childhood Ghibli warmth","conf":0.85}
+{"seed_key":"ANIME:374","id":376,"v":"relevant","why":"whimsical family-leaning adventure fantasy","conf":0.45}
+{"seed_key":"ANIME:374","id":858,"v":"relevant","why":"small gentle Ghibli wonder","conf":0.8}
+{"seed_key":"ANIME:374","id":1016,"v":"not_relevant","why":"flashy teen spectacle despite mermaid motif","conf":0.55}
+{"seed_key":"ANIME:374","id":1184,"v":"relevant","why":"Ghibli whimsy, more adult-wistful","conf":0.45}
+{"seed_key":"ANIME:374","id":1910,"v":"relevant","why":"childhood summer wonder, sea mystery","conf":0.7}
+{"seed_key":"ANIME:374","id":2272,"v":"relevant","why":"children adrift at sea, emotional fantasy","conf":0.55}
+{"seed_key":"ANIME:374","id":2355,"v":"relevant","why":"gentle storybook fairytale hush","conf":0.5}
+{"seed_key":"ANIME:374","id":3711,"v":"relevant","why":"warm children's family fantasy","conf":0.45}
+{"seed_key":"ANIME:374","id":4295,"v":"relevant","why":"gentle storybook family warmth","conf":0.6}
+{"seed_key":"ANIME:374","id":4670,"v":"not_relevant","why":"long-form toyetic battle show","conf":0.5}
+{"seed_key":"ANIME:374","id":6307,"v":"unknown","why":"unreleased title I cannot judge","conf":0.3}
+{"seed_key":"ANIME:374","id":13272,"v":"relevant","why":"Yuasa's fish-girl joy, explicitly Ponyo-kin","conf":0.8}
+{"seed_key":"ANIME:410","id":94,"v":"relevant","why":"teasing mind-game romance, louder but kin","conf":0.6}
+{"seed_key":"ANIME:410","id":127,"v":"relevant","why":"same teasing-romance neighborhood","conf":0.6}
+{"seed_key":"ANIME:410","id":228,"v":"relevant","why":"canonical teasing-romance companion, cruder","conf":0.6}
+{"seed_key":"ANIME:410","id":494,"v":"not_relevant","why":"ecchi gag register clashes with wholesomeness","conf":0.5}
+{"seed_key":"ANIME:410","id":503,"v":"relevant","why":"wholesome sweet school romance","conf":0.55}
+{"seed_key":"ANIME:410","id":521,"v":"relevant","why":"middle-school teasing-to-tenderness romance","conf":0.75}
+{"seed_key":"ANIME:410","id":881,"v":"not_relevant","why":"pure gag slice, no romance core","conf":0.55}
+{"seed_key":"ANIME:410","id":973,"v":"franchise","why":"direct sequel of seed","conf":0.95}
+{"seed_key":"ANIME:410","id":1028,"v":"relevant","why":"same tender adolescent romance","conf":0.75}
+{"seed_key":"ANIME:410","id":1032,"v":"relevant","why":"teasing-girl premise clone, wholesome","conf":0.65}
+{"seed_key":"ANIME:410","id":1089,"v":"relevant","why":"doting teasing romance, gothic dressing","conf":0.5}
+{"seed_key":"ANIME:410","id":1130,"v":"relevant","why":"gentle low-stakes school romance","conf":0.5}
+{"seed_key":"ANIME:410","id":1409,"v":"relevant","why":"same author, same gentle will-they game","conf":0.75}
+{"seed_key":"ANIME:410","id":1455,"v":"not_relevant","why":"iyashikei rural slice, no romance","conf":0.55}
+{"seed_key":"ANIME:410","id":2173,"v":"not_relevant","why":"gag sketch comedy","conf":0.6}
+{"seed_key":"ANIME:410","id":2884,"v":"not_relevant","why":"healing slice, wrong neighborhood","conf":0.55}
+{"seed_key":"ANIME:410","id":4162,"v":"not_relevant","why":"healing slice, wrong neighborhood","conf":0.55}
+{"seed_key":"ANIME:410","id":6248,"v":"not_relevant","why":"YuruYuri spinoff yuri comedy","conf":0.5}
+{"seed_key":"ANIME:410","id":13342,"v":"not_relevant","why":"chaotic sci-fi slapstick harem","conf":0.5}
+{"seed_key":"MANGA:7","id":10,"v":"relevant","why":"big-Jump heroic action, adjacent energy","conf":0.55}
+{"seed_key":"MANGA:7","id":22,"v":"relevant","why":"big-three battle-shounen register","conf":0.55}
+{"seed_key":"MANGA:7","id":25,"v":"relevant","why":"exuberant Jump fantasy action","conf":0.55}
+{"seed_key":"MANGA:7","id":26,"v":"relevant","why":"grand Jump adventure craft","conf":0.8}
+{"seed_key":"MANGA:7","id":76,"v":"relevant","why":"grand race adventure, higher craft","conf":0.55}
+{"seed_key":"MANGA:7","id":79,"v":"relevant","why":"big-three journey shounen","conf":0.7}
+{"seed_key":"MANGA:7","id":84,"v":"relevant","why":"exuberant Jump adventure optimism","conf":0.6}
+{"seed_key":"MANGA:7","id":90,"v":"relevant","why":"epic adventure with heart and humor","conf":0.7}
+{"seed_key":"MANGA:7","id":130,"v":"relevant","why":"guild adventure romp, lighter register","conf":0.55}
+{"seed_key":"MANGA:7","id":148,"v":"relevant","why":"Oda's wellspring; joyous adventure","conf":0.75}
+{"seed_key":"MANGA:7","id":159,"v":"relevant","why":"sweeping fantasy adventure","conf":0.6}
+{"seed_key":"MANGA:7","id":888,"v":"relevant","why":"battle adventure with comedy and heart","conf":0.5}
+{"seed_key":"MANGA:7","id":904,"v":"relevant","why":"gonzo Jump adventure appetite","conf":0.65}
+{"seed_key":"MANGA:7","id":1186,"v":"not_relevant","why":"tragic shoujo war epic, different feel","conf":0.45}
+{"seed_key":"MANGA:7","id":1669,"v":"not_relevant","why":"somber war fantasy, wrong tone","conf":0.5}
+{"seed_key":"MANGA:7","id":1687,"v":"franchise","why":"One Piece spinoff manga","conf":0.95}
+{"seed_key":"MANGA:25","id":7,"v":"relevant","why":"Jump adventure exuberance","conf":0.6}
+{"seed_key":"MANGA:25","id":8,"v":"relevant","why":"Jump battle earnestness","conf":0.6}
+{"seed_key":"MANGA:25","id":10,"v":"relevant","why":"underdog-hero Jump sibling","conf":0.75}
+{"seed_key":"MANGA:25","id":22,"v":"relevant","why":"spectacle battle shounen","conf":0.6}
+{"seed_key":"MANGA:25","id":79,"v":"relevant","why":"loudmouth underdog lineage, direct ancestor","conf":0.8}
+{"seed_key":"MANGA:25","id":111,"v":"relevant","why":"flashy magazine battle action","conf":0.6}
+{"seed_key":"MANGA:25","id":128,"v":"relevant","why":"anti-magic underdog in magic world, comedic","conf":0.6}
+{"seed_key":"MANGA:25","id":130,"v":"relevant","why":"magic-guild battle romp","conf":0.7}
+{"seed_key":"MANGA:25","id":135,"v":"relevant","why":"magic battle adventure","conf":0.6}
+{"seed_key":"MANGA:25","id":299,"v":"relevant","why":"high-energy Jump battle","conf":0.5}
+{"seed_key":"MANGA:25","id":315,"v":"relevant","why":"classic Jump battle craft","conf":0.55}
+{"seed_key":"MANGA:25","id":494,"v":"relevant","why":"fantasy battle epic with comedy","conf":0.4}
+{"seed_key":"MANGA:25","id":533,"v":"not_relevant","why":"doting fantasy romcom, wrong lane","conf":0.55}
+{"seed_key":"MANGA:25","id":940,"v":"relevant","why":"magic-academy underdog battle, premise sibling","conf":0.75}
+{"seed_key":"MANGA:25","id":993,"v":"unknown","why":"cannot confidently place this webtoon","conf":0.3}
+{"seed_key":"MANGA:25","id":1303,"v":"not_relevant","why":"KR solo power fantasy, not guild shounen","conf":0.45}
+{"seed_key":"MANGA:25","id":1449,"v":"relevant","why":"magazine magic-battle successor","conf":0.5}
+{"seed_key":"MANGA:25","id":2023,"v":"relevant","why":"underdog battle adventure, Kishimoto-school","conf":0.5}
+{"seed_key":"MANGA:25","id":2160,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:25","id":9736,"v":"franchise","why":"Black Clover spinoff","conf":0.95}
+{"seed_key":"MANGA:84","id":7,"v":"relevant","why":"exuberant adventure crew energy","conf":0.55}
+{"seed_key":"MANGA:84","id":90,"v":"relevant","why":"science-minded adventure with humor","conf":0.5}
+{"seed_key":"MANGA:84","id":132,"v":"not_relevant","why":"grim despair-delving, opposite of STONE optimism","conf":0.45}
+{"seed_key":"MANGA:84","id":154,"v":"not_relevant","why":"melancholy emotional fantasy, different feel","conf":0.5}
+{"seed_key":"MANGA:84","id":185,"v":"not_relevant","why":"Boichi art only; gangster seinen comedy","conf":0.55}
+{"seed_key":"MANGA:84","id":380,"v":"not_relevant","why":"heavy philosophical seinen apocalypse","conf":0.5}
+{"seed_key":"MANGA:84","id":427,"v":"relevant","why":"post-apocalyptic civilization and science themes","conf":0.4}
+{"seed_key":"MANGA:84","id":494,"v":"not_relevant","why":"fantasy war epic, not science optimism","conf":0.4}
+{"seed_key":"MANGA:84","id":1170,"v":"relevant","why":"wake-after-apocalypse survival ingenuity, close premise","conf":0.65}
+{"seed_key":"MANGA:84","id":1230,"v":"relevant","why":"upbeat team survival ingenuity","conf":0.75}
+{"seed_key":"MANGA:84","id":1582,"v":"relevant","why":"knowledge rebuilds technology, gentler pace","conf":0.45}
+{"seed_key":"MANGA:84","id":1599,"v":"relevant","why":"science-education playfulness kinship","conf":0.4}
+{"seed_key":"MANGA:84","id":2498,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:84","id":2657,"v":"franchise","why":"Dr. STONE spinoff one-shot","conf":0.95}
+{"seed_key":"MANGA:84","id":3393,"v":"relevant","why":"moderns rebuild in primeval age, direct kin","conf":0.6}
+{"seed_key":"MANGA:84","id":3710,"v":"not_relevant","why":"game novelization, wrong shelf","conf":0.6}
+{"seed_key":"MANGA:84","id":4652,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:84","id":12496,"v":"relevant","why":"side story in kindred survival epic","conf":0.4}
+{"seed_key":"MANGA:84","id":26787,"v":"not_relevant","why":"thin tie-in register despite inventor hook","conf":0.4}
+{"seed_key":"MANGA:84","id":29850,"v":"not_relevant","why":"game promo manhua","conf":0.6}
+{"seed_key":"MANGA:89","id":108,"v":"relevant","why":"luminous craft fantasy, prestige register","conf":0.7}
+{"seed_key":"MANGA:89","id":151,"v":"relevant","why":"thoughtful humane fantasy peer","conf":0.7}
+{"seed_key":"MANGA:89","id":154,"v":"relevant","why":"immortality, loss, learning humanity","conf":0.7}
+{"seed_key":"MANGA:89","id":165,"v":"relevant","why":"quiet elegiac journey","conf":0.7}
+{"seed_key":"MANGA:89","id":228,"v":"relevant","why":"elegiac passage-of-time serenity, perfect kin","conf":0.8}
+{"seed_key":"MANGA:89","id":300,"v":"relevant","why":"wandering quiet melancholy vignettes","conf":0.8}
+{"seed_key":"MANGA:89","id":541,"v":"not_relevant","why":"gentle school slice, no journey or elegy","conf":0.45}
+{"seed_key":"MANGA:89","id":953,"v":"not_relevant","why":"guild battle prequel, wrong feel","conf":0.6}
+{"seed_key":"MANGA:89","id":1076,"v":"not_relevant","why":"loud battle adventure","conf":0.6}
+{"seed_key":"MANGA:89","id":1598,"v":"unknown","why":"one-shot I cannot confidently place","conf":0.35}
+{"seed_key":"MANGA:89","id":2531,"v":"unknown","why":"title I cannot confidently place","conf":0.35}
+{"seed_key":"MANGA:89","id":2661,"v":"relevant","why":"episodic bittersweet witch journey","conf":0.55}
+{"seed_key":"MANGA:89","id":3870,"v":"relevant","why":"melancholy episodic wandering, dark-sweet","conf":0.65}
+{"seed_key":"MANGA:89","id":3949,"v":"unknown","why":"title I cannot confidently place","conf":0.35}
+{"seed_key":"MANGA:89","id":4451,"v":"relevant","why":"gentle storybook travels among demons","conf":0.6}
+{"seed_key":"MANGA:89","id":4692,"v":"relevant","why":"philosophical traveler vignettes","conf":0.6}
+{"seed_key":"MANGA:130","id":7,"v":"relevant","why":"adventure romp, higher register upgrade","conf":0.65}
+{"seed_key":"MANGA:130","id":22,"v":"relevant","why":"spectacle battle shounen","conf":0.6}
+{"seed_key":"MANGA:130","id":25,"v":"relevant","why":"magic-guild battle sibling","conf":0.75}
+{"seed_key":"MANGA:130","id":79,"v":"relevant","why":"big-shounen battle journey","conf":0.65}
+{"seed_key":"MANGA:130","id":135,"v":"relevant","why":"closest guild-romp sibling","conf":0.75}
+{"seed_key":"MANGA:130","id":438,"v":"relevant","why":"Mashima's space-flavored twin","conf":0.7}
+{"seed_key":"MANGA:130","id":1076,"v":"relevant","why":"Mashima's earlier adventure romp","conf":0.7}
+{"seed_key":"MANGA:130","id":2160,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:130","id":2664,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:130","id":3072,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:130","id":3262,"v":"relevant","why":"exuberant heroic party fantasy","conf":0.7}
+{"seed_key":"MANGA:130","id":3809,"v":"not_relevant","why":"flat earnest adventure, register below","conf":0.4}
+{"seed_key":"MANGA:130","id":4051,"v":"unknown","why":"generic LN adaptation I cannot place","conf":0.3}
+{"seed_key":"MANGA:130","id":4631,"v":"relevant","why":"Mashima's demon-school battle style","conf":0.5}
+{"seed_key":"MANGA:130","id":5032,"v":"franchise","why":"crossover featuring Fairy Tail cast","conf":0.8}
+{"seed_key":"MANGA:130","id":5042,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:130","id":6920,"v":"not_relevant","why":"one-joke gag fantasy","conf":0.45}
+{"seed_key":"MANGA:130","id":9531,"v":"franchise","why":"Fairy Tail spinoff","conf":0.95}
+{"seed_key":"MANGA:130","id":47950,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:151","id":2,"v":"not_relevant","why":"devil-hunting chaos, different neighborhood","conf":0.5}
+{"seed_key":"MANGA:151","id":7,"v":"relevant","why":"crew adventure, worldbuilding joy","conf":0.45}
+{"seed_key":"MANGA:151","id":84,"v":"relevant","why":"systems-of-the-world exuberance","conf":0.5}
+{"seed_key":"MANGA:151","id":86,"v":"relevant","why":"grimy fantasy, food and humor; famous pairing","conf":0.75}
+{"seed_key":"MANGA:151","id":89,"v":"relevant","why":"humane thoughtful fantasy peer","conf":0.75}
+{"seed_key":"MANGA:151","id":90,"v":"relevant","why":"adventure craft balancing humor, darkness","conf":0.6}
+{"seed_key":"MANGA:151","id":108,"v":"relevant","why":"prestige craft fantasy","conf":0.7}
+{"seed_key":"MANGA:151","id":132,"v":"relevant","why":"delve ecology with darkness beneath","conf":0.65}
+{"seed_key":"MANGA:151","id":155,"v":"relevant","why":"food, survival rigor, comedy blend","conf":0.75}
+{"seed_key":"MANGA:151","id":414,"v":"not_relevant","why":"surreal gothic art piece, different feel","conf":0.4}
+{"seed_key":"MANGA:151","id":494,"v":"relevant","why":"comedy-fantasy with real stakes","conf":0.45}
+{"seed_key":"MANGA:151","id":831,"v":"not_relevant","why":"low-effort isekai food-fantasy register","conf":0.5}
+{"seed_key":"MANGA:151","id":949,"v":"relevant","why":"lush worldbuilding craft fantasy","conf":0.65}
+{"seed_key":"MANGA:151","id":1204,"v":"relevant","why":"grounded-logistics dungeon crawl","conf":0.6}
+{"seed_key":"MANGA:151","id":1496,"v":"relevant","why":"hunting, cuisine, airborne adventure kin","conf":0.7}
+{"seed_key":"MANGA:151","id":2756,"v":"relevant","why":"scholarly fieldwork lens on monster world","conf":0.7}
+{"seed_key":"MANGA:151","id":4383,"v":"unknown","why":"title I cannot confidently place","conf":0.35}
+{"seed_key":"MANGA:151","id":18205,"v":"not_relevant","why":"urban battle royale, wrong shelf","conf":0.55}
+{"seed_key":"MANGA:163","id":3,"v":"relevant","why":"hunter power-fantasy webtoon core","conf":0.7}
+{"seed_key":"MANGA:163","id":19,"v":"relevant","why":"knowledge-advantage regressor epic, higher craft","conf":0.7}
+{"seed_key":"MANGA:163","id":229,"v":"relevant","why":"returned-mage power fantasy twin","conf":0.7}
+{"seed_key":"MANGA:163","id":263,"v":"relevant","why":"regression with future knowledge, cultivation flavor","conf":0.6}
+{"seed_key":"MANGA:163","id":266,"v":"relevant","why":"KR survival power fantasy lane","conf":0.6}
+{"seed_key":"MANGA:163","id":352,"v":"relevant","why":"regression academy premise sibling","conf":0.7}
+{"seed_key":"MANGA:163","id":469,"v":"relevant","why":"KR hunter power fantasy","conf":0.6}
+{"seed_key":"MANGA:163","id":477,"v":"relevant","why":"KR regression power fantasy","conf":0.6}
+{"seed_key":"MANGA:163","id":494,"v":"not_relevant","why":"JP comedy war epic, not regression webtoon","conf":0.5}
+{"seed_key":"MANGA:163","id":978,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:163","id":1033,"v":"unknown","why":"manhwa I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:163","id":1203,"v":"relevant","why":"skill-devouring KR power fantasy","conf":0.5}
+{"seed_key":"MANGA:163","id":1303,"v":"relevant","why":"KR wizard power fantasy lane","conf":0.5}
+{"seed_key":"MANGA:163","id":1449,"v":"not_relevant","why":"JP magazine battle-shounen lane","conf":0.5}
+{"seed_key":"MANGA:163","id":2399,"v":"unknown","why":"manhwa I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:163","id":2429,"v":"not_relevant","why":"generic bottom-tier strategy-guide isekai","conf":0.35}
+{"seed_key":"MANGA:163","id":2466,"v":"not_relevant","why":"game-adaptation adventure, wrong shelf","conf":0.6}
+{"seed_key":"MANGA:163","id":5338,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:163","id":9436,"v":"not_relevant","why":"same lane, bottom-shelf register","conf":0.35}
+{"seed_key":"MANGA:163","id":74544,"v":"not_relevant","why":"heroic JP battle-fantasy spinoff","conf":0.5}
+{"seed_key":"MANGA:182","id":3,"v":"relevant","why":"defining hunter power-fantasy kin","conf":0.75}
+{"seed_key":"MANGA:182","id":19,"v":"relevant","why":"KR system epic with scope","conf":0.7}
+{"seed_key":"MANGA:182","id":77,"v":"relevant","why":"tower-climbing epic kin","conf":0.7}
+{"seed_key":"MANGA:182","id":126,"v":"relevant","why":"tower regression revenge, direct sibling","conf":0.75}
+{"seed_key":"MANGA:182","id":319,"v":"relevant","why":"tower-climb power fantasy twin","conf":0.7}
+{"seed_key":"MANGA:182","id":349,"v":"relevant","why":"KR returner power fantasy","conf":0.6}
+{"seed_key":"MANGA:182","id":391,"v":"relevant","why":"dark KR game-world revenge","conf":0.6}
+{"seed_key":"MANGA:182","id":392,"v":"relevant","why":"system-power webtoon ancestor, rougher","conf":0.5}
+{"seed_key":"MANGA:182","id":469,"v":"relevant","why":"KR hunter power fantasy","conf":0.6}
+{"seed_key":"MANGA:182","id":786,"v":"relevant","why":"KR hunter grind lane","conf":0.55}
+{"seed_key":"MANGA:182","id":1100,"v":"relevant","why":"KR survival-game system webtoon","conf":0.5}
+{"seed_key":"MANGA:182","id":1438,"v":"relevant","why":"KR action academy webtoon, adjacent","conf":0.45}
+{"seed_key":"MANGA:182","id":1482,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:182","id":1638,"v":"unknown","why":"manhwa I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:182","id":2370,"v":"not_relevant","why":"Roman gladiator seinen, wrong lane","conf":0.5}
+{"seed_key":"MANGA:182","id":2980,"v":"relevant","why":"cultivation progression appetite, rougher craft","conf":0.4}
+{"seed_key":"MANGA:182","id":3041,"v":"not_relevant","why":"JP dark-fantasy side story","conf":0.5}
+{"seed_key":"MANGA:182","id":3711,"v":"not_relevant","why":"JP mystery-fantasy novel, wrong shelf","conf":0.5}
+{"seed_key":"MANGA:182","id":4732,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:254","id":3,"v":"relevant","why":"snarky hunter power fantasy kin","conf":0.7}
+{"seed_key":"MANGA:254","id":163,"v":"relevant","why":"KR regression power fantasy","conf":0.6}
+{"seed_key":"MANGA:254","id":173,"v":"relevant","why":"KR game power fantasy lane","conf":0.6}
+{"seed_key":"MANGA:254","id":242,"v":"relevant","why":"KR returner power fantasy","conf":0.6}
+{"seed_key":"MANGA:254","id":310,"v":"relevant","why":"hunter-lane sequel, same appetite","conf":0.5}
+{"seed_key":"MANGA:254","id":319,"v":"relevant","why":"KR power-climb fantasy","conf":0.6}
+{"seed_key":"MANGA:254","id":391,"v":"relevant","why":"dark KR power fantasy","conf":0.6}
+{"seed_key":"MANGA:254","id":398,"v":"relevant","why":"dungeon comedy power fantasy","conf":0.55}
+{"seed_key":"MANGA:254","id":477,"v":"relevant","why":"KR regression power fantasy","conf":0.6}
+{"seed_key":"MANGA:254","id":1303,"v":"relevant","why":"KR wizard power fantasy","conf":0.5}
+{"seed_key":"MANGA:254","id":2225,"v":"relevant","why":"returner premise, same appetite","conf":0.4}
+{"seed_key":"MANGA:254","id":2671,"v":"unknown","why":"manhwa I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:254","id":2980,"v":"relevant","why":"cultivation progression appetite, rougher craft","conf":0.4}
+{"seed_key":"MANGA:254","id":3572,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:254","id":3634,"v":"not_relevant","why":"artful Japanese myth seinen, wrong lane","conf":0.5}
+{"seed_key":"MANGA:254","id":5423,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:254","id":6685,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:254","id":8039,"v":"not_relevant","why":"legacy JP battle-shounen sequel","conf":0.55}
+{"seed_key":"MANGA:254","id":9436,"v":"not_relevant","why":"same lane, bottom-shelf register","conf":0.35}
+{"seed_key":"MANGA:254","id":13099,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":19,"v":"relevant","why":"genre-savvy meta webtoon epic","conf":0.65}
+{"seed_key":"MANGA:364","id":126,"v":"relevant","why":"death-loop regression with genre wit","conf":0.7}
+{"seed_key":"MANGA:364","id":153,"v":"relevant","why":"irreverent comedic KR fantasy","conf":0.6}
+{"seed_key":"MANGA:364","id":355,"v":"relevant","why":"grim loop-progression kin","conf":0.65}
+{"seed_key":"MANGA:364","id":391,"v":"relevant","why":"cynical dark take on hero fantasy","conf":0.55}
+{"seed_key":"MANGA:364","id":822,"v":"relevant","why":"game-world webtoon comedy-action","conf":0.5}
+{"seed_key":"MANGA:364","id":915,"v":"relevant","why":"KR comedy hero-fantasy adjacent","conf":0.45}
+{"seed_key":"MANGA:364","id":1013,"v":"unknown","why":"manhwa I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":1436,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":3475,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":4617,"v":"relevant","why":"grinding regression with dark humor","conf":0.5}
+{"seed_key":"MANGA:364","id":5159,"v":"not_relevant","why":"generic JP mage power fantasy","conf":0.35}
+{"seed_key":"MANGA:364","id":8303,"v":"not_relevant","why":"grim old-school manhwa epic, no satire","conf":0.45}
+{"seed_key":"MANGA:364","id":25029,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":26186,"v":"unknown","why":"LN I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":53269,"v":"not_relevant","why":"dark epic side story, no loop satire","conf":0.45}
+{"seed_key":"MANGA:364","id":56303,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":56961,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":60404,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:364","id":62150,"v":"not_relevant","why":"classic portal-epic novel, wrong register","conf":0.55}
+{"seed_key":"MANGA:375","id":3,"v":"relevant","why":"hunter power-fantasy staple kin","conf":0.7}
+{"seed_key":"MANGA:375","id":254,"v":"relevant","why":"artifact-hunting power fantasy twin","conf":0.65}
+{"seed_key":"MANGA:375","id":303,"v":"relevant","why":"KR grind power fantasy","conf":0.6}
+{"seed_key":"MANGA:375","id":319,"v":"relevant","why":"KR ascent power fantasy","conf":0.6}
+{"seed_key":"MANGA:375","id":352,"v":"relevant","why":"KR genius power fantasy lane","conf":0.55}
+{"seed_key":"MANGA:375","id":786,"v":"relevant","why":"KR hunter grind lane","conf":0.55}
+{"seed_key":"MANGA:375","id":793,"v":"relevant","why":"same Kakao power-fantasy constellation","conf":0.4}
+{"seed_key":"MANGA:375","id":856,"v":"relevant","why":"ability-stealing urban power fantasy","conf":0.4}
+{"seed_key":"MANGA:375","id":1067,"v":"relevant","why":"KR returner grind lane","conf":0.4}
+{"seed_key":"MANGA:375","id":1303,"v":"relevant","why":"KR wizard power fantasy","conf":0.5}
+{"seed_key":"MANGA:375","id":1444,"v":"relevant","why":"gimmick-grind hunter webtoon","conf":0.45}
+{"seed_key":"MANGA:375","id":1969,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:375","id":3634,"v":"not_relevant","why":"artful Japanese myth seinen, wrong lane","conf":0.5}
+{"seed_key":"MANGA:375","id":5338,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:375","id":5423,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:375","id":8034,"v":"not_relevant","why":"game one-shot adaptation, wrong shelf","conf":0.6}
+{"seed_key":"MANGA:375","id":8486,"v":"unknown","why":"manhua I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:375","id":9436,"v":"not_relevant","why":"same lane, bottom-shelf register","conf":0.35}
+{"seed_key":"MANGA:375","id":11022,"v":"not_relevant","why":"mythology romance webtoon, wrong appetite","conf":0.4}
+{"seed_key":"MANGA:428","id":3,"v":"relevant","why":"system power-fantasy staple kin","conf":0.7}
+{"seed_key":"MANGA:428","id":153,"v":"relevant","why":"KR comedic fantasy, same shelf","conf":0.5}
+{"seed_key":"MANGA:428","id":186,"v":"relevant","why":"murim plus system, direct sibling","conf":0.8}
+{"seed_key":"MANGA:428","id":198,"v":"relevant","why":"murim epic staple","conf":0.75}
+{"seed_key":"MANGA:428","id":234,"v":"relevant","why":"KR game-system power fantasy","conf":0.6}
+{"seed_key":"MANGA:428","id":827,"v":"not_relevant","why":"JP supernatural action one-shot","conf":0.5}
+{"seed_key":"MANGA:428","id":1269,"v":"relevant","why":"leveling murim, near-identical lane","conf":0.75}
+{"seed_key":"MANGA:428","id":1318,"v":"unknown","why":"manhwa I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:428","id":1376,"v":"not_relevant","why":"grim folklore epic, pre-system era feel","conf":0.45}
+{"seed_key":"MANGA:428","id":1378,"v":"not_relevant","why":"Mizukami JP fantasy, wrong lane","conf":0.5}
+{"seed_key":"MANGA:428","id":1436,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:428","id":1591,"v":"relevant","why":"KR sword-fantasy grind webtoon","conf":0.5}
+{"seed_key":"MANGA:428","id":1794,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:428","id":3343,"v":"unknown","why":"murim title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:428","id":4359,"v":"not_relevant","why":"JP franchise novel, wrong shelf","conf":0.6}
+{"seed_key":"MANGA:428","id":9314,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:428","id":11180,"v":"not_relevant","why":"game-movie novelization","conf":0.6}
+{"seed_key":"MANGA:428","id":20104,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:428","id":22105,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:428","id":34571,"v":"not_relevant","why":"western revenge seinen, wrong world","conf":0.4}
+{"seed_key":"MANGA:465","id":7,"v":"relevant","why":"exuberant adventure romp, higher register","conf":0.6}
+{"seed_key":"MANGA:465","id":22,"v":"relevant","why":"spectacle battle shounen","conf":0.55}
+{"seed_key":"MANGA:465","id":25,"v":"relevant","why":"magic-guild battle sibling","conf":0.7}
+{"seed_key":"MANGA:465","id":111,"v":"relevant","why":"flashy magazine battle action","conf":0.55}
+{"seed_key":"MANGA:465","id":135,"v":"relevant","why":"guild-romp magic battle kin","conf":0.7}
+{"seed_key":"MANGA:465","id":438,"v":"relevant","why":"Mashima's space-flavored twin","conf":0.7}
+{"seed_key":"MANGA:465","id":1076,"v":"relevant","why":"Mashima's earlier adventure romp","conf":0.7}
+{"seed_key":"MANGA:465","id":1449,"v":"relevant","why":"magazine magic-battle successor","conf":0.6}
+{"seed_key":"MANGA:465","id":2332,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:465","id":3072,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:465","id":3262,"v":"relevant","why":"exuberant heroic party fantasy","conf":0.7}
+{"seed_key":"MANGA:465","id":3648,"v":"not_relevant","why":"pilot one-shot, not rail-worthy sibling","conf":0.45}
+{"seed_key":"MANGA:465","id":3809,"v":"not_relevant","why":"flat earnest adventure, register below","conf":0.4}
+{"seed_key":"MANGA:465","id":4631,"v":"relevant","why":"Mashima's demon-school battle style","conf":0.5}
+{"seed_key":"MANGA:465","id":4841,"v":"franchise","why":"Fairy Tail spinoff; seed is FT sequel","conf":0.9}
+{"seed_key":"MANGA:465","id":6920,"v":"not_relevant","why":"one-joke gag fantasy","conf":0.45}
+{"seed_key":"MANGA:465","id":8760,"v":"not_relevant","why":"kids game adventure, wrong shelf","conf":0.55}
+{"seed_key":"MANGA:465","id":10029,"v":"not_relevant","why":"Madoka spinoff, wrong world","conf":0.5}
+{"seed_key":"MANGA:465","id":27283,"v":"not_relevant","why":"game tie-in despite Mashima designs","conf":0.35}
+{"seed_key":"MANGA:494","id":5,"v":"not_relevant","why":"grimdark register versus Helck's comedic warmth","conf":0.4}
+{"seed_key":"MANGA:494","id":6,"v":"not_relevant","why":"bleak twist epic, wrong tone","conf":0.4}
+{"seed_key":"MANGA:494","id":12,"v":"relevant","why":"gag-strongman with real craft beneath","conf":0.5}
+{"seed_key":"MANGA:494","id":84,"v":"not_relevant","why":"science optimism, different appetite","conf":0.4}
+{"seed_key":"MANGA:494","id":86,"v":"relevant","why":"humor-laced fantasy with heart","conf":0.45}
+{"seed_key":"MANGA:494","id":89,"v":"relevant","why":"humane demons, warmth with melancholy","conf":0.5}
+{"seed_key":"MANGA:494","id":90,"v":"relevant","why":"epic balancing comedy and tragedy","conf":0.6}
+{"seed_key":"MANGA:494","id":144,"v":"not_relevant","why":"straight intense battle shounen","conf":0.4}
+{"seed_key":"MANGA:494","id":151,"v":"relevant","why":"comedy-fed fantasy with real depth","conf":0.6}
+{"seed_key":"MANGA:494","id":332,"v":"not_relevant","why":"apocalyptic tragedy, no warmth","conf":0.5}
+{"seed_key":"MANGA:494","id":413,"v":"relevant","why":"jokes masking devastating epic, Mizukami kinship","conf":0.7}
+{"seed_key":"MANGA:494","id":414,"v":"not_relevant","why":"surreal gothic art piece","conf":0.45}
+{"seed_key":"MANGA:494","id":427,"v":"relevant","why":"humanizing-the-enemy epic sweep","conf":0.4}
+{"seed_key":"MANGA:494","id":524,"v":"not_relevant","why":"grim KR survival webtoon","conf":0.45}
+{"seed_key":"MANGA:494","id":878,"v":"not_relevant","why":"pure gag slice, no epic sweep","conf":0.4}
+{"seed_key":"MANGA:494","id":3707,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:494","id":4178,"v":"relevant","why":"demon-lord humanity, dark-warm fantasy","conf":0.5}
+{"seed_key":"MANGA:494","id":6526,"v":"relevant","why":"hero-demon subversion comedy","conf":0.45}
+{"seed_key":"MANGA:494","id":29850,"v":"not_relevant","why":"game promo manhua","conf":0.6}
+{"seed_key":"MANGA:533","id":867,"v":"relevant","why":"demon-lord monster-girl romcom shelf","conf":0.5}
+{"seed_key":"MANGA:533","id":1303,"v":"not_relevant","why":"KR power fantasy, no romance core","conf":0.5}
+{"seed_key":"MANGA:533","id":1455,"v":"relevant","why":"doting-on-elf premise, nearly identical hook","conf":0.6}
+{"seed_key":"MANGA:533","id":1698,"v":"not_relevant","why":"dark KR slave fantasy, wrong tone","conf":0.45}
+{"seed_key":"MANGA:533","id":2160,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:533","id":2220,"v":"relevant","why":"fantasy romcom confession premise","conf":0.5}
+{"seed_key":"MANGA:533","id":2369,"v":"relevant","why":"demon-family fantasy comedy warmth","conf":0.45}
+{"seed_key":"MANGA:533","id":2692,"v":"relevant","why":"demon-king marriage romcom","conf":0.4}
+{"seed_key":"MANGA:533","id":2794,"v":"relevant","why":"doting fantasy romcom, same shelf","conf":0.5}
+{"seed_key":"MANGA:533","id":3013,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:533","id":3262,"v":"not_relevant","why":"heroic battle epic, no romcom","conf":0.55}
+{"seed_key":"MANGA:533","id":3811,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:533","id":3948,"v":"not_relevant","why":"battle-of-the-week shounen despite marriage hook","conf":0.35}
+{"seed_key":"MANGA:533","id":4841,"v":"not_relevant","why":"guild battle spinoff","conf":0.55}
+{"seed_key":"MANGA:533","id":5017,"v":"not_relevant","why":"generic LN power fantasy, not romcom","conf":0.35}
+{"seed_key":"MANGA:533","id":6548,"v":"franchise","why":"source novel of the seed","conf":0.9}
+{"seed_key":"MANGA:533","id":10913,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:533","id":11375,"v":"not_relevant","why":"game adaptation, wrong shelf","conf":0.5}
+{"seed_key":"MANGA:533","id":20104,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":213,"v":"relevant","why":"KR action power fantasy lane","conf":0.6}
+{"seed_key":"MANGA:786","id":215,"v":"relevant","why":"KR sword power fantasy lane","conf":0.6}
+{"seed_key":"MANGA:786","id":224,"v":"relevant","why":"KR regression revenge fantasy","conf":0.55}
+{"seed_key":"MANGA:786","id":229,"v":"relevant","why":"returned-mage power fantasy","conf":0.6}
+{"seed_key":"MANGA:786","id":268,"v":"relevant","why":"KR reincarnation grind lane","conf":0.45}
+{"seed_key":"MANGA:786","id":528,"v":"unknown","why":"manhwa I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":856,"v":"relevant","why":"ability-stealing power fantasy kin","conf":0.4}
+{"seed_key":"MANGA:786","id":1203,"v":"relevant","why":"devouring-for-power webtoon kin","conf":0.5}
+{"seed_key":"MANGA:786","id":1380,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":2160,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":2414,"v":"not_relevant","why":"generic JP isekai register, wrong lane","conf":0.35}
+{"seed_key":"MANGA:786","id":2980,"v":"relevant","why":"cultivation progression appetite, rougher craft","conf":0.4}
+{"seed_key":"MANGA:786","id":3753,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":3771,"v":"not_relevant","why":"JP mercenary fantasy, different lane","conf":0.4}
+{"seed_key":"MANGA:786","id":4269,"v":"not_relevant","why":"generic JP LN power fantasy","conf":0.35}
+{"seed_key":"MANGA:786","id":5068,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":5338,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":5423,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:786","id":9531,"v":"not_relevant","why":"JP guild-battle spinoff, wrong lane","conf":0.55}
+{"seed_key":"MANGA:786","id":11091,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:833","id":2,"v":"relevant","why":"violent stylish intensity, adjacent register","conf":0.5}
+{"seed_key":"MANGA:833","id":5,"v":"relevant","why":"dark fantasy vengeance epic","conf":0.6}
+{"seed_key":"MANGA:833","id":28,"v":"not_relevant","why":"breezy mainstream monster action","conf":0.4}
+{"seed_key":"MANGA:833","id":81,"v":"relevant","why":"dark stylish battle intensity","conf":0.6}
+{"seed_key":"MANGA:833","id":115,"v":"relevant","why":"monster-slaying dark fantasy, excellent fit","conf":0.75}
+{"seed_key":"MANGA:833","id":161,"v":"relevant","why":"edgy dark battle fantasy","conf":0.6}
+{"seed_key":"MANGA:833","id":759,"v":"relevant","why":"dark revenge fantasy kin","conf":0.6}
+{"seed_key":"MANGA:833","id":925,"v":"relevant","why":"violent fantasy war spectacle","conf":0.5}
+{"seed_key":"MANGA:833","id":1076,"v":"not_relevant","why":"bright adventure romp, wrong tone","conf":0.5}
+{"seed_key":"MANGA:833","id":2208,"v":"not_relevant","why":"mystery drama, not visceral dragon-slaying","conf":0.45}
+{"seed_key":"MANGA:833","id":2241,"v":"relevant","why":"over-the-top dark fantasy metal","conf":0.4}
+{"seed_key":"MANGA:833","id":2466,"v":"not_relevant","why":"game-adaptation adventure","conf":0.6}
+{"seed_key":"MANGA:833","id":3072,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:833","id":3262,"v":"not_relevant","why":"bright heroic tone despite dragon war","conf":0.4}
+{"seed_key":"MANGA:833","id":3418,"v":"relevant","why":"brutal vengeance intensity, historical not fantasy","conf":0.4}
+{"seed_key":"MANGA:833","id":4841,"v":"not_relevant","why":"guild battle spinoff","conf":0.5}
+{"seed_key":"MANGA:833","id":6929,"v":"not_relevant","why":"generic LN dragon-knight fantasy","conf":0.35}
+{"seed_key":"MANGA:833","id":8440,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:833","id":8613,"v":"not_relevant","why":"generic time-loop LN adaptation","conf":0.35}
+{"seed_key":"MANGA:833","id":28655,"v":"not_relevant","why":"game tie-in heroic fantasy","conf":0.5}
+{"seed_key":"MANGA:4","id":2,"v":"relevant","why":"modern dark Jump battle sibling","conf":0.8}
+{"seed_key":"MANGA:4","id":8,"v":"relevant","why":"demon-slaying Jump battle kin","conf":0.7}
+{"seed_key":"MANGA:4","id":9,"v":"relevant","why":"dark urban supernatural struggle","conf":0.6}
+{"seed_key":"MANGA:4","id":22,"v":"relevant","why":"soul-battle ancestor JJK modernizes","conf":0.8}
+{"seed_key":"MANGA:4","id":23,"v":"relevant","why":"occult battle with modern Jump energy","conf":0.7}
+{"seed_key":"MANGA:4","id":26,"v":"relevant","why":"battle-system craft, Gege's inspiration","conf":0.6}
+{"seed_key":"MANGA:4","id":28,"v":"relevant","why":"modern monster-battle Jump cohort","conf":0.55}
+{"seed_key":"MANGA:4","id":81,"v":"relevant","why":"same dark Jump battle cohort","conf":0.75}
+{"seed_key":"MANGA:4","id":86,"v":"relevant","why":"dark sorcery with gallows humor","conf":0.55}
+{"seed_key":"MANGA:4","id":101,"v":"franchise","why":"JJK prequel volume","conf":0.95}
+{"seed_key":"MANGA:4","id":134,"v":"relevant","why":"modern dark Jump sorcery battle","conf":0.7}
+{"seed_key":"MANGA:4","id":158,"v":"relevant","why":"psychic battle craft, warmer tone","conf":0.5}
+{"seed_key":"MANGA:4","id":184,"v":"relevant","why":"exorcist battle shounen kin","conf":0.6}
+{"seed_key":"MANGA:4","id":212,"v":"relevant","why":"stylish supernatural action","conf":0.55}
+{"seed_key":"MANGA:4","id":299,"v":"relevant","why":"high-concept Jump battle energy","conf":0.55}
+{"seed_key":"MANGA:4","id":315,"v":"relevant","why":"spirit-battle ur-text of JJK lineage","conf":0.7}
+{"seed_key":"MANGA:4","id":1167,"v":"relevant","why":"Jump occult battle, genuinely close feel","conf":0.4}
+{"seed_key":"MANGA:4","id":1187,"v":"relevant","why":"yokai battle shounen kin","conf":0.55}
+{"seed_key":"MANGA:4","id":2834,"v":"not_relevant","why":"cozy yokai comedy, wrong register","conf":0.5}
+{"seed_key":"MANGA:22","id":4,"v":"relevant","why":"modern heir to Bleach's soul battles","conf":0.8}
+{"seed_key":"MANGA:22","id":7,"v":"relevant","why":"big-three adventure register","conf":0.55}
+{"seed_key":"MANGA:22","id":8,"v":"relevant","why":"sword-and-demon Jump battle","conf":0.7}
+{"seed_key":"MANGA:22","id":10,"v":"relevant","why":"big-Jump battle spectacle","conf":0.6}
+{"seed_key":"MANGA:22","id":23,"v":"relevant","why":"occult Jump battle energy","conf":0.55}
+{"seed_key":"MANGA:22","id":25,"v":"relevant","why":"spectacle magic battle shounen","conf":0.65}
+{"seed_key":"MANGA:22","id":79,"v":"relevant","why":"big-three battle journey","conf":0.75}
+{"seed_key":"MANGA:22","id":101,"v":"relevant","why":"cursed-spirit battle, Bleach lineage","conf":0.6}
+{"seed_key":"MANGA:22","id":110,"v":"relevant","why":"death-styled cool battle shounen, closest kin","conf":0.75}
+{"seed_key":"MANGA:22","id":134,"v":"relevant","why":"stylish sword sorcery battle","conf":0.65}
+{"seed_key":"MANGA:22","id":184,"v":"relevant","why":"exorcist battle shounen kin","conf":0.65}
+{"seed_key":"MANGA:22","id":235,"v":"relevant","why":"supernatural stand battles, stylish","conf":0.5}
+{"seed_key":"MANGA:22","id":315,"v":"relevant","why":"spirit-world battle ancestor","conf":0.75}
+{"seed_key":"MANGA:22","id":739,"v":"franchise","why":"Kubo's Bleach-universe spinoff","conf":0.85}
+{"seed_key":"MANGA:22","id":992,"v":"franchise","why":"Bleach anniversary one-shot","conf":0.95}
+{"seed_key":"MANGA:22","id":1055,"v":"franchise","why":"Burn the Witch pilot, Bleach universe","conf":0.8}
+{"seed_key":"MANGA:22","id":2271,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:22","id":2533,"v":"not_relevant","why":"cozy Hanako-kun spinoff comedy","conf":0.5}
+{"seed_key":"MANGA:22","id":3707,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:79","id":4,"v":"relevant","why":"modern Jump battle heir","conf":0.7}
+{"seed_key":"MANGA:79","id":7,"v":"relevant","why":"big-three journey epic","conf":0.75}
+{"seed_key":"MANGA:79","id":8,"v":"relevant","why":"earnest Jump battle journey","conf":0.7}
+{"seed_key":"MANGA:79","id":10,"v":"relevant","why":"underdog-to-hero Jump lineage","conf":0.7}
+{"seed_key":"MANGA:79","id":22,"v":"relevant","why":"big-three battle spectacle","conf":0.75}
+{"seed_key":"MANGA:79","id":25,"v":"relevant","why":"Naruto-lineage underdog battler","conf":0.75}
+{"seed_key":"MANGA:79","id":26,"v":"relevant","why":"grand Jump adventure craft","conf":0.7}
+{"seed_key":"MANGA:79","id":148,"v":"relevant","why":"foundational battle adventure","conf":0.7}
+{"seed_key":"MANGA:79","id":198,"v":"not_relevant","why":"KR murim webtoon, different reading feel","conf":0.4}
+{"seed_key":"MANGA:79","id":299,"v":"relevant","why":"high-energy Jump battle","conf":0.5}
+{"seed_key":"MANGA:79","id":413,"v":"not_relevant","why":"quirky Mizukami epic, different feel","conf":0.45}
+{"seed_key":"MANGA:79","id":453,"v":"franchise","why":"Boruto sequel of seed","conf":0.95}
+{"seed_key":"MANGA:79","id":1759,"v":"not_relevant","why":"Kishimoto follow-up but collapsed register","conf":0.4}
+{"seed_key":"MANGA:79","id":2548,"v":"relevant","why":"modern ninja arts drama, quieter","conf":0.4}
+{"seed_key":"MANGA:79","id":3544,"v":"relevant","why":"90s ninja battle precursor feel","conf":0.65}
+{"seed_key":"MANGA:79","id":3551,"v":"unknown","why":"title I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:79","id":4830,"v":"unknown","why":"webtoon I cannot confidently place","conf":0.3}
+{"seed_key":"MANGA:79","id":5046,"v":"franchise","why":"Naruto tie-in novel series","conf":0.95}

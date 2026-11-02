@@ -1,0 +1,33 @@
+{
+  "slug": "delete-account",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "captured_at": "2026-10-07T22:42:15.707Z",
+  "code_url": "https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions/delete-account/code",
+  "method": "Visible file tree; select/copy from deployed Code editor; no deployment",
+  "files": [
+    {
+      "deployed_name": "index.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/delete-account/index.ts",
+      "bytes": 914,
+      "sha256": "b96437247b724f89347f4209c8fbbcb78fa05f39d2069c3116bdde6313c09659"
+    },
+    {
+      "deployed_name": "adapters.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/delete-account/adapters.ts",
+      "bytes": 7267,
+      "sha256": "bf82c384d06415a85e045464aa61bc5b363b9e00aa9ef1ea3279b9ea4c010fa7"
+    },
+    {
+      "deployed_name": "deletion.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/delete-account/deletion.ts",
+      "bytes": 11394,
+      "sha256": "598d5f73d5a9a9030df26cc87587819fd8418a685cc7b8426702eee5f4b7faf2"
+    },
+    {
+      "deployed_name": "handler.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/delete-account/handler.ts",
+      "bytes": 3453,
+      "sha256": "cc4a0c800b302efb38e3eb8c69eecef39e2bec12ec958f4abee809c59c9d791f"
+    }
+  ]
+}

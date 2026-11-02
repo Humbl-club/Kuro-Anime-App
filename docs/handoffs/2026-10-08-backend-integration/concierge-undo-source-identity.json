@@ -1,0 +1,33 @@
+{
+  "slug": "concierge-undo",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "captured_at": "2026-10-07T22:41:26.455Z",
+  "code_url": "https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-undo/code",
+  "method": "Visible file tree; select/copy from deployed Code editor; no deployment",
+  "files": [
+    {
+      "deployed_name": "index.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-undo/index.ts",
+      "bytes": 1585,
+      "sha256": "8f937a8c7f0c0c315501b56206c5607fa4609b76712f4d0a37e3de5d2cef8387"
+    },
+    {
+      "deployed_name": "handler.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-undo/handler.ts",
+      "bytes": 4893,
+      "sha256": "7a56f765aa318f9756e691e9846acab68ce6373bb991e684272d5429477ae0c5"
+    },
+    {
+      "deployed_name": "../_shared/rate_limit_gate.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-undo/_shared/rate_limit_gate.ts",
+      "bytes": 3625,
+      "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "deployed_name": "undo_plan.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-undo/undo_plan.ts",
+      "bytes": 3427,
+      "sha256": "ddb6cb59ec5a263ea2584bb9cb332d6f3ea57cfbe05592ab1a08736e55e41a0a"
+    }
+  ]
+}

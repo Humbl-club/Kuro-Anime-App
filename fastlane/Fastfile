@@ -1,35 +1,112 @@
+require_relative "release_candidate"
+KURO_RELEASE_ROOT = File.expand_path("..", __dir__)
+
 default_platform(:ios)
 
+def kuro_candidate(options)
+  root = KURO_RELEASE_ROOT
+  path = File.expand_path(options[:candidate] || ".codex-artifacts/release/candidate.json", root)
+  KuroReleaseCandidate.new(root: root, path: path)
+end
+
 platform :ios do
-  desc "Push a new beta build to TestFlight"
-  lane :beta do
-    api_key = app_store_connect_api_key(
-      key_id: "7L84A7P9X7",
+  private_lane :release_api_key do
+    key_id = ENV.fetch("KURO_ASC_KEY_ID", "4Y9VLAQLQN")
+    key_path = File.expand_path("~/.appstoreconnect/private_keys/AuthKey_#{key_id}.p8")
+    UI.user_error!("App Store Connect key is unavailable: #{key_path}") unless File.file?(key_path)
+    app_store_connect_api_key(
+      key_id: key_id,
       issuer_id: "bca97a4b-8a3a-4051-9c89-510f10db0b06",
-      key_filepath: File.expand_path("~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8")
+      key_filepath: key_path
     )
+  end
 
-    increment_build_number(
-      build_number: latest_testflight_build_number(api_key: api_key) + 1
-    )
+  desc "Run selected local development checks without release/live prerequisites"
+  lane :check_development do |options|
+    checks = (options[:checks] || "architecture").split(",")
+    kuro_candidate(options).check_development!(checks: checks)
+  end
 
-    sh("cd .. && scripts/quality-gates/run_all.sh")
+  desc "Assign build number and freeze inputs before collecting live evidence"
+  lane :freeze_beta do |options|
+    candidate = kuro_candidate(options)
+    UI.user_error!("Candidate already exists; resume beta or choose a new candidate path") if candidate.exists?
+    # A caller may reserve an explicit number when preparing without ASC access.
+    number = options[:build_number] || latest_testflight_build_number(api_key: release_api_key) + 1
+    UI.user_error!("Build number must be a positive integer") unless number.to_s.match?(/\A[1-9][0-9]*\z/)
+    increment_build_number(build_number: number)
+    candidate.prepare!(build_number: number)
+    UI.message("Candidate frozen. Collect fresh live evidence for this receipt, then run verify_beta.")
+  end
 
-    build_app(
+  desc "Freeze and verify a candidate whose pinned live evidence is ready"
+  lane :prepare_beta do |options|
+    freeze_beta(options)
+    verify_beta(options)
+  end
+
+  desc "Verify once, or retry failed/blocked gates on the unchanged candidate"
+  lane :verify_beta do |options|
+    kuro_candidate(options).verify!
+  end
+
+  desc "Archive the unchanged verified candidate without rerunning gates"
+  lane :archive_beta do |options|
+    candidate = kuro_candidate(options)
+    receipt = candidate.require_verified!
+    UI.user_error!("Candidate already has an archive; use upload_beta") unless receipt["stage"] == "verified"
+    output_dir = File.expand_path(".codex-artifacts/release/build-#{receipt.fetch('build_number')}", receipt.fetch("root"))
+    ipa = build_app(
       scheme: "Kuro",
+      configuration: "Release",
       export_method: "app-store",
       clean: true,
       xcargs: "-allowProvisioningUpdates",
+      output_directory: output_dir,
+      output_name: "Kuro-#{receipt.fetch('build_number')}.ipa",
+      archive_path: File.join(output_dir, "Kuro.xcarchive"),
       export_options: {
-        signingStyle: "manual",
-        teamID: "YLG68JL5Y7",
-        provisioningProfiles: {
-          "com.Kuro.app" => "com.Kuro.app AppStore"
-        }
+        signingStyle: "automatic",
+        teamID: "YLG68JL5Y7"
       }
     )
+    candidate.record_archive!(
+      ipa: ipa,
+      bundle_id: get_ipa_info_plist_value(ipa: ipa, key: "CFBundleIdentifier"),
+      build_number: get_ipa_info_plist_value(ipa: ipa, key: "CFBundleVersion"),
+      version: get_ipa_info_plist_value(ipa: ipa, key: "CFBundleShortVersionString")
+    )
+  end
 
-    upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: true)
+  desc "Upload the recorded exact IPA and wait for TestFlight processing"
+  lane :upload_beta do |options|
+    candidate = kuro_candidate(options)
+    receipt = candidate.require_archive!
+    UI.user_error!("This candidate is already processed") if receipt["stage"] == "processed"
+    api_key = release_api_key
+    candidate.require_archive!
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: receipt.fetch("ipa"),
+      app_identifier: receipt.fetch("bundle_id"),
+      skip_waiting_for_build_processing: false,
+      distribute_external: false
+    )
+    candidate.record_processed!
+    UI.success("TestFlight processing finished. Install this exact build and record native qualification; release is not yet accepted.")
+  end
+
+  desc "Prepare, archive, and upload TestFlight; resume unchanged recorded stages"
+  lane :beta do |options|
+    root = KURO_RELEASE_ROOT
+    path = File.expand_path(options[:candidate] || ".codex-artifacts/release/candidate.json", root)
+    freeze_beta(options) unless File.file?(path)
+    candidate = kuro_candidate(options)
+    verify_beta(options) if candidate.read["stage"] == "prepared"
+    candidate.require_verified!
+    archive_beta(options) if candidate.read["stage"] == "verified"
+    upload_beta(options) if candidate.read["stage"] == "archived"
+    UI.message("Installation and all five release acceptance gates must be recorded separately.")
   end
 
   desc "Capture App Store screenshots on a prepared local simulator"
@@ -38,35 +115,8 @@ platform :ios do
     capture_screenshots(scheme: "Kuro")
   end
 
-  desc "Build and upload a new App Store release"
+  desc "Public App Store release requires a separate reviewed authorization"
   lane :release do
-    api_key = app_store_connect_api_key(
-      key_id: "7L84A7P9X7",
-      issuer_id: "bca97a4b-8a3a-4051-9c89-510f10db0b06",
-      key_filepath: File.expand_path("~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8")
-    )
-
-    increment_build_number(
-      build_number: latest_testflight_build_number(api_key: api_key) + 1
-    )
-
-    sh("cd .. && scripts/quality-gates/run_all.sh")
-
-    build_app(
-      scheme: "Kuro",
-      export_method: "app-store",
-      clean: true,
-      xcargs: "-allowProvisioningUpdates",
-      export_options: {
-        signingStyle: "manual",
-        teamID: "YLG68JL5Y7",
-        provisioningProfiles: {
-          "com.Kuro.app" => "com.Kuro.app AppStore"
-        }
-      }
-    )
-
-    upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: true)
-    upload_to_app_store(api_key: api_key, skip_screenshots: true, skip_metadata: true)
+    UI.user_error!("This scope ends at qualified TestFlight. Prepare App Store inputs separately; public submission is disabled.")
   end
 end

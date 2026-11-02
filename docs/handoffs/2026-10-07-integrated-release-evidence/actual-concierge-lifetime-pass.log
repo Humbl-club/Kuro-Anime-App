@@ -1,0 +1,3 @@
+PASS: account, held nil result rejected, fresh action admitted
+PASS: chat, held nil result rejected, fresh action admitted
+PASS: disappear, held nil result rejected, fresh action admitted

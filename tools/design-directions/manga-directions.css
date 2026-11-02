@@ -1,0 +1,194 @@
+/* Review-only compositions: default Home and Anime have no matching selectors. */
+.phone[data-medium=manga][data-reading] .activity-stage{margin:0 22px}
+.phone[data-medium=manga][data-reading] .reading-study-cover{display:block;width:100%;height:100%;padding:0;border:0;background:transparent;border-radius:3px;box-shadow:none;overflow:hidden}
+.phone[data-medium=manga][data-reading] .reading-study-cover:after{display:none}
+.phone[data-medium=manga][data-reading] .reading-study-cover img{display:block;object-fit:contain;width:100%;height:100%;border-radius:3px;filter:none}
+.reading-study-item{min-width:0;position:relative}
+.reading-study-item .reading-study-title{min-width:0}
+.reading-study-item h2{margin:0;font-weight:500;line-height:1.05}
+.reading-study-item .title-open{display:block;text-align:left;min-height:44px;width:100%;padding:4px 0;line-height:inherit;font:inherit;letter-spacing:inherit;overflow-wrap:anywhere}
+.reading-study-item .progress-control{width:100%;min-height:52px;gap:6px;position:relative;padding:0;background:none;border:0;box-shadow:none;border-radius:0}
+.reading-study-item .progress-label{display:flex;align-items:flex-start;flex-direction:column;justify-content:center;gap:1px;font-size:9px;color:inherit}
+.reading-study-item .progress-label b{color:inherit;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-1.5px;line-height:1.05}
+.reading-study-item .progress-total{display:none}
+.reading-study-item .progress-track{display:none}
+.phone[data-medium=manga][data-reading] .reading-study-item .step{height:48px;width:48px;min-width:48px;min-height:48px;border-radius:50%;--key-ink:#353932}
+.phone[data-medium=manga][data-reading] .reading-study-item .step:before{inset:2px;border-radius:50%;background:#fff;border:1px solid #d1d5cc;box-shadow:inset 0 1px 0 #fff,0 2px 4px #252b2310}
+.phone[data-medium=manga][data-reading] .reading-study-item .step[data-contact=pressed]:before{transform:scale(.95);background:#ebeee7;box-shadow:inset 0 1px 3px #28322216}
+.phone[data-medium=manga][data-reading] .reading-study-item .step[data-feedback=failed]:before{border-style:dashed;background:transparent}
+.phone[data-medium=manga][data-reading] .reading-study-item .step:disabled:before{background:none;box-shadow:none;border-color:#bdc3b6}
+.reading-study-item [data-complete=true] .progress-unit{display:none}
+.reading-study-item [data-complete=true] .completion-label{display:block;line-height:1.3}
+.reading-study-item .manga-context{display:flex;flex-direction:column;align-items:flex-start;gap:0;min-height:0}
+.reading-study-item .chapter-update{font-size:10px;line-height:1.4;min-height:18px;color:#677060}
+.reading-study-item .chapter-mark{display:none}
+.reading-study-item .manga-readers{min-height:44px;font-size:10px;line-height:1.2;color:#5c6656;max-width:100%;padding-right:3px}
+.reading-study-item .club-initial{border:1px solid currentColor;background:none;width:17px;height:17px;flex:none}
+.reading-study-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:24px 0 6px;padding-top:16px;border-top:1px solid #343b3024}
+.reading-study-heading h2{font-family:'Kuro Editorial',Georgia,serif;font-size:23px;font-weight:450;letter-spacing:-.5px}
+.reading-study-heading span{font-size:10px;color:#6a7066}
+/* Edition: artwork and the chapter margin form a single quiet publication spread. */
+.phone[data-medium=manga][data-reading=edition]{background:#f5f3ee}
+.phone[data-medium=manga][data-reading=edition] .home-opening{margin-bottom:20px}
+.edition-leads{display:grid;gap:18px}
+.edition-large{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);grid-template-rows:1fr auto;gap:10px 20px;padding:16px 14px 12px;background:#fffdfa;border:1px solid #dedbd3;border-radius:5px;box-shadow:0 4px 10px -7px #332e2330;align-items:center}
+.edition-large .reading-study-art{grid-column:1;grid-row:1/3;height:195px;align-self:start}
+.edition-large .reading-study-title{grid-column:2;grid-row:1;align-self:start;padding-top:4px}
+.edition-large h2{font-family:'Kuro Editorial',Georgia,serif;font-size:30px;letter-spacing:-1px}
+.edition-large .reading-study-progress{grid-column:2;grid-row:2;align-self:end;border-top:1px solid #34372e24;padding-top:9px}
+.edition-large .progress-label b{font:500 38px/1 'Kuro Editorial',Georgia,serif;letter-spacing:-2px}
+.edition-large .reading-study-context{grid-column:1/-1;grid-row:3;border-top:1px solid #dcdcd323;padding-top:5px}
+.edition-large .manga-context{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 10px}
+.edition-rest{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px}
+.edition-small{display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-rows:48px 48px auto;column-gap:10px;padding:16px 0 12px;border-bottom:1px solid #d8d7cf;align-items:center}
+.edition-small .reading-study-art{grid-column:1;grid-row:1/3;height:70px}
+.edition-small .reading-study-title{grid-column:2;grid-row:1}
+.edition-small h2{font-size:12px;line-height:1.2;letter-spacing:-.3px}
+.edition-small .reading-study-progress{grid-column:2;grid-row:2}
+.edition-small .progress-label b{font-size:21px;letter-spacing:-.7px}
+.phone[data-medium=manga][data-reading] .edition-small .step{height:44px;width:44px;min-width:44px;min-height:44px}
+.phone[data-medium=manga][data-reading] .edition-small .step:before{inset:2px;border-radius:4px;background:#fffdf9;box-shadow:none}
+.edition-small .reading-study-context{grid-column:1/-1;grid-row:3}
+.edition-small .chapter-update{font-size:9px}
+.edition-small .manga-readers{font-size:9px}
+.phone[data-medium=manga][data-reading=edition] .release-calendar{border:0;box-shadow:none;background:none;overflow:visible}
+.phone[data-medium=manga][data-reading=edition] .release-day{border-top:1px solid #d7d7ce;background:transparent}
+.phone[data-medium=manga][data-reading=edition] .date-stamp{background:none;border:0;width:34px;box-shadow:none;align-items:flex-start}
+.phone[data-medium=manga][data-reading=edition] .date-stamp b{font:500 30px/1 'Kuro Editorial',Georgia,serif}
+.phone[data-medium=manga][data-reading=edition] .day-toggle{padding-inline:0}
+.phone[data-medium=manga][data-reading=edition] .day-toggle[aria-expanded=true],.phone[data-medium=manga][data-reading=edition] .day-events{background:transparent}
+.phone[data-medium=manga][data-reading=edition] .day-events{padding-left:44px;padding-right:0}
+.phone[data-medium=manga][data-reading=edition] .day-art img{border-color:#f5f3ee}
+/* Contact: repeated full covers and small white labels against neutral ink. */
+.phone[data-medium=manga][data-reading=contact]{background:#222522;color:#ecece6;--ink:#ecece6;--muted:#b1b6ac;--paper:#222522}
+.phone[data-medium=manga][data-reading=contact] .app-header{color:#ededdf;background:#222522;border-color:#c8cebc24}
+.phone[data-medium=manga][data-reading=contact] .page-location,.phone[data-medium=manga][data-reading=contact] .page-switch{color:#b9bdb4}
+.phone[data-medium=manga][data-reading=contact] .opening-eyebrow{color:#b2b7aa}
+.phone[data-medium=manga][data-reading=contact] .opening-copy h1{color:#ecece6}
+.phone[data-medium=manga][data-reading=contact] .family-control button:not([aria-pressed=true]) .family-type{color:#bbc0b5;-webkit-text-fill-color:#bbc0b5}
+.phone[data-medium=manga][data-reading=contact] .family-control{border-bottom-color:#cbd0c12b}
+.phone[data-medium=manga][data-reading=contact] .family-mark{background:#d5d9cd}
+.contact-sheet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 18px}
+.contact-plate{display:grid;grid-template-rows:190px 50px 56px auto;align-items:start}
+.contact-plate .reading-study-art{height:190px;background:#111410;padding:9px;border:1px solid #c0c4b82b;border-bottom:0;border-radius:4px 4px 0 0}
+.contact-plate .reading-study-title{padding:6px 0 0;width:100%;height:50px;align-self:center}
+.contact-plate h2{font-size:14px;line-height:1.15;letter-spacing:-.3px}
+.contact-plate .reading-study-progress{width:100%;background:#e9ece3;color:#2c3329;border-radius:4px;padding:4px 7px;box-shadow:0 2px 6px #0002}
+.contact-plate .progress-control{min-height:48px}
+.contact-plate .progress-label b{font-size:29px;letter-spacing:-1px}
+.phone[data-medium=manga][data-reading] .contact-plate .step{--key-ink:#30392b}
+.phone[data-medium=manga][data-reading] .contact-plate .step:before{border-radius:4px;border-color:#acb6a4;background:#f8faf4;box-shadow:none;inset:2px}
+.contact-plate .reading-study-context{padding-top:6px}
+.contact-plate .chapter-update,.contact-plate .manga-readers{color:#c0c8b7;font-size:9px}
+.phone[data-medium=manga][data-reading=contact] .coming-up{color:#e3e7db}
+.phone[data-medium=manga][data-reading=contact] .section-head small{color:#b1bba7}
+.phone[data-medium=manga][data-reading=contact] .release-calendar{background:#eef0e8;color:#293128;border:0;border-radius:5px}
+.phone[data-medium=manga][data-reading=contact] .release-calendar button{color:#293128}
+.phone[data-medium=manga][data-reading=contact] .day-events{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0 12px 15px}
+.phone[data-medium=manga][data-reading=contact] .release-row{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:5px;min-width:0;height:185px;border-top:0;padding:0}
+.phone[data-medium=manga][data-reading=contact] .release-row>img{width:100%;height:103px;object-fit:contain}
+.phone[data-medium=manga][data-reading=contact] .release-copy{flex:none;width:100%}
+.phone[data-medium=manga][data-reading=contact] .release-copy strong{font-size:10px;line-height:1.2}
+.phone[data-medium=manga][data-reading=contact] .release-copy small{font-size:9px}
+.phone[data-medium=manga][data-reading=contact] .release-when{font-size:8px;max-width:100%;text-align:left}
+.phone[data-medium=manga][data-reading=contact] .release-row .row-arrow{display:none}
+.phone[data-medium=manga][data-reading=contact] .release-more{grid-column:1/-1}
+.phone[data-medium=manga][data-reading=contact] .club-room{border-color:#a9b59b4a;background:#30362c;box-shadow:none}
+.phone[data-medium=manga][data-reading=contact] .club-note{background:#f5f3e9;color:#293128}
+.phone[data-medium=manga][data-reading=contact] .app-end{color:#b8bfb0;border-color:#d3daca29}
+.phone[data-medium=manga][data-reading=contact] .quiet{color:#c2c7b8;border-color:#a7b39948;background:#30362c}
+.phone[data-medium=manga][data-reading=contact] .empty-home{color:#e4e8da}
+.phone[data-medium=manga][data-reading=contact] .empty-home p{color:#b9c2ae}
+/* Index: every ongoing title is a single aligned line, with a chapter cursor. */
+.phone[data-medium=manga][data-reading=index]{background:#fffefa}
+.phone[data-medium=manga][data-reading=index] .activity-stage{margin-inline:20px}
+.reading-ledger{border-top:1px solid #343931}
+.index-line{display:grid;grid-template-columns:72px minmax(0,1fr) 90px;grid-template-rows:1fr auto;gap:0 14px;padding:18px 0;border-bottom:1px solid #d7dacd;align-items:center;min-height:154px}
+.index-line .reading-study-art{grid-column:1;grid-row:1/3;height:108px;width:72px}
+.index-line .reading-study-title{grid-column:2;grid-row:1;align-self:center}
+.index-line h2{font-family:'Kuro Editorial',Georgia,serif;font-size:23px;letter-spacing:-.65px;line-height:1.05}
+.index-line .reading-study-progress{grid-column:3;grid-row:1/3;align-self:stretch;display:flex;align-items:center;border-left:1px solid #e0e2d7;padding-left:10px}
+.index-line .progress-control{flex-direction:column;align-items:stretch;justify-content:center;gap:10px}
+.index-line .progress-label{align-items:center;gap:4px}
+.index-line .progress-label b{font-size:35px;letter-spacing:-1.6px}
+.phone[data-medium=manga][data-reading] .index-line .step{width:100%;min-width:44px;height:44px;min-height:44px}
+.phone[data-medium=manga][data-reading] .index-line .step:before{inset:0;border-radius:4px;background:#f0f2e9;box-shadow:inset 0 1px #fff;border:1px solid #d3d8c9}
+.index-line .reading-study-context{grid-column:2;grid-row:2;min-width:0}
+.index-line .manga-context{align-items:flex-start}
+.index-line .manga-readers{font-size:9px;flex-wrap:wrap}
+.phone[data-medium=manga][data-reading=index] .release-calendar{border:0;background:none;box-shadow:none;overflow:visible}
+.phone[data-medium=manga][data-reading=index] .release-day{border-bottom:1px solid #d7dacd;background:none;border-top:0}
+.phone[data-medium=manga][data-reading=index] .day-toggle[aria-expanded=true],.phone[data-medium=manga][data-reading=index] .day-events{background:none}
+.phone[data-medium=manga][data-reading=index] .date-stamp{background:#282f26;color:#f2f5e8;border:0;border-radius:3px}
+.phone[data-medium=manga][data-reading=index] .date-stamp small{color:#d7ddcd}
+.phone[data-medium=manga][data-reading=index] .day-events{padding-left:63px;padding-right:0}
+.phone[data-medium=manga][data-reading=index] .release-row{min-height:78px}
+.phone[data-medium=manga][data-reading=index] .release-row>img{width:36px;height:54px}
+.phone[data-medium=manga][data-reading=index] .release-copy strong{font-family:'Kuro Editorial',Georgia,serif;font-size:17px;line-height:1.05}
+@media(max-width:360px){
+ .phone[data-medium=manga][data-reading] .activity-stage{margin-inline:16px}
+ .edition-large{gap:8px 12px;padding:12px 10px 8px}.edition-large .reading-study-art{height:166px}.edition-large h2{font-size:25px}.edition-large .progress-label b{font-size:32px}
+ .edition-rest{column-gap:14px}.edition-small{column-gap:7px;grid-template-columns:44px minmax(0,1fr)}.edition-small .progress-label b{font-size:18px}
+ .contact-sheet{column-gap:14px}.contact-plate{grid-template-rows:166px 50px 56px auto}.contact-plate .reading-study-art{height:166px}.contact-plate h2{font-size:12px}
+ .index-line{grid-template-columns:62px minmax(0,1fr) 70px;column-gap:12px;min-height:138px;padding:14px 0}.index-line .reading-study-art{width:62px;height:94px}.index-line h2{font-size:21px}.index-line .reading-study-progress{padding-left:8px}.index-line .progress-label b{font-size:31px}
+}
+@media(prefers-reduced-motion:reduce){.reading-study-item *{animation:none!important;transition:none!important}}
+
+.phone[data-medium=manga][data-reading=contact] .story-title{color:#e8eddf}
+.phone[data-medium=manga][data-reading=contact] .story-kind,.phone[data-medium=manga][data-reading=contact] .story-premise{color:#c1cab9}
+.phone[data-medium=manga][data-reading=contact] .empty-home button{background:#e4ebda;color:#293423;border-color:#e4ebda}
+
+/* Crosscut: a composed panel page. Actual reading position occupies the image gutter.
+   No decorative colour, carousel, hidden current reads or new mutation engine. */
+.phone[data-medium=manga][data-reading=crosscut]{background:#f5f5f3;color:#242825}
+.phone[data-medium=manga][data-reading=crosscut] .activity-stage{margin-inline:20px}
+.phone[data-medium=manga][data-reading=crosscut] .activity-heading{margin-bottom:18px}
+.crosscut-page{display:flex;flex-direction:column;gap:24px}
+.crosscut-pair{display:grid;grid-template-columns:minmax(0,1.28fr) minmax(0,1fr);gap:12px;align-items:start}
+.crosscut-pair:nth-child(even){grid-template-columns:minmax(0,1fr) minmax(0,1.28fr)}
+.crosscut-panel{min-width:0;position:relative}
+.crosscut-pair:nth-child(odd) .crosscut-panel:nth-child(2),.crosscut-pair:nth-child(even) .crosscut-panel:nth-child(1){padding-top:30px}
+.crosscut-window{height:248px;position:relative}
+.crosscut-pair:nth-child(odd) .crosscut-panel:nth-child(2) .crosscut-window,.crosscut-pair:nth-child(even) .crosscut-panel:nth-child(1) .crosscut-window{height:218px}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-art{display:block;width:100%;height:100%;padding:0;border:0;border-radius:3px;overflow:hidden;background:#deded9;clip-path:polygon(0 0,100% 0,100% calc(100% - 53px),calc(100% - 116px) calc(100% - 53px),calc(100% - 116px) 100%,0 100%);transition:filter .18s ease}
+.crosscut-art img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 30%;transition:transform .36s cubic-bezier(.2,.75,.25,1)}
+.crosscut-art:active img{transform:scale(1.025)}
+.crosscut-art:focus-visible{outline:3px solid #252825;outline-offset:-4px;filter:brightness(.88)}
+.crosscut-cursor{position:absolute;right:0;bottom:0;width:116px;height:53px;padding:6px 0 0 7px;background:#f5f5f3;border-top-left-radius:3px}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .progress-control{min-height:46px;height:46px;width:100%;gap:5px;border:0;background:none;box-shadow:none;border-radius:0;padding:0;color:#252825;align-items:center;justify-content:space-between}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .progress-track{display:none}
+.crosscut-cursor .progress-label{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:0;flex:1;min-width:0;color:#303632}
+.crosscut-cursor .progress-unit{font-size:9px;letter-spacing:.025em;line-height:1.1}
+.crosscut-cursor .progress-value b{font:500 29px/1 'Helvetica Neue',sans-serif;letter-spacing:-1.6px;font-variant-numeric:tabular-nums;color:#252825}
+.crosscut-cursor .progress-total{display:none}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .step{width:44px;height:44px;min-height:44px;min-width:44px;border-radius:50%;--key-ink:#f5f5f3;flex-shrink:0}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .step:before{inset:3px;border-radius:50%;border:1px solid #282e2a;background:#282e2a;box-shadow:inset 0 1px 0 #ffffff20,0 1px 2px #15191515;transition:transform .16s ease,background .16s ease}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .step[data-contact=pressed]:before{transform:scale(.9);background:#4b534d}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .step[data-feedback=failed]:before{border-style:dashed;background:#f5f5f3}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .step[data-feedback=failed]{--key-ink:#343b35}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .step:disabled{--key-ink:#727970}
+.phone[data-medium=manga][data-reading=crosscut] .crosscut-cursor .step:disabled:before{background:transparent;border-color:#c2c7bf;box-shadow:none}
+.crosscut-cursor [data-complete=true] .progress-unit{display:none}
+.crosscut-cursor [data-complete=true] .completion-label{display:block;font-size:9px;line-height:1.15}
+.crosscut-title{font-size:14px;font-weight:550;line-height:1.15;letter-spacing:-.35px;margin:7px 0 0}
+.crosscut-title .title-open{font:inherit;line-height:inherit;text-align:left;display:flex;align-items:center;min-height:44px;padding:4px 0;width:100%;overflow-wrap:anywhere}
+.crosscut-context .manga-context{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:0 7px;margin:0;min-height:0}
+.crosscut-context .chapter-update{font-size:10px;line-height:1.3;min-height:16px;color:#657065}
+.crosscut-context .chapter-mark{display:none}
+.crosscut-context .manga-readers{min-height:44px;font-size:10px;color:#515b52;line-height:1.2;max-width:100%;padding:0;gap:5px}
+.crosscut-context .club-initial{width:17px;height:17px;border:1px solid #a3aba2;background:transparent;flex-shrink:0}
+.crosscut-pair:has(.crosscut-panel:only-child){grid-template-columns:minmax(0,1.28fr) minmax(0,1fr)}
+.phone[data-medium=manga][data-reading=crosscut] .paper-feed{padding-top:0}
+.phone[data-medium=manga][data-reading=crosscut] .coming-up{margin-top:24px}
+@media(max-width:360px){
+ .phone[data-medium=manga][data-reading=crosscut] .activity-stage{margin-inline:16px}
+ .crosscut-pair{gap:10px;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+ .crosscut-pair:nth-child(even){grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+ .crosscut-window{height:219px}
+ .crosscut-pair:nth-child(odd) .crosscut-panel:nth-child(2) .crosscut-window,.crosscut-pair:nth-child(even) .crosscut-panel:nth-child(1) .crosscut-window{height:189px}
+ .crosscut-title{font-size:13px}
+ .crosscut-cursor{width:102px;padding-left:5px}
+ .phone[data-medium=manga][data-reading=crosscut] .crosscut-art{clip-path:polygon(0 0,100% 0,100% calc(100% - 53px),calc(100% - 102px) calc(100% - 53px),calc(100% - 102px) 100%,0 100%)}
+ .crosscut-cursor .progress-value b{font-size:24px;letter-spacing:-1.3px}
+}
+@media(prefers-reduced-motion:reduce){.crosscut-panel *{animation:none!important;transition:none!important}}

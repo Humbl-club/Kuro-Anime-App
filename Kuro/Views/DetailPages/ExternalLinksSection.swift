@@ -23,17 +23,17 @@ struct ExternalLinksSection: View {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 EditorialLayout.divider()
 
-                Text("REFERENCE")
+                Text(KuroLocale.text("REFERENCE", "NACHSCHLAGEN"))
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
-                    .foregroundColor(.black.opacity(0.3))
+                    .foregroundColor(.kuroInkQuiet)
 
                 HStack(spacing: 12) {
                     if let url = anilistURL {
-                        ExternalLinkButton(title: "AniList", url: url)
+                        ExternalLinkButton(title: "AniList", url: url, mediaType: mediaType, mediaId: anilistId)
                     }
                     if let url = malURL {
-                        ExternalLinkButton(title: "MyAnimeList", url: url)
+                        ExternalLinkButton(title: "MyAnimeList", url: url, mediaType: mediaType, mediaId: anilistId)
                     }
                 }
             }
@@ -44,28 +44,39 @@ struct ExternalLinksSection: View {
 private struct ExternalLinkButton: View {
     let title: String
     let url: URL
+    let mediaType: String
+    let mediaId: Int
+    @Environment(OutboundLinkTelemetry.self) private var outboundLinks
 
     var body: some View {
         Link(destination: url) {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.kuroCustom(10, weight: .medium, maxSize: 16))
                 Text(title.uppercased())
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.2)
             }
-            .foregroundColor(.black.opacity(0.55))
+            .foregroundColor(.kuroTextSecondary)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.black.opacity(0.04))
+                    .fill(Color.kuroBlack04)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                            .stroke(Color.kuroBlack08, lineWidth: 0.5)
                     )
             )
         }
-        .accessibilityLabel("Reference link: \(title)")
+        .accessibilityLabel(KuroLocale.text("Reference link: \(title)", "Nachschlagen bei \(title)"))
+        .simultaneousGesture(TapGesture().onEnded {
+            outboundLinks.recordOutboundLink(
+                mediaType: mediaType.uppercased(),
+                mediaId: mediaId,
+                linkKind: "external_reference",
+                provider: title
+            )
+        })
     }
 }

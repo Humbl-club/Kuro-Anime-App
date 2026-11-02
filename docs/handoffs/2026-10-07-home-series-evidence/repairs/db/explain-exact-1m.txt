@@ -1,0 +1,400 @@
+EXACT_SCHEMA_FIXTURE_SOURCE_SHA256=622af0f1d5410915efd6a942a1842f2d5db3bfdf12121865e896f30cdc6c1683
+GLOBAL_ROWS=1000000 SELECTED_ACCOUNT_ROWS=5000
+              make_user               
+--------------------------------------
+ abcdef00-0000-4000-8000-000000000001
+ abcdef00-0000-4000-8000-000000000002
+ abcdef00-0000-4000-8000-000000000003
+ abcdef00-0000-4000-8000-000000000004
+ abcdef00-0000-4000-8000-000000000005
+ abcdef00-0000-4000-8000-000000000006
+ abcdef00-0000-4000-8000-000000000007
+ abcdef00-0000-4000-8000-000000000008
+ abcdef00-0000-4000-8000-000000000009
+ abcdef00-0000-4000-8000-000000000010
+ abcdef00-0000-4000-8000-000000000011
+ abcdef00-0000-4000-8000-000000000012
+ abcdef00-0000-4000-8000-000000000013
+ abcdef00-0000-4000-8000-000000000014
+ abcdef00-0000-4000-8000-000000000015
+ abcdef00-0000-4000-8000-000000000016
+ abcdef00-0000-4000-8000-000000000017
+ abcdef00-0000-4000-8000-000000000018
+ abcdef00-0000-4000-8000-000000000019
+ abcdef00-0000-4000-8000-000000000020
+ abcdef00-0000-4000-8000-000000000021
+ abcdef00-0000-4000-8000-000000000022
+ abcdef00-0000-4000-8000-000000000023
+ abcdef00-0000-4000-8000-000000000024
+ abcdef00-0000-4000-8000-000000000025
+ abcdef00-0000-4000-8000-000000000026
+ abcdef00-0000-4000-8000-000000000027
+ abcdef00-0000-4000-8000-000000000028
+ abcdef00-0000-4000-8000-000000000029
+ abcdef00-0000-4000-8000-000000000030
+ abcdef00-0000-4000-8000-000000000031
+ abcdef00-0000-4000-8000-000000000032
+ abcdef00-0000-4000-8000-000000000033
+ abcdef00-0000-4000-8000-000000000034
+ abcdef00-0000-4000-8000-000000000035
+ abcdef00-0000-4000-8000-000000000036
+ abcdef00-0000-4000-8000-000000000037
+ abcdef00-0000-4000-8000-000000000038
+ abcdef00-0000-4000-8000-000000000039
+ abcdef00-0000-4000-8000-000000000040
+ abcdef00-0000-4000-8000-000000000041
+ abcdef00-0000-4000-8000-000000000042
+ abcdef00-0000-4000-8000-000000000043
+ abcdef00-0000-4000-8000-000000000044
+ abcdef00-0000-4000-8000-000000000045
+ abcdef00-0000-4000-8000-000000000046
+ abcdef00-0000-4000-8000-000000000047
+ abcdef00-0000-4000-8000-000000000048
+ abcdef00-0000-4000-8000-000000000049
+ abcdef00-0000-4000-8000-000000000050
+ abcdef00-0000-4000-8000-000000000051
+ abcdef00-0000-4000-8000-000000000052
+ abcdef00-0000-4000-8000-000000000053
+ abcdef00-0000-4000-8000-000000000054
+ abcdef00-0000-4000-8000-000000000055
+ abcdef00-0000-4000-8000-000000000056
+ abcdef00-0000-4000-8000-000000000057
+ abcdef00-0000-4000-8000-000000000058
+ abcdef00-0000-4000-8000-000000000059
+ abcdef00-0000-4000-8000-000000000060
+ abcdef00-0000-4000-8000-000000000061
+ abcdef00-0000-4000-8000-000000000062
+ abcdef00-0000-4000-8000-000000000063
+ abcdef00-0000-4000-8000-000000000064
+ abcdef00-0000-4000-8000-000000000065
+ abcdef00-0000-4000-8000-000000000066
+ abcdef00-0000-4000-8000-000000000067
+ abcdef00-0000-4000-8000-000000000068
+ abcdef00-0000-4000-8000-000000000069
+ abcdef00-0000-4000-8000-000000000070
+ abcdef00-0000-4000-8000-000000000071
+ abcdef00-0000-4000-8000-000000000072
+ abcdef00-0000-4000-8000-000000000073
+ abcdef00-0000-4000-8000-000000000074
+ abcdef00-0000-4000-8000-000000000075
+ abcdef00-0000-4000-8000-000000000076
+ abcdef00-0000-4000-8000-000000000077
+ abcdef00-0000-4000-8000-000000000078
+ abcdef00-0000-4000-8000-000000000079
+ abcdef00-0000-4000-8000-000000000080
+ abcdef00-0000-4000-8000-000000000081
+ abcdef00-0000-4000-8000-000000000082
+ abcdef00-0000-4000-8000-000000000083
+ abcdef00-0000-4000-8000-000000000084
+ abcdef00-0000-4000-8000-000000000085
+ abcdef00-0000-4000-8000-000000000086
+ abcdef00-0000-4000-8000-000000000087
+ abcdef00-0000-4000-8000-000000000088
+ abcdef00-0000-4000-8000-000000000089
+ abcdef00-0000-4000-8000-000000000090
+ abcdef00-0000-4000-8000-000000000091
+ abcdef00-0000-4000-8000-000000000092
+ abcdef00-0000-4000-8000-000000000093
+ abcdef00-0000-4000-8000-000000000094
+ abcdef00-0000-4000-8000-000000000095
+ abcdef00-0000-4000-8000-000000000096
+ abcdef00-0000-4000-8000-000000000097
+ abcdef00-0000-4000-8000-000000000098
+ abcdef00-0000-4000-8000-000000000099
+ abcdef00-0000-4000-8000-000000000100
+ abcdef00-0000-4000-8000-000000000101
+ abcdef00-0000-4000-8000-000000000102
+ abcdef00-0000-4000-8000-000000000103
+ abcdef00-0000-4000-8000-000000000104
+ abcdef00-0000-4000-8000-000000000105
+ abcdef00-0000-4000-8000-000000000106
+ abcdef00-0000-4000-8000-000000000107
+ abcdef00-0000-4000-8000-000000000108
+ abcdef00-0000-4000-8000-000000000109
+ abcdef00-0000-4000-8000-000000000110
+ abcdef00-0000-4000-8000-000000000111
+ abcdef00-0000-4000-8000-000000000112
+ abcdef00-0000-4000-8000-000000000113
+ abcdef00-0000-4000-8000-000000000114
+ abcdef00-0000-4000-8000-000000000115
+ abcdef00-0000-4000-8000-000000000116
+ abcdef00-0000-4000-8000-000000000117
+ abcdef00-0000-4000-8000-000000000118
+ abcdef00-0000-4000-8000-000000000119
+ abcdef00-0000-4000-8000-000000000120
+ abcdef00-0000-4000-8000-000000000121
+ abcdef00-0000-4000-8000-000000000122
+ abcdef00-0000-4000-8000-000000000123
+ abcdef00-0000-4000-8000-000000000124
+ abcdef00-0000-4000-8000-000000000125
+ abcdef00-0000-4000-8000-000000000126
+ abcdef00-0000-4000-8000-000000000127
+ abcdef00-0000-4000-8000-000000000128
+ abcdef00-0000-4000-8000-000000000129
+ abcdef00-0000-4000-8000-000000000130
+ abcdef00-0000-4000-8000-000000000131
+ abcdef00-0000-4000-8000-000000000132
+ abcdef00-0000-4000-8000-000000000133
+ abcdef00-0000-4000-8000-000000000134
+ abcdef00-0000-4000-8000-000000000135
+ abcdef00-0000-4000-8000-000000000136
+ abcdef00-0000-4000-8000-000000000137
+ abcdef00-0000-4000-8000-000000000138
+ abcdef00-0000-4000-8000-000000000139
+ abcdef00-0000-4000-8000-000000000140
+ abcdef00-0000-4000-8000-000000000141
+ abcdef00-0000-4000-8000-000000000142
+ abcdef00-0000-4000-8000-000000000143
+ abcdef00-0000-4000-8000-000000000144
+ abcdef00-0000-4000-8000-000000000145
+ abcdef00-0000-4000-8000-000000000146
+ abcdef00-0000-4000-8000-000000000147
+ abcdef00-0000-4000-8000-000000000148
+ abcdef00-0000-4000-8000-000000000149
+ abcdef00-0000-4000-8000-000000000150
+ abcdef00-0000-4000-8000-000000000151
+ abcdef00-0000-4000-8000-000000000152
+ abcdef00-0000-4000-8000-000000000153
+ abcdef00-0000-4000-8000-000000000154
+ abcdef00-0000-4000-8000-000000000155
+ abcdef00-0000-4000-8000-000000000156
+ abcdef00-0000-4000-8000-000000000157
+ abcdef00-0000-4000-8000-000000000158
+ abcdef00-0000-4000-8000-000000000159
+ abcdef00-0000-4000-8000-000000000160
+ abcdef00-0000-4000-8000-000000000161
+ abcdef00-0000-4000-8000-000000000162
+ abcdef00-0000-4000-8000-000000000163
+ abcdef00-0000-4000-8000-000000000164
+ abcdef00-0000-4000-8000-000000000165
+ abcdef00-0000-4000-8000-000000000166
+ abcdef00-0000-4000-8000-000000000167
+ abcdef00-0000-4000-8000-000000000168
+ abcdef00-0000-4000-8000-000000000169
+ abcdef00-0000-4000-8000-000000000170
+ abcdef00-0000-4000-8000-000000000171
+ abcdef00-0000-4000-8000-000000000172
+ abcdef00-0000-4000-8000-000000000173
+ abcdef00-0000-4000-8000-000000000174
+ abcdef00-0000-4000-8000-000000000175
+ abcdef00-0000-4000-8000-000000000176
+ abcdef00-0000-4000-8000-000000000177
+ abcdef00-0000-4000-8000-000000000178
+ abcdef00-0000-4000-8000-000000000179
+ abcdef00-0000-4000-8000-000000000180
+ abcdef00-0000-4000-8000-000000000181
+ abcdef00-0000-4000-8000-000000000182
+ abcdef00-0000-4000-8000-000000000183
+ abcdef00-0000-4000-8000-000000000184
+ abcdef00-0000-4000-8000-000000000185
+ abcdef00-0000-4000-8000-000000000186
+ abcdef00-0000-4000-8000-000000000187
+ abcdef00-0000-4000-8000-000000000188
+ abcdef00-0000-4000-8000-000000000189
+ abcdef00-0000-4000-8000-000000000190
+ abcdef00-0000-4000-8000-000000000191
+ abcdef00-0000-4000-8000-000000000192
+ abcdef00-0000-4000-8000-000000000193
+ abcdef00-0000-4000-8000-000000000194
+ abcdef00-0000-4000-8000-000000000195
+ abcdef00-0000-4000-8000-000000000196
+ abcdef00-0000-4000-8000-000000000197
+ abcdef00-0000-4000-8000-000000000198
+ abcdef00-0000-4000-8000-000000000199
+ abcdef00-0000-4000-8000-000000000200
+(200 rows)
+
+ACTUAL_INDEX_DEFINITIONS
+               indexname               |                                                                                              indexdef                                                                                              
+---------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ anime_user_lists_pkey                 | CREATE UNIQUE INDEX anime_user_lists_pkey ON public.anime_user_lists USING btree (id)
+ anime_user_lists_user_id_anime_id_key | CREATE UNIQUE INDEX anime_user_lists_user_id_anime_id_key ON public.anime_user_lists USING btree (user_id, anime_id)
+ artwork_materials_current_image_uq    | CREATE UNIQUE INDEX artwork_materials_current_image_uq ON public.artwork_materials USING btree (image_url) WHERE is_current
+ artwork_materials_pkey                | CREATE UNIQUE INDEX artwork_materials_pkey ON public.artwork_materials USING btree (image_digest)
+ idx_anime_user_lists_anime_id         | CREATE INDEX idx_anime_user_lists_anime_id ON public.anime_user_lists USING btree (anime_id)
+ idx_anime_user_lists_home_active      | CREATE INDEX idx_anime_user_lists_home_active ON public.anime_user_lists USING btree (user_id, updated_at DESC, anime_id DESC) WHERE (list_type = ANY (ARRAY['WATCHING'::text, 'PLANNING'::text]))
+ idx_anime_user_lists_list_type        | CREATE INDEX idx_anime_user_lists_list_type ON public.anime_user_lists USING btree (list_type)
+ idx_anime_user_lists_user_id          | CREATE INDEX idx_anime_user_lists_user_id ON public.anime_user_lists USING btree (user_id)
+ idx_anime_user_lists_user_updated_id  | CREATE INDEX idx_anime_user_lists_user_updated_id ON public.anime_user_lists USING btree (user_id, updated_at DESC, id DESC)
+ series_entry_spans_anime_uq           | CREATE UNIQUE INDEX series_entry_spans_anime_uq ON public.series_entry_spans USING btree (anime_id) WHERE (anime_id IS NOT NULL)
+ series_entry_spans_manga_uq           | CREATE UNIQUE INDEX series_entry_spans_manga_uq ON public.series_entry_spans USING btree (manga_id) WHERE (manga_id IS NOT NULL)
+ series_entry_spans_pkey               | CREATE UNIQUE INDEX series_entry_spans_pkey ON public.series_entry_spans USING btree (id)
+ series_entry_spans_series             | CREATE INDEX series_entry_spans_series ON public.series_entry_spans USING btree (series_id)
+(13 rows)
+
+ as_user 
+---------
+ 
+(1 row)
+
+USER_ROLE_AND_SCOPE
+ current_user  |                 uid                  
+---------------+--------------------------------------
+ authenticated | abcdef00-0000-4000-8000-000000000001
+(1 row)
+
+HOME_ACTUAL_ACTIVE_CTE
+                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=462.03..462.03 rows=1 width=396) (actual time=25.997..26.002 rows=12 loops=1)
+   Buffers: shared hit=39941 read=163 dirtied=162 written=163
+   ->  Limit  (cost=462.03..462.03 rows=1 width=396) (actual time=25.996..26.001 rows=12 loops=1)
+         Buffers: shared hit=39941 read=163 dirtied=162 written=163
+         ->  Sort  (cost=462.03..462.03 rows=1 width=396) (actual time=25.996..26.000 rows=12 loops=1)
+               Sort Key: l.updated_at DESC, l.anime_id DESC
+               Sort Method: top-N heapsort  Memory: 31kB
+               Buffers: shared hit=39941 read=163 dirtied=162 written=163
+               ->  Nested Loop Left Join  (cost=445.17..462.02 rows=1 width=396) (actual time=9.220..24.796 rows=5000 loops=1)
+                     Buffers: shared hit=39941 read=163 dirtied=162 written=163
+                     ->  Nested Loop Left Join  (cost=444.89..461.49 rows=1 width=367) (actual time=9.201..18.070 rows=5000 loops=1)
+                           Buffers: shared hit=25000 read=104 dirtied=56 written=104
+                           ->  Nested Loop Left Join  (cost=444.74..453.28 rows=1 width=315) (actual time=9.199..17.302 rows=5000 loops=1)
+                                 Buffers: shared hit=25000 read=104 dirtied=56 written=104
+                                 ->  Nested Loop  (cost=409.56..418.08 rows=1 width=283) (actual time=9.190..13.638 rows=5000 loops=1)
+                                       Buffers: shared hit=15000 read=104 dirtied=56 written=104
+                                       ->  Subquery Scan on l  (cost=409.27..409.77 rows=1 width=97) (actual time=9.183..10.475 rows=5000 loops=1)
+                                             Filter: ((l.list_type = ANY ('{WATCHING,PLANNING}'::text[])) AND (l.user_id = 'abcdef00-0000-4000-8000-000000000001'::text))
+                                             Buffers: shared read=104 dirtied=56 written=104
+                                             ->  Unique  (cost=409.27..409.40 rows=25 width=420) (actual time=9.181..9.950 rows=5000 loops=1)
+                                                   Buffers: shared read=104 dirtied=56 written=104
+                                                   InitPlan 1
+                                                     ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.003..0.003 rows=1 loops=1)
+                                                   InitPlan 2
+                                                     ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.001..0.002 rows=1 loops=1)
+                                                   ->  Sort  (cost=409.21..409.27 rows=25 width=420) (actual time=9.181..9.300 rows=5000 loops=1)
+                                                         Sort Key: (COALESCE((sp.series_id)::text, ('entry:'::text || (l_1.anime_id)::text))), (CASE WHEN ((intent.resume_medium = 'anime'::text) AND (intent.resume_media_id = l_1.anime_id)) THEN 0 ELSE 1 END), (CASE WHEN (l_1.list_type = 'WATCHING'::text) THEN 0 ELSE 1 END), l_1.updated_at DESC, l_1.anime_id DESC
+                                                         Sort Method: quicksort  Memory: 896kB
+                                                         Buffers: shared read=104 dirtied=56 written=104
+                                                         ->  Nested Loop Left Join  (cost=2.75..408.63 rows=25 width=420) (actual time=0.045..7.907 rows=5000 loops=1)
+                                                               Buffers: shared read=104 dirtied=56 written=104
+                                                               ->  Nested Loop Left Join  (cost=2.59..400.61 rows=25 width=150) (actual time=0.039..5.730 rows=5000 loops=1)
+                                                                     Join Filter: (sp.anime_id = l_1.anime_id)
+                                                                     Buffers: shared read=104 dirtied=56 written=104
+                                                                     ->  Index Scan using idx_anime_user_lists_user_id on anime_user_lists l_1  (cost=0.43..370.43 rows=25 width=134) (actual time=0.036..5.115 rows=5000 loops=1)
+                                                                           Index Cond: (user_id = ((InitPlan 1).col1)::text)
+                                                                           Filter: ((list_type = ANY ('{WATCHING,PLANNING}'::text[])) AND (user_id = ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)::text))
+                                                                           Buffers: shared read=104 dirtied=56 written=104
+                                                                     ->  Materialize  (cost=2.16..29.43 rows=2 width=20) (actual time=0.000..0.000 rows=0 loops=5000)
+                                                                           ->  Nested Loop  (cost=2.16..29.42 rows=2 width=20) (actual time=0.002..0.003 rows=0 loops=1)
+                                                                                 ->  Seq Scan on series sr  (cost=0.00..14.38 rows=2 width=16) (actual time=0.002..0.002 rows=0 loops=1)
+                                                                                       Filter: (grouping_state = 'approved'::text)
+                                                                                 ->  Bitmap Heap Scan on series_entry_spans sp  (cost=2.16..7.50 rows=2 width=20) (never executed)
+                                                                                       Recheck Cond: (sr.id = series_id)
+                                                                                       ->  Bitmap Index Scan on series_entry_spans_series  (cost=0.00..2.16 rows=2 width=0) (never executed)
+                                                                                             Index Cond: (series_id = sr.id)
+                                                               ->  Result  (cost=0.15..0.29 rows=1 width=84) (actual time=0.000..0.000 rows=0 loops=5000)
+                                                                     One-Time Filter: (((InitPlan 2).col1)::text = ((InitPlan 1).col1)::text)
+                                                                     ->  Index Scan using user_series_intent_pkey on user_series_intent intent  (cost=0.15..0.29 rows=1 width=84) (actual time=0.000..0.000 rows=0 loops=5000)
+                                                                           Index Cond: ((user_id = ((InitPlan 1).col1)::text) AND (series_id = sp.series_id))
+                                       ->  Index Scan using idx_anime_id on anime a  (cost=0.28..8.30 rows=1 width=190) (actual time=0.000..0.000 rows=1 loops=5000)
+                                             Index Cond: (id = l.anime_id)
+                                             Buffers: shared hit=15000
+                                 ->  Limit  (cost=35.18..35.19 rows=1 width=188) (actual time=0.001..0.001 rows=0 loops=5000)
+                                       Buffers: shared hit=10000
+                                       ->  Sort  (cost=35.18..35.19 rows=1 width=188) (actual time=0.001..0.001 rows=0 loops=5000)
+                                             Sort Key: ss.sort_order, sp_1.id
+                                             Sort Method: quicksort  Memory: 25kB
+                                             Buffers: shared hit=10000
+                                             ->  Nested Loop  (cost=0.42..35.17 rows=1 width=188) (actual time=0.000..0.000 rows=0 loops=5000)
+                                                   Buffers: shared hit=10000
+                                                   ->  Nested Loop  (cost=0.27..21.66 rows=1 width=48) (actual time=0.000..0.000 rows=0 loops=5000)
+                                                         Buffers: shared hit=10000
+                                                         ->  Index Scan using series_entry_spans_anime_uq on series_entry_spans sp_1  (cost=0.12..8.14 rows=1 width=48) (actual time=0.000..0.000 rows=0 loops=5000)
+                                                               Index Cond: (anime_id = l.anime_id)
+                                                               Buffers: shared hit=10000
+                                                         ->  Index Scan using series_pkey on series sr_1  (cost=0.15..8.17 rows=1 width=16) (never executed)
+                                                               Index Cond: (id = sp_1.series_id)
+                                                               Filter: (grouping_state = 'approved'::text)
+                                                   ->  Index Scan using series_sections_pkey on series_sections ss  (cost=0.15..8.17 rows=1 width=20) (never executed)
+                                                         Index Cond: (id = sp_1.section_id)
+                                                         Filter: (state = 'approved'::text)
+                           ->  Index Scan using series_sections_pkey on series_sections sec  (cost=0.15..8.17 rows=1 width=84) (actual time=0.000..0.000 rows=0 loops=5000)
+                                 Index Cond: (id = sp_1.section_id)
+                     ->  Index Scan using artwork_materials_current_image_uq on artwork_materials mat  (cost=0.28..0.52 rows=1 width=105) (actual time=0.001..0.001 rows=1 loops=5000)
+                           Index Cond: (image_url = COALESCE(a.banner_image, a.cover_image_large))
+                           Buffers: shared hit=14941 read=59 dirtied=106 written=59
+ Settings: search_path = '"$user", public, extensions'
+ Planning:
+   Buffers: shared hit=537 read=53 written=53
+ Planning Time: 2.639 ms
+ Execution Time: 26.059 ms
+(82 rows)
+
+DETAIL_PK_ROW
+                                                                                                       QUERY PLAN                                                                                                       
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using anime_user_lists_user_id_anime_id_key on anime_user_lists l  (cost=0.46..8.51 rows=1 width=121) (actual time=0.024..0.025 rows=1 loops=1)
+   Index Cond: ((user_id = ((InitPlan 1).col1)::text) AND (anime_id = 9700001))
+   Filter: (user_id = ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)::text)
+   Buffers: shared hit=1 read=3 dirtied=1
+   InitPlan 1
+     ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.002..0.002 rows=1 loops=1)
+ Settings: search_path = '"$user", public, extensions'
+ Planning:
+   Buffers: shared hit=6
+ Planning Time: 0.115 ms
+ Execution Time: 0.033 ms
+(11 rows)
+
+COLLECTION_ACTUAL_GROUP_PAGE
+                                                                                     QUERY PLAN                                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=4094.70..4094.71 rows=1 width=32) (actual time=12.047..12.049 rows=1 loops=1)
+   Buffers: shared hit=226 dirtied=40
+   CTE rows
+     ->  Result  (cost=264.41..564.23 rows=4970 width=145) (actual time=0.758..2.705 rows=5000 loops=1)
+           One-Time Filter: (((InitPlan 1).col1)::text = 'abcdef00-0000-4000-8000-000000000001'::text)
+           Buffers: shared hit=226 dirtied=40
+           InitPlan 1
+             ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.003..0.003 rows=1 loops=1)
+           ->  Hash Join  (cost=264.38..502.07 rows=4970 width=173) (actual time=0.753..2.192 rows=5000 loops=1)
+                 Hash Cond: (l.anime_id = a.id)
+                 Buffers: shared hit=226 dirtied=40
+                 ->  Hash Left Join  (cost=29.87..254.51 rows=4970 width=65) (actual time=0.012..0.932 rows=5000 loops=1)
+                       Hash Cond: (l.anime_id = sp.anime_id)
+                       Buffers: shared hit=104 dirtied=40
+                       ->  Index Scan using idx_anime_user_lists_user_id on anime_user_lists l  (cost=0.42..206.40 rows=4970 width=49) (actual time=0.005..0.384 rows=5000 loops=1)
+                             Index Cond: (user_id = 'abcdef00-0000-4000-8000-000000000001'::text)
+                             Buffers: shared hit=104 dirtied=40
+                       ->  Hash  (cost=29.42..29.42 rows=2 width=20) (actual time=0.002..0.003 rows=0 loops=1)
+                             Buckets: 1024  Batches: 1  Memory Usage: 8kB
+                             ->  Nested Loop  (cost=2.16..29.42 rows=2 width=20) (actual time=0.002..0.002 rows=0 loops=1)
+                                   ->  Seq Scan on series sr  (cost=0.00..14.38 rows=2 width=16) (actual time=0.002..0.002 rows=0 loops=1)
+                                         Filter: (grouping_state = 'approved'::text)
+                                   ->  Bitmap Heap Scan on series_entry_spans sp  (cost=2.16..7.50 rows=2 width=20) (never executed)
+                                         Recheck Cond: (series_id = sr.id)
+                                         ->  Bitmap Index Scan on series_entry_spans_series  (cost=0.00..2.16 rows=2 width=0) (never executed)
+                                               Index Cond: (series_id = sr.id)
+                 ->  Hash  (cost=172.00..172.00 rows=5000 width=112) (actual time=0.738..0.739 rows=5000 loops=1)
+                       Buckets: 8192  Batches: 1  Memory Usage: 315kB
+                       Buffers: shared hit=122
+                       ->  Seq Scan on anime a  (cost=0.00..172.00 rows=5000 width=112) (actual time=0.002..0.351 rows=5000 loops=1)
+                             Buffers: shared hit=122
+   ->  Limit  (cost=144.58..144.66 rows=30 width=48) (actual time=5.362..5.364 rows=30 loops=1)
+         Buffers: shared hit=226 dirtied=40
+         ->  Sort  (cost=144.58..145.08 rows=200 width=48) (actual time=5.362..5.363 rows=30 loops=1)
+               Sort Key: (max(rows.updated_at)) DESC, rows.group_key DESC
+               Sort Method: top-N heapsort  Memory: 28kB
+               Buffers: shared hit=226 dirtied=40
+               ->  HashAggregate  (cost=136.68..138.68 rows=200 width=48) (actual time=4.703..4.977 rows=5000 loops=1)
+                     Group Key: rows.group_key
+                     Batches: 1  Memory Usage: 993kB
+                     Buffers: shared hit=226 dirtied=40
+                     ->  CTE Scan on rows  (cost=0.00..99.40 rows=4970 width=40) (actual time=0.758..3.875 rows=5000 loops=1)
+                           Buffers: shared hit=226 dirtied=40
+   SubPlan 3
+     ->  Aggregate  (cost=112.85..112.86 rows=1 width=32) (actual time=0.219..0.219 rows=1 loops=30)
+           ->  Limit  (cost=112.41..112.47 rows=25 width=168) (actual time=0.216..0.216 rows=1 loops=30)
+                 ->  Sort  (cost=112.41..112.47 rows=25 width=168) (actual time=0.216..0.216 rows=1 loops=30)
+                       Sort Key: rows_1.updated_at DESC, rows_1.media_id DESC
+                       Sort Method: quicksort  Memory: 25kB
+                       ->  CTE Scan on rows rows_1  (cost=0.00..111.83 rows=25 width=168) (actual time=0.215..0.216 rows=1 loops=30)
+                             Filter: (group_key = rows.group_key)
+                             Rows Removed by Filter: 4999
+ Settings: search_path = '"$user", public, extensions'
+ Planning:
+   Buffers: shared hit=42 read=6 dirtied=1
+ Planning Time: 0.351 ms
+ Execution Time: 12.095 ms
+(57 rows)
+

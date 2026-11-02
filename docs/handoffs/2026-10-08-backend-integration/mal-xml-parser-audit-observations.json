@@ -1,0 +1,13 @@
+{
+  "verdict": "Actual-source parser defects observed; not repaired; not hosted incidents",
+  "harness": "mal-xml-parser-audit.swift",
+  "separate_log_written": false,
+  "captured_tool_stdout": [
+    "valid XML raw score=8 scale=MAL_10 normalizedRating=nil",
+    "negative progress XML accepted=-2",
+    "unknown status XML accepted=banana",
+    "entry outside myanimelist XML accepted count=1"
+  ],
+  "fixtures": "Synthetic; no credentials or customer data",
+  "rerun": "Not rerun for evidence capture"
+}

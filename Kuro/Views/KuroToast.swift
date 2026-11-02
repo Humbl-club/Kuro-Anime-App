@@ -28,9 +28,9 @@ struct KuroToast: View {
 
     private var iconColor: Color {
         switch toast.kind {
-        case .success: return .black.opacity(0.75)
-        case .error: return .red
-        case .info: return .black.opacity(0.75)
+        case .success: return .kuroBlack75
+        case .error: return .kuroError
+        case .info: return .kuroBlack75
         }
     }
 

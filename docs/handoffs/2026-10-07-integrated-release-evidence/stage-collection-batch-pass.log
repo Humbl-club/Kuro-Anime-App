@@ -1,0 +1,8 @@
+COLLECTION_BATCH_ACCOUNT_SWITCH: PASS no second B edit, stale result excluded, B scope/filter preserved, one B feed refresh, actual Home load unstuck
+
+Evidence: one focused local macOS runtime check. Current KuroCore and KuroLibrary built from source; actual HomeStore, HomeContracts, HomePersonalSnapshot, AccountScopedState, missing-configuration type. Collection cancellation/sink/batch/refresh-scope methods copied verbatim into a shell; Collection transport is a request recorder. Existing ControlledResponses and FakeLibraryBackend compiled verbatim. No native iOS, SDK transport, simulator, backend, or production claim. Native contract is added but unexecuted due Xcode license. No deployment or hosted calls.
+
+bc2b1e502f61e3aa3b8d01a0621c88f124c5bfc72ac06872701609d2e40230ae  Kuro/Collection/CollectionStore.swift
+c0aee83310cf7f076b8782ad66d9e71ab2c4cac3a5f4bb7f6e715b594a1dcb99  Kuro/Views/EditorialCollectionView.swift
+41f0d6421ae928b1a308a2c1a6979afc5ef6dbd4261a59ebccec91b6a5e19af7  Kuro/Home/HomeStore.swift
+8be0f30f299cd0206439b6aaa66fb4b534f051ded48755e08aa0994d45ce2d85  KuroTests/CollectionContractTests.swift

@@ -1,397 +1,280 @@
+import KuroCore
+import KuroLibrary
 import SwiftUI
-import PostgREST
 
-// MARK: - Journal Tab Bar
+// MARK: - Club detail tabs
+// RAILS: each rail's titles as equal covers (width from the container), the rail's real description,
+// member notes on light cards hidden until tapped, and a reactions menu per title.
+// ACTIVE: member updates grouped by local day as hairline rows (dates via KuroLocale).
+// POLLS: open polls first, closed polls after, 44 pt option rows.
+// Nothing here invents club voice: rails without a description show none.
+
+// MARK: - Tab Bar
 
 struct JournalTabBar: View {
     @Binding var selectedTab: ClubDetailView.Tab
     @Namespace private var tabNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 24) {
+        // Scrolls sideways only when the labels do not fit (largest text sizes, German); a trailing
+        // fade then shows there is more.
+        ScrollView(.horizontal, showsIndicators: false) {
+            tabs
+                .padding(.horizontal, KuroDesignSpacing.padding)
+        }
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        .kuroTrailingOverflowFade()
+        .background(Color.kuroCanvasPage)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.kuroHairline).frame(height: 1)
+        }
+    }
+
+    private var tabs: some View {
+        HStack(spacing: KuroDesignSpacing.lg) {
             ForEach(ClubDetailView.Tab.visibleCases, id: \.self) { tab in
+                let isSelected = selectedTab == tab
                 Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    withAnimation(KuroAnimation.editorial) {
+                    guard !isSelected else { return }
+                    KuroAccessibility.selectionHaptic()
+                    withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
                         selectedTab = tab
                     }
                 } label: {
-                    VStack(spacing: 0) {
-                        Text(tab.rawValue)
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(2.0)
-                            .foregroundColor(selectedTab == tab ? .kuroBlack80 : .kuroTextTertiary)
-                            .padding(.vertical, 12)
-
-                        if selectedTab == tab {
-                            Rectangle()
-                                .fill(Color.kuroBlack80)
-                                .frame(height: 2)
-                                .matchedGeometryEffect(id: "tab_underline", in: tabNamespace)
-                        } else {
-                            Rectangle()
-                                .fill(Color.clear)
-                                .frame(height: 2)
+                    VStack(spacing: KuroDesignSpacing.sm) {
+                        Text(tab.title)
+                            .font(.kuroBody(weight: isSelected ? .semibold : .regular))
+                            .foregroundStyle(isSelected ? Color.kuroInk : Color.kuroInkQuiet)
+                        ZStack {
+                            Rectangle().fill(Color.clear).frame(height: 2)
+                            if isSelected {
+                                if reduceMotion {
+                                    // Reduce Motion: no travel between tabs, each word's own rule fades
+                                    // (rulebook §8).
+                                    Rectangle()
+                                        .fill(Color.kuroInk)
+                                        .frame(height: 2)
+                                        .transition(.opacity)
+                                } else {
+                                    Rectangle()
+                                        .fill(Color.kuroInk)
+                                        .frame(height: 2)
+                                        .matchedGeometryEffect(id: "tab_underline", in: tabNamespace)
+                                }
+                            }
                         }
                     }
+                    .padding(.top, KuroDesignSpacing.md)
+                    .frame(minHeight: 44)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+                .buttonStyle(KuroPressStyle())
+                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             }
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .background(Color.kuroBackground)
-        .overlay(alignment: .bottom) {
-            EditorialLayout.divider(thickness: 1.0, opacity: 0.06)
         }
     }
 }
 
-// MARK: - Club Detail Section Helpers
+// MARK: - Shared tab parts
 
-private struct ClubDetailSectionHeader: View {
-    let eyebrow: String
+/// A tab's empty state with an optional invitation action (owners/admins).
+private struct ClubTabEmptyState: View {
     let title: String
-    let detail: String?
-    let trailing: AnyView?
-
-    init(
-        eyebrow: String,
-        title: String,
-        detail: String? = nil,
-        trailing: AnyView? = nil
-    ) {
-        self.eyebrow = eyebrow
-        self.title = title
-        self.detail = detail
-        self.trailing = trailing
-    }
+    let message: String?
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(eyebrow.uppercased())
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.7)
-                    .foregroundColor(.kuroBlack40)
-
-                Spacer(minLength: 0)
-
-                trailingView
-            }
-
-            Text(title)
-                .font(.kuroTitle(weight: .regular))
-                .foregroundColor(.kuroBlack80)
-
-            if let detail, !detail.isEmpty {
-                Text(detail)
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroTextTertiary)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var trailingView: some View {
-        if let trailing {
-            trailing
-        }
-    }
-}
-
-private struct ClubDetailEmptyStateCard: View {
-    let icon: String
-    let title: String
-    let message: String
-    let actionTitle: String?
-    let action: (() -> Void)?
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.kuroCustom(22, weight: .light, relativeTo: .title3))
-                .foregroundColor(.kuroBlack30)
-
-            Text(title)
-                .font(.kuroBody(weight: .light))
-                .foregroundColor(.kuroBlack60)
-                .multilineTextAlignment(.center)
-
-            Text(message)
-                .font(.kuroCaption(weight: .light))
-                .foregroundColor(.kuroBlack40)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            KuroStateView(.empty, title: title, message: message, layout: .inline)
             if let actionTitle, let action {
-                Button(action: action) {
-                    Text(actionTitle.uppercased())
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.2)
-                        .foregroundColor(.kuroBlack80)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule(style: .continuous)
-                                .stroke(Color.kuroBlack20, lineWidth: 0.8)
-                        )
-                }
-                .buttonStyle(.plain)
+                KuroInkButton(actionTitle, role: .secondary, action: action)
             }
         }
-        .padding(.vertical, 28)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.88))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
-        )
+        .padding(.horizontal, KuroDesignSpacing.padding)
+        .padding(.top, KuroDesignSpacing.lg)
+        .padding(.bottom, KuroDesignSpacing.xxl)
     }
 }
 
-private struct ClubDetailSectionPill: View {
-    let title: String
-    let systemImage: String
-    let isActive: Bool
+/// Card metrics from the container (CLAUDE.md card sizing): never a hard-coded screen width.
+nonisolated enum ClubRailCardMetrics {
+    static func width(containerWidth: CGFloat) -> CGFloat {
+        guard containerWidth > 0 else { return 120 }
+        return min(144, max(112, floor((containerWidth - 56) / 2.8)))
+    }
 
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.system(size: 10, weight: .semibold))
-            Text(title.uppercased())
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.0)
-        }
-        .foregroundColor(isActive ? .kuroBlack80 : .kuroBlack40)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(
-            Capsule(style: .continuous)
-                .fill(isActive ? Color.kuroBlack08 : Color.kuroBlack04)
-        )
+    static func height(width: CGFloat) -> CGFloat {
+        (width / 0.7).rounded()
     }
 }
 
-// MARK: - Journal Rails Content
+// MARK: - Rails Content
 
 struct JournalRailsContent: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
+    let containerWidth: CGFloat
     let showSharedAvailability: Bool
-    let sharedProviders: SupabaseService.ClubSharedProvidersResponse?
+    let sharedProviders: ProviderAvailabilityStore.ClubSharedProvidersResponse?
     let isAvailableOnSharedServices: (Int, String) -> Bool
     let onToggleShared: () -> Void
     let onCreateRail: () -> Void
     let onAddToRail: (String) -> Void
     let onError: (String) -> Void
-    let canAddToRail: (SupabaseService.ClubRail, String) -> Bool
+    let canAddToRail: (ClubRail, String) -> Bool
     let userStreamingServicesEmpty: Bool
     let isConnected: Bool
+    @Environment(FeatureFlags.self) private var flags
+
+    private var isAdmin: Bool { ["owner", "admin"].contains(bundle.my_role) }
 
     var body: some View {
         if bundle.rails.isEmpty {
-            railsEmptyState
+            ClubTabEmptyState(
+                title: KuroLocale.text("No rails yet.", "Noch keine Listen."),
+                message: isAdmin
+                    ? KuroLocale.text("Start a shared list for the club.", "Lege eine gemeinsame Liste für den Club an.")
+                    : KuroLocale.text("Rails appear when an admin starts one.", "Listen erscheinen, sobald ein Admin eine anlegt."),
+                actionTitle: isAdmin ? KuroLocale.text("Create a rail", "Liste anlegen") : nil,
+                action: isAdmin ? {
+                    KuroAccessibility.impactHaptic(.light)
+                    onCreateRail()
+                } : nil
+            )
+            .disabled(!isConnected)
         } else {
-            VStack(alignment: .leading, spacing: 18) {
-                sectionHeader
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
+            VStack(alignment: .leading, spacing: 0) {
+                streamingAvailabilityControls
 
-                railsPopulatedContent
-            }
-        }
-    }
-
-    private var railsEmptyState: some View {
-        ClubDetailEmptyStateCard(
-            icon: "list.bullet.rectangle",
-            title: "No rails yet",
-            message: ["owner", "admin"].contains(bundle.my_role)
-                ? "Create a rail to start curating together."
-                : "Rails appear when the club starts collecting titles.",
-            actionTitle: ["owner", "admin"].contains(bundle.my_role) ? "Create rail" : nil,
-            action: ["owner", "admin"].contains(bundle.my_role) ? {
-                KuroAccessibility.impactHaptic(.light)
-                onCreateRail()
-            } : nil
-        )
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
-    }
-
-    private var railsPopulatedContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Streaming availability controls
-            streamingAvailabilityControls
-
-            // Milestone celebrations
-            if FeatureFlags.shared.isClubsPaceSyncV1Enabled {
-                let milestones = bundle.rails.flatMap { rail in
-                    rail.items.compactMap { item -> SupabaseService.ClubRailItem? in
-                        guard bundle.member_count >= 3,
-                              let counts = item.member_status_counts,
-                              let completed = counts["COMPLETED"],
-                              completed >= bundle.member_count else { return nil }
-                        return item
-                    }
-                }
-                if !milestones.isEmpty {
-                    VStack(spacing: KuroDesignSpacing.sm) {
-                        ForEach(milestones) { item in
-                            JournalMilestoneCard(item: item, memberCount: bundle.member_count)
+                if flags.isClubsPaceSyncV1Enabled {
+                    let milestones = bundle.rails.flatMap { rail in
+                        rail.items.compactMap { item -> ClubRailItem? in
+                            guard bundle.member_count >= 3,
+                                  let counts = item.member_status_counts,
+                                  let completed = counts["COMPLETED"],
+                                  completed >= bundle.member_count else { return nil }
+                            return item
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, KuroDesignSpacing.sm)
-                }
-            }
-
-            // Rail sections
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(bundle.rails.enumerated()), id: \.element.id) { index, rail in
-                    if index > 0 {
-                        EditorialLayout.divider(thickness: 1.0, opacity: 0.08)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
+                    if !milestones.isEmpty {
+                        VStack(spacing: KuroDesignSpacing.sm) {
+                            ForEach(milestones) { item in
+                                JournalMilestoneCard(item: item, memberCount: bundle.member_count)
+                            }
+                        }
+                        .padding(.horizontal, KuroDesignSpacing.padding)
+                        .padding(.top, KuroDesignSpacing.md)
                     }
-
-                    JournalRailSection(
-                        rail: rail,
-                        memberCount: bundle.member_count,
-                        curatorNote: curatorNote(for: rail, index: index),
-                        onAddItem: canAddToRail(rail, bundle.my_role) ? {
-                            onAddToRail(rail.id)
-                        } : nil,
-                        onError: onError,
-                        itemOpacity: showSharedAvailability ? { item in
-                            isAvailableOnSharedServices(item.media_id, item.media_type) ? 1.0 : 0.35
-                        } : nil
-                    )
                 }
-            }
-            .padding(.top, KuroDesignSpacing.md)
-            .padding(.bottom, KuroDesignSpacing.xxl)
-        }
-    }
 
-    private var sectionHeader: some View {
-        ClubDetailSectionHeader(
-            eyebrow: "Rails",
-            title: "Curated stacks",
-            detail: "Shared availability and reactions stay grouped around each rail.",
-            trailing: AnyView(
-                ClubDetailSectionPill(
-                    title: "\(bundle.rails.count)",
-                    systemImage: "list.bullet.rectangle",
-                    isActive: !bundle.rails.isEmpty
-                )
-            )
-        )
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(bundle.rails.enumerated()), id: \.element.id) { index, rail in
+                        if index > 0 {
+                            Rectangle()
+                                .fill(Color.kuroHairline)
+                                .frame(height: 1)
+                                .padding(.horizontal, KuroDesignSpacing.padding)
+                                .padding(.top, KuroDesignSpacing.lg)
+                        }
+
+                        JournalRailSection(
+                            rail: rail,
+                            members: bundle.members,
+                            containerWidth: containerWidth,
+                            onAddItem: canAddToRail(rail, bundle.my_role) && isConnected ? {
+                                onAddToRail(rail.id)
+                            } : nil,
+                            onError: onError,
+                            itemOpacity: showSharedAvailability ? { item in
+                                isAvailableOnSharedServices(item.media_id, item.media_type) ? 1.0 : 0.35
+                            } : nil
+                        )
+                    }
+                }
+                .padding(.top, KuroDesignSpacing.sm)
+                .padding(.bottom, KuroDesignSpacing.xxl)
+            }
+        }
     }
 
     @ViewBuilder
     private var streamingAvailabilityControls: some View {
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    if let sp = sharedProviders, !sp.shared_services.isEmpty {
-                        Button {
-                            onToggleShared()
-                        } label: {
-                            ClubDetailSectionPill(
-                                title: showSharedAvailability ? "Shared on" : "Shared off",
-                                systemImage: "play.tv",
-                                isActive: showSharedAvailability
-                            )
+        if flags.isStreamingAvailabilityV1Enabled, let sp = sharedProviders {
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                if !sp.shared_services.isEmpty {
+                    Button(action: onToggleShared) {
+                        HStack(spacing: KuroDesignSpacing.sm) {
+                            Image(systemName: showSharedAvailability ? "checkmark.square" : "square")
+                                .font(.kuroMeta())
+                            Text(KuroLocale.text("Only titles on our services", "Nur Titel bei unseren Diensten"))
+                                .font(.kuroMeta(weight: .medium))
                         }
-                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                     }
-                    Spacer()
+                    .buttonStyle(KuroPressStyle())
+                    .accessibilityAddTraits(showSharedAvailability ? [.isButton, .isSelected] : .isButton)
                 }
-
-                if let sp = sharedProviders {
-                    if sp.coverage_pct < 100 && sp.member_count_with_services > 0 {
-                        Text("\(sp.member_count_with_services) of \(sp.member_count_total) members set up services")
-                            .font(.kuroMicro(weight: .light))
-                            .foregroundColor(.kuroTextTertiary)
-                    }
-                    if userStreamingServicesEmpty {
-                        Text("Set your services in Profile to unlock shared availability.")
-                            .font(.kuroMicro(weight: .light))
-                            .foregroundColor(.kuroTextTertiary)
-                    }
+                if sp.coverage_pct < 100 && sp.member_count_with_services > 0 {
+                    Text(KuroLocale.text(
+                        "\(sp.member_count_with_services) of \(sp.member_count_total) members set their services.",
+                        "\(sp.member_count_with_services) von \(sp.member_count_total) Mitgliedern haben ihre Dienste angegeben."
+                    ))
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkQuiet)
+                }
+                if userStreamingServicesEmpty {
+                    Text(KuroLocale.text("Set your services in Profile to compare.", "Gib deine Dienste im Profil an, um zu vergleichen."))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkQuiet)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 6)
-            .padding(.bottom, 4)
-        }
-    }
-
-    private func curatorNote(for rail: SupabaseService.ClubRail, index: Int) -> String? {
-        // Use rail description if available, otherwise generate editorial notes
-        if let desc = rail.description, !desc.isEmpty {
-            return desc
-        }
-        // Default editorial notes based on position
-        switch index {
-        case 0: return "What we're watching right now"
-        case 1: return "On the list for later"
-        case 2: return "The ones that started it all"
-        default: return nil
+            .padding(.horizontal, KuroDesignSpacing.padding)
+            .padding(.top, KuroDesignSpacing.sm)
         }
     }
 }
 
-// MARK: - Journal Rail Section
+// MARK: - Rail Section
 
 struct JournalRailSection: View {
-    let rail: SupabaseService.ClubRail
-    let memberCount: Int
-    let curatorNote: String?
+    let rail: ClubRail
+    let members: [ClubMember]
+    let containerWidth: CGFloat
     var onAddItem: (() -> Void)? = nil
     var onError: ((String) -> Void)? = nil
-    var itemOpacity: ((SupabaseService.ClubRailItem) -> Double)? = nil
+    var itemOpacity: ((ClubRailItem) -> Double)? = nil
+    @Environment(FeatureFlags.self) private var flags
+
+    private var cardWidth: CGFloat { ClubRailCardMetrics.width(containerWidth: containerWidth) }
 
     var body: some View {
+        let german = KuroLocale.isGerman
+        let notes = ClubRoomCopy.notes(in: rail, members: members)
         VStack(alignment: .leading, spacing: 0) {
-            // Curator note
-            if let note = curatorNote {
-                Text(note)
-                    .font(.kuroBody())
-                    .italic()
-                    .foregroundColor(.kuroTextSecondary)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 4)
-            }
-
-            // Rail header
-            HStack(spacing: 8) {
-                Text(rail.title.uppercased())
-                    .font(.kuroTitle(weight: .regular))
-                    .foregroundColor(.kuroBlack80)
-                    .lineLimit(1)
-                    .accessibilityAddTraits(.isHeader)
-
-                if rail.is_locked {
-                    Image(systemName: "lock.fill")
-                        .font(.kuroMicro())
-                        .foregroundColor(.kuroTextTertiary)
+            HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.sm) {
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                    HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.sm) {
+                        Text(rail.title)
+                            .kuroRoleText(.title)
+                            .foregroundStyle(Color.kuroInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                        if rail.is_locked {
+                            Image(systemName: "lock")
+                                .font(.kuroMeta())
+                                .foregroundStyle(Color.kuroInkQuiet)
+                                .accessibilityLabel(KuroLocale.text("Locked", "Gesperrt"))
+                        }
+                    }
+                    Text(ClubRoomCopy.titleCount(rail.items.count, german: german))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkQuiet)
                 }
-
-                Spacer()
-
-                Text("\(rail.items.count) TITLES")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.5)
-                    .foregroundColor(.kuroTextTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let onAddItem {
                     Button {
@@ -399,216 +282,209 @@ struct JournalRailSection: View {
                         onAddItem()
                     } label: {
                         Image(systemName: "plus")
-                            .font(.kuroCustom(13, weight: .medium, relativeTo: .caption1))
-                            .foregroundColor(.kuroTextSecondary)
-                            .padding(6)
-                            .background(
-                                Circle()
-                                    .fill(Color.kuroBlack06)
-                            )
+                            .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
+                            .foregroundStyle(Color.kuroInk)
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(Color.kuroCanvasQuiet))
+                            .contentShape(Circle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(KuroPressStyle())
+                    .accessibilityLabel(KuroLocale.text("Add a title to \(rail.title)", "Titel zu \(rail.title) hinzufügen"))
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 10)
+            .padding(.horizontal, KuroDesignSpacing.padding)
+            .padding(.top, KuroDesignSpacing.lg)
 
-            // Horizontal scroll of items
+            if let desc = rail.description?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
+                Text(desc)
+                    .font(.kuroBody(weight: .light))
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, KuroDesignSpacing.padding)
+                    .padding(.top, KuroDesignSpacing.sm)
+            }
+
             if rail.items.isEmpty {
-                Text("No items yet")
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroTextTertiary)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, KuroDesignSpacing.md)
+                KuroStateView(.empty, title: KuroLocale.text("Nothing here yet.", "Hier ist noch nichts."),
+                              layout: .inline)
+                    .padding(.horizontal, KuroDesignSpacing.padding)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 14) {
+                    LazyHStack(alignment: .top, spacing: KuroDesignSpacing.md) {
                         ForEach(rail.items) { item in
-                            VStack(spacing: 6) {
-                                JournalRailItemCard(item: item, memberCount: memberCount)
-                                if FeatureFlags.shared.isClubsReactionsV1Enabled {
-                                    let hasAnyReaction: Bool = {
-                                        let counts = item.reactions ?? [:]
-                                        let mine = item.my_reactions ?? []
-                                        return counts.values.contains(where: { $0 > 0 }) || !mine.isEmpty
-                                    }()
-                                    if hasAnyReaction {
-                                        ClubReactionRow(item: item, onError: onError)
-                                    } else {
-                                        ClubReactionRowCompact(item: item, onError: onError)
-                                    }
+                            VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                                JournalRailItemCard(item: item, cardWidth: cardWidth)
+                                if flags.isClubsReactionsV1Enabled {
+                                    ClubReactionMenu(item: item, onError: onError)
+                                        .frame(width: cardWidth, alignment: .leading)
                                 }
                             }
                             .opacity(itemOpacity?(item) ?? 1.0)
-                            .animation(KuroAnimation.fast, value: itemOpacity?(item) ?? 1.0)
+                            .kuroAnimation(KuroMotion.settle, value: itemOpacity?(item) ?? 1.0)
                         }
 
-                        // Add card
                         if let onAddItem {
                             Button {
                                 KuroAccessibility.impactHaptic(.light)
                                 onAddItem()
                             } label: {
-                                VStack(spacing: 6) {
-                                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                                        .strokeBorder(
-                                            style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
-                                        )
-                                        .foregroundColor(.kuroBlack10)
-                                        .frame(width: 120, height: 170)
-                                        .overlay(
-                                            VStack(spacing: 6) {
-                                                Image(systemName: "plus")
-                                                    .font(.kuroCustom(20, weight: .light, relativeTo: .title3))
-                                                    .foregroundColor(.kuroTextTertiary)
-                                                Text("ADD")
-                                                    .font(.kuroMicro(weight: .medium))
-                                                    .tracking(1.5)
-                                                    .foregroundColor(.kuroTextTertiary)
-                                            }
-                                        )
-                                }
+                                RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
+                                    .strokeBorder(Color.kuroHairline, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                                    .frame(width: cardWidth, height: ClubRailCardMetrics.height(width: cardWidth))
+                                    .overlay(
+                                        Image(systemName: "plus")
+                                            .font(.kuroCustom(20, weight: .light, relativeTo: .title3, maxSize: 28))
+                                            .foregroundStyle(Color.kuroInkSecondary)
+                                    )
+                                    .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Add item to rail")
+                            .buttonStyle(KuroPressStyle())
+                            .accessibilityLabel(KuroLocale.text("Add a title to \(rail.title)", "Titel zu \(rail.title) hinzufügen"))
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, KuroDesignSpacing.padding)
+                    .padding(.top, KuroDesignSpacing.md)
                 }
                 .kuroSwipeExclusionZone()
+            }
+
+            if !notes.isEmpty {
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                    ForEach(notes, id: \.itemId) { note in
+                        ClubNoteCard(note: note.text, author: note.author, title: note.title)
+                            .id(note.text) // an edited note starts hidden again
+                    }
+                }
+                .padding(.horizontal, KuroDesignSpacing.padding)
+                .padding(.top, KuroDesignSpacing.md)
             }
         }
     }
 }
 
-// MARK: - Journal Rail Item Card
+// MARK: - Rail Item Card
 
 struct JournalRailItemCard: View {
-    let item: SupabaseService.ClubRailItem
-    let memberCount: Int
+    let item: ClubRailItem
+    let cardWidth: CGFloat
 
-    @State private var showDetail = false
-    @State private var showAddToList = false
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @State private var actionScope = AccountActionScope()
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
 
-    private let cardWidth: CGFloat = 120
-    private let cardHeight: CGFloat = 170
+    private var cardHeight: CGFloat { ClubRailCardMetrics.height(width: cardWidth) }
 
     private var mediaKind: MediaKind {
         item.media_type.uppercased() == "MANGA" ? .manga : .anime
     }
 
-    private var mediaType: String {
-        mediaKind.rawValue
+    private var libraryKey: MediaKey {
+        MediaKey(kind: mediaKind, id: item.media_id)
     }
 
     private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: item.media_id, mediaType: mediaType)
+        library.isTracked(libraryKey)
     }
 
     private var progressText: String? {
-        guard let progress = item.my_progress, progress > 0 else { return nil }
-        let prefix = item.media_type.uppercased() == "ANIME" ? "EP" : "CH"
-        let total = item.media_type.uppercased() == "ANIME" ? item.episode_count : item.chapter_count
-        if let total, total > 0 {
-            return "\(prefix) \(progress) OF \(total)"
-        }
-        return "\(prefix) \(progress)"
+        ClubRoomCopy.progress(item.my_progress, total: item.totalCount, isManga: mediaKind == .manga, german: KuroLocale.isGerman)
     }
 
-    private var membersWatchingText: String? {
+    private var membersCurrentText: String? {
         guard let statuses = item.member_statuses, !statuses.isEmpty else { return nil }
-        let watching = statuses.filter { s in
+        let current = statuses.filter { s in
             let st = s.status?.uppercased() ?? ""
             return st == "CURRENT" || st == "WATCHING" || st == "READING"
         }
-        guard !watching.isEmpty else { return nil }
-        let names = watching.prefix(2).compactMap { $0.display_name }
-        if names.isEmpty { return "\(watching.count) watching" }
-        if watching.count <= 2 {
-            return names.joined(separator: ", ") + " watching"
-        }
-        return names.joined(separator: ", ") + " +\(watching.count - 2)"
+        return ClubRoomCopy.membersCurrent(names: current.map(\.display_name), isManga: mediaKind == .manga, german: KuroLocale.isGerman)
+    }
+
+    private var accessibilityText: String {
+        [item.title_display, progressText, membersCurrentText].compactMap { $0 }.joined(separator: ", ")
     }
 
     var body: some View {
-        Button {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        return Button {
+            guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(libraryKey))
         } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                // Poster
-                KuroCachedAsyncImage(url: URL(string: item.cover_image_medium ?? ""), maxPixelSize: 520) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: cardWidth, height: cardHeight)
-                            .clipped()
-                    case .failure, .empty:
-                        RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .fill(Color.kuroBlack06)
-                            .frame(width: cardWidth, height: cardHeight)
-                    @unknown default:
-                        EmptyView()
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                Color.kuroMissingArt
+                    .frame(width: cardWidth, height: cardHeight)
+                    .overlay {
+                        KuroCachedAsyncImage(url: URL(string: item.cover_image_medium ?? ""), maxPixelSize: 520) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            default:
+                                Color.kuroMissingArt
+                            }
+                        }
                     }
-                }
-                .frame(width: cardWidth, height: cardHeight)
-                .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous))
+                    .accessibilityHidden(true)
 
-                // Title
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title_display.uppercased())
-                        .font(.kuroCustom(13, weight: .light, design: .serif, relativeTo: .caption1))
-                        .textCase(.uppercase)
-                        .tracking(0.4)
-                        .foregroundColor(.kuroBlack80)
-                        .lineLimit(2)
-                        .frame(height: 34, alignment: .top)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title_display)
+                        .font(.kuroMeta(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(2, reservesSpace: true)
+                        .multilineTextAlignment(.leading)
 
                     if let progress = progressText {
                         Text(progress)
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.0)
-                            .foregroundColor(.kuroTextTertiary)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .lineLimit(1)
                     }
 
-                    if let members = membersWatchingText {
+                    if let members = membersCurrentText {
                         Text(members)
-                            .font(.kuroCustom(8, weight: .regular, relativeTo: .caption2))
-                            .foregroundColor(.kuroTextTertiary)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkQuiet)
+                            .lineLimit(2)
                     }
                 }
                 .frame(width: cardWidth, alignment: .topLeading)
-                .padding(.top, 8)
             }
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.985))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+        .accessibilityHint(KuroLocale.text("Opens the title.", "Öffnet den Titel."))
+        .accessibilityAddTraits(.isButton)
         .contextMenu {
             Button(action: {
+                guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
                 KuroAccessibility.impactHaptic(.light)
-                supabaseService.toggleInCollection(mediaId: item.media_id, mediaType: mediaType)
+                LibraryViewActions.toggleTracked(libraryKey, actions: libraryActions)
             }) {
                 Label(
-                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
+                    isInCollection
+                        ? KuroLocale.text("Remove from list", "Von der Liste entfernen")
+                        : (mediaKind == .manga ? KuroLocale.text("Plan to read", "Vormerken") : KuroLocale.text("Plan to watch", "Vormerken")),
                     systemImage: isInCollection ? "minus.circle" : "plus.circle"
                 )
             }
         }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: mediaKind, id: item.media_id)
-        }
+        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear { actionScope.deactivate() }
     }
 }
 
-// MARK: - Journal Activity Content
+// MARK: - Activity Content
 
 struct JournalActivityContent: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
+    @Environment(FeatureFlags.self) private var flags
 
     struct ActivityEntry: Identifiable {
         let id: String
@@ -622,6 +498,9 @@ struct JournalActivityContent: View {
         let updatedAt: Date
         let episodeCount: Int?
         let chapterCount: Int?
+
+        /// The title the entry is about (N9: the entry opens it).
+        var mediaKey: MediaKey { ClubActivityTarget.key(mediaType: mediaType, mediaId: mediaId) }
     }
 
     private static let isoFractional: ISO8601DateFormatter = {
@@ -636,30 +515,36 @@ struct JournalActivityContent: View {
         return f
     }()
 
-    private static let dayFormatter: DateFormatter = {
+    private var dayFormatter: DateFormatter {
         let f = DateFormatter()
-        f.dateFormat = "EEEE, MMMM d"
+        f.locale = KuroLocale.locale
+        f.timeZone = KuroLocale.timeZone
+        f.setLocalizedDateFormatFromTemplate("EEEEMMMMd")
         return f
-    }()
+    }
 
-    private static let timeFormatter: DateFormatter = {
+    private var timeFormatter: DateFormatter {
         let f = DateFormatter()
-        f.dateFormat = "h:mm a"
+        f.locale = KuroLocale.locale
+        f.timeZone = KuroLocale.timeZone
+        f.dateStyle = .none
+        f.timeStyle = .short
         return f
-    }()
+    }
 
     private var entries: [ActivityEntry] {
         var result: [ActivityEntry] = []
+        let fallbackName = KuroLocale.text("A member", "Ein Mitglied")
         for rail in bundle.rails {
             for item in rail.items {
                 guard let statuses = item.member_statuses else { continue }
                 for ms in statuses {
                     guard let dateStr = ms.updated_at else { continue }
                     guard let date = Self.isoFractional.date(from: dateStr) ?? Self.iso.date(from: dateStr) else { continue }
-                    let name = ms.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? String(ms.user_id.prefix(6))
+                    let name = ms.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     result.append(ActivityEntry(
                         id: "\(item.id)-\(ms.user_id)",
-                        displayName: name.isEmpty ? String(ms.user_id.prefix(6)) : name,
+                        displayName: name.isEmpty ? fallbackName : name,
                         titleDisplay: item.title_display,
                         status: ms.status,
                         progress: ms.progress,
@@ -677,93 +562,65 @@ struct JournalActivityContent: View {
     }
 
     private var groupedByDay: [(date: String, entries: [ActivityEntry])] {
-        let allEntries = entries
+        let formatter = dayFormatter
         var groups: [String: [ActivityEntry]] = [:]
         var order: [String] = []
-        for entry in allEntries {
-            let key = Self.dayFormatter.string(from: entry.updatedAt)
+        for entry in entries {
+            let key = formatter.string(from: entry.updatedAt)
             if groups[key] == nil {
                 order.append(key)
             }
             groups[key, default: []].append(entry)
         }
-        return order.map { (date: $0, entries: groups[$0]!) }
+        return order.compactMap { key in groups[key].map { (date: key, entries: $0) } }
     }
 
     var body: some View {
         if entries.isEmpty {
-            emptyState
-        } else {
-            VStack(alignment: .leading, spacing: 18) {
-                sectionHeader
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
-
-                activityList
-            }
-        }
-    }
-
-    private var emptyState: some View {
-        ClubDetailEmptyStateCard(
-            icon: "book",
-            title: "No activity yet",
-            message: "Activity appears as members update their progress.",
-            actionTitle: nil,
-            action: nil
-        )
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
-    }
-
-    private var activityList: some View {
-        LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(groupedByDay.enumerated()), id: \.element.date) { dayIndex, group in
-                // Day header
-                Text(group.date)
-                    .font(.kuroBody())
-                    .italic()
-                    .foregroundColor(.kuroBlack80)
-                    .padding(.horizontal, 20)
-                    .padding(.top, dayIndex == 0 ? 16 : 20)
-                    .padding(.bottom, 10)
-
-                ForEach(group.entries) { entry in
-                    JournalActivityEntry(
-                        entry: entry,
-                        timeText: Self.timeFormatter.string(from: entry.updatedAt)
-                    )
-                }
-            }
-
-            // Pace banners
-            if FeatureFlags.shared.isClubsPaceSyncV1Enabled && bundle.club.sharing_level == "progress" && bundle.member_count >= 3 {
-                ForEach(paceBehindItems, id: \.id) { item in
-                    JournalPaceBanner(item: item)
-                        .padding(.horizontal, 20)
-                        .padding(.top, KuroDesignSpacing.md)
-                }
-            }
-        }
-        .padding(.bottom, KuroDesignSpacing.xxl)
-    }
-
-    private var sectionHeader: some View {
-        ClubDetailSectionHeader(
-            eyebrow: "Active",
-            title: "Recent activity",
-            detail: "Progress updates appear in time order so the feed stays easy to scan.",
-            trailing: AnyView(
-                ClubDetailSectionPill(
-                    title: "\(entries.count)",
-                    systemImage: "clock.arrow.circlepath",
-                    isActive: !entries.isEmpty
-                )
+            // Duo clubs: the bundle withholds member_statuses below 3 members (k>=3 rule),
+            // so say so honestly instead of implying activity is merely missing.
+            let isDuo = bundle.member_count == 2
+            ClubTabEmptyState(
+                title: KuroLocale.text("No activity yet.", "Noch keine Aktivität."),
+                message: isDuo
+                    ? KuroLocale.text("Activity shows from 3 members. Invite one more friend.",
+                                      "Aktivität erscheint ab 3 Mitgliedern. Lade noch jemanden ein.")
+                    : KuroLocale.text("Updates appear here as members watch and read.",
+                                      "Hier erscheint, was Mitglieder schauen und lesen.")
             )
-        )
+        } else {
+            let timeFormatter = timeFormatter
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(groupedByDay, id: \.date) { group in
+                    Text(group.date)
+                        .kuroRoleText(.title)
+                        .foregroundStyle(Color.kuroInk)
+                        .accessibilityAddTraits(.isHeader)
+                        .padding(.horizontal, KuroDesignSpacing.padding)
+                        .padding(.top, KuroDesignSpacing.lg)
+                        .padding(.bottom, KuroDesignSpacing.xs)
+
+                    ForEach(group.entries) { entry in
+                        JournalActivityEntry(
+                            entry: entry,
+                            timeText: timeFormatter.string(from: entry.updatedAt)
+                        )
+                    }
+                }
+
+                if flags.isClubsPaceSyncV1Enabled && bundle.club.sharing_level == "progress" && bundle.member_count >= 3 {
+                    ForEach(paceBehindItems, id: \.id) { item in
+                        JournalPaceBanner(item: item)
+                            .padding(.horizontal, KuroDesignSpacing.padding)
+                            .padding(.top, KuroDesignSpacing.md)
+                    }
+                }
+            }
+            .padding(.bottom, KuroDesignSpacing.xxl)
+        }
     }
 
-    private var paceBehindItems: [SupabaseService.ClubRailItem] {
+    private var paceBehindItems: [ClubRailItem] {
         bundle.rails.flatMap(\.items).filter { item in
             guard let myProgress = item.my_progress,
                   let statuses = item.member_statuses, !statuses.isEmpty else { return false }
@@ -778,320 +635,242 @@ struct JournalActivityContent: View {
     }
 }
 
-// MARK: - Journal Activity Entry
+// MARK: - Activity Entry
 
+/// Where a "This week" entry leads (pure, NavclubsTests): its title, by the rail item's media type
+/// ("MANGA" in any case is manga; anything else is anime, as the rail cards read it).
+nonisolated enum ClubActivityTarget {
+    static func key(mediaType: String, mediaId: Int) -> MediaKey {
+        MediaKey(kind: mediaType.uppercased() == "MANGA" ? .manga : .anime, id: mediaId)
+    }
+}
+
+/// One member's update. Tapping it opens the title (pushed inside the club's journey, N9).
 struct JournalActivityEntry: View {
     let entry: JournalActivityContent.ActivityEntry
     let timeText: String
 
+    @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+
+    private var parts: ClubActivityProse.Parts {
+        ClubActivityProse.parts(status: entry.status, progress: entry.progress,
+                                isManga: entry.mediaType.uppercased() == "MANGA", german: KuroLocale.isGerman)
+    }
+
     private var proseText: AttributedString {
         var result = AttributedString()
 
-        // Bold name
         var namePart = AttributedString(entry.displayName)
-        namePart.font = .kuroCustom(15, weight: .semibold)
+        namePart.font = .kuroBody(weight: .semibold)
         result.append(namePart)
 
-        // Action text
-        let statusUpper = entry.status?.uppercased() ?? ""
-        let unit = entry.mediaType.uppercased() == "ANIME" ? "episode" : "chapter"
+        var before = AttributedString(parts.beforeTitle)
+        before.font = .kuroBody(weight: .light)
+        result.append(before)
 
-        var actionText: String
-        switch statusUpper {
-        case "COMPLETED":
-            actionText = " finished "
-        case "CURRENT", "WATCHING", "READING":
-            if let progress = entry.progress, progress > 0 {
-                actionText = " reached \(unit) \(progress) of "
-            } else {
-                actionText = " started watching "
-            }
-        case "PAUSED":
-            actionText = " paused "
-        case "DROPPED":
-            actionText = " dropped "
-        case "PLANNING", "PLANNED":
-            actionText = " added "
-        default:
-            actionText = " updated "
-        }
-
-        var actionPart = AttributedString(actionText)
-        actionPart.font = .kuroCustom(15, weight: .light)
-        result.append(actionPart)
-
-        // Italic title
         var titlePart = AttributedString(entry.titleDisplay)
-        titlePart.font = .kuroCustom(15, weight: .light, design: .serif).italic()
+        titlePart.font = .kuroBody(weight: .medium)
         result.append(titlePart)
 
+        if !parts.afterTitle.isEmpty {
+            var after = AttributedString(parts.afterTitle)
+            after.font = .kuroBody(weight: .light)
+            result.append(after)
+        }
         return result
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            // Avatar
-            Circle()
-                .fill(Color.kuroBlack08)
-                .frame(width: 22, height: 22)
-                .overlay(
-                    Text(String(entry.displayName.prefix(1)).uppercased())
-                        .font(.kuroCustom(9, weight: .medium, design: .serif, relativeTo: .caption2))
-                        .foregroundColor(.kuroTextSecondary)
-                )
+        Button {
+            guard !suppressCardTaps else { return }
+            KuroAccessibility.impactHaptic(.light)
+            routes.openMedia(MediaRoute(entry.mediaKey))
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
+                Text(proseText)
+                    .foregroundStyle(Color.kuroInk)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Prose
-            Text(proseText)
-                .foregroundColor(.kuroBlack80)
-                .lineSpacing(3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Time
-            Text(timeText)
-                .font(.kuroMicro())
-                .foregroundColor(.kuroTextTertiary)
+                Text(timeText)
+                    .font(.kuroMeta())
+                    .monospacedDigit()
+                    .foregroundStyle(Color.kuroInkQuiet)
+            }
+            .padding(.vertical, KuroDesignSpacing.md)
+            .frame(minHeight: 44)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.kuroHairline).frame(height: 1)
+            }
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.86))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 3)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 5)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+        .padding(.horizontal, KuroDesignSpacing.padding)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(KuroLocale.text("Opens the title.", "Öffnet den Titel."))
+        .accessibilityAddTraits(.isButton)
     }
 }
 
-// MARK: - Journal Pace Banner
+// MARK: - Pace Banner
 
 struct JournalPaceBanner: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
 
-    private var paceText: String {
+    private var paceText: String? {
         guard let myProgress = item.my_progress,
-              let statuses = item.member_statuses, !statuses.isEmpty else { return "" }
+              let statuses = item.member_statuses, !statuses.isEmpty else { return nil }
         let otherProgresses = statuses.compactMap(\.progress).sorted()
-        guard !otherProgresses.isEmpty else { return "" }
+        guard !otherProgresses.isEmpty else { return nil }
         let count = otherProgresses.count
         let median = count % 2 == 0
             ? (otherProgresses[count / 2 - 1] + otherProgresses[count / 2]) / 2
             : otherProgresses[count / 2]
         let diff = median - myProgress
-        let unit = item.media_type.uppercased() == "ANIME" ? "episode" : "chapter"
-        let plural = diff == 1 ? "" : "s"
-        return "You're \(diff) \(unit)\(plural) behind the group on \(item.title_display)"
+        guard diff > 0 else { return nil }
+        let isManga = item.media_type.uppercased() == "MANGA"
+        if KuroLocale.isGerman {
+            let unit = isManga ? "Kapitel" : (diff == 1 ? "Folge" : "Folgen")
+            return "Du liegst bei \(item.title_display) \(diff) \(unit) hinter der Gruppe."
+        }
+        let unit = isManga ? (diff == 1 ? "chapter" : "chapters") : (diff == 1 ? "episode" : "episodes")
+        return "You're \(diff) \(unit) behind the group on \(item.title_display)."
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        if let paceText {
             Text(paceText)
-                .font(.kuroBody())
-                .italic()
-                .foregroundColor(.kuroTextSecondary)
-                .lineSpacing(2)
+                .font(.kuroBody(weight: .light))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(KuroDesignSpacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .fill(Color.kuroCanvasQuiet)
+                )
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                .fill(Color.kuroBlack04)
-        )
     }
 }
 
-// MARK: - Journal Milestone Card
+// MARK: - Milestone Card
 
 struct JournalMilestoneCard: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
     let memberCount: Int
 
     var body: some View {
-        VStack(spacing: KuroDesignSpacing.sm) {
-            // Decorative rule
-            HStack(spacing: 8) {
-                Rectangle()
-                    .fill(Color.kuroBlack80)
-                    .frame(width: 40, height: 2)
-                Circle()
-                    .fill(Color.kuroBlack80)
-                    .frame(width: 4, height: 4)
-                Rectangle()
-                    .fill(Color.kuroBlack80)
-                    .frame(width: 40, height: 2)
-            }
-
-            Text("All \(memberCount) members finished \(item.title_display)")
-                .font(.kuroBody())
-                .italic()
-                .foregroundColor(.kuroBlack80)
-                .multilineTextAlignment(.center)
-                .lineSpacing(2)
-
-            Text("COMPLETED TOGETHER")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.5)
-                .foregroundColor(.kuroTextTertiary)
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+            Text(KuroLocale.text("Finished together", "Gemeinsam beendet"))
+                .kuroKicker()
+            Text(KuroLocale.text("All \(memberCount) members finished \(item.title_display).",
+                                 "Alle \(memberCount) Mitglieder haben \(item.title_display) beendet."))
+                .kuroRoleText(.title)
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+            Rectangle()
+                .fill(Color.kuroInk)
+                .frame(width: 40, height: 2)
+                .padding(.top, KuroDesignSpacing.xs)
+                .accessibilityHidden(true)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, KuroDesignSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, KuroDesignSpacing.sm)
+        .accessibilityElement(children: .combine)
     }
 }
 
-// MARK: - Journal Polls Content
+// MARK: - Polls Content
 
 struct JournalPollsContent: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
     let clubsInteractionV2Enabled: Bool
     let voteInFlightPollIds: Set<String>
     let optimisticVoteByPollId: [String: String]
     let optimisticVoteCountsByPollId: [String: [String: Int]]
-    let onVote: (SupabaseService.ClubPoll, String) -> Void
+    let onVote: (ClubPoll, String) -> Void
     let onCreatePoll: () -> Void
     let isConnected: Bool
 
-    private var openPolls: [SupabaseService.ClubPoll] {
+    private var isAdmin: Bool { ["owner", "admin"].contains(bundle.my_role) }
+
+    private var openPolls: [ClubPoll] {
         bundle.polls.filter { !$0.is_closed }
     }
 
-    private var closedPolls: [SupabaseService.ClubPoll] {
+    private var closedPolls: [ClubPoll] {
         bundle.polls.filter { $0.is_closed }
     }
 
     var body: some View {
         if bundle.polls.isEmpty {
-            pollsEmptyState
+            ClubTabEmptyState(
+                title: KuroLocale.text("No polls yet.", "Noch keine Umfragen."),
+                message: isAdmin
+                    ? KuroLocale.text("Ask the club what to watch or read next.", "Frag den Club, was ihr als Nächstes schaut oder lest.")
+                    : KuroLocale.text("Polls appear here when an admin asks one.", "Umfragen erscheinen hier, sobald ein Admin eine startet."),
+                actionTitle: isAdmin ? KuroLocale.text("Ask a question", "Eine Frage stellen") : nil,
+                action: isAdmin ? {
+                    KuroAccessibility.impactHaptic(.light)
+                    onCreatePoll()
+                } : nil
+            )
+            .disabled(!isConnected)
         } else {
-            VStack(alignment: .leading, spacing: 18) {
-                sectionHeader
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
-
-                pollsList
-            }
-        }
-    }
-
-    private var pollsEmptyState: some View {
-        ClubDetailEmptyStateCard(
-            icon: "chart.bar",
-            title: "No polls yet",
-            message: "Questions and votes will appear here once the club starts asking them.",
-            actionTitle: ["owner", "admin"].contains(bundle.my_role) ? "Ask a question" : nil,
-            action: ["owner", "admin"].contains(bundle.my_role) ? {
-                KuroAccessibility.impactHaptic(.light)
-                onCreatePoll()
-            } : nil
-        )
-        .disabled(!isConnected)
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
-    }
-
-    private var pollsList: some View {
-        LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(openPolls.enumerated()), id: \.element.id) { index, poll in
-                if index > 0 {
-                    EditorialLayout.divider(thickness: 1.0, opacity: 0.06)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                }
-
-                JournalPollCard(
-                    poll: poll,
-                    members: bundle.members,
-                    isSubmittingVote: clubsInteractionV2Enabled && voteInFlightPollIds.contains(poll.id),
-                    optimisticMyVoteOptionId: clubsInteractionV2Enabled ? optimisticVoteByPollId[poll.id] : nil,
-                    optimisticVoteCounts: clubsInteractionV2Enabled ? optimisticVoteCountsByPollId[poll.id] : nil,
-                    onVote: { optionId in onVote(poll, optionId) }
-                )
-                .accessibilityElement(children: .combine)
-            }
-
-            if !closedPolls.isEmpty {
-                Text("CLOSED")
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.kuroBlack30)
-                    .padding(.horizontal, 20)
-                    .padding(.top, KuroDesignSpacing.lg)
-                    .accessibilityAddTraits(.isHeader)
-
-                ForEach(closedPolls) { poll in
+            LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+                ForEach(openPolls) { poll in
                     JournalPollCard(
                         poll: poll,
                         members: bundle.members,
-                        isSubmittingVote: false,
-                        optimisticMyVoteOptionId: nil,
-                        optimisticVoteCounts: nil,
-                        onVote: { _ in }
+                        isSubmittingVote: clubsInteractionV2Enabled && voteInFlightPollIds.contains(poll.id),
+                        optimisticMyVoteOptionId: clubsInteractionV2Enabled ? optimisticVoteByPollId[poll.id] : nil,
+                        optimisticVoteCounts: clubsInteractionV2Enabled ? optimisticVoteCountsByPollId[poll.id] : nil,
+                        onVote: { optionId in onVote(poll, optionId) }
                     )
-                    .opacity(0.5)
-                    .accessibilityElement(children: .combine)
                 }
-            }
 
-            // Create poll card
-            if ["owner", "admin"].contains(bundle.my_role) {
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    onCreatePoll()
-                } label: {
-                    VStack(spacing: 8) {
-                        Image(systemName: "plus")
-                            .font(.kuroCustom(20, weight: .light, relativeTo: .title3))
-                            .foregroundColor(.kuroTextTertiary)
-                        Text("ASK A QUESTION")
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(1.5)
-                            .foregroundColor(.kuroTextTertiary)
+                if !closedPolls.isEmpty {
+                    Text(KuroLocale.text("Closed", "Geschlossen"))
+                        .kuroRoleText(.title)
+                        .foregroundStyle(Color.kuroInk)
+                        .padding(.horizontal, KuroDesignSpacing.padding)
+                        .padding(.top, KuroDesignSpacing.md)
+                        .accessibilityAddTraits(.isHeader)
+
+                    ForEach(closedPolls) { poll in
+                        JournalPollCard(
+                            poll: poll,
+                            members: bundle.members,
+                            isSubmittingVote: false,
+                            optimisticMyVoteOptionId: nil,
+                            optimisticVoteCounts: nil,
+                            onVote: { _ in }
+                        )
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                    .background(
-                        RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .strokeBorder(
-                                style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
-                            )
-                            .foregroundColor(.kuroBlack10)
-                    )
                 }
-                .buttonStyle(.plain)
-                .disabled(!isConnected)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-            }
-        }
-        .padding(.top, KuroDesignSpacing.md)
-        .padding(.bottom, KuroDesignSpacing.xxl)
-    }
 
-    private var sectionHeader: some View {
-        ClubDetailSectionHeader(
-            eyebrow: "Polls",
-            title: "Club questions",
-            detail: "Open polls stay up top, closed polls recede, and new questions sit at the end.",
-            trailing: AnyView(
-                ClubDetailSectionPill(
-                    title: "\(openPolls.count)",
-                    systemImage: "chart.bar",
-                    isActive: !bundle.polls.isEmpty
-                )
-            )
-        )
+                if isAdmin {
+                    KuroInkButton(KuroLocale.text("Ask a question", "Eine Frage stellen"), role: .secondary) {
+                        onCreatePoll()
+                    }
+                    .disabled(!isConnected)
+                    .padding(.horizontal, KuroDesignSpacing.padding)
+                    .padding(.top, KuroDesignSpacing.sm)
+                }
+            }
+            .padding(.top, KuroDesignSpacing.md)
+            .padding(.bottom, KuroDesignSpacing.xxl)
+        }
     }
 }
 
-// MARK: - Journal Poll Card
+// MARK: - Poll Card
 
 struct JournalPollCard: View {
-    let poll: SupabaseService.ClubPoll
-    let members: [SupabaseService.ClubMember]
+    let poll: ClubPoll
+    let members: [ClubMember]
     let isSubmittingVote: Bool
     let optimisticMyVoteOptionId: String?
     let optimisticVoteCounts: [String: Int]?
@@ -1104,94 +883,93 @@ struct JournalPollCard: View {
         return poll.options.reduce(0) { $0 + $1.vote_count }
     }
 
-    private var hasVoted: Bool {
-        (optimisticMyVoteOptionId ?? poll.my_vote_option_id) != nil
+    private var myVoteId: String? { optimisticMyVoteOptionId ?? poll.my_vote_option_id }
+
+    private var hasVoted: Bool { myVoteId != nil }
+
+    private var askerLine: String? {
+        let name = members.first { $0.user_id == poll.created_by }?.display_name?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !name.isEmpty else { return nil }
+        return KuroLocale.text("\(name) asks", "\(name) fragt")
     }
 
-    private var askerInitial: String {
-        let member = members.first { $0.user_id == poll.created_by }
-        let name = member?.display_name ?? ""
-        return String(name.prefix(1)).uppercased()
+    private var votesText: String? {
+        guard totalVotes > 0 else { return nil }
+        return KuroLocale.isGerman
+            ? (totalVotes == 1 ? "1 Stimme" : "\(totalVotes) Stimmen")
+            : (totalVotes == 1 ? "1 vote" : "\(totalVotes) votes")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-            // Asker label
-            Text("\(askerInitial.isEmpty ? "?" : askerInitial) ASKED")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.5)
-                .foregroundColor(.kuroTextTertiary)
-
-            // Question
-            HStack {
-                Text(poll.question)
-                    .font(.kuroTitle())
-                    .italic()
-                    .foregroundColor(.kuroBlack80)
-                    .lineLimit(3)
-
-                Spacer()
-
-                if poll.is_closed {
-                    Text("CLOSED")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroBlack40)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            Capsule()
-                                .stroke(Color.kuroBlack12, lineWidth: 0.6)
-                        )
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            if askerLine != nil || poll.is_closed {
+                HStack(spacing: KuroDesignSpacing.sm) {
+                    if let askerLine {
+                        Text(askerLine)
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInkQuiet)
+                    }
+                    if poll.is_closed {
+                        Text(KuroLocale.text("Closed", "Geschlossen"))
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInkQuiet)
+                    }
                 }
             }
 
-            // Options
-            ForEach(poll.options) { option in
-                let renderedCount = optimisticVoteCounts?[option.id] ?? option.vote_count
-                JournalPollOptionRow(
-                    option: option,
-                    displayVoteCount: renderedCount,
-                    totalVotes: totalVotes,
-                    isMyVote: (optimisticMyVoteOptionId ?? poll.my_vote_option_id) == option.id,
-                    hasVoted: hasVoted,
-                    isClosed: poll.is_closed,
-                    isSubmittingVote: isSubmittingVote,
-                    onTap: {
-                        guard !poll.is_closed else { return }
-                        guard (optimisticMyVoteOptionId ?? poll.my_vote_option_id) != option.id else { return }
-                        guard !isSubmittingVote else { return }
-                        onVote(option.id)
-                    }
-                )
+            Text(poll.question)
+                .kuroRoleText(.title)
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+
+            VStack(spacing: 0) {
+                ForEach(poll.options) { option in
+                    let renderedCount = optimisticVoteCounts?[option.id] ?? option.vote_count
+                    JournalPollOptionRow(
+                        option: option,
+                        displayVoteCount: renderedCount,
+                        totalVotes: totalVotes,
+                        isMyVote: myVoteId == option.id,
+                        hasVoted: hasVoted,
+                        isClosed: poll.is_closed,
+                        isSubmittingVote: isSubmittingVote,
+                        onTap: {
+                            guard !poll.is_closed else { return }
+                            guard myVoteId != option.id else { return }
+                            guard !isSubmittingVote else { return }
+                            onVote(option.id)
+                        }
+                    )
+                }
             }
 
-            if totalVotes > 0 {
-                Text("\(totalVotes) vote\(totalVotes == 1 ? "" : "s")")
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroTextTertiary)
+            if let votesText {
+                Text(votesText)
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkQuiet)
             }
         }
-        .padding(16)
+        .padding(KuroDesignSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.86))
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .fill(Color.kuroCanvasPage)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .strokeBorder(Color.kuroHairline, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 3)
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
+        .padding(.horizontal, KuroDesignSpacing.padding)
+        .accessibilityElement(children: .contain)
     }
 }
 
-// MARK: - Journal Poll Option Row
+// MARK: - Poll Option Row
 
 struct JournalPollOptionRow: View {
-    let option: SupabaseService.ClubPollOption
+    let option: ClubPollOption
     let displayVoteCount: Int
     let totalVotes: Int
     let isMyVote: Bool
@@ -1205,80 +983,79 @@ struct JournalPollOptionRow: View {
         return Double(displayVoteCount) / Double(totalVotes)
     }
 
+    private var showsResults: Bool { hasVoted || isClosed }
+
     private var percentageText: String {
         guard totalVotes > 0 else { return "" }
-        return "\(Int(fraction * 100))%"
+        return fraction.formatted(.percent.precision(.fractionLength(0)).locale(KuroLocale.locale))
+    }
+
+    private var accessibilityText: String {
+        var parts = [option.label]
+        if showsResults, totalVotes > 0 { parts.append(percentageText) }
+        if isMyVote { parts.append(KuroLocale.text("your vote", "deine Stimme")) }
+        return parts.joined(separator: ", ")
     }
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 3) {
-                HStack {
-                    HStack(spacing: 5) {
-                        if isMyVote {
-                            Circle()
-                                .fill(Color.kuroBlack80)
-                                .frame(width: 5, height: 5)
-                        }
-                        Text(option.label)
-                            .font(.kuroCaption())
-                            .foregroundColor(.kuroTextSecondary)
-                    }
-
-                    Spacer()
-
-                    if hasVoted || isClosed {
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.sm) {
+                    Image(systemName: isMyVote ? "checkmark.circle.fill" : "circle")
+                        .font(.kuroMeta())
+                        .foregroundStyle(isMyVote ? Color.kuroInk : Color.kuroInkQuiet)
+                    Text(option.label)
+                        .font(.kuroBody(weight: isMyVote ? .semibold : .regular))
+                        .foregroundStyle(Color.kuroInk)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if showsResults {
                         Text(percentageText)
-                            .font(.kuroMicro(weight: .medium))
-                            .foregroundColor(.kuroTextTertiary)
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInkSecondary)
                             .monospacedDigit()
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                        .fill((hasVoted || isClosed) && isMyVote ? Color.kuroBlack04 : Color.clear)
-                )
 
-                // Fill bar
-                if hasVoted || isClosed {
+                if showsResults {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                                .fill(Color.kuroBlack06)
-                                .frame(height: 3)
-
-                            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                                .fill(isMyVote ? Color.kuroBlack80 : Color.kuroBlack30)
+                            Capsule().fill(Color.kuroHairline).frame(height: 3)
+                            Capsule()
+                                .fill(isMyVote ? Color.kuroInk : Color.kuroInkQuiet)
                                 .frame(width: geo.size.width * fraction, height: 3)
-                                .animation(KuroAnimation.editorial, value: fraction)
                         }
                     }
                     .frame(height: 3)
-                    .padding(.horizontal, 12)
+                    .kuroAnimation(KuroMotion.settle, value: fraction)
+                    .accessibilityHidden(true)
                 }
             }
+            .padding(.vertical, KuroDesignSpacing.sm)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
         .disabled(isClosed || isSubmittingVote)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+        .accessibilityAddTraits(isMyVote ? [.isButton, .isSelected] : .isButton)
     }
 }
 
-// MARK: - Club Reaction Row
+// MARK: - Reactions
 
-struct ClubReactionRow: View {
-    let item: SupabaseService.ClubRailItem
+/// A title's reactions as one 44 pt control: a quiet summary of the counts (ink SF Symbols, no
+/// emoji) that opens a menu to add or remove your reaction. Optimistic; reverted on failure.
+struct ClubReactionMenu: View {
+    let item: ClubRailItem
     var onError: ((String) -> Void)? = nil
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
+    @State private var actionScope = AccountActionScope()
     @State private var optimisticReactions: [String: Int]?
     @State private var optimisticMyReactions: Set<String>?
-
-    private static let emojis = ["fire", "heart", "eyes", "100"]
-    private static let emojiDisplay: [String: String] = [
-        "fire": "\u{1F525}", "heart": "\u{2764}\u{FE0F}", "eyes": "\u{1F440}", "100": "\u{1F4AF}"
-    ]
 
     private var effectiveReactions: [String: Int] {
         optimisticReactions ?? item.reactions ?? [:]
@@ -1288,39 +1065,75 @@ struct ClubReactionRow: View {
         optimisticMyReactions ?? Set(item.my_reactions ?? [])
     }
 
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(Self.emojis, id: \.self) { emoji in
-                let count = effectiveReactions[emoji] ?? 0
-                let isMine = effectiveMyReactions.contains(emoji)
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    toggleReaction(emoji: emoji)
-                } label: {
-                    HStack(spacing: 3) {
-                        Text(Self.emojiDisplay[emoji] ?? emoji)
-                            .font(.kuroCustom(11, relativeTo: .caption1))
-                        if count > 0 {
-                            Text("\(count)")
-                                .font(.kuroMicro(weight: .medium))
-                                .foregroundColor(.kuroTextSecondary)
-                        }
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(isMine ? Color.kuroBlack10 : Color.kuroBlack04)
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(emoji), \(count) reaction\(count == 1 ? "" : "s")\(isMine ? ", reacted" : "")")
-            }
-        }
-        .frame(width: 120, alignment: .leading)
+    private var summaryKeys: [String] {
+        ClubReactionGlyph.keys.filter { (effectiveReactions[$0] ?? 0) > 0 }
     }
 
-    private func toggleReaction(emoji: String) {
+    private var accessibilityText: String {
+        let german = KuroLocale.isGerman
+        guard !summaryKeys.isEmpty else { return german ? "Reagieren" : "React" }
+        let counts = summaryKeys.map { "\(ClubReactionGlyph.spokenName(for: $0, german: german)) \(effectiveReactions[$0] ?? 0)" }
+        return (german ? "Reaktionen: " : "Reactions: ") + counts.joined(separator: ", ")
+    }
+
+    var body: some View {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        let german = KuroLocale.isGerman
+        return Menu {
+            ForEach(ClubReactionGlyph.keys, id: \.self) { key in
+                let count = effectiveReactions[key] ?? 0
+                let isMine = effectiveMyReactions.contains(key)
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    toggleReaction(emoji: key, origin: origin)
+                } label: {
+                    let name = ClubReactionGlyph.spokenName(for: key, german: german)
+                    let title = count > 0 ? "\(name) · \(count)" : name
+                    if isMine {
+                        Label(title, systemImage: "checkmark")
+                    } else {
+                        Label(title, systemImage: ClubReactionGlyph.symbol(for: key) ?? "number")
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: KuroDesignSpacing.sm) {
+                if summaryKeys.isEmpty {
+                    Image(systemName: "face.smiling")
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkQuiet)
+                } else {
+                    ForEach(summaryKeys, id: \.self) { key in
+                        HStack(spacing: 2) {
+                            if let symbol = ClubReactionGlyph.symbol(for: key) {
+                                Image(systemName: effectiveMyReactions.contains(key) ? (ClubReactionGlyph.selectedSymbol(for: key) ?? symbol) : symbol)
+                            } else {
+                                Text(verbatim: "100")
+                                    .fontWeight(effectiveMyReactions.contains(key) ? .bold : .regular)
+                            }
+                            Text(verbatim: "\(effectiveReactions[key] ?? 0)")
+                                .monospacedDigit()
+                        }
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                    }
+                }
+            }
+            .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(accessibilityText)
+        .accessibilityHint(KuroLocale.text("Opens the reactions.", "Öffnet die Reaktionen."))
+        .onAppear { actionScope.activate(session: clubs.accountSession) }
+        .onDisappear {
+            actionScope.deactivate()
+            optimisticReactions = nil
+            optimisticMyReactions = nil
+        }
+    }
+
+    private func toggleReaction(emoji: String, origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         let isMine = effectiveMyReactions.contains(emoji)
         var newReactions = effectiveReactions
         var newMy = effectiveMyReactions
@@ -1337,43 +1150,17 @@ struct ClubReactionRow: View {
         optimisticReactions = newReactions
         optimisticMyReactions = newMy
 
-        Task {
+        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
             do {
-                _ = try await supabaseService.toggleReaction(railItemId: item.id, emoji: emoji)
+                _ = try await clubs.toggleReaction(railItemId: item.id, emoji: emoji)
             } catch {
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                 optimisticReactions = nil
                 optimisticMyReactions = nil
-                UINotificationFeedbackGenerator().notificationOccurred(.error)
-                onError?("Couldn't update reaction")
+                guard !(error is CancellationError) else { return }
+                KuroAccessibility.errorHaptic()
+                onError?(KuroLocale.text("Reaction not saved", "Reaktion nicht gespeichert"))
             }
-        }
-    }
-}
-
-// MARK: - Club Reaction Row Compact (collapsed trigger for unreacted items)
-
-struct ClubReactionRowCompact: View {
-    let item: SupabaseService.ClubRailItem
-    var onError: ((String) -> Void)? = nil
-    @State private var expanded = false
-
-    var body: some View {
-        if expanded {
-            ClubReactionRow(item: item, onError: onError)
-        } else {
-            Button {
-                KuroAccessibility.impactHaptic(.light)
-                withAnimation(KuroAnimation.fast) { expanded = true }
-            } label: {
-                Image(systemName: "face.smiling")
-                    .font(.kuroCustom(12, weight: .light, relativeTo: .caption1))
-                    .foregroundColor(.kuroBlack30)
-                    .padding(6)
-                    .background(Capsule().fill(Color.kuroBlack04))
-            }
-            .buttonStyle(.plain)
-            .frame(width: 120, alignment: .leading)
-            .accessibilityLabel("Add a reaction")
         }
     }
 }

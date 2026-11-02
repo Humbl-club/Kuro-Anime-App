@@ -1,0 +1,2 @@
+ACTUAL_OUTBOUND_URL_INPUT_POLICY: PASS; explicit schemes rejected before normalization, HTTP(S)/bare-host/IDNA retained; port requires explicit scheme
+Source function body compiled verbatim in Foundation-only host; not native SDK/view proof.

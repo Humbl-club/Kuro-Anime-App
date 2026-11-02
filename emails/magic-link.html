@@ -4,135 +4,83 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="x-apple-disable-message-reformatting">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
 <title>Sign in to Kuro</title>
+<!-- Kuro auth email (2026-11-01 re-skin, prepared: paste into Supabase Dashboard > Auth > Email Templates).
+     White page, #181818 ink, system fonts only (no web-font requests), AA contrast (#5C5C5C body 6.7:1,
+     #6B6B6B small print 5.3:1), English then German. Keep the ConfirmationURL variable on both links: GoTrue adds the PKCE code. -->
 <!--[if mso]>
-<style>table,td{font-family:Arial,Helvetica,sans-serif !important;}</style>
+<style>table,td,h1,p,a{font-family:Arial,Helvetica,sans-serif !important;}</style>
 <![endif]-->
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
-</style>
 </head>
-<body style="margin:0;padding:0;background-color:#070707;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background-color:#FFFFFF;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#FFFFFF;">Your sign-in link for Kuro. / Dein Anmeldelink für Kuro.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF;">
+<tr><td align="center" style="padding:40px 16px;">
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#070707;">
-<tr><td align="center" style="padding:56px 16px;">
-
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;border:1px solid #6b5f4c;">
-<tr><td style="padding:3px;background-color:#070707;">
-
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #a89878;">
-<tr><td style="padding:0;background-color:#fcfaf5;">
-
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-
-<tr><td style="height:2px;background-color:#9e8e6e;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="height:48px;"></td></tr>
-
-<tr><td align="center" style="padding:0 56px;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:220px;"><tr>
-    <td style="height:1px;background-color:rgba(0,0,0,0.08);font-size:0;line-height:0;">&nbsp;</td>
-    <td width="28" align="center" style="font-size:7px;color:rgba(0,0,0,0.14);padding:0 8px;line-height:1;font-family:'Cormorant Garamond',Georgia,serif;">&#9670;</td>
-    <td style="height:1px;background-color:rgba(0,0,0,0.08);font-size:0;line-height:0;">&nbsp;</td>
-  </tr></table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;border:1px solid #E6E6E6;border-radius:16px;background-color:#FFFFFF;">
+<tr><td style="height:36px;line-height:36px;font-size:0;">&nbsp;</td></tr>
+<tr><td style="padding:0 40px;">
+  <p style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:20px;font-weight:bold;letter-spacing:4px;color:#181818;">Kuro</p>
 </td></tr>
-
-<tr><td style="height:32px;"></td></tr>
-
-<tr><td align="center" style="padding:0 40px;">
-  <img src="https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/brand/logo-email.png" width="88" height="88" alt="Kuro" style="display:block;margin:0 auto;border:0;outline:none;width:88px;height:88px;border-radius:20px;" />
+<tr><td style="height:28px;line-height:28px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="en" style="padding:0 40px;">
+  <h1 style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:26px;line-height:1.25;font-weight:normal;color:#181818;">Sign in to Kuro.</h1>
 </td></tr>
-
-<tr><td style="height:28px;"></td></tr>
-
-<tr><td align="center" style="padding:0 72px;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:160px;"><tr>
-    <td style="height:1px;background-color:rgba(0,0,0,0.06);font-size:0;line-height:0;">&nbsp;</td>
-    <td width="24" align="center" style="font-size:6px;color:rgba(0,0,0,0.12);padding:0 6px;line-height:1;font-family:'Cormorant Garamond',Georgia,serif;">&#9671;</td>
-    <td style="height:1px;background-color:rgba(0,0,0,0.06);font-size:0;line-height:0;">&nbsp;</td>
-  </tr></table>
+<tr><td style="height:12px;line-height:12px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="en" style="padding:0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#5C5C5C;">Tap below to sign in. No password needed. Open it on the device where you asked for it.</p>
 </td></tr>
-
-<tr><td style="height:28px;"></td></tr>
-
-<tr><td align="center" style="padding:0 40px;">
-  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:rgba(0,0,0,0.35);">
-    <span style="color:rgba(0,0,0,0.14);">&mdash;&nbsp;&nbsp;&nbsp;</span>Sign In<span style="color:rgba(0,0,0,0.14);">&nbsp;&nbsp;&nbsp;&mdash;</span>
-  </p>
-</td></tr>
-
-<tr><td style="height:22px;"></td></tr>
-
-<tr><td align="center" style="padding:0 52px;">
-  <p style="margin:0;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:17px;font-weight:300;font-style:italic;line-height:1.7;color:rgba(0,0,0,0.48);">
-    Tap below to sign in to your Kuro account. No password needed.
-  </p>
-</td></tr>
-
-<tr><td style="height:28px;"></td></tr>
-
-<tr><td align="center">
-  <p style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;color:rgba(0,0,0,0.12);letter-spacing:0.6em;line-height:1;">&middot;&middot;&middot;</p>
-</td></tr>
-
-<tr><td style="height:28px;"></td></tr>
-
-<tr><td align="center" style="padding:0 40px;">
+<tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
+<tr><td style="padding:0 40px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td align="center" style="background-color:#0a0a0a;">
-      <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:15px 52px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#f5f3ee;text-decoration:none;mso-padding-alt:0;">
-        <!--[if mso]><i style="mso-font-width:400%;mso-text-raise:21pt;">&nbsp;</i><![endif]-->
-        <span style="mso-text-raise:12pt;">Sign In</span>
-        <!--[if mso]><i style="mso-font-width:400%;">&nbsp;</i><![endif]-->
-      </a>
+    <td align="center" bgcolor="#181818" style="background-color:#181818;border-radius:999px;">
+      <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 32px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:1.2;color:#FFFFFF;text-decoration:none;border-radius:999px;">Sign in</a>
     </td>
   </tr></table>
 </td></tr>
-
-<tr><td style="height:20px;"></td></tr>
-
-<tr><td align="center" style="padding:0 48px;">
-  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10.5px;color:rgba(0,0,0,0.22);letter-spacing:0.03em;line-height:1;">
-    This link can only be used once and expires in 5 minutes.
-  </p>
+<tr><td style="height:16px;line-height:16px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="en" style="padding:0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#6B6B6B;">The link works once and expires in 5 minutes.</p>
 </td></tr>
-
-<tr><td style="height:40px;"></td></tr>
-
-<tr><td align="center" style="padding:0 56px;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:220px;"><tr>
-    <td style="height:1px;background-color:rgba(0,0,0,0.08);font-size:0;line-height:0;">&nbsp;</td>
-    <td width="28" align="center" style="font-size:7px;color:rgba(0,0,0,0.14);padding:0 8px;line-height:1;font-family:'Cormorant Garamond',Georgia,serif;">&#9670;</td>
-    <td style="height:1px;background-color:rgba(0,0,0,0.08);font-size:0;line-height:0;">&nbsp;</td>
-  </tr></table>
+<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="en" style="padding:0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#6B6B6B;">Didn&rsquo;t ask? Ignore this email.</p>
 </td></tr>
-
-<tr><td style="height:24px;"></td></tr>
-
-<tr><td align="center" style="padding:0 48px;">
-  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10px;color:rgba(0,0,0,0.18);letter-spacing:0.06em;line-height:1.75;">
-    If you didn&rsquo;t request this link, you can safely ignore this email.
-  </p>
+<tr><td style="height:32px;line-height:32px;font-size:0;">&nbsp;</td></tr>
+<tr><td style="padding:0 40px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="height:1px;line-height:1px;font-size:0;background-color:#E6E6E6;">&nbsp;</td></tr></table></td></tr>
+<tr><td style="height:28px;line-height:28px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="de" style="padding:0 40px;">
+  <h1 style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:20px;line-height:1.25;font-weight:normal;color:#181818;">Bei Kuro anmelden.</h1>
 </td></tr>
-
-<tr><td style="height:20px;"></td></tr>
-
-<tr><td align="center">
-  <p style="margin:0;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:11px;font-weight:400;color:rgba(0,0,0,0.10);letter-spacing:0.22em;line-height:1;">KURO</p>
+<tr><td style="height:12px;line-height:12px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="de" style="padding:0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#5C5C5C;">Tippe unten, um dich ohne Passwort anzumelden. Öffne den Link auf dem Gerät, auf dem du ihn angefordert hast.</p>
 </td></tr>
-
-<tr><td style="height:40px;"></td></tr>
-
-<tr><td style="height:2px;background-color:#9e8e6e;font-size:0;line-height:0;">&nbsp;</td></tr>
-
+<tr><td style="height:14px;line-height:14px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="de" style="padding:0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;"><a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener noreferrer" style="color:#181818;text-decoration:underline;font-weight:600;">Anmelden</a></p>
+</td></tr>
+<tr><td style="height:16px;line-height:16px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="de" style="padding:0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#6B6B6B;">Der Link funktioniert einmal und läuft nach 5 Minuten ab.</p>
+</td></tr>
+<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>
+<tr><td lang="de" style="padding:0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#6B6B6B;">Nicht angefordert? Ignoriere diese E-Mail.</p>
+</td></tr>
+<tr><td style="height:36px;line-height:36px;font-size:0;">&nbsp;</td></tr>
 </table>
-</td></tr>
-</table>
-</td></tr>
-</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+<tr><td style="padding:20px 40px 0 40px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6B6B6B;">Kuro &middot; <a href="https://kuro.app" target="_blank" rel="noopener noreferrer" style="color:#6B6B6B;text-decoration:underline;">kuro.app</a> &middot; <a href="https://kuro.app/privacy" target="_blank" rel="noopener noreferrer" style="color:#6B6B6B;text-decoration:underline;">Privacy / Datenschutz</a></p>
 </td></tr>
 </table>
 
+</td></tr>
+</table>
 </body>
 </html>

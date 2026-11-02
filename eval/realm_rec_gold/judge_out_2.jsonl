@@ -1,0 +1,448 @@
+{"seed_key":"ANIME:162","id":90,"v":"relevant","why":"Dialogue-driven adolescent mystery-psychology; introspective register matches","conf":0.7}
+{"seed_key":"ANIME:162","id":152,"v":"relevant","why":"Introspective, talky youth drama; same quiet register","conf":0.7}
+{"seed_key":"ANIME:162","id":168,"v":"relevant","why":"Wordplay-heavy mysteries of adolescent psyches; kindred pairing","conf":0.65}
+{"seed_key":"ANIME:162","id":225,"v":"relevant","why":"SNAFU sequel; same introspective youth neighborhood","conf":0.55}
+{"seed_key":"ANIME:162","id":308,"v":"relevant","why":"SNAFU finale; same neighborhood, awkward entry point","conf":0.5}
+{"seed_key":"ANIME:162","id":325,"v":"relevant","why":"Club-room mystery banter; louder but kindred","conf":0.6}
+{"seed_key":"ANIME:162","id":740,"v":"relevant","why":"Energy-conserving protagonist, hushed school calm; tonal cousin","conf":0.55}
+{"seed_key":"ANIME:162","id":770,"v":"relevant","why":"Gentle boy-girl detective drama; period-flavored kin","conf":0.7}
+{"seed_key":"ANIME:162","id":1462,"v":"relevant","why":"Same author Yonezawa; everyday mysteries, understated youth","conf":0.9}
+{"seed_key":"ANIME:162","id":5991,"v":"not_relevant","why":"Melodrama VN prologue fragment; wrong neighborhood","conf":0.7}
+{"seed_key":"ANIME:162","id":7268,"v":"not_relevant","why":"Recap special of romance melodrama; wrong neighborhood","conf":0.7}
+{"seed_key":"ANIME:162","id":10677,"v":"unknown","why":"Obscure low-rated short; cannot judge confidently","conf":0.4}
+{"seed_key":"ANIME:162","id":20299,"v":"not_relevant","why":"Xianxia donghua fantasy; entirely different world","conf":0.75}
+{"seed_key":"ANIME:162","id":20323,"v":"not_relevant","why":"Grisly murder-puzzle specials; wrong register vs gentle mysteries","conf":0.55}
+{"seed_key":"ANIME:162","id":22555,"v":"relevant","why":"Yonezawa lineage continues; understated everyday mystery","conf":0.85}
+{"seed_key":"ANIME:162","id":29843,"v":"not_relevant","why":"Standalone music video, not comparable experience","conf":0.7}
+{"seed_key":"ANIME:162","id":30170,"v":"not_relevant","why":"Detective franchise special; pulpy murder register","conf":0.55}
+{"seed_key":"ANIME:162","id":31730,"v":"not_relevant","why":"Music video format; not rail material","conf":0.65}
+{"seed_key":"ANIME:162","id":31755,"v":"unknown","why":"1988 obscurity; cannot judge confidently","conf":0.4}
+{"seed_key":"ANIME:162","id":64838,"v":"unknown","why":"Obscure 2000 detective show; not confident","conf":0.4}
+{"seed_key":"ANIME:141","id":19,"v":"relevant","why":"Cute surfaces hiding systemic cruelty; dread twin","conf":0.9}
+{"seed_key":"ANIME:141","id":153,"v":"relevant","why":"Dark journey, bodily loss, mounting suffering","conf":0.55}
+{"seed_key":"ANIME:141","id":176,"v":"not_relevant","why":"Upbeat science-shonen sequel; wrong neighborhood","conf":0.85}
+{"seed_key":"ANIME:141","id":180,"v":"relevant","why":"Adorable style masking existential cruelty","conf":0.8}
+{"seed_key":"ANIME:141","id":200,"v":"not_relevant","why":"Mythic nature epic; awe without dread register","conf":0.5}
+{"seed_key":"ANIME:141","id":309,"v":"relevant","why":"Storybook art, genuine cruelty and grief","conf":0.7}
+{"seed_key":"ANIME:141","id":332,"v":"relevant","why":"Wondrous post-apocalyptic descent with body horror","conf":0.85}
+{"seed_key":"ANIME:141","id":337,"v":"relevant","why":"Dungeon descent, ecosystem logic, creeping darkness","conf":0.7}
+{"seed_key":"ANIME:141","id":353,"v":"relevant","why":"Nature's indifference, quiet wonder and unease","conf":0.55}
+{"seed_key":"ANIME:141","id":379,"v":"relevant","why":"World's beautiful lie concealing horror; kindred dread","conf":0.85}
+{"seed_key":"ANIME:141","id":444,"v":"relevant","why":"Gorgeous alien world, escalating existential horror","conf":0.85}
+{"seed_key":"ANIME:141","id":552,"v":"relevant","why":"Cute wanderers, melancholy ruins, quiet doom","conf":0.8}
+{"seed_key":"ANIME:141","id":897,"v":"not_relevant","why":"Energetic twist-action; lacks dread register","conf":0.6}
+{"seed_key":"ANIME:141","id":927,"v":"relevant","why":"Child-guardian journey shadowed by doom","conf":0.55}
+{"seed_key":"ANIME:141","id":1952,"v":"franchise","why":"Made in Abyss recap film of seed","conf":0.98}
+{"seed_key":"ANIME:141","id":4400,"v":"not_relevant","why":"Wholesome kids survival; far softer register","conf":0.55}
+{"seed_key":"ANIME:146","id":19,"v":"relevant","why":"Death-dodging mystery under oppressive dread","conf":0.75}
+{"seed_key":"ANIME:146","id":24,"v":"relevant","why":"Murder-mystery suspense with supernatural device","conf":0.6}
+{"seed_key":"ANIME:146","id":126,"v":"relevant","why":"Pulpy survival-horror thriller; same shock register","conf":0.6}
+{"seed_key":"ANIME:146","id":169,"v":"not_relevant","why":"Shonen action arc; wrong neighborhood","conf":0.9}
+{"seed_key":"ANIME:146","id":224,"v":"relevant","why":"Gory shock horror; matching pulp register","conf":0.6}
+{"seed_key":"ANIME:146","id":379,"v":"relevant","why":"Creeping dread and buried truths","conf":0.7}
+{"seed_key":"ANIME:146","id":384,"v":"relevant","why":"Cyclical murder horror among schoolmates; ideal neighbor","conf":0.9}
+{"seed_key":"ANIME:146","id":725,"v":"relevant","why":"Village death spiral, creeping dread; ideal","conf":0.9}
+{"seed_key":"ANIME:146","id":902,"v":"relevant","why":"Intimate replaced-friend dread; same neighborhood","conf":0.85}
+{"seed_key":"ANIME:146","id":995,"v":"relevant","why":"School ghost mystery with tragic reveal","conf":0.7}
+{"seed_key":"ANIME:146","id":1020,"v":"relevant","why":"Cursed-school gore; schlockier but genuinely close","conf":0.5}
+{"seed_key":"ANIME:146","id":1058,"v":"relevant","why":"Loop murder-horror reboot; right neighborhood","conf":0.55}
+{"seed_key":"ANIME:146","id":1282,"v":"not_relevant","why":"Same premise, infamous schlock execution","conf":0.7}
+{"seed_key":"ANIME:146","id":1371,"v":"not_relevant","why":"Horror-adventure romp; playful, not oppressive","conf":0.5}
+{"seed_key":"ANIME:146","id":1475,"v":"not_relevant","why":"JoJo spinoff vignettes; different bizarre register","conf":0.5}
+{"seed_key":"ANIME:146","id":1811,"v":"not_relevant","why":"Recap fragment; adventure dread, different flavor","conf":0.55}
+{"seed_key":"ANIME:146","id":3837,"v":"not_relevant","why":"Wistful CLAMP eeriness, deep-franchise OVA","conf":0.6}
+{"seed_key":"ANIME:146","id":22270,"v":"relevant","why":"Gloomy curse-vengeance horror; register fits","conf":0.55}
+{"seed_key":"ANIME:112","id":4,"v":"relevant","why":"Death-themed psychological duel; canonical pairing","conf":0.8}
+{"seed_key":"ANIME:112","id":118,"v":"relevant","why":"Stakes-laden games; trashier but adjacent","conf":0.5}
+{"seed_key":"ANIME:112","id":122,"v":"relevant","why":"Afterlife regrets processed before moving on","conf":0.55}
+{"seed_key":"ANIME:112","id":181,"v":"relevant","why":"Somber examination of human nature","conf":0.7}
+{"seed_key":"ANIME:112","id":260,"v":"relevant","why":"Gambling-games sequel; adjacent, trashier","conf":0.45}
+{"seed_key":"ANIME:112","id":284,"v":"not_relevant","why":"Quirky killing-game schlock; wrong register","conf":0.5}
+{"seed_key":"ANIME:112","id":471,"v":"relevant","why":"Psychological games exposing human ugliness","conf":0.55}
+{"seed_key":"ANIME:112","id":930,"v":"relevant","why":"Desperate gambles revealing character; humanist stakes","conf":0.65}
+{"seed_key":"ANIME:112","id":1146,"v":"relevant","why":"Somber judgment-of-souls vignettes; thematic twin","conf":0.7}
+{"seed_key":"ANIME:112","id":1185,"v":"not_relevant","why":"Cold surreal urban horror; different neighborhood","conf":0.5}
+{"seed_key":"ANIME:112","id":1304,"v":"franchise","why":"Pilot film Death Parade grew from","conf":0.95}
+{"seed_key":"ANIME:112","id":1364,"v":"not_relevant","why":"Mid-series ornate mystery fragment; different neighborhood","conf":0.55}
+{"seed_key":"ANIME:112","id":1506,"v":"relevant","why":"Judged soul retries a life; thematic sibling","conf":0.65}
+{"seed_key":"ANIME:112","id":1566,"v":"not_relevant","why":"Alternate-epilogue fragment; not rail material","conf":0.6}
+{"seed_key":"ANIME:112","id":1683,"v":"not_relevant","why":"Frenetic occult jumble despite afterlife twist","conf":0.55}
+{"seed_key":"ANIME:112","id":1685,"v":"relevant","why":"Bar-counter vignettes probing guests' lives","conf":0.5}
+{"seed_key":"ANIME:112","id":2318,"v":"not_relevant","why":"Tournament spectacle fragment; wrong neighborhood","conf":0.85}
+{"seed_key":"ANIME:112","id":2535,"v":"relevant","why":"Bar vignette structure mirrors Quindecim gently","conf":0.5}
+{"seed_key":"ANIME:112","id":4021,"v":"relevant","why":"Limbo way-station judging souls; direct sibling","conf":0.7}
+{"seed_key":"ANIME:118","id":4,"v":"relevant","why":"Mind-game duels with theatrical madness","conf":0.6}
+{"seed_key":"ANIME:118","id":93,"v":"relevant","why":"Flamboyant games-as-spectacle energy","conf":0.65}
+{"seed_key":"ANIME:118","id":112,"v":"relevant","why":"Life-stakes bar games; darker, classier cousin","conf":0.5}
+{"seed_key":"ANIME:118","id":131,"v":"relevant","why":"Elite-school manipulation and cold scheming","conf":0.7}
+{"seed_key":"ANIME:118","id":260,"v":"franchise","why":"Direct sequel of seed","conf":0.98}
+{"seed_key":"ANIME:118","id":263,"v":"relevant","why":"Depraved school excess; matching outrageous energy","conf":0.5}
+{"seed_key":"ANIME:118","id":279,"v":"relevant","why":"Scheming academy sequel; same neighborhood","conf":0.6}
+{"seed_key":"ANIME:118","id":404,"v":"not_relevant","why":"Generic action death game, no gambling psychology","conf":0.5}
+{"seed_key":"ANIME:118","id":443,"v":"relevant","why":"Continued scheming academy; neighborhood holds","conf":0.6}
+{"seed_key":"ANIME:118","id":471,"v":"relevant","why":"Debt-fueled manipulation games; very close cruelty","conf":0.75}
+{"seed_key":"ANIME:118","id":1304,"v":"relevant","why":"Elegant life-stakes parlor-game one-shot","conf":0.5}
+{"seed_key":"ANIME:118","id":1367,"v":"not_relevant","why":"Weak game-school light novel; register below","conf":0.55}
+{"seed_key":"ANIME:118","id":1529,"v":"relevant","why":"Gambling-desperation classic; genre backbone","conf":0.75}
+{"seed_key":"ANIME:118","id":1533,"v":"relevant","why":"Gambling psychology weaponized in baseball","conf":0.8}
+{"seed_key":"ANIME:118","id":2429,"v":"relevant","why":"Mahjong genius gambling; genre cornerstone","conf":0.8}
+{"seed_key":"ANIME:118","id":2924,"v":"not_relevant","why":"Enslavement-game schlock; bottom register","conf":0.6}
+{"seed_key":"ANIME:118","id":4349,"v":"not_relevant","why":"Mid-trilogy sci-fi despite casino sequence","conf":0.55}
+{"seed_key":"ANIME:118","id":4614,"v":"relevant","why":"Underground mahjong stakes; dead-on neighborhood","conf":0.5}
+{"seed_key":"ANIME:241","id":23,"v":"relevant","why":"Doomed-love tearjerker; same weeping register","conf":0.7}
+{"seed_key":"ANIME:241","id":98,"v":"relevant","why":"Learning emotion, grief, gorgeous melancholy","conf":0.8}
+{"seed_key":"ANIME:241","id":122,"v":"relevant","why":"Comedic farewell melodrama; kindred tear-bait","conf":0.55}
+{"seed_key":"ANIME:241","id":138,"v":"relevant","why":"Grief-processing tearjerker ensemble","conf":0.7}
+{"seed_key":"ANIME:241","id":160,"v":"relevant","why":"Terminal-romance tearjerker; direct neighbor","conf":0.75}
+{"seed_key":"ANIME:241","id":388,"v":"relevant","why":"AI heart questioned; more action-driven","conf":0.6}
+{"seed_key":"ANIME:241","id":792,"v":"relevant","why":"Android existential melancholy, action-forward","conf":0.5}
+{"seed_key":"ANIME:241","id":814,"v":"relevant","why":"Love against an expiration date; near-identical premise","conf":0.85}
+{"seed_key":"ANIME:241","id":918,"v":"relevant","why":"Soft bittersweet supernatural romance","conf":0.6}
+{"seed_key":"ANIME:241","id":1006,"v":"relevant","why":"Loving an artificial girl; gentler ancestor","conf":0.6}
+{"seed_key":"ANIME:241","id":1909,"v":"relevant","why":"Androids' quiet feelings; philosophical sibling","conf":0.7}
+{"seed_key":"ANIME:241","id":2423,"v":"relevant","why":"Robot girl, tears, dying world","conf":0.8}
+{"seed_key":"ANIME:241","id":2458,"v":"relevant","why":"Bittersweet android-girl romance; direct neighbor","conf":0.75}
+{"seed_key":"ANIME:241","id":3670,"v":"relevant","why":"War-scarred automata cafe melancholy","conf":0.5}
+{"seed_key":"ANIME:241","id":5692,"v":"unknown","why":"Unreleased robot-romance film; cannot judge","conf":0.4}
+{"seed_key":"ANIME:241","id":6130,"v":"not_relevant","why":"Lightweight alien romcom fluff","conf":0.55}
+{"seed_key":"ANIME:241","id":7187,"v":"not_relevant","why":"Tragic android but tokusatsu-action register","conf":0.5}
+{"seed_key":"ANIME:241","id":8449,"v":"relevant","why":"Android inheriting memories; quiet elegiac sibling","conf":0.55}
+{"seed_key":"ANIME:429","id":11,"v":"not_relevant","why":"Endless shonen voyage; different neighborhood","conf":0.7}
+{"seed_key":"ANIME:429","id":12,"v":"not_relevant","why":"Alchemy epic; different neighborhood despite heart","conf":0.5}
+{"seed_key":"ANIME:429","id":117,"v":"relevant","why":"Space-western sibling; canonical pairing","conf":0.9}
+{"seed_key":"ANIME:429","id":155,"v":"not_relevant","why":"Hot-blooded mecha spectacle; wrong neighborhood","conf":0.6}
+{"seed_key":"ANIME:429","id":230,"v":"not_relevant","why":"Alchemy tragedy; different neighborhood","conf":0.5}
+{"seed_key":"ANIME:429","id":261,"v":"relevant","why":"Stylish episodic gunplay; harsher cousin","conf":0.6}
+{"seed_key":"ANIME:429","id":293,"v":"relevant","why":"Nightow's other chaotic action-comedy","conf":0.75}
+{"seed_key":"ANIME:429","id":382,"v":"relevant","why":"Gun-action cool from the same era's shelf","conf":0.55}
+{"seed_key":"ANIME:429","id":971,"v":"relevant","why":"Episodic wanderer moral parables","conf":0.55}
+{"seed_key":"ANIME:429","id":994,"v":"relevant","why":"Pacifist gunman-equivalent; goofy exterior, tragic past","conf":0.75}
+{"seed_key":"ANIME:429","id":1080,"v":"relevant","why":"Post-apocalyptic western duo adventure","conf":0.5}
+{"seed_key":"ANIME:429","id":1091,"v":"franchise","why":"Remake of seed","conf":0.98}
+{"seed_key":"ANIME:429","id":1674,"v":"relevant","why":"Gothic wasteland bounty western","conf":0.6}
+{"seed_key":"ANIME:429","id":1956,"v":"relevant","why":"Nightow gun tragedy; author lineage","conf":0.75}
+{"seed_key":"ANIME:429","id":2104,"v":"relevant","why":"Space-western romp, same era","conf":0.8}
+{"seed_key":"ANIME:429","id":2449,"v":"franchise","why":"Seed's film","conf":0.98}
+{"seed_key":"ANIME:429","id":3316,"v":"not_relevant","why":"Lyrical retro space odyssey; different energy","conf":0.45}
+{"seed_key":"ANIME:429","id":3674,"v":"not_relevant","why":"Esper space-opera melodrama; different feel","conf":0.5}
+{"seed_key":"ANIME:429","id":12939,"v":"relevant","why":"Desert-gunman comedy shell; cruder, heartless cousin","conf":0.45}
+{"seed_key":"ANIME:109","id":2,"v":"relevant","why":"Tactical rebellion, escalating twists","conf":0.8}
+{"seed_key":"ANIME:109","id":4,"v":"relevant","why":"Genius antihero mind-games; canonical pairing","conf":0.9}
+{"seed_key":"ANIME:109","id":20,"v":"relevant","why":"War-of-nations twists; late-series entry","conf":0.6}
+{"seed_key":"ANIME:109","id":27,"v":"relevant","why":"Rebellion twists at peak; mid-franchise entry","conf":0.6}
+{"seed_key":"ANIME:109","id":155,"v":"relevant","why":"Era-defining mecha spectacle companion","conf":0.55}
+{"seed_key":"ANIME:109","id":204,"v":"relevant","why":"Mecha war drama on oppression","conf":0.75}
+{"seed_key":"ANIME:109","id":223,"v":"not_relevant","why":"Isekai mastermind gag fantasy; wrong register","conf":0.55}
+{"seed_key":"ANIME:109","id":264,"v":"relevant","why":"Geass-alike rebellion melodrama; genuinely close","conf":0.65}
+{"seed_key":"ANIME:109","id":379,"v":"not_relevant","why":"Quiet dread SF; different experience","conf":0.5}
+{"seed_key":"ANIME:109","id":385,"v":"relevant","why":"Oppression war drama continues","conf":0.7}
+{"seed_key":"ANIME:109","id":468,"v":"relevant","why":"Aristocrat mastermind toppling empire; very Lelouch","conf":0.75}
+{"seed_key":"ANIME:109","id":469,"v":"relevant","why":"Finale special; kindred epic, poor entry","conf":0.5}
+{"seed_key":"ANIME:109","id":1018,"v":"not_relevant","why":"Lyrical adolescent mecha romance; different feel","conf":0.5}
+{"seed_key":"ANIME:109","id":1072,"v":"relevant","why":"Grand strategic war of brilliant commanders","conf":0.8}
+{"seed_key":"ANIME:109","id":2786,"v":"relevant","why":"Morally gray political mecha; franchise-deep entry","conf":0.5}
+{"seed_key":"ANIME:109","id":4143,"v":"not_relevant","why":"Dour real-robot grit; lacks theatrical scheming","conf":0.5}
+{"seed_key":"ANIME:109","id":12948,"v":"franchise","why":"Seed's compilation film","conf":0.98}
+{"seed_key":"ANIME:109","id":18588,"v":"unknown","why":"Unreleased strategic-war ONA; cannot judge","conf":0.4}
+{"seed_key":"ANIME:110","id":155,"v":"relevant","why":"Gainax's affirmational answer to Eva","conf":0.6}
+{"seed_key":"ANIME:110","id":164,"v":"relevant","why":"Apocalyptic psychological tragedy; Eva's kin","conf":0.8}
+{"seed_key":"ANIME:110","id":180,"v":"relevant","why":"Genre deconstruction with existential dread","conf":0.8}
+{"seed_key":"ANIME:110","id":257,"v":"franchise","why":"Seed's finale film","conf":0.98}
+{"seed_key":"ANIME:110","id":269,"v":"relevant","why":"90s psychological avant-garde; canonical pairing","conf":0.85}
+{"seed_key":"ANIME:110","id":297,"v":"relevant","why":"Apocalyptic psychic landmark; same canon","conf":0.7}
+{"seed_key":"ANIME:110","id":318,"v":"relevant","why":"Gainax adolescence-and-robots psychodrama","conf":0.75}
+{"seed_key":"ANIME:110","id":379,"v":"relevant","why":"Existential dread SF; adjacent canon","conf":0.6}
+{"seed_key":"ANIME:110","id":739,"v":"relevant","why":"Surreal adolescent existentialism; modern heir","conf":0.75}
+{"seed_key":"ANIME:110","id":1131,"v":"relevant","why":"Symbol-laden psychological deconstruction; sibling","conf":0.85}
+{"seed_key":"ANIME:110","id":1293,"v":"relevant","why":"Anno's next work; psychological interiority","conf":0.55}
+{"seed_key":"ANIME:110","id":1622,"v":"relevant","why":"TTGL compilation; kindred conversation, fragment","conf":0.5}
+{"seed_key":"ANIME:110","id":1688,"v":"relevant","why":"Anno's mecha precursor; direct lineage","conf":0.8}
+{"seed_key":"ANIME:110","id":2041,"v":"relevant","why":"Slice-of-life malaise under looming apocalypse","conf":0.6}
+{"seed_key":"ANIME:110","id":6591,"v":"relevant","why":"Eva-lineage mecha, compromised compilation cut","conf":0.45}
+{"seed_key":"ANIME:117","id":174,"v":"relevant","why":"Stylish neon tragedy; cool adult register","conf":0.7}
+{"seed_key":"ANIME:117","id":222,"v":"relevant","why":"Watanabe's genre-remix sibling","conf":0.95}
+{"seed_key":"ANIME:117","id":261,"v":"relevant","why":"Episodic gun-noir crew capers","conf":0.8}
+{"seed_key":"ANIME:117","id":291,"v":"relevant","why":"Jazzy stylish con capers","conf":0.75}
+{"seed_key":"ANIME:117","id":344,"v":"relevant","why":"Stylish ensemble crime jazz","conf":0.75}
+{"seed_key":"ANIME:117","id":419,"v":"relevant","why":"Adult 90s sci-fi canon","conf":0.7}
+{"seed_key":"ANIME:117","id":429,"v":"relevant","why":"Space-western sibling; canonical pairing","conf":0.85}
+{"seed_key":"ANIME:117","id":836,"v":"relevant","why":"Pure-cool spectacle bravado","conf":0.65}
+{"seed_key":"ANIME:117","id":900,"v":"relevant","why":"Watanabe's Bebop-styled retread; weaker but kin","conf":0.6}
+{"seed_key":"ANIME:117","id":960,"v":"relevant","why":"Watanabe episodic space riffing","conf":0.7}
+{"seed_key":"ANIME:117","id":1061,"v":"franchise","why":"Seed's film","conf":0.98}
+{"seed_key":"ANIME:117","id":1102,"v":"relevant","why":"Adult ensemble cyber-procedural cool","conf":0.75}
+{"seed_key":"ANIME:117","id":1343,"v":"relevant","why":"Grown-up space workaday melancholy","conf":0.65}
+{"seed_key":"ANIME:117","id":1357,"v":"relevant","why":"Stylish outlaw road show; Bebop lineage","conf":0.7}
+{"seed_key":"ANIME:117","id":2104,"v":"relevant","why":"Contemporary space-western romp","conf":0.8}
+{"seed_key":"ANIME:117","id":2765,"v":"relevant","why":"Adult urban sci-fi craft; methodical Oshii","conf":0.45}
+{"seed_key":"ANIME:117","id":4143,"v":"not_relevant","why":"Gritty war mecha; no jazz-noir swagger","conf":0.55}
+{"seed_key":"ANIME:117","id":4332,"v":"not_relevant","why":"Brutal war tragedy despite jazz score","conf":0.5}
+{"seed_key":"ANIME:158","id":4,"v":"relevant","why":"Philosophical cat-and-mouse; canonical pairing","conf":0.8}
+{"seed_key":"ANIME:158","id":174,"v":"relevant","why":"Cyberpunk dystopia tragedy","conf":0.75}
+{"seed_key":"ANIME:158","id":181,"v":"relevant","why":"Hunting a philosophical monster","conf":0.75}
+{"seed_key":"ANIME:158","id":213,"v":"relevant","why":"Crime thriller interrogating society","conf":0.7}
+{"seed_key":"ANIME:158","id":297,"v":"relevant","why":"Cyberpunk dystopia canon","conf":0.65}
+{"seed_key":"ANIME:158","id":379,"v":"relevant","why":"System managing human nature; thematic twin","conf":0.7}
+{"seed_key":"ANIME:158","id":419,"v":"relevant","why":"Production I.G police sci-fi lineage","conf":0.85}
+{"seed_key":"ANIME:158","id":434,"v":"relevant","why":"Cyberpunk crime spectacle, kindred aesthetic","conf":0.7}
+{"seed_key":"ANIME:158","id":470,"v":"relevant","why":"Dystopian philosophical sci-fi noir","conf":0.75}
+{"seed_key":"ANIME:158","id":744,"v":"relevant","why":"Sci-fi detectives diving into minds","conf":0.8}
+{"seed_key":"ANIME:158","id":966,"v":"relevant","why":"Humanist robot-noir murder inquiry","conf":0.7}
+{"seed_key":"ANIME:158","id":1067,"v":"relevant","why":"Elegant mastermind versus society; sequel entry","conf":0.5}
+{"seed_key":"ANIME:158","id":1102,"v":"relevant","why":"Cyber police procedural; direct kin","conf":0.9}
+{"seed_key":"ANIME:158","id":1512,"v":"relevant","why":"Dystopian security-state tragedy","conf":0.7}
+{"seed_key":"ANIME:158","id":1528,"v":"relevant","why":"Law-and-evil thriller; infamous late collapse","conf":0.45}
+{"seed_key":"ANIME:158","id":2633,"v":"franchise","why":"Seed's film","conf":0.98}
+{"seed_key":"ANIME:15","id":16,"v":"relevant","why":"Prestige youth-drama film; canonical pairing","conf":0.85}
+{"seed_key":"ANIME:15","id":29,"v":"relevant","why":"Time-crossed longing in thriller form","conf":0.55}
+{"seed_key":"ANIME:15","id":98,"v":"relevant","why":"Lush emotional prestige drama","conf":0.7}
+{"seed_key":"ANIME:15","id":129,"v":"not_relevant","why":"Uneven powers melodrama; different register","conf":0.5}
+{"seed_key":"ANIME:15","id":160,"v":"relevant","why":"Youth romance tearjerker film","conf":0.8}
+{"seed_key":"ANIME:15","id":166,"v":"relevant","why":"Shinkai's next supernatural romance","conf":0.95}
+{"seed_key":"ANIME:15","id":247,"v":"relevant","why":"Supernatural adolescent-romance tearjerker film","conf":0.7}
+{"seed_key":"ANIME:15","id":251,"v":"relevant","why":"Shinkai's rain-soaked longing","conf":0.85}
+{"seed_key":"ANIME:15","id":252,"v":"relevant","why":"Shinkai distance-and-longing origin","conf":0.85}
+{"seed_key":"ANIME:15","id":331,"v":"relevant","why":"Bittersweet supernatural romance short","conf":0.8}
+{"seed_key":"ANIME:15","id":334,"v":"relevant","why":"Prestige emotional fantasy film","conf":0.65}
+{"seed_key":"ANIME:15","id":368,"v":"relevant","why":"Supernatural romance film; lighter register","conf":0.6}
+{"seed_key":"ANIME:15","id":376,"v":"relevant","why":"Shinkai disaster-romance adventure","conf":0.9}
+{"seed_key":"ANIME:15","id":390,"v":"relevant","why":"Time-bending youth romance classic","conf":0.85}
+{"seed_key":"ANIME:15","id":1005,"v":"relevant","why":"Time-dilated romance film; direct neighbor","conf":0.75}
+{"seed_key":"ANIME:15","id":2056,"v":"not_relevant","why":"Mid-franchise VN melodrama; different form","conf":0.5}
+{"seed_key":"ANIME:15","id":13251,"v":"not_relevant","why":"Mid-series special of a time thriller","conf":0.6}
+{"seed_key":"ANIME:28","id":15,"v":"not_relevant","why":"Gentle romance film; far from loop brutality","conf":0.5}
+{"seed_key":"ANIME:28","id":24,"v":"relevant","why":"Rewinding to save, repeated-failure anguish","conf":0.75}
+{"seed_key":"ANIME:28","id":29,"v":"relevant","why":"Loop suffering to save loved ones; canonical","conf":0.9}
+{"seed_key":"ANIME:28","id":121,"v":"relevant","why":"Dark-start isekai grind","conf":0.6}
+{"seed_key":"ANIME:28","id":124,"v":"relevant","why":"Time-leaps, failure, crying protagonist","conf":0.65}
+{"seed_key":"ANIME:28","id":130,"v":"relevant","why":"Serious prestige isekai","conf":0.65}
+{"seed_key":"ANIME:28","id":198,"v":"relevant","why":"Prestige isekai continues","conf":0.6}
+{"seed_key":"ANIME:28","id":238,"v":"relevant","why":"Dark isekai war cynicism","conf":0.5}
+{"seed_key":"ANIME:28","id":247,"v":"relevant","why":"Suffering-for-her supernatural drama film","conf":0.45}
+{"seed_key":"ANIME:28","id":283,"v":"not_relevant","why":"Gentle regret drama; lacks loop brutality","conf":0.45}
+{"seed_key":"ANIME:28","id":292,"v":"relevant","why":"Prestige isekai; season entry","conf":0.6}
+{"seed_key":"ANIME:28","id":316,"v":"relevant","why":"Death-loop thriller to save her; structural twin","conf":0.85}
+{"seed_key":"ANIME:28","id":481,"v":"not_relevant","why":"Arthouse loop comedy; wholly different experience","conf":0.55}
+{"seed_key":"ANIME:28","id":806,"v":"relevant","why":"Dark route-fantasy suffering; franchise-deep film","conf":0.45}
+{"seed_key":"ANIME:28","id":846,"v":"franchise","why":"Crossover spinoff featuring seed's cast","conf":0.7}
+{"seed_key":"ANIME:28","id":982,"v":"relevant","why":"Loop-breaking horror payoff; kindred anguish","conf":0.7}
+{"seed_key":"ANIME:28","id":1079,"v":"relevant","why":"Alternate-episode fragment of loop canon","conf":0.45}
+{"seed_key":"ANIME:28","id":1548,"v":"relevant","why":"Loop-suffering sibling via Homura; recap film","conf":0.5}
+{"seed_key":"ANIME:28","id":2642,"v":"not_relevant","why":"Gothic romcom; wrong neighborhood entirely","conf":0.85}
+{"seed_key":"ANIME:161","id":98,"v":"relevant","why":"Lush wartime romance craft","conf":0.6}
+{"seed_key":"ANIME:161","id":111,"v":"relevant","why":"Miyazaki wonder; essential neighbor","conf":0.95}
+{"seed_key":"ANIME:161","id":200,"v":"relevant","why":"Miyazaki epic; same shelf","conf":0.9}
+{"seed_key":"ANIME:161","id":259,"v":"relevant","why":"Ghibli-hearted magical romance","conf":0.7}
+{"seed_key":"ANIME:161","id":375,"v":"relevant","why":"Miyazaki warmth and flight","conf":0.9}
+{"seed_key":"ANIME:161","id":376,"v":"relevant","why":"Modern prestige fantasy film","conf":0.7}
+{"seed_key":"ANIME:161","id":551,"v":"relevant","why":"Miyazaki adventure classic","conf":0.9}
+{"seed_key":"ANIME:161","id":841,"v":"relevant","why":"Miyazaki's grounded elegy; same hand","conf":0.75}
+{"seed_key":"ANIME:161","id":856,"v":"relevant","why":"Miyazaki mythic epic","conf":0.9}
+{"seed_key":"ANIME:161","id":927,"v":"relevant","why":"Ghibli-esque gentle fantasy journey","conf":0.6}
+{"seed_key":"ANIME:161","id":971,"v":"not_relevant","why":"Cold ironic parables; lacks the warmth","conf":0.5}
+{"seed_key":"ANIME:161","id":1027,"v":"relevant","why":"Ghibli quiet emotional mystery","conf":0.85}
+{"seed_key":"ANIME:161","id":1184,"v":"relevant","why":"Miyazaki romantic adventure","conf":0.85}
+{"seed_key":"ANIME:161","id":1225,"v":"relevant","why":"Takahata masterwork; same cinema shelf","conf":0.8}
+{"seed_key":"ANIME:161","id":1322,"v":"not_relevant","why":"Light-novel fantasy TV; wrong register","conf":0.6}
+{"seed_key":"ANIME:161","id":1351,"v":"not_relevant","why":"Josei comedy; wrong neighborhood","conf":0.75}
+{"seed_key":"ANIME:161","id":1413,"v":"relevant","why":"Miyazaki's late fantasia","conf":0.9}
+{"seed_key":"ANIME:161","id":4355,"v":"not_relevant","why":"90s fantasy-comedy TV; wrong shelf","conf":0.8}
+{"seed_key":"ANIME:200","id":3,"v":"not_relevant","why":"Shonen action serial; wrong shelf","conf":0.7}
+{"seed_key":"ANIME:200","id":111,"v":"relevant","why":"Miyazaki masterpiece; same shelf","conf":0.95}
+{"seed_key":"ANIME:200","id":153,"v":"relevant","why":"Period youkai journey, human darkness","conf":0.65}
+{"seed_key":"ANIME:200","id":161,"v":"relevant","why":"Miyazaki fantasy; same hand","conf":0.9}
+{"seed_key":"ANIME:200","id":186,"v":"relevant","why":"Emotional journey through mortality","conf":0.5}
+{"seed_key":"ANIME:200","id":312,"v":"not_relevant","why":"Shoujo adventure romance; different feel","conf":0.55}
+{"seed_key":"ANIME:200","id":353,"v":"relevant","why":"Human-nature-spirit balance; thematic twin","conf":0.8}
+{"seed_key":"ANIME:200","id":519,"v":"not_relevant","why":"Talky stylized duel journey; different register","conf":0.5}
+{"seed_key":"ANIME:200","id":551,"v":"relevant","why":"Miyazaki adventure classic","conf":0.9}
+{"seed_key":"ANIME:200","id":856,"v":"relevant","why":"Miyazaki's ecological epic twin","conf":0.95}
+{"seed_key":"ANIME:200","id":858,"v":"relevant","why":"Ghibli craft and quiet wonder","conf":0.8}
+{"seed_key":"ANIME:200","id":1114,"v":"not_relevant","why":"Pop-stylized shonen history; wrong feel","conf":0.6}
+{"seed_key":"ANIME:200","id":1225,"v":"relevant","why":"Takahata folk-art masterwork","conf":0.8}
+{"seed_key":"ANIME:200","id":1699,"v":"relevant","why":"Elegiac historical violence; prestige kin","conf":0.6}
+{"seed_key":"ANIME:200","id":1898,"v":"not_relevant","why":"Ghibli name, register far below","conf":0.5}
+{"seed_key":"ANIME:200","id":2355,"v":"relevant","why":"Dark fairytale beauty, outsider bond","conf":0.6}
+{"seed_key":"ANIME:200","id":2999,"v":"relevant","why":"Ex-Ghibli nature-plague epic; close feel, mid execution","conf":0.6}
+{"seed_key":"ANIME:200","id":6768,"v":"unknown","why":"Unreleased seasonal-envoys fantasy; cannot judge","conf":0.4}
+{"seed_key":"ANIME:356","id":90,"v":"relevant","why":"Dialogue-driven supernatural adolescence; canonical rec","conf":0.85}
+{"seed_key":"ANIME:356","id":178,"v":"not_relevant","why":"Kinetic pop spectacle; different register","conf":0.5}
+{"seed_key":"ANIME:356","id":218,"v":"not_relevant","why":"Wit and style, but romcom neighborhood","conf":0.45}
+{"seed_key":"ANIME:356","id":226,"v":"not_relevant","why":"Shaft aesthetics on fluffy harem romcom","conf":0.55}
+{"seed_key":"ANIME:356","id":250,"v":"relevant","why":"Nocturnal supernatural intimacy and banter","conf":0.7}
+{"seed_key":"ANIME:356","id":253,"v":"not_relevant","why":"Supernatural action-comedy; different experience","conf":0.55}
+{"seed_key":"ANIME:356","id":325,"v":"relevant","why":"Eccentric-girl club banter; LN forebear","conf":0.55}
+{"seed_key":"ANIME:356","id":464,"v":"franchise","why":"Monogatari series entry","conf":0.98}
+{"seed_key":"ANIME:356","id":723,"v":"not_relevant","why":"Mid zombie-girl romance; different register","conf":0.5}
+{"seed_key":"ANIME:356","id":741,"v":"not_relevant","why":"Kon's paranoid darkness; different experience","conf":0.5}
+{"seed_key":"ANIME:356","id":884,"v":"not_relevant","why":"Failed Shaft-style imitation; register below","conf":0.5}
+{"seed_key":"ANIME:356","id":1042,"v":"relevant","why":"Theatrical symbolic arthouse TV","conf":0.6}
+{"seed_key":"ANIME:356","id":1182,"v":"relevant","why":"Night-talk supernatural intimacy continues","conf":0.65}
+{"seed_key":"ANIME:356","id":1203,"v":"relevant","why":"Adolescence-syndrome dialogue drama film; kindred","conf":0.6}
+{"seed_key":"ANIME:356","id":1227,"v":"not_relevant","why":"Sincere grounded romance; no wordplay register","conf":0.5}
+{"seed_key":"ANIME:356","id":1565,"v":"not_relevant","why":"Donghua action comedy; wrong shelf","conf":0.8}
+{"seed_key":"ANIME:356","id":2616,"v":"relevant","why":"Literary Kyoto whimsy; witty kin","conf":0.55}
+{"seed_key":"ANIME:356","id":4282,"v":"not_relevant","why":"Surreal one-shot anthology; different experimental flavor","conf":0.45}
+{"seed_key":"ANIME:356","id":6293,"v":"franchise","why":"Monogatari compilation","conf":0.98}
+{"seed_key":"ANIME:356","id":13342,"v":"not_relevant","why":"Absurdist slapstick romcom, mid-franchise entry","conf":0.5}
+{"seed_key":"ANIME:424","id":3,"v":"not_relevant","why":"Mainstream shonen action; wrong shelf","conf":0.8}
+{"seed_key":"ANIME:424","id":5,"v":"not_relevant","why":"Battle shonen; wrong register","conf":0.75}
+{"seed_key":"ANIME:424","id":164,"v":"relevant","why":"Auteur-driven visceral supernatural tragedy","conf":0.7}
+{"seed_key":"ANIME:424","id":250,"v":"relevant","why":"Vampire nights, charged intimacy","conf":0.7}
+{"seed_key":"ANIME:424","id":323,"v":"relevant","why":"Stylish vampire drama; more conventional","conf":0.5}
+{"seed_key":"ANIME:424","id":382,"v":"relevant","why":"Visceral vampire ultraviolence; pulpier","conf":0.5}
+{"seed_key":"ANIME:424","id":758,"v":"relevant","why":"Radical auteur visual storytelling","conf":0.5}
+{"seed_key":"ANIME:424","id":818,"v":"relevant","why":"Gorgeous violent doomed intimacy on film","conf":0.6}
+{"seed_key":"ANIME:424","id":1182,"v":"relevant","why":"Vampire intimacy continues","conf":0.6}
+{"seed_key":"ANIME:424","id":1342,"v":"relevant","why":"Verbose supernatural mystery with immortals","conf":0.6}
+{"seed_key":"ANIME:424","id":1736,"v":"not_relevant","why":"Vampire melancholy, failed execution","conf":0.55}
+{"seed_key":"ANIME:424","id":1883,"v":"not_relevant","why":"Trashy vampire ecchi despite Shaft","conf":0.55}
+{"seed_key":"ANIME:424","id":1903,"v":"not_relevant","why":"Gentle fantasy journey; wrong shelf","conf":0.7}
+{"seed_key":"ANIME:424","id":1978,"v":"franchise","why":"Monogatari series entry","conf":0.98}
+{"seed_key":"ANIME:424","id":2620,"v":"relevant","why":"Avant-garde symbolic theatrical film","conf":0.65}
+{"seed_key":"ANIME:424","id":2876,"v":"not_relevant","why":"Extra-episode fragment; parent series closer fit","conf":0.5}
+{"seed_key":"ANIME:424","id":3952,"v":"relevant","why":"Stylized eerie supernatural film","conf":0.5}
+{"seed_key":"ANIME:424","id":4535,"v":"franchise","why":"Monogatari special","conf":0.98}
+{"seed_key":"ANIME:424","id":6293,"v":"franchise","why":"Compilation of the seed itself","conf":0.99}
+{"seed_key":"ANIME:12","id":2,"v":"relevant","why":"Modern serial epic with momentum","conf":0.8}
+{"seed_key":"ANIME:12","id":3,"v":"relevant","why":"Popular action serial; flashier, thinner","conf":0.6}
+{"seed_key":"ANIME:12","id":7,"v":"relevant","why":"Masterfully constructed shonen; peak pairing","conf":0.9}
+{"seed_key":"ANIME:12","id":11,"v":"relevant","why":"Grand long-haul adventure epic","conf":0.7}
+{"seed_key":"ANIME:12","id":26,"v":"relevant","why":"Classic serial canon staple","conf":0.65}
+{"seed_key":"ANIME:12","id":27,"v":"relevant","why":"Serial epic at peak; mid-franchise entry","conf":0.6}
+{"seed_key":"ANIME:12","id":150,"v":"relevant","why":"2000s shonen action; era sibling","conf":0.55}
+{"seed_key":"ANIME:12","id":309,"v":"relevant","why":"Emotional fantasy epic; gentler shape","conf":0.5}
+{"seed_key":"ANIME:12","id":323,"v":"not_relevant","why":"Romance-flavored vampire styling; different feel","conf":0.45}
+{"seed_key":"ANIME:12","id":369,"v":"relevant","why":"Classic serial revival spectacle","conf":0.7}
+{"seed_key":"ANIME:12","id":796,"v":"relevant","why":"2000s dark shonen; era sibling","conf":0.6}
+{"seed_key":"ANIME:12","id":959,"v":"relevant","why":"Truth-against-power epic; different genre shape","conf":0.45}
+{"seed_key":"ANIME:12","id":2304,"v":"relevant","why":"Humane magic-craft fantasy; kindred spirit","conf":0.5}
+{"seed_key":"ANIME:12","id":2879,"v":"relevant","why":"Dark fantasy epic; brutal register","conf":0.5}
+{"seed_key":"ANIME:12","id":4509,"v":"relevant","why":"Arakawa's new action fantasy; same hand","conf":0.7}
+{"seed_key":"ANIME:12","id":12925,"v":"franchise","why":"Seed's OVA collection","conf":0.98}
+{"seed_key":"ANIME:20","id":2,"v":"franchise","why":"Same franchise","conf":0.98}
+{"seed_key":"ANIME:20","id":4,"v":"relevant","why":"Dark twisting thriller; classic pairing","conf":0.6}
+{"seed_key":"ANIME:20","id":12,"v":"relevant","why":"Tightly plotted dark epic","conf":0.8}
+{"seed_key":"ANIME:20","id":17,"v":"franchise","why":"Same franchise","conf":0.98}
+{"seed_key":"ANIME:20","id":102,"v":"relevant","why":"War epic on violence's cycle; ideal","conf":0.85}
+{"seed_key":"ANIME:20","id":109,"v":"relevant","why":"Rebellion, moral spirals, big twists","conf":0.75}
+{"seed_key":"ANIME:20","id":110,"v":"relevant","why":"Bleak psychological apocalypse canon","conf":0.55}
+{"seed_key":"ANIME:20","id":134,"v":"franchise","why":"Same franchise","conf":0.98}
+{"seed_key":"ANIME:20","id":204,"v":"relevant","why":"War, propaganda, dehumanization; thematic twin","conf":0.8}
+{"seed_key":"ANIME:20","id":238,"v":"relevant","why":"Cynical war fantasy","conf":0.6}
+{"seed_key":"ANIME:20","id":256,"v":"relevant","why":"Violence-cycle epic deepens","conf":0.8}
+{"seed_key":"ANIME:20","id":346,"v":"relevant","why":"Araki siege-action clone; shallower but close","conf":0.55}
+{"seed_key":"ANIME:20","id":444,"v":"not_relevant","why":"Contemplative existential tragedy; different experience","conf":0.5}
+{"seed_key":"ANIME:20","id":477,"v":"not_relevant","why":"Energetic shonen romp; lacks war weight","conf":0.45}
+{"seed_key":"ANIME:20","id":1512,"v":"relevant","why":"Soldiers' humanity ground down; kindred bleakness","conf":0.55}
+{"seed_key":"ANIME:20","id":2163,"v":"franchise","why":"Seed franchise recap","conf":0.98}
+{"seed_key":"ANIME:20","id":2709,"v":"not_relevant","why":"Stylish action OVA lark; wrong shelf","conf":0.7}
+{"seed_key":"ANIME:20","id":3934,"v":"not_relevant","why":"Gonzo comedy-violence; different register","conf":0.55}
+{"seed_key":"ANIME:20","id":22396,"v":"franchise","why":"Seed franchise recap film","conf":0.98}
+{"seed_key":"ANIME:22","id":5,"v":"not_relevant","why":"Grim battle shonen; lacks comedic warmth","conf":0.45}
+{"seed_key":"ANIME:22","id":7,"v":"not_relevant","why":"Battle-shonen epic; different neighborhood","conf":0.55}
+{"seed_key":"ANIME:22","id":8,"v":"relevant","why":"ONE's satirical sibling; canonical pairing","conf":0.95}
+{"seed_key":"ANIME:22","id":97,"v":"relevant","why":"Warm action-comedy with heart","conf":0.5}
+{"seed_key":"ANIME:22","id":116,"v":"relevant","why":"ONE satire continues, weaker season","conf":0.6}
+{"seed_key":"ANIME:22","id":167,"v":"relevant","why":"Deadpan psychic-teen gag machine; ideal","conf":0.85}
+{"seed_key":"ANIME:22","id":178,"v":"relevant","why":"Kinetic supernatural comedy, sincere teens","conf":0.8}
+{"seed_key":"ANIME:22","id":188,"v":"relevant","why":"Bizarre town supernatural with humor","conf":0.55}
+{"seed_key":"ANIME:22","id":218,"v":"not_relevant","why":"Romcom scheming; different neighborhood","conf":0.5}
+{"seed_key":"ANIME:22","id":237,"v":"not_relevant","why":"One-joke parody; lacks sincerity","conf":0.5}
+{"seed_key":"ANIME:22","id":253,"v":"franchise","why":"Seed's third season","conf":0.98}
+{"seed_key":"ANIME:22","id":309,"v":"relevant","why":"Gentle-hearted growth beneath deceptive style","conf":0.55}
+{"seed_key":"ANIME:22","id":367,"v":"relevant","why":"Psychic deadpan gags continue","conf":0.75}
+{"seed_key":"ANIME:22","id":411,"v":"relevant","why":"Unconventional mentor comedy with heart","conf":0.5}
+{"seed_key":"ANIME:22","id":447,"v":"relevant","why":"Psychic teen, spirits, comedy; lineage ancestor","conf":0.6}
+{"seed_key":"ANIME:22","id":474,"v":"relevant","why":"Psychic deadpan comedy, surprising heart","conf":0.8}
+{"seed_key":"ANIME:94","id":96,"v":"relevant","why":"Classic romcom sparks into drama","conf":0.7}
+{"seed_key":"ANIME:94","id":97,"v":"relevant","why":"Scheme-driven comedy with warmth","conf":0.55}
+{"seed_key":"ANIME:94","id":104,"v":"relevant","why":"Warm school romance; softer","conf":0.65}
+{"seed_key":"ANIME:94","id":127,"v":"franchise","why":"Seed's second season","conf":0.98}
+{"seed_key":"ANIME:94","id":185,"v":"relevant","why":"School comedy of awkward hearts","conf":0.65}
+{"seed_key":"ANIME:94","id":195,"v":"relevant","why":"Same author's dark showbiz turn","conf":0.5}
+{"seed_key":"ANIME:94","id":278,"v":"relevant","why":"Sweet devoted-couple comedy","conf":0.6}
+{"seed_key":"ANIME:94","id":294,"v":"relevant","why":"Gag-dense romcom excellence","conf":0.75}
+{"seed_key":"ANIME:94","id":335,"v":"relevant","why":"Romcom sketch vignettes; kindred wit","conf":0.7}
+{"seed_key":"ANIME:94","id":410,"v":"relevant","why":"Teasing duels as courtship; ideal","conf":0.75}
+{"seed_key":"ANIME:94","id":433,"v":"relevant","why":"Pride-blocked romance comedy","conf":0.55}
+{"seed_key":"ANIME:94","id":456,"v":"relevant","why":"Friends-to-lovers comedy warfare","conf":0.6}
+{"seed_key":"ANIME:94","id":522,"v":"relevant","why":"Scheming meta-romcom games","conf":0.5}
+{"seed_key":"ANIME:94","id":788,"v":"relevant","why":"Battle-of-wits romance premise; kindred concept","conf":0.55}
+{"seed_key":"ANIME:94","id":1414,"v":"relevant","why":"Classic misunderstanding-engine gag romcom","conf":0.6}
+{"seed_key":"ANIME:94","id":1682,"v":"not_relevant","why":"CGDCT comedy; no romance warfare","conf":0.6}
+{"seed_key":"ANIME:94","id":1759,"v":"relevant","why":"Explosive school gag comedy, central duo","conf":0.45}
+{"seed_key":"ANIME:94","id":13342,"v":"not_relevant","why":"Absurd slapstick, mid-franchise entry","conf":0.5}
+{"seed_key":"ANIME:96","id":90,"v":"relevant","why":"Talky adolescent romance drama","conf":0.6}
+{"seed_key":"ANIME:96","id":94,"v":"relevant","why":"Romcom sharpening into sincerity","conf":0.7}
+{"seed_key":"ANIME:96","id":104,"v":"relevant","why":"School romance warmth","conf":0.75}
+{"seed_key":"ANIME:96","id":152,"v":"relevant","why":"Prickly teens, real feelings","conf":0.7}
+{"seed_key":"ANIME:96","id":165,"v":"relevant","why":"KyoAni romcom-drama sibling","conf":0.7}
+{"seed_key":"ANIME:96","id":211,"v":"relevant","why":"Spirited shoujo romcom","conf":0.65}
+{"seed_key":"ANIME:96","id":218,"v":"relevant","why":"Romcom peak; season entry","conf":0.6}
+{"seed_key":"ANIME:96","id":219,"v":"relevant","why":"Dorm romcom-drama sibling","conf":0.8}
+{"seed_key":"ANIME:96","id":235,"v":"relevant","why":"Odd-couple school romance","conf":0.6}
+{"seed_key":"ANIME:96","id":236,"v":"relevant","why":"Same author's college romance","conf":0.8}
+{"seed_key":"ANIME:96","id":273,"v":"relevant","why":"Sincere slow-burn shoujo","conf":0.65}
+{"seed_key":"ANIME:96","id":521,"v":"relevant","why":"Awkward hearts turning tender","conf":0.7}
+{"seed_key":"ANIME:96","id":545,"v":"relevant","why":"Fake-couple tsundere comedy; ecchi-leaning","conf":0.5}
+{"seed_key":"ANIME:96","id":833,"v":"relevant","why":"Bittersweet romcom ensemble","conf":0.65}
+{"seed_key":"ANIME:96","id":916,"v":"relevant","why":"Youth-feelings drama film","conf":0.5}
+{"seed_key":"ANIME:96","id":1159,"v":"relevant","why":"Grief-tinged youth ensemble; recap film","conf":0.45}
+{"seed_key":"ANIME:96","id":1293,"v":"relevant","why":"Prideful duo unmasking; classic kin","conf":0.7}
+{"seed_key":"ANIME:96","id":13384,"v":"relevant","why":"Ensemble love-polygon feelings; sequel entry","conf":0.5}
+{"seed_key":"ANIME:135","id":95,"v":"relevant","why":"Passionate expertise, hype competitions","conf":0.6}
+{"seed_key":"ANIME:135","id":104,"v":"not_relevant","why":"Gentle romance; wrong neighborhood","conf":0.7}
+{"seed_key":"ANIME:135","id":131,"v":"not_relevant","why":"Cold scheming academy; different energy","conf":0.45}
+{"seed_key":"ANIME:135","id":211,"v":"not_relevant","why":"Shoujo romcom; wrong neighborhood","conf":0.7}
+{"seed_key":"ANIME:135","id":534,"v":"not_relevant","why":"Earnest romance drama; wrong shelf","conf":0.7}
+{"seed_key":"ANIME:135","id":740,"v":"not_relevant","why":"Listless slice-of-life; wrong energy","conf":0.7}
+{"seed_key":"ANIME:135","id":833,"v":"not_relevant","why":"Romcom ensemble; wrong neighborhood","conf":0.65}
+{"seed_key":"ANIME:135","id":920,"v":"relevant","why":"Food-porn fantasy, relaxed register","conf":0.5}
+{"seed_key":"ANIME:135","id":1163,"v":"relevant","why":"Cozy food-porn vignettes; no competition","conf":0.45}
+{"seed_key":"ANIME:135","id":1235,"v":"relevant","why":"Competitive food battles, ecchi energy","conf":0.6}
+{"seed_key":"ANIME:135","id":1293,"v":"not_relevant","why":"Romance drama; wrong neighborhood","conf":0.75}
+{"seed_key":"ANIME:135","id":2149,"v":"relevant","why":"Food-school coming-of-age; gentler, sequel entry","conf":0.45}
+{"seed_key":"ANIME:135","id":2473,"v":"relevant","why":"Gourmet battle shonen; direct kin","conf":0.7}
+{"seed_key":"ANIME:135","id":2478,"v":"not_relevant","why":"Romcom special; wrong neighborhood","conf":0.7}
+{"seed_key":"ANIME:135","id":2567,"v":"relevant","why":"Cooking battles, absurd judge reactions; ancestor","conf":0.8}
+{"seed_key":"ANIME:135","id":3488,"v":"not_relevant","why":"Romance film; wrong neighborhood","conf":0.7}
+{"seed_key":"ANIME:135","id":4807,"v":"relevant","why":"Competitive cooking drama, quieter register","conf":0.55}
+{"seed_key":"ANIME:135","id":5658,"v":"not_relevant","why":"Gag comedy OVA; wrong shelf","conf":0.7}
+{"seed_key":"ANIME:135","id":30884,"v":"relevant","why":"Ruthless cooking-battle property; dead-on spirit","conf":0.6}
+{"seed_key":"ANIME:135","id":79773,"v":"not_relevant","why":"Fast-food ad shorts, not a series","conf":0.8}
+{"seed_key":"ANIME:30","id":199,"v":"relevant","why":"Intense soccer competition; ego-driven cousin","conf":0.7}
+{"seed_key":"ANIME:30","id":202,"v":"franchise","why":"Seed's later season","conf":0.98}
+{"seed_key":"ANIME:30","id":217,"v":"relevant","why":"Team-sports hype staple","conf":0.85}
+{"seed_key":"ANIME:30","id":358,"v":"relevant","why":"Team sports drama, KyoAni flavor","conf":0.6}
+{"seed_key":"ANIME:30","id":536,"v":"relevant","why":"Underdog grit boxing classic","conf":0.75}
+{"seed_key":"ANIME:30","id":751,"v":"relevant","why":"Team passion in competition; kindred spirit","conf":0.8}
+{"seed_key":"ANIME:30","id":933,"v":"relevant","why":"Team striving drama; beautiful kin","conf":0.85}
+{"seed_key":"ANIME:30","id":1024,"v":"relevant","why":"Competitive growth, Haikyu-adjacent craft","conf":0.75}
+{"seed_key":"ANIME:30","id":1059,"v":"relevant","why":"Grounded soccer development drama","conf":0.75}
+{"seed_key":"ANIME:30","id":1310,"v":"relevant","why":"Team baseball grind","conf":0.75}
+{"seed_key":"ANIME:30","id":1388,"v":"relevant","why":"Underdog basketball; scrappier register","conf":0.6}
+{"seed_key":"ANIME:30","id":1693,"v":"not_relevant","why":"Same sport, melodramatic weak execution","conf":0.5}
+{"seed_key":"ANIME:30","id":1831,"v":"relevant","why":"Team gymnastics warmth","conf":0.6}
+{"seed_key":"ANIME:30","id":2688,"v":"relevant","why":"Quiet team archery growth","conf":0.6}
+{"seed_key":"ANIME:30","id":4392,"v":"relevant","why":"Battery-psychology baseball; sequel entry","conf":0.55}
+{"seed_key":"ANIME:30","id":12908,"v":"relevant","why":"Basketball masterpiece film","conf":0.85}
+{"seed_key":"ANIME:30","id":12928,"v":"franchise","why":"Seed franchise recap film","conf":0.98}
+{"seed_key":"ANIME:139","id":156,"v":"franchise","why":"Same franchise","conf":0.98}
+{"seed_key":"ANIME:139","id":217,"v":"relevant","why":"Team-sports hype staple","conf":0.85}
+{"seed_key":"ANIME:139","id":358,"v":"relevant","why":"Team sports drama flavor","conf":0.6}
+{"seed_key":"ANIME:139","id":377,"v":"relevant","why":"Basketball hype continues","conf":0.75}
+{"seed_key":"ANIME:139","id":933,"v":"relevant","why":"Team striving beauty","conf":0.85}
+{"seed_key":"ANIME:139","id":993,"v":"relevant","why":"Swim-team drama sequel","conf":0.55}
+{"seed_key":"ANIME:139","id":1024,"v":"relevant","why":"Competitive dance growth","conf":0.75}
+{"seed_key":"ANIME:139","id":1054,"v":"franchise","why":"Same franchise film","conf":0.98}
+{"seed_key":"ANIME:139","id":1059,"v":"relevant","why":"Grounded soccer development","conf":0.75}
+{"seed_key":"ANIME:139","id":1310,"v":"relevant","why":"Team baseball grind","conf":0.75}
+{"seed_key":"ANIME:139","id":1388,"v":"relevant","why":"Scrappy underdog basketball","conf":0.6}
+{"seed_key":"ANIME:139","id":1693,"v":"not_relevant","why":"Same sport, weak melodrama","conf":0.5}
+{"seed_key":"ANIME:139","id":2688,"v":"relevant","why":"Quiet team archery","conf":0.6}
+{"seed_key":"ANIME:139","id":3708,"v":"relevant","why":"Baseball classic, sequel entry","conf":0.6}
+{"seed_key":"ANIME:139","id":4392,"v":"relevant","why":"Battery-focused baseball; sequel entry","conf":0.55}
+{"seed_key":"ANIME:139","id":12908,"v":"relevant","why":"Basketball masterpiece film","conf":0.85}
+{"seed_key":"ANIME:139","id":12928,"v":"franchise","why":"Same franchise recap film","conf":0.98}
+{"seed_key":"ANIME:139","id":13234,"v":"relevant","why":"Battery-psychology baseball","conf":0.7}

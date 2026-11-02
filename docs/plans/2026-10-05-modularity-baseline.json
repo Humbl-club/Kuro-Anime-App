@@ -1,0 +1,4285 @@
+{
+  "captured_date": "2026-10-05",
+  "timezone": "Europe/Berlin",
+  "head": "471c609943d2374c6dda940aebdfde2fcb077d50",
+  "scope": "Current working tree including untracked nonignored source; local source inventory only",
+  "counting": "Physical lines via UTF-8 text.splitlines(); includes blank lines and comments. Nonblank lines also reported. Tests, historical migrations, operational scripts, and design prototypes are separate groups. No generated-code exclusions asserted. Regex signals are textual references, not a dependency or runtime call graph.",
+  "summary": {
+    "design_prototypes": {
+      "files": 47,
+      "physical_lines": 3089,
+      "nonblank_lines": 3028,
+      "median_file_lines": 32,
+      "over_400": 2,
+      "over_600": 1,
+      "over_1000": 0,
+      "top10_share_percent": 72.6,
+      "largest_files": [
+        {
+          "path": "tools/design-directions/instrument.css",
+          "group": "design_prototypes",
+          "physical_lines": 834,
+          "nonblank_lines": 805,
+          "sha256": "ed15e7137be08cddb3b8b22e598a91d45df5c9d0be4143e117e53b6339d7d854"
+        },
+        {
+          "path": "tools/design-directions/instrument.js",
+          "group": "design_prototypes",
+          "physical_lines": 425,
+          "nonblank_lines": 418,
+          "sha256": "8f3dd3586bd43e54c0aca0db7ec6f220c514a4aa6317e71365457a3aaeadf906"
+        },
+        {
+          "path": "tools/design-directions/instrument-art-materials.js",
+          "group": "design_prototypes",
+          "physical_lines": 243,
+          "nonblank_lines": 243,
+          "sha256": "5ea5103da880e554c6f9072cf1bd83930bc99bf2083678e8988187dd2470afd4"
+        },
+        {
+          "path": "tools/design-directions/manga-directions.css",
+          "group": "design_prototypes",
+          "physical_lines": 194,
+          "nonblank_lines": 192,
+          "sha256": "e3cd047dacbe50c3c735c530210aa93e323edac34b0ff5042439197e2cdeefa8"
+        },
+        {
+          "path": "tools/design-directions/journal-data.js",
+          "group": "design_prototypes",
+          "physical_lines": 125,
+          "nonblank_lines": 124,
+          "sha256": "8916dfc2c62bc743b0d663f88e76c645a3933a4fcd21b6f858aca0b48cc5c49d"
+        },
+        {
+          "path": "tools/design-directions/manga-philosophies.css",
+          "group": "design_prototypes",
+          "physical_lines": 120,
+          "nonblank_lines": 118,
+          "sha256": "69cb5e09410cf8bfddb410f1ea44d75914c8cd8f9a66f352f000c875fb328a22"
+        },
+        {
+          "path": "tools/design-directions/archive/material-v8/instrument.css",
+          "group": "design_prototypes",
+          "physical_lines": 96,
+          "nonblank_lines": 95,
+          "sha256": "9d980b6040c062b689f4f74a3ad943a6ec58724cefb74e098dabfb7236ce0532"
+        },
+        {
+          "path": "tools/design-directions/archive/fluid-v9/instrument.js",
+          "group": "design_prototypes",
+          "physical_lines": 71,
+          "nonblank_lines": 71,
+          "sha256": "1c302de30a9e2a1e957a049d43d47d069fe2dbff8524322712482fb6c228f08b"
+        },
+        {
+          "path": "tools/design-directions/panels.html",
+          "group": "design_prototypes",
+          "physical_lines": 68,
+          "nonblank_lines": 67,
+          "sha256": "803de864a7d8f1868a5b9a758b4aa3f2674c5aebe2c43ee4017860b47bc3e02c"
+        },
+        {
+          "path": "tools/design-directions/instrument-detail-data.js",
+          "group": "design_prototypes",
+          "physical_lines": 66,
+          "nonblank_lines": 66,
+          "sha256": "9a328ec277428fd4a0c00e0e4c81630c2e9be83f48878dba93d525d9d85da548"
+        },
+        {
+          "path": "tools/design-directions/art.js",
+          "group": "design_prototypes",
+          "physical_lines": 62,
+          "nonblank_lines": 62,
+          "sha256": "3d561134bcaf5002a6170814b01d5b4c894c94b0a100197a9d4aa3d57dd1592d"
+        },
+        {
+          "path": "tools/design-directions/archive/material-v8/instrument.js",
+          "group": "design_prototypes",
+          "physical_lines": 61,
+          "nonblank_lines": 61,
+          "sha256": "4b170d2a66324c4790aff341ae5fa624b231d3ec7b3cee2c4b6aee8561d53953"
+        }
+      ]
+    },
+    "edge_typescript": {
+      "files": 17,
+      "physical_lines": 11659,
+      "nonblank_lines": 10634,
+      "median_file_lines": 346,
+      "over_400": 8,
+      "over_600": 5,
+      "over_1000": 3,
+      "top10_share_percent": 86.1,
+      "largest_files": [
+        {
+          "path": "supabase/functions/concierge-recommend/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 2785,
+          "nonblank_lines": 2542,
+          "sha256": "99438d41796a9240daafd88e0ffd70f660268e8af93e9c2926ac20d04f929a86"
+        },
+        {
+          "path": "supabase/functions/manga-chapter-enrich/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 2088,
+          "nonblank_lines": 1898,
+          "sha256": "fc1c94f9cb7cbbbf918036d7b1f4ffae3e3da874ebb9369a3d3fdae1d400e7cf"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 1401,
+          "nonblank_lines": 1267,
+          "sha256": "d0f627876a0fc9dc53d7ef5bc3b22762b131ab81fafd961bca3d739dbf00eeef"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 770,
+          "nonblank_lines": 729,
+          "sha256": "43b01aadad8a744bff1bed8b337836578aad538453b38fcd2c9bc991c4dd3e4f"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 747,
+          "nonblank_lines": 710,
+          "sha256": "31f2703c2fc0f46c3cc753872a0883281d9e9402d0a628d5bda4ee07bb8571ba"
+        },
+        {
+          "path": "supabase/functions/realm-describe/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 536,
+          "nonblank_lines": 491,
+          "sha256": "1891ea64bce984ba0e3ac37b3eb0445d3c22a44cbcf16cb5fe91bab007b98f5e"
+        },
+        {
+          "path": "supabase/functions/mirror-images/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 523,
+          "nonblank_lines": 486,
+          "sha256": "2d8a20619ecaa66ddb95e0c6d2afc644f2f0cb0daaf3f2055dbec12f8e882b6b"
+        },
+        {
+          "path": "supabase/functions/concierge-apply/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 515,
+          "nonblank_lines": 466,
+          "sha256": "bff6c0ab9a8006111d821e71dfb7768fe13f338819736a9ec80d28335e234e0f"
+        },
+        {
+          "path": "supabase/functions/concierge-retrieve-assist/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 346,
+          "nonblank_lines": 303,
+          "sha256": "5d1b270212cf82ecddd7cf41da52514bc0bbf9d5b98007ea4cb2557b130438a1"
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 331,
+          "nonblank_lines": 298,
+          "sha256": "aebf8b0281a85c144f4da234fe8ba7f28e9cb9c0ad667662e584f68d8e5f4f35"
+        },
+        {
+          "path": "supabase/functions/auth-callback/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 315,
+          "nonblank_lines": 289,
+          "sha256": "bc718486267943a763e1753266d9fd4061de73f32146d29530e8ab220bf0fa4f"
+        },
+        {
+          "path": "supabase/functions/concierge-resolve/index.ts",
+          "group": "edge_typescript",
+          "physical_lines": 299,
+          "nonblank_lines": 265,
+          "sha256": "78eb2c1da8c61b738b7ab8f9e85bd2df1826bbd7e29684e4e0b172bc1f2a417a"
+        }
+      ]
+    },
+    "ios_app": {
+      "files": 94,
+      "physical_lines": 46537,
+      "nonblank_lines": 41808,
+      "median_file_lines": 261.0,
+      "over_400": 40,
+      "over_600": 34,
+      "over_1000": 11,
+      "top10_share_percent": 37.7,
+      "largest_files": [
+        {
+          "path": "Kuro/Services/SupabaseService.swift",
+          "group": "ios_app",
+          "physical_lines": 2985,
+          "nonblank_lines": 2702,
+          "sha256": "0d7c3fe10d473085decba48ea7ae0b2c0a9f05186b795abfb6375f0628e3e2db"
+        },
+        {
+          "path": "Kuro/Views/DetailPages/AnimeDetailView.swift",
+          "group": "ios_app",
+          "physical_lines": 2424,
+          "nonblank_lines": 2190,
+          "sha256": "60a7e5f548bce4552edcea47c4e388d2ff19afd2020f47336f6867da49d57722"
+        },
+        {
+          "path": "Kuro/Views/EditorialDiscoverView.swift",
+          "group": "ios_app",
+          "physical_lines": 1752,
+          "nonblank_lines": 1589,
+          "sha256": "b1c21ad15a7467fdeca03a1fdd0236a3cf1e2b5535fe4f8623343e40c151b7a4"
+        },
+        {
+          "path": "Kuro/Views/ConciergeView.swift",
+          "group": "ios_app",
+          "physical_lines": 1681,
+          "nonblank_lines": 1501,
+          "sha256": "a304b165506a9e736bc62011c7bca05c637368fb146c1b0a8a8557ecad318a28"
+        },
+        {
+          "path": "Kuro/Views/ConciergeComponents.swift",
+          "group": "ios_app",
+          "physical_lines": 1664,
+          "nonblank_lines": 1512,
+          "sha256": "49ca8d61d080c2bbb174e8cc60296810f45acfd796d7962c199ccefa7e5cc9f5"
+        },
+        {
+          "path": "Kuro/Views/DetailPages/MangaDetailView.swift",
+          "group": "ios_app",
+          "physical_lines": 1544,
+          "nonblank_lines": 1400,
+          "sha256": "43e70e38a185c96838c0d8e9b01955e85125ddbe4f445c5169ee10a77560768b"
+        },
+        {
+          "path": "Kuro/Views/AuthView.swift",
+          "group": "ios_app",
+          "physical_lines": 1436,
+          "nonblank_lines": 1288,
+          "sha256": "acc6fcd8d881cc9c727abdf84f8a34494395858c03fb623bc62ef6258d020b03"
+        },
+        {
+          "path": "Kuro/Views/ClubDetailTabComponents.swift",
+          "group": "ios_app",
+          "physical_lines": 1384,
+          "nonblank_lines": 1243,
+          "sha256": "784465ae2e092813e323d1d03147fbc3b50f4c7080f8570e9cb900aef8f06f05"
+        },
+        {
+          "path": "Kuro/Views/TasteDeckView.swift",
+          "group": "ios_app",
+          "physical_lines": 1352,
+          "nonblank_lines": 1234,
+          "sha256": "ab43bf0f80031ea3f3fbdb12b23fb687e13133aabf6ee1b612c822600651bc81"
+        },
+        {
+          "path": "Kuro/Models/SupabaseModels.swift",
+          "group": "ios_app",
+          "physical_lines": 1324,
+          "nonblank_lines": 1176,
+          "sha256": "8591b069f2c876becd81ac1cec67266771d78d573060269e27a1d1a24c4df326"
+        },
+        {
+          "path": "Kuro/Views/ProfileView.swift",
+          "group": "ios_app",
+          "physical_lines": 1253,
+          "nonblank_lines": 1123,
+          "sha256": "e2dd4ed7e37d5c2c3259b23fc88b57c8f10414a645a4bc39ed82ee99143807f0"
+        },
+        {
+          "path": "Kuro/Views/ClubDetailView.swift",
+          "group": "ios_app",
+          "physical_lines": 987,
+          "nonblank_lines": 893,
+          "sha256": "7dc9453792d3673272d8a9dc180e133649fc848da1df5abe0a9afeacd633361d"
+        }
+      ]
+    },
+    "ios_tests": {
+      "files": 4,
+      "physical_lines": 1785,
+      "nonblank_lines": 1561,
+      "median_file_lines": 304.5,
+      "over_400": 1,
+      "over_600": 1,
+      "over_1000": 1,
+      "top10_share_percent": 100.0,
+      "largest_files": [
+        {
+          "path": "KuroTests/KuroTests.swift",
+          "group": "ios_tests",
+          "physical_lines": 1143,
+          "nonblank_lines": 1026,
+          "sha256": "c9312ebdc81d2a4d3f54a1c31d23a6b6c74c0ae5663e6a4bddb4d0c57c65c4b8"
+        },
+        {
+          "path": "KuroUITests/SnapshotHelper.swift",
+          "group": "ios_tests",
+          "physical_lines": 313,
+          "nonblank_lines": 258,
+          "sha256": "434d6d7d0578f3b4b7dde23fda0ab2df53ffb9e392bf41916b13cd066183b65f"
+        },
+        {
+          "path": "KuroUITests/KuroUITests.swift",
+          "group": "ios_tests",
+          "physical_lines": 296,
+          "nonblank_lines": 251,
+          "sha256": "7f04bf8f9e0a5ef23b9b02392ebe0768c6d9c74a0607bee6d08a7d58f87df2f2"
+        },
+        {
+          "path": "KuroUITests/KuroUITestsLaunchTests.swift",
+          "group": "ios_tests",
+          "physical_lines": 33,
+          "nonblank_lines": 26,
+          "sha256": "1761f6c4c6dfd22bc07a2992930799223f1980213b38085ebf499f55058bc407"
+        }
+      ]
+    },
+    "operational_scripts": {
+      "files": 90,
+      "physical_lines": 20753,
+      "nonblank_lines": 18350,
+      "median_file_lines": 172.0,
+      "over_400": 16,
+      "over_600": 6,
+      "over_1000": 1,
+      "top10_share_percent": 31.7,
+      "largest_files": [
+        {
+          "path": "scripts/provider_availability_worker.swift",
+          "group": "operational_scripts",
+          "physical_lines": 1181,
+          "nonblank_lines": 1058,
+          "sha256": "1d44bb79f0e1506cddd1dfb3fbcc57ff0e2ffa134b946a0709b3462ec1b83f9e"
+        },
+        {
+          "path": "scripts/catalog_safety_worker.swift",
+          "group": "operational_scripts",
+          "physical_lines": 762,
+          "nonblank_lines": 681,
+          "sha256": "510332edbc76b3039758e81209433e20808110b96f1898beb3b8049faeff05a2"
+        },
+        {
+          "path": "scripts/synopsis_enrichment_worker.swift",
+          "group": "operational_scripts",
+          "physical_lines": 738,
+          "nonblank_lines": 654,
+          "sha256": "7b489af0d83719958295c5e9b56f37ae5c4effd2398ba66ca8e1992e37145207"
+        },
+        {
+          "path": "scripts/legacy/CONCIERGE_FINAL_INTEGRATED.swift",
+          "group": "operational_scripts",
+          "physical_lines": 649,
+          "nonblank_lines": 556,
+          "sha256": "9105c813df295d4a97d65d3fb14923ddedc4198e7c3d3c4c14f8964ce9d2277e"
+        },
+        {
+          "path": "scripts/unified_local_dashboard_server.js",
+          "group": "operational_scripts",
+          "physical_lines": 644,
+          "nonblank_lines": 606,
+          "sha256": "2476f408c7e408a6d02505e57a487b44bf83ac5d6281fae87075df264c74c61a"
+        },
+        {
+          "path": "scripts/media_relations_worker.js",
+          "group": "operational_scripts",
+          "physical_lines": 617,
+          "nonblank_lines": 567,
+          "sha256": "d1d6a0fed6e3df6817275a1268d84c2a7355882e543bb8a8c0bde692e169d716"
+        },
+        {
+          "path": "scripts/legacy/03_updated_edge_function.js",
+          "group": "operational_scripts",
+          "physical_lines": 550,
+          "nonblank_lines": 478,
+          "sha256": "96f91db2bfcd280f81d140c9fe2e48f42b07eec87e3a867e6b8a4ac276687cd6"
+        },
+        {
+          "path": "scripts/import_anilist_rec_edges.js",
+          "group": "operational_scripts",
+          "physical_lines": 517,
+          "nonblank_lines": 464,
+          "sha256": "d708a02927b0324a7626f42fe824b9e354a70736da52ea6e55fd152f5f408a32"
+        },
+        {
+          "path": "scripts/compile_curation_ingest.js",
+          "group": "operational_scripts",
+          "physical_lines": 458,
+          "nonblank_lines": 420,
+          "sha256": "962f3f46f168398c0d619254fcb5807e236fc8854aef5db97f67ca4dd81dde4a"
+        },
+        {
+          "path": "scripts/audit_curated_rails_quality.js",
+          "group": "operational_scripts",
+          "physical_lines": 457,
+          "nonblank_lines": 398,
+          "sha256": "fdfecfd8df7724e21b430bdc5422a276b031c463572a945adfc8a226e56500e1"
+        },
+        {
+          "path": "scripts/import_anilist_local.js",
+          "group": "operational_scripts",
+          "physical_lines": 450,
+          "nonblank_lines": 421,
+          "sha256": "35c01ed7d6146c376128046e3ae03567db55b95f20156073fd52798f146085a2"
+        },
+        {
+          "path": "scripts/import_anilist_fast.js",
+          "group": "operational_scripts",
+          "physical_lines": 420,
+          "nonblank_lines": 388,
+          "sha256": "2777917c7dcae9da6d0700bbcd7e0eaf9dda781ae67ea2776ca38e0990e8f050"
+        }
+      ]
+    },
+    "sql_migrations": {
+      "files": 235,
+      "physical_lines": 62863,
+      "nonblank_lines": 59723,
+      "median_file_lines": 116,
+      "over_400": 46,
+      "over_600": 26,
+      "over_1000": 14,
+      "top10_share_percent": 27.5,
+      "largest_files": [
+        {
+          "path": "supabase/migrations/20260807000000_baseline_capture_v1.sql",
+          "group": "sql_migrations",
+          "physical_lines": 3029,
+          "nonblank_lines": 2917,
+          "sha256": "3616bff291178936c7eee35523f5394137dec2eaf0a436bef7b70eb93176e365"
+        },
+        {
+          "path": "supabase/migrations/20260731150000_realm_graph_v1.sql",
+          "group": "sql_migrations",
+          "physical_lines": 2085,
+          "nonblank_lines": 2009,
+          "sha256": "a2173ba5dd30fbdc71f53c9b6ba704867eecc421ca0d7e30f71fa7d089aa7bd8"
+        },
+        {
+          "path": "supabase/migrations/20260731060000_taste_math_v2.sql",
+          "group": "sql_migrations",
+          "physical_lines": 2014,
+          "nonblank_lines": 1927,
+          "sha256": "9d93b71bb37d6a1d437c21c2ecc1bf3a91b83ac3b6af6b5d1115321a0939f203"
+        },
+        {
+          "path": "supabase/migrations/20260806020000_serving_hardening_v1.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1743,
+          "nonblank_lines": 1596,
+          "sha256": "a59ca1e31402341fbbbf23ad14f28f099e14edd04185ef197cf848f66c469695"
+        },
+        {
+          "path": "supabase/migrations/20260731070000_taste_math_v2_hotfix.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1603,
+          "nonblank_lines": 1533,
+          "sha256": "0992eae2d8fc062000c278757c34c5269e0ff7764c1ec26ad69903d5a4d5e13f"
+        },
+        {
+          "path": "supabase/migrations/20260804130000_media_similar_titles_precompute.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1422,
+          "nonblank_lines": 1320,
+          "sha256": "83e7f7dac73863240b6d45858485fd904e6783d592cb67c9eeef983f40545828"
+        },
+        {
+          "path": "supabase/migrations/20260207011000_curated_rails_vibes_seed.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1397,
+          "nonblank_lines": 1397,
+          "sha256": "b1081fd793db4938b86c3478c3c110c3da8f734d5a32cb0e63e62326fe96042f"
+        },
+        {
+          "path": "supabase/migrations/20260326234000_exclude_ancillary_anime_from_default_surfaces.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1359,
+          "nonblank_lines": 1337,
+          "sha256": "4d9c2b63c6d8ed6e9ba3794c6af0e57ae4ab5dccd9f6b7437cd48e4e62f2dec1"
+        },
+        {
+          "path": "supabase/migrations/20260207020000_curated_rails_more_vibes_seed.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1335,
+          "nonblank_lines": 1335,
+          "sha256": "7283f3c816185da1c0f8075db4b9a52c2135920e3bac5e286f85b47d2681d37b"
+        },
+        {
+          "path": "supabase/migrations/20260807010000_leftover_repairs_v1.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1293,
+          "nonblank_lines": 1177,
+          "sha256": "aeae455f854703bb0bc412b9a3e75bb51f21b6d4abac528fad2691754fba089d"
+        },
+        {
+          "path": "supabase/migrations/20260805140000_entry_point_canonicalization.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1206,
+          "nonblank_lines": 1096,
+          "sha256": "e10b93fb55efa46dc214b4110d576ea88824f157dbbb67c8b42902fb1f543310"
+        },
+        {
+          "path": "supabase/migrations/20260731090000_taste_deck_pass_memory.sql",
+          "group": "sql_migrations",
+          "physical_lines": 1173,
+          "nonblank_lines": 1122,
+          "sha256": "268084bbe86e111e038297ef1ef0c1c1b318947d2d994ab417b1976f538d4233"
+        }
+      ]
+    }
+  },
+  "service_family": {
+    "files": 13,
+    "physical_lines": 7154,
+    "paths": [
+      "Kuro/Services/SupabaseService+Browse.swift",
+      "Kuro/Services/SupabaseService+ClubRealtime.swift",
+      "Kuro/Services/SupabaseService+Clubs.swift",
+      "Kuro/Services/SupabaseService+Collection.swift",
+      "Kuro/Services/SupabaseService+Concierge.swift",
+      "Kuro/Services/SupabaseService+Discover.swift",
+      "Kuro/Services/SupabaseService+Monetization.swift",
+      "Kuro/Services/SupabaseService+Recommendations.swift",
+      "Kuro/Services/SupabaseService+Social.swift",
+      "Kuro/Services/SupabaseService+Streaming.swift",
+      "Kuro/Services/SupabaseService+Taste.swift",
+      "Kuro/Services/SupabaseService+UserLists.swift",
+      "Kuro/Services/SupabaseService.swift"
+    ]
+  },
+  "signals": {
+    "service_environment": {
+      "files": 30,
+      "occurrences": 61,
+      "matches": [
+        {
+          "path": "Kuro/ContentView.swift",
+          "occurrences": 3
+        },
+        {
+          "path": "Kuro/KuroApp.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/AddToListSheet.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/AuthView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/BrowseComponents.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/BrowseView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/Cards.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/ClubCreateSheets.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/ClubDetailSheets.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/ClubDetailTabComponents.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/ClubDetailView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/ClubsView.swift",
+          "occurrences": 3
+        },
+        {
+          "path": "Kuro/Views/ConciergeView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/DetailPages/AnimeDetailView.swift",
+          "occurrences": 5
+        },
+        {
+          "path": "Kuro/Views/DetailPages/ClubActivitySection.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/DetailPages/EntityDetailSheets.swift",
+          "occurrences": 4
+        },
+        {
+          "path": "Kuro/Views/DetailPages/ExternalLinksSection.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/DetailPages/FriendsActivitySection.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/DetailPages/MangaDetailView.swift",
+          "occurrences": 5
+        },
+        {
+          "path": "Kuro/Views/DetailPages/MediaDetailSheet.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/EditorialCollectionComponents.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/EditorialCollectionView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/EditorialDiscoverView.swift",
+          "occurrences": 3
+        },
+        {
+          "path": "Kuro/Views/EditorialSearchView.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/GenreHubView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/KuroRefinedCard.swift",
+          "occurrences": 3
+        },
+        {
+          "path": "Kuro/Views/ProfileView.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/QuickVerdictActionCard.swift",
+          "occurrences": 3
+        },
+        {
+          "path": "Kuro/Views/TasteDeckView.swift",
+          "occurrences": 2
+        },
+        {
+          "path": "Kuro/Views/TastePicksView.swift",
+          "occurrences": 1
+        }
+      ]
+    },
+    "service_singleton": {
+      "files": 6,
+      "occurrences": 6,
+      "matches": [
+        {
+          "path": "Kuro/ContentView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/KuroApp.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/BrowseComponents.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/EditorialCollectionComponents.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/EditorialDiscoverView.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Views/EditorialSearchView.swift",
+          "occurrences": 1
+        }
+      ]
+    },
+    "supabase_import": {
+      "files": 15,
+      "occurrences": 15,
+      "matches": [
+        {
+          "path": "Kuro/Services/ConciergeAnalytics.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/FeatureFlags.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Browse.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+ClubRealtime.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Clubs.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Collection.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Concierge.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Discover.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Monetization.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Recommendations.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Social.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Streaming.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Taste.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+UserLists.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService.swift",
+          "occurrences": 1
+        }
+      ]
+    },
+    "service_extension": {
+      "files": 12,
+      "occurrences": 12,
+      "matches": [
+        {
+          "path": "Kuro/Services/SupabaseService+Browse.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+ClubRealtime.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Clubs.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Collection.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Concierge.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Discover.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Monetization.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Recommendations.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Social.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Streaming.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+Taste.swift",
+          "occurrences": 1
+        },
+        {
+          "path": "Kuro/Services/SupabaseService+UserLists.swift",
+          "occurrences": 1
+        }
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": "Kuro/ContentView.swift",
+      "group": "ios_app",
+      "physical_lines": 905,
+      "nonblank_lines": 834,
+      "sha256": "9bc2e883ece8cb8388fa34c09187ed7e9deef942393a75756d3ffc2bb7afaad2"
+    },
+    {
+      "path": "Kuro/Design/Color+Hex.swift",
+      "group": "ios_app",
+      "physical_lines": 37,
+      "nonblank_lines": 30,
+      "sha256": "7ebeb3f5b9f4f9c38daa3a96ffaee8f9b5730c80ae4c1305e76ed1fbce6fc531"
+    },
+    {
+      "path": "Kuro/Design/KuroDesignSystem.swift",
+      "group": "ios_app",
+      "physical_lines": 716,
+      "nonblank_lines": 633,
+      "sha256": "6f7b89a19abcd37b7f70c3483f0fc4e925af46f9537f900a367c78a06760f232"
+    },
+    {
+      "path": "Kuro/KuroApp.swift",
+      "group": "ios_app",
+      "physical_lines": 134,
+      "nonblank_lines": 127,
+      "sha256": "71c0e5f82ff0a80366fbdd551e36e839599d302bfff930f9bcf218ea06ddc20e"
+    },
+    {
+      "path": "Kuro/Models/DiscoverBundle.swift",
+      "group": "ios_app",
+      "physical_lines": 47,
+      "nonblank_lines": 41,
+      "sha256": "917f6c3c08c85e0440effc00d8f025f0b551635cfd8ca21e3401f585e08d4394"
+    },
+    {
+      "path": "Kuro/Models/SupabaseModels.swift",
+      "group": "ios_app",
+      "physical_lines": 1324,
+      "nonblank_lines": 1176,
+      "sha256": "8591b069f2c876becd81ac1cec67266771d78d573060269e27a1d1a24c4df326"
+    },
+    {
+      "path": "Kuro/Services/AppConfig.swift",
+      "group": "ios_app",
+      "physical_lines": 31,
+      "nonblank_lines": 28,
+      "sha256": "b88fda8bb3c78ce3cf427ba5d9cd7b4baabf55e2a2182b18aa059c3ac2144f77"
+    },
+    {
+      "path": "Kuro/Services/AppleFMService.swift",
+      "group": "ios_app",
+      "physical_lines": 723,
+      "nonblank_lines": 600,
+      "sha256": "8e0e2819ef4478af256dbf45e07e371c612a1ce2b1743ed77a2e5310b79d3e7e"
+    },
+    {
+      "path": "Kuro/Services/ConciergeAnalytics.swift",
+      "group": "ios_app",
+      "physical_lines": 150,
+      "nonblank_lines": 125,
+      "sha256": "f9b60cd773c8e131331025069ddf1f9c4437ecbf7387bdc49305916fc80adaeb"
+    },
+    {
+      "path": "Kuro/Services/DeepLinkRouter.swift",
+      "group": "ios_app",
+      "physical_lines": 101,
+      "nonblank_lines": 95,
+      "sha256": "ff50f6522bd13e1981b633987e4b320ee02bf6c5e91c3114ca31594d69eeb451"
+    },
+    {
+      "path": "Kuro/Services/FeatureFlags.swift",
+      "group": "ios_app",
+      "physical_lines": 201,
+      "nonblank_lines": 170,
+      "sha256": "e024b0ce5a04cd52248fb6c60c2bb66a7a9ed5d48bac3cc6328bb76a9cf55ee0"
+    },
+    {
+      "path": "Kuro/Services/ImagePipeline.swift",
+      "group": "ios_app",
+      "physical_lines": 176,
+      "nonblank_lines": 154,
+      "sha256": "a796cf187cee8ff22e888aca1d43c9ba52e957a5e005f6787c988ce9e00d5e05"
+    },
+    {
+      "path": "Kuro/Services/KuroDiskDetailCache.swift",
+      "group": "ios_app",
+      "physical_lines": 97,
+      "nonblank_lines": 83,
+      "sha256": "c625b745e4e26c13d7820ca0b2b8fa109122d863bc92399c65a5d3567083c0e9"
+    },
+    {
+      "path": "Kuro/Services/KuroPerf.swift",
+      "group": "ios_app",
+      "physical_lines": 30,
+      "nonblank_lines": 26,
+      "sha256": "c8ec439a3dc031d12012a0f8e24aaa54be544f2cbf76afa426252fb9954df056"
+    },
+    {
+      "path": "Kuro/Services/NetworkMonitor.swift",
+      "group": "ios_app",
+      "physical_lines": 45,
+      "nonblank_lines": 38,
+      "sha256": "8c6693a947a0782a05253cfd1bc3bc5d3b572656f3ff9dcdd490d6531d94ca5b"
+    },
+    {
+      "path": "Kuro/Services/SupabaseRPCParams.swift",
+      "group": "ios_app",
+      "physical_lines": 637,
+      "nonblank_lines": 540,
+      "sha256": "ddefc45ac1cce9c15f7f51a117554e37e88f3a17a12d7543b0179357ef0e8b54"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Browse.swift",
+      "group": "ios_app",
+      "physical_lines": 193,
+      "nonblank_lines": 180,
+      "sha256": "08839718c2629ce6600e072f6bb24d3b862939255cb7ff25038da1dc4236ecac"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+ClubRealtime.swift",
+      "group": "ios_app",
+      "physical_lines": 143,
+      "nonblank_lines": 130,
+      "sha256": "6eb85afc9e869dd955516fcca481452021bbfb01948ba8adce5c3f5acfe07217"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Clubs.swift",
+      "group": "ios_app",
+      "physical_lines": 835,
+      "nonblank_lines": 746,
+      "sha256": "0bcf5d3c23f0f0cab33cde124750a85d40cafdd4b5389e415edc0928468a1a2b"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Collection.swift",
+      "group": "ios_app",
+      "physical_lines": 495,
+      "nonblank_lines": 455,
+      "sha256": "80664f143a977ac42a8a48060acaa17133a98d831b5e0e8574fb8b441d93e708"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Concierge.swift",
+      "group": "ios_app",
+      "physical_lines": 137,
+      "nonblank_lines": 125,
+      "sha256": "2e83c06e412c7808586a6c495e88b668d7409d020c84d090a1f6ac4560a25218"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Discover.swift",
+      "group": "ios_app",
+      "physical_lines": 325,
+      "nonblank_lines": 296,
+      "sha256": "8399858415b2664d554cdb085944b77817d6918ba5b3f9f91b3fabff206a64f2"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Monetization.swift",
+      "group": "ios_app",
+      "physical_lines": 51,
+      "nonblank_lines": 44,
+      "sha256": "3a1ca040fd494a3b37746227be8d6614cac4dcb79f811e76a0e7c96c93509af7"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Recommendations.swift",
+      "group": "ios_app",
+      "physical_lines": 217,
+      "nonblank_lines": 197,
+      "sha256": "6b8313f703ce8531102f7ae87a9f03d509cc0cbc461d42d444923a2f55cd8b63"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Social.swift",
+      "group": "ios_app",
+      "physical_lines": 120,
+      "nonblank_lines": 104,
+      "sha256": "be13ed7c68f3717645b36a3ef38ffcc3800cebd660a3b80114441cc52f03002c"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Streaming.swift",
+      "group": "ios_app",
+      "physical_lines": 402,
+      "nonblank_lines": 372,
+      "sha256": "f69d6aa86bec28617a7c553a9645d802faa76f8fbe637ebb291528707964ae21"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+Taste.swift",
+      "group": "ios_app",
+      "physical_lines": 412,
+      "nonblank_lines": 371,
+      "sha256": "21743adbbea267b7fe6da9177c3fca37c900da6aef33734ad06a33266c8fa9a0"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService+UserLists.swift",
+      "group": "ios_app",
+      "physical_lines": 839,
+      "nonblank_lines": 763,
+      "sha256": "a85aec5e339fdcad0f878742f3ac069405aef9e2aca374ada4b4527e540ed7d4"
+    },
+    {
+      "path": "Kuro/Services/SupabaseService.swift",
+      "group": "ios_app",
+      "physical_lines": 2985,
+      "nonblank_lines": 2702,
+      "sha256": "0d7c3fe10d473085decba48ea7ae0b2c0a9f05186b795abfb6375f0628e3e2db"
+    },
+    {
+      "path": "Kuro/Services/TextNormalization.swift",
+      "group": "ios_app",
+      "physical_lines": 271,
+      "nonblank_lines": 226,
+      "sha256": "9b092a6ea3f8e9b48a89f0c9a786e9b81f793e59a6bcfeca31e402e6bdfcfa95"
+    },
+    {
+      "path": "Kuro/Views/AddToListSheet.swift",
+      "group": "ios_app",
+      "physical_lines": 602,
+      "nonblank_lines": 539,
+      "sha256": "6b74ac1d500cc442da39b0deca8999297b1f20bc5d42557c4bb73cea50ff40c3"
+    },
+    {
+      "path": "Kuro/Views/AuthView.swift",
+      "group": "ios_app",
+      "physical_lines": 1436,
+      "nonblank_lines": 1288,
+      "sha256": "acc6fcd8d881cc9c727abdf84f8a34494395858c03fb623bc62ef6258d020b03"
+    },
+    {
+      "path": "Kuro/Views/BrowseComponents.swift",
+      "group": "ios_app",
+      "physical_lines": 803,
+      "nonblank_lines": 734,
+      "sha256": "11539c6467300032a8af7adc859478dfb0645b3b2e1f123b6deb5aec18a2bcec"
+    },
+    {
+      "path": "Kuro/Views/BrowseView.swift",
+      "group": "ios_app",
+      "physical_lines": 578,
+      "nonblank_lines": 526,
+      "sha256": "d4e088eec31ec6b399fd2af734f104e91ac2ba922c7c13adbe38f14e5f498538"
+    },
+    {
+      "path": "Kuro/Views/Cards.swift",
+      "group": "ios_app",
+      "physical_lines": 653,
+      "nonblank_lines": 598,
+      "sha256": "e2d22823070a715721b63b7cc9c1ce862c0d70894bee8046981721eb6e3ef646"
+    },
+    {
+      "path": "Kuro/Views/ClubCreateSheets.swift",
+      "group": "ios_app",
+      "physical_lines": 296,
+      "nonblank_lines": 263,
+      "sha256": "1ca674cc3039a16ba07c72fbd440c55152ae135c50a22f93ac8ab31887d036a9"
+    },
+    {
+      "path": "Kuro/Views/ClubDetailSheets.swift",
+      "group": "ios_app",
+      "physical_lines": 686,
+      "nonblank_lines": 628,
+      "sha256": "4786e125f1907ca74e9b85248089b841d5baed4e83fec48e484919a4d7562163"
+    },
+    {
+      "path": "Kuro/Views/ClubDetailShellComponents.swift",
+      "group": "ios_app",
+      "physical_lines": 372,
+      "nonblank_lines": 331,
+      "sha256": "da72ca48099858ce187b03c33b4ca4b22a78b867756ed0db2a99535e5eb3936e"
+    },
+    {
+      "path": "Kuro/Views/ClubDetailTabComponents.swift",
+      "group": "ios_app",
+      "physical_lines": 1384,
+      "nonblank_lines": 1243,
+      "sha256": "784465ae2e092813e323d1d03147fbc3b50f4c7080f8570e9cb900aef8f06f05"
+    },
+    {
+      "path": "Kuro/Views/ClubDetailView.swift",
+      "group": "ios_app",
+      "physical_lines": 987,
+      "nonblank_lines": 893,
+      "sha256": "7dc9453792d3673272d8a9dc180e133649fc848da1df5abe0a9afeacd633361d"
+    },
+    {
+      "path": "Kuro/Views/ClubsView.swift",
+      "group": "ios_app",
+      "physical_lines": 898,
+      "nonblank_lines": 806,
+      "sha256": "fc617c4b03791cc69a65f42e44fbad9dc3775f05396e678e8b93512ef68d593a"
+    },
+    {
+      "path": "Kuro/Views/ConciergeActionFooter.swift",
+      "group": "ios_app",
+      "physical_lines": 39,
+      "nonblank_lines": 34,
+      "sha256": "7e5ababc4ff4aa4c4aece8a85d5a8f02798d3b3f1348f7fb35cc39a716a45f72"
+    },
+    {
+      "path": "Kuro/Views/ConciergeAniListImportCoordinator.swift",
+      "group": "ios_app",
+      "physical_lines": 179,
+      "nonblank_lines": 153,
+      "sha256": "fb59b70227f504f606fe7522b179b5b75dcbadc032af60cdbb5f434d671d39a3"
+    },
+    {
+      "path": "Kuro/Views/ConciergeComponents.swift",
+      "group": "ios_app",
+      "physical_lines": 1664,
+      "nonblank_lines": 1512,
+      "sha256": "49ca8d61d080c2bbb174e8cc60296810f45acfd796d7962c199ccefa7e5cc9f5"
+    },
+    {
+      "path": "Kuro/Views/ConciergeComposerDock.swift",
+      "group": "ios_app",
+      "physical_lines": 26,
+      "nonblank_lines": 24,
+      "sha256": "e12aed059b97a3e0698335e882895b1329b4c46193a045b89e851acd3372d17f"
+    },
+    {
+      "path": "Kuro/Views/ConciergeEditorialShell.swift",
+      "group": "ios_app",
+      "physical_lines": 89,
+      "nonblank_lines": 79,
+      "sha256": "c826a848eeb9b84503862f836d86cd3718889134f85bdb1175ba9c07d44afd20"
+    },
+    {
+      "path": "Kuro/Views/ConciergeImportCards.swift",
+      "group": "ios_app",
+      "physical_lines": 946,
+      "nonblank_lines": 838,
+      "sha256": "2991c279aa44d79257b5c8ff14f8322e7b30080efa10098294c057a3c0dbda4a"
+    },
+    {
+      "path": "Kuro/Views/ConciergeInputField.swift",
+      "group": "ios_app",
+      "physical_lines": 931,
+      "nonblank_lines": 782,
+      "sha256": "36572f8bef5ec9881868bfb2e54a4ecb310d2352a71b77518d9af7e1ee48629f"
+    },
+    {
+      "path": "Kuro/Views/ConciergeIntentDeck.swift",
+      "group": "ios_app",
+      "physical_lines": 287,
+      "nonblank_lines": 260,
+      "sha256": "5ebb9a523bad15827d75b56275b6c3ad34fdaaa59e684a20664de223ce3e2882"
+    },
+    {
+      "path": "Kuro/Views/ConciergeRecommendationRails.swift",
+      "group": "ios_app",
+      "physical_lines": 690,
+      "nonblank_lines": 623,
+      "sha256": "c15637ec6573e701901f24ba7c66f10867062a248ddfcf1ef12ee3116213108a"
+    },
+    {
+      "path": "Kuro/Views/ConciergeResponseStage.swift",
+      "group": "ios_app",
+      "physical_lines": 10,
+      "nonblank_lines": 8,
+      "sha256": "1711a66d0ff71657cbe9230c0e5dbe098bdf56bd03794418d819045568630042"
+    },
+    {
+      "path": "Kuro/Views/ConciergeView+AniListImport.swift",
+      "group": "ios_app",
+      "physical_lines": 674,
+      "nonblank_lines": 621,
+      "sha256": "ae56b598b3a391d14b2ac80f7d431bca0c97a4157aa3f0539a8d858405b9e5bf"
+    },
+    {
+      "path": "Kuro/Views/ConciergeView.swift",
+      "group": "ios_app",
+      "physical_lines": 1681,
+      "nonblank_lines": 1501,
+      "sha256": "a304b165506a9e736bc62011c7bca05c637368fb146c1b0a8a8557ecad318a28"
+    },
+    {
+      "path": "Kuro/Views/CountdownTimer.swift",
+      "group": "ios_app",
+      "physical_lines": 80,
+      "nonblank_lines": 68,
+      "sha256": "cd854c8883e9d3d33144dcbbdaf7a411ef73319bf842f0f85d2aa4e0252f0fa4"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/AdaptationPathSection.swift",
+      "group": "ios_app",
+      "physical_lines": 418,
+      "nonblank_lines": 374,
+      "sha256": "e11fab9ebbe7f62547a7b3cfafd4b2f2b53693d0466835db674d346cdcf8b0f5"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/AnimeDetailView.swift",
+      "group": "ios_app",
+      "physical_lines": 2424,
+      "nonblank_lines": 2190,
+      "sha256": "60a7e5f548bce4552edcea47c4e388d2ff19afd2020f47336f6867da49d57722"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/CastSection.swift",
+      "group": "ios_app",
+      "physical_lines": 310,
+      "nonblank_lines": 274,
+      "sha256": "9ed4d1c80ae90f0711888aef3936706eac68658adb783a454cce26c8834024bb"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/ClubActivitySection.swift",
+      "group": "ios_app",
+      "physical_lines": 732,
+      "nonblank_lines": 657,
+      "sha256": "c6942b0876f90d6c7590d621c40e346707af9f4e9499c2fd480c1108b53689e7"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/CreditsSection.swift",
+      "group": "ios_app",
+      "physical_lines": 246,
+      "nonblank_lines": 219,
+      "sha256": "4da41dc420455e1e351624501f4c9a2ffdff583679bca53819a24fbc904c8774"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/EntityDetailSheets.swift",
+      "group": "ios_app",
+      "physical_lines": 714,
+      "nonblank_lines": 645,
+      "sha256": "e7d659ab5d06bcbd80dbd0a345b73714129aefc9d0e232ab6206bd414b6c106a"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/ExternalLinksSection.swift",
+      "group": "ios_app",
+      "physical_lines": 82,
+      "nonblank_lines": 73,
+      "sha256": "610b1d5a81c557dd14cf464e54034845676895baf2b197e981aa54596739620f"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/FriendsActivitySection.swift",
+      "group": "ios_app",
+      "physical_lines": 416,
+      "nonblank_lines": 376,
+      "sha256": "e355f0a3defeba5d5f227a81ee5d98b4575155a24dfdbe5d97fd8a1804b5588f"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/MangaDetailView.swift",
+      "group": "ios_app",
+      "physical_lines": 1544,
+      "nonblank_lines": 1400,
+      "sha256": "43e70e38a185c96838c0d8e9b01955e85125ddbe4f445c5169ee10a77560768b"
+    },
+    {
+      "path": "Kuro/Views/DetailPages/MediaDetailSheet.swift",
+      "group": "ios_app",
+      "physical_lines": 146,
+      "nonblank_lines": 139,
+      "sha256": "04f71c702a16d918193be2f008e0479a1403edcd468836a3f6f159f7553f2f88"
+    },
+    {
+      "path": "Kuro/Views/DiscoverOneThingCard.swift",
+      "group": "ios_app",
+      "physical_lines": 155,
+      "nonblank_lines": 139,
+      "sha256": "edc9069f0ab3724b0f664bc619e41c2dbec37a199e92140952b6ba2f52ddb42e"
+    },
+    {
+      "path": "Kuro/Views/DiscoverViewModel.swift",
+      "group": "ios_app",
+      "physical_lines": 61,
+      "nonblank_lines": 52,
+      "sha256": "e54df130efec328725af80035a86dd3f926000259d9da693f02dbc29993fef1d"
+    },
+    {
+      "path": "Kuro/Views/EditorialCards.swift",
+      "group": "ios_app",
+      "physical_lines": 357,
+      "nonblank_lines": 325,
+      "sha256": "c91bbc88463b05a56972fd19077bfe40eeec54cda79430edc73dde834567d8c8"
+    },
+    {
+      "path": "Kuro/Views/EditorialCollectionComponents.swift",
+      "group": "ios_app",
+      "physical_lines": 936,
+      "nonblank_lines": 852,
+      "sha256": "065a0d340fa42677da1a62cd112080f19cba3448f51a4f6cc7ed540c07e0c77d"
+    },
+    {
+      "path": "Kuro/Views/EditorialCollectionView.swift",
+      "group": "ios_app",
+      "physical_lines": 829,
+      "nonblank_lines": 767,
+      "sha256": "dfe7553e6f0e6edccf4d9f6500d204bff207d005eacda6c94393e65e785c8ec2"
+    },
+    {
+      "path": "Kuro/Views/EditorialDiscoverRouting.swift",
+      "group": "ios_app",
+      "physical_lines": 50,
+      "nonblank_lines": 47,
+      "sha256": "f0f216efcdbbf3b52453f6ae9a334a5bfe72d7780f7666a1f480553c38cce3fa"
+    },
+    {
+      "path": "Kuro/Views/EditorialDiscoverView.swift",
+      "group": "ios_app",
+      "physical_lines": 1752,
+      "nonblank_lines": 1589,
+      "sha256": "b1c21ad15a7467fdeca03a1fdd0236a3cf1e2b5535fe4f8623343e40c151b7a4"
+    },
+    {
+      "path": "Kuro/Views/EditorialSearchView.swift",
+      "group": "ios_app",
+      "physical_lines": 771,
+      "nonblank_lines": 694,
+      "sha256": "b3d4de304cdd9532df97c3007a94491412e38cc3afd5b3620ad1c73f99712919"
+    },
+    {
+      "path": "Kuro/Views/GenreHubView.swift",
+      "group": "ios_app",
+      "physical_lines": 213,
+      "nonblank_lines": 187,
+      "sha256": "a8d9cb5ce4fe0349c201924fe741258ece72c2d0b34f74014b0226dbfce319b6"
+    },
+    {
+      "path": "Kuro/Views/KuroCachedAsyncImage.swift",
+      "group": "ios_app",
+      "physical_lines": 86,
+      "nonblank_lines": 78,
+      "sha256": "5eef08d45394621b661ccf20f9a0cde572d9682ab0bba00d308f3f56e7b5cb4a"
+    },
+    {
+      "path": "Kuro/Views/KuroCardText.swift",
+      "group": "ios_app",
+      "physical_lines": 34,
+      "nonblank_lines": 31,
+      "sha256": "7ef15b7832e98f52ad3b6097c49244d6601a9f12282687900d7a7d5e1ecc464f"
+    },
+    {
+      "path": "Kuro/Views/KuroConciergeMark.swift",
+      "group": "ios_app",
+      "physical_lines": 89,
+      "nonblank_lines": 73,
+      "sha256": "3714e6e0c17b871c9d9c4fdc46ef9ffc41624a55a42db1edf5767bc6767f04ee"
+    },
+    {
+      "path": "Kuro/Views/KuroDeliberateTap.swift",
+      "group": "ios_app",
+      "physical_lines": 26,
+      "nonblank_lines": 22,
+      "sha256": "cd26d3133cda097791911755dad0d3d074c070238242f20ccd4515618ced7c5b"
+    },
+    {
+      "path": "Kuro/Views/KuroGestureCoordinator.swift",
+      "group": "ios_app",
+      "physical_lines": 35,
+      "nonblank_lines": 29,
+      "sha256": "922023644bfd75709e4f23c1e463b627b4c5b587e30afa2ef570ebc49195a65a"
+    },
+    {
+      "path": "Kuro/Views/KuroGesturePolicy.swift",
+      "group": "ios_app",
+      "physical_lines": 10,
+      "nonblank_lines": 9,
+      "sha256": "865bef0167f78d800a321ed5c936f794d22e1fd853379188f89dd944c30811bc"
+    },
+    {
+      "path": "Kuro/Views/KuroGlass.swift",
+      "group": "ios_app",
+      "physical_lines": 147,
+      "nonblank_lines": 133,
+      "sha256": "90df69e46c578979b00e5f1d9a17a21dc3661724b49b7facab640f6b489aebf5"
+    },
+    {
+      "path": "Kuro/Views/KuroInteractionEnvironment.swift",
+      "group": "ios_app",
+      "physical_lines": 16,
+      "nonblank_lines": 12,
+      "sha256": "ac5126a97fd3c023a560b8d07b2bc2dc9f6b9291cded3d35ec2ab165582802e7"
+    },
+    {
+      "path": "Kuro/Views/KuroLoadMoreSentinel.swift",
+      "group": "ios_app",
+      "physical_lines": 51,
+      "nonblank_lines": 46,
+      "sha256": "09e3c8cf3139b5fa13c79b23c5ba08d2bc4eb681ff6c700385c4c60e91e26468"
+    },
+    {
+      "path": "Kuro/Views/KuroPagingGesture.swift",
+      "group": "ios_app",
+      "physical_lines": 81,
+      "nonblank_lines": 74,
+      "sha256": "8198cc17ac8bd1b61e17d1138adacf6770f906e9add977dfc9f1056dc8dc5774"
+    },
+    {
+      "path": "Kuro/Views/KuroRefinedCard.swift",
+      "group": "ios_app",
+      "physical_lines": 756,
+      "nonblank_lines": 678,
+      "sha256": "3b8c6f2921a3610f5a5da52d75ebec680c2be01065c9d3ac35cc99fe4daa2319"
+    },
+    {
+      "path": "Kuro/Views/KuroToast.swift",
+      "group": "ios_app",
+      "physical_lines": 100,
+      "nonblank_lines": 90,
+      "sha256": "de1ae5cfd213e36182a9ffc8f4adda4b4332b5b1ebc0a519d58c38e9a753a4df"
+    },
+    {
+      "path": "Kuro/Views/KuroTransientBanner.swift",
+      "group": "ios_app",
+      "physical_lines": 26,
+      "nonblank_lines": 23,
+      "sha256": "136aff540d0ac235d3a958c63395cb1df362254a8520d0278c368eda675c8f70"
+    },
+    {
+      "path": "Kuro/Views/OnboardingView.swift",
+      "group": "ios_app",
+      "physical_lines": 251,
+      "nonblank_lines": 225,
+      "sha256": "24d74b1c9a18a6d85f9fa27bd646270698b2f55aa59746aa8653f5e3bf5138cc"
+    },
+    {
+      "path": "Kuro/Views/PosterView.swift",
+      "group": "ios_app",
+      "physical_lines": 109,
+      "nonblank_lines": 103,
+      "sha256": "c07fce847d900ff4c1c63f792a84dbd6ad3009c027c76438afbc5f0001163358"
+    },
+    {
+      "path": "Kuro/Views/ProfileFreshnessCard.swift",
+      "group": "ios_app",
+      "physical_lines": 164,
+      "nonblank_lines": 144,
+      "sha256": "f498b2adfd56ebf25afcbc782b28e23c574a4939b03861ef52eed19ecbf4c5ed"
+    },
+    {
+      "path": "Kuro/Views/ProfileView.swift",
+      "group": "ios_app",
+      "physical_lines": 1253,
+      "nonblank_lines": 1123,
+      "sha256": "e2dd4ed7e37d5c2c3259b23fc88b57c8f10414a645a4bc39ed82ee99143807f0"
+    },
+    {
+      "path": "Kuro/Views/QuickVerdictActionCard.swift",
+      "group": "ios_app",
+      "physical_lines": 751,
+      "nonblank_lines": 671,
+      "sha256": "0416801921efeb71cebbe97d2cc679713ed72681fd79a80a65da7fcda2218a4d"
+    },
+    {
+      "path": "Kuro/Views/TasteDeckView.swift",
+      "group": "ios_app",
+      "physical_lines": 1352,
+      "nonblank_lines": 1234,
+      "sha256": "ab43bf0f80031ea3f3fbdb12b23fb687e13133aabf6ee1b612c822600651bc81"
+    },
+    {
+      "path": "Kuro/Views/TastePicksView.swift",
+      "group": "ios_app",
+      "physical_lines": 188,
+      "nonblank_lines": 173,
+      "sha256": "ed96de86cae42e7c55b27608045b19f7e5558e7f1b893d4994d209ea54b5fb40"
+    },
+    {
+      "path": "Kuro/Views/UIComponents.swift",
+      "group": "ios_app",
+      "physical_lines": 86,
+      "nonblank_lines": 75,
+      "sha256": "8a86f2e1d2c1b66ab91ba55138ef8e40d18159c2a93eb5868f4bfb181c8d4965"
+    },
+    {
+      "path": "KuroTests/KuroTests.swift",
+      "group": "ios_tests",
+      "physical_lines": 1143,
+      "nonblank_lines": 1026,
+      "sha256": "c9312ebdc81d2a4d3f54a1c31d23a6b6c74c0ae5663e6a4bddb4d0c57c65c4b8"
+    },
+    {
+      "path": "KuroUITests/KuroUITests.swift",
+      "group": "ios_tests",
+      "physical_lines": 296,
+      "nonblank_lines": 251,
+      "sha256": "7f04bf8f9e0a5ef23b9b02392ebe0768c6d9c74a0607bee6d08a7d58f87df2f2"
+    },
+    {
+      "path": "KuroUITests/KuroUITestsLaunchTests.swift",
+      "group": "ios_tests",
+      "physical_lines": 33,
+      "nonblank_lines": 26,
+      "sha256": "1761f6c4c6dfd22bc07a2992930799223f1980213b38085ebf499f55058bc407"
+    },
+    {
+      "path": "KuroUITests/SnapshotHelper.swift",
+      "group": "ios_tests",
+      "physical_lines": 313,
+      "nonblank_lines": 258,
+      "sha256": "434d6d7d0578f3b4b7dde23fda0ab2df53ffb9e392bf41916b13cd066183b65f"
+    },
+    {
+      "path": "scripts/apply_remote_sql.js",
+      "group": "operational_scripts",
+      "physical_lines": 47,
+      "nonblank_lines": 37,
+      "sha256": "30ac6db917fe042428395118a339c44f8dd6004663f9a2f7c6106a1d9cd17210"
+    },
+    {
+      "path": "scripts/audit_curated_rails_quality.js",
+      "group": "operational_scripts",
+      "physical_lines": 457,
+      "nonblank_lines": 398,
+      "sha256": "fdfecfd8df7724e21b430bdc5422a276b031c463572a945adfc8a226e56500e1"
+    },
+    {
+      "path": "scripts/capture_screen_canvas.py",
+      "group": "operational_scripts",
+      "physical_lines": 178,
+      "nonblank_lines": 174,
+      "sha256": "2a6f894116ca99e38caa3b228ca6f4bad06d3c68e4545537dd4170f50bae882d"
+    },
+    {
+      "path": "scripts/catalog_safety_dashboard_server.js",
+      "group": "operational_scripts",
+      "physical_lines": 410,
+      "nonblank_lines": 374,
+      "sha256": "cac0d6ba9c5a5ff04acca2449d0cfe999c22793fe29dd785eea521d6b6e981aa"
+    },
+    {
+      "path": "scripts/catalog_safety_worker.swift",
+      "group": "operational_scripts",
+      "physical_lines": 762,
+      "nonblank_lines": 681,
+      "sha256": "510332edbc76b3039758e81209433e20808110b96f1898beb3b8049faeff05a2"
+    },
+    {
+      "path": "scripts/check_cron_health.js",
+      "group": "operational_scripts",
+      "physical_lines": 334,
+      "nonblank_lines": 303,
+      "sha256": "d73566bfd34dedc3a34c7855f2239ea4a327561d76436f4e2d7621abd3f5ad52"
+    },
+    {
+      "path": "scripts/collect_db_metrics.js",
+      "group": "operational_scripts",
+      "physical_lines": 160,
+      "nonblank_lines": 139,
+      "sha256": "ec92ce9f44f27812935077d5fd31fd85bf4929b7871153a7678de3bbfa5ac9f2"
+    },
+    {
+      "path": "scripts/compile_curation_ingest.js",
+      "group": "operational_scripts",
+      "physical_lines": 458,
+      "nonblank_lines": 420,
+      "sha256": "962f3f46f168398c0d619254fcb5807e236fc8854aef5db97f67ca4dd81dde4a"
+    },
+    {
+      "path": "scripts/concierge_corpus_generate.js",
+      "group": "operational_scripts",
+      "physical_lines": 215,
+      "nonblank_lines": 195,
+      "sha256": "984e50d5faf0bb130b77851de3189029789ce0327263d6cc89874155105e176b"
+    },
+    {
+      "path": "scripts/concierge_eval_parse.js",
+      "group": "operational_scripts",
+      "physical_lines": 321,
+      "nonblank_lines": 283,
+      "sha256": "d249a5c72c45847e8f63746043751a371583b6392b8df873848bdb7217885a9f"
+    },
+    {
+      "path": "scripts/eval_concierge_modes.js",
+      "group": "operational_scripts",
+      "physical_lines": 78,
+      "nonblank_lines": 69,
+      "sha256": "8689da0304d6a41de8cef52866f4ecd5553ebdf3ca4b7c4e3af572fbddec6474"
+    },
+    {
+      "path": "scripts/eval_realm_rec_gold.js",
+      "group": "operational_scripts",
+      "physical_lines": 386,
+      "nonblank_lines": 349,
+      "sha256": "56f551707045a0c8622e1926e1b1e1693ad867e9250ecc57bfc57217e1ff94cc"
+    },
+    {
+      "path": "scripts/eval_router.js",
+      "group": "operational_scripts",
+      "physical_lines": 277,
+      "nonblank_lines": 235,
+      "sha256": "81a77b0f8665952baa2fd212081263937d2b83625dfa9d9b2b341205d2d76217"
+    },
+    {
+      "path": "scripts/export_screen_canvas.py",
+      "group": "operational_scripts",
+      "physical_lines": 49,
+      "nonblank_lines": 46,
+      "sha256": "d9316445bd14a387cd2870e085846b2b31ce05cdf1864427e61d7353c8501716"
+    },
+    {
+      "path": "scripts/generate_app_state_codebase_bundle.js",
+      "group": "operational_scripts",
+      "physical_lines": 173,
+      "nonblank_lines": 152,
+      "sha256": "4a3b3150aa8801abaf208f6951652d4c54f6a4f5951f074c5801f2b26ca13ff8"
+    },
+    {
+      "path": "scripts/generate_app_state_inventory.js",
+      "group": "operational_scripts",
+      "physical_lines": 134,
+      "nonblank_lines": 113,
+      "sha256": "8cdc23e534e5792673ae826ce9a5d2d709a56ede6db550a3b1d5ac8da4dfd736"
+    },
+    {
+      "path": "scripts/generate_app_state_live_snapshot.js",
+      "group": "operational_scripts",
+      "physical_lines": 99,
+      "nonblank_lines": 82,
+      "sha256": "9873f851ede49e1bb704506ca0261a3e2499114994319cd24e6b8e8f801346e3"
+    },
+    {
+      "path": "scripts/generate_app_state_maps.js",
+      "group": "operational_scripts",
+      "physical_lines": 238,
+      "nonblank_lines": 197,
+      "sha256": "0f9d0e9f0a60e47b3b71c4117472e171cce5f80a567e9e949f734d3e93c38ebf"
+    },
+    {
+      "path": "scripts/generate_app_state_sources.js",
+      "group": "operational_scripts",
+      "physical_lines": 112,
+      "nonblank_lines": 92,
+      "sha256": "030aa47f930f4f27c84731b5d2480440d10105d3bad130421c3cb272f8610b21"
+    },
+    {
+      "path": "scripts/generate_curated_rail_candidates.js",
+      "group": "operational_scripts",
+      "physical_lines": 227,
+      "nonblank_lines": 189,
+      "sha256": "68f8c0f80eda6fc72caac164e81dfaa179d7bfd3d4755ff07bcfc4fb2d5224f0"
+    },
+    {
+      "path": "scripts/generate_curated_rails_migration.js",
+      "group": "operational_scripts",
+      "physical_lines": 172,
+      "nonblank_lines": 146,
+      "sha256": "0fbe8972d77f0f60397e0a4f1aa9b1c2c141ff33a02e0d50dc734de02f4bec9c"
+    },
+    {
+      "path": "scripts/generate_more_vibe_rails_migration.js",
+      "group": "operational_scripts",
+      "physical_lines": 359,
+      "nonblank_lines": 316,
+      "sha256": "8e9fe4b58dceb1213f8eafec13b082968ee1da9a24fd29eaf5f3ed182c066008"
+    },
+    {
+      "path": "scripts/generate_premium_picks_rails_migration.js",
+      "group": "operational_scripts",
+      "physical_lines": 200,
+      "nonblank_lines": 174,
+      "sha256": "b2da8e89de7e64ea53c5ec376dc6115077c1f386d0a48554da89bd77ad739489"
+    },
+    {
+      "path": "scripts/generate_rail_migration.js",
+      "group": "operational_scripts",
+      "physical_lines": 193,
+      "nonblank_lines": 162,
+      "sha256": "e09109f54baf5b362e2608fe4903dd2f95beced281ac99941d1673a88472ca1c"
+    },
+    {
+      "path": "scripts/generate_refined_short_and_fantasy_rails_migration.js",
+      "group": "operational_scripts",
+      "physical_lines": 325,
+      "nonblank_lines": 288,
+      "sha256": "228a4c793794c17abde2b9d86551cebc56960a39e9a34bc135d387848dc43b94"
+    },
+    {
+      "path": "scripts/generate_vibe_rails_migration.js",
+      "group": "operational_scripts",
+      "physical_lines": 340,
+      "nonblank_lines": 297,
+      "sha256": "69f7f96573efa0cde5931d1406b2125392785e95105a6c3d6a6d2e3c450942a8"
+    },
+    {
+      "path": "scripts/genre_audit.js",
+      "group": "operational_scripts",
+      "physical_lines": 251,
+      "nonblank_lines": 210,
+      "sha256": "bd8e4cc6d10ee2c276625c37d10038b6389ed4870011c9861b509d6fe363285b"
+    },
+    {
+      "path": "scripts/import_anilist_fast.js",
+      "group": "operational_scripts",
+      "physical_lines": 420,
+      "nonblank_lines": 388,
+      "sha256": "2777917c7dcae9da6d0700bbcd7e0eaf9dda781ae67ea2776ca38e0990e8f050"
+    },
+    {
+      "path": "scripts/import_anilist_local.js",
+      "group": "operational_scripts",
+      "physical_lines": 450,
+      "nonblank_lines": 421,
+      "sha256": "35c01ed7d6146c376128046e3ae03567db55b95f20156073fd52798f146085a2"
+    },
+    {
+      "path": "scripts/import_anilist_rec_edges.js",
+      "group": "operational_scripts",
+      "physical_lines": 517,
+      "nonblank_lines": 464,
+      "sha256": "d708a02927b0324a7626f42fe824b9e354a70736da52ea6e55fd152f5f408a32"
+    },
+    {
+      "path": "scripts/install_catalog_safety_launchd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 104,
+      "nonblank_lines": 90,
+      "sha256": "fa4951c77b330de946309faf32670e428c60e0ec777d06854aafe00e76fe26b6"
+    },
+    {
+      "path": "scripts/install_local_cicd_launchd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 141,
+      "nonblank_lines": 129,
+      "sha256": "b732f94262e382720add4b1fd4fd3d888ede63875a31125d56199be22c107459"
+    },
+    {
+      "path": "scripts/install_media_relations_launchd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 136,
+      "nonblank_lines": 122,
+      "sha256": "03e40d30caea41e0f1e5a495a7414d93ac24a529ce68d0c48bb8c80eefe7934b"
+    },
+    {
+      "path": "scripts/install_provider_availability_launchd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 103,
+      "nonblank_lines": 89,
+      "sha256": "dd5d49f8357335889ab6e3da95ceb98d6ff2e5507ff0f9bd107cfe418eb50c5f"
+    },
+    {
+      "path": "scripts/install_synopsis_dashboard_launchd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 55,
+      "nonblank_lines": 45,
+      "sha256": "b9e96b81e2dd63c60c6c27a34ef62266a09d37ae8c4d19bf95dd54bc0d54f56a"
+    },
+    {
+      "path": "scripts/install_synopsis_enrichment_launchd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 112,
+      "nonblank_lines": 98,
+      "sha256": "a8a9204b0f7c979fae037e66a45f9de03142731743aa4bc10fd77b53b2fcbbf0"
+    },
+    {
+      "path": "scripts/install_unified_dashboard_launchd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 54,
+      "nonblank_lines": 43,
+      "sha256": "fbe0f0a545ea0ca42de359ec80c388dbf380a125dc9ef6d4dc3e32dea40f862b"
+    },
+    {
+      "path": "scripts/legacy/03_updated_edge_function.js",
+      "group": "operational_scripts",
+      "physical_lines": 550,
+      "nonblank_lines": 478,
+      "sha256": "96f91db2bfcd280f81d140c9fe2e48f42b07eec87e3a867e6b8a4ac276687cd6"
+    },
+    {
+      "path": "scripts/legacy/04_manga_edge_function.js",
+      "group": "operational_scripts",
+      "physical_lines": 364,
+      "nonblank_lines": 312,
+      "sha256": "3014d96659a833db17406ea5e90f2ae141304caacbe1fe78f5db0869902313cf"
+    },
+    {
+      "path": "scripts/legacy/06_anime_edge_function_with_episodes.js",
+      "group": "operational_scripts",
+      "physical_lines": 414,
+      "nonblank_lines": 353,
+      "sha256": "9d2b388ffa26ebb2cbb30343b0fd03fed12c2685c7e7d85d60525670bed4d72b"
+    },
+    {
+      "path": "scripts/legacy/07_manga_edge_function_with_chapters.js",
+      "group": "operational_scripts",
+      "physical_lines": 419,
+      "nonblank_lines": 358,
+      "sha256": "7ae64cd87fd421d2862cdc201d54a3bb8bf18cf8929f3d856d3c80984c02c96e"
+    },
+    {
+      "path": "scripts/legacy/CONCIERGE_FINAL_INTEGRATED.swift",
+      "group": "operational_scripts",
+      "physical_lines": 649,
+      "nonblank_lines": 556,
+      "sha256": "9105c813df295d4a97d65d3fb14923ddedc4198e7c3d3c4c14f8964ce9d2277e"
+    },
+    {
+      "path": "scripts/lib/load_project_public_env.sh",
+      "group": "operational_scripts",
+      "physical_lines": 31,
+      "nonblank_lines": 28,
+      "sha256": "c718d1a8c0e2d98fb28e585831b320f7f8d18457c5a2bbead8e85cde860c4bc8"
+    },
+    {
+      "path": "scripts/lib/project_config.js",
+      "group": "operational_scripts",
+      "physical_lines": 51,
+      "nonblank_lines": 45,
+      "sha256": "149b637330130e51f66e64b6d2e538b465143093828eb666603b72df76135659"
+    },
+    {
+      "path": "scripts/load_test_concierge.js",
+      "group": "operational_scripts",
+      "physical_lines": 172,
+      "nonblank_lines": 154,
+      "sha256": "7fcb5cb2d65e1cbc2af19bb38dc130d035b123cf1d80c9dadfa15dc200724f0a"
+    },
+    {
+      "path": "scripts/local_cd.sh",
+      "group": "operational_scripts",
+      "physical_lines": 111,
+      "nonblank_lines": 98,
+      "sha256": "c96ae96313773f01364e06626e6e62ef140c474297f698f8b6fa0fc6558d9f76"
+    },
+    {
+      "path": "scripts/local_ci.sh",
+      "group": "operational_scripts",
+      "physical_lines": 77,
+      "nonblank_lines": 64,
+      "sha256": "08aeaed3662696cafde5d824d8d50dc3fb3486b2afb6c0f8a81879fa4296aa6d"
+    },
+    {
+      "path": "scripts/manual/test_bulk_import_anime.js",
+      "group": "operational_scripts",
+      "physical_lines": 128,
+      "nonblank_lines": 105,
+      "sha256": "ea09c35e848c2683ddb5e1dbd06aa5d32ce521c20b760965930d15ed1d5077c6"
+    },
+    {
+      "path": "scripts/manual/test_bulk_import_manga.js",
+      "group": "operational_scripts",
+      "physical_lines": 171,
+      "nonblank_lines": 144,
+      "sha256": "e599ccbefa8bdd8215c9e93cc8455f042657c59c74b0b943e73f39d7d62bab5b"
+    },
+    {
+      "path": "scripts/manual/test_bulk_import_manga_with_chapters.js",
+      "group": "operational_scripts",
+      "physical_lines": 215,
+      "nonblank_lines": 182,
+      "sha256": "fc8bc17c02d2fd310a9846254297fb1c7f968d42bdd1fa0914dcb891bb04824c"
+    },
+    {
+      "path": "scripts/manual/verify_supabase_connection.js",
+      "group": "operational_scripts",
+      "physical_lines": 98,
+      "nonblank_lines": 82,
+      "sha256": "eaf8df05f90a4ed5648d7f4bbbb1379b4f95dd38bd0dcd330df753be636f61c0"
+    },
+    {
+      "path": "scripts/media_relations_worker.js",
+      "group": "operational_scripts",
+      "physical_lines": 617,
+      "nonblank_lines": 567,
+      "sha256": "d1d6a0fed6e3df6817275a1268d84c2a7355882e543bb8a8c0bde692e169d716"
+    },
+    {
+      "path": "scripts/provider_availability_dashboard_server.js",
+      "group": "operational_scripts",
+      "physical_lines": 314,
+      "nonblank_lines": 284,
+      "sha256": "bb02b5707e18c46ea5544a46dbb30fc60627b225eafc3f74b29f590706d4176e"
+    },
+    {
+      "path": "scripts/provider_availability_worker.swift",
+      "group": "operational_scripts",
+      "physical_lines": 1181,
+      "nonblank_lines": 1058,
+      "sha256": "1d44bb79f0e1506cddd1dfb3fbcc57ff0e2ffa134b946a0709b3462ec1b83f9e"
+    },
+    {
+      "path": "scripts/quality-gates/audit_rails.sh",
+      "group": "operational_scripts",
+      "physical_lines": 119,
+      "nonblank_lines": 104,
+      "sha256": "6cdc23303d5d5cfaa1a979ad78201a29ce27c73d8a8ab7427105010bf150f18f"
+    },
+    {
+      "path": "scripts/quality-gates/build_ios.sh",
+      "group": "operational_scripts",
+      "physical_lines": 42,
+      "nonblank_lines": 33,
+      "sha256": "d73790d34dfb9e10b19ec5540613cd7c5eef7b2d9414ef05cff4971d67aca6fd"
+    },
+    {
+      "path": "scripts/quality-gates/check_docs_current_state.py",
+      "group": "operational_scripts",
+      "physical_lines": 73,
+      "nonblank_lines": 64,
+      "sha256": "c4fb9e5080d05afbfcd57251369fe113251ea2d4efe841324ef626bdef313c16"
+    },
+    {
+      "path": "scripts/quality-gates/check_docs_current_state.sh",
+      "group": "operational_scripts",
+      "physical_lines": 13,
+      "nonblank_lines": 9,
+      "sha256": "27c602b324d043133572f2d41b4f8690f267d65ab4f0ca3670704ecb67d62444"
+    },
+    {
+      "path": "scripts/quality-gates/check_migrations.sh",
+      "group": "operational_scripts",
+      "physical_lines": 124,
+      "nonblank_lines": 104,
+      "sha256": "5cd29b91815b14962da80b2df6b72a412c631af9afa39452f6f0bb41b62ebfaa"
+    },
+    {
+      "path": "scripts/quality-gates/check_secrets.sh",
+      "group": "operational_scripts",
+      "physical_lines": 103,
+      "nonblank_lines": 85,
+      "sha256": "7bf785fab84221c5531e610fae3c0cb978e0931f4c4fe71d9dee4799b3f2bf46"
+    },
+    {
+      "path": "scripts/quality-gates/router_test_cases.js",
+      "group": "operational_scripts",
+      "physical_lines": 288,
+      "nonblank_lines": 255,
+      "sha256": "2563a5bf88100e588568296737740a755bedd77db4353224eaf9355aafae9676"
+    },
+    {
+      "path": "scripts/quality-gates/run_all.sh",
+      "group": "operational_scripts",
+      "physical_lines": 115,
+      "nonblank_lines": 100,
+      "sha256": "49f967f5d182a5e9e3d52fd963c890c512828c2287853bb40d089ce47ba85a7f"
+    },
+    {
+      "path": "scripts/quality-gates/test_concierge_corpora.sh",
+      "group": "operational_scripts",
+      "physical_lines": 74,
+      "nonblank_lines": 60,
+      "sha256": "e243834954a4e5b04aa61fb1f1841b9ab4ef292391b5a9dc3808d715719299c7"
+    },
+    {
+      "path": "scripts/quality-gates/test_ios_unit.sh",
+      "group": "operational_scripts",
+      "physical_lines": 36,
+      "nonblank_lines": 30,
+      "sha256": "c77a717a9dc1350c117b260820b1c05ac474612e7b9eac59da151aea1e28b8ca"
+    },
+    {
+      "path": "scripts/quality-gates/test_router_offline.sh",
+      "group": "operational_scripts",
+      "physical_lines": 33,
+      "nonblank_lines": 26,
+      "sha256": "72d2bd2ede63e27ba2a24a5c904d060673720c87496cf599657626ef75dd9d8b"
+    },
+    {
+      "path": "scripts/realm_descriptor_validate_selftest.js",
+      "group": "operational_scripts",
+      "physical_lines": 68,
+      "nonblank_lines": 61,
+      "sha256": "81067ff2d2b5c52b40d367f326108d1e2ee273a8d9cfa4b8678f7176758fe699"
+    },
+    {
+      "path": "scripts/realm_descriptor_worker.js",
+      "group": "operational_scripts",
+      "physical_lines": 337,
+      "nonblank_lines": 307,
+      "sha256": "d03a57584b0ea3e9e2ca66ecf27bd71f51773c9cfcb42b41329e69b5bac43784"
+    },
+    {
+      "path": "scripts/realm_gold_owner_shortlist.js",
+      "group": "operational_scripts",
+      "physical_lines": 165,
+      "nonblank_lines": 149,
+      "sha256": "c5c75f9e57656d0ccedc74e26914f1b6aefadf32d57537d7dc6ceb14d0753201"
+    },
+    {
+      "path": "scripts/realm_llm_apply_deltas.js",
+      "group": "operational_scripts",
+      "physical_lines": 88,
+      "nonblank_lines": 77,
+      "sha256": "0ba2ab8982a58d1766f00050fdd5191de1178c8e5b7d1c0db16b65c4833fc2a2"
+    },
+    {
+      "path": "scripts/realm_llm_pass_fetch.js",
+      "group": "operational_scripts",
+      "physical_lines": 303,
+      "nonblank_lines": 270,
+      "sha256": "fec91657ee822b157f6bd23eccd98c376fcca05f3e957aedb5f1a3ee4d36c478"
+    },
+    {
+      "path": "scripts/realm_llm_pass_submit.js",
+      "group": "operational_scripts",
+      "physical_lines": 354,
+      "nonblank_lines": 315,
+      "sha256": "08f4c3edfc9a1811c7fdc99a086b0a5381865b20e2ee10caeceda6d3482a32c0"
+    },
+    {
+      "path": "scripts/realm_llm_qa_fetch.js",
+      "group": "operational_scripts",
+      "physical_lines": 203,
+      "nonblank_lines": 182,
+      "sha256": "b97e69de82246c48911e3ad5370656d8c477894f32ebf967e827c1c59c474854"
+    },
+    {
+      "path": "scripts/realm_llm_salvage_swarm.js",
+      "group": "operational_scripts",
+      "physical_lines": 198,
+      "nonblank_lines": 177,
+      "sha256": "be3d7c844aec087130ee2ccd665e31d62157b993ddd80d599f27caf19d9005c9"
+    },
+    {
+      "path": "scripts/realm_repair/run_phase1_acceptance.js",
+      "group": "operational_scripts",
+      "physical_lines": 313,
+      "nonblank_lines": 280,
+      "sha256": "d8075af958549c894637420d11556c2467728d05d9846b5640e4cc0b9ef95e2d"
+    },
+    {
+      "path": "scripts/report_airing_window.js",
+      "group": "operational_scripts",
+      "physical_lines": 42,
+      "nonblank_lines": 34,
+      "sha256": "18d63a0a92432c6d0de2943988bdd96f2a684507d5c459211e6e20181e695265"
+    },
+    {
+      "path": "scripts/run_catalog_safety.sh",
+      "group": "operational_scripts",
+      "physical_lines": 85,
+      "nonblank_lines": 72,
+      "sha256": "99aaacf1c8af2182a383d316ad7e4e994542d1cf20a5988d761a4680dcf22e89"
+    },
+    {
+      "path": "scripts/run_full_import.js",
+      "group": "operational_scripts",
+      "physical_lines": 205,
+      "nonblank_lines": 192,
+      "sha256": "7e3d3d7f308816baa7e7d15110c888665dbb9a4804814456503fdb8e86249d27"
+    },
+    {
+      "path": "scripts/run_local_cd_logged.sh",
+      "group": "operational_scripts",
+      "physical_lines": 37,
+      "nonblank_lines": 31,
+      "sha256": "8d6d59ff4f93d3bcdb4f43d02c6f54e2d7a7644664f41c28c9f87c7d0cbf83f8"
+    },
+    {
+      "path": "scripts/run_local_ci_logged.sh",
+      "group": "operational_scripts",
+      "physical_lines": 37,
+      "nonblank_lines": 31,
+      "sha256": "8074c5ede984472e52005a1a636154f6861b0a224abc164ef48b8776793cfaa0"
+    },
+    {
+      "path": "scripts/run_manga_chapter_crunch.js",
+      "group": "operational_scripts",
+      "physical_lines": 207,
+      "nonblank_lines": 179,
+      "sha256": "217e195818d766b8ab08499c5d14e3ecd7db6f3c12815895952f59415ddb9cba"
+    },
+    {
+      "path": "scripts/run_media_relations_refresh.sh",
+      "group": "operational_scripts",
+      "physical_lines": 201,
+      "nonblank_lines": 178,
+      "sha256": "e1e8f713e7550cf0fe7b558efab14bb6676101583472dbaebeaf287c42a50e48"
+    },
+    {
+      "path": "scripts/run_provider_availability.sh",
+      "group": "operational_scripts",
+      "physical_lines": 84,
+      "nonblank_lines": 71,
+      "sha256": "da02822ec04ac940e41e3c87d46d0516af4d6ba4016c8b914ff51294517e9ecd"
+    },
+    {
+      "path": "scripts/run_synopsis_enrichment.sh",
+      "group": "operational_scripts",
+      "physical_lines": 87,
+      "nonblank_lines": 74,
+      "sha256": "a6b8e7b31f4e31a6c531c2ac99d86e547e1e9d8ada8a716b2891aa32f315247d"
+    },
+    {
+      "path": "scripts/serve_design_share.py",
+      "group": "operational_scripts",
+      "physical_lines": 101,
+      "nonblank_lines": 96,
+      "sha256": "eca45bed8d53645b90cba4b316a277c2c269a798baaad6b78b06c065fa11bd2b"
+    },
+    {
+      "path": "scripts/serve_live_preview.py",
+      "group": "operational_scripts",
+      "physical_lines": 51,
+      "nonblank_lines": 48,
+      "sha256": "dd2792cfbf548f822876b770170964c53aabd8abb814091d73cf4a909ac90bda"
+    },
+    {
+      "path": "scripts/smoke_concierge_recommend.js",
+      "group": "operational_scripts",
+      "physical_lines": 68,
+      "nonblank_lines": 59,
+      "sha256": "37afa244a0cbd2f9cadc304499fb80d48995bda2716fe1250c73228200872370"
+    },
+    {
+      "path": "scripts/smoke_magic_parse_apply.js",
+      "group": "operational_scripts",
+      "physical_lines": 93,
+      "nonblank_lines": 80,
+      "sha256": "f832d809fa52f6ab1a00c68fb7d57312b63e62f773c9e1d6938daf3e42635c9a"
+    },
+    {
+      "path": "scripts/synopsis_dashboard_server.js",
+      "group": "operational_scripts",
+      "physical_lines": 415,
+      "nonblank_lines": 379,
+      "sha256": "8c240bef73adb15009e9d0c5afa1727444186deb70fa99dcee425b7059f1ef42"
+    },
+    {
+      "path": "scripts/synopsis_enrichment_worker.swift",
+      "group": "operational_scripts",
+      "physical_lines": 738,
+      "nonblank_lines": 654,
+      "sha256": "7b489af0d83719958295c5e9b56f37ae5c4effd2398ba66ca8e1992e37145207"
+    },
+    {
+      "path": "scripts/unified_local_dashboard_server.js",
+      "group": "operational_scripts",
+      "physical_lines": 644,
+      "nonblank_lines": 606,
+      "sha256": "2476f408c7e408a6d02505e57a487b44bf83ac5d6281fae87075df264c74c61a"
+    },
+    {
+      "path": "supabase/functions/_shared/normalization.ts",
+      "group": "edge_typescript",
+      "physical_lines": 174,
+      "nonblank_lines": 160,
+      "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+    },
+    {
+      "path": "supabase/functions/auth-callback/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 315,
+      "nonblank_lines": 289,
+      "sha256": "bc718486267943a763e1753266d9fd4061de73f32146d29530e8ab220bf0fa4f"
+    },
+    {
+      "path": "supabase/functions/bulk-import-anime/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 747,
+      "nonblank_lines": 710,
+      "sha256": "31f2703c2fc0f46c3cc753872a0883281d9e9402d0a628d5bda4ee07bb8571ba"
+    },
+    {
+      "path": "supabase/functions/bulk-import-manga/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 770,
+      "nonblank_lines": 729,
+      "sha256": "43b01aadad8a744bff1bed8b337836578aad538453b38fcd2c9bc991c4dd3e4f"
+    },
+    {
+      "path": "supabase/functions/concierge-apply/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 515,
+      "nonblank_lines": 466,
+      "sha256": "bff6c0ab9a8006111d821e71dfb7768fe13f338819736a9ec80d28335e234e0f"
+    },
+    {
+      "path": "supabase/functions/concierge-import-anilist/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 331,
+      "nonblank_lines": 298,
+      "sha256": "aebf8b0281a85c144f4da234fe8ba7f28e9cb9c0ad667662e584f68d8e5f4f35"
+    },
+    {
+      "path": "supabase/functions/concierge-parse/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 1401,
+      "nonblank_lines": 1267,
+      "sha256": "d0f627876a0fc9dc53d7ef5bc3b22762b131ab81fafd961bca3d739dbf00eeef"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 2785,
+      "nonblank_lines": 2542,
+      "sha256": "99438d41796a9240daafd88e0ffd70f660268e8af93e9c2926ac20d04f929a86"
+    },
+    {
+      "path": "supabase/functions/concierge-resolve/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 299,
+      "nonblank_lines": 265,
+      "sha256": "78eb2c1da8c61b738b7ab8f9e85bd2df1826bbd7e29684e4e0b172bc1f2a417a"
+    },
+    {
+      "path": "supabase/functions/concierge-retrieve-assist/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 346,
+      "nonblank_lines": 303,
+      "sha256": "5d1b270212cf82ecddd7cf41da52514bc0bbf9d5b98007ea4cb2557b130438a1"
+    },
+    {
+      "path": "supabase/functions/concierge-retrieve-feedback/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 128,
+      "nonblank_lines": 110,
+      "sha256": "af977aa6edb86a669b7b6fdef0b39c441f68d753ca6c26e8ef1470640b3d6729"
+    },
+    {
+      "path": "supabase/functions/concierge-undo/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 275,
+      "nonblank_lines": 246,
+      "sha256": "f452e7b805fe5a4b8a879590ec49703a9b2e3e470fbbc03dc8303e0a981e582f"
+    },
+    {
+      "path": "supabase/functions/delete-account/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 166,
+      "nonblank_lines": 148,
+      "sha256": "19f499e5a78a262b8f16b3446d31cfc9133db0b7ee80e3bfbcef78a45985075a"
+    },
+    {
+      "path": "supabase/functions/manga-chapter-enrich/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 2088,
+      "nonblank_lines": 1898,
+      "sha256": "fc1c94f9cb7cbbbf918036d7b1f4ffae3e3da874ebb9369a3d3fdae1d400e7cf"
+    },
+    {
+      "path": "supabase/functions/manga-source-review-action/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 260,
+      "nonblank_lines": 226,
+      "sha256": "f53bff131c510a6aadeaaae0f01e0f99654ae808d9524f6136dbdc33a6e62d0f"
+    },
+    {
+      "path": "supabase/functions/mirror-images/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 523,
+      "nonblank_lines": 486,
+      "sha256": "2d8a20619ecaa66ddb95e0c6d2afc644f2f0cb0daaf3f2055dbec12f8e882b6b"
+    },
+    {
+      "path": "supabase/functions/realm-describe/index.ts",
+      "group": "edge_typescript",
+      "physical_lines": 536,
+      "nonblank_lines": 491,
+      "sha256": "1891ea64bce984ba0e3ac37b3eb0445d3c22a44cbcf16cb5fe91bab007b98f5e"
+    },
+    {
+      "path": "supabase/migrations/20250109_remote_applied_placeholder.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "d45412da35ff27f1696a6cd20c86f8ef26fde478685c93021006465700353eee"
+    },
+    {
+      "path": "supabase/migrations/20250909_remote_applied_placeholder.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "027b722655d5aa1cb53c19679cbc26cc6eb227b84c63865d8a5b796d4c067b3b"
+    },
+    {
+      "path": "supabase/migrations/20250917_remote_applied_placeholder.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "175ebb2cb18b43b64bedbb4e5acfe8856bbea55d62de5028f51a950ad487c982"
+    },
+    {
+      "path": "supabase/migrations/20260203171100_concierge_core.sql",
+      "group": "sql_migrations",
+      "physical_lines": 236,
+      "nonblank_lines": 234,
+      "sha256": "d85d2c591f26d7f07699adee6be214e8ceeb0133fb61aa5cf82d36b68f4da197"
+    },
+    {
+      "path": "supabase/migrations/20260203171110_concierge_title_search_rebuild.sql",
+      "group": "sql_migrations",
+      "physical_lines": 56,
+      "nonblank_lines": 48,
+      "sha256": "ccf1222b816a405c1c499c1d9809dad0912306fb6b2cc4b5744cc1656dac333a"
+    },
+    {
+      "path": "supabase/migrations/20260203181000_profiles_insert_policy.sql",
+      "group": "sql_migrations",
+      "physical_lines": 18,
+      "nonblank_lines": 17,
+      "sha256": "2c1d32bfb2416c9203ba0c2b07b2f50274017ff1344179e540a2ceb961f8d80b"
+    },
+    {
+      "path": "supabase/migrations/20260203183000_concierge_recommend_rpc.sql",
+      "group": "sql_migrations",
+      "physical_lines": 73,
+      "nonblank_lines": 70,
+      "sha256": "aecf7c8562b74c687261c37e3a5e3e09b3838c6a79d563858c3fc75e87dbd0a8"
+    },
+    {
+      "path": "supabase/migrations/20260203190000_editorial_recommend_engine.sql",
+      "group": "sql_migrations",
+      "physical_lines": 190,
+      "nonblank_lines": 187,
+      "sha256": "664fff853ab7e084ad8892f31bdda78c5c9e63acaa5c8066fc2ffbbd278d95cc"
+    },
+    {
+      "path": "supabase/migrations/20260203191500_recommend_focus_tags.sql",
+      "group": "sql_migrations",
+      "physical_lines": 163,
+      "nonblank_lines": 160,
+      "sha256": "20ff146d4d3c5a99874beb26dd3c997f9fd4d203aa87b3a84abbcc599f6ff2fa"
+    },
+    {
+      "path": "supabase/migrations/20260203194500_recommend_focus_filter.sql",
+      "group": "sql_migrations",
+      "physical_lines": 164,
+      "nonblank_lines": 161,
+      "sha256": "19b04793d3921f773d635a695de13bdd84b8fdaa2ab3d8a88fbe50e885786af7"
+    },
+    {
+      "path": "supabase/migrations/20260203201000_editorial_story_boosts.sql",
+      "group": "sql_migrations",
+      "physical_lines": 241,
+      "nonblank_lines": 238,
+      "sha256": "be63d6c6791f0b96741e6a55084088e7ebfcec2ccbd8765f8fd3dc441d0a3593"
+    },
+    {
+      "path": "supabase/migrations/20260203203000_recommend_seed_similarity.sql",
+      "group": "sql_migrations",
+      "physical_lines": 169,
+      "nonblank_lines": 166,
+      "sha256": "3298ed55a75c41f7df382e6ea59cb15d799f2b17d6875551e775722dd8a64374"
+    },
+    {
+      "path": "supabase/migrations/20260203223000_scale_perf_bundle_and_indexes.sql",
+      "group": "sql_migrations",
+      "physical_lines": 629,
+      "nonblank_lines": 627,
+      "sha256": "7747152b02860c4db25cecb7b2a06b2d57996f91314c247a1b68efe3b34d4ad0"
+    },
+    {
+      "path": "supabase/migrations/20260203224500_browse_rpc_add_created_at.sql",
+      "group": "sql_migrations",
+      "physical_lines": 217,
+      "nonblank_lines": 216,
+      "sha256": "17a0feb1f5a0a77d8870f323b06bb4fb4d68cea250b990143f629a951e2d7d81"
+    },
+    {
+      "path": "supabase/migrations/20260203233500_mirror_runs.sql",
+      "group": "sql_migrations",
+      "physical_lines": 14,
+      "nonblank_lines": 14,
+      "sha256": "b5d5aa88dd32c7e4edf36ce6054bed6e7e9ee237f9f8d2bdb79b4311379dab8b"
+    },
+    {
+      "path": "supabase/migrations/20260203235500_search_rpc_keyset.sql",
+      "group": "sql_migrations",
+      "physical_lines": 339,
+      "nonblank_lines": 338,
+      "sha256": "95e264b6bf1f6948d66243e4c6a4082ebbd1ffa15d5399fc6f21cb1f664918f3"
+    },
+    {
+      "path": "supabase/migrations/20260204010500_collection_paging_rpc.sql",
+      "group": "sql_migrations",
+      "physical_lines": 155,
+      "nonblank_lines": 154,
+      "sha256": "46362df4dba516ceedc9de129479c16d0580a2b1e91ed1884d6680d49a989ca2"
+    },
+    {
+      "path": "supabase/migrations/20260204124500_title_aliases.sql",
+      "group": "sql_migrations",
+      "physical_lines": 36,
+      "nonblank_lines": 35,
+      "sha256": "30180682754cc16e080f6730a65d59b8314875753b511da490e0e8131f92e465"
+    },
+    {
+      "path": "supabase/migrations/20260204133000_collection_feed_paging_rpc.sql",
+      "group": "sql_migrations",
+      "physical_lines": 133,
+      "nonblank_lines": 130,
+      "sha256": "d6ee256694c8b995f8e4426478d72d7b47f53056736ea553de83dcfbdb3ac431"
+    },
+    {
+      "path": "supabase/migrations/20260204221500_concierge_rate_limits_and_llm_budgets.sql",
+      "group": "sql_migrations",
+      "physical_lines": 288,
+      "nonblank_lines": 264,
+      "sha256": "46aa5c6721f4e38f441bb9f92ca923b972ba601397b23542c28d7901dfd38ef0"
+    },
+    {
+      "path": "supabase/migrations/20260204233000_recommend_seed_similarity_allow_anon.sql",
+      "group": "sql_migrations",
+      "physical_lines": 171,
+      "nonblank_lines": 168,
+      "sha256": "dbe3a0687b2bc6996ad8c93ed5cc6a00451580beb3fd8de24f8e296feab7ba54"
+    },
+    {
+      "path": "supabase/migrations/20260204233010_concierge_ops_observability_and_retention.sql",
+      "group": "sql_migrations",
+      "physical_lines": 371,
+      "nonblank_lines": 343,
+      "sha256": "a3752a85768d02d7b9ae10eb77c4bf34e8ad3104993086cac3b7d88241b7803e"
+    },
+    {
+      "path": "supabase/migrations/20260204234500_recommend_seed_similarity_ranked_tags.sql",
+      "group": "sql_migrations",
+      "physical_lines": 217,
+      "nonblank_lines": 214,
+      "sha256": "e2df68ae6d856ba99ebb5d5a86d7d359910d92356877c711fbfe61801cb91145"
+    },
+    {
+      "path": "supabase/migrations/20260204235500_recommend_seed_similarity_genre_gate.sql",
+      "group": "sql_migrations",
+      "physical_lines": 253,
+      "nonblank_lines": 250,
+      "sha256": "a22b10f43c654d95f4563c8f2a32634a6e27990464b6f1c0cffd14cd8ad08806"
+    },
+    {
+      "path": "supabase/migrations/20260204240500_backfill_anime_episodes_from_next_airing.sql",
+      "group": "sql_migrations",
+      "physical_lines": 20,
+      "nonblank_lines": 16,
+      "sha256": "267d6334420082a41a0563cd5c6315f8d4a95abccb93d8a581d8ca6210adb8ca"
+    },
+    {
+      "path": "supabase/migrations/20260205000500_concierge_global_llm_budget_and_default_tuning.sql",
+      "group": "sql_migrations",
+      "physical_lines": 162,
+      "nonblank_lines": 149,
+      "sha256": "ef74f27f309809f639e81d21a4554fddad8a34505d7a7f97a58faf545735593b"
+    },
+    {
+      "path": "supabase/migrations/20260205002000_concierge_budget_raise.sql",
+      "group": "sql_migrations",
+      "physical_lines": 20,
+      "nonblank_lines": 19,
+      "sha256": "e0593d2185dd2b97ef66b8cd9e78335930c8012a274b6b603e212087c450b880"
+    },
+    {
+      "path": "supabase/migrations/20260205160000_admin_schema_snapshot.sql",
+      "group": "sql_migrations",
+      "physical_lines": 113,
+      "nonblank_lines": 111,
+      "sha256": "a5bbc3f13c8cfa2e913fd031b751d48d98ee058b0261ba5d47a4b8947b95de23"
+    },
+    {
+      "path": "supabase/migrations/20260205190000_concierge_modes_config.sql",
+      "group": "sql_migrations",
+      "physical_lines": 75,
+      "nonblank_lines": 74,
+      "sha256": "a8b6541c98aa643afb0e97c2e1f6bd076de416e550012e57c20de05bc880460a"
+    },
+    {
+      "path": "supabase/migrations/20260205231000_curated_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 190,
+      "nonblank_lines": 189,
+      "sha256": "5cc692585c978aa5316505103737b35259758ec008be56e44db80aeba20ad5bf"
+    },
+    {
+      "path": "supabase/migrations/20260205232000_concierge_mode_cache.sql",
+      "group": "sql_migrations",
+      "physical_lines": 32,
+      "nonblank_lines": 31,
+      "sha256": "1ea6812171edef53189980a01e7c1bf4199f70c94a8da6e5fca47219e0f65117"
+    },
+    {
+      "path": "supabase/migrations/20260205232500_concierge_router_flag_and_retention.sql",
+      "group": "sql_migrations",
+      "physical_lines": 71,
+      "nonblank_lines": 63,
+      "sha256": "31065a7a0f5e2a45dd622a908eed667c323c9ce184d510c60f109365c14cb271"
+    },
+    {
+      "path": "supabase/migrations/20260205233000_concierge_modes_v2_config.sql",
+      "group": "sql_migrations",
+      "physical_lines": 101,
+      "nonblank_lines": 100,
+      "sha256": "e2f27d32b78888afc26d451addd31edb5ed639ae4f9bb1d00146faf704afec10"
+    },
+    {
+      "path": "supabase/migrations/20260205234000_curated_rails_seed.sql",
+      "group": "sql_migrations",
+      "physical_lines": 320,
+      "nonblank_lines": 320,
+      "sha256": "268b327271054d8704c97e575a2f932bd4e2339fba381bd36f44b2d31d690bb6"
+    },
+    {
+      "path": "supabase/migrations/20260205235000_discover_bundle_use_curated_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 555,
+      "nonblank_lines": 554,
+      "sha256": "cf8c6a095eae828f1704fd8d0ef67fdf2fcdb94007507984518e08195ef1a5fd"
+    },
+    {
+      "path": "supabase/migrations/20260206100000_concierge_modes_v3_expanded.sql",
+      "group": "sql_migrations",
+      "physical_lines": 224,
+      "nonblank_lines": 208,
+      "sha256": "6db2e3e44b402f2519720fbc1eb97856b0f1b3f776a831fe9a306ab0c89dc38a"
+    },
+    {
+      "path": "supabase/migrations/20260206120000_curated_rails_expansion.sql",
+      "group": "sql_migrations",
+      "physical_lines": 433,
+      "nonblank_lines": 428,
+      "sha256": "59e65f99e956e688135a1234ee77707def631b4f282c82c34c8793f7231f42e0"
+    },
+    {
+      "path": "supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql",
+      "group": "sql_migrations",
+      "physical_lines": 46,
+      "nonblank_lines": 44,
+      "sha256": "b7aea293c6d735dbbd504fa473025482a3af39e4a9bfda21463fa338c59d8432"
+    },
+    {
+      "path": "supabase/migrations/20260206150000_security_hardening_rls_and_views.sql",
+      "group": "sql_migrations",
+      "physical_lines": 40,
+      "nonblank_lines": 39,
+      "sha256": "32ce5415d92c1d7504486be6f9e21587429ca80ced956d941540fc62c3ad116a"
+    },
+    {
+      "path": "supabase/migrations/20260206162329_curated_rails_expansion.sql",
+      "group": "sql_migrations",
+      "physical_lines": 379,
+      "nonblank_lines": 375,
+      "sha256": "e95da5c18bdcb3b26f8de88461b050e54ba435c090cdc752d43b939a20c17a26"
+    },
+    {
+      "path": "supabase/migrations/20260206164200_security_hardening_rls_and_views.sql",
+      "group": "sql_migrations",
+      "physical_lines": 15,
+      "nonblank_lines": 13,
+      "sha256": "22ad53d975852f817991013cb71add080500cc90425c427b8fbebd9c8fe2e71a"
+    },
+    {
+      "path": "supabase/migrations/20260207000000_search_titles_enrich_year_format.sql",
+      "group": "sql_migrations",
+      "physical_lines": 42,
+      "nonblank_lines": 41,
+      "sha256": "7331c2a94a3e586d1c3d9fddf61357ae74b5eaf4015bd041dd3a481ded79d15f"
+    },
+    {
+      "path": "supabase/migrations/20260207011000_curated_rails_vibes_seed.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1397,
+      "nonblank_lines": 1397,
+      "sha256": "b1081fd793db4938b86c3478c3c110c3da8f734d5a32cb0e63e62326fe96042f"
+    },
+    {
+      "path": "supabase/migrations/20260207012000_concierge_modes_v4_add_vibe_rail_ids.sql",
+      "group": "sql_migrations",
+      "physical_lines": 31,
+      "nonblank_lines": 30,
+      "sha256": "5ccb9f2d7187bfee3dfd0608ecd42e39dd24ad4e02cc992f35d36e64266cfa44"
+    },
+    {
+      "path": "supabase/migrations/20260207020000_curated_rails_more_vibes_seed.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1335,
+      "nonblank_lines": 1335,
+      "sha256": "7283f3c816185da1c0f8075db4b9a52c2135920e3bac5e286f85b47d2681d37b"
+    },
+    {
+      "path": "supabase/migrations/20260207021000_concierge_modes_v5_add_more_vibe_rail_ids.sql",
+      "group": "sql_migrations",
+      "physical_lines": 33,
+      "nonblank_lines": 32,
+      "sha256": "88c117b69705118a50183f1c97c6864113eda6743f3ab7af606aec39f897b0d1"
+    },
+    {
+      "path": "supabase/migrations/20260208022035_phase0_remove_sequels.sql",
+      "group": "sql_migrations",
+      "physical_lines": 402,
+      "nonblank_lines": 388,
+      "sha256": "fe5ba173315009fd8245176dd68d5c0622b981a1b9d15623e08282e2dc2b2520"
+    },
+    {
+      "path": "supabase/migrations/20260208022043_concierge_mode_analytics.sql",
+      "group": "sql_migrations",
+      "physical_lines": 24,
+      "nonblank_lines": 20,
+      "sha256": "88041b935e1e914c9d616be599dac6e786ed237380394af7076c6c51b603ff73"
+    },
+    {
+      "path": "supabase/migrations/20260208022110_add_sports_mode.sql",
+      "group": "sql_migrations",
+      "physical_lines": 94,
+      "nonblank_lines": 90,
+      "sha256": "81be45898183f4c2b5ae392fb3576bc058a5c69ba35c99774889acf10f5014b9"
+    },
+    {
+      "path": "supabase/migrations/20260208022136_phase0_remove_misclassified.sql",
+      "group": "sql_migrations",
+      "physical_lines": 204,
+      "nonblank_lines": 198,
+      "sha256": "5eff0f920c35f3ab8a9edd6cc4af06ef7baac809776f4efaae494c7db64b5491"
+    },
+    {
+      "path": "supabase/migrations/20260208022153_add_scifi_mode.sql",
+      "group": "sql_migrations",
+      "physical_lines": 101,
+      "nonblank_lines": 97,
+      "sha256": "d6b77dafe60abe70133d20c512c90e70fc2b7474fbc971af98d90e17f66d8083"
+    },
+    {
+      "path": "supabase/migrations/20260208022239_add_horror_supernatural_mode.sql",
+      "group": "sql_migrations",
+      "physical_lines": 98,
+      "nonblank_lines": 94,
+      "sha256": "4d1e391aaaad0a6f0b03cb110cf7df66474b6f667a0bf6f03b08b82b0c0dbb6b"
+    },
+    {
+      "path": "supabase/migrations/20260208022250_phase0_dedup_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 205,
+      "nonblank_lines": 180,
+      "sha256": "965c69391aae0e91170736d6f969d2d4340d98e323bf3f8189e44731c6071035"
+    },
+    {
+      "path": "supabase/migrations/20260208022326_phase0_slim_and_rerank.sql",
+      "group": "sql_migrations",
+      "physical_lines": 266,
+      "nonblank_lines": 238,
+      "sha256": "61e170e984a2d86d5d0e5e23d1493df4732f18ce842e3aa6988e3face179b7d6"
+    },
+    {
+      "path": "supabase/migrations/20260208022342_add_demographic_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 173,
+      "nonblank_lines": 166,
+      "sha256": "b831c0377c9c5fa4662c13a5956f7bb6d77e08109d7ee796a8b9dd9d1dfe0972"
+    },
+    {
+      "path": "supabase/migrations/20260208022356_update_concierge_config_new_modes.sql",
+      "group": "sql_migrations",
+      "physical_lines": 47,
+      "nonblank_lines": 45,
+      "sha256": "aecf29d97cf61a74dfb19f8d7e4f298af8bc074fc722bd01e2a2358afa631aa0"
+    },
+    {
+      "path": "supabase/migrations/20260208022404_phase0_fix_classics.sql",
+      "group": "sql_migrations",
+      "physical_lines": 91,
+      "nonblank_lines": 77,
+      "sha256": "8687a5cbee1a065fa4abd3c7cf64d88ba1da2dbbc019cd80e414255be2dbadd3"
+    },
+    {
+      "path": "supabase/migrations/20260208023052_phase0_backfill_underpopulated_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 194,
+      "nonblank_lines": 185,
+      "sha256": "7f113555353f9b251d21fc7129fb11c330fc23b76985e48a656d1200e15d5c60"
+    },
+    {
+      "path": "supabase/migrations/20260208023221_phase0_dedup_backfilled_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 129,
+      "nonblank_lines": 120,
+      "sha256": "b65ce1e08dcaa41d5919ebd1baaa634ac723a6530ab4afbcf4a9e9a4262cc8ef"
+    },
+    {
+      "path": "supabase/migrations/20260208023331_phase0_final_backfill.sql",
+      "group": "sql_migrations",
+      "physical_lines": 68,
+      "nonblank_lines": 63,
+      "sha256": "b6be6c38fb01c1d4aa3c2c076f35fd13be5a53e61a17cd506833e5a1d59c8469"
+    },
+    {
+      "path": "supabase/migrations/20260208090000_refine_short_and_fantasy_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 493,
+      "nonblank_lines": 492,
+      "sha256": "8d2dd5fc9b316c7f999a5c47cb583ac246dd884c1d0069f923beb875b441c236"
+    },
+    {
+      "path": "supabase/migrations/20260208091500_curated_rails_premium_picks_seed.sql",
+      "group": "sql_migrations",
+      "physical_lines": 250,
+      "nonblank_lines": 249,
+      "sha256": "aa824bd7ce304abfcbe6a767605a6443d06d3304928693f315ce84154f28f5ea"
+    },
+    {
+      "path": "supabase/migrations/20260208092000_concierge_modes_v6_add_premium_picks_rail_id.sql",
+      "group": "sql_migrations",
+      "physical_lines": 22,
+      "nonblank_lines": 21,
+      "sha256": "88afa1b369dd04bae9c3870d24cec408b4b003353c4970a9ee28d9d598115edb"
+    },
+    {
+      "path": "supabase/migrations/20260209000000_search_titles_add_cover_image.sql",
+      "group": "sql_migrations",
+      "physical_lines": 44,
+      "nonblank_lines": 43,
+      "sha256": "2b15d026554ca87bd0b5039163ecaa98f0e34bb84d758c44a2fa1bddacc70e07"
+    },
+    {
+      "path": "supabase/migrations/20260209100000_concierge_modes_v7_german_synonyms.sql",
+      "group": "sql_migrations",
+      "physical_lines": 71,
+      "nonblank_lines": 53,
+      "sha256": "8c5263eaa2e2ad9bd08b62589b3b5935553678dfb16d5513929d5c93dc26d7e2"
+    },
+    {
+      "path": "supabase/migrations/20260209110000_concierge_modes_v8_expanded.sql",
+      "group": "sql_migrations",
+      "physical_lines": 72,
+      "nonblank_lines": 71,
+      "sha256": "e54e407f73301d04538d53f346dd28abc22242dca1e58ddced2544b9e1e93187"
+    },
+    {
+      "path": "supabase/migrations/20260209120000_new_vibe_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 354,
+      "nonblank_lines": 351,
+      "sha256": "a5097b9ca22f9d1ca7000ff9c064081829ac22cab32b871aacf10b12648d7ae3"
+    },
+    {
+      "path": "supabase/migrations/20260209135229_import_reconciliation.sql",
+      "group": "sql_migrations",
+      "physical_lines": 6,
+      "nonblank_lines": 5,
+      "sha256": "2c2a7251ec9dd9e09d377c12819fbda985c4ad0d47668dd351b3ede7a96b0b09"
+    },
+    {
+      "path": "supabase/migrations/20260209200000_clubs_foundation.sql",
+      "group": "sql_migrations",
+      "physical_lines": 224,
+      "nonblank_lines": 212,
+      "sha256": "12707333e094908df97c48e4d3abfc6c2209559d19593138438394f738a8f8db"
+    },
+    {
+      "path": "supabase/migrations/20260209201000_clubs_rls_policies.sql",
+      "group": "sql_migrations",
+      "physical_lines": 320,
+      "nonblank_lines": 311,
+      "sha256": "04821fbef252a31cdd638b37dfe53d0ca516dd0491678fdc2c26493a116a4b54"
+    },
+    {
+      "path": "supabase/migrations/20260209202000_clubs_rpcs.sql",
+      "group": "sql_migrations",
+      "physical_lines": 791,
+      "nonblank_lines": 722,
+      "sha256": "05b981028799853cae32d0386d765a989f52d2295dd75cdd1723c6198af5190a"
+    },
+    {
+      "path": "supabase/migrations/20260209220000_club_analytics.sql",
+      "group": "sql_migrations",
+      "physical_lines": 117,
+      "nonblank_lines": 108,
+      "sha256": "438be2c2a998180af5d512293dbf363d993999dafa0bd5eb74b5fa7c32d6765b"
+    },
+    {
+      "path": "supabase/migrations/20260209224945_fix_mirror_cron_contention.sql",
+      "group": "sql_migrations",
+      "physical_lines": 93,
+      "nonblank_lines": 87,
+      "sha256": "6f6ff69d052e8a0fe5f4c5e4e8520dc753032d3d6c8e26ab0b7449a15fca1447"
+    },
+    {
+      "path": "supabase/migrations/20260211030140_feature_flags.sql",
+      "group": "sql_migrations",
+      "physical_lines": 48,
+      "nonblank_lines": 40,
+      "sha256": "4e12b3c16026580cdf4e14e79744eef4e22ff7992a7ab551e6507c29f928859e"
+    },
+    {
+      "path": "supabase/migrations/20260211100000_rag_tables.sql",
+      "group": "sql_migrations",
+      "physical_lines": 288,
+      "nonblank_lines": 272,
+      "sha256": "cbbd66723ba643b749158dae9225f00e415929f57b1dadbe4456dddae4b7223d"
+    },
+    {
+      "path": "supabase/migrations/20260211110000_privacy_retention_and_gdpr.sql",
+      "group": "sql_migrations",
+      "physical_lines": 219,
+      "nonblank_lines": 188,
+      "sha256": "56139573e5bd851028a0eced2fb915e3ab015fbdce1421df18f0ea1c846af7aa"
+    },
+    {
+      "path": "supabase/migrations/20260211113000_rag_retrieve_candidates.sql",
+      "group": "sql_migrations",
+      "physical_lines": 134,
+      "nonblank_lines": 133,
+      "sha256": "77a8ed9bd9e3b82cb5fb9412066e6320a7c3dbd829f7d26ce46fbf9e83a80268"
+    },
+    {
+      "path": "supabase/migrations/20260211154000_fetch_club_bundle_member_identity.sql",
+      "group": "sql_migrations",
+      "physical_lines": 358,
+      "nonblank_lines": 345,
+      "sha256": "48d593e7d31f6c30760cdae45639269db69c4f550315e467ea92fd7d1958f3b1"
+    },
+    {
+      "path": "supabase/migrations/20260211162000_reduce_school_shoujo_overlap.sql",
+      "group": "sql_migrations",
+      "physical_lines": 34,
+      "nonblank_lines": 33,
+      "sha256": "bc21d323c3f50d132b8d61704916306608eff607e394fc4a0d6494999e88b7c3"
+    },
+    {
+      "path": "supabase/migrations/20260211170000_enable_concierge_intelligence_de_canary.sql",
+      "group": "sql_migrations",
+      "physical_lines": 9,
+      "nonblank_lines": 9,
+      "sha256": "8c2a4794fb6a128cc2bd584fdcb9080e2824676c07e68cc3e06fb13dd4d1f95c"
+    },
+    {
+      "path": "supabase/migrations/20260213130000_clubs_concierge_swipe_flags.sql",
+      "group": "sql_migrations",
+      "physical_lines": 13,
+      "nonblank_lines": 12,
+      "sha256": "b56f799203c70d36a30bbae10ac1b9a71a418b049ce72f5435ab6aa614fd1652"
+    },
+    {
+      "path": "supabase/migrations/20260213143000_concierge_editorial_v1_flag.sql",
+      "group": "sql_migrations",
+      "physical_lines": 11,
+      "nonblank_lines": 10,
+      "sha256": "7408364e33312d895c4c5c634076c6dc566f4556fa592c9b9b6203a2cbb74a46"
+    },
+    {
+      "path": "supabase/migrations/20260215124919_add_create_rail_and_poll_rpcs.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "d8a957038679125d4840554fc43375697e662283121561afdefc2c3fbecaf729"
+    },
+    {
+      "path": "supabase/migrations/20260215124946_create_club_rail_and_poll_rpcs.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "d8a957038679125d4840554fc43375697e662283121561afdefc2c3fbecaf729"
+    },
+    {
+      "path": "supabase/migrations/20260215125056_fix_invite_code_crypto_and_club_members_insert.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "d8a957038679125d4840554fc43375697e662283121561afdefc2c3fbecaf729"
+    },
+    {
+      "path": "supabase/migrations/20260215125312_club_reactions_and_invite_share.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "d8a957038679125d4840554fc43375697e662283121561afdefc2c3fbecaf729"
+    },
+    {
+      "path": "supabase/migrations/20260215130000_fix_club_fk_housekeeping_gdpr.sql",
+      "group": "sql_migrations",
+      "physical_lines": 316,
+      "nonblank_lines": 277,
+      "sha256": "e2213ead7f05b4fb1c73d57ede00bbed12973583e46ca2ae36e2085ee94293a3"
+    },
+    {
+      "path": "supabase/migrations/20260216015514_clubs_list_enrichment.sql",
+      "group": "sql_migrations",
+      "physical_lines": 83,
+      "nonblank_lines": 78,
+      "sha256": "c5999aa3a0c5322b9024fa94a0f18482f506d73f060759b1b14ec1ac33ec14d9"
+    },
+    {
+      "path": "supabase/migrations/20260216015733_club_reactions_in_bundle.sql",
+      "group": "sql_migrations",
+      "physical_lines": 343,
+      "nonblank_lines": 328,
+      "sha256": "bb246d3adfc3211548dced5e97f1345a91f6c155ff4b004ebe94646a34585065"
+    },
+    {
+      "path": "supabase/migrations/20260216015921_clubs_realtime_publication.sql",
+      "group": "sql_migrations",
+      "physical_lines": 11,
+      "nonblank_lines": 9,
+      "sha256": "041620904354a7b41de9f679a0310a2201348ca5c03cc01e9bf5df3f43c1695b"
+    },
+    {
+      "path": "supabase/migrations/20260216020023_club_messages.sql",
+      "group": "sql_migrations",
+      "physical_lines": 175,
+      "nonblank_lines": 147,
+      "sha256": "94709759c8e98445270c0018412c8326fa0a2a82fbe1ec108ce6953374b6c565"
+    },
+    {
+      "path": "supabase/migrations/20260216193000_add_club_rail_item_structured_errors.sql",
+      "group": "sql_migrations",
+      "physical_lines": 123,
+      "nonblank_lines": 108,
+      "sha256": "866f541a6ff39cb5f2841bd1c9fcd167dfffa4b07cb7adfee8b33d85729e0b97"
+    },
+    {
+      "path": "supabase/migrations/20260216200204_catalog_created_at_not_null.sql",
+      "group": "sql_migrations",
+      "physical_lines": 25,
+      "nonblank_lines": 23,
+      "sha256": "73e666a7bbec92e6e963858cfca1eb918740d51fc5d84eac3c16664530f68376"
+    },
+    {
+      "path": "supabase/migrations/20260216200227_drop_unused_indexes_merge_policies_health_check.sql",
+      "group": "sql_migrations",
+      "physical_lines": 97,
+      "nonblank_lines": 86,
+      "sha256": "0ee9a44411b32ac06ad3cb6b01ce2fa01476ecc9ccf395f3d89075d08d528be5"
+    },
+    {
+      "path": "supabase/migrations/20260216214047_fix_initplan_rls_club_messages_reactions.sql",
+      "group": "sql_migrations",
+      "physical_lines": 72,
+      "nonblank_lines": 63,
+      "sha256": "e7a80bf5ad283306ceda8a06b4873a319ecebd7e4c931c747b7f00c87a354151"
+    },
+    {
+      "path": "supabase/migrations/20260216214050_authors_tags_created_at_not_null.sql",
+      "group": "sql_migrations",
+      "physical_lines": 19,
+      "nonblank_lines": 14,
+      "sha256": "543bd880c6eef9b55959536ef29c4cb90a475dc19196b4515affa337daff39a2"
+    },
+    {
+      "path": "supabase/migrations/20260218131735_fix_join_club_archived_check.sql",
+      "group": "sql_migrations",
+      "physical_lines": 75,
+      "nonblank_lines": 64,
+      "sha256": "e377c2568a6dabefb533fa2a1bc03c35cdcb71ef9bbde03956ca2354b460f356"
+    },
+    {
+      "path": "supabase/migrations/20260218141739_capture_club_message_functions.sql",
+      "group": "sql_migrations",
+      "physical_lines": 104,
+      "nonblank_lines": 91,
+      "sha256": "059b5b540bec4d6794bbed12b290acf4120aa4c9b6a3b843ad9ebaa8f014988b"
+    },
+    {
+      "path": "supabase/migrations/20260218141754_update_join_create_club_functions.sql",
+      "group": "sql_migrations",
+      "physical_lines": 150,
+      "nonblank_lines": 128,
+      "sha256": "f1f49d090589023d0cbf747d4f610961056417124add1fd0c0e3d086ba469df8"
+    },
+    {
+      "path": "supabase/migrations/20260218141757_fix_storage_insert_policy.sql",
+      "group": "sql_migrations",
+      "physical_lines": 5,
+      "nonblank_lines": 5,
+      "sha256": "c3f866266356683082db87bb57f00e5a7ba6b391ab52ee6308d460e5ae0d62c0"
+    },
+    {
+      "path": "supabase/migrations/20260218173617_drop_duplicate_indexes.sql",
+      "group": "sql_migrations",
+      "physical_lines": 5,
+      "nonblank_lines": 5,
+      "sha256": "6514cb8b8d829fec37ffbd1124dd7d41f390c101ca3353a9a54cee39466607c5"
+    },
+    {
+      "path": "supabase/migrations/20260218173619_drop_dead_rag_cache_cleanup.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "54f3017da6ff5ed0fdcc31718235feb126173d5641622e4949efc73d187a2dc2"
+    },
+    {
+      "path": "supabase/migrations/20260219002612_critical_security_drop_and_revoke.sql",
+      "group": "sql_migrations",
+      "physical_lines": 24,
+      "nonblank_lines": 21,
+      "sha256": "42e45331f6f472d69d6de6bf433762d30df3f87345c474508e2a90cb7a18bd90"
+    },
+    {
+      "path": "supabase/migrations/20260219002639_drop_start_bulk_import_with_args.sql",
+      "group": "sql_migrations",
+      "physical_lines": 2,
+      "nonblank_lines": 2,
+      "sha256": "89068848c807dcb32c6d1aadeef98b78da09bab6741e7329692ea361241d58c2"
+    },
+    {
+      "path": "supabase/migrations/20260219002706_revoke_public_from_admin_functions.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "463534f99a653883e70647508e40342ae6dd389bb394fe2779c3c340dfd94187"
+    },
+    {
+      "path": "supabase/migrations/20260219003105_add_user_lists_to_realtime_publication.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "76ca0b51dbcbcc15532dbb4a6294a0a09ea0c731df61ab6a5e39cb178e5e361d"
+    },
+    {
+      "path": "supabase/migrations/20260219003111_anime_is_adult_not_null.sql",
+      "group": "sql_migrations",
+      "physical_lines": 9,
+      "nonblank_lines": 8,
+      "sha256": "b50ce789e00c50a597c2baeefed3b0a7365eebb29e3de3ed731439cc221699a8"
+    },
+    {
+      "path": "supabase/migrations/20260219003305_drop_ambiguous_overloads.sql",
+      "group": "sql_migrations",
+      "physical_lines": 7,
+      "nonblank_lines": 6,
+      "sha256": "627f073ab7147255921ab95b5487abe7433fdfb17c9cd1911c9253a973795040"
+    },
+    {
+      "path": "supabase/migrations/20260219003323_harden_toggle_reaction.sql",
+      "group": "sql_migrations",
+      "physical_lines": 67,
+      "nonblank_lines": 59,
+      "sha256": "91817fee5881e1b7dcd36664c1f4686b0eaaea39ac227434fd4fec1f965d0b44"
+    },
+    {
+      "path": "supabase/migrations/20260219003339_harden_create_club.sql",
+      "group": "sql_migrations",
+      "physical_lines": 84,
+      "nonblank_lines": 74,
+      "sha256": "587c3b7245a92a241f350f4e053fd7aa62b1162e1ed7f2b1069947778ad8db8c"
+    },
+    {
+      "path": "supabase/migrations/20260219003351_tighten_club_write_policies.sql",
+      "group": "sql_migrations",
+      "physical_lines": 45,
+      "nonblank_lines": 40,
+      "sha256": "f944783ef63a238d918666f175373b004eecb8ec1b9104ca1f01f72b0084db32"
+    },
+    {
+      "path": "supabase/migrations/20260219003357_tighten_storage_update_policy.sql",
+      "group": "sql_migrations",
+      "physical_lines": 7,
+      "nonblank_lines": 7,
+      "sha256": "ece78a9cc74ea6c817e30234397d1a51b7730bbe8729efa941669c943eef5fa4"
+    },
+    {
+      "path": "supabase/migrations/20260219003402_add_missing_fk_indexes.sql",
+      "group": "sql_migrations",
+      "physical_lines": 3,
+      "nonblank_lines": 3,
+      "sha256": "4d037ce5b930c125a2978809f7707177fab6ba6e602c2f6dd40e96daec286e28"
+    },
+    {
+      "path": "supabase/migrations/20260219003703_cron_cleanup_and_mirror_auth.sql",
+      "group": "sql_migrations",
+      "physical_lines": 83,
+      "nonblank_lines": 74,
+      "sha256": "901004ec8ff27050bbc9db36df9f4f96b5d7dc176ebf4044cac0fe819a6c19d2"
+    },
+    {
+      "path": "supabase/migrations/20260219100000_critical_security_drop_and_revoke.sql",
+      "group": "sql_migrations",
+      "physical_lines": 21,
+      "nonblank_lines": 18,
+      "sha256": "db6e9e54fa31e6120e6e8e89c626bc1673e7928b48010a842185dcdca053d1de"
+    },
+    {
+      "path": "supabase/migrations/20260219100001_drop_start_bulk_import_with_args.sql",
+      "group": "sql_migrations",
+      "physical_lines": 2,
+      "nonblank_lines": 2,
+      "sha256": "4c24c7a7daaccb68174e68b5bf099e8e6b7507a2f421e8371e9bf52af52c7479"
+    },
+    {
+      "path": "supabase/migrations/20260219100002_revoke_public_from_admin_functions.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "16afd81de1477000db50fb423ab0ce5a9a1630f9510a85dc7f24787604477810"
+    },
+    {
+      "path": "supabase/migrations/20260219100003_add_user_lists_to_realtime_publication.sql",
+      "group": "sql_migrations",
+      "physical_lines": 31,
+      "nonblank_lines": 30,
+      "sha256": "aea1f6bab0ba2b123e05a68d5ab2fd564db082fde23ec879dabe007f348a29d4"
+    },
+    {
+      "path": "supabase/migrations/20260219100004_anime_manga_is_adult_not_null.sql",
+      "group": "sql_migrations",
+      "physical_lines": 8,
+      "nonblank_lines": 7,
+      "sha256": "7ab40548f0471ee9931597fd1cf0b01695c9f4dd81d7bddb67715d9e900a6733"
+    },
+    {
+      "path": "supabase/migrations/20260219100005_drop_ambiguous_overloads.sql",
+      "group": "sql_migrations",
+      "physical_lines": 5,
+      "nonblank_lines": 4,
+      "sha256": "3aad68a75f86805e066b3e3fcc7221266f279816300931cc465466457fcd058b"
+    },
+    {
+      "path": "supabase/migrations/20260219100006_harden_toggle_reaction.sql",
+      "group": "sql_migrations",
+      "physical_lines": 61,
+      "nonblank_lines": 53,
+      "sha256": "a0c3c8332ab424e338fb20d457c8baff123a165e7025f1d82a5f370c9f860dc6"
+    },
+    {
+      "path": "supabase/migrations/20260219100007_harden_create_club.sql",
+      "group": "sql_migrations",
+      "physical_lines": 76,
+      "nonblank_lines": 66,
+      "sha256": "bfbf5b67f3c957b45aeeb3b82fa5730f784d2d5f78b8070c7262e7244b6a7c92"
+    },
+    {
+      "path": "supabase/migrations/20260219100008_tighten_club_write_policies.sql",
+      "group": "sql_migrations",
+      "physical_lines": 39,
+      "nonblank_lines": 34,
+      "sha256": "8b07ae372b74bbd9cab4d7445c921189a577bf0cd52ab299d359535aaf5c25bc"
+    },
+    {
+      "path": "supabase/migrations/20260219100009_tighten_storage_update_policy.sql",
+      "group": "sql_migrations",
+      "physical_lines": 6,
+      "nonblank_lines": 6,
+      "sha256": "d43792f18ff46a0b7b68dfd4c9fee6e0d48c5ffa1bc4946edaf57f444a62b7f9"
+    },
+    {
+      "path": "supabase/migrations/20260219100010_add_missing_fk_indexes.sql",
+      "group": "sql_migrations",
+      "physical_lines": 3,
+      "nonblank_lines": 3,
+      "sha256": "6c25618a6f72de61d448a746c70fa1ca06f02c4ec5b063a1e3ce176406264b3f"
+    },
+    {
+      "path": "supabase/migrations/20260219100011_cron_cleanup_and_mirror_auth.sql",
+      "group": "sql_migrations",
+      "physical_lines": 31,
+      "nonblank_lines": 25,
+      "sha256": "644580ed060874388e9712c360c23ece0d200371a022ba79c0cbe9739c426f60"
+    },
+    {
+      "path": "supabase/migrations/20260219114953_set_not_null_on_nullable_required_columns.sql",
+      "group": "sql_migrations",
+      "physical_lines": 37,
+      "nonblank_lines": 28,
+      "sha256": "9cce0f688a8fc8b91795c577331f7182c723a39508a73e4c5961f8955f90ee4f"
+    },
+    {
+      "path": "supabase/migrations/20260219120000_set_not_null_on_nullable_required_columns.sql",
+      "group": "sql_migrations",
+      "physical_lines": 35,
+      "nonblank_lines": 27,
+      "sha256": "db0815e99cc37017ed606f8dad2670f9e272695403a5bea63de237f7046d75be"
+    },
+    {
+      "path": "supabase/migrations/20260219153000_manga_chapter_enrichment_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 292,
+      "nonblank_lines": 274,
+      "sha256": "d4cc43471cb7abbc341c49d0c6585b02d58ff0146bb7c2d96898bb53d987961a"
+    },
+    {
+      "path": "supabase/migrations/20260219234000_fix_manga_chapter_enrich_cron_secret.sql",
+      "group": "sql_migrations",
+      "physical_lines": 47,
+      "nonblank_lines": 43,
+      "sha256": "23f86e32b4e13e6c79a5ac57f6ce86be549cd5a07f526ce7f25acb4b79917a68"
+    },
+    {
+      "path": "supabase/migrations/20260219235500_manga_review_approved_mapping_method.sql",
+      "group": "sql_migrations",
+      "physical_lines": 23,
+      "nonblank_lines": 19,
+      "sha256": "3a8212d01a647a995ee018422f4cee4bdf56a3daa94ded5bc0203acb5af83fbb"
+    },
+    {
+      "path": "supabase/migrations/20260220103000_manga_fuzzy_matcher_v2.sql",
+      "group": "sql_migrations",
+      "physical_lines": 250,
+      "nonblank_lines": 235,
+      "sha256": "6be35fac70cb3f459cde5f8fe5702bacc274ed8cb0941fa5c47750ebdec7a8a4"
+    },
+    {
+      "path": "supabase/migrations/20260221120000_browse_filters_year_format.sql",
+      "group": "sql_migrations",
+      "physical_lines": 250,
+      "nonblank_lines": 244,
+      "sha256": "69cbc92f4a87b2e7ddbf6ae7319c7e7f98cdf78d852122e1ec2af9b6324d30d8"
+    },
+    {
+      "path": "supabase/migrations/20260221150000_manga_fuzzy_matcher_method_allow_title_fuzzy.sql",
+      "group": "sql_migrations",
+      "physical_lines": 23,
+      "nonblank_lines": 19,
+      "sha256": "2ba7aeec4f2ad2a7f520c88b0998133ecc9f91be0343fb34ff2cf4b3c8bcc227"
+    },
+    {
+      "path": "supabase/migrations/20260221162000_manga_zero_touch_canonical_mapping.sql",
+      "group": "sql_migrations",
+      "physical_lines": 295,
+      "nonblank_lines": 276,
+      "sha256": "986b63d1c90f5a7d87e0555b1edb354cd5129b4f7883a3a453cd7421bade2dfe"
+    },
+    {
+      "path": "supabase/migrations/20260221173000_manga_chapter_crunch_mode.sql",
+      "group": "sql_migrations",
+      "physical_lines": 111,
+      "nonblank_lines": 106,
+      "sha256": "872b68bed04760d633e701a7a808d319a4d2390676ac028ed785503531923696"
+    },
+    {
+      "path": "supabase/migrations/20260221190000_enable_swipe_tap_guard_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 22,
+      "nonblank_lines": 21,
+      "sha256": "ae8730ecacfda6845ecaf59e5c19f0d7ef6433d396b231a2bbef6eb097934910"
+    },
+    {
+      "path": "supabase/migrations/20260221191000_synopsis_enhancement_fields.sql",
+      "group": "sql_migrations",
+      "physical_lines": 41,
+      "nonblank_lines": 33,
+      "sha256": "bcfe27bffebc1550a53d6a4ef775c635021e5c9ed39a8f892fb324ba9322ad09"
+    },
+    {
+      "path": "supabase/migrations/20260221192000_synopsis_enrichment_rpcs.sql",
+      "group": "sql_migrations",
+      "physical_lines": 225,
+      "nonblank_lines": 210,
+      "sha256": "325087d3a134e5236d345dea2bd5e286985b0865b3b27cf396792df3ae691372"
+    },
+    {
+      "path": "supabase/migrations/20260223002000_synopsis_retry_backoff_and_resume.sql",
+      "group": "sql_migrations",
+      "physical_lines": 410,
+      "nonblank_lines": 384,
+      "sha256": "00f08e22066ed8e91b4e97be3e0b57c2b37e686f678f8113d6d7056ccd8503ae"
+    },
+    {
+      "path": "supabase/migrations/20260224101000_catalog_safety_runner_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 665,
+      "nonblank_lines": 616,
+      "sha256": "b0de80175f88a04931968ec142443b5e307175a87f83ba52e95bf43820e56a17"
+    },
+    {
+      "path": "supabase/migrations/20260224150000_social_activity_layer.sql",
+      "group": "sql_migrations",
+      "physical_lines": 452,
+      "nonblank_lines": 406,
+      "sha256": "7aa8e39c39c8edd06f1b784cffcc6ffc637445567633a3bc85f4120d2e789c1b"
+    },
+    {
+      "path": "supabase/migrations/20260225100000_check_email_exists_rpc.sql",
+      "group": "sql_migrations",
+      "physical_lines": 19,
+      "nonblank_lines": 17,
+      "sha256": "7a1da8120a50ba65b09d829291511cfaffb8837ac223126601f2ff034240d27e"
+    },
+    {
+      "path": "supabase/migrations/20260301100000_streaming_availability_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 375,
+      "nonblank_lines": 323,
+      "sha256": "97a32624957f5056f4d8d0e00b44f3cfc68c8982760d67eecb977b9eff0f6875"
+    },
+    {
+      "path": "supabase/migrations/20260301153000_streaming_availability_country_lang_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 490,
+      "nonblank_lines": 458,
+      "sha256": "e50ff35563a98f204384b9c6851b06f80d53855aa6f6c9e426d2fa6f5f5e6e02"
+    },
+    {
+      "path": "supabase/migrations/20260304100000_credits_cast_v1_flag.sql",
+      "group": "sql_migrations",
+      "physical_lines": 7,
+      "nonblank_lines": 7,
+      "sha256": "2425653578552fe57244c521e78245076e2bad139595c0c842caa8c12a212ea8"
+    },
+    {
+      "path": "supabase/migrations/20260305151500_fix_delete_user_concierge_data_uuid_compare.sql",
+      "group": "sql_migrations",
+      "physical_lines": 93,
+      "nonblank_lines": 76,
+      "sha256": "1828cff67d041779cfe788c2465098adf98ac8a5fb51d37cf40bd62bd9e25cb6"
+    },
+    {
+      "path": "supabase/migrations/20260305153000_fix_delete_user_concierge_data_import_sessions_and_coverage.sql",
+      "group": "sql_migrations",
+      "physical_lines": 103,
+      "nonblank_lines": 82,
+      "sha256": "8bdfabb74742d6e588cd345c5088ee0479298ac8dd7851eb37c872b198a61c94"
+    },
+    {
+      "path": "supabase/migrations/20260305162000_cleanup_db_lint_warnings.sql",
+      "group": "sql_migrations",
+      "physical_lines": 79,
+      "nonblank_lines": 72,
+      "sha256": "b6754ba67e05fb128fe773591f09a5118534a90c199e1b172a6794be7990f56d"
+    },
+    {
+      "path": "supabase/migrations/20260306113000_provider_availability_note_contract.sql",
+      "group": "sql_migrations",
+      "physical_lines": 203,
+      "nonblank_lines": 195,
+      "sha256": "25d1494f48a9b0924c2bd67817320285718992cb97d091fe26b0cd7895c360de"
+    },
+    {
+      "path": "supabase/migrations/20260307120000_media_relations_ladder_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 224,
+      "nonblank_lines": 214,
+      "sha256": "d5e6e8a4c8aa33df22efd9ae6e883d000089802ddf69bd9102c944b3bc7aad46"
+    },
+    {
+      "path": "supabase/migrations/20260307150000_adaptation_ladder_v2_editorial_context.sql",
+      "group": "sql_migrations",
+      "physical_lines": 377,
+      "nonblank_lines": 365,
+      "sha256": "10f1beada350c1bc047d0f2c695f291035dc14023d277f1ca608f1d6cd433471"
+    },
+    {
+      "path": "supabase/migrations/20260307163000_fix_adaptation_ladder_entry_point.sql",
+      "group": "sql_migrations",
+      "physical_lines": 280,
+      "nonblank_lines": 276,
+      "sha256": "c00b4f277ece5886795d8be3fc5c784633640297f61b1aebddf7d751e4cc390d"
+    },
+    {
+      "path": "supabase/migrations/20260311100000_ladder_source_author.sql",
+      "group": "sql_migrations",
+      "physical_lines": 326,
+      "nonblank_lines": 321,
+      "sha256": "7143511f2b0333209ab23f54429ef3e6b5ca89e463b662392a83af71430df8e4"
+    },
+    {
+      "path": "supabase/migrations/20260313100000_slim_club_bundle_limits.sql",
+      "group": "sql_migrations",
+      "physical_lines": 398,
+      "nonblank_lines": 385,
+      "sha256": "a8d9c50484387eb24ff3df2faf56656cb9e20781b0514877bb1cdee6207e12f6"
+    },
+    {
+      "path": "supabase/migrations/20260313120000_social_activity_v1_rollout_100.sql",
+      "group": "sql_migrations",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "1a7f5b4fa842d3198101027ba4e91e5a87469322343173a79e49cb80235f4131"
+    },
+    {
+      "path": "supabase/migrations/20260316100000_fix_club_bundle_columns_and_reactions.sql",
+      "group": "sql_migrations",
+      "physical_lines": 394,
+      "nonblank_lines": 381,
+      "sha256": "89c59ee755c77fcd554392ccbee61bd94d934e761087255eeb78c4bacbb81250"
+    },
+    {
+      "path": "supabase/migrations/20260316220000_clubs_list_cover_images_members.sql",
+      "group": "sql_migrations",
+      "physical_lines": 108,
+      "nonblank_lines": 104,
+      "sha256": "a87dd14591980fd2ba2ad791b457b4b8248a85db78195658d2d76dce83824e58"
+    },
+    {
+      "path": "supabase/migrations/20260317063000_clubs_list_cover_image_large.sql",
+      "group": "sql_migrations",
+      "physical_lines": 110,
+      "nonblank_lines": 106,
+      "sha256": "5d0e61b5775265c37ba797916fa3981a3fa6410b7fd62881b3e3409a0e14cc64"
+    },
+    {
+      "path": "supabase/migrations/20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql",
+      "group": "sql_migrations",
+      "physical_lines": 410,
+      "nonblank_lines": 397,
+      "sha256": "8e50e25756133ba09dd8ea84005da38ee184ad37378351be272691fa26314878"
+    },
+    {
+      "path": "supabase/migrations/20260318103000_import_track_and_worker_state.sql",
+      "group": "sql_migrations",
+      "physical_lines": 168,
+      "nonblank_lines": 145,
+      "sha256": "810648771030623da5b0346fac677d3276888d46fd71d0b7300638f5d9d6476d"
+    },
+    {
+      "path": "supabase/migrations/20260318104000_club_loading_rpcs.sql",
+      "group": "sql_migrations",
+      "physical_lines": 265,
+      "nonblank_lines": 249,
+      "sha256": "e58095b0c8e465a24f10cea1052e7988f8c887c8b7d3776bd219090e81ba9a49"
+    },
+    {
+      "path": "supabase/migrations/20260319123000_provider_availability_request_priority.sql",
+      "group": "sql_migrations",
+      "physical_lines": 203,
+      "nonblank_lines": 192,
+      "sha256": "6e36ca0f4b9097b5cfa9d6eb130d057e8a9cf98ee20b36b2deaeb702bb8319c2"
+    },
+    {
+      "path": "supabase/migrations/20260322110000_add_list_verdicts.sql",
+      "group": "sql_migrations",
+      "physical_lines": 17,
+      "nonblank_lines": 14,
+      "sha256": "de7496c78e5a0ef409ba271d7935a235381e7028cb32bcd32a06c9e350ae1668"
+    },
+    {
+      "path": "supabase/migrations/20260324173000_search_title_priority.sql",
+      "group": "sql_migrations",
+      "physical_lines": 457,
+      "nonblank_lines": 452,
+      "sha256": "5defdbfe71954e9b004f7b8a45580409814cf8c8fd7fc816f4f7a0ff0338e15d"
+    },
+    {
+      "path": "supabase/migrations/20260324180000_search_title_popularity_tiebreak.sql",
+      "group": "sql_migrations",
+      "physical_lines": 427,
+      "nonblank_lines": 422,
+      "sha256": "9ccdd11ccfa4cda5b6a25bc0909a0cc3a393a122807c3040604ff0ec8569cf80"
+    },
+    {
+      "path": "supabase/migrations/20260324213000_discover_airing_today_berlin_day.sql",
+      "group": "sql_migrations",
+      "physical_lines": 563,
+      "nonblank_lines": 562,
+      "sha256": "1dc88470e496a2d773739c53bf8b97dcdb5a197cf836647d986bc3c2d4b298ae"
+    },
+    {
+      "path": "supabase/migrations/20260326221000_discover_new_to_you_rotation.sql",
+      "group": "sql_migrations",
+      "physical_lines": 664,
+      "nonblank_lines": 656,
+      "sha256": "892b65e7de093b321afc4741cbf9a749d8f3c6bb8ae4a6b535fe2ad55929a5af"
+    },
+    {
+      "path": "supabase/migrations/20260326234000_exclude_ancillary_anime_from_default_surfaces.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1359,
+      "nonblank_lines": 1337,
+      "sha256": "4d9c2b63c6d8ed6e9ba3794c6af0e57ae4ab5dccd9f6b7437cd48e4e62f2dec1"
+    },
+    {
+      "path": "supabase/migrations/20260730160000_taste_signal_events_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 497,
+      "nonblank_lines": 453,
+      "sha256": "c89de4bdeda79a260a6d6029724b0b6ffd773bf9804d00de3aeb238bfc8c1aca"
+    },
+    {
+      "path": "supabase/migrations/20260731010000_taste_deck_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 307,
+      "nonblank_lines": 293,
+      "sha256": "c143bf3956780067e43b9ea3e10931c7afb0185834f0402b3ddaa68ef4bcb97b"
+    },
+    {
+      "path": "supabase/migrations/20260731011000_taste_profile_recompute_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 316,
+      "nonblank_lines": 305,
+      "sha256": "486ffb6fbd68b7e534d87c7b49ae22183c110ba31f2f557605938ba56a568643"
+    },
+    {
+      "path": "supabase/migrations/20260731012000_personalized_nty_and_flags_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 410,
+      "nonblank_lines": 397,
+      "sha256": "fa7e6b2f107992ec081d91673eec62c5ed04fd6b959941f1e93b3db795fd35e5"
+    },
+    {
+      "path": "supabase/migrations/20260731020000_image_convergence_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 324,
+      "nonblank_lines": 299,
+      "sha256": "06b90238eb9086436638698526b07911ed8a4d167b42550622e7b428c86f7aaf"
+    },
+    {
+      "path": "supabase/migrations/20260731030000_outbound_link_ledger_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 116,
+      "nonblank_lines": 97,
+      "sha256": "d1c07b99471a6336a9db7f4c4bdd05579a39b3799f292d2d7191f55a1a394eca"
+    },
+    {
+      "path": "supabase/migrations/20260731040000_clubs_trust_pack_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 310,
+      "nonblank_lines": 292,
+      "sha256": "1fd6db82c8bfc81d86665d1a203dd61601198696df4bdcac3ca325d4e7b4f003"
+    },
+    {
+      "path": "supabase/migrations/20260731050000_taste_deck_meta_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 297,
+      "nonblank_lines": 290,
+      "sha256": "585c45fced630385ecf4791e0ca0a6a33298886eeeed028da0365879bb39e1dc"
+    },
+    {
+      "path": "supabase/migrations/20260731060000_taste_math_v2.sql",
+      "group": "sql_migrations",
+      "physical_lines": 2014,
+      "nonblank_lines": 1927,
+      "sha256": "9d93b71bb37d6a1d437c21c2ecc1bf3a91b83ac3b6af6b5d1115321a0939f203"
+    },
+    {
+      "path": "supabase/migrations/20260731070000_taste_math_v2_hotfix.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1603,
+      "nonblank_lines": 1533,
+      "sha256": "0992eae2d8fc062000c278757c34c5269e0ff7764c1ec26ad69903d5a4d5e13f"
+    },
+    {
+      "path": "supabase/migrations/20260731080000_taste_math_v2_fix2.sql",
+      "group": "sql_migrations",
+      "physical_lines": 951,
+      "nonblank_lines": 915,
+      "sha256": "aaf602808405d6d61e7cd23f4d842203dec26e7b9a57bc69487ff5873121fc59"
+    },
+    {
+      "path": "supabase/migrations/20260731090000_taste_deck_pass_memory.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1173,
+      "nonblank_lines": 1122,
+      "sha256": "268084bbe86e111e038297ef1ef0c1c1b318947d2d994ab417b1976f538d4233"
+    },
+    {
+      "path": "supabase/migrations/20260731095000_deck_love_to_list.sql",
+      "group": "sql_migrations",
+      "physical_lines": 210,
+      "nonblank_lines": 197,
+      "sha256": "edfcda27d737c8cef4ae7d190a5e2430828cd756d278c4d9c9e84926e759bb0c"
+    },
+    {
+      "path": "supabase/migrations/20260731100000_discover_p1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 384,
+      "nonblank_lines": 366,
+      "sha256": "ce79f892d3092bc7c3e5af64d001d0935b0bfefaa4e04823cd405864f873e71d"
+    },
+    {
+      "path": "supabase/migrations/20260731110000_daily_feature_argument_polish.sql",
+      "group": "sql_migrations",
+      "physical_lines": 118,
+      "nonblank_lines": 113,
+      "sha256": "62774ea909a60f60527c322fce1e66bf3d790cd7278607ac4916e13b0ff3ef6a"
+    },
+    {
+      "path": "supabase/migrations/20260731120000_realm_signatures_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1012,
+      "nonblank_lines": 1001,
+      "sha256": "de9614fb1ed4cbc5b9080d454026f7909ee6164ca5103ebd858bd30b7eaeb93c"
+    },
+    {
+      "path": "supabase/migrations/20260731130000_canon_seed_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 494,
+      "nonblank_lines": 485,
+      "sha256": "86b97e7ddc4d2a54b16e895d2f0e616819856547e23d84edf84ca3618f470366"
+    },
+    {
+      "path": "supabase/migrations/20260731140000_media_rec_edges_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 136,
+      "nonblank_lines": 120,
+      "sha256": "05284c77ce88c13472ae13bdff0edeae0d9b5124d4d40dc4a07ed48e83dad70b"
+    },
+    {
+      "path": "supabase/migrations/20260731150000_realm_graph_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 2085,
+      "nonblank_lines": 2009,
+      "sha256": "a2173ba5dd30fbdc71f53c9b6ba704867eecc421ca0d7e30f71fa7d089aa7bd8"
+    },
+    {
+      "path": "supabase/migrations/20260731160000_realm_gate_calibration.sql",
+      "group": "sql_migrations",
+      "physical_lines": 445,
+      "nonblank_lines": 439,
+      "sha256": "92e1343f93d8717f72ec7e9d479c803ee17e3f658456db38bc732a2863612523"
+    },
+    {
+      "path": "supabase/migrations/20260731170000_media_realm_llm_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 385,
+      "nonblank_lines": 350,
+      "sha256": "daa82940d9ac87cae0c90a3472e7caafa1fdcebcfebc7f521df6a730d11c29f5"
+    },
+    {
+      "path": "supabase/migrations/20260731180000_similarity_inclusion_fix.sql",
+      "group": "sql_migrations",
+      "physical_lines": 482,
+      "nonblank_lines": 477,
+      "sha256": "9ebb08e246f4b109283cda50272874f29458fbbf703f52650eaca429a28ab255"
+    },
+    {
+      "path": "supabase/migrations/20260731190000_debug_functiondef.sql",
+      "group": "sql_migrations",
+      "physical_lines": 20,
+      "nonblank_lines": 20,
+      "sha256": "22806a96e0a1e0f0020c57f8c1a49d9fa45a1da213098302552d797d4eb96231"
+    },
+    {
+      "path": "supabase/migrations/20260731191000_debug_functiondef2.sql",
+      "group": "sql_migrations",
+      "physical_lines": 22,
+      "nonblank_lines": 22,
+      "sha256": "a1915498734bafff74f405906c8e5e746ca79fb76893eef3e829c0ffcd26e596"
+    },
+    {
+      "path": "supabase/migrations/20260731192000_debug_functiondef3.sql",
+      "group": "sql_migrations",
+      "physical_lines": 21,
+      "nonblank_lines": 21,
+      "sha256": "409abb185c53ae6c2d79c1ff9661c7904f0ed9cb577d8c58f9c02dfc8ad8b92d"
+    },
+    {
+      "path": "supabase/migrations/20260731193000_debug_sim_pair.sql",
+      "group": "sql_migrations",
+      "physical_lines": 32,
+      "nonblank_lines": 32,
+      "sha256": "14fde2ef36d8497735d9086c17cb0cad804a28bc358499bab389b1348309d72d"
+    },
+    {
+      "path": "supabase/migrations/20260731194000_debug_sim_v42.sql",
+      "group": "sql_migrations",
+      "physical_lines": 420,
+      "nonblank_lines": 418,
+      "sha256": "ab7d5f50a0c7cd6f7b15b5d9826c80df90410ed9f3db26a75cb541d0ded31399"
+    },
+    {
+      "path": "supabase/migrations/20260731195000_debug_ranked_pair.sql",
+      "group": "sql_migrations",
+      "physical_lines": 53,
+      "nonblank_lines": 49,
+      "sha256": "544afee5f105fb62ee0cf8ccc558bc090fac07c1578bb89db33d4c81433ffc68"
+    },
+    {
+      "path": "supabase/migrations/20260731200000_penalty_clamp_and_debug_cleanup.sql",
+      "group": "sql_migrations",
+      "physical_lines": 428,
+      "nonblank_lines": 425,
+      "sha256": "1b61f996b88d6d55539b8819e97d9353286f513a8fae7237b9b0f0a298405a3e"
+    },
+    {
+      "path": "supabase/migrations/20260802010000_realm_describe_drain.sql",
+      "group": "sql_migrations",
+      "physical_lines": 101,
+      "nonblank_lines": 88,
+      "sha256": "d9d71e85e3944947d218cfb4211d5f5c92ac89b3de87733130bbc21004fe3830"
+    },
+    {
+      "path": "supabase/migrations/20260802011000_ops_read_cron_secret_tmp.sql",
+      "group": "sql_migrations",
+      "physical_lines": 49,
+      "nonblank_lines": 42,
+      "sha256": "8ffc1b8bebb0fe7646bf0b95a56acba88e348061b444aff528c7c04d4756e249"
+    },
+    {
+      "path": "supabase/migrations/20260802012000_ops_list_cron_jobnames.sql",
+      "group": "sql_migrations",
+      "physical_lines": 25,
+      "nonblank_lines": 25,
+      "sha256": "5b8652e9dd06c7c2c6ec65f6a1ea97b29265aa13dafd610fa7e421b884beba55"
+    },
+    {
+      "path": "supabase/migrations/20260802013000_ops_extract_literal_import_secret.sql",
+      "group": "sql_migrations",
+      "physical_lines": 98,
+      "nonblank_lines": 86,
+      "sha256": "f4fafcf3c25a8344bc128e958de824fc57f84272177f96bf70c1c45638f3c3de"
+    },
+    {
+      "path": "supabase/migrations/20260802014000_realm_llm_upsert_rate_budget.sql",
+      "group": "sql_migrations",
+      "physical_lines": 199,
+      "nonblank_lines": 183,
+      "sha256": "c29d5590433a4f6c1d21a173fe173065dcfa6bc1ff8ee93c8925317e6ff55b69"
+    },
+    {
+      "path": "supabase/migrations/20260802015000_pause_realm_describe_cron.sql",
+      "group": "sql_migrations",
+      "physical_lines": 9,
+      "nonblank_lines": 9,
+      "sha256": "909a3de33eb53edd0495972b64c3bc88cbc21ebdb5940669e5d262b5ab5032a1"
+    },
+    {
+      "path": "supabase/migrations/20260802016000_realm_describe_cron_catchup.sql",
+      "group": "sql_migrations",
+      "physical_lines": 31,
+      "nonblank_lines": 26,
+      "sha256": "37bfd9cd29fc31d3f22aa29bdc692d16a1af519a44d03cfc379dd25c93afe1fb"
+    },
+    {
+      "path": "supabase/migrations/20260802017000_realm_llm_upsert_service_role_only.sql",
+      "group": "sql_migrations",
+      "physical_lines": 23,
+      "nonblank_lines": 17,
+      "sha256": "092d4d78b9206f3423526371f04b731d9746a3464996fecac9b49ab05d35ac79"
+    },
+    {
+      "path": "supabase/migrations/20260802120000_pause_realm_describe_cron_again.sql",
+      "group": "sql_migrations",
+      "physical_lines": 10,
+      "nonblank_lines": 10,
+      "sha256": "fdbc51bcb947afbf0a5de9b0c34fcae9a484006a3da941e0b3f4df83fc773fb8"
+    },
+    {
+      "path": "supabase/migrations/20260802123000_media_realm_membership_delta_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 618,
+      "nonblank_lines": 592,
+      "sha256": "db0a8fe4ac56976d69dd43118d6a510d5d1cd108861211237bc1eb71bc6280ed"
+    },
+    {
+      "path": "supabase/migrations/20260802124000_membership_delta_clamp_fix.sql",
+      "group": "sql_migrations",
+      "physical_lines": 88,
+      "nonblank_lines": 82,
+      "sha256": "ece8614ffd1199dd02eb34e36c37fb95b2f1a32a54b9a807037c22b89ec23348"
+    },
+    {
+      "path": "supabase/migrations/20260802125000_membership_delta_check_float4.sql",
+      "group": "sql_migrations",
+      "physical_lines": 9,
+      "nonblank_lines": 7,
+      "sha256": "47a440701a9d7f849a71f640e72146d43df57f47186882ba021db39404b00a46"
+    },
+    {
+      "path": "supabase/migrations/20260802140000_spirited_away_gate_harden.sql",
+      "group": "sql_migrations",
+      "physical_lines": 478,
+      "nonblank_lines": 470,
+      "sha256": "fe21a3aa62c842a0503ebde885d4f10a09c834dd7393f186891b95e86e1e35ca"
+    },
+    {
+      "path": "supabase/migrations/20260802141000_canon_bless_and_discover_realm_rails.sql",
+      "group": "sql_migrations",
+      "physical_lines": 883,
+      "nonblank_lines": 843,
+      "sha256": "720189d0b06f1d4bf0b414ba16da9b035f6a44ac0efdfe09f755a269ff1ecd49"
+    },
+    {
+      "path": "supabase/migrations/20260802150000_curation_sources_expand_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 340,
+      "nonblank_lines": 317,
+      "sha256": "766911177eef3feea1375d882360c13cbc6ce30c04ea37603d97c074e2bdf862"
+    },
+    {
+      "path": "supabase/migrations/20260804100000_similarity_penalty_and_costs.sql",
+      "group": "sql_migrations",
+      "physical_lines": 534,
+      "nonblank_lines": 525,
+      "sha256": "8c99bc80ec2fd1256700e4600d4ac3e5e5b30c42cb83b9804cd7c29134cc9dcc"
+    },
+    {
+      "path": "supabase/migrations/20260804110000_totoro_credits_and_studio_main.sql",
+      "group": "sql_migrations",
+      "physical_lines": 79,
+      "nonblank_lines": 77,
+      "sha256": "0ca8b07c5b1a2755257420bf8bd1f885699039467abaf2ec96670eb846b01941"
+    },
+    {
+      "path": "supabase/migrations/20260804120000_tier_from_effective_and_cron.sql",
+      "group": "sql_migrations",
+      "physical_lines": 392,
+      "nonblank_lines": 362,
+      "sha256": "9af6dd3b5644593715f4478e39d04107d39cc077f7f6d37e633c90c5141ca6ee"
+    },
+    {
+      "path": "supabase/migrations/20260804121000_rebuild_tier_execute_service_role_only.sql",
+      "group": "sql_migrations",
+      "physical_lines": 14,
+      "nonblank_lines": 11,
+      "sha256": "10c201df6318cd42f07996c633df6c1a1a56fa8c51fb7472f340d8b40ea55287"
+    },
+    {
+      "path": "supabase/migrations/20260804130000_media_similar_titles_precompute.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1422,
+      "nonblank_lines": 1320,
+      "sha256": "83e7f7dac73863240b6d45858485fd904e6783d592cb67c9eeef983f40545828"
+    },
+    {
+      "path": "supabase/migrations/20260804131000_similar_builder_oom_fix.sql",
+      "group": "sql_migrations",
+      "physical_lines": 709,
+      "nonblank_lines": 635,
+      "sha256": "30d1f8a629fa43eb320a4a0749905ef1211f00f2627049de1974a3329afc4aa8"
+    },
+    {
+      "path": "supabase/migrations/20260804132000_similar_driver_batch_100.sql",
+      "group": "sql_migrations",
+      "physical_lines": 33,
+      "nonblank_lines": 29,
+      "sha256": "8c46e8c07dab31d5acca9bf28c368d7d652ef7d6b87952e4a778b7f5d44c15dd"
+    },
+    {
+      "path": "supabase/migrations/20260804140000_franchise_components_and_blend_dedupe.sql",
+      "group": "sql_migrations",
+      "physical_lines": 950,
+      "nonblank_lines": 855,
+      "sha256": "aa35052a6dbbdc093136b48f9a3decc44ca727cdab1d53da0c2431a4e43340a4"
+    },
+    {
+      "path": "supabase/migrations/20260804150000_hygiene_ops_fn_and_view_advisors.sql",
+      "group": "sql_migrations",
+      "physical_lines": 91,
+      "nonblank_lines": 80,
+      "sha256": "3f376528c2856ec3c7329ef144fc5f8552479ce1e43e32b250fe7e46482c2776"
+    },
+    {
+      "path": "supabase/migrations/20260805100000_daily_feature_display_synopsis.sql",
+      "group": "sql_migrations",
+      "physical_lines": 100,
+      "nonblank_lines": 96,
+      "sha256": "16db6c0e258f6ef8f6c346d8f88ee3edfd965d9f3c395970067fed014690714b"
+    },
+    {
+      "path": "supabase/migrations/20260805110000_realm_audit_overrides.sql",
+      "group": "sql_migrations",
+      "physical_lines": 650,
+      "nonblank_lines": 634,
+      "sha256": "2e3f1733dcd397c1f51edb5e43901cda949b9b5a6a970a02502849315fe51472"
+    },
+    {
+      "path": "supabase/migrations/20260805112000_realm_audit_override_conditional_swap.sql",
+      "group": "sql_migrations",
+      "physical_lines": 168,
+      "nonblank_lines": 161,
+      "sha256": "99dae4eb0501b8078fd655c2052faa6442cd7413b15107eb5982205410e7f3b9"
+    },
+    {
+      "path": "supabase/migrations/20260805120000_edges_first_serving.sql",
+      "group": "sql_migrations",
+      "physical_lines": 965,
+      "nonblank_lines": 873,
+      "sha256": "76cb9b72fa54189d47cff839ae47cc49a742802d1386494303782eeed17da518"
+    },
+    {
+      "path": "supabase/migrations/20260805130000_critique_ingestion_schema.sql",
+      "group": "sql_migrations",
+      "physical_lines": 246,
+      "nonblank_lines": 229,
+      "sha256": "6fda7e79040dfc5c5e7c94745e0fd2fa1003051b8e21255219e4326e5386fdba"
+    },
+    {
+      "path": "supabase/migrations/20260805140000_entry_point_canonicalization.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1206,
+      "nonblank_lines": 1096,
+      "sha256": "e10b93fb55efa46dc214b4110d576ea88824f157dbbb67c8b42902fb1f543310"
+    },
+    {
+      "path": "supabase/migrations/20260805150000_entry_point_upward_tier_substitution.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1060,
+      "nonblank_lines": 966,
+      "sha256": "7f2327d066dea4cfcafe05e334506ac98dee1163c4840cc04a6de7dcb8281db0"
+    },
+    {
+      "path": "supabase/migrations/20260806000000_security_and_mirror_repair.sql",
+      "group": "sql_migrations",
+      "physical_lines": 38,
+      "nonblank_lines": 38,
+      "sha256": "342a12419384c303fa8823ea6fd64208ed76abf9c4234545d2837a01ec2bdf36"
+    },
+    {
+      "path": "supabase/migrations/20260806010000_serving_fixes_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 708,
+      "nonblank_lines": 677,
+      "sha256": "ab3abeede47c9913b9c41824e575ca9e0787b3f2ce50ed6e2fe91e314a0bb37e"
+    },
+    {
+      "path": "supabase/migrations/20260806020000_serving_hardening_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1743,
+      "nonblank_lines": 1596,
+      "sha256": "a59ca1e31402341fbbbf23ad14f28f099e14edd04185ef197cf848f66c469695"
+    },
+    {
+      "path": "supabase/migrations/20260807000000_baseline_capture_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 3029,
+      "nonblank_lines": 2917,
+      "sha256": "3616bff291178936c7eee35523f5394137dec2eaf0a436bef7b70eb93176e365"
+    },
+    {
+      "path": "supabase/migrations/20260807010000_leftover_repairs_v1.sql",
+      "group": "sql_migrations",
+      "physical_lines": 1293,
+      "nonblank_lines": 1177,
+      "sha256": "aeae455f854703bb0bc412b9a3e75bb51f21b6d4abac528fad2691754fba089d"
+    },
+    {
+      "path": "supabase/migrations/20260810120000_clubs_trust_flags_promote_100.sql",
+      "group": "sql_migrations",
+      "physical_lines": 23,
+      "nonblank_lines": 22,
+      "sha256": "31256b4b70e237639a524b2049b9d1a14a03e962f890a6bbda1026c7c80b5c63"
+    },
+    {
+      "path": "tools/design-directions/aperture.css",
+      "group": "design_prototypes",
+      "physical_lines": 32,
+      "nonblank_lines": 32,
+      "sha256": "e7fb7899c98409de7f45c0dad3237ceca51bc8b8a53b9cb72e7977fc25ea0a47"
+    },
+    {
+      "path": "tools/design-directions/aperture.html",
+      "group": "design_prototypes",
+      "physical_lines": 9,
+      "nonblank_lines": 9,
+      "sha256": "4d051247eeabfed1125565ab2cabc8113d586a2f5c7c529c6d844f317d854e99"
+    },
+    {
+      "path": "tools/design-directions/aperture.js",
+      "group": "design_prototypes",
+      "physical_lines": 39,
+      "nonblank_lines": 39,
+      "sha256": "25bbf17cbd67306c27b7981dc8468d9706823291fc56341fccd6dd95d35fe9da"
+    },
+    {
+      "path": "tools/design-directions/archive/fluid-v9/instrument.css",
+      "group": "design_prototypes",
+      "physical_lines": 33,
+      "nonblank_lines": 33,
+      "sha256": "304500a85c7bf1fcd0af719f0390074b7ae97b624754349a0b118cd97120b79a"
+    },
+    {
+      "path": "tools/design-directions/archive/fluid-v9/instrument.html",
+      "group": "design_prototypes",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "74fd0292529df944b46655ebd03f0957a232bb7fac6fc5ad3040edf4ad28465d"
+    },
+    {
+      "path": "tools/design-directions/archive/fluid-v9/instrument.js",
+      "group": "design_prototypes",
+      "physical_lines": 71,
+      "nonblank_lines": 71,
+      "sha256": "1c302de30a9e2a1e957a049d43d47d069fe2dbff8524322712482fb6c228f08b"
+    },
+    {
+      "path": "tools/design-directions/archive/material-v8/instrument.css",
+      "group": "design_prototypes",
+      "physical_lines": 96,
+      "nonblank_lines": 95,
+      "sha256": "9d980b6040c062b689f4f74a3ad943a6ec58724cefb74e098dabfb7236ce0532"
+    },
+    {
+      "path": "tools/design-directions/archive/material-v8/instrument.html",
+      "group": "design_prototypes",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "a778ec9301a3ec3b96cb8f8bbc5662b46fab2bb229dc91ec564c382a727e32a3"
+    },
+    {
+      "path": "tools/design-directions/archive/material-v8/instrument.js",
+      "group": "design_prototypes",
+      "physical_lines": 61,
+      "nonblank_lines": 61,
+      "sha256": "4b170d2a66324c4790aff341ae5fa624b231d3ec7b3cee2c4b6aee8561d53953"
+    },
+    {
+      "path": "tools/design-directions/art.js",
+      "group": "design_prototypes",
+      "physical_lines": 62,
+      "nonblank_lines": 62,
+      "sha256": "3d561134bcaf5002a6170814b01d5b4c894c94b0a100197a9d4aa3d57dd1592d"
+    },
+    {
+      "path": "tools/design-directions/boring-study.html",
+      "group": "design_prototypes",
+      "physical_lines": 17,
+      "nonblank_lines": 17,
+      "sha256": "31a4443c3ed863804bb04249f989d3f4c94557bf4cf61ff1a3f41770bf1e7fd9"
+    },
+    {
+      "path": "tools/design-directions/build_art_materials.py",
+      "group": "design_prototypes",
+      "physical_lines": 54,
+      "nonblank_lines": 46,
+      "sha256": "c41a0e3d6fe80cf49676df46abe9a3981a4c8d98008c5d0adee5ae1f59b18c5f"
+    },
+    {
+      "path": "tools/design-directions/composition-review.html",
+      "group": "design_prototypes",
+      "physical_lines": 11,
+      "nonblank_lines": 11,
+      "sha256": "8909f15c62b9b8e77a5a2869e24c08f2f382d6c118ba78b2561f3e86cbcec949"
+    },
+    {
+      "path": "tools/design-directions/flow.html",
+      "group": "design_prototypes",
+      "physical_lines": 19,
+      "nonblank_lines": 19,
+      "sha256": "e771335991c0f5d9401ee35fb85b1aba8336c3b642685ba7329650d9220704ae"
+    },
+    {
+      "path": "tools/design-directions/folio.html",
+      "group": "design_prototypes",
+      "physical_lines": 39,
+      "nonblank_lines": 37,
+      "sha256": "779fdfdb1126f4d19550a5e195c372df0b841168e0c41f604cf7cfb5f42040d2"
+    },
+    {
+      "path": "tools/design-directions/home-profile.js",
+      "group": "design_prototypes",
+      "physical_lines": 43,
+      "nonblank_lines": 43,
+      "sha256": "c755b4073ac28a282925c7d380444694a304d8e43844e65e8535783e2285ae88"
+    },
+    {
+      "path": "tools/design-directions/index.html",
+      "group": "design_prototypes",
+      "physical_lines": 29,
+      "nonblank_lines": 29,
+      "sha256": "d2ec63e95d3ecd2b9261e5ce501b1c4a018f202a6fa2de38f0db854b4f0567e3"
+    },
+    {
+      "path": "tools/design-directions/instrument-art-materials.js",
+      "group": "design_prototypes",
+      "physical_lines": 243,
+      "nonblank_lines": 243,
+      "sha256": "5ea5103da880e554c6f9072cf1bd83930bc99bf2083678e8988187dd2470afd4"
+    },
+    {
+      "path": "tools/design-directions/instrument-detail-data.js",
+      "group": "design_prototypes",
+      "physical_lines": 66,
+      "nonblank_lines": 66,
+      "sha256": "9a328ec277428fd4a0c00e0e4c81630c2e9be83f48878dba93d525d9d85da548"
+    },
+    {
+      "path": "tools/design-directions/instrument.css",
+      "group": "design_prototypes",
+      "physical_lines": 834,
+      "nonblank_lines": 805,
+      "sha256": "ed15e7137be08cddb3b8b22e598a91d45df5c9d0be4143e117e53b6339d7d854"
+    },
+    {
+      "path": "tools/design-directions/instrument.html",
+      "group": "design_prototypes",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "11fa0ebeda623d7896fd703c6e7ed539a811e09c389881c5282fe3345709523d"
+    },
+    {
+      "path": "tools/design-directions/instrument.js",
+      "group": "design_prototypes",
+      "physical_lines": 425,
+      "nonblank_lines": 418,
+      "sha256": "8f3dd3586bd43e54c0aca0db7ec6f220c514a4aa6317e71365457a3aaeadf906"
+    },
+    {
+      "path": "tools/design-directions/interlude.html",
+      "group": "design_prototypes",
+      "physical_lines": 31,
+      "nonblank_lines": 31,
+      "sha256": "a485e9db24122fa816be95d7ee7d27e4eee9f2f92513147f7e3dbee1d1a24d6d"
+    },
+    {
+      "path": "tools/design-directions/journal-data.js",
+      "group": "design_prototypes",
+      "physical_lines": 125,
+      "nonblank_lines": 124,
+      "sha256": "8916dfc2c62bc743b0d663f88e76c645a3933a4fcd21b6f858aca0b48cc5c49d"
+    },
+    {
+      "path": "tools/design-directions/journal.css",
+      "group": "design_prototypes",
+      "physical_lines": 5,
+      "nonblank_lines": 3,
+      "sha256": "a58ec53e19c71f61d8b089a4166f5d8d23ed71aff32d293f45d5c767bcaf9268"
+    },
+    {
+      "path": "tools/design-directions/journal.html",
+      "group": "design_prototypes",
+      "physical_lines": 3,
+      "nonblank_lines": 3,
+      "sha256": "89dcd408d659c0d5203f56475d3c126b5484beaafd97968c8781a223a0b0f088"
+    },
+    {
+      "path": "tools/design-directions/journal.js",
+      "group": "design_prototypes",
+      "physical_lines": 46,
+      "nonblank_lines": 46,
+      "sha256": "61618971eaa694842f2f9a9c29ab275250cf0cf7556393b1f86b40a93122e52f"
+    },
+    {
+      "path": "tools/design-directions/manga-crosscut.html",
+      "group": "design_prototypes",
+      "physical_lines": 4,
+      "nonblank_lines": 4,
+      "sha256": "8c188487a3d7d323d614c133b233f084002a42de4dd020a59732bbb4eb03b8ec"
+    },
+    {
+      "path": "tools/design-directions/manga-directions.css",
+      "group": "design_prototypes",
+      "physical_lines": 194,
+      "nonblank_lines": 192,
+      "sha256": "e3cd047dacbe50c3c735c530210aa93e323edac34b0ff5042439197e2cdeefa8"
+    },
+    {
+      "path": "tools/design-directions/manga-directions.js",
+      "group": "design_prototypes",
+      "physical_lines": 37,
+      "nonblank_lines": 37,
+      "sha256": "bae3695790339af8fe6a475fe9aadbb23f7e59920a91fb10dc6aeb71aab9bb59"
+    },
+    {
+      "path": "tools/design-directions/manga-four.html",
+      "group": "design_prototypes",
+      "physical_lines": 8,
+      "nonblank_lines": 8,
+      "sha256": "4240b626b3da490ce07401b8e0e550c421a5f0a523ae97be9b86365d9beae3af"
+    },
+    {
+      "path": "tools/design-directions/manga-library.html",
+      "group": "design_prototypes",
+      "physical_lines": 3,
+      "nonblank_lines": 3,
+      "sha256": "7867e78f90e31d7211b76719bc36779c14c2798d1452da7fabdd57db754ab254"
+    },
+    {
+      "path": "tools/design-directions/manga-options.html",
+      "group": "design_prototypes",
+      "physical_lines": 22,
+      "nonblank_lines": 22,
+      "sha256": "892a46f775b10e1996ac1fadc1ef062d9b7935f373a150b3165b30a4ba157ed3"
+    },
+    {
+      "path": "tools/design-directions/manga-philosophies.css",
+      "group": "design_prototypes",
+      "physical_lines": 120,
+      "nonblank_lines": 118,
+      "sha256": "69cb5e09410cf8bfddb410f1ea44d75914c8cd8f9a66f352f000c875fb328a22"
+    },
+    {
+      "path": "tools/design-directions/manga-philosophies.js",
+      "group": "design_prototypes",
+      "physical_lines": 33,
+      "nonblank_lines": 32,
+      "sha256": "8fc5cc5effa1e00b636cf4191765c84d41987d0a570ca2baa0f9430bd63757ee"
+    },
+    {
+      "path": "tools/design-directions/manga-reference-study.html",
+      "group": "design_prototypes",
+      "physical_lines": 59,
+      "nonblank_lines": 59,
+      "sha256": "b6abbf8f7d9d099208aa886a9a2a672d69c400452ab2831b5e91d468379600e8"
+    },
+    {
+      "path": "tools/design-directions/modern.css",
+      "group": "design_prototypes",
+      "physical_lines": 3,
+      "nonblank_lines": 2,
+      "sha256": "451835eeafccaf81db035a64762c175cc1cc8ed208bf2474b4ac28ae87573d8b"
+    },
+    {
+      "path": "tools/design-directions/modern.html",
+      "group": "design_prototypes",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "55dbcc067dac35463b70068b7ac4fb4cf08723d9c4f566f4648609ca51eeb07e"
+    },
+    {
+      "path": "tools/design-directions/modern.js",
+      "group": "design_prototypes",
+      "physical_lines": 35,
+      "nonblank_lines": 35,
+      "sha256": "a1ccbbb258ee70a21295671edba074159ca4a24e19718479980f584ee769a614"
+    },
+    {
+      "path": "tools/design-directions/panels.html",
+      "group": "design_prototypes",
+      "physical_lines": 68,
+      "nonblank_lines": 67,
+      "sha256": "803de864a7d8f1868a5b9a758b4aa3f2674c5aebe2c43ee4017860b47bc3e02c"
+    },
+    {
+      "path": "tools/design-directions/reference-atlas.html",
+      "group": "design_prototypes",
+      "physical_lines": 10,
+      "nonblank_lines": 10,
+      "sha256": "eddc26f6f77e92a6fa0b8f407cd0898815da784563cea2d0b620895186f30aa1"
+    },
+    {
+      "path": "tools/design-directions/references.html",
+      "group": "design_prototypes",
+      "physical_lines": 5,
+      "nonblank_lines": 5,
+      "sha256": "b3c4186163e5df6bda54cd42cb87d03d5a4d8393c7ac43ddcc98b448a1211c4a"
+    },
+    {
+      "path": "tools/design-directions/studies.html",
+      "group": "design_prototypes",
+      "physical_lines": 24,
+      "nonblank_lines": 24,
+      "sha256": "f1af7620d858264b2a9a2cafaeb3f384ca3fde4b2046b49f923d7de9d8ce0428"
+    },
+    {
+      "path": "tools/design-directions/switch-options.html",
+      "group": "design_prototypes",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "3021861717cbe04a261e3e57a545921af0f949226a6d468b90989b515d75da03"
+    },
+    {
+      "path": "tools/design-directions/world.css",
+      "group": "design_prototypes",
+      "physical_lines": 7,
+      "nonblank_lines": 4,
+      "sha256": "fe53e1e8e78b7289cf4ba7376ddda12405cdab9700da3a8d62bc2726ceb495a5"
+    },
+    {
+      "path": "tools/design-directions/world.html",
+      "group": "design_prototypes",
+      "physical_lines": 1,
+      "nonblank_lines": 1,
+      "sha256": "5915f7c83e819674776a62b727d8e7d75e2c2053c54194ed05022da4ea29ba3c"
+    },
+    {
+      "path": "tools/design-directions/world.js",
+      "group": "design_prototypes",
+      "physical_lines": 58,
+      "nonblank_lines": 57,
+      "sha256": "560ae1b9a870ced569ab1d93cd072725f9e1e026df10f4495e028db749b75882"
+    }
+  ],
+  "project": {
+    "path": "Kuro.xcodeproj/project.pbxproj",
+    "sha256": "ed21b8b67327ef3b4d8eb5dda00b981e233c7713e6d61ffed6648eebb363f677",
+    "native_targets": [
+      "Kuro",
+      "KuroTests",
+      "KuroUITests"
+    ],
+    "local_package_references": 0,
+    "remote_package_references": 1,
+    "package_manifests": []
+  },
+  "source_oversize": {
+    "ios_app": {
+      "400": {
+        "files": 40,
+        "lines": 39534,
+        "share_percent": 85.0
+      },
+      "600": {
+        "files": 34,
+        "lines": 36813,
+        "share_percent": 79.1
+      },
+      "1000": {
+        "files": 11,
+        "lines": 18799,
+        "share_percent": 40.4
+      }
+    },
+    "edge_typescript": {
+      "400": {
+        "files": 8,
+        "lines": 9365,
+        "share_percent": 80.3
+      },
+      "600": {
+        "files": 5,
+        "lines": 7791,
+        "share_percent": 66.8
+      },
+      "1000": {
+        "files": 3,
+        "lines": 6274,
+        "share_percent": 53.8
+      }
+    }
+  }
+}

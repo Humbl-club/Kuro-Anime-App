@@ -1,0 +1,202 @@
+guard: environment clean; guard unit check passed
+pending: fixture INCLUDES 3 prepared-NOT-DEPLOYED migration(s) (supabase/tests/pending_migrations.txt); use --exclude-pending for the deployed-chain state:
+           20261005120000_club_members_role_column_guard.sql
+           20261005120100_club_rails_insert_admin_only.sql
+           20261005120200_toggle_comment_reaction_visibility.sql
+target: throwaway PostgreSQL 17.10 (Homebrew) on unix socket /tmp/kuro-db-test.QXV6mx (port label 54329), TCP disabled, data_directory=/private/tmp/kuro-db-test.QXV6mx/data
+
+================ migration replay (supabase/migrations, 235 files) ================
+replay[strict]: 130 files applied, 108 files failed (details: /tmp/kuro-db-test.QXV6mx/reports/replay-strict.tsv)
+replay[baseline-post]: 2 files applied, 4 files failed (details: /tmp/kuro-db-test.QXV6mx/reports/replay-baseline-post.tsv)
+replay[baseline-first]: 176 files applied, 62 files failed; baseline PRE-APPLY: PASS (details: /tmp/kuro-db-test.QXV6mx/reports/replay-baseline-first.tsv)
+
+---- baseline-post (baseline, then only later files): object counts in kuro_baseline_post ----
+public tables: 27
+public matviews: 7
+public policies: 24
+public constraints (all types): 105
+baseline declares 26 distinct policies; baseline-post has 24 of them.
+not created in baseline-post (the baseline dependency-guards them on tables/functions that only the pre-baseline chain creates, e.g. club tables and is_club_member):
+    club_rail_item_reactions|club_reactions_insert_member
+    club_rail_item_reactions|club_reactions_select_member
+expected here: README_baseline_capture.md's 106 constraints / 26 policies are reached only once club_rail_items and is_club_member exist.
+In baseline-post they do not (pre-baseline chain files create them), so the baseline's own guards (to_regclass('public.club_rail_items'))
+skip exactly 1 FK (club_rail_item_reactions_rail_item_id_fkey) and 2 policies (club_reactions_*): 105 constraints / 24 policies is the consistent result.
+
+---- baseline-post per-file result ----
+PASS 20260807000000_baseline_capture_v1.sql 
+FAIL 20260807010000_leftover_repairs_v1.sql ERROR:  function public.delete_user_concierge_data(text) does not exist
+FAIL 20260810120000_clubs_trust_flags_promote_100.sql ERROR:  relation "public.feature_flags" does not exist
+FAIL 20261005120000_club_members_role_column_guard.sql ERROR:  relation "public.club_members" does not exist
+FAIL 20261005120100_club_rails_insert_admin_only.sql ERROR:  relation "public.club_rails" does not exist
+PASS 20261005120200_toggle_comment_reaction_visibility.sql 
+
+---- strict (empty DB, filename order): failures grouped by first error ----
+ 104 ERROR:  relation "…" does not exist
+   2 ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+   1 ERROR:  function public.rebuild_media_realm_tier() does not exist
+   1 ERROR:  column "…" of relation "…" does not exist
+
+---- baseline-first (FIXTURE build): failing files ----
+FAIL  20260203183000_concierge_recommend_rpc.sql
+        ERROR:  relation "public.user_lists" does not exist
+FAIL  20260203190000_editorial_recommend_engine.sql
+        ERROR:  insert or update on table "editorial_penalty_tags" violates foreign key constraint "editorial_penalty_tags_tag_id_fkey"
+FAIL  20260203191500_recommend_focus_tags.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260203194500_recommend_focus_filter.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260203201000_editorial_story_boosts.sql
+        ERROR:  insert or update on table "editorial_tag_boosts" violates foreign key constraint "editorial_tag_boosts_tag_id_fkey"
+FAIL  20260203203000_recommend_seed_similarity.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260203223000_scale_perf_bundle_and_indexes.sql
+        ERROR:  relation "public.user_lists" does not exist
+FAIL  20260203235500_search_rpc_keyset.sql
+        ERROR:  function similarity(text, text) does not exist
+FAIL  20260204233000_recommend_seed_similarity_allow_anon.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260204234500_recommend_seed_similarity_ranked_tags.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260204235500_recommend_seed_similarity_genre_gate.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260205231000_curated_rails.sql
+        ERROR:  relation "public.user_lists" does not exist
+FAIL  20260205234000_curated_rails_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260205235000_discover_bundle_use_curated_rails.sql
+        ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+FAIL  20260206120000_curated_rails_expansion.sql
+        ERROR:  relation "public.curated_rail_items" does not exist
+FAIL  20260206150000_security_hardening_rls_and_views.sql
+        ERROR:  relation "public.editorial_boosts" does not exist
+FAIL  20260206162329_curated_rails_expansion.sql
+        ERROR:  relation "public.curated_rail_items" does not exist
+FAIL  20260206164200_security_hardening_rls_and_views.sql
+        ERROR:  relation "public.editorial_boosts" does not exist
+FAIL  20260207011000_curated_rails_vibes_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260207020000_curated_rails_more_vibes_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260208022035_phase0_remove_sequels.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022110_add_sports_mode.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022136_phase0_remove_misclassified.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022153_add_scifi_mode.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022239_add_horror_supernatural_mode.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022250_phase0_dedup_rails.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022326_phase0_slim_and_rerank.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022342_add_demographic_rails.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022404_phase0_fix_classics.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208023052_phase0_backfill_underpopulated_rails.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208023221_phase0_dedup_backfilled_rails.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208023331_phase0_final_backfill.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208090000_refine_short_and_fantasy_rails.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260208091500_curated_rails_premium_picks_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260209120000_new_vibe_rails.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260211162000_reduce_school_shoujo_overlap.sql
+        ERROR:  relation "public.curated_rail_items" does not exist
+FAIL  20260324213000_discover_airing_today_berlin_day.sql
+        ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+FAIL  20260731060000_taste_math_v2.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260731070000_taste_math_v2_hotfix.sql
+        ERROR:  function public._taste_deck_apply_tag_stats(uuid, text, integer, text, integer) does not exist
+FAIL  20260731100000_discover_p1.sql
+        ERROR:  relation "public.editorial_boosts" does not exist
+FAIL  20260731150000_realm_graph_v1.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731160000_realm_gate_calibration.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731170000_media_realm_llm_v1.sql
+        ERROR:  relation "public.media_realm_tier" does not exist
+FAIL  20260731180000_similarity_inclusion_fix.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731194000_debug_sim_v42.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731200000_penalty_clamp_and_debug_cleanup.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260802123000_media_realm_membership_delta_v1.sql
+        ERROR:  relation "public.media_realm_membership" does not exist
+FAIL  20260802125000_membership_delta_check_float4.sql
+        ERROR:  relation "public.media_realm_membership_delta" does not exist
+FAIL  20260802140000_spirited_away_gate_harden.sql
+        ERROR:  relation "public.realm_affinity_overrides" does not exist
+FAIL  20260802141000_canon_bless_and_discover_realm_rails.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260802150000_curation_sources_expand_v1.sql
+        ERROR:  column "blessed" of relation "canon_seed" does not exist
+FAIL  20260804100000_similarity_penalty_and_costs.sql
+        ERROR:  relation "public.realm_affinity_overrides" does not exist
+FAIL  20260804120000_tier_from_effective_and_cron.sql
+        ERROR:  relation "public.media_realm_tier" does not exist
+FAIL  20260804121000_rebuild_tier_execute_service_role_only.sql
+        ERROR:  function public.rebuild_media_realm_tier() does not exist
+FAIL  20260804130000_media_similar_titles_precompute.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260804150000_hygiene_ops_fn_and_view_advisors.sql
+        ERROR:  relation "public.realm_affinity_effective" does not exist
+FAIL  20260805110000_realm_audit_overrides.sql
+        ERROR:  relation "public.media_realm_membership" does not exist
+FAIL  20260805112000_realm_audit_override_conditional_swap.sql
+        ERROR:  relation "public.media_realm_membership" does not exist
+FAIL  20260805120000_edges_first_serving.sql
+        ERROR:  relation "public.media_similar_titles" does not exist
+FAIL  20260806000000_security_and_mirror_repair.sql
+        ERROR:  relation "public.media_similar_seed_state" does not exist
+FAIL  20260806020000_serving_hardening_v1.sql
+        ERROR:  relation "public.media_similar_seed_state" does not exist
+FAIL  20260807010000_leftover_repairs_v1.sql
+        ERROR:  relation "public.media_similar_seed_state" does not exist
+replay reports copied to /private/tmp/kuro-deep-db-review
+
+================ RLS / authorization tests on kuro_baseline_first ================
+FIXTURE: audited schema fixture (stubs + baseline-first application). NOT a complete migration replay.
+         NOT Supabase Auth / Realtime / Storage / PostgREST / pg_cron / pg_net.
+PASS  00_harness_and_preconditions.sql          14 assertions, 0 blocked, 0 findings
+PASS  10_user_lists.sql                         34 assertions, 1 blocked, 1 findings
+PASS  20_clubs.sql                              84 assertions, 0 blocked, 3 findings
+PASS  30_social_comments.sql                    31 assertions, 0 blocked, 0 findings
+PASS  40_streaming_and_taste.sql                31 assertions, 2 blocked, 0 findings
+PASS  50_account_deletion_fk_and_rpc.sql        26 assertions, 2 blocked, 2 findings
+PASS  60_club_role_guard.sql                    34 assertions, 0 blocked, 0 findings
+PASS  61_club_rail_insert_policy.sql            13 assertions, 0 blocked, 0 findings
+PASS  62_comment_reaction_visibility.sql        18 assertions, 0 blocked, 0 findings
+PASS  63_club_privacy_levels_and_open_items.sql  36 assertions, 0 blocked, 3 findings
+
+---- findings (observed behavior; NOT fixed here) ----
+  * public.user_lists view without security_invoker (legacy_sql/08 as written) -- user 2 sees 2 of user 1's rows through the view
+  * bundle cross-member statuses cannot work under RLS -- 3 of 4 members track the item; bundle member_status_counts={"COMPLETED": 1} (expected one entry per status if cross-member reads worked)
+  * revocation is not sticky -- owner removal deletes the club_members row only; the club-wide invite_code still works, so a removed member can join_club() again unless the code is expired/exhausted/rotated
+  * club raw per-user rows readable by any member -- policies club_votes_select_member / club_reactions_select_member / club_members_select_member use is_club_member() only; fetch_club_bundle's anonymous-aggregate and sharing_level gating are RPC-only and bypassable via direct table reads
+  * anime_comments / manga_comments need an explicit delete -- user_id TEXT, no FK: neither delete_user_concierge_data (any repo version) nor the auth.users cascade removes them; the delete-account function now deletes both as REQUIRED steps (supabase/functions/delete-account/deletion.ts), emulated below
+  * club lifecycle on account deletion -- edge function step 2 sweeps clubs with created_by IS NULL AND no members, but runs BEFORE auth deletion when created_by is still set, so it only ever cleans earlier victims; leave_club has ownership-transfer/cleanup logic that account deletion bypasses
+  * R4 OPEN: tightening the SELECT policies alone breaks the app -- own-row SELECT on club_votes / club_rail_item_reactions / club_members makes the SECURITY INVOKER fetch_club_bundle and fetch_club_bundle_loading return own-only counts (polls 3->1, reactions, member_count 4->1); not applied
+  * R4 OPEN: option D4-A is feasible in the fixture but privacy-visible -- fetch_club_bundle(_loading) SECURITY DEFINER + own-row SELECT policies keeps counts and private gating, hides raw rows, but ALSO makes cross-member list statuses/progress appear (resolves finding 3); Realtime INSERT events of other members' votes/reactions would stop reaching clients. Owner decision.
+  * R5 OPEN: revocation is not sticky (leave path) -- leave_club / owner removal delete only the club_members row; the club-wide invite_code keeps working (contradicts the leave dialog copy), and the departed member's votes/reactions remain in counts and raw rows. No remove-member UI exists; removal today is a direct DELETE by owner/admin.
+
+---- BLOCKED (not faked; reason + recovery) ----
+  - production state of public.user_lists (security_invoker) -- view absent from baseline capture and 20260206150000 does not replay; verify with pg_class.reloptions on a production-equivalent DB
+  - taste_tag_stats owner isolation (taste_tag_stats_select_own) -- table is created by 20260731060000_taste_math_v2.sql which does not replay here (FK-data dependency on editorial_penalty_tags); recovery: production-equivalent schema
+  - latest delete_user_concierge_data (20260806020000 adds discover_rail_impressions) -- that migration does not replay; fixture holds the 20260305153000 body
+  - storage objects owned by the user (bucket "media") -- Supabase Storage is not part of this fixture; storage.objects is a stub with no owner cascade. Covered only by the delete-account unit tests with a fake storage dependency.
+  - auth.users deletion by GoTrue / supabase_auth_admin -- the fixture deletes from the stub auth.users as superuser; FK cascade behavior is real PostgreSQL, the Auth server is not.
+
+RESULT: 10 test files, 321 assertions passed, 5 blocked markers, 9 finding markers -> PASS
+PROVEN: RLS/RPC authorization on the tables listed in supabase/tests/README.md, for the schema this fixture contains.
+NOT PROVEN: full migration replay; production schema equality; Supabase Auth/Realtime/Storage/PostgREST behavior; edge functions; any file listed as FAIL above.
+teardown: throwaway cluster stopped and /tmp/kuro-db-test.QXV6mx removed

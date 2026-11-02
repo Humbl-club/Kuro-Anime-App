@@ -1,0 +1,746 @@
+[
+  {
+    "file": "Kuro/ContentView.swift",
+    "lines": 905,
+    "sha256": "223cdf5b13def1f578f2dc94c85a3841e955710fb930283f39fd70024aaf0e48",
+    "scope": "this audit",
+    "register_rows": 8,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Design/Color+Hex.swift",
+    "lines": 37,
+    "sha256": "7ebeb3f5b9f4f9c38daa3a96ffaee8f9b5730c80ae4c1305e76ed1fbce6fc531",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Design/KuroDesignSystem.swift",
+    "lines": 716,
+    "sha256": "6f7b89a19abcd37b7f70c3483f0fc4e925af46f9537f900a367c78a06760f232",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/KuroApp.swift",
+    "lines": 129,
+    "sha256": "f08e2fc41c14b296c53a9297fe76147e74e955ade133fef3253dde965c6c9737",
+    "scope": "this audit",
+    "register_rows": 3,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Models/DiscoverBundle.swift",
+    "lines": 47,
+    "sha256": "917f6c3c08c85e0440effc00d8f025f0b551635cfd8ca21e3401f585e08d4394",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Models/SupabaseModels.swift",
+    "lines": 1324,
+    "sha256": "8591b069f2c876becd81ac1cec67266771d78d573060269e27a1d1a24c4df326",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/AppConfig.swift",
+    "lines": 31,
+    "sha256": "b88fda8bb3c78ce3cf427ba5d9cd7b4baabf55e2a2182b18aa059c3ac2144f77",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/AppleFMService.swift",
+    "lines": 723,
+    "sha256": "8e0e2819ef4478af256dbf45e07e371c612a1ce2b1743ed77a2e5310b79d3e7e",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/ConciergeAnalytics.swift",
+    "lines": 150,
+    "sha256": "f9b60cd773c8e131331025069ddf1f9c4437ecbf7387bdc49305916fc80adaeb",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/DeepLinkRouter.swift",
+    "lines": 101,
+    "sha256": "ff50f6522bd13e1981b633987e4b320ee02bf6c5e91c3114ca31594d69eeb451",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/FeatureFlags.swift",
+    "lines": 201,
+    "sha256": "e024b0ce5a04cd52248fb6c60c2bb66a7a9ed5d48bac3cc6328bb76a9cf55ee0",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/ImagePipeline.swift",
+    "lines": 176,
+    "sha256": "a796cf187cee8ff22e888aca1d43c9ba52e957a5e005f6787c988ce9e00d5e05",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/KuroDiskDetailCache.swift",
+    "lines": 97,
+    "sha256": "c625b745e4e26c13d7820ca0b2b8fa109122d863bc92399c65a5d3567083c0e9",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/KuroPerf.swift",
+    "lines": 30,
+    "sha256": "c8ec439a3dc031d12012a0f8e24aaa54be544f2cbf76afa426252fb9954df056",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/NetworkMonitor.swift",
+    "lines": 45,
+    "sha256": "8c6693a947a0782a05253cfd1bc3bc5d3b572656f3ff9dcdd490d6531d94ca5b",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/SupabaseRPCParams.swift",
+    "lines": 637,
+    "sha256": "ddefc45ac1cce9c15f7f51a117554e37e88f3a17a12d7543b0179357ef0e8b54",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Browse.swift",
+    "lines": 193,
+    "sha256": "08839718c2629ce6600e072f6bb24d3b862939255cb7ff25038da1dc4236ecac",
+    "scope": "this audit",
+    "register_rows": 5,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+ClubRealtime.swift",
+    "lines": 143,
+    "sha256": "6eb85afc9e869dd955516fcca481452021bbfb01948ba8adce5c3f5acfe07217",
+    "scope": "companion service audit",
+    "register_rows": 0,
+    "classification": "delegated"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Clubs.swift",
+    "lines": 835,
+    "sha256": "0bcf5d3c23f0f0cab33cde124750a85d40cafdd4b5389e415edc0928468a1a2b",
+    "scope": "companion service audit",
+    "register_rows": 0,
+    "classification": "delegated"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Collection.swift",
+    "lines": 495,
+    "sha256": "80664f143a977ac42a8a48060acaa17133a98d831b5e0e8574fb8b441d93e708",
+    "scope": "this audit",
+    "register_rows": 3,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Concierge.swift",
+    "lines": 137,
+    "sha256": "2e83c06e412c7808586a6c495e88b668d7409d020c84d090a1f6ac4560a25218",
+    "scope": "companion service audit",
+    "register_rows": 0,
+    "classification": "delegated"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Discover.swift",
+    "lines": 325,
+    "sha256": "8399858415b2664d554cdb085944b77817d6918ba5b3f9f91b3fabff206a64f2",
+    "scope": "this audit",
+    "register_rows": 4,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Monetization.swift",
+    "lines": 51,
+    "sha256": "3a1ca040fd494a3b37746227be8d6614cac4dcb79f811e76a0e7c96c93509af7",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Recommendations.swift",
+    "lines": 217,
+    "sha256": "6b8313f703ce8531102f7ae87a9f03d509cc0cbc461d42d444923a2f55cd8b63",
+    "scope": "this audit",
+    "register_rows": 5,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Social.swift",
+    "lines": 120,
+    "sha256": "be13ed7c68f3717645b36a3ef38ffcc3800cebd660a3b80114441cc52f03002c",
+    "scope": "companion service audit",
+    "register_rows": 0,
+    "classification": "delegated"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Streaming.swift",
+    "lines": 402,
+    "sha256": "f69d6aa86bec28617a7c553a9645d802faa76f8fbe637ebb291528707964ae21",
+    "scope": "companion service audit",
+    "register_rows": 0,
+    "classification": "delegated"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+Taste.swift",
+    "lines": 412,
+    "sha256": "21743adbbea267b7fe6da9177c3fca37c900da6aef33734ad06a33266c8fa9a0",
+    "scope": "companion service audit",
+    "register_rows": 0,
+    "classification": "delegated"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService+UserLists.swift",
+    "lines": 839,
+    "sha256": "a85aec5e339fdcad0f878742f3ac069405aef9e2aca374ada4b4527e540ed7d4",
+    "scope": "this audit",
+    "register_rows": 15,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/SupabaseService.swift",
+    "lines": 2972,
+    "sha256": "38e2489dfd2e7b3bdb3f88bc6d51d4ccdec0b6cf1f5c19499cd209be5631b7ee",
+    "scope": "this audit",
+    "register_rows": 62,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Services/TextNormalization.swift",
+    "lines": 271,
+    "sha256": "9b092a6ea3f8e9b48a89f0c9a786e9b81f793e59a6bcfeca31e402e6bdfcfa95",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/AddToListSheet.swift",
+    "lines": 602,
+    "sha256": "6b74ac1d500cc442da39b0deca8999297b1f20bc5d42557c4bb73cea50ff40c3",
+    "scope": "this audit",
+    "register_rows": 4,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/AuthView.swift",
+    "lines": 1437,
+    "sha256": "2ab7191662ebd88b256bafecd5d197769161140496aa9ecb92a2557457cb9fba",
+    "scope": "this audit",
+    "register_rows": 7,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/BrowseComponents.swift",
+    "lines": 803,
+    "sha256": "11539c6467300032a8af7adc859478dfb0645b3b2e1f123b6deb5aec18a2bcec",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/BrowseView.swift",
+    "lines": 578,
+    "sha256": "d4e088eec31ec6b399fd2af734f104e91ac2ba922c7c13adbe38f14e5f498538",
+    "scope": "this audit",
+    "register_rows": 10,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/Cards.swift",
+    "lines": 653,
+    "sha256": "e2d22823070a715721b63b7cc9c1ce862c0d70894bee8046981721eb6e3ef646",
+    "scope": "this audit",
+    "register_rows": 5,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ClubCreateSheets.swift",
+    "lines": 296,
+    "sha256": "1ca674cc3039a16ba07c72fbd440c55152ae135c50a22f93ac8ab31887d036a9",
+    "scope": "this audit",
+    "register_rows": 2,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ClubDetailSheets.swift",
+    "lines": 686,
+    "sha256": "4786e125f1907ca74e9b85248089b841d5baed4e83fec48e484919a4d7562163",
+    "scope": "this audit",
+    "register_rows": 5,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ClubDetailShellComponents.swift",
+    "lines": 372,
+    "sha256": "da72ca48099858ce187b03c33b4ca4b22a78b867756ed0db2a99535e5eb3936e",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ClubDetailTabComponents.swift",
+    "lines": 1384,
+    "sha256": "784465ae2e092813e323d1d03147fbc3b50f4c7080f8570e9cb900aef8f06f05",
+    "scope": "this audit",
+    "register_rows": 3,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ClubDetailView.swift",
+    "lines": 987,
+    "sha256": "7dc9453792d3673272d8a9dc180e133649fc848da1df5abe0a9afeacd633361d",
+    "scope": "this audit",
+    "register_rows": 12,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ClubsView.swift",
+    "lines": 898,
+    "sha256": "fc617c4b03791cc69a65f42e44fbad9dc3775f05396e678e8b93512ef68d593a",
+    "scope": "this audit",
+    "register_rows": 7,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ConciergeActionFooter.swift",
+    "lines": 39,
+    "sha256": "7e5ababc4ff4aa4c4aece8a85d5a8f02798d3b3f1348f7fb35cc39a716a45f72",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeAniListImportCoordinator.swift",
+    "lines": 179,
+    "sha256": "fb59b70227f504f606fe7522b179b5b75dcbadc032af60cdbb5f434d671d39a3",
+    "scope": "this audit",
+    "register_rows": 2,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ConciergeComponents.swift",
+    "lines": 1664,
+    "sha256": "49ca8d61d080c2bbb174e8cc60296810f45acfd796d7962c199ccefa7e5cc9f5",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeComposerDock.swift",
+    "lines": 26,
+    "sha256": "e12aed059b97a3e0698335e882895b1329b4c46193a045b89e851acd3372d17f",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeEditorialShell.swift",
+    "lines": 89,
+    "sha256": "c826a848eeb9b84503862f836d86cd3718889134f85bdb1175ba9c07d44afd20",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeImportCards.swift",
+    "lines": 946,
+    "sha256": "2991c279aa44d79257b5c8ff14f8322e7b30080efa10098294c057a3c0dbda4a",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ConciergeInputField.swift",
+    "lines": 931,
+    "sha256": "36572f8bef5ec9881868bfb2e54a4ecb310d2352a71b77518d9af7e1ee48629f",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeIntentDeck.swift",
+    "lines": 287,
+    "sha256": "5ebb9a523bad15827d75b56275b6c3ad34fdaaa59e684a20664de223ce3e2882",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeRecommendationRails.swift",
+    "lines": 690,
+    "sha256": "c15637ec6573e701901f24ba7c66f10867062a248ddfcf1ef12ee3116213108a",
+    "scope": "this audit",
+    "register_rows": 3,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ConciergeResponseStage.swift",
+    "lines": 10,
+    "sha256": "1711a66d0ff71657cbe9230c0e5dbe098bdf56bd03794418d819045568630042",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeView+AniListImport.swift",
+    "lines": 674,
+    "sha256": "ae56b598b3a391d14b2ac80f7d431bca0c97a4157aa3f0539a8d858405b9e5bf",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ConciergeView.swift",
+    "lines": 1681,
+    "sha256": "a304b165506a9e736bc62011c7bca05c637368fb146c1b0a8a8557ecad318a28",
+    "scope": "this audit",
+    "register_rows": 39,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/CountdownTimer.swift",
+    "lines": 80,
+    "sha256": "cd854c8883e9d3d33144dcbbdaf7a411ef73319bf842f0f85d2aa4e0252f0fa4",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/AdaptationPathSection.swift",
+    "lines": 418,
+    "sha256": "e11fab9ebbe7f62547a7b3cfafd4b2f2b53693d0466835db674d346cdcf8b0f5",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/AnimeDetailView.swift",
+    "lines": 2424,
+    "sha256": "60a7e5f548bce4552edcea47c4e388d2ff19afd2020f47336f6867da49d57722",
+    "scope": "this audit",
+    "register_rows": 24,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/CastSection.swift",
+    "lines": 310,
+    "sha256": "9ed4d1c80ae90f0711888aef3936706eac68658adb783a454cce26c8834024bb",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/ClubActivitySection.swift",
+    "lines": 732,
+    "sha256": "c6942b0876f90d6c7590d621c40e346707af9f4e9499c2fd480c1108b53689e7",
+    "scope": "this audit",
+    "register_rows": 8,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/CreditsSection.swift",
+    "lines": 246,
+    "sha256": "4da41dc420455e1e351624501f4c9a2ffdff583679bca53819a24fbc904c8774",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/EntityDetailSheets.swift",
+    "lines": 714,
+    "sha256": "e7d659ab5d06bcbd80dbd0a345b73714129aefc9d0e232ab6206bd414b6c106a",
+    "scope": "this audit",
+    "register_rows": 5,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/ExternalLinksSection.swift",
+    "lines": 82,
+    "sha256": "610b1d5a81c557dd14cf464e54034845676895baf2b197e981aa54596739620f",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/FriendsActivitySection.swift",
+    "lines": 416,
+    "sha256": "e355f0a3defeba5d5f227a81ee5d98b4575155a24dfdbe5d97fd8a1804b5588f",
+    "scope": "this audit",
+    "register_rows": 4,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/MangaDetailView.swift",
+    "lines": 1544,
+    "sha256": "43e70e38a185c96838c0d8e9b01955e85125ddbe4f445c5169ee10a77560768b",
+    "scope": "this audit",
+    "register_rows": 25,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DetailPages/MediaDetailSheet.swift",
+    "lines": 146,
+    "sha256": "04f71c702a16d918193be2f008e0479a1403edcd468836a3f6f159f7553f2f88",
+    "scope": "this audit",
+    "register_rows": 2,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DiscoverOneThingCard.swift",
+    "lines": 155,
+    "sha256": "edc9069f0ab3724b0f664bc619e41c2dbec37a199e92140952b6ba2f52ddb42e",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/DiscoverViewModel.swift",
+    "lines": 61,
+    "sha256": "e54df130efec328725af80035a86dd3f926000259d9da693f02dbc29993fef1d",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/EditorialCards.swift",
+    "lines": 357,
+    "sha256": "c91bbc88463b05a56972fd19077bfe40eeec54cda79430edc73dde834567d8c8",
+    "scope": "this audit",
+    "register_rows": 4,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/EditorialCollectionComponents.swift",
+    "lines": 936,
+    "sha256": "065a0d340fa42677da1a62cd112080f19cba3448f51a4f6cc7ed540c07e0c77d",
+    "scope": "this audit",
+    "register_rows": 7,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/EditorialCollectionView.swift",
+    "lines": 829,
+    "sha256": "dfe7553e6f0e6edccf4d9f6500d204bff207d005eacda6c94393e65e785c8ec2",
+    "scope": "this audit",
+    "register_rows": 18,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/EditorialDiscoverRouting.swift",
+    "lines": 50,
+    "sha256": "f0f216efcdbbf3b52453f6ae9a334a5bfe72d7780f7666a1f480553c38cce3fa",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/EditorialDiscoverView.swift",
+    "lines": 1752,
+    "sha256": "b1c21ad15a7467fdeca03a1fdd0236a3cf1e2b5535fe4f8623343e40c151b7a4",
+    "scope": "this audit",
+    "register_rows": 14,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/EditorialSearchView.swift",
+    "lines": 771,
+    "sha256": "b3d4de304cdd9532df97c3007a94491412e38cc3afd5b3620ad1c73f99712919",
+    "scope": "this audit",
+    "register_rows": 7,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/GenreHubView.swift",
+    "lines": 213,
+    "sha256": "a8d9cb5ce4fe0349c201924fe741258ece72c2d0b34f74014b0226dbfce319b6",
+    "scope": "this audit",
+    "register_rows": 12,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/KuroCachedAsyncImage.swift",
+    "lines": 86,
+    "sha256": "5eef08d45394621b661ccf20f9a0cde572d9682ab0bba00d308f3f56e7b5cb4a",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroCardText.swift",
+    "lines": 34,
+    "sha256": "7ef15b7832e98f52ad3b6097c49244d6601a9f12282687900d7a7d5e1ecc464f",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroConciergeMark.swift",
+    "lines": 89,
+    "sha256": "3714e6e0c17b871c9d9c4fdc46ef9ffc41624a55a42db1edf5767bc6767f04ee",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroDeliberateTap.swift",
+    "lines": 26,
+    "sha256": "cd26d3133cda097791911755dad0d3d074c070238242f20ccd4515618ced7c5b",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroGestureCoordinator.swift",
+    "lines": 35,
+    "sha256": "922023644bfd75709e4f23c1e463b627b4c5b587e30afa2ef570ebc49195a65a",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroGesturePolicy.swift",
+    "lines": 10,
+    "sha256": "865bef0167f78d800a321ed5c936f794d22e1fd853379188f89dd944c30811bc",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroGlass.swift",
+    "lines": 147,
+    "sha256": "90df69e46c578979b00e5f1d9a17a21dc3661724b49b7facab640f6b489aebf5",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroInteractionEnvironment.swift",
+    "lines": 16,
+    "sha256": "ac5126a97fd3c023a560b8d07b2bc2dc9f6b9291cded3d35ec2ab165582802e7",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroLoadMoreSentinel.swift",
+    "lines": 51,
+    "sha256": "09e3c8cf3139b5fa13c79b23c5ba08d2bc4eb681ff6c700385c4c60e91e26468",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroPagingGesture.swift",
+    "lines": 81,
+    "sha256": "8198cc17ac8bd1b61e17d1138adacf6770f906e9add977dfc9f1056dc8dc5774",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroRefinedCard.swift",
+    "lines": 756,
+    "sha256": "3b8c6f2921a3610f5a5da52d75ebec680c2be01065c9d3ac35cc99fe4daa2319",
+    "scope": "this audit",
+    "register_rows": 6,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/KuroToast.swift",
+    "lines": 100,
+    "sha256": "de1ae5cfd213e36182a9ffc8f4adda4b4332b5b1ebc0a519d58c38e9a753a4df",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/KuroTransientBanner.swift",
+    "lines": 26,
+    "sha256": "136aff540d0ac235d3a958c63395cb1df362254a8520d0278c368eda675c8f70",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/OnboardingView.swift",
+    "lines": 251,
+    "sha256": "24d74b1c9a18a6d85f9fa27bd646270698b2f55aa59746aa8653f5e3bf5138cc",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/PosterView.swift",
+    "lines": 109,
+    "sha256": "c07fce847d900ff4c1c63f792a84dbd6ad3009c027c76438afbc5f0001163358",
+    "scope": "this audit",
+    "register_rows": 1,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/ProfileFreshnessCard.swift",
+    "lines": 164,
+    "sha256": "f498b2adfd56ebf25afcbc782b28e23c574a4939b03861ef52eed19ecbf4c5ed",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  },
+  {
+    "file": "Kuro/Views/ProfileView.swift",
+    "lines": 1253,
+    "sha256": "e2dd4ed7e37d5c2c3259b23fc88b57c8f10414a645a4bc39ed82ee99143807f0",
+    "scope": "this audit",
+    "register_rows": 16,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/QuickVerdictActionCard.swift",
+    "lines": 751,
+    "sha256": "0416801921efeb71cebbe97d2cc679713ed72681fd79a80a65da7fcda2218a4d",
+    "scope": "this audit",
+    "register_rows": 6,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/TasteDeckView.swift",
+    "lines": 1352,
+    "sha256": "ab43bf0f80031ea3f3fbdb12b23fb687e13133aabf6ee1b612c822600651bc81",
+    "scope": "this audit",
+    "register_rows": 7,
+    "classification": "registered network boundary/caller"
+  },
+  {
+    "file": "Kuro/Views/UIComponents.swift",
+    "lines": 86,
+    "sha256": "8a86f2e1d2c1b66ab91ba55138ef8e40d18159c2a93eb5868f4bfb181c8d4965",
+    "scope": "this audit",
+    "register_rows": 0,
+    "classification": "no owned directnetwork callsite; models/style/local utilities inspected by inventory and relevant caller tracing"
+  }
+]

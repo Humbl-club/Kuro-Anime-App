@@ -1,3 +1,5 @@
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 enum QuickVerdictChoice: String, CaseIterable, Identifiable {
@@ -36,7 +38,7 @@ enum QuickVerdictChoice: String, CaseIterable, Identifiable {
     }
 }
 
-func quickVerdictChoice(for entry: UserList?) -> QuickVerdictChoice {
+func quickVerdictChoice(for entry: LibraryEntry?) -> QuickVerdictChoice {
     QuickVerdictChoice.fromVerdict(entry?.verdict)
 }
 
@@ -63,26 +65,29 @@ func quickStatusLabel(for status: ListStatus, mediaKind: MediaKind, isGerman: Bo
     }
 }
 
-func quickStatusCapsuleLabel(for entry: UserList?, mediaKind: MediaKind, isGerman: Bool) -> String {
+func quickStatusCapsuleLabel(for entry: LibraryEntry?, mediaKind: MediaKind, isGerman: Bool) -> String {
     guard let entry else { return isGerman ? "HINZUFUEGEN" : "ADD" }
     let base = quickStatusLabel(for: entry.status, mediaKind: mediaKind, isGerman: isGerman).uppercased()
     let verdict = quickVerdictChoice(for: entry)
     return verdict == .unsorted ? base : "\(base) · \(verdict.displayName(isGerman: isGerman).uppercased())"
 }
 
-func friendlyListMutationMessage(_ raw: String?, isGerman: Bool) -> String {
-    guard let raw, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+/// User-facing copy for a failed Library write, by typed error.
+func friendlyListMutationMessage(_ error: LibraryError, isGerman: Bool) -> String {
+    switch error {
+    case .notAuthenticated:
+        return isGerman ? "Du bist abgemeldet. Melde dich an und versuch es erneut." : "You're signed out. Sign in and try again."
+    case .notFound:
+        return isGerman ? "Dieser Titel ist nicht mehr in deiner Liste." : "This title is no longer in your list."
+    case .invalidValue:
+        return isGerman ? "Speichern fehlgeschlagen. Versuch es erneut." : "Couldn't save your changes. Try again."
+    case .conflict:
+        return isGerman ? "Dieser Eintrag wurde woanders geaendert. Versuch es erneut." : "This entry changed elsewhere. Try again."
+    case .retryable:
+        return isGerman ? "Deine Liste konnte gerade nicht aktualisiert werden. Versuch es erneut." : "Couldn't update your list right now. Try again."
+    case .unavailable:
         return isGerman ? "Deine Liste konnte nicht aktualisiert werden." : "Couldn't update your list."
     }
-
-    let lowered = raw.lowercased()
-    if lowered.contains("row-level security") {
-        return isGerman ? "Deine Liste konnte gerade nicht aktualisiert werden. Versuch es erneut." : "Couldn't update your list right now. Try again."
-    }
-    if lowered.contains("failed to save") {
-        return isGerman ? "Speichern fehlgeschlagen. Versuch es erneut." : "Couldn't save your changes. Try again."
-    }
-    return raw
 }
 
 struct QuickVerdictActionCard: View {
@@ -90,7 +95,9 @@ struct QuickVerdictActionCard: View {
     var onToast: ((KuroToastState) -> Void)? = nil
     var onDone: (() -> Void)? = nil
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @State private var actionScope = AccountActionScope()
     @Environment(NetworkMonitor.self) private var networkMonitor
 
     @State private var showAdvancedEdit = false
@@ -103,8 +110,8 @@ struct QuickVerdictActionCard: View {
 
     private let quickStatuses: [ListStatus] = [.planning, .current, .completed, .paused, .dropped]
 
-    private var entry: UserList? {
-        supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id)
+    private var entry: LibraryEntry? {
+        library.entry(for: media.libraryKey)
     }
 
     private var isOffline: Bool {
@@ -150,6 +157,7 @@ struct QuickVerdictActionCard: View {
     }
 
     var body: some View {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -167,9 +175,9 @@ struct QuickVerdictActionCard: View {
                 Spacer(minLength: 0)
 
                 if isMutating {
-                    ProgressView()
-                        .scaleEffect(0.85)
-                        .tint(.kuroBlack60)
+                    KuroBusyMark(width: 24)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(KuroLocale.text("Saving", "Wird gespeichert"))
                 }
             }
 
@@ -179,7 +187,7 @@ struct QuickVerdictActionCard: View {
                     quickChip(
                         title: quickStatusLabel(for: status, mediaKind: media.kind, isGerman: isGermanLocale).uppercased(),
                         isSelected: currentStatus == status,
-                        action: { applyStatus(status) }
+                        action: { applyStatus(status, origin: origin) }
                     )
                 }
             }
@@ -191,7 +199,7 @@ struct QuickVerdictActionCard: View {
                         quickChip(
                             title: verdict.displayName(isGerman: isGermanLocale).uppercased(),
                             isSelected: currentVerdict == verdict,
-                            action: { applyVerdict(verdict) }
+                            action: { applyVerdict(verdict, origin: origin) }
                         )
                     }
                 }
@@ -228,7 +236,7 @@ struct QuickVerdictActionCard: View {
             HStack(spacing: 10) {
                 if entry != nil {
                     Button(role: .destructive) {
-                        removeFromList()
+                        removeFromList(origin: origin)
                     } label: {
                         Text(isGermanLocale ? "ENTFERNEN" : "REMOVE")
                             .font(.kuroMicro(weight: .medium))
@@ -286,9 +294,13 @@ struct QuickVerdictActionCard: View {
                         .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
                 )
         )
+        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear { actionScope.deactivate() }
         .sheet(isPresented: $showAdvancedEdit) {
             AddToListSheet(media: media)
         }
+        // N10: a deep link collapses this card's editor too.
+        .kuroNavigationLayer("verdict.edit", isPresented: $showAdvancedEdit)
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {
                 mutationMessage = nil
@@ -338,61 +350,44 @@ struct QuickVerdictActionCard: View {
         .disabled(isMutating)
     }
 
-    private func applyStatus(_ status: ListStatus) {
+    /// Status chip: changes the status (plus the completion progress when completing a title with a
+    /// known total); progress otherwise, rating, notes and verdict stay as stored.
+    private func applyStatus(_ status: ListStatus, origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         mutate(
-            status: status,
-            progress: resolvedProgress(for: status),
-            rating: entry?.score.map { $0 / 10 },
-            verdict: entry?.verdict
+            origin: origin,
+            statusEdit(to: status),
+            createIfMissing: status,
+            successTitle: isGermanLocale ? "Status aktualisiert" : "Status updated"
         )
     }
 
-    private func applyVerdict(_ verdict: QuickVerdictChoice) {
-        guard !isOffline else {
-            mutationMessage = isGermanLocale ? "Du bist offline. Verbinde dich erneut, um deine Liste zu aktualisieren." : "You're offline. Reconnect to update your list."
-            KuroAccessibility.errorHaptic()
-            return
-        }
+    private func applyVerdict(_ verdict: QuickVerdictChoice, origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
+        let verdictChange: FieldChange<Verdict> = verdict.verdict.map { .set($0) } ?? .clear
+        let successTitle = verdict == .unsorted
+            ? (isGermanLocale ? "Urteil entfernt" : "Verdict cleared")
+            : (isGermanLocale ? "Urteil gespeichert" : "Verdict saved")
 
         guard entry != nil else {
+            // Not tracked yet: a verdict adds the title as completed, in one write.
+            var edit = statusEdit(to: .completed)
+            edit.verdict = verdictChange
             mutate(
-                status: .completed,
-                progress: resolvedProgress(for: .completed),
-                rating: entry?.score.map { $0 / 10 },
-                verdict: verdict.verdict
+                origin: origin,
+                edit,
+                createIfMissing: .completed,
+                successTitle: isGermanLocale ? "Status aktualisiert" : "Status updated"
             )
             return
         }
 
-        isMutating = true
-        mutationMessage = nil
-
-        Task {
-            await supabaseService.setUserVerdict(
-                mediaId: media.id,
-                mediaType: media.kind.rawValue,
-                verdict: verdict.verdict
-            )
-            await MainActor.run {
-                isMutating = false
-                if let error = supabaseService.errorMessage, !error.isEmpty {
-                    mutationMessage = friendlyListMutationMessage(error, isGerman: isGermanLocale)
-                    emitErrorToast()
-                    return
-                }
-                KuroAccessibility.successHaptic()
-                emitSuccessToast(
-                    title: verdict == .unsorted
-                        ? (isGermanLocale ? "Urteil entfernt" : "Verdict cleared")
-                        : (isGermanLocale ? "Urteil gespeichert" : "Verdict saved"),
-                    subtitle: media.title
-                )
-                onDone?()
-            }
-        }
+        // Tracked: only the verdict changes; a title removed meanwhile is not recreated.
+        mutate(origin: origin, LibraryEdit(verdict: verdictChange), createIfMissing: nil, successTitle: successTitle)
     }
 
-    private func removeFromList() {
+    private func removeFromList(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         guard !isOffline else {
             mutationMessage = isGermanLocale ? "Du bist offline. Verbinde dich erneut, um deine Liste zu aktualisieren." : "You're offline. Reconnect to update your list."
             KuroAccessibility.errorHaptic()
@@ -401,33 +396,30 @@ struct QuickVerdictActionCard: View {
 
         isMutating = true
         mutationMessage = nil
+        let key = media.libraryKey
 
-        Task {
-            let removed = await supabaseService.removeFromList(
-                mediaId: media.id,
-                mediaType: media.kind.rawValue
-            )
-            await MainActor.run {
-                isMutating = false
-                if removed {
-                    KuroAccessibility.successHaptic()
-                    emitSuccessToast(
-                        title: isGermanLocale ? "Aus Liste entfernt" : "Removed from list",
-                        subtitle: media.title
-                    )
-                    onDone?()
-                } else {
-                    mutationMessage = friendlyListMutationMessage(
-                        supabaseService.errorMessage,
-                        isGerman: isGermanLocale
-                    )
-                    emitErrorToast()
-                }
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.remove(key)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            isMutating = false
+            if let error = outcome.error {
+                mutationMessage = friendlyListMutationMessage(error, isGerman: isGermanLocale)
+                emitErrorToast()
+                return
             }
+            KuroAccessibility.successHaptic()
+            emitSuccessToast(
+                title: isGermanLocale ? "Aus Liste entfernt" : "Removed from list",
+                subtitle: media.title
+            )
+            onDone?()
         }
     }
 
-    private func mutate(status: ListStatus, progress: Int, rating: Int?, verdict: Verdict?) {
+    /// One Library edit naming only the fields the action changes; success and failure come from
+    /// that write's own outcome.
+    private func mutate(origin: AccountActionScope.Ticket?, _ edit: LibraryEdit, createIfMissing: ListStatus?, successTitle: String) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         guard !isOffline else {
             mutationMessage = isGermanLocale ? "Du bist offline. Verbinde dich erneut, um deine Liste zu aktualisieren." : "You're offline. Reconnect to update your list."
             KuroAccessibility.errorHaptic()
@@ -436,44 +428,29 @@ struct QuickVerdictActionCard: View {
 
         isMutating = true
         mutationMessage = nil
-        let notes = entry?.notes
+        let key = media.libraryKey
 
-        Task {
-            await supabaseService.upsertUserListEntry(
-                mediaId: media.id,
-                mediaType: media.kind.rawValue,
-                status: status,
-                progress: progress,
-                rating: rating,
-                notes: notes,
-                verdict: verdict
-            )
-
-            await MainActor.run {
-                isMutating = false
-                if let error = supabaseService.errorMessage, !error.isEmpty {
-                    mutationMessage = friendlyListMutationMessage(error, isGerman: isGermanLocale)
-                    emitErrorToast()
-                    return
-                }
-                KuroAccessibility.successHaptic()
-                emitSuccessToast(
-                    title: isGermanLocale ? "Status aktualisiert" : "Status updated",
-                    subtitle: media.title
-                )
-                onDone?()
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.apply(edit, to: key, createIfMissing: createIfMissing)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            isMutating = false
+            if let error = outcome.error {
+                mutationMessage = friendlyListMutationMessage(error, isGerman: isGermanLocale)
+                emitErrorToast()
+                return
             }
+            KuroAccessibility.successHaptic()
+            emitSuccessToast(title: successTitle, subtitle: media.title)
+            onDone?()
         }
     }
 
-    private func resolvedProgress(for status: ListStatus) -> Int {
-        let total = media.episodes ?? media.chapters ?? 0
-        let currentProgress = entry?.progress ?? 0
-
-        if status == .completed, total > 0 {
-            return max(total, currentProgress)
-        }
-        return currentProgress
+    private func statusEdit(to status: ListStatus) -> LibraryEdit {
+        QuickStatusChange.edit(
+            to: status,
+            currentProgress: entry?.progress,
+            total: media.episodes ?? media.chapters ?? 0
+        )
     }
 
     private func emitErrorToast() {
@@ -511,11 +488,12 @@ struct QuickVerdictActionSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule(style: .continuous)
-                .fill(Color.kuroBlack12)
-                .frame(width: 40, height: 5)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
+            // N8: the system grabber is visible and Cancel closes the sheet (back to its page).
+            HStack {
+                Spacer(minLength: 0)
+                QuickVerdictCancelButton { dismiss() }
+            }
+            .padding(.top, 14)
 
             QuickVerdictActionCard(
                 media: media,
@@ -528,8 +506,24 @@ struct QuickVerdictActionSheet: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .background(Color.kuroBackground.ignoresSafeArea())
-        .presentationDetents([.height(250), .medium])
-        .presentationDragIndicator(.hidden)
+        .presentationDetents([.height(290), .medium])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+/// The verdict sheets' Cancel (N8): every sheet has a visible close control, never swipe-down alone.
+private struct QuickVerdictCancelButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(KuroLocale.text("Cancel", "Abbrechen"))
+                .font(.kuroBody(weight: .regular))
+                .foregroundStyle(Color.kuroInk)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -538,7 +532,9 @@ struct QuickVerdictPickerSheet: View {
     var onToast: ((KuroToastState) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @State private var actionScope = AccountActionScope()
     @Environment(NetworkMonitor.self) private var networkMonitor
 
     @State private var isMutating = false
@@ -548,8 +544,8 @@ struct QuickVerdictPickerSheet: View {
         Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
     }
 
-    private var entry: UserList? {
-        supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id)
+    private var entry: LibraryEntry? {
+        library.entry(for: media.libraryKey)
     }
 
     private var currentChoice: QuickVerdictChoice {
@@ -560,30 +556,26 @@ struct QuickVerdictPickerSheet: View {
         entry == nil ? [.masterpiece, .okay, .bad] : QuickVerdictChoice.allCases
     }
 
-    private var completedProgress: Int {
-        let total = media.episodes ?? media.chapters ?? 0
-        return total > 0 ? total : 0
-    }
-
     var body: some View {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 16) {
-            Capsule(style: .continuous)
-                .fill(Color.kuroBlack12)
-                .frame(width: 40, height: 5)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
-
-            Text(isGermanLocale ? "URTEIL" : "VERDICT")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.6)
-                .foregroundColor(.kuroTextTertiary)
+            // N8: the system grabber is visible and Cancel closes the sheet (back to its page).
+            HStack(alignment: .center) {
+                Text(isGermanLocale ? "URTEIL" : "VERDICT")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.6)
+                    .foregroundColor(.kuroTextTertiary)
+                Spacer(minLength: 0)
+                QuickVerdictCancelButton { dismiss() }
+            }
+            .padding(.top, 14)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(availableChoices) { choice in
                         Button {
                             KuroAccessibility.impactHaptic(.light)
-                            apply(choice)
+                            apply(choice, origin: origin)
                         } label: {
                             Text(choice.displayName(isGerman: isGermanLocale).uppercased())
                                 .font(.kuroMicro(weight: .medium))
@@ -629,11 +621,14 @@ struct QuickVerdictPickerSheet: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .background(Color.kuroBackground.ignoresSafeArea())
-        .presentationDetents([.height(188)])
-        .presentationDragIndicator(.hidden)
+        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear { actionScope.deactivate() }
+        .presentationDetents([.height(220)])
+        .presentationDragIndicator(.visible)
     }
 
-    private func apply(_ choice: QuickVerdictChoice) {
+    private func apply(_ choice: QuickVerdictChoice, origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         guard networkMonitor.isConnected else {
             errorMessage = isGermanLocale ? "Du bist offline. Verbinde dich erneut, um dein Urteil zu speichern." : "You're offline. Reconnect to save your verdict."
             KuroAccessibility.errorHaptic()
@@ -643,67 +638,57 @@ struct QuickVerdictPickerSheet: View {
         isMutating = true
         errorMessage = nil
 
-        Task {
-            var success = true
+        // ONE write: a title that is not tracked yet is added as completed (all known
+        // episodes/chapters) with the verdict; a tracked title changes only its verdict.
+        let verdictChange: FieldChange<Verdict> = choice.verdict.map { .set($0) } ?? .clear
+        let edit: LibraryEdit
+        let createIfMissing: ListStatus?
+        if entry == nil {
+            var completing = QuickStatusChange.edit(
+                to: .completed,
+                currentProgress: nil,
+                total: media.episodes ?? media.chapters ?? 0
+            )
+            completing.verdict = verdictChange
+            edit = completing
+            createIfMissing = .completed
+        } else {
+            edit = LibraryEdit(verdict: verdictChange)
+            createIfMissing = nil
+        }
+        let key = media.libraryKey
 
-            if entry == nil {
-                success = await supabaseService.addToList(
-                    mediaId: media.id,
-                    mediaType: media.kind.rawValue,
-                    status: .completed
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.apply(edit, to: key, createIfMissing: createIfMissing)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            isMutating = false
+            if let error = outcome.error {
+                KuroAccessibility.errorHaptic()
+                errorMessage = friendlyListMutationMessage(error, isGerman: isGermanLocale)
+                onToast?(
+                    .init(
+                        kind: .error,
+                        title: isGermanLocale ? "Urteil konnte nicht gespeichert werden" : "Couldn't save verdict",
+                        subtitle: errorMessage,
+                        actionTitle: nil,
+                        onAction: nil
+                    )
                 )
-                if success, completedProgress > 0 {
-                    await supabaseService.setUserProgress(
-                        mediaId: media.id,
-                        mediaType: media.kind.rawValue,
-                        progress: completedProgress
-                    )
-                    success = supabaseService.errorMessage?.isEmpty ?? true
-                }
+                return
             }
-
-            if success {
-                await supabaseService.setUserVerdict(
-                    mediaId: media.id,
-                    mediaType: media.kind.rawValue,
-                    verdict: choice.verdict
+            KuroAccessibility.successHaptic()
+            onToast?(
+                .init(
+                    kind: .success,
+                    title: choice == .unsorted
+                        ? (isGermanLocale ? "Urteil entfernt" : "Verdict cleared")
+                        : (isGermanLocale ? "Urteil gespeichert" : "Verdict saved"),
+                    subtitle: media.title,
+                    actionTitle: nil,
+                    onAction: nil
                 )
-                success = supabaseService.errorMessage?.isEmpty ?? true
-            }
-
-            await MainActor.run {
-                isMutating = false
-                if success {
-                    KuroAccessibility.successHaptic()
-                    onToast?(
-                        .init(
-                            kind: .success,
-                            title: choice == .unsorted
-                                ? (isGermanLocale ? "Urteil entfernt" : "Verdict cleared")
-                                : (isGermanLocale ? "Urteil gespeichert" : "Verdict saved"),
-                            subtitle: media.title,
-                            actionTitle: nil,
-                            onAction: nil
-                        )
-                    )
-                    dismiss()
-                } else {
-                    KuroAccessibility.errorHaptic()
-                    errorMessage = friendlyListMutationMessage(
-                        supabaseService.errorMessage,
-                        isGerman: isGermanLocale
-                    )
-                    onToast?(
-                        .init(
-                            kind: .error,
-                            title: isGermanLocale ? "Urteil konnte nicht gespeichert werden" : "Couldn't save verdict",
-                            subtitle: errorMessage,
-                            actionTitle: nil,
-                            onAction: nil
-                        )
-                    )
-                }
-            }
+            )
+            dismiss()
         }
     }
 }
@@ -712,13 +697,13 @@ struct QuickVerdictTriggerButton: View {
     let media: any MediaDisplayable
     var action: () -> Void
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
     private var isGermanLocale: Bool {
         Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
     }
 
-    private var entry: UserList? {
-        supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id)
+    private var entry: LibraryEntry? {
+        library.entry(for: media.libraryKey)
     }
 
     var body: some View {

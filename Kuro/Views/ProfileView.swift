@@ -1,314 +1,762 @@
 import AuthenticationServices
+import KuroCore
+import KuroLibrary
 import SwiftUI
+import UniformTypeIdentifiers
 
-// Dedicated profile/settings page (moved out of the header to keep the top bar clean).
+// Profile: the account hub (rulebook §14.3). Order: identity, Your library (counts + "Your lists"),
+// Imports and connections (incl. pending and resumable imports), Clubs, Preferences, Account and
+// privacy, About (Data sources and credits, Contact us, Terms once confirmed, version), then a quiet Advanced disclosure (cache tools; the streaming freshness card when that
+// feature is on). Rows: serif title, sans subtitle in secondary ink, hairlines, no chevrons.
+//
+// Navigation contract (2026-11-02): Profile is the root of a journey (`ShellJourneyPages.profile`).
+// Your clubs, Data sources, Find, Concierge and the import review PUSH inside it (back chevron + edge
+// swipe-back); Contact, the import chooser, the AniList/MAL imports, the review workflow and the
+// streaming picker stay tool sheets that close back to Profile. Your lists cannot be shown inside the
+// journey (Collection's one shared feed), so its rows say "Opens Collection" and the journey collapses
+// like ✕ before the pager switches (N11). A push fires `onDisappear` here: the account-scoped import
+// work keeps running while Profile is covered and stops when the journey ends (`\.shellPageLifetime`).
 struct ProfileView: View {
-    var onOpenConciergeImportReview: ((String) -> Void)? = nil
+    var onImportNavigation: ((ImportResultDestination) -> Void)? = nil
+    var onOpenCollection: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroJourney) private var journey
+    /// Session fold memory (F3: Advanced stays open when coming back to Profile).
+    @Environment(\.kuroFoldMemory) private var folds
+    @Environment(\.shellPageLifetime) private var pageLifetime
+    @Environment(LibraryStore.self) private var library
+    @Environment(IdentityStore.self) private var identity
+    @Environment(AuthService.self) private var auth
+    @Environment(SessionController.self) private var session
+    @Environment(CollectionStore.self) private var collection
+    @Environment(ReleasesStore.self) private var releases
+    @Environment(ProviderAvailabilityStore.self) private var availability
+    @Environment(ClubsStore.self) private var clubs
+    @Environment(ImportsService.self) private var imports
+    @Environment(FeatureFlags.self) private var flags
+    @Environment(ArtworkMaterialStore.self) private var artworkMaterials
+    @State private var profileActionScope = AccountActionScope()
+    @State private var deleteConfirmationTicket: AccountActionScope.Ticket?
+    @State private var importCoordinator: ProfileImportCoordinator?
     @State private var isSyncing: Bool = false
-    @State private var isProcessingAniListImport: Bool = false
-    @State private var showClubs: Bool = false
+    /// The account this Profile's import work was set up for (`ProfileLifecyclePolicy.needsSetup`): a
+    /// page popped back to keeps its import coordinator, toast and result card.
+    @State private var setUpAccount: String?? = nil
+    /// The shrinking header's progress (the scenery band scrolls under the compact bar, H1).
+    @State private var collapse: CGFloat = 0
     @State private var toast: KuroToastState? = nil
     @State private var showDeleteConfirmation: Bool = false
     @State private var isDeleting: Bool = false
     @State private var showServicePicker: Bool = false
     @State private var showAniListImportSheet: Bool = false
-    @State private var importResult: ProfileImportResult? = nil
-    @State private var streamingObservability: SupabaseService.StreamingObservabilitySnapshot? = nil
+    @State private var pendingAniListReview: ImportOutcome?
+    @State private var pendingAniListTicket: AccountActionScope.Ticket?
+    @State private var showMALImporter: Bool = false
+    @State private var malPresentationAnchor: ASPresentationAnchor?
+    @State private var showImportWorkflow = false
+    @State private var importWorkflowJob: ImportOutcome?
+    @State private var showContact = false
+    @State private var showImportChooser = false
+    @State private var streamingObservability: ProviderAvailabilityStore.StreamingObservabilitySnapshot? = nil
     @State private var isRefreshingStreamingObservability: Bool = false
 
+    private var isGermanLocale: Bool { KuroLocale.isGerman }
+    /// The still scenery band at the top (the shrinking header's hero).
+    static let bandHeight: CGFloat = 132
+
+    /// Opens a page inside Profile's journey (pushed: Back + edge swipe-back; ✕ collapses all).
+    private func push(_ page: JourneyPage) {
+        KuroAccessibility.impactHaptic(.light)
+        routes.openPage(page)
+    }
+
     var body: some View {
+        let profileImports = importCoordinator
+        let anchor = malPresentationAnchor
+        let ticket = profileActionScope.capture(session: imports.accountSession)
+        let confirmationTicket = deleteConfirmationTicket
         ZStack {
-            ProfileBackdrop()
+            Color.kuroCanvasPage
                 .ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: KuroDesignSpacing.lg) {
-                    header
-                        .padding(.top, KuroDesignSpacing.md)
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
+                    identityHeader
 
-                    stats
+                    librarySection
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    clubsPreview
+                    importsSection(profileImports, anchor: anchor)
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-                        streamingFreshnessPreview
-                            .padding(.horizontal, KuroDesignSpacing.padding)
-
-                        streamingServicesPreview
-                            .padding(.horizontal, KuroDesignSpacing.padding)
-                    }
-
-                    Rectangle()
-                        .fill(Color.black.opacity(0.08))
-                        .frame(height: 0.5)
+                    clubsSection
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    actions
+                    preferencesSection
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    if let importResult {
-                        importResultPreview(importResult)
-                            .padding(.horizontal, KuroDesignSpacing.padding)
-                    }
+                    accountSection(ticket: ticket, confirmationTicket: confirmationTicket)
+                        .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    footer
-                        .padding(.top, 6)
+                    aboutSection
+                        .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    Spacer(minLength: 24)
+                    advancedSection
+                        .padding(.horizontal, KuroDesignSpacing.padding)
                 }
-                .padding(.bottom, 48)
+                .padding(.bottom, KuroDesignSpacing.xxl)
+                .kuroReadableWidth()
             }
+            .kuroCollapseTracking($collapse, start: 0, distance: Self.bandHeight - KuroJourneyChrome.barHeight)
             // Ensure the last rows can scroll fully above the home indicator / tab chrome.
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 24)
             }
         }
+        .background(ProfileMALWindowAnchor { malPresentationAnchor = $0 }.frame(width: 0, height: 0))
         .scrollContentBackground(.hidden)
-        .transaction { $0.animation = nil }
-        .task(id: supabaseService.currentUserEmail) {
+        // Kept from the native polish pass: Profile mutations and toasts change rows in place without
+        // implicit motion (rulebook §8 asks to keep this suppression). Fold toggles (Advanced) are
+        // exempt: they keep the prototype easing (navigation contract F1).
+        .transaction { if !$0.isKuroFold { $0.animation = nil } }
+        .task(id: identity.currentUserId) {
+            // Back from a pushed page (Clubs, Data sources, Find, Concierge): the import work kept
+            // running for this account, so only the list preview is read again (its own TTL).
+            guard ProfileLifecyclePolicy.needsSetup(setUpFor: setUpAccount, current: identity.currentUserId,
+                                                    hasCoordinator: importCoordinator != nil) else {
+                await collection.loadListPreview()
+                return
+            }
+            setUpAccount = .some(identity.currentUserId)
+            profileActionScope.deactivate()
+            profileActionScope.activate(session: imports.accountSession)
+            deleteConfirmationTicket = nil
+            showDeleteConfirmation = false
+            isDeleting = false
+            importCoordinator?.stop()
+            let coordinator = ProfileImportCoordinator(imports: imports, library: library,
+                collection: collection, releases: releases, flags: flags, isGermanLocale: isGermanLocale)
+            importCoordinator = coordinator
+            // Inside the journey the teardown waits for the sheet to end (a push is not an exit).
+            let scope = profileActionScope
+            pageLifetime?.onJourneyEnd {
+                scope.deactivate()
+                coordinator.stop()
+            }
+            await importCoordinator?.refreshMALIdentity()
+            await collection.loadListPreview()
             // Keep the profile "club context" warm so Clubs opens instantly.
-            await supabaseService.fetchMyClubs()
-            if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+            await clubs.refreshMyClubsIfStale()
+            if flags.isStreamingAvailabilityV1Enabled {
                 await refreshStreamingObservability()
             }
         }
-        .overlay(alignment: .topTrailing) {
-            Button(action: {
-                KuroAccessibility.impactHaptic(.light)
-                dismiss()
-            }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .light))
-                    .foregroundColor(.kuroBlack80)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(Color.kuroSecondaryBackground.opacity(0.92))
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
-                            )
-                    )
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 10)
-            .padding(.trailing, 14)
+        .onDisappear {
+            // Covered by a pushed page: keep the import work (it ends with the journey).
+            if pageLifetime?.isStillInJourney == true { return }
+            pageLifetime?.didTearDown()
+            setUpAccount = nil
+            profileActionScope.deactivate()
+            deleteConfirmationTicket = nil
+            importCoordinator?.stop()
+            importCoordinator = nil
         }
+        .onChange(of: identity.currentUserId) { _, _ in
+            showAniListImportSheet = false; pendingAniListReview = nil; pendingAniListTicket = nil
+            showMALImporter = false
+            showImportWorkflow = false
+            importWorkflowJob = nil
+            showDeleteConfirmation = false
+            deleteConfirmationTicket = nil
+        }
+        // Journey root: ✕ only (N3), the round key over the scenery band, then the compact bar (H1).
+        .kuroJourneyChrome(title: ShellJourneyPages.profileTitle, collapseProgress: collapse)
         .overlay(alignment: .top) {
-            if let toast {
+            if let toast = profileImports?.toast ?? toast {
                 KuroToast(toast: toast)
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .sheet(isPresented: $showClubs) {
-            NavigationStack {
-                ClubsView()
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .principal) {
-                            Text("CLUBS")
-                                .font(.kuroNavigation(weight: .regular))
-                                .tracking(1.5)
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showClubs = false }
-                                .font(.kuroBody(weight: .light))
-                        }
-                    }
-            }
-            .environment(supabaseService)
+        // Tool sheets close back to Profile (N7). Their content is not a Profile journey page: it
+        // never inherits Profile's page lifetime.
+        .sheet(isPresented: $showContact) {
+            ContactSheet()
+                .environment(\.shellPageLifetime, nil)
         }
-        .sheet(isPresented: $showAniListImportSheet) {
+        .sheet(isPresented: $showImportChooser) {
+            ImportSourceChooser { destination in
+                showImportChooser = false
+                guard profileActionScope.capture(session: imports.accountSession) != nil else { return }
+                onImportNavigation?(destination)
+            }
+            .environment(\.shellPageLifetime, nil)
+        }
+        .fileImporter(isPresented: $showMALImporter, allowedContentTypes: [.xml]) { result in
+            profileImports?.receiveMALFile(result)
+        }
+        .sheet(isPresented: $showAniListImportSheet, onDismiss: {
+            guard let job = pendingAniListReview else { return }
+            pendingAniListReview = nil
+            let origin = pendingAniListTicket; pendingAniListTicket = nil
+            guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
+            importWorkflowJob = job; showImportWorkflow = true
+        }) {
+            let origin = profileActionScope.capture(session: imports.accountSession)
             ConciergeAniListImportSheet(
-                supabaseService: supabaseService,
-                isGermanLocale: isGermanLocale
+                imports: imports,
+                isGermanLocale: isGermanLocale,
+                usesStructuredImport: flags.seriesFoundationV1Enabled,
+                onPrepared: { job in
+                    guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
+                    pendingAniListReview = job; pendingAniListTicket = origin
+                }
             ) { response in
-                await handleAniListImportCompleted(response)
+                await profileImports?.receiveAniList(response)
             }
+            .environment(\.shellPageLifetime, nil)
+        }
+        .onChange(of: profileImports?.workflowJob) { _, job in
+            guard let job, profileActionScope.capture(session: imports.accountSession) != nil else { return }
+            importWorkflowJob = job; showImportWorkflow = true
+        }
+        .sheet(isPresented: $showImportWorkflow, onDismiss: { profileImports?.dismissWorkflow() }) {
+            ImportWorkflowSheet(imports: imports, job: importWorkflowJob) { destination in
+                guard profileActionScope.capture(session: imports.accountSession) != nil else { return }
+                onImportNavigation?(destination)
+            }
+            .environment(\.shellPageLifetime, nil)
         }
     }
 
-    private var header: some View {
-        VStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 92, height: 92)
-                    .overlay(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.55), Color.black.opacity(0.06)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .clipShape(Circle())
-                        .opacity(0.95)
+    // MARK: Identity
+
+    /// A restrained, still mountain band (rulebook §8: the Profile band is a still image), then a
+    /// compact initial and the real account identity. Nothing is clipped at large text sizes.
+    private var identityHeader: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            KuroSceneryLoop(tone: .neutralCanvas, isActive: false, magnify: 1.7)
+                .frame(height: Self.bandHeight)
+                .frame(maxWidth: .infinity)
+                .clipped()
+                .overlay {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.25),
+                            .init(color: Color.kuroCanvasPage.opacity(0.7), location: 0.7),
+                            .init(color: Color.kuroCanvasPage, location: 1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .overlay(
-                        Circle().stroke(Color.white.opacity(0.75), lineWidth: 0.8)
-                            .blendMode(.overlay)
-                    )
-                    .overlay(
-                        Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
-                    )
+                }
+                .accessibilityHidden(true)
+                .allowsHitTesting(false)
 
-                Text(supabaseService.currentUserInitial)
-                    .font(.kuroFeature(weight: .light))
-                    .foregroundColor(.kuroBlack80)
-            }
-
-            Text((supabaseService.currentUserEmail == nil ? "GUEST" : "KURO USER").uppercased())
-                .font(.kuroCaption(weight: .medium))
-                .tracking(2.0)
-                .foregroundColor(.kuroBlack80)
-
-            if let email = supabaseService.currentUserEmail, !email.isEmpty {
-                Text(email.contains("privaterelay.appleid.com") ? "Signed in with Apple" : email)
-                    .font(.kuroBody(weight: .light))
-                    .foregroundColor(.kuroBlack60)
-            } else {
-                Text("Discover, track, enjoy.")
-                    .font(.kuroBody(weight: .light))
-                    .foregroundColor(.kuroBlack60)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var stats: some View {
-        let animeLists = supabaseService.userLists.filter { $0.mediaType == "anime" }
-        let mangaLists = supabaseService.userLists.filter { $0.mediaType == "manga" }
-        let doneCount = supabaseService.userLists.filter { $0.status == .completed }.count
-        let episodesWatched = animeLists.reduce(0) { $0 + $1.progress }
-        let chaptersRead = mangaLists.reduce(0) { $0 + $1.progress }
-        let scoredEntries = supabaseService.userLists.compactMap(\.score).filter { $0 > 0 }
-        let avgRating = scoredEntries.isEmpty ? 0.0 : Double(scoredEntries.reduce(0, +)) / Double(scoredEntries.count)
-
-        return VStack(spacing: 10) {
-            HStack(spacing: 14) {
-                ProfileStatTile(value: "\(animeLists.count)", label: "ANIME")
-                ProfileStatTile(value: "\(mangaLists.count)", label: "MANGA")
-                ProfileStatTile(value: "\(doneCount)", label: "DONE")
-            }
-            HStack(spacing: 14) {
-                ProfileStatTile(value: "\(episodesWatched)", label: "EPISODES")
-                ProfileStatTile(value: "\(chaptersRead)", label: "CHAPTERS")
-                ProfileStatTile(value: scoredEntries.isEmpty ? "—" : String(format: "%.0f", avgRating), label: "AVG SCORE")
-            }
-        }
-    }
-
-    private var clubsPreview: some View {
-        let clubs = supabaseService.myClubs
-
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Text("CLUBS")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(2.0)
-                    .foregroundColor(.kuroBlack60)
-
-                Spacer(minLength: 0)
-
-                Text("\(clubs.count)")
-                    .font(.kuroMicro(weight: .medium))
-                    .foregroundColor(.kuroBlack30)
-                    .monospacedDigit()
-            }
-
-            if clubs.isEmpty {
-                Text("Private clubs with shared rails. No feeds.")
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroBlack60)
-            } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(clubs.prefix(3)) { c in
-                        Text(c.name)
-                            .font(.kuroBody(weight: .light))
-                            .foregroundColor(.kuroBlack80)
+            HStack(alignment: .center, spacing: KuroDesignSpacing.md) {
+                Text(identity.currentUserInitial)
+                    .font(.kuroCustom(24, weight: .semibold, relativeTo: .title2, maxSize: 38)).tracking(-0.6)
+                    .foregroundStyle(Color.kuroInk)
+                    .frame(width: 56, height: 56)
+                    .background(Circle().fill(Color.kuroWhite))
+                    .overlay(Circle().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(accountHeadline)
+                        .font(.kuroTitleName())
+                        .foregroundStyle(Color.kuroInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let address = accountAddress {
+                        Text(address)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkSecondary)
                             .lineLimit(1)
+                            .truncationMode(.middle)
                     }
                 }
+                Spacer(minLength: 0)
             }
+            .padding(.horizontal, KuroDesignSpacing.padding)
+            .padding(.top, -28)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 14)
-        .background(
-            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                .fill(Color.kuroSecondaryBackground.opacity(0.90))
-                .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
-                )
-        )
     }
 
-    private var streamingServicesPreview: some View {
-        let services = supabaseService.userStreamingServices
-        let registry = supabaseService.streamingServiceRegistry
+    /// The real account, never a slogan or a generic account label, and never the raw address as the
+    /// headline (rulebook §14.3). Only a fact the app knows locally: an Apple private relay address
+    /// can only come from Sign in with Apple; anything else is plainly "Signed in" (an Apple account
+    /// that shared its real address is not called an e-mail sign-in).
+    private var accountHeadline: String {
+        if let email = identity.currentUserEmail, Self.isAppleRelay(email) {
+            return isGermanLocale ? "Mit Apple angemeldet" : "Signed in with Apple"
+        }
+        return isGermanLocale ? "Angemeldet" : "Signed in"
+    }
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Text("SERVICES")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(2.0)
-                    .foregroundColor(.kuroBlack60)
+    /// The address on the quiet secondary line (middle-truncated); an Apple private relay address
+    /// says nothing to the person and is not shown.
+    private var accountAddress: String? {
+        guard let email = identity.currentUserEmail, !email.isEmpty, !Self.isAppleRelay(email) else { return nil }
+        return email
+    }
 
-                Spacer(minLength: 0)
+    private static func isAppleRelay(_ email: String) -> Bool {
+        email.lowercased().hasSuffix("privaterelay.appleid.com")
+    }
 
-                Text("\(services.count)")
-                    .font(.kuroMicro(weight: .medium))
-                    .foregroundColor(.kuroBlack30)
+    // MARK: Library
+
+    private var librarySection: some View {
+        let entries = library.allEntries
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionHeader(german ? "Deine Bibliothek." : "Your library.")
+            switch ProfileListsPolicy.libraryState(entryCount: entries.count, loadState: library.loadState) {
+            case .loading:
+                KuroLoadingView(scope: .inline,
+                                label: german ? "Deine Bibliothek wird geladen." : "Loading your library.")
+            case .failed, .offline:
+                // Nothing on screen: the branded error, whose Try again is the same account-scoped
+                // re-read as "Refresh your lists".
+                KuroErrorView(headline: german ? "Bibliothek konnte nicht geladen werden." : "Your library couldn't load.",
+                              retry: { if !isSyncing { syncLists() } })
+            case .empty:
+                newAccountLibrary
+            case nil:
+                Text(ProfileListsPolicy.summary(entries, german: german))
+                    .font(.kuroBody())
+                    .foregroundStyle(Color.kuroInkSecondary)
                     .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                ProfileListsPreview(
+                    entries: entries,
+                    previews: collection.listPreview,
+                    previewFailed: collection.listPreviewFailed,
+                    onOpen: { request in
+                        collection.requestList(request)
+                        onOpenCollection?()
+                    },
+                    onOpenCollection: {
+                        collection.clearImportedTitles()
+                        onOpenCollection?()
+                    }
+                )
+                .padding(.top, KuroDesignSpacing.xs)
+            }
+        }
+    }
+
+    /// A new account (amendment 10, spec §5.3): no zero tiles or counts. "Your library." stays the
+    /// section's only heading; under it "Nothing saved yet." sits on the row-title ramp (15 w600,
+    /// −0.2), one muted line, then Import (the import chooser) and Find (Search) as the prototype's
+    /// outlined buttons.
+    private var newAccountLibrary: some View {
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(ProfileListsPolicy.newAccountHeadline(german: german))
+                .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 30))
+                .tracking(-0.2)
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(ProfileListsPolicy.newAccountLine(german: german))
+                .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 26))
+                .foregroundStyle(Color.kuroMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: KuroDesignSpacing.sm) { newAccountActions }
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) { newAccountActions }
+            }
+            .padding(.top, 16)
+        }
+        .padding(.vertical, KuroDesignSpacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var newAccountActions: some View {
+        let german = isGermanLocale
+        KuroOutlineButton(ProfileListsPolicy.importTitle(german: german)) { showImportChooser = true }
+        KuroOutlineButton(ProfileListsPolicy.findTitle(german: german)) { push(ShellJourneyPages.search()) }
+    }
+
+    // MARK: Imports and connections
+
+    private func importsSection(_ coordinator: ProfileImportCoordinator?, anchor: ASPresentationAnchor?) -> some View {
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionHeader(german ? "Importe und Verbindungen." : "Imports and connections.")
+            profileGroup {
+                ProfileQuietRow(
+                    title: german ? "Aus AniList importieren" : "Import from AniList",
+                    subtitle: german
+                        ? "Benutzername, dann Vorschau vor dem Speichern"
+                        : "Username, then a preview before saving",
+                    isEnabled: coordinator?.isProcessingAniListImport != true
+                ) {
+                    // A new import gesture does not replay an unresolved action.
+                    if coordinator?.beginAniListSelection() == true { showAniListImportSheet = true }
+                }
+
+                if imports.malAccountAvailable {
+                    rowHairline
+                    if let malIdentity = imports.malAccountIdentity {
+                        groupCaption(german ? "Verbundenes MAL-Konto: \(malIdentity)" : "Connected MAL account: \(malIdentity)")
+                        ProfileQuietRow(
+                            title: german ? "Verbundenes MAL-Konto erneut importieren" : "Import the connected MAL account again",
+                            subtitle: german
+                                ? "Anime und Manga lesen, dann vor dem Speichern prüfen"
+                                : "Read Anime and Manga, then review before saving",
+                            isEnabled: coordinator?.isProcessingAniListImport != true && !imports.importBusy
+                        ) {
+                            coordinator?.prepareConnectedMAL()
+                        }
+                        rowHairline
+                        ProfileQuietRow(
+                            title: german ? "MAL trennen" : "Disconnect MAL",
+                            subtitle: german
+                                ? "Entfernt die Zugangsdaten auf diesem Gerät"
+                                : "Removes the credentials from this device"
+                        ) {
+                            coordinator?.disconnectMALAccount()
+                        }
+                    } else {
+                        ProfileQuietRow(
+                            title: german ? "MAL-Konto verbinden" : "Connect a MAL account",
+                            subtitle: german
+                                ? "Anime und Manga. Bestehende Notizen bleiben erhalten."
+                                : "Anime and Manga. Existing notes are kept.",
+                            isEnabled: anchor != nil && coordinator?.isProcessingAniListImport != true
+                        ) {
+                            guard let anchor else { return }
+                            coordinator?.connectAndImportMAL(presentationAnchor: anchor)
+                        }
+                    }
+                    groupCaption(ImportCopy.malNotesLimitation(german: german))
+                }
+
+                rowHairline
+                ProfileQuietRow(
+                    title: german ? "MAL-Datei importieren" : "Import a MAL file",
+                    subtitle: german
+                        ? "XML-Export von diesem Gerät"
+                        : "An XML export from this device"
+                ) {
+                    if coordinator?.beginMALFileSelection() == true { showMALImporter = true }
+                }
+
+                if coordinator?.profileRetryOffered == true {
+                    rowHairline
+                    ProfileQuietRow(
+                        title: german ? "Import wiederholen" : "Retry import",
+                        subtitle: german
+                            ? "Dieselbe Übernahme erneut senden"
+                            : "Send the same import again"
+                    ) {
+                        coordinator?.retry()
+                    }
+                }
+
+                if coordinator?.isProcessingAniListImport == true {
+                    statusLine(german ? "AniList wird importiert …" : "Importing from AniList …")
+                }
             }
 
-            if services.isEmpty {
-                Text("Set your streaming services to filter your collection.")
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroBlack60)
-            } else {
-                let displayNames = services.compactMap { slug in
-                    registry.first(where: { $0.slug == slug })?.display_name
+            if flags.seriesFoundationV1Enabled {
+                ImportHistorySection(imports: imports) { job in
+                    guard profileActionScope.capture(session: imports.accountSession) != nil else { return }
+                    importWorkflowJob = job; showImportWorkflow = true
                 }
-                FlowLayout(spacing: 6) {
-                    ForEach(displayNames, id: \.self) { name in
-                        Text(name.uppercased())
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(0.8)
-                            .foregroundColor(.black.opacity(0.55))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(
-                                Capsule()
-                                    .fill(Color.black.opacity(0.06))
-                            )
-                    }
+                .padding(.top, KuroDesignSpacing.sm)
+            }
+            if let importResult = coordinator?.importResult {
+                importResultPreview(importResult)
+                    .padding(.top, KuroDesignSpacing.sm)
+            }
+        }
+    }
+
+    // MARK: Clubs
+
+    private var clubsSection: some View {
+        let german = isGermanLocale
+        let count = clubs.myClubs.count
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionHeader(german ? "Clubs." : "Clubs.")
+            profileGroup {
+                ProfileQuietRow(
+                    title: german ? "Deine Clubs" : "Your clubs",
+                    subtitle: german ? "Private Gruppen mit 2 bis 20 Mitgliedern" : "Private groups of 2 to 20 people",
+                    trailing: count > 0 ? "\(count)" : nil
+                ) {
+                    push(ShellJourneyPages.clubs)
                 }
             }
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 14)
-        .background(
-            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                .fill(Color.kuroSecondaryBackground.opacity(0.90))
-                .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
-                )
-        )
-        .onTapGesture {
-            KuroAccessibility.impactHaptic(.light)
+    }
+
+    // MARK: Preferences
+
+    private var preferencesSection: some View {
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionHeader(german ? "Einstellungen." : "Preferences.")
+            profileGroup {
+                ProfileQuietRow(
+                    title: german ? "Listen aktualisieren" : "Refresh your lists",
+                    subtitle: german ? "Liest deine Listen und Termine neu" : "Reads your lists and dates again",
+                    isEnabled: !isSyncing
+                ) {
+                    syncLists()
+                }
+
+                rowHairline
+
+                ProfileQuietRow(
+                    title: "Concierge",
+                    subtitle: german
+                        ? "Beschreibe eine Stimmung oder füge eine Liste ein"
+                        : "Describe a mood or paste a list"
+                ) {
+                    push(ShellJourneyPages.concierge(onImportNavigation: onImportNavigation))
+                }
+
+                if flags.isStreamingAvailabilityV1Enabled {
+                    rowHairline
+                    streamingServicesRow
+                }
+            }
+            .sheet(isPresented: $showServicePicker) {
+                StreamingServicePickerSheet()
+                    .environment(\.shellPageLifetime, nil)
+                    .presentationDragIndicator(.visible)
+            }
+
+            if isSyncing {
+                statusLine(german ? "Wird aktualisiert …" : "Refreshing …")
+            }
+        }
+    }
+
+    private func syncLists() {
+        let german = isGermanLocale
+        Task {
+            guard let context = imports.accountSession.current else { return }
+            isSyncing = true
+            defer { if imports.accountSession.isCurrent(context) { isSyncing = false } }
+            do {
+                try await library.refresh()
+                guard imports.accountSession.isCurrent(context) else { return }
+                // Keep the filter the Collection page is showing (a nil status would reset it).
+                await collection.fetchCollectionFeed(status: collection.currentCollectionStatusFilter)
+                guard imports.accountSession.isCurrent(context) else { return }
+                await collection.loadListPreview(force: true)
+                guard imports.accountSession.isCurrent(context) else { return }
+                if collection.collectionErrorMessage != nil {
+                    showToast(.error,
+                              title: german ? "Sammlung nicht verfügbar" : "Collection unavailable",
+                              subtitle: german ? "Deine Listen sind aktuell, die Sammlung konnte nicht geladen werden."
+                                               : "Your lists are current, but Collection couldn't load.")
+                    return
+                }
+                await releases.fetchUpcomingForUser(days: 7)
+                await releases.loadSchedule(force: true)
+                guard imports.accountSession.isCurrent(context) else { return }
+                KuroAccessibility.successHaptic()
+                showToast(.success, title: german ? "Aktualisiert" : "Refreshed",
+                          subtitle: german ? "Deine Listen sind aktuell." : "Your lists are current.")
+            } catch is CancellationError {
+                return
+            } catch {
+                guard imports.accountSession.isCurrent(context) else { return }
+                showToast(.error, title: german ? "Nicht aktualisiert" : "Couldn't refresh",
+                          subtitle: german ? "Versuch es gleich noch einmal." : "Try again in a moment.")
+            }
+        }
+    }
+
+    private var streamingServicesRow: some View {
+        let german = isGermanLocale
+        let services = availability.userStreamingServices
+        let names = services.compactMap { slug in
+            availability.streamingServiceRegistry.first(where: { $0.slug == slug })?.display_name
+        }
+        let subtitle = services.isEmpty
+            ? (german ? "Wähle deine Streamingdienste." : "Choose your streaming services.")
+            : names.joined(separator: ", ")
+        return ProfileQuietRow(
+            title: german ? "Streamingdienste" : "Streaming services",
+            subtitle: subtitle,
+            trailing: services.isEmpty ? nil : "\(services.count)"
+        ) {
             showServicePicker = true
         }
-        .sheet(isPresented: $showServicePicker) {
-            StreamingServicePickerSheet()
-                .environment(supabaseService)
+    }
+
+    // MARK: Account and privacy
+
+    private func accountSection(
+        ticket: AccountActionScope.Ticket?,
+        confirmationTicket: AccountActionScope.Ticket?
+    ) -> some View {
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionHeader(german ? "Konto und Datenschutz." : "Account and privacy.")
+            profileGroup {
+                ProfileQuietRow(
+                    title: german ? "Abmelden" : "Sign out",
+                    subtitle: german ? "Deine Listen bleiben in deinem Konto" : "Your lists stay in your account"
+                ) {
+                    profileActionScope.launch(origin: ticket, session: imports.accountSession) { origin in
+                        await session.signOut(expectedAccount: origin.account)
+                    }
+                }
+
+                rowHairline
+
+                ProfileQuietRow(
+                    title: german ? "Konto löschen" : "Delete account",
+                    subtitle: german ? "Entfernt dein Konto und alle Daten dauerhaft" : "Permanently removes your account and all data",
+                    titleColor: Color.kuroDestructiveInk
+                ) {
+                    guard profileActionScope.isCurrent(ticket, session: imports.accountSession) else { return }
+                    deleteConfirmationTicket = ticket
+                    showDeleteConfirmation = true
+                }
+
+                if let privacy = KuroLegalLinks.privacy {
+                    rowHairline
+                    ProfileLinkRow(title: german ? "Datenschutz" : "Privacy policy", url: privacy)
+                }
+            }
+            .alert(german ? "Konto löschen?" : "Delete your account?", isPresented: $showDeleteConfirmation) {
+                Button(german ? "Abbrechen" : "Cancel", role: .cancel) { }
+                Button(german ? "Alles löschen" : "Delete everything", role: .destructive) {
+                    profileActionScope.launch(origin: confirmationTicket, session: imports.accountSession) { origin in
+                        guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
+                        isDeleting = true
+                        defer {
+                            if profileActionScope.isCurrent(origin, session: imports.accountSession) { isDeleting = false }
+                        }
+                        do {
+                            let isApple = await auth.isAppleUser
+                            guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
+                            let appleCode = isApple ? await obtainAppleAuthorizationCode() : nil
+                            guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
+                            try await session.deleteAccount(appleAuthorizationCode: appleCode, expectedAccount: origin.account)
+                            guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
+                            if let journey { journey.close() } else { dismiss() }
+                        } catch {
+                            guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
+                            showToast(.error, title: german ? "Konto nicht gelöscht" : "Account not deleted",
+                                      subtitle: Self.deletionFailureLine(error, german: german))
+                        }
+                    }
+                }
+            } message: {
+                Text(german
+                     ? "Dein Konto, deine Listen, Clubmitgliedschaften und alle zugehörigen Daten werden dauerhaft gelöscht. Das lässt sich nicht rückgängig machen."
+                     : "This permanently deletes your account, lists, club memberships and all associated data. It cannot be undone.")
+            }
+
+            if isDeleting {
+                statusLine(german ? "Konto wird gelöscht …" : "Deleting account …")
+            }
+        }
+    }
+
+    /// A plain EN/DE line for a failed deletion (never the raw, English-only error text).
+    private static func deletionFailureLine(_ error: Error, german: Bool) -> String {
+        if error is URLError {
+            return german ? "Versuch es erneut, wenn du online bist." : "Try again when you're online."
+        }
+        return german ? "Versuch es gleich noch einmal." : "Try again in a moment."
+    }
+
+    // MARK: About
+
+    /// Spec D11: Profile > About holds Data sources and credits, Contact us (the contact form, the
+    /// Impressum's second contact channel), the Terms link (once confirmed) and the version.
+    private var aboutSection: some View {
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionHeader(german ? "Über Kuro." : "About.")
+            profileGroup {
+                ProfileQuietRow(
+                    title: german ? "Datenquellen und Danksagung" : "Data sources and credits",
+                    subtitle: "AniList, MangaDex, MangaUpdates, AnimeThemes"
+                ) {
+                    push(ShellJourneyPages.dataSources)
+                }
+                rowHairline
+                ProfileQuietRow(
+                    title: german ? "Kontakt" : "Contact us",
+                    subtitle: german ? "Frage, Hilfe, Datenschutz oder Inhalt melden" : "Questions, help, privacy or reporting content"
+                ) {
+                    showContact = true
+                }
+                if let terms = KuroLegalLinks.terms {
+                    rowHairline
+                    ProfileLinkRow(title: german ? "Nutzungsbedingungen" : "Terms of service", url: terms)
+                }
+            }
+            versionLine
+        }
+    }
+
+    // MARK: Advanced
+
+    private var advancedSection: some View {
+        let german = isGermanLocale
+        // F1–F3: the shared fold control (prototype easing, instant with Reduce Motion, says what it
+        // does, remembered for the session).
+        let advanced = folds.binding(page: "profile", section: "advanced")
+        return profileGroup {
+            VStack(alignment: .leading, spacing: 0) {
+                KuroFoldButton(isExpanded: advanced,
+                               expandLabel: KuroLocale.text("Show advanced", "Erweitert anzeigen"),
+                               collapseLabel: KuroLocale.text("Hide advanced", "Erweitert ausblenden")) { title, open in
+                    HStack {
+                        Text(title)
+                            .font(.kuroBody(weight: .regular))
+                            .foregroundStyle(Color.kuroInkSecondary)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right")
+                            .font(.kuroCaption(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .rotationEffect(.degrees(open ? 90 : 0))
+                            .accessibilityHidden(true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .accessibilityIdentifier("profile.advanced")
+                if advanced.wrappedValue {
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                        ProfileQuietRow(
+                            title: german ? "Cache leeren" : "Clear cache",
+                            subtitle: german ? "Setzt Bild- und Detail-Caches zurück" : "Resets image and detail caches",
+                            horizontalPadding: 0
+                        ) {
+                            Task {
+                                await KuroDiskDetailCache.clearAll()
+                                await artworkMaterials.clearAll()
+                                URLCache.shared.removeAllCachedResponses()
+                                KuroAccessibility.successHaptic()
+                                showToast(.success, title: german ? "Cache geleert" : "Cache cleared", subtitle: nil)
+                            }
+                        }
+                        if flags.isStreamingAvailabilityV1Enabled {
+                            streamingFreshnessPreview
+                        }
+                    }
+                    .padding(.bottom, KuroDesignSpacing.sm)
+                    .transition(.opacity)
+                }
+            }
         }
     }
 
@@ -325,148 +773,9 @@ struct ProfileView: View {
     private func refreshStreamingObservability() async {
         isRefreshingStreamingObservability = true
         defer { isRefreshingStreamingObservability = false }
-        await supabaseService.fetchStreamingServiceRegistry()
-        await supabaseService.fetchUserStreamingServices()
-        streamingObservability = await supabaseService.streamingObservabilitySnapshot()
-    }
-
-    private var actions: some View {
-        VStack(spacing: 12) {
-            ProfileActionRow(
-                icon: "person.2",
-                title: "Clubs",
-                subtitle: "Shared rails, no feeds",
-                trailing: "\(supabaseService.myClubs.count)"
-            ) {
-                showClubs = true
-            }
-
-            ProfileActionRow(
-                icon: "arrow.triangle.2.circlepath",
-                title: "Sync Data",
-                subtitle: "Refresh your lists & rails"
-            ) {
-                Task {
-                    isSyncing = true
-                    defer { isSyncing = false }
-                    await supabaseService.fetchUserLists()
-                    await supabaseService.fetchCollectionItems()
-                    await supabaseService.fetchUpcomingForUser(days: 7)
-                    KuroAccessibility.successHaptic()
-                    showToast(.success, title: "Synced", subtitle: "Lists updated")
-                }
-            }
-
-            ProfileActionRow(
-                icon: "square.and.arrow.down",
-                title: isGermanLocale ? "Aus AniList importieren" : "Import from AniList",
-                subtitle: isGermanLocale
-                    ? "Vorschau und Import fur Anime- oder Manga-Listen"
-                    : "Preview and import your anime or manga lists"
-            ) {
-                showAniListImportSheet = true
-            }
-
-            ProfileActionRow(
-                icon: "trash",
-                title: "Clear Cache",
-                subtitle: "Reset image + detail caches",
-                isDestructive: true
-            ) {
-                Task {
-                    await KuroDiskDetailCache.clearAll()
-                    URLCache.shared.removeAllCachedResponses()
-                    KuroAccessibility.successHaptic()
-                }
-            }
-
-            ProfileActionRow(
-                icon: "arrow.right.circle",
-                title: "Sign Out",
-                subtitle: "Log out of your account",
-                isDestructive: true
-            ) {
-                Task { await supabaseService.signOut() }
-            }
-
-            ProfileActionRow(
-                icon: "person.crop.circle.badge.minus",
-                title: "Delete Account",
-                subtitle: "Permanently remove all data",
-                isDestructive: true
-            ) {
-                showDeleteConfirmation = true
-            }
-            .alert("Delete Account", isPresented: $showDeleteConfirmation) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete Everything", role: .destructive) {
-                    Task {
-                        isDeleting = true
-                        defer { isDeleting = false }
-                        do {
-                            // For Apple users, obtain a fresh authorization code for token revocation.
-                            var appleCode: String? = nil
-                            if await supabaseService.isAppleUser {
-                                appleCode = await obtainAppleAuthorizationCode()
-                            }
-                            try await supabaseService.deleteAccount(appleAuthorizationCode: appleCode)
-                            dismiss()
-                        } catch {
-                            showToast(.error, title: "Deletion failed", subtitle: error.localizedDescription)
-                        }
-                    }
-                }
-            } message: {
-                Text("This will permanently delete your account, lists, club memberships, and all associated data. This action cannot be undone.")
-            }
-
-            if isDeleting {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .scaleEffect(0.9)
-                        .tint(.black.opacity(0.55))
-                    Text("Deleting account...")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.black.opacity(0.55))
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, 6)
-                .padding(.horizontal, 8)
-            }
-
-            if isSyncing {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .scaleEffect(0.9)
-                        .tint(.kuroBlack60)
-                    Text("Syncing…")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroBlack60)
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, 6)
-                .padding(.horizontal, 8)
-            }
-
-            if isProcessingAniListImport {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .scaleEffect(0.9)
-                        .tint(.kuroBlack60)
-                    Text(isGermanLocale ? "AniList wird importiert..." : "Importing from AniList...")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroBlack60)
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, 6)
-                .padding(.horizontal, 8)
-            }
-        }
-    }
-
-    private var isGermanLocale: Bool {
-        let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
-        return language.hasPrefix("de")
+        await availability.fetchStreamingServiceRegistry()
+        await availability.fetchUserStreamingServices()
+        streamingObservability = await availability.streamingObservabilitySnapshot()
     }
 
     @ViewBuilder
@@ -474,294 +783,17 @@ struct ProfileView: View {
         ProfileImportResultCard(
             result: result,
             isGermanLocale: isGermanLocale,
-            onDismiss: { importResult = nil },
+            onDismiss: { importCoordinator?.dismissImportResult() },
+            onUndo: {
+                importCoordinator?.undo()
+            },
             onContinueToConcierge: {
                 guard case .needsReview(_, _, _, let importText) = result else { return }
-                importResult = nil
-                onOpenConciergeImportReview?(importText)
+                importCoordinator?.dismissImportResult()
+                // The review pushes inside this journey (Back returns to Profile).
+                push(ShellJourneyPages.concierge(prompt: importText, review: true,
+                                                 onImportNavigation: onImportNavigation))
             }
-        )
-    }
-
-    @MainActor
-    private func handleAniListImportCompleted(_ response: SupabaseService.ConciergeAniListImportResponse) async {
-        let importText = response.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard response.success, !importText.isEmpty else {
-            showToast(
-                .error,
-                title: isGermanLocale ? "AniList-Import fehlgeschlagen" : "AniList import failed",
-                subtitle: response.error ?? (isGermanLocale ? "Es wurden keine importierbaren Titel geliefert." : "AniList did not return importable titles.")
-            )
-            return
-        }
-
-        isProcessingAniListImport = true
-        importResult = nil
-        defer { isProcessingAniListImport = false }
-
-        do {
-            let parseResponse = try await supabaseService.conciergeParse(text: importText, scope: .both)
-            guard parseResponse.success, !parseResponse.items.isEmpty else {
-                showToast(
-                    .error,
-                    title: isGermanLocale ? "AniList-Import fehlgeschlagen" : "AniList import failed",
-                    subtitle: isGermanLocale ? "Kuro konnte die importierten Titel nicht zuordnen." : "Kuro could not match the imported titles."
-                )
-                return
-            }
-
-            switch profileImportDecision(for: parseResponse, importText: importText) {
-            case .apply(let payload):
-                let applyResponse = try await supabaseService.conciergeApply(items: payload)
-                guard applyResponse.success else {
-                    let detail = applyResponse.errors?.first?.error
-                        ?? (isGermanLocale ? "Die Titel konnten nicht ubernommen werden." : "The titles could not be applied.")
-                    showToast(
-                        .error,
-                        title: isGermanLocale ? "Import fehlgeschlagen" : "Import failed",
-                        subtitle: detail
-                    )
-                    return
-                }
-
-                await refreshProfileDataAfterImport()
-                KuroAccessibility.successHaptic()
-                importResult = makeAppliedImportResult(applyResponse: applyResponse, truncated: response.truncated == true)
-            case .needsReview(let reviewText):
-                KuroAccessibility.impactHaptic(.light)
-                importResult = makeNeedsReviewImportResult(importText: reviewText, truncated: response.truncated == true)
-            }
-        } catch {
-            showToast(
-                .error,
-                title: isGermanLocale ? "AniList-Import fehlgeschlagen" : "AniList import failed",
-                subtitle: error.localizedDescription
-            )
-        }
-    }
-
-    private func profileImportDecision(
-        for response: SupabaseService.ConciergeParseResponse,
-        importText: String
-    ) -> ProfileImportDecision {
-        var selectedByItemId: [String: SupabaseService.ConciergeCandidate] = [:]
-        var itemActions: [String: ImportItemAction] = [:]
-
-        for item in response.items {
-            guard item.ambiguity == nil else { return .needsReview(importText: importText) }
-            guard item.existing_entry == nil else { return .needsReview(importText: importText) }
-            guard let top = item.candidates.first else { return .needsReview(importText: importText) }
-            guard top.score >= 0.85 else { return .needsReview(importText: importText) }
-            guard !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) else {
-                return .needsReview(importText: importText)
-            }
-
-            selectedByItemId[item.id] = top
-            itemActions[item.id] = computeItemAction(item: item)
-        }
-
-        let payload = buildApplyPayload(
-            from: response,
-            selectedByItemId: selectedByItemId,
-            itemActions: itemActions
-        )
-
-        guard !payload.isEmpty else {
-            return .needsReview(importText: importText)
-        }
-        return .apply(payload: payload)
-    }
-
-    private func buildApplyPayload(
-        from response: SupabaseService.ConciergeParseResponse,
-        selectedByItemId: [String: SupabaseService.ConciergeCandidate],
-        itemActions: [String: ImportItemAction]
-    ) -> [[String: Any]] {
-        response.items.compactMap { item -> [String: Any]? in
-            guard let candidate = selectedByItemId[item.id] else { return nil }
-
-            let action = itemActions[item.id] ?? .add
-            guard action != .skip else { return nil }
-
-            let mediaType = candidate.media_type
-            let status = normalizedStatus(for: item.parsed.status, mediaType: mediaType)
-
-            var payload: [String: Any] = [
-                "raw": item.raw,
-                "mediaType": mediaType.uppercased(),
-                "mediaId": candidate.media_id,
-                "status": status,
-                "confidence": candidate.score,
-                "action": action.rawValue,
-            ]
-
-            let parsed = item.parsed
-            if let value = parsed.progressEpisodes { payload["progressEpisodes"] = value }
-            if let value = parsed.progressChapters { payload["progressChapters"] = value }
-            if let value = parsed.progressVolumes { payload["progressVolumes"] = value }
-            if let value = parsed.seasonNumber { payload["seasonNumber"] = value }
-            if let value = parsed.episodeInSeason { payload["episodeInSeason"] = value }
-            if let value = parsed.caughtUp { payload["caughtUp"] = value }
-            if let value = parsed.lastEpisode { payload["lastEpisode"] = value }
-            if let value = parsed.completed { payload["completed"] = value }
-            if let value = parsed.rating { payload["rating"] = value }
-
-            if action == .update, let existing = item.existing_entry {
-                var expected: [String: Any] = ["status": existing.status]
-                if let episodes = existing.progress_episodes { expected["progress_episodes"] = episodes }
-                if let chapters = existing.progress_chapters { expected["progress_chapters"] = chapters }
-                if let volumes = existing.progress_volumes { expected["progress_volumes"] = volumes }
-                payload["expectedExisting"] = expected
-            }
-
-            return payload
-        }
-    }
-
-    private func computeItemAction(item: SupabaseService.ConciergeParseItem) -> ImportItemAction {
-        guard let existing = item.existing_entry else { return .add }
-        let diff = computeDiff(existing: existing, parsed: item.parsed)
-        if let diff, !diff.isEmpty { return .update }
-        return .skip
-    }
-
-    private func computeDiff(
-        existing: SupabaseService.ConciergeExistingEntry,
-        parsed: SupabaseService.ConciergeParseItemParsed
-    ) -> ImportDiff? {
-        var diff = ImportDiff()
-
-        if let parsedStatus = parsed.status,
-           parsedStatus.uppercased() != existing.status.uppercased() {
-            diff.status = ImportDiff.FieldDiff(from: existing.status, to: parsedStatus.uppercased())
-        }
-        if let episodes = parsed.progressEpisodes,
-           episodes != (existing.progress_episodes ?? 0) {
-            diff.progressEpisodes = ImportDiff.FieldDiff(from: existing.progress_episodes ?? 0, to: episodes)
-        }
-        if let chapters = parsed.progressChapters,
-           chapters != (existing.progress_chapters ?? 0) {
-            diff.progressChapters = ImportDiff.FieldDiff(from: existing.progress_chapters ?? 0, to: chapters)
-        }
-        if let volumes = parsed.progressVolumes,
-           volumes != (existing.progress_volumes ?? 0) {
-            diff.progressVolumes = ImportDiff.FieldDiff(from: existing.progress_volumes ?? 0, to: volumes)
-        }
-
-        return diff.isEmpty ? nil : diff
-    }
-
-    private func normalizedStatus(for raw: String?, mediaType: String?) -> String {
-        let status = (raw ?? "").uppercased()
-        if mediaType == "manga", status == "WATCHING" { return "READING" }
-        if mediaType == "anime", status == "READING" { return "WATCHING" }
-        if status.isEmpty { return "PLANNING" }
-        return status
-    }
-
-    private func strippedBaseTitle(_ raw: String) -> String {
-        var title = raw
-        if let range = title.range(of: #"\s*\([^)]*\)\s*$"#, options: .regularExpression) {
-            title.removeSubrange(range)
-        }
-        if let range = title.range(of: ": ") {
-            title = String(title[title.startIndex..<range.lowerBound])
-        }
-        return title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    }
-
-    private func hasAmbiguousAdaptations(
-        candidates: [SupabaseService.ConciergeCandidate],
-        yearMention: Int?
-    ) -> Bool {
-        guard candidates.count >= 2 else { return false }
-
-        let top = candidates[0]
-        let second = candidates[1]
-
-        guard top.media_id != second.media_id else { return false }
-
-        let baseTop = strippedBaseTitle(top.title_raw)
-        let baseSecond = strippedBaseTitle(second.title_raw)
-        guard baseTop == baseSecond else { return false }
-
-        if let mentionedYear = yearMention, let topYear = top.year, topYear == mentionedYear {
-            return false
-        }
-
-        return true
-    }
-
-    @MainActor
-    private func refreshProfileDataAfterImport() async {
-        await supabaseService.fetchUserLists()
-        await supabaseService.fetchCollectionItems()
-        await supabaseService.fetchUpcomingForUser(days: 7)
-    }
-
-    private func makeAppliedImportResult(
-        applyResponse: SupabaseService.ConciergeApplyResponse,
-        truncated: Bool
-    ) -> ProfileImportResult {
-        let appliedItems = applyResponse.applied ?? []
-        let addCount = appliedItems.filter { $0.action == "add" }.count
-        let updateCount = appliedItems.filter { $0.action == "update" }.count
-        let conflictCount = applyResponse.conflicts?.count ?? 0
-
-        var summaryParts: [String] = []
-        if addCount > 0 {
-            summaryParts.append(isGermanLocale ? "\(addCount) hinzugefugt" : "\(addCount) added")
-        }
-        if updateCount > 0 {
-            summaryParts.append(isGermanLocale ? "\(updateCount) aktualisiert" : "\(updateCount) updated")
-        }
-        if summaryParts.isEmpty {
-            summaryParts.append(
-                isGermanLocale
-                    ? "\(appliedItems.count) Titel ubernommen"
-                    : "\(appliedItems.count) items applied"
-            )
-        }
-
-        var detailParts: [String] = []
-        if conflictCount > 0 {
-            detailParts.append(
-                isGermanLocale
-                    ? "\(conflictCount) Konflikt\(conflictCount == 1 ? "" : "e") erfordern Prufung."
-                    : "\(conflictCount) conflict\(conflictCount == 1 ? "" : "s") still need review."
-            )
-        }
-        if truncated {
-            detailParts.append(
-                isGermanLocale
-                    ? "AniList hat nur die ersten 200 Titel geliefert."
-                    : "AniList only supplied the first 200 items."
-            )
-        }
-
-        return .applied(
-            title: isGermanLocale ? "Import abgeschlossen" : "Import completed",
-            summary: summaryParts.joined(separator: ", "),
-            detail: detailParts.isEmpty ? nil : detailParts.joined(separator: " ")
-        )
-    }
-
-    private func makeNeedsReviewImportResult(importText: String, truncated: Bool) -> ProfileImportResult {
-        let detail = truncated
-            ? (isGermanLocale
-                ? "AniList hat nur die ersten 200 Titel geliefert. Offne Concierge, um den Import zu prufen."
-                : "AniList only supplied the first 200 items. Open Concierge to review this import.")
-            : (isGermanLocale
-                ? "Mindestens ein Titel braucht Bestatigung, bevor Kuro ihn ubernehmen kann."
-                : "At least one title needs confirmation before Kuro can apply it.")
-
-        return .needsReview(
-            title: isGermanLocale ? "Prufung in Concierge erforderlich" : "Review needed in Concierge",
-            summary: isGermanLocale
-                ? "Dieser AniList-Import braucht noch eine kurze Prufung."
-                : "This AniList import still needs a quick review.",
-            detail: detail,
-            importText: importText
         )
     }
 
@@ -793,173 +825,180 @@ struct ProfileView: View {
         }
     }
 
-    private var footer: some View {
+    private var versionLine: some View {
         let version = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "?"
         let build = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String) ?? "?"
-
-        return VStack(spacing: 10) {
-            if let url = URL(string: "https://kuro.app/privacy") {
-                Link(destination: url) {
-                    Text("Privacy Policy")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroBlack60)
-                        .underline(color: .kuroBlack30)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Text("KURO  •  v\(version) (\(build))")
-                .font(.kuroMicro(weight: .light))
-                .tracking(1.6)
-                .foregroundColor(.kuroBlack30)
-        }
+        return Text(isGermanLocale ? "Kuro \(version) (Build \(build))" : "Kuro \(version) (build \(build))")
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroInkQuiet)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .accessibilityLabel(isGermanLocale ? "Version \(version), Build \(build)" : "Version \(version), build \(build)")
     }
-}
 
-private struct ProfileBackdrop: View {
-    var body: some View {
-        ZStack {
-            Color.kuroBackground
-
-            // Subtle "editorial" atmosphere so glass surfaces read as intentional, not flat.
-            Circle()
-                .fill(Color.black.opacity(0.035))
-                .frame(width: 420, height: 420)
-                .blur(radius: 70)
-                .offset(x: -180, y: -260)
-
-            Circle()
-                .fill(Color.black.opacity(0.025))
-                .frame(width: 520, height: 520)
-                .blur(radius: 90)
-                .offset(x: 220, y: -180)
-        }
+    private func sectionHeader(_ title: String) -> some View {
+        // The prototype's in-page section heading ("Seasons": SF 18 w550, −0.7), not the shared
+        // header's regular-weight title.
+        Text(title)
+            .kuroRoleText(.title)
+            .foregroundStyle(Color.kuroInk)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
-}
 
-private struct ProfileStatTile: View {
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: 10) {
-            Text(value)
-                .font(.kuroHeadline(weight: .light))
-                .foregroundColor(.kuroBlack80)
-
-            Text(label)
-                .font(.kuroMicro(weight: .medium))
-                .tracking(2.2)
-                .foregroundColor(.kuroTextTertiary)
+    private func profileGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.kuroSecondaryBackground.opacity(0.9))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
-                )
-        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var rowHairline: some View {
+        Rectangle()
+            .fill(Color.kuroHairline)
+            .frame(height: 0.5)
+    }
+
+    private func groupCaption(_ text: String) -> some View {
+        Text(text)
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroInkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+    }
+
+    private func statusLine(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            KuroBusyMark(width: 24)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.kuroMeta())
+                .foregroundStyle(Color.kuroInkSecondary)
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 44, alignment: .leading)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(value) \(label)")
     }
 }
 
-private struct ProfileActionRow: View {
-    let icon: String
+/// Profile's lifecycle inside its journey (pure, tested in NavshellTests).
+nonisolated enum ProfileLifecyclePolicy {
+    /// Whether Profile sets its account-scoped import work up again on appear: the first appearance,
+    /// another account, or after a teardown. Coming back from a pushed page keeps what is running.
+    static func needsSetup(setUpFor: String??, current: String?, hasCoordinator: Bool) -> Bool {
+        guard hasCoordinator, let setUpFor else { return true }
+        return setUpFor != current
+    }
+}
+
+/// An outbound link row (privacy, terms): same geometry as the quiet rows, an arrow marks "leaves Kuro".
+private struct ProfileLinkRow: View {
     let title: String
-    let subtitle: String
+    let url: URL
+
+    var body: some View {
+        Link(destination: url) {
+            HStack(spacing: KuroDesignSpacing.sm) {
+                Text(title)
+                    .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
+                    .foregroundStyle(Color.kuroInk)
+                Spacer(minLength: KuroDesignSpacing.sm)
+                Image(systemName: "arrow.up.right")
+                    .font(.kuroCustom(12, weight: .medium, relativeTo: .caption1, maxSize: 18))
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .accessibilityHint(KuroLocale.text("Opens in your browser", "Öffnet sich im Browser"))
+    }
+}
+
+private struct ProfileQuietRow: View {
+    let title: String
+    var subtitle: String? = nil
     var trailing: String? = nil
-    var isDestructive: Bool = false
+    var titleColor: Color = Color.kuroInk
+    var isEnabled: Bool = true
+    var horizontalPadding: CGFloat = 0
     let action: () -> Void
 
     var body: some View {
-        Button(action: {
+        Button {
             KuroAccessibility.impactHaptic(.light)
             action()
-        }) {
-            HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundColor(isDestructive ? .red.opacity(0.85) : .kuroBlack60)
-                    .frame(width: 28)
-
+        } label: {
+            HStack(alignment: .center, spacing: KuroDesignSpacing.sm) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.kuroBody(weight: .regular))
-                        .foregroundColor(isDestructive ? .red.opacity(0.92) : .kuroBlack80)
-                    Text(subtitle)
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroBlack60)
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
+                        .foregroundStyle(titleColor)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-
-                Spacer()
-
+                Spacer(minLength: KuroDesignSpacing.sm)
                 if let trailing, !trailing.isEmpty {
                     Text(trailing)
-                        .font(.kuroMicro(weight: .medium))
-                        .foregroundColor(.kuroBlack30)
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
                         .monospacedDigit()
                 }
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.kuroTextTertiary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(0.75), lineWidth: 0.8)
-                            .blendMode(.overlay)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
-                    )
-                    .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 10)
-            )
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+            .opacity(isEnabled ? 1 : 0.45)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+        .disabled(!isEnabled)
     }
 }
 
 // MARK: - Streaming Service Picker Sheet
 
 private struct StreamingServicePickerSheet: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(IdentityStore.self) private var identity
+    @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(\.dismiss) private var dismiss
     @State private var selectedSlugs: Set<String> = []
     @State private var isSaving: Bool = false
+    @State private var actionScope = AccountActionScope()
+    @State private var saveFailed = false
 
-    private var animeServices: [SupabaseService.StreamingServiceRecord] {
-        supabaseService.streamingServiceRegistry.filter { $0.media_types.contains("ANIME") }
+    private var animeServices: [ProviderAvailabilityStore.StreamingServiceRecord] {
+        availability.streamingServiceRegistry.filter { $0.media_types.contains("ANIME") }
     }
 
-    private var mangaServices: [SupabaseService.StreamingServiceRecord] {
-        supabaseService.streamingServiceRegistry.filter { $0.media_types.contains("MANGA") }
+    private var mangaServices: [ProviderAvailabilityStore.StreamingServiceRecord] {
+        availability.streamingServiceRegistry.filter { $0.media_types.contains("MANGA") }
     }
 
     var body: some View {
-        NavigationStack {
+        let ticket = actionScope.capture(session: availability.accountSession)
+        return NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
-                    Text("Select the services you use. This filters your collection and enables shared availability in clubs.")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroBlack60)
+                    Text(KuroLocale.text("Choose the services you use. Kuro uses them to show where a title is available.",
+                                         "Wähle die Dienste, die du nutzt. Kuro zeigt damit, wo ein Titel verfügbar ist."))
+                        .font(.kuroBody())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 20)
 
                     if !animeServices.isEmpty {
                         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                            Text("ANIME")
-                                .font(.kuroMicro(weight: .medium))
-                                .tracking(2.0)
-                                .foregroundColor(.kuroBlack60)
+                            KuroSectionHeader("Anime", size: .title)
                                 .padding(.horizontal, 20)
 
                             ForEach(animeServices) { svc in
@@ -979,10 +1018,7 @@ private struct StreamingServicePickerSheet: View {
 
                     if !mangaServices.isEmpty {
                         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                            Text("MANGA")
-                                .font(.kuroMicro(weight: .medium))
-                                .tracking(2.0)
-                                .foregroundColor(.kuroBlack60)
+                            KuroSectionHeader("Manga", size: .title)
                                 .padding(.horizontal, 20)
 
                             ForEach(mangaServices) { svc in
@@ -1007,39 +1043,55 @@ private struct StreamingServicePickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("SERVICES")
-                        .font(.kuroNavigation(weight: .regular))
-                        .tracking(1.5)
+                    Text(KuroLocale.text("Streaming services", "Streamingdienste"))
+                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 28)).tracking(-0.2)
+                        .foregroundStyle(Color.kuroInk)
+                        .accessibilityAddTraits(.isHeader)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        Task {
+                        let selection = Array(selectedSlugs).sorted()
+                        actionScope.launch(origin: ticket, session: availability.accountSession) { origin in
+                            guard actionScope.isCurrent(origin, session: availability.accountSession) else { return }
                             isSaving = true
-                            await supabaseService.saveUserStreamingServices(Array(selectedSlugs))
+                            let saved = await availability.saveUserStreamingServices(selection)
+                            guard actionScope.isCurrent(origin, session: availability.accountSession) else { return }
                             isSaving = false
-                            dismiss()
+                            if saved { dismiss() } else { saveFailed = true }
                         }
                     } label: {
                         if isSaving {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .tint(.kuroBlack60)
+                            KuroBusyMark(width: 28)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .accessibilityLabel(KuroLocale.text("Saving", "Wird gesichert"))
                         } else {
-                            Text("Save")
-                                .font(.kuroBody(weight: .light))
+                            Text(KuroLocale.text("Save", "Sichern"))
+                                .font(.kuroBody(weight: .medium))
+                                .foregroundStyle(Color.kuroInk)
                         }
                     }
                     .disabled(isSaving)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .font(.kuroBody(weight: .light))
+                    Button(KuroLocale.text("Cancel", "Abbrechen")) { dismiss() }
+                        .font(.kuroBody(weight: .regular))
+                        .foregroundStyle(Color.kuroInk)
                 }
             }
         }
-        .onAppear {
-            selectedSlugs = Set(supabaseService.userStreamingServices)
+        .task(id: identity.currentUserId) {
+            actionScope.deactivate()
+            actionScope.activate(session: availability.accountSession)
+            selectedSlugs = Set(availability.userStreamingServices)
+            isSaving = false; saveFailed = false
         }
+        .alert(KuroLocale.text("Services weren't saved", "Dienste wurden nicht gesichert"), isPresented: $saveFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(KuroLocale.text("Your selection is still here. Try again when you're online.",
+                                 "Deine Auswahl ist noch da. Versuch es erneut, sobald du online bist."))
+        }
+        .onDisappear { actionScope.deactivate() }
     }
 }
 
@@ -1055,59 +1107,22 @@ private struct ServiceToggleRow: View {
         }) {
             HStack(spacing: 14) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20, weight: .light))
-                    .foregroundColor(isSelected ? .kuroBlack80 : .kuroBlack30)
+                    .font(.kuroCustom(20, weight: .light, relativeTo: .title3, maxSize: 30))
+                    .foregroundStyle(isSelected ? Color.kuroInk : Color.kuroInkQuiet)
+                    .accessibilityHidden(true)
 
                 Text(name)
                     .font(.kuroBody(weight: .regular))
-                    .foregroundColor(.kuroBlack80)
+                    .foregroundStyle(Color.kuroInk)
 
                 Spacer()
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-}
-
-private enum ProfileImportDecision {
-    case apply(payload: [[String: Any]])
-    case needsReview(importText: String)
-}
-
-private enum ProfileImportResult: Identifiable {
-    case applied(title: String, summary: String, detail: String?)
-    case needsReview(title: String, summary: String, detail: String?, importText: String)
-
-    var id: String {
-        switch self {
-        case let .applied(title, summary, _):
-            return "applied-\(title)-\(summary)"
-        case let .needsReview(title, summary, _, _):
-            return "review-\(title)-\(summary)"
-        }
-    }
-
-    var titleText: String {
-        switch self {
-        case let .applied(title, _, _), let .needsReview(title, _, _, _):
-            return title
-        }
-    }
-
-    var summaryText: String {
-        switch self {
-        case let .applied(_, summary, _), let .needsReview(_, summary, _, _):
-            return summary
-        }
-    }
-
-    var detailText: String? {
-        switch self {
-        case let .applied(_, _, detail), let .needsReview(_, _, detail, _):
-            return detail
-        }
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
@@ -1115,14 +1130,15 @@ private struct ProfileImportResultCard: View {
     let result: ProfileImportResult
     let isGermanLocale: Bool
     let onDismiss: () -> Void
+    let onUndo: () -> Void
     let onContinueToConcierge: () -> Void
 
     private var eyebrow: String {
         switch result {
         case .applied:
-            return isGermanLocale ? "IMPORT" : "IMPORT"
+            return "Import"
         case .needsReview:
-            return isGermanLocale ? "PRUFUNG" : "REVIEW"
+            return isGermanLocale ? "Prüfung" : "Review"
         }
     }
 
@@ -1131,23 +1147,23 @@ private struct ProfileImportResultCard: View {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(eyebrow)
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(2.0)
-                        .foregroundColor(.kuroBlack60)
+                        .kuroKicker()
+                        .accessibilityHidden(true)
 
                     Text(result.titleText)
-                        .font(.kuroBody(weight: .regular))
-                        .foregroundColor(.kuroBlack80)
+                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 28)).tracking(-0.2)
+                        .foregroundStyle(Color.kuroInk)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(result.summaryText)
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroBlack60)
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let detail = result.detailText {
                         Text(detail)
-                            .font(.kuroCaption(weight: .light))
-                            .foregroundColor(.kuroTextTertiary)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkQuiet)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -1156,32 +1172,41 @@ private struct ProfileImportResultCard: View {
 
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(.kuroBlack60)
-                        .frame(width: 24, height: 24)
+                        .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 20))
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isGermanLocale ? "Hinweis schließen" : "Dismiss")
+            }
+
+            if result.undoSessionId != nil {
+                Button(action: onUndo) {
+                    Text(isGermanLocale ? "Import rückgängig machen" : "Undo import")
+                        .font(.kuroButtonLabel(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                         .background(
-                            Circle()
-                                .fill(Color.kuroBlack05)
+                            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                                .stroke(Color.kuroHairline, lineWidth: 0.8)
                         )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(isGermanLocale ? "Import rückgängig machen" : "Undo import")
             }
 
             if case .needsReview = result {
                 Button(action: onContinueToConcierge) {
                     HStack(spacing: 8) {
-                        Image(systemName: "sparkles.rectangle.stack")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text(isGermanLocale ? "IN CONCIERGE PRUFEN" : "REVIEW IN CONCIERGE")
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.2)
+                        Text(isGermanLocale ? "Im Concierge prüfen" : "Review in Concierge")
+                            .font(.kuroButtonLabel(weight: .medium))
                     }
-                    .foregroundColor(.kuroWhite)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .foregroundStyle(Color.kuroWhite)
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .background(
                         RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .fill(Color.kuroBlack80)
+                            .fill(Color.kuroInk)
                     )
                 }
                 .buttonStyle(.plain)
@@ -1190,11 +1215,11 @@ private struct ProfileImportResultCard: View {
         .padding(.vertical, 14)
         .padding(.horizontal, 14)
         .background(
-            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                .fill(Color.kuroSecondaryBackground.opacity(0.90))
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .fill(Color.kuroCanvasQuiet)
                 .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .stroke(Color.kuroHairline, lineWidth: 0.5)
                 )
         )
     }
@@ -1226,5 +1251,20 @@ private final class AppleAuthCodeDelegate: NSObject, ASAuthorizationControllerDe
         guard !didComplete else { return }
         didComplete = true
         completion(nil)
+    }
+}
+
+
+/// The actual mounted window supplies the browser anchor; no global-screen lookup is used.
+private struct ProfileMALWindowAnchor: UIViewControllerRepresentable {
+    let receive: (UIWindow?) -> Void
+    func makeUIViewController(context: Context) -> AnchorController {
+        let controller = AnchorController(); controller.receive = receive; return controller
+    }
+    func updateUIViewController(_ controller: AnchorController, context: Context) { controller.receive = receive }
+    final class AnchorController: UIViewController {
+        var receive: ((UIWindow?) -> Void)?
+        override func viewDidAppear(_ animated: Bool) { super.viewDidAppear(animated); receive?(view.window) }
+        override func viewDidDisappear(_ animated: Bool) { super.viewDidDisappear(animated); receive?(nil) }
     }
 }

@@ -1,0 +1,337 @@
+[
+  {
+    "tablename": "anime",
+    "indexname": "anime_anilist_id_key",
+    "indexdef": "CREATE UNIQUE INDEX anime_anilist_id_key ON public.anime USING btree (anilist_id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "anime_kitsu_id_key",
+    "indexdef": "CREATE UNIQUE INDEX anime_kitsu_id_key ON public.anime USING btree (kitsu_id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "anime_mal_id_key",
+    "indexdef": "CREATE UNIQUE INDEX anime_mal_id_key ON public.anime USING btree (mal_id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "anime_pkey",
+    "indexdef": "CREATE UNIQUE INDEX anime_pkey ON public.anime USING btree (id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_anilist_id",
+    "indexdef": "CREATE INDEX idx_anime_anilist_id ON public.anime USING btree (anilist_id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_average_score",
+    "indexdef": "CREATE INDEX idx_anime_average_score ON public.anime USING btree (average_score DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_created_at",
+    "indexdef": "CREATE INDEX idx_anime_created_at ON public.anime USING btree (created_at DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_genres",
+    "indexdef": "CREATE INDEX idx_anime_genres ON public.anime USING gin (genres)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_id",
+    "indexdef": "CREATE INDEX idx_anime_id ON public.anime USING btree (id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_mal_id",
+    "indexdef": "CREATE INDEX idx_anime_mal_id ON public.anime USING btree (mal_id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_next_airing_at",
+    "indexdef": "CREATE INDEX idx_anime_next_airing_at ON public.anime USING btree (next_airing_at)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_popularity",
+    "indexdef": "CREATE INDEX idx_anime_popularity ON public.anime USING btree (popularity DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_popularity_id",
+    "indexdef": "CREATE INDEX idx_anime_popularity_id ON public.anime USING btree (popularity DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_safety_blocked",
+    "indexdef": "CREATE INDEX idx_anime_safety_blocked ON public.anime USING btree (safety_blocked, id) WHERE (safety_blocked = true)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_safety_queue",
+    "indexdef": "CREATE INDEX idx_anime_safety_queue ON public.anime USING btree (safety_state, safety_next_scan_at, safety_last_scanned_at, id)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_score_id",
+    "indexdef": "CREATE INDEX idx_anime_score_id ON public.anime USING btree (average_score DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_season_year",
+    "indexdef": "CREATE INDEX idx_anime_season_year ON public.anime USING btree (season_year)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_season_year_popularity_id",
+    "indexdef": "CREATE INDEX idx_anime_season_year_popularity_id ON public.anime USING btree (season, season_year, popularity DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_status",
+    "indexdef": "CREATE INDEX idx_anime_status ON public.anime USING btree (status)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_status_popularity_id",
+    "indexdef": "CREATE INDEX idx_anime_status_popularity_id ON public.anime USING btree (status, popularity DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_synopsis_enhanced_queue",
+    "indexdef": "CREATE INDEX idx_anime_synopsis_enhanced_queue ON public.anime USING btree (synopsis_enhanced_state, synopsis_enhanced_updated_at, updated_at) WHERE (description IS NOT NULL)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_synopsis_retry_queue",
+    "indexdef": "CREATE INDEX idx_anime_synopsis_retry_queue ON public.anime USING btree (synopsis_enhanced_state, synopsis_enhanced_next_retry_at, synopsis_enhanced_updated_at, updated_at) WHERE (description IS NOT NULL)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_title_english",
+    "indexdef": "CREATE INDEX idx_anime_title_english ON public.anime USING btree (title_english)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_title_romaji",
+    "indexdef": "CREATE INDEX idx_anime_title_romaji ON public.anime USING btree (title_romaji)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_trending",
+    "indexdef": "CREATE INDEX idx_anime_trending ON public.anime USING btree (trending DESC)"
+  },
+  {
+    "tablename": "anime",
+    "indexname": "idx_anime_trending_id",
+    "indexdef": "CREATE INDEX idx_anime_trending_id ON public.anime USING btree (trending DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "anime_user_lists",
+    "indexname": "anime_user_lists_pkey",
+    "indexdef": "CREATE UNIQUE INDEX anime_user_lists_pkey ON public.anime_user_lists USING btree (id)"
+  },
+  {
+    "tablename": "anime_user_lists",
+    "indexname": "anime_user_lists_user_id_anime_id_key",
+    "indexdef": "CREATE UNIQUE INDEX anime_user_lists_user_id_anime_id_key ON public.anime_user_lists USING btree (user_id, anime_id)"
+  },
+  {
+    "tablename": "anime_user_lists",
+    "indexname": "idx_anime_user_lists_anime_id",
+    "indexdef": "CREATE INDEX idx_anime_user_lists_anime_id ON public.anime_user_lists USING btree (anime_id)"
+  },
+  {
+    "tablename": "anime_user_lists",
+    "indexname": "idx_anime_user_lists_list_type",
+    "indexdef": "CREATE INDEX idx_anime_user_lists_list_type ON public.anime_user_lists USING btree (list_type)"
+  },
+  {
+    "tablename": "anime_user_lists",
+    "indexname": "idx_anime_user_lists_user_id",
+    "indexdef": "CREATE INDEX idx_anime_user_lists_user_id ON public.anime_user_lists USING btree (user_id)"
+  },
+  {
+    "tablename": "anime_user_lists",
+    "indexname": "idx_anime_user_lists_user_updated_id",
+    "indexdef": "CREATE INDEX idx_anime_user_lists_user_updated_id ON public.anime_user_lists USING btree (user_id, updated_at DESC, id DESC)"
+  },
+  {
+    "tablename": "chapters",
+    "indexname": "chapters_anilist_id_key",
+    "indexdef": "CREATE UNIQUE INDEX chapters_anilist_id_key ON public.chapters USING btree (anilist_id)"
+  },
+  {
+    "tablename": "chapters",
+    "indexname": "chapters_mal_id_key",
+    "indexdef": "CREATE UNIQUE INDEX chapters_mal_id_key ON public.chapters USING btree (mal_id)"
+  },
+  {
+    "tablename": "chapters",
+    "indexname": "chapters_pkey",
+    "indexdef": "CREATE UNIQUE INDEX chapters_pkey ON public.chapters USING btree (id)"
+  },
+  {
+    "tablename": "chapters",
+    "indexname": "idx_chapters_manga_id_number_unique",
+    "indexdef": "CREATE UNIQUE INDEX idx_chapters_manga_id_number_unique ON public.chapters USING btree (manga_id, number) WHERE (number IS NOT NULL)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_anilist_id",
+    "indexdef": "CREATE INDEX idx_manga_anilist_id ON public.manga USING btree (anilist_id)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_average_score",
+    "indexdef": "CREATE INDEX idx_manga_average_score ON public.manga USING btree (average_score DESC)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_created_at",
+    "indexdef": "CREATE INDEX idx_manga_created_at ON public.manga USING btree (created_at DESC)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_id",
+    "indexdef": "CREATE INDEX idx_manga_id ON public.manga USING btree (id)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_mal_id",
+    "indexdef": "CREATE INDEX idx_manga_mal_id ON public.manga USING btree (mal_id)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_next_chapter",
+    "indexdef": "CREATE INDEX idx_manga_next_chapter ON public.manga USING btree (next_chapter_at)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_popularity",
+    "indexdef": "CREATE INDEX idx_manga_popularity ON public.manga USING btree (popularity DESC)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_popularity_id",
+    "indexdef": "CREATE INDEX idx_manga_popularity_id ON public.manga USING btree (popularity DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_safety_blocked",
+    "indexdef": "CREATE INDEX idx_manga_safety_blocked ON public.manga USING btree (safety_blocked, id) WHERE (safety_blocked = true)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_safety_queue",
+    "indexdef": "CREATE INDEX idx_manga_safety_queue ON public.manga USING btree (safety_state, safety_next_scan_at, safety_last_scanned_at, id)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_score_id",
+    "indexdef": "CREATE INDEX idx_manga_score_id ON public.manga USING btree (average_score DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_status",
+    "indexdef": "CREATE INDEX idx_manga_status ON public.manga USING btree (status)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_synopsis_enhanced_queue",
+    "indexdef": "CREATE INDEX idx_manga_synopsis_enhanced_queue ON public.manga USING btree (synopsis_enhanced_state, synopsis_enhanced_updated_at, updated_at) WHERE (description IS NOT NULL)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_synopsis_retry_queue",
+    "indexdef": "CREATE INDEX idx_manga_synopsis_retry_queue ON public.manga USING btree (synopsis_enhanced_state, synopsis_enhanced_next_retry_at, synopsis_enhanced_updated_at, updated_at) WHERE (description IS NOT NULL)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_title_english",
+    "indexdef": "CREATE INDEX idx_manga_title_english ON public.manga USING btree (title_english)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_title_romaji",
+    "indexdef": "CREATE INDEX idx_manga_title_romaji ON public.manga USING btree (title_romaji)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_trending",
+    "indexdef": "CREATE INDEX idx_manga_trending ON public.manga USING btree (trending DESC)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "idx_manga_trending_id",
+    "indexdef": "CREATE INDEX idx_manga_trending_id ON public.manga USING btree (trending DESC NULLS LAST, id DESC)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "manga_anilist_id_key",
+    "indexdef": "CREATE UNIQUE INDEX manga_anilist_id_key ON public.manga USING btree (anilist_id)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "manga_kitsu_id_key",
+    "indexdef": "CREATE UNIQUE INDEX manga_kitsu_id_key ON public.manga USING btree (kitsu_id)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "manga_mal_id_key",
+    "indexdef": "CREATE UNIQUE INDEX manga_mal_id_key ON public.manga USING btree (mal_id)"
+  },
+  {
+    "tablename": "manga",
+    "indexname": "manga_pkey",
+    "indexdef": "CREATE UNIQUE INDEX manga_pkey ON public.manga USING btree (id)"
+  },
+  {
+    "tablename": "manga_user_lists",
+    "indexname": "idx_manga_user_lists_list_type",
+    "indexdef": "CREATE INDEX idx_manga_user_lists_list_type ON public.manga_user_lists USING btree (list_type)"
+  },
+  {
+    "tablename": "manga_user_lists",
+    "indexname": "idx_manga_user_lists_manga_id",
+    "indexdef": "CREATE INDEX idx_manga_user_lists_manga_id ON public.manga_user_lists USING btree (manga_id)"
+  },
+  {
+    "tablename": "manga_user_lists",
+    "indexname": "idx_manga_user_lists_user_id",
+    "indexdef": "CREATE INDEX idx_manga_user_lists_user_id ON public.manga_user_lists USING btree (user_id)"
+  },
+  {
+    "tablename": "manga_user_lists",
+    "indexname": "idx_manga_user_lists_user_updated_id",
+    "indexdef": "CREATE INDEX idx_manga_user_lists_user_updated_id ON public.manga_user_lists USING btree (user_id, updated_at DESC, id DESC)"
+  },
+  {
+    "tablename": "manga_user_lists",
+    "indexname": "manga_user_lists_pkey",
+    "indexdef": "CREATE UNIQUE INDEX manga_user_lists_pkey ON public.manga_user_lists USING btree (id)"
+  },
+  {
+    "tablename": "manga_user_lists",
+    "indexname": "manga_user_lists_user_id_manga_id_key",
+    "indexdef": "CREATE UNIQUE INDEX manga_user_lists_user_id_manga_id_key ON public.manga_user_lists USING btree (user_id, manga_id)"
+  },
+  {
+    "tablename": "media_realm_tier",
+    "indexname": "media_realm_tier_realm_idx",
+    "indexdef": "CREATE INDEX media_realm_tier_realm_idx ON public.media_realm_tier USING btree (realm)"
+  },
+  {
+    "tablename": "media_realm_tier",
+    "indexname": "media_realm_tier_uidx",
+    "indexdef": "CREATE UNIQUE INDEX media_realm_tier_uidx ON public.media_realm_tier USING btree (media_type, media_id)"
+  },
+  {
+    "tablename": "media_similar_titles",
+    "indexname": "media_similar_titles_pkey",
+    "indexdef": "CREATE UNIQUE INDEX media_similar_titles_pkey ON public.media_similar_titles USING btree (seed_media_type, seed_media_id, rank)"
+  }
+]

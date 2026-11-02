@@ -1,14 +1,170 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-29
+> **Native design polish, 9 October — FULL HOME RESTORED BESIDE THE EMPTY PAGE; OWNER VISUAL ACCEPTANCE STILL OPEN.** The empty mountain invitation is unchanged. A saved shelf is the Poster Home again: Coming up as an ink row under the switch, shallow Anime scenes with a white ink foot and a light raised plus, equal Manga covers with the chapter ticket on the art and a dark raised plus, then the calendar and a dark club room when real notes exist. The selected word still shows the first title. Visual acceptance is still open. No commit, push, TestFlight, or global flag change.
+
+> **Native design polish, 9 October — EMPTY AND SAVED HOME ARE DIFFERENT; OWNER VISUAL ACCEPTANCE STILL OPEN.** The mountain invitation is only the empty shelf. Once the selected medium has saved anime or manga, Home is the white shelf again: large title, progress, then rows or equal covers. The picture, wash, and clear header stay on the invitation only. Visual acceptance is still open. No commit, push, TestFlight, or global flag change.
+
+> **Native design polish, 9 October — HOME CONTINUES; OWNER VISUAL ACCEPTANCE STILL OPEN.** The Home wash covers the whole phone and eases out at the bottom, so the picture does not stop in a line under the last sentence. On Home, KURO, HOME, search, and profile sit in darker ink on a soft top field; Anime and Manga use full ink, and the selected word keeps a light rim so the picture inside the letters stays visible. Find opens Discover. The import sheet uses the same kicker, serif line, and ink rule as the invitation. A debug launch `--kuro-seed-samples` can save Cowboy Bebop, Ping Pong, Berserk, and Punpun onto the signed-in list so populated Home can be reviewed. Visual acceptance is still open. No commit, push, TestFlight, or global flag change.
+
+> **Native design polish, 9 October — INVITATION TYPE; OWNER VISUAL ACCEPTANCE STILL OPEN.** Empty Home keeps the same words. The cover line is light serif display, tight tracking, a short ink rule — the same rule under the selected Anime/Manga word. Find and Import are two actions: a wide-tracked cap kicker (`kuroKicker`), a serif line, a full ink rule, and an arrow. The picture still runs through the status bar and header. Tracking, Undo, Find and Import behavior are unchanged. Visual acceptance is still open. No commit, push, TestFlight or global flag change.
+
+> **Native design polish, 9 October — PICTURE THROUGH HEADER INSTALLED; OWNER VISUAL ACCEPTANCE STILL OPEN.** When Home is selected, the same Home picture (`HomePagePicture`) is pinned full-screen behind the status bar and `KuroHeaderNew`. The Home header fill, shadow and divider are clear so KURO, HOME and the search/profile circles read as ink on the field. Empty shelf uses the mountain; a populated shelf uses the first title’s scene or cover. The selected Anime/Manga word masks that same image (`HomePagePictureFill`). Soft wash stays over the lower type only. Tracking, Undo, Find and Import are unchanged. Controlled 390 renders, Debug install on `7FC4B58A-430C-457D-A017-6B0095723F3F`, and `home-picture-through-header.png` are in `docs/handoffs/2026-10-08-fresh-session/native-polish-screenshots/`. This is not owner acceptance, not a deployment, and not whole-app restyling. MAL account qualification and the recorded Storage CDN observation failure are unchanged. No commit, push, TestFlight or global flag change.
+
+> **Fresh-session handoff, 8 October — HANDOFF SAVED; IMPLEMENTATION STATUS UNCHANGED.** Documentation-only checkpoint: the handoff records freshly verified remote tips (local HEAD 46 commits ahead of main), all dirty paths, original design references, current installed source pins and live migration/function identities. Approved backend deployment is complete; the native polish remains planned and the remaining provider/installed journeys retain their precise blockers. No runtime, deployment, Git delivery or simulator changes. [Full handoff](docs/handoffs/2026-10-08-fresh-session/HANDOFF.md) · [Paste-ready prompt](docs/handoffs/2026-10-08-fresh-session/START_PROMPT.md).
+
+> **Native visual refinement, 8 October — PLAN SAVED; DESIGN ACCEPTANCE OPEN.** The user rejected the quality of the native translation and requested a cohesive Home/detail/Profile polish plan, image-led first-title/import actions with restrained login-style motion, and reconsideration of the yellow page tint. The proposed shared base is neutral white; palette and compositions require native visual review. This is planning only: no runtime/asset/deployment changes. Existing import/Library safety ownership and installed backend evidence remain valid within their recorded scope. Source/local fidelity repairs do not constitute owner visual acceptance. [Full plan](docs/plans/2026-10-08-native-design-polish.md).
+
+> **Approved import/Library/Home backend, 8 October — EXACT SET DEPLOYED; QUALIFICATION IN PROGRESS.** The user approved the pinned four-input SQL transaction and six Edge closures. Effective migration identities/RLS/grants/search paths and function versions are verified; global Home remains disabled. Real v2 import contracts pass142 bounded requests/two disposable accounts: both media, stage/no-write, Keep, selected updates, replay, later-edit conflict, guarded Undo, Stop, persistent results and outsider denial; exact account/job/list/item cleanup verified. Corrected Realtime qualification passes23 requests/three disposable accounts and club cleanup. Storage origin removal and old-token denial pass, but a previously cached public URL remains a CDN HIT through the60second observation, so that producer remains FAIL; all recorded URLs subsequently return decoded NoSuchKey. Initial failed evidence is retained. Native Home/detail fidelity is repaired and independently reviewed; six affected native tests pass and rendered inspection repaired image overflow. The shared reader incorrectly requested Manga-only volumes_progress from Anime; narrow query repair and two package regressions pass without weakening readiness. Its exact223-input-stable build is installed, and actual restored Home is visible against the live backend. First-time Manga selection cache fallback is repaired and independently accepted; its exact223-input-stable build is installed and actual Anime→Manga selection passes. MAL login is dismissed because a controlled user account is unavailable; real MAL account qualification is specifically blocked. Independent provider/recovery/results journeys remain pending. No TestFlight, public release, global Home rollout, backfill, worker scheduling or deletion cron. [Current deployment/live/native evidence](docs/handoffs/2026-10-08-backend-integration/approved-deployment-live-evidence.md). Earlier conflicting banners below are historical.
+
+
+> **Import/Library/Home deep review, 8 October — REQUEST CHANGES / DEPLOYMENT HOLD.** Independent source and user-journey review found27 concrete findings; six structured SQL defects were reproduced in a disposable PostgreSQL fixture with the accepted legacy repair installed. Normal AniList preview/confirm bypasses structured input; existing values can be overwritten without consent; MAL underscore statuses fail; exact progress and score pairs become inconsistent; recovery is not discoverable and can block new jobs; results/navigation and mounted Collection/Library/detail consistency remain incomplete. XML parser normalization/semantic-validation defects were observed separately. The prior118 assertions and legacy Apply/Undo approval remain narrow evidence, not import acceptance. Deployment draft is explicitly HOLD; hashes preserved, no implementation repair, live writes, rollout or TestFlight in this review. [All findings, user contract, two-wave repair sequence and focused checks](docs/handoffs/2026-10-08-backend-integration/import-user-journey-review.md). Earlier readiness banners are superseded.
+
+> **Backend integration, 8 October — SOURCE/LOCAL ACCEPTED; NOT DEPLOYED.** Fresh live audits mapped61 frontend RPCs,19 literal relations and7 Edge slugs;16 new Home/Library/import/social RPCs are absent, existing runtime SQL/table dependencies for six changed handlers are present. Existing Supabase CLI management access works without new keys; two read-only Auth/Storage administrative cleanup-access checks pass. Expanded minimum deployment is three pinned SQL inputs plus AniList, Apply, Undo, deletion, recommend and retrieve-assist closures (JWT enabled, flags unchanged). New forward SQL preserves precise units/labels and entry lifecycles; historical Undo without lifecycle proof skips legacy_lifecycle_unavailable, with no backfill. Independent review accepted the repair and exact3SQL assembly; exact disposable fixture rehearsal passes118assertions (9 install/history/data,40 import,69 writer), historical replay incomplete. Six Edge closures match accepted checkpoint, unchanged tests reused. Live rag_assist_v1 is already5% for DE/AT/CH, superseding older off claims; no flag change. Named production deployment approval and fresh simulator/live workflow proof remain pending. Simulator only; no TestFlight. [Complete mapping, findings, deployment and recovery](docs/handoffs/2026-10-08-backend-integration/backend-integration.md). Earlier conflicting banners are historical.
+
+> **MAL registration/configuration, 8 October — SIMULATOR CONFIGURED; SERVER INTEGRATION BLOCKED.** User screenshots verify the published native iOS registration and exact kuro://mal/callback. Debug.xcconfig enables the public client only for iphonesimulator; Shared/Release remain disabled and no confidential secret is embedded. Normal signed build/install and matching built Info.plist pass. Actual Profile exposes Connect and import MAL, which reports Library synchronization is not enabled yet before any provider consent. Existing sign-in survives the update. Exact Home/import SQL is still prepared/rehearsed, not deployed; controlled OAuth and real import/recovery remain pending. No live schema/grant/flag changes, archive or TestFlight. [Evidence](docs/handoffs/2026-10-08-simulator-qualification/qualification.md). Earlier banners are historical where superseded.
+
+> **Latest simulator qualification, 8 October — SIGN-IN / RESTORE / SIGN-OUT PASS; MAL CLIENT ID PENDING.** Actual normal password-form sign-in and restart restore pass on com.Kuro.app. A dedicated iPhone17Pro/iOS26.0 simulator also proves supported SDK callback, same-account restore and immediate sign-out to AuthView. Earlier callback FAIL is not current-artifact proof: the original simulator has a canvas preview also claiming kuro://; old observations remain historical. Existing preview apps/data were preserved; no production auth repair or unchanged broad suite rerun. Owner reports MAL registration complete; site policy blocks reading issued client values, public Client ID requested, connector remains disabled. Home/import candidate RPCs still absent live. No new live account, admin/schema/flag/deploy/TestFlight changes. [Current installed proof](docs/handoffs/2026-10-08-simulator-qualification/qualification.md). Earlier banners are superseded where they conflict.
+
+> **Latest access initiative, 7 October — SIGN-IN PASS / RESTORE FAIL / MAL HANDOFF.** One owner-authorized ordinary persistent GoTrue development account was created; credentials retained privately outside the repo. Genuine password sign-in and authenticated identity pass, and the simulator Profile shows the expected development email/build1.0(17). Ordinary restart returns to welcome, including after normal signed build/install; root cause unresolved, no auth-code repair claimed. Final simulator is signed in again. MAL registration is confirmed open in the sidebar for manual owner completion under the existing site-security restriction; client remains unconfigured. No existing account changes, admin grants, schema/flags/deploy/TestFlight. Prior unchanged local evidence remains valid at its layer; installed restore is a new failed check. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/development-account-sidebar-handoff.md). Earlier banners are historical where superseded.
+
+> **Latest simulator execution, 7 October — LOCAL CHECKS PASS / LIVE INTEGRATION PENDING.** All387 distinct native cases have passing evidence across the initial362-case run, affected-suite repairs and the previous19SDK/6import cases; no unchanged whole-suite rerun. Four test files repaired with focused independent acceptance; production guards unchanged. The selected16SQL suites pass511assertions, and the exact two-migration atomic transaction/history rehearsal passes31assertions. Backend imports pass52tests/typecheck. Latest Debug1.0(17) is installed/launched on iPhone17Pro/iOS26.0 and the real sign-in form is open; signed-in workflows remain unverified. Live read-only preflight confirms all20newfoundation tables absent/all31existing prerequisites present, no orphan list rows, current deletion helper reviewed. No live changes/deployment/global rollout or TestFlight. Actual sign-in, specific production-grant approval and controlled MAL registration/consent remain pending. [Current evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-integration-progress.json). Earlier banners are historical where superseded.
+
+> **Latest simulator follow-through, 7 October — INTEGRATION IN PROGRESS.** Owner authorized live sign-in/Home/import/recovery checks. Focused Xcode SDK authentication: 19 PASS, 0 failures; import apply/outcome/retry/Undo: 6 PASS. Controlled HTTP is used, so these are native SDK proof, not live UI/GoTrue/Home proof. Initial 21-pass/4-fail run is retained. Two fixture issues were corrected without weakening assertions: per-scenario real SQLite/WAL injection prevents shared-file cleanup contention, and the stale-account fixture now really returns A then B. Independent review accepted the narrow change; production storage defaults are unchanged. Two further read-only live audits confirm eight new Home/tracking/import RPCs and eight checked foundation tables are absent; live has nine 5 October migrations plus 6 October import-session policy. Aggregate existing list rows: 37 Anime, 11 Manga. Exact two-migration deployment draft is prepared, not applied; global flags stay off. Real simulator login and concrete production-grant approval are pending. Native UI automation timed out after the clone test run. No live account/customer/schema/flag changes, TestFlight or upload. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-auth-import-recovery.md). Earlier status banners below are historical and superseded where they conflict.
+
+> **Current target, 7 October — SIMULATOR ONLY / INTEGRATION IN PROGRESS.** Max explicitly removed TestFlight upload and physical-device delivery from this initiative. Debug 1.0 (17), bundle com.Kuro.app, built successfully and is installed/launched on iPhone 17 Pro / iOS 26.0; onboarding is visually verified, not a signed-in workflow pass. Supabase browser administration now works through existing GitHub sign-in. Two bounded read-only live audits found no malformed/noncanonical/colliding legacy list IDs, and confirmed exact auth.uid()::text owner policies. The six Home/detail/page RPCs, Home flag rows and feature_flag_overrides table are absent on the live project. No schema/customer/flag changes or deployment. MAL registration is pending: the browser site policy blocks apiconfig/create; the user must complete the prepared form and provide the Client ID. Existing 81 package / 5 snapshot / 3 contract passes remain valid; the broader native runner stays incomplete. Signing agreements, archive, upload, TestFlight and physical qualification are outside the current target. [Execution and evidence](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+> **Access refresh, 7 October — NOT RELEASED.** Xcode27.0 first-launch validation passes. Actual package81tests, Home snapshot5cases and credential/permission contract3cases PASS. Native compilation errors (missing KuroCore import and duplicate Home declaration) and three outdated test fixtures are repaired and independently source-accepted. The broader native runner stalled after its logged host exited; it was interrupted and has no finalized acceptance result. No whole-native PASS is claimed. Physical iPhone “Max” is paired/booted on iOS26.6; one development and one distribution signing identity are present. Existing ASC key4Y9VLAQLQN returns403 `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`; the Account Holder must review agreements, then team/app/upload permissions can be checked. Fastlane references an absent older key. Supabase administration and controlled MAL registration/consent are still unavailable. No credential changes, backend deployment, upload or physical installation. Earlier license/hardware absence notes are superseded by these observations.
+
+
+> **Current implementation-stage result — IN PROGRESS / NOT RELEASED.** Proportionate gates are implemented in Fastlane: affected local checks during development, one integrated native/package/backend/selected-SQL verification, then real service and installed TestFlight proof. Future signing/live/device access is not due during development; correctness/privacy/replay and required workflows remain mandatory for release. MAL account ingestion for both media is implemented, primary contracts retrieved and source-reviewed, with controlled registration/consent still unavailable. Original-account/mount admission, Collection batch isolation, stale conflict controls and Profile deletion/preferences are repaired and independently source-accepted. Actual Core action tests, MAL reader, Library/Home/SQLite and Collection policy checks pass. Ten affected PostgreSQL suites pass253assertions, all12prepared migrations apply; historical baseline replay stays incomplete. No deployment, archive, upload or installation. Xcode license, Supabase administration, signing, controlled MAL consent and physical-device proof remain the precise release prerequisites. See [the complete executor/evidence/checklist](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+
+> **Integrated release continuation, 7 October: NOT COMPLETE.** Max approved modularity and Home/series together in exactly two waves to qualified installed TestFlight. Library owns durable progress/status and personal offline Home; actual compiled owner/SQLite harness passes recovery,100taps, account/lifecycle/cache isolation and exact cursor transport. Model/RPC contracts are capability-owned; Profile import and Concierge action lifetime have focused policy owners. Initial SDK reconciliation, tester overrides, deletion serialization/cascades and staged Fastlane verification are repaired in source. Latest affected SQL/native/live/device/MAL account proof remains incomplete. No frozen candidate, deployment, upload or installed TestFlight was made by this continuation. [Complete executor, all114findings and lasting rules](docs/handoffs/2026-10-07-integrated-testflight-execution.md); prior dated separate-scope/NOT STARTED/closure notes below are historical where superseded.
+
+
+> **Modularity execution, 7 October: NOT COMPLETE.** Targeted retrieval, terminal import errors, live probes, native dispatch, runner status, cursor timestamps and operational roots are repaired and locally reviewed. The fresh import-journal live run passed and cleaned both created accounts. No deployment, feature activation or upload by this initiative. Remaining architecture/native findings are explicit in the [register](docs/plans/2026-10-05-modularity-completion-register.csv); management, administrative cleanup-verification and distribution access are absent. Earlier dated entries and generated source blocks below are historical evidence, not current readiness.
+
+
+> **Home/series repairs, 7 October: IN PROGRESS, not production-qualified.** R01–R16 now have source repairs and evidence tracked in [REPAIR_LEDGER.md](docs/handoffs/2026-10-07-home-series-evidence/REPAIR_LEDGER.md). Current checks: 76 package tests, actual Home/SQLite lost-response + 100-tap drain, exact unit cursor, 7 AniList stream tests and 8 enrichment-worker tests PASS. Native disclosure syntax parses; SDK/device execution is blocked by Xcode license. SQL94's 50-assertion pass is historical; latest SQL95/96 and current performance reruns are NOT RUN because PostgreSQL cannot start, and Max instructed leaving IPC resources alone. Prepared SQL stays outside automatic migrations; no deployment, global flag activation or release by this initiative. The newer integrated user-approved bounded launch envelope is recorded separately; older capacity/readiness entries are historical.
+
+**Modular architecture executed locally (2026-10-05):** The [execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) was executed in this checkout (uncommitted; nothing deployed); the "implementation NOT STARTED" status in the brief entry below is superseded. `SupabaseService` (13 files, 7,154 lines) is retired and deleted. The app is built once from `Kuro/Composition/AppComposition.swift` over one Supabase client, with one `@Observable` owner per capability in `Kuro/{Identity,Library,Catalog,Discovery,Search,Collection,Releases,Providers,Social,Clubs,Imports,Concierge,Taste,Telemetry}` (shared helpers in `Kuro/Infrastructure/`, the root in `Kuro/Composition/`) and the local package `Packages/KuroModules` (`KuroCore`, `KuroLibrary`, `KuroSupabase`); every other owner stays in-app by recorded decision. Lifecycle: one session funnel and one account-scoped invalidation list; completions from an ended account cannot publish. Corrections: Library ratings use the database 1–10 scale (repairs three writers that sent 10–100), field-masked writes, `save` never overwrites, import apply blocked until the Library is loaded and tracked titles never auto-apply, club leave/revocation clears private club/friend/provider state, sign-out invalidates before the first suspension point, deletion clears local state only after a confirmed success. New harnesses: package `swift test`, SDK-level `StubPostgREST` contract tests, `check_architecture.sh`, a throwaway local PostgreSQL authorization fixture (audited schema, not a migration replay) and deno edge tests. Final lanes: typed navigation routes (`Kuro/Views/Routing/KuroRoutes.swift`, 26 cross-feature constructions migrated), shared connected cards in `Kuro/Views/SharedCards/`, detail pages decomposed (shared chrome, one provider-link snapshot owner API, `FlowLayout` in `Kuro/Design/`, `docs/modules/detail-pages.md`), Concierge/Profile import decisions as pure tested rules (`ConciergeRouting`, `ImportReconciler.initialSelections`/`autoApplyPlan`). Prepared, NOT deployed: `delete-account` hardening, `concierge-apply`/`-undo` field fidelity, 3 club RLS migrations in `supabase/prepared-migrations/`. Open: `user_id` casing check, club RLS R4/R5, supabase-swift `detail`/`details` mismatch, UI/device journeys not run (incl. the 16 route smoke journeys), full replay BLOCKED, no hosted/capacity proof; the Home/detail master's offline/product/capacity gates are not passed by this work. Inventory: 129 app / 14 package Swift files, 235 migrations (+3 prepared). Gate status and final test counts: [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md); details: §3.1.
+
+**Modular architecture execution brief (2026-10-05):** [Claude Code execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) now begins with a paste-ready prompt for autonomous local execution using coordinated specialist sub-agents and independent review. Removes effort/schedule estimates; priorities are correctness/account isolation 35%, ownership/maintainability 25%, compatibility 20%, verification quality 10%, simplicity/efficiency 10%. Weights never override mandatory G0–G7 gates. Stages E0–E8 establish safe verification, repair lifecycle in place, complete contracts/ownership, integrate Library, introduce justified packages, migrate all current consumers, qualify backend/active operations, and retire legacy authority. Adds exact risk-to-test scenarios, selective rerun rules, explicit Swift isolation/import/resource handling, shared UI/routing ownership, all production capability assignments, file-exclusive agent work and lead-owned documentation. Baseline stays 94 native Swift files / 46,537 physical lines. Planning artifact updated; architecture implementation NOT STARTED, all gates UNPASSED. Native/backend/prototypes/CI unchanged; no build, database test, deployment or capacity proof.
+
+**Production executor handout (2026-10-05):** Singular Home/detail master plan advanced to v1.1 with mandatory pre-implementation every-call/schema/RLS audit, bounded hot paths, rapid-edit/revision/lifecycle races, membership-removal/realtime/cache revocation, AniList+MAL field/organization fidelity and1000/5000-session large-table mixed-load/burst/soak qualification. New docs/handoffs/2026-10-05-claude-code-production-handoff.md puts the Claude Code Sonnet5.5 executor prompt first, includes the complete active specification and pins46 local preview/dependency hashes for another machine. Exactly two waves/six work packages remain; both native/backend waves NOT STARTED, capacity/staging/live/released NOT VERIFIED. Source risks: broad club table subscriptions and normalized/text AniList import do not establish current hosted defects. Documentation-only; no app/prototype/backend changes, builds, load tests, commit, deployment, credentials, public share or automation.
+
+**Home/detail master plan finalized (2026-10-04):** The single docs/plans/2026-10-02-series-and-home-rebuild-DRAFT.md is now v1.0, PLANNING COMPLETE FOR HOME + ANIME/MANGA DETAILS. Two delivery waves, six integrated work packages tracing the original16 IDs, paste-ready executor prompt, source/wiring inventory, bounded contracts, identity/import/enrichment/release truth, precise progress/revision fences, durable offline/Undo, artwork/copy/music/adaptation/private-club behavior, acceptance/performance matrix, review/rollback and ledger are specified. Prior v0.x retained as a clearly superseded historical appendix. Native/backend waves NOT STARTED; no staging/live/release proof or execution/deploy authority from this planning turn. Documentation-only; code/prototypes/assets unchanged.
+
+**Master-plan retention (2026-10-04):** At Max’s request, the existing singular series/Home master plan now explicitly lists ID-based Anime/Manga matching and real Manga story overview copy in its decision register. Existing detailed requirements and success criteria are retained. Documentation-only; no prototype/native/backend changes. v0.8 remains INCOMPLETE, exactly two waves/16 tasks, native/backend NOT STARTED.
+
+**Manga story overview (2026-10-04):** Local Instrument now supplies real story premises for all six Library books. Added publisher-paraphrased hook/premise/optional synopsis fixtures for Solo Leveling, Berserk, SPY x FAMILY and Vagabond; Chainsaw Man/Jujutsu Kaisen retain existing copy. Unknown generic Manga stories show unavailable rather than repeating a mood descriptor. Home geometry, palette, chapter mutation engine and clubs are unchanged. Detail-data54/JS61; Library iframe version61 avoids the stale embedded document observed during review. Browser proof: all six premises visible, optional synopses initially collapsed, Solo expansion works, opening/closing preserves progress, JJK season1/2 descriptions remain distinct;390x667 has no horizontal page overflow. No new warning/error entries observed during this navigation sequence (historical MutationObserver errors exist in the tab log). Four prototype files edited, none added/deleted by this initiative. Source audit confirms AniList-ID relation resolution exists but skips missing target rows; relation retention/batching remains planned. No native/backend writes, ingestion result, commit, deployment or physical-device proof. Singular v0.8 remains INCOMPLETE, exactly two native/backend waves NOT STARTED.
+
+**iPad preview recovery (2026-10-03, 21:34 Berlin):** Owner reported the replacement link did not work. The previous8814 listener and temporary binary were absent; the cage-sustained-copy-when link did not resolve. Restored the same45-file allowlisted preview with official Cloudflare2026.9.3 in the visualization runtime folder, using a detached subprocess rather than a foreground chat-terminal session. Current link: https://ratio-yarn-raise-scholarships.trycloudflare.com/instrument.html?switch=poster&medium=manga. Original automatic stop remains4October02:39 Europe/Berlin; no renewed duration, recurring service or expanded public files. Fresh HTTP200 for HTML/CSS/Instrument/Library modules and404 for .env/current-state docs. Browser tool is currently unavailable, so no new screenshot, Safari or iPad visual proof claimed. No UI/native/backend source changes; two-wave v0.8 implementation plan remains INCOMPLETE and unstarted.
+
+**Temporary preview restored (2026-10-03):** Browser/app restart stopped the earlier preview and removed its temporary binary/screenshot. The old trees-marc-amongst-obtain link is unavailable. Restored the same45-file design-only allowlist via official Cloudflare2026.9.3; current link: https://cage-sustained-copy-when.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. Only the remaining authorized duration is used, still stopping4October02:39 Europe/Berlin. No account/backend data, share-scope expansion, recurring automation or TTL renewal. Replacement public page and loaded artwork verified; original Coming Up local/browser checks remain valid.
+
+**Phone-visible Coming Up (2026-10-03):** Owner liked the per-book Library rework and requested a more visible Coming Up on short phones. Instrument now places a 72px artwork-led calendar summary between the Poster medium switch and Now Watching/Reading. It uses the existing releaseGroups() fixtures, shows next-day count and whole-range count, and is one full-width button to the complete calendar. No second schedule source, date invention, feed submenu, reduced cover geometry or progress-engine changes. All six reads remain; Library chapter keys remain44x44. Focus moves to the calendar without a second jump, scrolls only the phone, and uses instant scrolling for reduced motion. Unknown dates show pending announcements; new accounts and Taste hide the strip. Embed height uses100dvh. Browser checks:320x568,390x667,390x844, both media no horizontal overflow, summaryy147..219; landingy83 below71px header, keyboard/focus,48-release fixture/8 dates,6 same-day rows, undated/new/caught-up/Taste checked; three summary images loaded and no captured console warnings/errors. Source files instrument.html/css/js only; CSS54/JS60. Same45-file public share and original expiry retained; no scope/TTL extension. Physical Safari, VoiceOver, native/backend/offline proof remains open. No files/assets added or deleted, no commit or deployment. New summary awaits owner review; v0.8 remains INCOMPLETE with two native/backend waves NOT STARTED.
+
+**Temporary phone preview (2026-10-03):** Owner requested off-studio iPhone access. Updated existing scripts/serve_design_share.py for current Instrument dependencies:45 allowlisted sample UI/artwork/font files, no directory/repository/config/backend access. Existing local helper binds8814; official Cloudflare cloudflared2026.9.3 downloaded to /private/tmp/kuro-preview-tunnel and running a quick tunnel for12hours. Preview: https://trees-marc-amongst-obtain.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. Started3October14:39 Europe/Berlin; automatic stop by4October02:39 (earlier if host/process stops). Fresh HTTP200 for HTML/module/detail-data/art/font; configuration/doc probes404 and traversal400. Public browser390px fit, six loaded covers and Jujutsu Kaisen detail opening/closing verified. Physical Safari/iPhone not tested; fixture changes are browser-only. One existing script modified; no repository files/assets added/deleted, no native/backend deployment or account data shared. Refresh sees allowlisted local edits while running.
+
+**Library per-book tracking proposal (2026-10-03):** Owner rejected the repeated Open rows/shared-selection approach. Removed selected-book state, selection handlers/announcements, shared workbench and Open buttons. Equal cover/title targets now open details; each read has its own adjacent44x44 chapter-advance key using existing Instrument progress/mutation/Undo. The counter belongs to that title; no selection step. Removed obsolete Library CSS while retaining other philosophy layouts. Existing entrance observer and cancellation guard now target library-story. Coming Up and Sunday Club remain. Local checks: cover/title open correct details with focus return; Berserk12->13 leaves Chainsaw24 and details closed, Undo12;320/390px no page overflow, equal artwork88x119/106x138, six44x44 keys, no obsolete UI/nested controls. Failure24retained, completion25disabled while Solo8unchanged, Undo24; reduced-motion keyboard detail activation, caught-up3disabled, new0library, no captured browser warnings/errors. Totals are hidden visually in compact footers but preserved in accessible progress labels/detail pages. No files/assets added/deleted (count94); six prototype files changed. New interaction proposal awaits owner review. Native touch/accessibility/backend/offline remain unverified; no commit/deployment/public sharing.
+
+**Library independent selection/navigation (2026-10-03):** Owner rejected forcing detail navigation to select a read. Supersedes both prior bar-only details and whole-book direct-open models. Cover/title/chapter form one selection button; each book has a separate full-width Open button beneath it. Selection updates only the workbench; Open navigates without changing selection or progress. Removed redundant workbench Details button. Selection uses aria-pressed; Open uses navigation labels and existing Instrument routing/cancellation. Detail artwork origin lookup includes library-art. Local browser checks: image/title/chapter select correctly with dialog closed, opening unselected Solo Leveling preserves Berserk selection, close restores Open-button focus, arrow/Enter selection does not navigate. At320/390px no page overflow, equal artwork88x119/106x138, six Open targets88x44/106x44 and no nested controls. Failure24unchanged, completion25disabled/shelfcount synced, Undo24; reduced-motion unselected-title navigation preserves selection; no captured console warnings/errors. Additional Open rows increase shelf height. Physical touch/scroll arbitration, VoiceOver/Dynamic Type, native/backend/offline proof remain open. Six existing prototype files changed, no added/deleted files/assets (count94); no commit, deployment or public sharing.
+
+**Library direct detail access (2026-10-03):** Supersedes the selection-only book interaction. Tapping cover, title or chapter now opens that book’s details immediately and updates the shared workbench first. The existing Details control is an optional shortcut. Navigation buttons have Open-details labels and data-selected visual context instead of misleading toggle semantics. Closing details restores focus to the originating book; opening does not advance progress. Library book/Details controls now participate in Instrument’s existing movement/pointer-cancellation guard; actual touch-drag testing was unavailable because the in-app browser does not support CDP touch input. Local browser checks: image/title/chapter open correct Solo Leveling/Jujutsu Kaisen/Berserk details, workbench follows, progress unchanged; keyboard arrow selection plus Enter opens correct title; dismissal restores book focus. At320/390px no page overflow, artwork88x119/106x138, whole-book targets88x187/106x208, no nested interactive controls or toggle aria-pressed. Simulated failure retains24, completion25 disables/syncs shelf, Undo24; reduced-motion details work; no captured console errors/warnings. Six prototype files changed; no new/deleted files/assets (count94). Native touch/accessibility/backend/offline proof remains open; no commit, deployment or public sharing.
+
+**Library unified touch targets (2026-10-03):** Removed the adjacent cover-select/title-detail split. Each book is now one semantic button containing artwork, title and chapter position; all three select the same workbench without changing progress or opening details. The workbench title is static, with a separate labelled Details button (83x44). Existing focus return, keyboard selection and shared chapter actions remain. Local browser checks: cover/title/chapter taps select the expected title with detail closed; Details opens that title and closing restores its button focus; arrow-right selection works. At320/390px there is no page overflow, equal artwork stays88x119/106x138, whole-book targets are88x187/106x208, Next92x48, no nested interactive elements or grid detail targets. Simulated failure retains24 with explicit feedback; completion25 disables and syncs shelf count; Undo24. No captured console warnings/errors. Physical touch, native accessibility, backend and offline persistence are unverified. Five prototype files changed, no files/assets added or deleted; design-directions count remains94. No commit, deployment or public sharing.
+
+**Library selected and polished (2026-10-03):** Max selected Library from the four Manga Home philosophies. Poster Manga now defaults to Library when no valid `reading` study is requested; explicit historical study URLs remain available. Added `manga-library.html` as the focused selected preview and labelled Library selected in `manga-four.html`. Refined equal cover geometry, aligned title/chapter rows, shallow cover edges and a thin selected frame/underline. The shared workbench shows a known available chapter total and fine progress trace, omitting both for unknown totals. Its 92x48 Next control keeps existing failure/completion/Undo semantics; the label is outside the replaceable icon cap so it survives shared sync. Fixed icon/label overlap caused by the inherited relative icon-cap position. A helper updates only the workbench on selection and announces the chosen title/current chapter without advancing progress. Arrow keys move one item horizontally or three vertically, with bounds checks and keyboard focus retained on the selected cover. Clicking an already selected cover leaves the workbench untouched. CSS-only selection/press transitions reuse reduced-motion guards. Local checks: default no-reading URL resolves Library; six covers exactly 88x119 at 320px and 106x138 at 390px; page/phone/workbench no overflow, all checked controls at least44px, Next92x48, icon/label no overlap; keyboard right/down selection, correct workbench title/count and live status; failed update24 stays24, completion25 disables and updates shelf count25, Undo24 retains Next label; unknown-total12->13 and Undo with no total/trace; detail/private club/Taste/Anime navigation; caught-up selected key disabled, empty account no library; reduced-motion arrow selection with0s image transition; no captured browser errors/warnings. Artwork remains consistently cropped. Native touch/haptics, Dynamic Type, real library density, account data and durable offline writes are unverified. One HTML file added; non-ignored design-directions count94. Native/backend, assets, commits/deployments and public sharing untouched. Selected composition is recorded; this polish remains local browser proof.
+
+**Four Manga Home philosophies (2026-10-03):** Owner rejected Crosscut's unequal/offset manga artwork and containers. Added independent local `library`, `chapterboard`, `journal`, and `clubroom` studies under the opt-in `reading` query, compared in `manga-four.html`. Library presents six equal cover windows and a single selected-title chapter workbench; Chapter Board uses one uniform dashboard with known-total unread metrics and direct keys; Journal groups reads by explicit fictional recency in a continuous timeline; Club Room groups overlapping reads into a private club table with solo reads underneath. These are different organising/interaction priorities, with a shared neutral palette and equal artwork geometry within each study. Artwork uses consistent crops, not guaranteed intact source covers. `manga-philosophies.js` receives existing artwork/title/progress/context and typed local position helpers; a delegated library selector patches only its workbench, and `sync` updates library mini-counts and board metrics after existing mutations/Undo. No new persistence or request engine. Existing default Home, Anime, Poster and Coming Up/Sunday Club discussions retained. Crosscut is marked rejected in its review page. Local checks in all four: 320/390px page/phone fit, six loaded equal-sized artwork frames (Library fractional rounding under 0.02px at 320), no progress overflow, 44x44 chapter keys; failure retains 24, completion 25 disables, Undo 24; unknown-total 12 to 13 and Undo; Library selected title and mini-count update, board unread metric becomes zero; detail/private club/Taste/Anime navigation; caught-up known-total keys disabled, new account has no active study; reduced-motion update and 0s artwork transition; no captured browser warnings/errors. Shared full-calendar path checked with six same-day events/eight dated groups plus pending. Comparison at 320px has no inner-phone/control overflow. Journal recency and club roster are fixtures, not live account activity. Native/backend/offline, Dynamic Type, real libraries, multiple clubs and catalogue-wide crops are unverified. Three repository files added (`manga-philosophies.js`, `.css`, `manga-four.html`); design-directions tracked/non-ignored file count 93. Owner approval pending; no assets, commits, deployment or public sharing.
+
+**Manga Crosscut proposal (2026-10-03):** Owner rejected Edition, Contact and Index as recycled compositions and palette changes. They remain accessible as explicitly rejected historical studies. Added opt-in `reading=crosscut` to the existing local renderer: alternating wide/narrow artwork panels share aligned chapter gutters cut into their bottom edges, with a direct 44px advance key, title and named club reader context. No added theme wash or dark presentation. New `manga-crosscut.html` hosts one interactive phone, sample account selector and optional rationale outside product UI. Shared Instrument remains the sole owner of progress, failure, completion, Undo, detail/club/Taste and medium navigation. Added Crosscut panels to existing one-time entrance observation and reused reduced-motion/cancellation guards. Existing default Home, Anime, Poster, release chronology and Sunday Club are retained. Local browser checks: 320/390px page and phone fit; six loaded artworks, six 44x44 keys and no chapter-gutter overflow; failed chapter change stays 24, completion 25 disables advance, Undo restores 24; unknown-total Berserk 12 to 13 and Undo; artwork opens details, named reader opens the private club section; full fixture six releases on one date and eight dates plus a pending-date group; caught-up fixture disables three known-total titles, new account has no current panels, undated fixture has only the pending group; Taste and Anime navigation; reduced-motion chapter update works with 0s image transition; no captured console warnings/errors. Artwork is cropped into panels, so full-cover visibility is not claimed. Native touch/haptics, Dynamic Type, real account/backend/offline and catalogue-wide density are unverified. Owner approval pending. One repository HTML file added; no assets added/deleted, deployment, public sharing or commit.
+
+**Three Manga Home studies (2026-10-03):** Added opt-in Edition (ivory publication spreads + compact continuation index), Contact (neutral ink cover plates + date-grouped release images), and Index (aligned reading journal + chapter cursor) under `instrument.html?switch=poster&medium=manga&reading=edition|contact|index`. New `manga-directions.js` renders through injected existing artwork/title/progress/context helpers; `manga-directions.css` scopes styles to opted-in Manga. Existing progress writes, Undo, details, shared-club activity, Taste and medium navigation remain owned by Instrument. `manga-options.html` compares three independently interactive phones and synchronizes sample scenarios through URL parameters. Default v53 markup remains unchanged without `reading`; native source/backend untouched. Fixed a historical `.study-art` class collision by using reading-specific names, and strengthened button specificity. Local browser proof: 320/390px no page or phone overflow, six visible intact covers per option, all current-read buttons at least 44px; failed changes retain 24, completion reaches 25 and disables advance, Undo restores 24; unknown-total update/Undo checked in Edition; club/detail/Taste/Anime paths in all three; six same-date events and eight calendar dates; empty new-account states; known-total caught-up state; Index reduced-motion chapter update with 0s key transition; no captured console errors. Physical touch, haptics, Dynamic Type, account/backend/offline persistence are not proved. Three repository files added, no assets/deployments/public sharing. Owner selection pending.
+
+**Fresh Manga design references (2026-10-03):** Added local `tools/design-directions/manga-reference-study.html`, a five-source visual study using official mymind, !Boring, Panels, MusicHarbor and Sublime product media. Includes source attribution, manually opened !Boring motion demo, native video controls, concise Kuro translations and optional reasoning disclosures. Reviewed published interface imagery and creator interaction breakdowns; no hands-on native/haptic proof. Browser checks: 320/390px fit without horizontal overflow, three remote image loads, reasoning disclosure, Vimeo player initialization and Panels poster/control response; sustained Panels playback was not established. Source media remains remotely hosted and requires internet. Current Instrument v53, selected Poster switch, native source and backend unchanged; Manga direction remains review-pending. One repository file added; no deployment/public tunnel.
+
+**Manga reading jackets (2026-10-02, v53):** User requested a more attractive, distinctive and easy-to-navigate Manga Home from the reader's perspective. Replaced the v52 narrow side margins with chapter bookmarks attached to the two lead artworks, giving covers more visual space. Four additional reads now share a compact two-column index rather than four full-width rows; chapter controls and title labels align, with club readers and new-chapter notices retained. Light existing surface; creativity comes from attached paper geometry, typography and density, without a new colored background or asset. All covers, chapter keys and reader links have at least 44px targets. Existing in-place count/page feedback, failure, undo and Reduce Motion guards reused. Local checks: 320px page, phone and all six article widths without overflow; full-image containment; six chapter targets; failed change leaves 24 unchanged; completion to 25 disables key; undo to 24; unknown-total Berserk update/undo; private club detail access; release-day expansion; caught-up and new-account states; Taste access; Anime/Manga keyboard selection under Reduce Motion. Browser fixtures only, not physical-device, backend or durable-offline proof. Poster, Anime, details, Coming Up and Sunday Club retained. Proposal pending owner review. No new/deleted repository files or assets, native/backend changes, commit or deployment.
+
+**Manga chapter margins (2026-10-02, v52):** Owner rejected v51 as excessive and explicitly requested structural creativity rather than a large colored surface. Poster Manga now uses two unboxed reading leaves with intact covers, narrow chapter margins and 44px shallow paper keys; four other current reads sit in a compact index below with aligned chapter labels and controls. Removed the v51 cabinet/grid markup and styles. Calm existing light surface, no new decorative color or asset dependency. Coming Up, Sunday Club, selected Poster switch, Anime layout and detail pages retained. Local browser checks: 320px page/phone and leaf widths without overflow, full-cover containment, six 44px chapter controls, failed update leaves chapter 24 unchanged, completion to 25 and disabled caught-up control, undo to 24, unknown-total Berserk 12 to 13 and undo, club discussion access, and tap/arrow-key medium switching under Reduce Motion. No new animation system. All proof is browser-fixture/local only; native, physical touch, backend and durable offline behavior are untested here. v52 is a new proposal awaiting review; v51 is rejected. No new/deleted repository files, native/backend changes, commit, deployment or public hosting.
+
+**Poster Manga ink shelf (2026-10-02, v51):** Owner rejected v50 horizontal reading spreads. Poster Manga now uses a continuous edge-to-edge ink shelf with all six current sample reads in a consistent two-column artwork grid. Intact covers, title, chapter progress and club readers share one hierarchy; there are no individual row cards or separate secondary-title list. Coming Up and Sunday Club retain their existing sections after the shelf. v50-specific markup/styles replaced; other medium-switch families, selected Poster switch, Anime layout and details preserved. Local checks: six covers contained, 320px page/phone without horizontal overflow, 44px chapter targets, failed progress unchanged at 24, completion to 25 and undo to 24, unknown-total Berserk progress/undo without invented totals, title club discussion access, Anime/Manga keyboard selection. Reduce Motion retains the shared animation guard; no new animation system added. All are browser-fixture checks, not native/backend/offline proof. Direction remains a proposal awaiting owner review. No new/deleted repository files, backend/native changes, commits, deployment or public hosting.
+
+**Poster Manga reading spreads (2026-10-02, v50):** Local Poster Manga leads now use two stacked horizontal reading spreads: intact cover on the left; title, prominent chapter progress, release notice and club readers on the right. A restrained artwork-derived paper wash and consistent geometry replace the floating chapter slips for Poster only; Anime and older visual families are preserved. Controls reuse existing progress, undo, failure and detail handlers. Local checks: 320px page/phone fit, 44px chapter targets, complete-cover containment, both medium selections, failure leaves chapter 24 unchanged, completion to 25, undo to 24, Solo Leveling detail opening/closing, and zero selector transitions under Reduce Motion. All activity is fixture data, not native/offline/database proof. Header letter artwork is still the first fixed fixture cover per medium (Demon Slayer/Chainsaw Man), assigned at preview load; no user personalization. Proposed real-app policy: a stable recent-active artwork pick per user/medium for the session, reusing cached artwork with neutral ink for an empty list. Not implemented or approved as production policy. No new/deleted repository files; no native/backend, commit, deployment or public hosting changes. New Manga composition awaits owner review; Poster remains the selected switch direction.
+
+**Poster polish (2026-10-02, v49):** Owner selected Poster from the five visual families ("the poster feels right just needs a polish"). Local Instrument now defaults to `switch=poster`; comparison labels it as the selected direction. Refined 36px artwork typography (30px at narrow widths), readable inactive lettering, a finer baseline with a restrained selection mark, 56px-high targets, press feedback, aligned 5px scene corners and 7px key corners, and quieter Manga chapter-slip edges. Existing Home/Taste, list fixtures, detail interactions and artwork-season markers preserved. Local browser checks: both media at 320px without horizontal overflow, tap/ArrowLeft selection, Home/Taste navigation, and zero selector transitions under Reduce Motion. No new/deleted repository files, native/backend changes, commits, releases or public hosting. Direction selected; exact polish still awaits owner review. Catalogue-wide artwork contrast and native touch/haptics remain unverified.
+
+**Five visual families (2026-10-02, v48):** Owner rejected the v47 material-object switch and requested five substantially different design styles. Local `switch-options.html` now compares Noir (graphite Home with floating bottom control), Poster (artwork-filled type and squared cards), Glass (translucent selector over artwork), Edgewise (vertical publication tabs with reserved margin), and Keys (shallow tactile controls beside release count). Each changes placement and surrounding Home styling; shared tracking/detail fixtures and approved artwork-season badges are preserved. Default local `switch=keys` is an unapproved proposal. All five passed click/arrow-key selection and Anime/Manga 320px overflow checks; targets are at least 44px in both dimensions, and reduced-motion selector transitions are zero. Contrast/cascade fixes cover glass surfaces, key labels, dark reading metadata and edge-tab overflow; empty Glass accounts use a selector in normal flow. No repository files added/deleted. Browser-only samples; physical touch, native haptics, catalogue-wide contrast and safe-area behavior remain unverified. No native/backend, commit, deployment or public hosting changes.
+
+**Material switch study (2026-10-02, v47):** Owner rejected v46 as insufficiently creative. Local comparison now focuses on Frames/Pages: an original generated transparent sprite pairs smoked-glass cinematic panes with ivory folded-paper sheets. Live Anime/Manga buttons remain fixed below navigation, with a fine selection mark, opacity/press states and distinct cancellable settling motion; Reduce Motion disables it. New default `switch=objects` is unapproved. Previous five studies remain under a collapsed disclosure. Local checks: 320px fit, 140×62px targets, taps/ArrowLeft, reduced-motion transitions, blocked-material fallback with working selection and subsequent image recovery. Two new repository files: `assets/medium-objects-v47.png` (2172×724 RGBA, 856277 bytes) and its exact `.prompt.txt`. Original PNG retained unchanged; image is prototype material, not catalogue art. No native/backend, release or public hosting changes; physical touch/haptics unverified.
+
+**Five compact medium studies (2026-10-02, v46):** Owner rejected v45 header positioning and requested five more creative, considered options. Comparison now offers Margin (registration tabs), Exposure (slim artwork windows), Relay (active cover identity plus direct alternate link), Interlock (ink/paper plates sharing a diagonal seam), and Signature (type with a selection bracket). All sit beneath the unchanged navigation, 48–54px high. Each includes design intent/tradeoff outside product UI. Shared semantic medium actions, ArrowLeft/Right and persistence retained; Reduce Motion removes transitions. Local checks: both medium tap and keyboard actions in all five, Anime/Manga 320px fit, targets at least 46px high, and reduced-motion CSS. Relay adds cancellable identity settling; only imagery-based variants render selector images. Default `switch=margin` is a proposal, not approval. No repository files added/deleted; no native/backend, public hosting or release changes. Physical touch gestures/haptics remain unverified.
+
+**Compact Home header (2026-10-02, v45):** Owner rejected the space and composition of v44 and requested a compact, deliberate medium switch. New default `switch=compact` places a 44px-high Anime/Manga control inside the sticky navigation header, removing the separate selector row. Equal targets, small frame/page SVGs, restrained moving surface and press state retain clear medium access; earlier studies remain available. Local checks: 320px Home without horizontal overflow, equal 83×44px targets at that width, tap/arrow-key selection, Taste/Home navigation, normal Anime type and reduced-motion transition removal. Comparison shows both medium layouts. No new/deleted repository files or native/backend/deployment changes. Design proposal awaits owner review; physical iOS gestures/haptics unverified.
+
+**Replacement medium studies (2026-10-02, v44):** Owner rejected v43. Local comparison now presents Shelf (small sample-title cover stacks in two material selections) and Masthead (active editorial name with a cover thumbnail and moving baseline). Shared tap, keyboard and medium persistence logic retained. Local default is `switch=shelf`, not owner approval; v43 remains query-accessible. Verified both tap/arrow-key paths, 320px Home fit, selector targets above 44px, normal Anime/italic Manga styling and reduced-motion transitions for both proposals. Narrow Masthead label spacing corrected. No new/deleted repository files, native/backend changes or deployment; physical touch/haptics remain unverified. Manga folio and approved Home season treatment retained.
+
+**Generated editorial switch (2026-10-02, v43):** Added a custom image-generated continuous Anime-to-Manga panorama, optimized local JPEG, bundled Bodoni Moda normal/italic variable fonts with OFL license, and accessible live medium buttons. Local default is `switch=diptych`; previous variants remain query-accessible. Selection uses live type and a moving ink rule, with restrained press/transition states and Reduce Motion. Missing imagery falls back to neutral surfaces with intact labels and controls. Verified medium taps/keyboard, 320/390px fit, 146px-high targets at 320px, rendered normal/italic style, successful image loading and blocked-image fallback/recovery. Manga folio, detail content and Sunday Club retained. Six asset/provenance files added; no native/backend/release changes. Owner review pending.
+
+**Page-edge switch and Manga folio (2026-10-02, v42):** Local Home replaces the default Ribbon with a medium heading and folded alternate-medium edge button. Manga featured titles use full-cover two-column folios with attached chapter slips, concise release context and named club readers; other reading titles become uniform compact full-width rows. Scene/page entry motion uses the existing cancellable motion helper. Comparison now shows Anime and Manga together, with v41 switches retained under Earlier switch studies. Verified 320/390px fit, equal cover geometry, 44px minimum primary targets, chapter failure/retry/cap/Undo, medium taps/keyboard, Manga detail access, Reduce Motion and new-account state. No native/backend changes; proposal awaits review.
+
+**Switch mechanism redesign (2026-10-02, v41):** Replaced rejected Splice/Fold/Lens studies with Ribbon (film and paper strip), Dial (central media control with rotating index), and Window (expanding artwork panes). All are local proposals selectable through `switch-options.html`; none is owner-approved. Checked all three Anime/Manga tap paths, Dial centre toggle and arrow keys, 320px fit without horizontal overflow, and targets of at least 44px. Reduced-motion styles retained; physical touch scrubbing and native iOS behavior remain unverified. Manga desk and club content retained. No native/backend or deployment changes.
+
+**Manga desk and switch studies (2026-10-02, v40):** Local Manga Home now uses wide reading cards with full-cover artwork, prominent bookmark counts and club-reader context. Coming-up material refined; Sunday Club rendering retained. Added `tools/design-directions/switch-options.html` with three live proposed switch styles: Splice, Fold and Lens. Query parameters select each style; none is owner-approved yet. Moved the existing page-swipe handlers inside the prototype closure to fix their inaccessible state references. Checked 320px fit, matched main heights, chapter failure/retry/Undo, all three medium tap paths and Fold keyboard arrows. Browser proposal only; no native/backend change.
+
+**Manga materials and motion (2026-10-02, v39):** Local Manga Home adds a low-opacity wash from the two featured artwork palettes, softer card/control outlines, bookmark-shaped chapter accents, settling cover presses and a restrained chapter-number page-turn animation. Shelf artwork receives a once-per-session reveal through the existing observer; Reduce Motion disables nonessential motion. Checked 320px fit, chapter increment/Undo and reduced-motion CSS; JavaScript syntax/diff checks passed. Browser prototype only.
+
+**Manga Home shelf refinement (2026-10-02, v38):** Local Manga Home replaces the plain shared spread with two matched individual book frames, artwork-derived paper materials, inset chapter controls and coordinated compact shelf tiles. Covers retain their full composition; reader/new-chapter context remains available. Anime unchanged. Browser checks: equal main-card heights, no horizontal overflow at 320/390px, 44px main progress targets, simulated failure/retry/Undo. Prototype only; native/backend/offline execution remains planned.
+
+**Horizontal detail and offline plan (2026-10-02, v37):** Corrected the owner request to a shallow full-width Anime image, rather than a taller portrait header. Manga retains a compact book opening and refined bookmark/next-chapter controls. Plan v0.8 remains INCOMPLETE with the same two waves; adds durable account-scoped progress outbox, idempotent revision-checked server writes, reconnect/backoff, account isolation, Undo and conflict criteria. Inspected native progress writes have no durable queue; offline support is planned, not implemented. Local browser checks: 320px Anime/Manga fit and simulated chapter failure/retry/Undo; no native/backend changes.
+
+**Home/Taste and import planning (2026-10-02, v36):** Local detail artwork is larger and joined to the Anime header; Manga uses a larger book-like cover. Existing recommendation cards now live on a separate Taste view, with Home reserved for tracking, upcoming and clubs. New-account Home has an honest import-first empty state. The existing two-wave plan is extended to v0.7 (INCOMPLETE) with structured resumable import, incremental Home revisions, release evidence/precision, provider permission and coverage gates, data contracts and failure/performance criteria. AniList current published terms restrict competing tracker use; expansion requires resolving permission. No native/backend execution or release.
+
+**Anime opening polish (2026-10-02, v35):** Local Instrument Anime details now give the cover up to 160px of width, retain the artwork-derived header colour, and show one season-specific hook before an expandable synopsis. Manga presentation is unchanged. Verified 320/390px dialog fit, synopsis disclosure and season-specific copy switching; JavaScript syntax and diff checks pass. Browser prototype only, not native or deployed. The existing two-wave plan remains INCOMPLETE.
+
+**Artwork continuity and Manga structure (2026-10-02, v34):** Local Instrument now shares saved artwork palettes between Home and details, preserving the approved AoT blue and Demon Slayer teal. Added deterministic `build_art_materials.py` and generated `instrument-art-materials.js` (24 artwork palettes; minimum measured white/base contrast 7.41:1). Manga has chapter bookmarks without Parts navigation. Jujutsu Kaisen links Anime and Manga internally; the finished-season guide never changes reading or anime progress. Missing season images use series artwork; chapter mappings remain unverified. Existing plan v0.6 stays INCOMPLETE with native/backend waves NOT STARTED. No native changes or deployment.
+
+**Detail refinement (2026-10-02, v33):** Local prototype introductions now follow the inspected season/part. Club presentation is artwork-led with “Between us.”, expandable member statuses, retained spoiler disclosures and a redesigned “Leave a thought” entry. Source review confirms flat shared-club title comments/editing/reactions, not reply threads or individual-club rooms; persisted season spoiler scope remains planned. Existing plan v0.5 stays INCOMPLETE. No native/backend changes.
+
+**Detail clubs and manga handoff (2026-10-02, v32):** Local detail prototype now separates shared-club watching/reading/finished activity from club-only comments, with collapsed spoilers and a local-only editable comment preview. Season manga guides distinguish start, end and recommended continuation; unverified chapters remain unknown. Existing two-wave plan is v0.4 and INCOMPLETE. Browser checks covered 320/390/768px fit, empty comment validation, save/edit, failure/retry, spoiler disclosure, new-account omission and reduced-motion navigation. Native/backend/privacy enforcement and exact chapter mappings remain unimplemented by this change.
+
+**Detail polish (2026-10-02, v31):** Local browser detail mockups now have a compact artwork-lit opening, connected season content, next-episode/chapter-first rows, separate completion action, floating Undo and portrait/bio feedback. Extra copy expands on demand; Manga keeps paper styling. Existing series plan extended to v0.3, still INCOMPLETE with two waves. Cover thumbnails and OP/ED stamps are honest artwork fallbacks; no verified chapter mapping or new ingestion. Approved Home markers retained. Native/backend unchanged.
+
+**Detail preview and plan extension (2026-10-02, v30):** Extended the existing [Series and Home rebuild draft](docs/plans/2026-10-02-series-and-home-rebuild-DRAFT.md) to v0.2, still INCOMPLETE with the same two waves and 16 tasks. Added season-scoped detail hierarchy, cast/credits, music source verification, manga continuation mapping, bounded enrichment/caching and failure-path success criteria. Browser cards now open richer details; Jujutsu Kaisen and Chainsaw Man are the main examples. New `instrument-detail-data.js` and seven public catalogue character images support fixtures. Spotify buttons are labelled search links; exact continuation chapters remain unverified. Approved Home markers retained. No native/backend/production implementation.
+
+**Reference research and remote preview (2026-10-01):** Added `tools/design-directions/boring-study.html` with official screens and motion demonstrations from five !Boring apps. Initial Home remains the scope; no Home/native/backend code changed in this research pass. Owner approved a 12-hour public preview of the design files and sample artwork only. `scripts/serve_design_share.py` now restricts access to 24 approved files (including three selected catalog banners) and stops its server/tunnel automatically. Research is publisher-demo evidence, not native haptic or device-performance proof.
+
+**Current local design study (2026-10-02):** Home v29 saves the owner-selected Artwork tab treatment: only a white Season N marker on main Anime images and an S-number stamp on mapped Also watching covers. Numbered season rows are removed from both sizes. Tapping the marker/compact cover opens the existing full season overview; episode progress remains separate. The comparison board marks Artwork tab as selected and reflects the same simplification. Approval applies to this season treatment, not the complete Home or implementation plan. Browser prototype only; no native/backend deployment.
+
+**Series rebuild planning (2026-10-02):** [Series and Home rebuild draft](docs/plans/2026-10-02-series-and-home-rebuild-DRAFT.md) is explicitly **INCOMPLETE**, with 16 tasks in exactly two waves: catalogue/import foundation, then UI integration and staged delivery. Both waves are NOT STARTED. The draft includes dependencies, success criteria, failure cases, open decisions and space for further owner requirements. No execution or deployment is authorized by the draft.
+
+**Architecture/design planning update (2026-09-26):** [Current decisions and audit](docs/research/2026-09-26-kuro-plan/CURRENT_DECISIONS_AND_AUDIT.md), [complete research and execution draft](docs/research/2026-09-26-kuro-plan/KURO_FULL_REVIEW.md), [short visual brief](docs/research/2026-09-26-kuro-plan/MAX_BRIEF.pdf), and [copyable execution prompt](docs/research/2026-09-26-kuro-plan/EXECUTION_PROMPT_DRAFT.md). Seven audit lanes cover all 93 Swift files, 16 local Edge entry points, 235 migrations and 87 operational executable files. Separate registers contain 381 client records, 55 social sites, 229 Edge sites, 427 operational/history records and 57 SQL entries; these are not additive request totals. Sixteen sampled live function bodies match local. Live similarity maintenance ran 287 times/24h, mean 25.89s; background duration is not screen latency. Priorities: rating/mutation correctness, account/cache isolation, redundant refreshes, bounded ingestion/retries, idle/global maintenance, schema replay and metadata freshness. Runtime traces, query plans, installed visuals and full replay remain unverified. No application/backend changes.
+
+**Latest owner direction — 26 September 2026:** Animation belongs to welcome/authentication only. Preserve top navigation and swiping; persist Anime/Manga selection across screens and requests; make Home distinct from Discover/search. Collection is a visual shelf with statuses and optional named shelves. Social relationships are club-only; profiles show identity by default and activity only when enabled. Earlier first-login, Home, agenda, Collection and email concepts, including the moving-landscape Home, are withdrawn. Exact screen layouts and navigation order remain to agree. No implementation or rollout is authorized by these planning documents.
+
+**Approved welcome reference (2026-09-25):** Max confirmed GitHub `b943e457` on `codex/kuro-onboarding-no-tv` as the intended welcome/onboarding: painted scene, grouped wordmark/headline, TV removed. Preserve that composition; the separate local 72%-height composition edits remain untouched and are not the approved baseline. Email/auth logic matches the reference; improvement proposals concern the form and signed-in experience. The GitHub upload is verified, while TestFlight/public release and installed visual equivalence remain unverified. The detailed review now consolidates market, monetization and design decisions; no app implementation.
+
+**Last updated:** 2026-10-31 (October work committed locally on `codex/integrated-testflight`, not pushed; gate cleanup; earlier: modular-architecture migration 2026-10-05; Home browser prototype 2026-10-02; native/backend snapshots retain their stated evidence dates)
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 88 app Swift files in `/Kuro`; 169 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 224 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
 For a non‑technical version, see: `CURRENT_APP_STATE_PLAIN.md`.
+
+**Product research (2026-09-25, revised edition 02):** `docs/research/2026-09-25-anime-tracking/RESEARCH_AND_DECISIONS.md` and its 47-page PDF now contain six-lane comparative research: 110 selected source records across 37 hosting domains, 18 proposed product decisions, and 10 proposed monetization decisions. `MAX_VISUAL_BRIEF.html` / `.pdf` provide a two-page owner brief covering product and revenue. Coverage includes MAL, AniList, MyAniList, Anime-Planet, MangaBaka, Kitsu, LiveChart, AniDB, other forums and native-client issue/review evidence. Direct MAL/MangaUpdates forum access gaps are explicit. This supersedes the initial paid-convenience suggestion: Kuro's proposed core remains free, with optional neutral book referrals and separately labelled publisher-funded benefits to validate. Published programme rates, permissions, assumptions and revenue examples are distinguished from Kuro approval or actual results. Research only; no implementation, partner agreement, rollout commitment or new production proof.
+
+
+**Current-product/design review (2026-09-25):** `docs/research/2026-09-25-kuro-design-review/DESIGN_REVIEW_AND_DECISIONS.md` / `.pdf` add 16 proposed decisions, three detailed source audits, 11 additional dated community records, a two-page `MAX_DESIGN_BRIEF.pdf`, and the now-withdrawn `PHONE_DESIGN_PROPOSAL.html`. Recommendations preserve the introduction's visual identity, improve auth continuity and prioritize personal continuation, list reliability, qualified releases and privacy-respecting social context. Proposals only; no app implementation.
+
+**Read-only verification, 2026-09-25:** Live project has 235 migration versions matching the local version list and 16 active Edge Functions; this is not source/checksum or runtime parity. Taste, social and club retention flags are enabled at 100%; personalized NTY, realm discovery rails and streaming availability remain at 0%; RAG/FM/clarify are 5% DE/AT/CH. Live catalogue: 21,668 anime, 41,721 manga; only 5 future anime next-airing timestamps, 0 within seven days; 0 manga next-chapter timestamps; provider availability table has 0 rows. Detailed sanitized evidence: `BACKEND_EVIDENCE.json` in the review directory. Empty schedules do not prove no releases exist.
+
+**Open findings from this review:** The rating paths in `AddToListSheet.saveToList` and `SupabaseService.incrementProgress` send 100-scale values while live list constraints accept 1–10; shared upsert forwards values unchanged. Source/live-contract mismatch confirmed, no user-write reproduction or fix performed. Also review Apple-error form reveal state, header accessibility semantics, loaded-page-only collection search/sort/count, unknown-total control inconsistency, capped/lossy imports and partial batch feedback. Personal anime upcoming/countdowns and local reminders already exist; separate agenda, named personal lists, independent volume history and portable export are proposed additional work. The enriched-clubs flag accessor has no consumer in the inspected client, and Collection's custom cards do not consume prefetched friend counts.
+
+**Release boundary:** Connected iPhone 15 Pro reports installed Kuro 1.0 (19), developer-built; this source is configured 1.0 (17). Producing commit, latest TestFlight and public App Store state remain unverified (configured ASC key missing). Physical screen preview stayed black after unlock, so current phone layout/auth behavior was not visually reproduced. Historical screenshots and current source were reviewed. Existing AuthView edits preserved.
 
 ---
 
@@ -41,11 +197,13 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 1) High-level architecture
 
+**Modular architecture (executed locally 2026-10-05):** The [Claude Code execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) was executed in this checkout (uncommitted, not deployed). The app is built from one composition root (`Kuro/Composition/AppComposition.swift`) over one Supabase client; each capability has one `@Observable` owner in its own `Kuro/<Capability>/` folder; the Library tracking domain and the shared account contracts compile in the local package `Packages/KuroModules` (`KuroCore`, `KuroLibrary`, `KuroSupabase`); the `SupabaseService` family is retired and deleted. Details, lifecycle rules, harnesses, prepared-not-deployed changes and open items: §3.1. Gate status and final test counts: the [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md).
+
 **Client:** iOS SwiftUI app (`/Kuro`)
 - Local caching and UI-only state.
 - Uses Supabase as system of record.
 - Concierge: deterministic-first parsing + LLM fallback.
-- Apple Foundation Models: on-device LLM for mode classification, disambiguation, synopsis condensation, and NL collection search (iOS 26+ only; graceful fallback via `StubFMProvider`).
+- Apple Foundation Models: on-device LLM for mode classification, disambiguation, synopsis condensation, and NL collection search (iOS 26+ only; graceful fallback: `AppleFMService` returns `nil` when Foundation Models is unavailable and callers use their non-FM path; the defined `StubFMProvider` is never instantiated, verified 2026-10-05).
 - Network monitoring: `NetworkMonitor` tracks connectivity, shows offline banner.
 - Local synopsis enrichment runtime: launchd-managed Mac worker (`scripts/synopsis_enrichment_worker.swift`) continuously generates editorial synopsis variants and writes them to Supabase via RPC (non-destructive, enhanced fields only).
 - Local catalog safety runtime: separate launchd-managed Mac worker (`scripts/catalog_safety_worker.swift`) scans anime/manga records for pornographic signals, writes safety state via dedicated RPCs, and emits uncertain/open-gap reports to a separate dashboard/report path.
@@ -74,7 +232,7 @@ This file is a **contract**. It must be updated **after every single change** to
   - `SUPABASE_URL`
   - `SUPABASE_ANON_KEY`
   from **Info.plist** or process env.
-- If missing, `SupabaseService` sets `configError` and shows an error screen (no hardcoded fallback).
+- If missing, `AppComposition.makeClient()` returns no client plus a configuration error that `IdentityStore.configError` holds, and the app shows an error screen (no hardcoded fallback). (Before 2026-10-05 this was `SupabaseService.configError`.)
 - **Info.plist** (project root, NOT `Kuro/Info.plist`): registers `kuro://` URL scheme via `CFBundleURLTypes`, references `$(SUPABASE_URL)` and `$(SUPABASE_ANON_KEY)` build variables (resolved from xcconfig). `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` — Xcode merges generated keys with custom ones.
 - **xcconfig files** (wired into Xcode project as `baseConfigurationReference`):
   - `Config/Shared.xcconfig` — shared settings including `SUPABASE_URL` and `SUPABASE_ANON_KEY`
@@ -111,25 +269,73 @@ This file is a **contract**. It must be updated **after every single change** to
 - `.mcp.json` — MCP server config: Supabase (HTTP) + Resend (`@resend/mcp` via npx, API key in env)
 - `CLAUDE.md` — mandatory project rules + full context for new sessions
 - `MASTER_PLAN.md` — architectural north star (historical docs moved to `archive/`)
+- `Packages/KuroModules/` — local Swift package (2026-10-05): `KuroCore`, `KuroLibrary`, `KuroSupabase`; see §3.1
+
+> **Inventory provenance (2026-10-07):** §2.1 is refreshed from current files, including local packages and operational shell/Swift/Python scripts. Other generated blocks retain their older timestamps (§3.2, §7.1 and §8.2: July; Appendix J: March) and are historical snapshots, including retired service code. Current files, `docs/modules/README.md` and the refreshed ownership manifest govern source navigation; no snapshot establishes deployed parity.
 
 <!-- BEGIN AUTO-INVENTORY -->
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-03-26T16:16:10.625Z**  (git: `a8b9f78` on `main`)
+Generated: **2026-10-07T15:04:52.638Z**  (git: `a7f39b6` on `kuro/taste-overhaul`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 88)
+### iOS (Swift) files (count: 134)
+- `Kuro/Catalog/CatalogStore.swift`
+- `Kuro/Catalog/DiscoveryContentRules.swift`
+- `Kuro/Catalog/MissingSupabaseConfiguration.swift`
+- `Kuro/Clubs/ClubModels.swift`
+- `Kuro/Clubs/ClubRealtimeCoordinator.swift`
+- `Kuro/Clubs/ClubsLibrarySink.swift`
+- `Kuro/Clubs/ClubsStore.swift`
+- `Kuro/Collection/CollectionStore.swift`
+- `Kuro/Composition/AccountScopedState.swift`
+- `Kuro/Composition/AppComposition.swift`
+- `Kuro/Composition/BannerCenter.swift`
+- `Kuro/Composition/FixtureHost.swift`
+- `Kuro/Composition/LibraryChangeSinks.swift`
+- `Kuro/Composition/LibraryRefreshHook.swift`
+- `Kuro/Composition/PostgrestLibraryTransport.swift`
+- `Kuro/Composition/PostgrestRequestEncoding.swift`
+- `Kuro/Concierge/ConciergeFunctions.swift`
+- `Kuro/Concierge/ConciergeRecommendModels.swift`
+- `Kuro/Concierge/ConciergeRouting.swift`
+- `Kuro/Concierge/ConciergeStore.swift`
 - `Kuro/ContentView.swift`
 - `Kuro/Design/Color+Hex.swift`
+- `Kuro/Design/FlowLayout.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
+- `Kuro/Discovery/DiscoverCards.swift`
+- `Kuro/Discovery/DiscoveryStore.swift`
+- `Kuro/Discovery/RecommendationsReader.swift`
+- `Kuro/Home/HomeContracts.swift`
+- `Kuro/Home/HomeStore.swift`
+- `Kuro/Identity/AuthCallbackGuard.swift`
+- `Kuro/Identity/AuthService.swift`
+- `Kuro/Identity/IdentityStore.swift`
+- `Kuro/Identity/SessionController.swift`
+- `Kuro/Imports/ImportModels.swift`
+- `Kuro/Imports/ImportReconciler.swift`
+- `Kuro/Imports/ImportsService.swift`
+- `Kuro/Infrastructure/MemoryPressure.swift`
+- `Kuro/Infrastructure/Retry.swift`
+- `Kuro/Infrastructure/TimedCache.swift`
 - `Kuro/KuroApp.swift`
+- `Kuro/Library/LibraryActions.swift`
+- `Kuro/Library/LibraryRealtime.swift`
 - `Kuro/Models/DiscoverBundle.swift`
 - `Kuro/Models/SupabaseModels.swift`
+- `Kuro/Providers/ProviderAvailabilityStore+DetailLinks.swift`
+- `Kuro/Providers/ProviderAvailabilityStore+LegalLinks.swift`
+- `Kuro/Providers/ProviderAvailabilityStore.swift`
+- `Kuro/Providers/ProviderLinkBuilders.swift`
+- `Kuro/Releases/ReleasesStore.swift`
+- `Kuro/Releases/ReminderScheduler.swift`
+- `Kuro/Search/SearchStore.swift`
 - `Kuro/Services/AppConfig.swift`
 - `Kuro/Services/AppleFMService.swift`
 - `Kuro/Services/ConciergeAnalytics.swift`
@@ -140,36 +346,28 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Services/KuroPerf.swift`
 - `Kuro/Services/NetworkMonitor.swift`
 - `Kuro/Services/SupabaseRPCParams.swift`
-- `Kuro/Services/SupabaseService+Browse.swift`
-- `Kuro/Services/SupabaseService+ClubRealtime.swift`
-- `Kuro/Services/SupabaseService+Clubs.swift`
-- `Kuro/Services/SupabaseService+Collection.swift`
-- `Kuro/Services/SupabaseService+Concierge.swift`
-- `Kuro/Services/SupabaseService+Recommendations.swift`
-- `Kuro/Services/SupabaseService+Social.swift`
-- `Kuro/Services/SupabaseService+Streaming.swift`
-- `Kuro/Services/SupabaseService+UserLists.swift`
-- `Kuro/Services/SupabaseService.swift`
 - `Kuro/Services/TextNormalization.swift`
+- `Kuro/Social/SocialActivityStore.swift`
+- `Kuro/Taste/TasteModels.swift`
+- `Kuro/Taste/TasteStore.swift`
+- `Kuro/Telemetry/InteractionTelemetry.swift`
+- `Kuro/Telemetry/OutboundLinkTelemetry.swift`
 - `Kuro/Views/AddToListSheet.swift`
 - `Kuro/Views/AuthView.swift`
 - `Kuro/Views/BrowseComponents.swift`
 - `Kuro/Views/BrowseView.swift`
-- `Kuro/Views/Cards.swift`
 - `Kuro/Views/ClubCreateSheets.swift`
 - `Kuro/Views/ClubDetailSheets.swift`
 - `Kuro/Views/ClubDetailShellComponents.swift`
 - `Kuro/Views/ClubDetailTabComponents.swift`
 - `Kuro/Views/ClubDetailView.swift`
+- `Kuro/Views/ClubViewLifecycle.swift`
 - `Kuro/Views/ClubsView.swift`
-- `Kuro/Views/ConciergeActionFooter.swift`
 - `Kuro/Views/ConciergeAniListImportCoordinator.swift`
 - `Kuro/Views/ConciergeComponents.swift`
-- `Kuro/Views/ConciergeComposerDock.swift`
 - `Kuro/Views/ConciergeEditorialShell.swift`
 - `Kuro/Views/ConciergeImportCards.swift`
 - `Kuro/Views/ConciergeInputField.swift`
-- `Kuro/Views/ConciergeIntentDeck.swift`
 - `Kuro/Views/ConciergeRecommendationRails.swift`
 - `Kuro/Views/ConciergeResponseStage.swift`
 - `Kuro/Views/ConciergeView+AniListImport.swift`
@@ -180,19 +378,22 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/DetailPages/CastSection.swift`
 - `Kuro/Views/DetailPages/ClubActivitySection.swift`
 - `Kuro/Views/DetailPages/CreditsSection.swift`
+- `Kuro/Views/DetailPages/DetailSharedComponents.swift`
 - `Kuro/Views/DetailPages/EntityDetailSheets.swift`
 - `Kuro/Views/DetailPages/ExternalLinksSection.swift`
 - `Kuro/Views/DetailPages/FriendsActivitySection.swift`
 - `Kuro/Views/DetailPages/MangaDetailView.swift`
 - `Kuro/Views/DetailPages/MediaDetailSheet.swift`
+- `Kuro/Views/DetailPages/ProviderLinkViews.swift`
+- `Kuro/Views/DiscoverOneThingCard.swift`
 - `Kuro/Views/DiscoverViewModel.swift`
-- `Kuro/Views/EditorialCards.swift`
 - `Kuro/Views/EditorialCollectionComponents.swift`
 - `Kuro/Views/EditorialCollectionView.swift`
 - `Kuro/Views/EditorialDiscoverRouting.swift`
 - `Kuro/Views/EditorialDiscoverView.swift`
 - `Kuro/Views/EditorialSearchView.swift`
-- `Kuro/Views/GenreHubView.swift`
+- `Kuro/Views/Home/HomeView.swift`
+- `Kuro/Views/Home/SeriesDetailViews.swift`
 - `Kuro/Views/KuroCachedAsyncImage.swift`
 - `Kuro/Views/KuroCardText.swift`
 - `Kuro/Views/KuroConciergeMark.swift`
@@ -206,14 +407,42 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/KuroRefinedCard.swift`
 - `Kuro/Views/KuroToast.swift`
 - `Kuro/Views/KuroTransientBanner.swift`
+- `Kuro/Views/LibraryViewActions.swift`
 - `Kuro/Views/OnboardingView.swift`
-- `Kuro/Views/PosterView.swift`
 - `Kuro/Views/ProfileFreshnessCard.swift`
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/QuickVerdictActionCard.swift`
-- `Kuro/Views/UIComponents.swift`
+- `Kuro/Views/Routing/KuroRoutes.swift`
+- `Kuro/Views/SharedCards/AddToClubRailSheet.swift`
+- `Kuro/Views/SharedCards/CompactAnimeCard.swift`
+- `Kuro/Views/SharedCards/GridAnimeCard.swift`
+- `Kuro/Views/TasteDeckView.swift`
+- `Kuro/Views/TastePicksView.swift`
+- `Kuro/Views/TrackingDraft.swift`
 
-### Supabase migrations (count: 169)
+### Local package Swift files (count: 20, including package manifests and tests)
+- `Packages/KuroModules/Package.swift`
+- `Packages/KuroModules/Sources/KuroCore/AccountScopedLoads.swift`
+- `Packages/KuroModules/Sources/KuroCore/AccountSession.swift`
+- `Packages/KuroModules/Sources/KuroCore/MediaKey.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryContracts.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryImportBatch.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryValues.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/MALExportParser.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/SeriesGrouping.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/LibraryFenceTransport.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/LibraryRowTransport.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/UserIdText.swift`
+- `Packages/KuroModules/Tests/KuroCoreTests/AccountSessionTests.swift`
+- `Packages/KuroModules/Tests/KuroLibraryTests/LibraryStoreTests.swift`
+- `Packages/KuroModules/Tests/KuroLibraryTests/SeriesHomeFoundationTests.swift`
+- `Packages/KuroModules/Tests/KuroLibraryTests/Support/ControlledBackend.swift`
+- `Packages/KuroModules/Tests/KuroSupabaseTests/SupabaseLibraryBackendTests.swift`
+
+### Supabase migrations (count: 245)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -383,8 +612,84 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260324213000_discover_airing_today_berlin_day.sql`
 - `supabase/migrations/20260326221000_discover_new_to_you_rotation.sql`
 - `supabase/migrations/20260326234000_exclude_ancillary_anime_from_default_surfaces.sql`
+- `supabase/migrations/20260730160000_taste_signal_events_v1.sql`
+- `supabase/migrations/20260731010000_taste_deck_v1.sql`
+- `supabase/migrations/20260731011000_taste_profile_recompute_v1.sql`
+- `supabase/migrations/20260731012000_personalized_nty_and_flags_v1.sql`
+- `supabase/migrations/20260731020000_image_convergence_v1.sql`
+- `supabase/migrations/20260731030000_outbound_link_ledger_v1.sql`
+- `supabase/migrations/20260731040000_clubs_trust_pack_v1.sql`
+- `supabase/migrations/20260731050000_taste_deck_meta_v1.sql`
+- `supabase/migrations/20260731060000_taste_math_v2.sql`
+- `supabase/migrations/20260731070000_taste_math_v2_hotfix.sql`
+- `supabase/migrations/20260731080000_taste_math_v2_fix2.sql`
+- `supabase/migrations/20260731090000_taste_deck_pass_memory.sql`
+- `supabase/migrations/20260731095000_deck_love_to_list.sql`
+- `supabase/migrations/20260731100000_discover_p1.sql`
+- `supabase/migrations/20260731110000_daily_feature_argument_polish.sql`
+- `supabase/migrations/20260731120000_realm_signatures_v1.sql`
+- `supabase/migrations/20260731130000_canon_seed_v1.sql`
+- `supabase/migrations/20260731140000_media_rec_edges_v1.sql`
+- `supabase/migrations/20260731150000_realm_graph_v1.sql`
+- `supabase/migrations/20260731160000_realm_gate_calibration.sql`
+- `supabase/migrations/20260731170000_media_realm_llm_v1.sql`
+- `supabase/migrations/20260731180000_similarity_inclusion_fix.sql`
+- `supabase/migrations/20260731190000_debug_functiondef.sql`
+- `supabase/migrations/20260731191000_debug_functiondef2.sql`
+- `supabase/migrations/20260731192000_debug_functiondef3.sql`
+- `supabase/migrations/20260731193000_debug_sim_pair.sql`
+- `supabase/migrations/20260731194000_debug_sim_v42.sql`
+- `supabase/migrations/20260731195000_debug_ranked_pair.sql`
+- `supabase/migrations/20260731200000_penalty_clamp_and_debug_cleanup.sql`
+- `supabase/migrations/20260802010000_realm_describe_drain.sql`
+- `supabase/migrations/20260802011000_ops_read_cron_secret_tmp.sql`
+- `supabase/migrations/20260802012000_ops_list_cron_jobnames.sql`
+- `supabase/migrations/20260802013000_ops_extract_literal_import_secret.sql`
+- `supabase/migrations/20260802014000_realm_llm_upsert_rate_budget.sql`
+- `supabase/migrations/20260802015000_pause_realm_describe_cron.sql`
+- `supabase/migrations/20260802016000_realm_describe_cron_catchup.sql`
+- `supabase/migrations/20260802017000_realm_llm_upsert_service_role_only.sql`
+- `supabase/migrations/20260802120000_pause_realm_describe_cron_again.sql`
+- `supabase/migrations/20260802123000_media_realm_membership_delta_v1.sql`
+- `supabase/migrations/20260802124000_membership_delta_clamp_fix.sql`
+- `supabase/migrations/20260802125000_membership_delta_check_float4.sql`
+- `supabase/migrations/20260802140000_spirited_away_gate_harden.sql`
+- `supabase/migrations/20260802141000_canon_bless_and_discover_realm_rails.sql`
+- `supabase/migrations/20260802150000_curation_sources_expand_v1.sql`
+- `supabase/migrations/20260804100000_similarity_penalty_and_costs.sql`
+- `supabase/migrations/20260804110000_totoro_credits_and_studio_main.sql`
+- `supabase/migrations/20260804120000_tier_from_effective_and_cron.sql`
+- `supabase/migrations/20260804121000_rebuild_tier_execute_service_role_only.sql`
+- `supabase/migrations/20260804130000_media_similar_titles_precompute.sql`
+- `supabase/migrations/20260804131000_similar_builder_oom_fix.sql`
+- `supabase/migrations/20260804132000_similar_driver_batch_100.sql`
+- `supabase/migrations/20260804140000_franchise_components_and_blend_dedupe.sql`
+- `supabase/migrations/20260804150000_hygiene_ops_fn_and_view_advisors.sql`
+- `supabase/migrations/20260805100000_daily_feature_display_synopsis.sql`
+- `supabase/migrations/20260805110000_realm_audit_overrides.sql`
+- `supabase/migrations/20260805112000_realm_audit_override_conditional_swap.sql`
+- `supabase/migrations/20260805120000_edges_first_serving.sql`
+- `supabase/migrations/20260805130000_critique_ingestion_schema.sql`
+- `supabase/migrations/20260805140000_entry_point_canonicalization.sql`
+- `supabase/migrations/20260805150000_entry_point_upward_tier_substitution.sql`
+- `supabase/migrations/20260806000000_security_and_mirror_repair.sql`
+- `supabase/migrations/20260806010000_serving_fixes_v1.sql`
+- `supabase/migrations/20260806020000_serving_hardening_v1.sql`
+- `supabase/migrations/20260807000000_baseline_capture_v1.sql`
+- `supabase/migrations/20260807010000_leftover_repairs_v1.sql`
+- `supabase/migrations/20260810120000_clubs_trust_flags_promote_100.sql`
+- `supabase/migrations/20261005120000_club_members_role_column_guard.sql`
+- `supabase/migrations/20261005120100_club_rails_insert_admin_only.sql`
+- `supabase/migrations/20261005120200_toggle_comment_reaction_visibility.sql`
+- `supabase/migrations/20261005130000_import_apply_undo_transactions.sql`
+- `supabase/migrations/20261005140000_account_deletion_write_barrier.sql`
+- `supabase/migrations/20261005150000_club_membership_lifecycle_and_privacy.sql`
+- `supabase/migrations/20261005160000_club_realtime_signals.sql`
+- `supabase/migrations/20261005170000_user_lists_view_security_invoker.sql`
+- `supabase/migrations/20261005180000_list_user_id_canonical_case.sql`
+- `supabase/migrations/20261006120000_import_sessions_select_only.sql`
 
-### Supabase Edge Functions (index.ts) (count: 15)
+### Supabase Edge Functions (index.ts) (count: 16)
 - `supabase/functions/auth-callback/index.ts`
 - `supabase/functions/bulk-import-anime/index.ts`
 - `supabase/functions/bulk-import-manga/index.ts`
@@ -400,18 +705,32 @@ node scripts/generate_app_state_inventory.js
 - `supabase/functions/manga-chapter-enrich/index.ts`
 - `supabase/functions/manga-source-review-action/index.ts`
 - `supabase/functions/mirror-images/index.ts`
+- `supabase/functions/realm-describe/index.ts`
 
-### Repo scripts (count: 45)
+### Repo scripts (count: 120)
 - `scripts/apply_remote_sql.js`
 - `scripts/audit_curated_rails_quality.js`
+- `scripts/capture_screen_canvas.py`
 - `scripts/catalog_safety_dashboard_server.js`
+- `scripts/catalog_safety_decision.swift`
+- `scripts/catalog_safety_offline_tests.swift`
+- `scripts/catalog_safety_run.swift`
+- `scripts/catalog_safety_worker.swift`
 - `scripts/check_cron_health.js`
 - `scripts/collect_db_metrics.js`
+- `scripts/compile_curation_ingest.js`
 - `scripts/concierge_corpus_generate.js`
 - `scripts/concierge_eval_parse.js`
+- `scripts/db/explain_series_inner_plans.sh`
+- `scripts/db/guard_env.sh`
+- `scripts/db/replay_migrations.sh`
+- `scripts/db/run_local_db_tests.sh`
+- `scripts/db/test_guard_env.sh`
 - `scripts/db_state.sql`
 - `scripts/eval_concierge_modes.js`
+- `scripts/eval_realm_rec_gold.js`
 - `scripts/eval_router.js`
+- `scripts/export_screen_canvas.py`
 - `scripts/generate_app_state_codebase_bundle.js`
 - `scripts/generate_app_state_inventory.js`
 - `scripts/generate_app_state_live_snapshot.js`
@@ -427,25 +746,87 @@ node scripts/generate_app_state_inventory.js
 - `scripts/genre_audit.js`
 - `scripts/import_anilist_fast.js`
 - `scripts/import_anilist_local.js`
+- `scripts/import_anilist_rec_edges.js`
+- `scripts/install_catalog_safety_launchd.sh`
+- `scripts/install_local_cicd_launchd.sh`
+- `scripts/install_media_relations_launchd.sh`
+- `scripts/install_provider_availability_launchd.sh`
+- `scripts/install_synopsis_dashboard_launchd.sh`
+- `scripts/install_synopsis_enrichment_launchd.sh`
+- `scripts/install_unified_dashboard_launchd.sh`
+- `scripts/kuro_project_root.sh`
 - `scripts/legacy/03_updated_edge_function.js`
 - `scripts/legacy/04_manga_edge_function.js`
 - `scripts/legacy/06_anime_edge_function_with_episodes.js`
 - `scripts/legacy/07_manga_edge_function_with_chapters.js`
+- `scripts/legacy/CONCIERGE_FINAL_INTEGRATED.swift`
+- `scripts/lib/load_project_public_env.sh`
 - `scripts/lib/project_config.js`
+- `scripts/live/README.md`
+- `scripts/live/probe_checkers.test.js`
+- `scripts/live/probe_club_activity_signals.js`
+- `scripts/live/probe_import_sessions_select_only.js`
+- `scripts/live/probe_support.js`
 - `scripts/load_test_concierge.js`
+- `scripts/local_cd.sh`
+- `scripts/local_ci.sh`
 - `scripts/manual/test_bulk_import_anime.js`
 - `scripts/manual/test_bulk_import_manga.js`
 - `scripts/manual/test_bulk_import_manga_with_chapters.js`
 - `scripts/manual/verify_supabase_connection.js`
+- `scripts/media_relations_offline_test.js`
 - `scripts/media_relations_worker.js`
 - `scripts/provider_availability_dashboard_server.js`
+- `scripts/provider_availability_matching.swift`
+- `scripts/provider_availability_offline_tests.swift`
+- `scripts/provider_availability_run.swift`
+- `scripts/provider_availability_worker.swift`
+- `scripts/quality-gates/audit_rails.sh`
+- `scripts/quality-gates/build_ios.sh`
+- `scripts/quality-gates/check_architecture.sh`
+- `scripts/quality-gates/check_docs_current_state.py`
+- `scripts/quality-gates/check_docs_current_state.sh`
+- `scripts/quality-gates/check_migrations.sh`
+- `scripts/quality-gates/check_secrets.sh`
+- `scripts/quality-gates/ios_verify_helpers.sh`
 - `scripts/quality-gates/router_test_cases.js`
+- `scripts/quality-gates/run_all.sh`
+- `scripts/quality-gates/test_concierge_corpora.sh`
+- `scripts/quality-gates/test_edge_functions.sh`
+- `scripts/quality-gates/test_ios_unit.sh`
+- `scripts/quality-gates/test_leftovers_verify.sh`
+- `scripts/quality-gates/test_multi_user_pages.sh`
+- `scripts/quality-gates/test_packages.sh`
+- `scripts/quality-gates/test_router_offline.sh`
+- `scripts/realm_descriptor_validate_selftest.js`
+- `scripts/realm_descriptor_worker.js`
+- `scripts/realm_gold_owner_shortlist.js`
+- `scripts/realm_llm_apply_deltas.js`
+- `scripts/realm_llm_pass_fetch.js`
+- `scripts/realm_llm_pass_submit.js`
+- `scripts/realm_llm_qa_fetch.js`
+- `scripts/realm_llm_salvage_swarm.js`
+- `scripts/realm_repair/run_phase1_acceptance.js`
 - `scripts/report_airing_window.js`
+- `scripts/run_catalog_safety.sh`
 - `scripts/run_full_import.js`
+- `scripts/run_local_cd_logged.sh`
+- `scripts/run_local_ci_logged.sh`
 - `scripts/run_manga_chapter_crunch.js`
+- `scripts/run_media_relations_refresh.sh`
+- `scripts/run_provider_availability.sh`
+- `scripts/run_synopsis_enrichment.sh`
+- `scripts/serve_design_share.py`
+- `scripts/serve_live_preview.py`
 - `scripts/smoke_concierge_recommend.js`
 - `scripts/smoke_magic_parse_apply.js`
 - `scripts/synopsis_dashboard_server.js`
+- `scripts/synopsis_enrichment_offline_tests.swift`
+- `scripts/synopsis_enrichment_worker.swift`
+- `scripts/synopsis_quality.swift`
+- `scripts/synopsis_run.swift`
+- `scripts/test_kuro_launcher_paths.sh`
+- `scripts/test_kuro_ops_defaults.sh`
 - `scripts/unified_local_dashboard_server.js`
 
 
@@ -453,22 +834,25 @@ node scripts/generate_app_state_inventory.js
 
 ### iOS app structure (`/Kuro`)
 - `Kuro/ContentView.swift` — app entry point + navigation/swipe pager + top header
-- `Kuro/KuroApp.swift` — `@main` entry (63 lines), `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection, `.onOpenURL` deep link handler (line 33). Auth callbacks intercepted at app level (line 37, before auth gate) — calls `handleAuthCallback()` directly instead of passing to ContentView. URL cache: 64MB memory + 256MB disk.
+- `Kuro/KuroApp.swift` — `@main` entry (177 lines on 2026-10-05), `scenePhase` lifecycle handling, `NetworkMonitor` + the `AppComposition` owners injected with `.environment(...)` (identity, auth, session, library, libraryActions, catalog, search, discovery, recommendations, releases, social, availability, clubs, collection, imports, concierge, taste, deviceIntelligence, banner, flags, interactionTelemetry, outboundLinks), `.onOpenURL` deep link handler. Auth callbacks intercepted at app level (before auth gate) — calls `session.handleAuthCallback(...)` directly instead of passing to ContentView. URL cache: 64MB memory + 256MB disk.
 - `Kuro/Services/DeepLinkRouter.swift` — `enum DeepLink` with cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:), authCallback(accessToken:, refreshToken:); parses `kuro://` scheme URLs
 - `Kuro/Services/AppleFMService.swift` — Apple Foundation Models integration (on-device LLM: mode classification, disambiguation, synopsis condensation, collection search intent)
 - `Kuro/Services/NetworkMonitor.swift` — `NWPathMonitor` connectivity tracking, `@Environment` injection, offline banner
-- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper, `configError` property (graceful config gate), `trimCachesForMemoryPressure()`, `authCallbackURL`, `handleAuthCallback()`, `signUpWithEmail`/`resetPassword`, `checkEmailExists(email:)` (debounced uniqueness check via `check_email_exists` RPC)
-- `Kuro/Views/` — SwiftUI UI components
+- `Kuro/Services/SupabaseService.swift` — RETIRED 2026-10-05 (all 13 `SupabaseService*` files deleted); its responsibilities now live in the capability owners below (see §3.1 and the [ownership map](docs/plans/2026-10-05-modular-architecture-ownership-map.md))
+- `Kuro/Composition/` — `AppComposition` (composition root: one SDK client, one account coordinator, `makeGraph`/`testingGraph`, `makeAccountScopedStates`), `AccountScopedState`, `LibraryChangeSinks`, `LibraryRefreshHook`, `PostgrestLibraryTransport` (SDK binding of the Library list adapter), `BannerCenter`
+- Capability owner folders: `Kuro/Identity/` (`IdentityStore`, `AuthService`, `SessionController`, `AuthCallbackGuard`), `Kuro/Library/` (`LibraryActions`, `LibraryRealtime`), `Kuro/Catalog/`, `Kuro/Discovery/`, `Kuro/Search/`, `Kuro/Collection/`, `Kuro/Releases/`, `Kuro/Providers/`, `Kuro/Social/`, `Kuro/Clubs/`, `Kuro/Imports/`, `Kuro/Concierge/`, `Kuro/Taste/`, `Kuro/Telemetry/`, `Kuro/Infrastructure/` (`TimedCache`, `withRetry`, memory-pressure relief)
+- `Packages/KuroModules/` — local Swift package linked into the app: `KuroCore` (identity/account-scoping contracts), `KuroLibrary` (tracking domain + `LibraryStore`), `KuroSupabase` (list-table adapter, SDK-free); see §3.1
+- `Kuro/Views/` — SwiftUI UI components; `Kuro/Views/Routing/KuroRoutes.swift` (typed navigation routes + `.routePresenter()`), `Kuro/Views/SharedCards/` (`CompactAnimeCard`, `GridAnimeCard`, `AddToClubRailSheet`), `Kuro/Views/DetailPages/` (Anime/Manga pages + `DetailSharedComponents.swift`, `ProviderLinkViews.swift`; see `docs/modules/detail-pages.md`)
 - `Kuro/Models/` — data models (Anime, Manga, UserList, etc.)
 - `Config/` — xcconfig files (Shared, Debug, Release) wired as `baseConfigurationReference` in Xcode project
 
 ### Feature-to-file map (frontend)
-- **Concierge UI**: `Kuro/Views/ConciergeView.swift` (inline chat, import, recommend UI, toasts), `ConciergeEditorialShell.swift` (editorial shell wrapper), `ConciergeComponents.swift` (shared components + curated copy), `ConciergeInputField.swift` (text input), `ConciergeComposerDock.swift` (input composer dock), `ConciergeActionFooter.swift` (action footer bar), `ConciergeIntentDeck.swift` (quick-action intent deck), `ConciergeImportCards.swift` (import preview/confirm cards), `ConciergeRecommendationRails.swift` (recommendation rail rendering), `ConciergeResponseStage.swift` (response stage rendering)
+- **Concierge UI**: `Kuro/Views/ConciergeView.swift` (inline chat, import, recommend UI, toasts), `ConciergeEditorialShell.swift` (editorial shell wrapper), `ConciergeComponents.swift` (shared components + curated copy), `ConciergeInputField.swift` (text input), `ConciergeImportCards.swift` (import preview/confirm cards), `ConciergeRecommendationRails.swift` (recommendation rail rendering), `ConciergeResponseStage.swift` (response stage rendering)
 - **Discover**: `Kuro/Views/EditorialDiscoverView.swift` (sections, rails, filters)
-- **Collection**: `Kuro/Views/EditorialCollectionView.swift` + list helpers in `SupabaseService`
+- **Collection**: `Kuro/Views/EditorialCollectionView.swift` + `CollectionStore` (card pages/feed) and `LibraryStore` (tracking)
 - **Browse**: `Kuro/Views/BrowseView.swift` (full-page browse with filters)
 - **Search**: `Kuro/Views/EditorialSearchView.swift`
-- **Clubs**: `Kuro/Views/ClubsView.swift` (club list, enriched cards, unread dots), `Kuro/Views/ClubDetailView.swift` (3-tab: Rails/This Week/Polls), `Kuro/Views/ClubCreateSheets.swift` (create/join sheets), `Kuro/Views/DetailPages/ClubActivitySection.swift` (media detail club context + Add to Club sheet)
+- **Clubs**: `Kuro/Views/ClubsView.swift` (club list, enriched cards, unread dots), `Kuro/Views/ClubDetailView.swift` (3-tab: Rails/Active/Polls), `Kuro/Views/ClubCreateSheets.swift` (create/join sheets), `Kuro/Views/DetailPages/ClubActivitySection.swift` (media detail club context + Add to Club sheet)
 - **Social activity**: `Kuro/Views/DetailPages/FriendsActivitySection.swift` (friend tracking pills, title comments, thumbs up/down reactions)
 - **Cards / badges**: `Kuro/Views/KuroRefinedCard.swift`, `Kuro/Views/KuroCardText.swift`
 - **Glass UI**: `Kuro/Views/KuroGlass.swift`
@@ -481,7 +865,7 @@ node scripts/generate_app_state_inventory.js
 - **Feature flags**: `Kuro/Services/FeatureFlags.swift` (staged rollout definitions for clubs, concierge, realtime, social activity, FM assist, streaming availability features)
 - **Analytics**: `Kuro/Services/ConciergeAnalytics.swift` (concierge + club interaction telemetry)
 - **Text normalization**: `Kuro/Services/TextNormalization.swift` (search/parsing text utilities)
-- **Synopsis condenser**: `AnimeDetailView.swift`, `MangaDetailView.swift` call `fmService.condenseSynopsis()` for descriptions > 200 chars
+- **Synopsis condenser**: `AnimeDetailView.swift`, `MangaDetailView.swift` call `deviceIntelligence.condenseSynopsis()` (the injected `AppleFMService`) for descriptions > 200 chars
 - **Next Up picks**: `NextUpSection` (in `AnimeDetailView.swift`), `MangaNextUpSection` (in `MangaDetailView.swift`) — personalized next episode/chapter recommendations
 - **Gesture system**: `Kuro/Views/KuroDeliberateTap.swift` (`.kuroDeliberateTap {}` modifier — simple `.onTapGesture` + `suppressCardTaps` environment check), `Kuro/Views/KuroGestureCoordinator.swift` (pager gesture coordination), `Kuro/Views/KuroGesturePolicy.swift` (pager timing constants: `postSwipeTapCooldownMs`, `fastFlingPredictedDxPt`, `fastFlingDirectionRatio`), `Kuro/Views/KuroPagingGesture.swift` (root pager DragGesture + exclusion zones)
 - **Deep linking**: `Kuro/Services/DeepLinkRouter.swift` (URL parsing), `KuroApp.swift` (`.onOpenURL` handler), `ContentView.swift` (navigation + sheet presentation for deep link targets)
@@ -490,8 +874,15 @@ node scripts/generate_app_state_inventory.js
 
 ### Supabase
 - `supabase/migrations/` — schema, indexes, views, RPCs, cron jobs
-- `supabase/functions/` — Edge Functions
+- `supabase/functions/` — Edge Functions (2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` split into handler/plan modules with `*_test.ts`; `concierge-recommend/router.ts` and `concierge-parse/rules.ts` extracted; see `docs/modules/edge-functions.md`)
+- `supabase/prepared-migrations/` — 3 club RLS fixes (R1–R3) PREPARED, NOT deployed; deliberately outside `supabase/migrations/` so `supabase db push` / `scripts/local_cd.sh` cannot deploy them
+- `supabase/tests/` — disposable local-PostgreSQL authorization tests (`rls/*.sql`, platform stub fixture, `pending_migrations.txt`); run by `scripts/db/run_local_db_tests.sh`; see `supabase/tests/README.md`
 - `supabase/CONCIERGE_OPS.md` — concierge budgets, rate limits, retention
+
+### Architecture and module docs (2026-10-05)
+- `docs/plans/2026-10-05-modular-architecture-plan.md` (execution brief, gates G0–G7), `…-execution-ledger.md` (rulings, evidence, gate status, prepared-not-deployed, blockers), `…-contracts.md`, `…-ownership-map.md` (final owner map) + E0 CSV manifests
+- `docs/modules/README.md` (navigation map + add/remove-a-capability guide), `edge-functions.md`, `operations.md`, `sql-function-index.md`/`.csv`, `script-classification.csv`
+- `Packages/KuroModules/README.md` (targets, isolation policy, what is not claimed)
 
 ### Edge function map
 - `bulk-import-anime/` — imports anime catalog from AniList (server-side ingest)
@@ -510,7 +901,8 @@ node scripts/generate_app_state_inventory.js
 - `scripts/concierge_eval_parse.js`, `scripts/concierge_corpus_generate.js`, `scripts/load_test_concierge.js` — concierge QA/ops
 - `scripts/check_cron_health.js`, `scripts/collect_db_metrics.js` — ops
 - `scripts/db_state.sql` — DB snapshot queries (row counts, coverage, etc.)
-- `scripts/quality-gates/` — CI quality gate scripts (8 gates: secrets, migrations, concierge-corpora, router tests, rails audit, docs-current-state, iOS build, iOS test); see section 13.1
+- `scripts/quality-gates/` — CI quality gate scripts (10 gates: secrets, migrations, concierge-corpora, router rules, rails audit, docs-current-state, Swift packages, architecture boundaries, iOS build, iOS test); see section 13.1
+- `scripts/db/` — disposable local database test harness (`run_local_db_tests.sh`, `guard_env.sh`, `test_guard_env.sh`, `replay_migrations.sh`); refuses production/non-local targets
 
 ---
 
@@ -519,22 +911,25 @@ node scripts/generate_app_state_inventory.js
 ### Main navigation
 - File: `Kuro/ContentView.swift`
 - Root: `ContentView -> KuroRootView -> KuroMainView`
-- Swipe order (left to right):
-  1. **Concierge**
+- **Current pager (verified against source 2026-10-31, `KuroMainView.pagerOrder`):** with `series_home_native_v1` effective (also needs `series_foundation_v1` and post-sign-in hydration) the order is **Taste ← Home → Discover → Collection → Clubs** and the Taste page renders `TastePicksView`; Browse and Concierge are not pages then. `selection` starts on Discover and switches to Home after `bootstrapAfterAuth`. Last recorded live values of both `series_*` flags (2026-10-08) are 0%, so real installs use the `taste_deck_v1` order below; the new Home is seen only on the Debug simulator via `--ff-on`. The bullets below describe the `taste_deck_v1` / legacy orders.
+- **Pager is flag-aware** (2026-07-31): with `taste_deck_v1` ON (100%), swipe order (left to right):
+  1. **Taste** (Taste Deck)
   2. **Discover**
   3. **Browse**
   4. **Collection**
   5. **Clubs**
+- Legacy order when `taste_deck_v1` is OFF: **Concierge** ← Discover → Browse → Collection → Clubs (unchanged legacy path).
+- **Concierge archived from the pager** (ADR `2026-07-31-adr-leftmost-surface-and-concierge-archive.md`): code + backend fully preserved; entry points are the Profile row (`ProfileView` Concierge sheet) and the `kuro://concierge` deep link (presented as a sheet; `?prompt=` injection preserved via `ConciergeView.initialPrompt`). `--kuro-start=concierge` launch arg also presents the sheet when the flag is on.
 - **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page.
 - **Offline handling**: Monochrome "OFFLINE" text banner (9pt, tracked) at top of `RootView` when disconnected. Plus: cache-fallback in detail fetches (`fetchAnimeById`/`fetchMangaById` return disk cache on network failure), "SHOWING CACHED DATA" stale indicators (Discover, Collection), offline error states with retry (Browse, Collection, detail sheets), write-action guards (Concierge send, Add to List save/remove, club create rail/poll disabled when offline), auto-refresh on reconnect (Discover/Collection/Clubs via `reconnectionGeneration` observer in `ContentView`).
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
-- **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
+- **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.joinClub(code:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. `kuro://join/<code>` routes to the Clubs page with the join sheet prefilled (`pendingJoinCode`, consumed by `ClubsView`); `kuro://concierge?prompt=...` presents Concierge as a sheet when `taste_deck_v1` is on (page navigation when off). Deep links stashed while logged out are now consumed via `onAppear` after sign-in (fixed 2026-07-31). Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
 - **Auth flow (signup + sign-in)**:
   1. User enters email and password in `AuthView.swift`.
   2. **Inline validation (sign-up mode)**: Real-time email format check (regex on keystroke), debounced 500ms uniqueness check via `check_email_exists` RPC, password minimum length check. Two enums drive state: `EmailStatus` (.empty, .invalidFormat, .checking, .taken, .available) and `PasswordStatus` (.empty, .tooShort, .valid). Inline hint text + checkmarks displayed inside fields. `canSubmit` gates on validation state.
   3. `signUpWithEmail` creates the account — email confirmation is disabled (no `redirectTo`). User is signed in immediately after signup.
-  4. `SupabaseService.handleAuthCallback()` (line 483) still exists for deep link auth flows (password reset, magic link) → `client.auth.setSession()` → `ensureProfileRow()` → `bootstrapAfterAuth()`.
-  - **Key code**: `AuthView.swift` (inline validation enums + debounced RPC check), `SupabaseService.checkEmailExists(email:)` (calls `check_email_exists` RPC), `authCallbackURL` (SupabaseService.swift:420), `handleAuthCallback` (line 483).
+  4. `SessionController.handleAuthCallback(accessToken:refreshToken:)` handles deep link auth flows (password reset, magic link): the fail-closed `AuthCallbackGuard` decision first (see §3.1), then `client.auth.setSession()` → session re-check → `ensureProfileRow()` → `bootstrapAfterAuth()`. (Before 2026-10-05: `SupabaseService.handleAuthCallback()`.)
+  - **Key code**: `AuthView.swift` (inline validation enums + debounced RPC check), `AuthService.checkEmailExists(email:)` (calls `check_email_exists` RPC), `AuthService.authCallbackURL` (`kuro://auth/callback`, used by `AuthService.resetPassword`), `SessionController.signUpWithEmail` / `handleAuthCallback` (`Kuro/Identity/`).
   - **Fallback**: `auth-callback` edge function (315 lines) — dark-themed HTML page with Cormorant serif, grain SVG overlay, animated K logo, type-specific status messages (signup/recovery/magiclink/email_change/invite), loading dots, "Open Kuro" CTA button after 4s timeout, "Continue in browser" secondary link. Security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`.
   - **Pending Supabase Dashboard manual step**:
     1. Auth → Settings → disable "Enable email confirmations" (so signup signs in immediately without verification email)
@@ -542,13 +937,21 @@ node scripts/generate_app_state_inventory.js
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
 - Center: animated section title window (shows section name).
-- On Concierge page only: a small **chat icon** appears next to the section title.
+- On Concierge page only: a small **chat icon** appears next to the section title (legacy pager mode only — Concierge is a sheet, not a page, when `taste_deck_v1` is on).
 - Right: **Profile menu** (circle with initial). Dropdown contains:
   - Profile (sheet)
   - Sign Out
 
+### Taste Deck (pager index 0, `taste_deck_v1` = 100%)
+- File: `Kuro/Views/TasteDeckView.swift` (1002 lines). Client: `Kuro/Taste/TasteStore.swift` (was `SupabaseService+Taste.swift` until 2026-10-05; the deck now delegates signal delivery to the store's bounded outbox).
+- Full-bleed, tap-to-decide taste ritual: one title at a time, three choices — **NOT FOR ME** (`deck_skip`, −0.45) / **I KNOW THIS** (`deck_known`, +0.25) / **CALLS TO ME** (`deck_love`, +0.55). (Relabeled from PASS 2026-07-31 evening per the "continuous liking/disliking" product decision — the left action is a real dislike, not a neutral skip.)
+- 12-card sessions (`fetch_taste_deck_batch` v3, 2026-07-31 evening: half anime / half manga, 2-axis stratified dealing across 6 genre clusters × 3 popularity strata — canon / acclaimed / hidden gems — no adult/Ecchi/Hentai, no ancillary formats, never repeats a listed, signaled, or passed title; explore ratio max(0.25, 0.75·e^(−n/50)) with UCB explore slots; MMR λ = 0.7 diversity, ≤ 4/12 per cluster, ≤ 2/12 per franchise; negative-space probe p = 0.10 from the avoided list only), then a calm "Kuro is listening." summary.
+- "Your leanings" sheet reads `fetch_my_taste_profile` (top weighted tags/genres once the profile exists).
+- Undo (retract last signal), long-press for synopsis, grain hero per the one-hero-grammar design law, `KuroAnimation` tokens only, Reduce Motion honored.
+- Server rules (migrations `20260731010000_taste_deck_v1.sql`, v2 `20260731060000_taste_math_v2.sql` + hotfixes, `20260731090000_taste_deck_pass_memory.sql`): one deck signal per user/media (latest action wins — changing your mind works), retract supported, 300 signals/day cap. A fourth server-side action `pass` (`deck_pass`, strength 0.00) is durable memory only — no stats/evidence/recompute — and excludes the title from future deals (no iOS UI sends it yet; the in-app left action is the NOT FOR ME dislike).
+
 ### Concierge
-- Full left page (no floating launcher in header).
+- **Archived from the pager** (2026-07-31): no longer the leftmost page when `taste_deck_v1` is on. Opens as a sheet from the Profile row, `kuro://concierge` deep link, or `--kuro-start=concierge` launch arg. All code + backend fully preserved; everything below still applies to the sheet.
 - **Inline chat architecture** (no full-screen takeovers, no state machine):
   - Typing indicator for loading states
 - Inline confirm bubble for import preview (grouped: NEW / UPDATE / UNCHANGED)
@@ -586,6 +989,8 @@ node scripts/generate_app_state_inventory.js
 - **Secondary sections** (behind "Show More"): Classics → Current Season → Top Rated → Just Added → Manga Classics → Trending Manga → Top Rated Manga.
 - "Show More" button: monochrome editorial style (stroked rounded rect, chevron down, "N MORE SECTIONS" label). One-way UserDefaults flag (`kuro_discover_show_more`) — once expanded, stays expanded across launches.
 - Data fetching unchanged — all 14 arrays still load via `fetchDiscoverBundle()`. This is UI-only progressive disclosure.
+- **Personalized New to You** (2026-07-31, flag `personalized_new_to_you_v1` at 0%): when the flag is on, the anime NEW TO YOU rail uses `fetch_personalized_new_to_you` v2 (evening: fit = cosine similarity between the user's IDF-weighted taste vector and the title's tag vector; blend `final = (1−w)×editorial_prior + w×fit` with smooth shrinkage w = 0.20·n/(n+20), n = weighted evidence — editorial dominant by construction; avoided-genre penalty narrowed to `genre:` keys / Genre-category tags; 7-day impression rotation) instead of the `discover_bundle` rail. Flag off = unchanged bundle rail.
+- Hero title uses the design-system token (`.kuroTitle`) — fixed 2026-07-31.
 - Cards are two-column + compact horizontal rails
 - Cards show rating pill + metadata line (YEAR · EPS/CH)
 - **Per-rail error state** (P2): `@State loadError` with inline retry view when `fetchDiscoverBundle()` fails on first load. Accessibility label on error state.
@@ -610,33 +1015,94 @@ node scripts/generate_app_state_inventory.js
 
 ---
 
-## 3.1) Client data layer (SupabaseService)
+## 3.1) Client data layer (capability owners; `SupabaseService` retired 2026-10-05)
 
-Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
-- **Auth bootstrap**: restores session, ensures `profiles` row, loads user lists + feed.
-- **Discover**: `fetchDiscoverBundle()` uses RPC `discover_bundle`, cached with in-flight de-dupe.
-- **Search**: RPCs `search_anime_page`, `search_manga_page`.
-- **Browse**: RPCs `browse_anime_page`, `browse_manga_page` with sort selection.
-- **Collection**: keyset paging RPCs `collection_*_page` + in-memory caches.
-- **Upcoming**: `airing_next(days)` RPC + caching/backoff for rate-safe refresh.
-- **Concierge**: calls Edge Functions for parse/recommend/apply/undo; caches parse + recommend.
-- **Realtime**: subscribes to user-scoped channel to refresh list/collection data on changes. Club-specific channel subscription for live updates on 5 tables (rail items, polls, votes, reactions, messages) with 500ms debounce.
-- **Local caches**: `discoverBundleCache`, `conciergeParseCache`, `conciergeRecommendCache` (in-memory, TTL-based).
-- **Apple FM integration**: `fmService` property (`AppleFMService` instance) provides on-device classification, disambiguation, synopsis condensation, and NL collection search intent parsing.
-- **Retry logic**: `withRetry` static helper (exponential backoff, max 2 retries, URLError-only) wrapping 5 key call sites: `fetchMoreAnime`, `fetchMoreManga`, `fetchDiscoverBundle`, `conciergeParse`, `conciergeRecommend`.
-- **Debug logging**: all 127+ `print()` statements wrapped in `#if DEBUG`.
-- **Config error handling**: `init()` sets `configError` instead of `fatalError` when credentials are missing; UI gate in `KuroApp.RootView` prevents any code path from reaching uninitialized `client`.
-- **Memory pressure**: `trimCachesForMemoryPressure()` sheds all entity, detail, discover, and concierge caches plus `ImagePipeline` memory cache without touching user-facing state.
+**Status.** The modular-architecture migration ([execution brief](docs/plans/2026-10-05-modular-architecture-plan.md), [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md), [contracts](docs/plans/2026-10-05-modular-architecture-contracts.md), [ownership map](docs/plans/2026-10-05-modular-architecture-ownership-map.md), [developer guide](docs/modules/README.md)) was executed locally on 2026-10-05 in the dirty `kuro/taste-overhaul` checkout; it is uncommitted and nothing was deployed. The structure below was verified by source inspection on 2026-10-05. Gate status (G0–G7), final integrated test counts and independent-review dispositions are recorded only in the ledger's gate table and final verification section; this section does not restate any gate as passed.
+
+**Retired.** The `SupabaseService` family (13 files, 7,154 lines in the E0 working tree: `SupabaseService.swift` + `+Browse`, `+ClubRealtime`, `+Clubs`, `+Collection`, `+Concierge`, `+Discover`, `+Monetization`, `+Recommendations`, `+Social`, `+Streaming`, `+Taste`, `+UserLists`, including the dead `#else` mock) is deleted; `scripts/quality-gates/check_architecture.sh` fails on any code reference to it. Unreferenced views deleted in the dead-code sweep: `Cards.swift`, `EditorialCards.swift`, `UIComponents.swift`, `PosterView.swift`, `ConciergeIntentDeck.swift`, `ConciergeActionFooter.swift`, `ConciergeComposerDock.swift` (`GenreHubView.swift` stays). Where each part of the old service went: the ownership map.
+
+**Composition root.** `Kuro/Composition/AppComposition.swift`: `AppComposition.shared` builds the object graph once at launch through `makeGraph(...)`, the only construction path (KuroTests build their graph with the same builder via `testingGraph(...)`), over **one** `SupabaseClient` (`makeClient()` from `AppConfig`) and **one** `AccountSessionCoordinator`. Missing `SUPABASE_URL`/`SUPABASE_ANON_KEY` yields a configuration error held by `IdentityStore.configError`; every owner then fails like a transport error and the list backend reports `.unavailable`. `KuroApp` injects the view-facing owners with `.environment(...)`; views read them with `@Environment(Type.self)`. There is no service locator, global event bus or second client. `AppComposition.memoryPressureOwners` is the one list of owners that shed public caches on a memory warning (Catalog, Discovery, Imports, Concierge; images via `MemoryPressureRelief`).
+
+**Owners** (`@MainActor @Observable final class` unless noted; the last column counts view/app files reading the owner through `@Environment` on 2026-10-05):
+
+| Capability | Where | Owner types (main backend calls) | State lifetime | Env readers |
+| --- | --- | --- | --- | ---: |
+| Identity, session, deletion | `Kuro/Identity/` | `IdentityStore` (the only holder of UI auth state), `AuthService` (SDK auth transport: sign-up, `resetPassword`, profile row, `check_email_exists`, `delete-account`), `SessionController` (the E1 session funnel), `AuthCallbackGuard` | App lifetime; drives every account transition | 7 / 2 / 3 |
+| Library (tracking) | `Packages/KuroModules`, `Kuro/Composition/PostgrestLibraryTransport.swift`, `Kuro/Library/` | `LibraryStore` (the only tracking projection), `LibraryActions` (view-facing writes, legacy writer mapping, result banners), `LibraryRealtime` (user-list channel); view adapters `Kuro/Views/LibraryViewActions.swift`, `Kuro/Views/TrackingDraft.swift` | Account-scoped | 16 / 11 |
+| Catalog | `Kuro/Catalog/` | `CatalogStore` (detail, credits/entities, relations, `get_media_ladder`, links/episodes/chapters, `get_manga_chapter_status`) | Public caches survive sign-out | 6 |
+| Discovery + Browse | `Kuro/Discovery/` | `DiscoveryStore` (`discover_bundle`, `browse_*_page`), `RecommendationsReader` (`recommend_ids_similar_to_seeds`) | Public caches; personalised results account-keyed | 6 / 2 |
+| Search | `Kuro/Search/` | `SearchStore` (`search_*_page`) | Per query; a new query cancels the previous in-flight page | 2 |
+| Collection | `Kuro/Collection/` | `CollectionStore` (`collection_*_page`, `collection_feed_page`; no tracking fields, Library is the authority) | Account-scoped | 4 |
+| Releases + reminders | `Kuro/Releases/` | `ReleasesStore` (`user_airing_next`, countdowns; hosts the Library change sink), `ReminderScheduler` (device notifications; the funnel calls its account rules directly) | Account-scoped; the ending account's reminders are removed | 2 |
+| Provider availability | `Kuro/Providers/` | `ProviderAvailabilityStore` (+ `LegalLinks`, + `DetailLinks`: the detail pages' one `ProviderLinkSnapshot` API and the one `validatedOutboundURL`; `batch_provider_availability_for_media_v2`, user services, club shared providers), pure builders `ProviderLinkBuilders.swift` | Public registry survives sign-out; user and club halves account-scoped | 6 |
+| Social activity | `Kuro/Social/` | `SocialActivityStore` (comments, reactions, friend counts) | Account- and club-membership-scoped (`invalidateFriendProjection()`) | 5 |
+| Clubs | `Kuro/Clubs/` | `ClubsStore` (throws typed `ClubError`), `ClubRealtimeCoordinator` (single realtime owner), `ClubsLibrarySink`, club models | Account-scoped; (user, club)-keyed 300 s bundle cache; revocation invalidates | 12 |
+| Imports | `Kuro/Imports/` | `ImportsService` (`concierge-parse`/`-apply`/`-undo`, `concierge-import-anilist`, export text), `ImportReconciler` (pure reconcile/auto-apply rules incl. `initialSelections` and `autoApplyPlan`, shared by Concierge and Profile) | Account-scoped | 2 |
+| Concierge | `Kuro/Concierge/` | `ConciergeStore` (`concierge-recommend`, warmup, retrieval feedback), `ConciergeRouting` (pure clarification gate, FM/keyword routing thresholds, input-field intent/paste rules) | Account-scoped caches; conversation session-local (policy unchanged) | 1 |
+| Taste | `Kuro/Taste/` | `TasteStore` (deck batch, `record_taste_deck_signal` + bounded outbox, taste profile, personalised NEW TO YOU) | Account-scoped | 2 |
+| Telemetry | `Kuro/Telemetry/` | `InteractionTelemetry` (account-scoped queue over `ConciergeAnalytics.shared`), `OutboundLinkTelemetry` (`record_outbound_link`) | Queue account-scoped | 4 / 3 |
+| Navigation (typed routes) | `Kuro/Views/Routing/KuroRoutes.swift` | `EnvironmentValues.kuroRoutes` (`openMedia`, `openClub`, `presentTrackingEditor`, `presentAddToClub`), `.routePresenter()` (one route slot per presentation context), pure `RoutePolicy` | Per presentation context | 15 `kuroRoutes` readers in 13 files; 13 presenter installs |
+| Shared presentation | `Kuro/Views/SharedCards/` (`CompactAnimeCard`, `GridAnimeCard`, `AddToClubRailSheet`), `Kuro/Views/DetailPages/DetailSharedComponents.swift`, `ProviderLinkViews.swift`, `Kuro/Design/FlowLayout.swift` | Connected cards/sheets kept in the app by recorded decision; detail chrome shared by Anime/Manga (load tables in each page header; `docs/modules/detail-pages.md`) | n/a | – |
+| Shared infrastructure | `Kuro/Infrastructure/`, `Kuro/Composition/BannerCenter.swift` | `TimedCache` (struct), `withRetry` (free function, `Retry.swift`), `MemoryPressureTrimmable` / `MemoryPressureRelief`, `BannerCenter` | App lifetime | 3 (banner) |
+| Runtime, config, device | `Kuro/Services/` | `FeatureFlags` (one injected instance; there is no `FeatureFlags.shared`), `AppConfig`, `AppleFMService` (one instance behind `FMProvider`; availability-guarded, returns `nil` when FM is unavailable), `NetworkMonitor`, `ImagePipeline`, `KuroDiskDetailCache`, `DeepLinkRouter`, `ConciergeAnalytics`, `KuroPerf`, `TextNormalization`, `SupabaseRPCParams` | App lifetime | 13 (flags) / 4 (FM) |
+
+**Package targets (`Packages/KuroModules`, linked into the app).** `KuroCore` (Foundation only: `MediaKind`, `MediaKey`, `AccountContext`, `AccountSessionCoordinator`, `AccountScopedLoads`), `KuroLibrary` (`ListStatus`, `Verdict`, `UserRating`, `LibraryEntry`, `LibraryEdit`/`FieldChange`, `LibraryOutcome`/`LibraryError`, `LibraryBackend` port, `LibraryChangeSink`, `LibraryStore`), `KuroSupabase` (`LibraryRowTransport` seam, `SupabaseLibraryBackend` list-table request contract, `UserIdText`). Isolation policy is declared per target in `Package.swift` (swift-tools 6.2, iOS 26 / macOS 26): Swift 5 language mode, default isolation nonisolated, `StrictConcurrency`, `MemberImportVisibility`; stores are explicitly `@MainActor`, value types `Sendable`. No target imports SwiftUI, UIKit or supabase-swift; the SDK binding (`PostgrestLibraryTransport`) lives in the app, which owns the one client. Recorded keep decision (R-E2-1, E5a): every other capability is an in-app folder, not a target, because the owners depend on app model/presentation types, are read by 1–12 view files each and a target would add no isolation or test benefit; Catalog, Discovery, Search, Releases, Providers, Social, Clubs, Imports, Concierge, Taste, Telemetry and DesignSystem targets were deliberately not created.
+
+**Account lifecycle contract** (E1 rulings R-E1-1..3, [contracts §2](docs/plans/2026-10-05-modular-architecture-contracts.md)):
+- `AccountContext { userId, generation }`; `AccountSessionCoordinator.begin(userId:)` returns started / unchanged / switched. Same-user token refresh, repeated sign-in and restore keep the context; only a different user or a sign-out ends it.
+- Every async completion that publishes private state captures its context at the start and checks `isCurrent` before every write, including errors and loading flags.
+- Account-scoped owners conform to `AccountScopedState` (`cancelAccountWork()`, `clearPrivateState()`) and are registered ONCE in `AppComposition.makeAccountScopedStates`, in this order: `LibraryActions`, `CollectionStore`, `DiscoveryStore`, `ReleasesStore`, `SocialActivityStore`, `ProviderAvailabilityStore`, `ClubsStore`, `ImportsService`, `ConciergeStore`, `TasteStore`, `InteractionTelemetry` (membership and order asserted by `IdentityCompositionTests`). `SessionController` rebinds/resets `LibraryStore` itself before the list runs.
+- `SessionController` is the single funnel for launch restore, SDK auth events, sign-in/sign-up, auth callbacks, sign-out and deletion. Sign-out: invalidate the context and clear private state before the first suspension point, then the SDK sign-out, then channel teardown. Deletion: `delete-account` first; local state is cleared and the SDK's persisted session dropped (`signOut(scope: .local)`) only after a confirmed success, so a failed deletion leaves the session intact and retryable.
+- `kuro://auth/callback` (`SessionController.handleAuthCallback(accessToken:refreshToken:)`) is decided BEFORE `setSession` by `AuthCallbackGuard`, failing closed while signed in: signed out → proceed; signed in → proceed only if the token's `sub` is the current user and its `exp` is at least 60 s ahead; the session is re-checked after `setSession`. Residual, recorded and not fixed: no PKCE/nonce, so a validly signed token for another user while signed OUT still signs in.
+- Public caches (catalog detail, entities, ladder, disk detail cache, provider registry) are not account-scoped and survive sign-out.
+
+**Library contract** (E3 rulings R-E3-1..4, contracts §3):
+- `LibraryStore` holds the only projection `[MediaKey: LibraryEntry]` (anime 7 and manga 7 are different keys); lookups are derived at read time, never stored copies.
+- Ratings use the database scale 1–10 (`UserRating`); the legacy 0–100 `UserList.score` is a display projection. This repairs three writers that sent 10–100 values into the 1–10 CHECK (`AddToListSheet` save, `incrementProgress`, `toggleFavorite`).
+- Writes are field-masked `LibraryEdit`s (`FieldChange`: unchanged / set / clear): a progress change never re-sends rating, notes, verdict or status, and a stale snapshot is never re-sent. `save` never overwrites an existing entry. Operations run FIFO per key with an optimistic projection, typed `LibraryOutcome`/`LibraryError` and rollback on failure; a refresh started before a local mutation cannot overwrite it.
+- Explicit `LibraryChangeSink`s (Releases/reminders, Collection, Imports, Clubs) replace the old unconditional list + collection + feed + upcoming refresh after every write. Airing reminders are re-armed on every applied anime change that leaves the title tracked and cancelled on remove (R-E3-3).
+- Import safety: `ImportReconciler.canApply(loadState:)` blocks import apply until `LibraryStore.loadState == .loaded` for the current account, and a title tracked per the server OR the local projection is never auto-applied.
+- Not claimed: no durable offline queue/outbox and no server revision fence; `mutationId`/`baseRevision` are generated and passed through only.
+
+**Clubs revocation.** Leaving, or a membership-loss answer (`NOT_A_MEMBER`, `CLUB_NOT_FOUND`, SQLSTATE `42501`), runs `invalidateClub`: the club bundle, its `myClubs` row, the friend projection, the club's shared providers and its realtime channel are dropped. `fetchMyClubs` and bundle loads are guarded against a revocation that lands mid-request; a new subscription waits for pending teardowns of the same topic; Library changes evict club bundles (`ClubsLibrarySink`).
+
+**Testing harnesses.**
+- Package: `cd Packages/KuroModules && swift test` (Swift Testing on the macOS host; controlled backend and recording transport; no network, database or simulator). Gate `swift-packages` (`scripts/quality-gates/test_packages.sh`) in `run_all.sh`.
+- App: `KuroTests` (61 files as of 2026-11-02; 23 at the 2026-10-05 migration) on the iPhone 17 Pro simulator. Includes `AccountLifecycleTests`, `IdentityCompositionTests` (graph membership/order, sign-out before channel teardown), HTTP-level contract tests that drive the real supabase-swift SDK against the in-process `StubPostgREST` (`LibraryHTTPContractTests`, `PublicDataHTTPContractTests`, `PersonalDataHTTPContractTests`, `PostgrestLibraryTransportTests`), Clubs/Collection/Assistant contract tests, `ImportReconcilerTests`, `TrackingDraftTests` and `LibraryViewActionsTests`. Test totals (baseline and final integrated runs): see the ledger final section.
+- Local database fixture: `scripts/db/run_local_db_tests.sh` builds a throwaway, socket-only PostgreSQL 17 cluster (Homebrew `postgresql@17`; no Docker, nothing installed), refuses any production or non-local target (`scripts/db/guard_env.sh`, unit-checked by `scripts/db/test_guard_env.sh`), stubs the Supabase platform (roles, `auth.uid()`, storage/cron/net stubs) and runs `supabase/tests/rls/*.sql` as `authenticated`/`anon`. It is an **audited-schema fixture, not a migration replay**: baseline-first replay applies 176 of 238 files including the 3 prepared migrations (173 applied / 62 failed with `--exclude-pending`); strict replay applies 130 (127). It proves the listed authorization behaviour for that fixture only, not Auth, Realtime, Storage, PostgREST or production parity. Details: `supabase/tests/README.md`.
+- Pure rule suites added in the final lanes: `RoutingTests` (`RoutePolicy`: kind-prefixed route ids, slot update/double-tap dedupe, destination mapping), `ConciergeRoutingTests` (clarification gate, FM threshold 0.65, keyword routing, paste/auto-send rules), the `ImportReconcilerTests` pre-selection and auto-apply-plan cases (incl. a differential check against the pre-E6 Concierge/Profile compositions) and `DetailProviderLinksTests` (the provider-link snapshot through the real owner: flag off, refresh once per cooldown, superseded run never publishes, one outbound-URL validator). The tautological "Kuro App Tests" suite was deleted.
+- Edge functions: `deno test` per function directory (`concierge-apply`, `concierge-undo`, `delete-account`, `concierge-recommend` router, `concierge-parse` rules). The corpora/router gates now execute the production `router.ts`/`rules.ts` (deno) instead of a copied router; corpus disagreements are pinned and listed in `docs/modules/edge-functions.md`.
+- Structure: `scripts/quality-gates/check_architecture.sh` (no `SupabaseService` references, no `FeatureFlags.shared`, no SDK imports in views, list tables named only in the Library transport/realtime owner, package SDK- and UI-free, tracking writer mapping only in `LibraryActions` and no direct `LibraryStore` writes from views).
+- Not run for this migration: UI/device journeys (no KuroUITests journey and no physical-device run is claimed). The typed-route presenter wiring and the 16 device smoke journeys listed in `docs/modules/README.md` (sheets appear and stack, deep links cold/warm, double tap, behaviour deltas) need a simulator or device.
+
+**Prepared, NOT deployed** (each needs explicit approval; nothing was deployed or applied; details in the ledger):
+
+| Change | Where | Before deploying |
+| --- | --- | --- |
+| `delete-account` hardening: a failed required cleanup returns 500 + `failed_steps`, never `success:true`; auth user deleted last; retryable; storage paged until empty; `anime_comments`/`manga_comments` are now required deletes | `supabase/functions/delete-account/**` | HEAD ignored every list/storage/profile delete error, so all of them now block success. Verify read-only: `has_table_privilege('service_role', <tbl>, 'DELETE')` for `anime_user_lists`, `manga_user_lists`, `anime_comments`, `manga_comments`, `profiles`; both comment tables have `user_id text`; the `media` bucket exists. Otherwise deletion fails for every user (R-E7-2) |
+| `concierge-apply` writes only provided fields (rating <1 = absent, progress never null); `concierge-undo` restores only fields the import wrote and marks its taste signals import-origin | `supabase/functions/concierge-{apply,undo}/**` | Behaviour changes to approve: rating/notes no longer wiped on update (retained exception: the `S{n}E{m}` annotation still overwrites anime notes when the import carries none); new PLANNING/WATCHING adds without a number and status-only updates, which likely failed on HEAD's `progress: null`, now succeed, so import outcomes change visibly; undo no longer overwrites later unrelated edits; undo of a fresh PLANNING add counts −0.05 instead of −0.20 taste signal. Deploy undo, then apply; then set `ImportReconciler.sendsStoredRatingAndNotes` to `false` |
+| Club RLS fixes R1 (member role self-escalation), R2 (direct rail insert by any member), R3 (comment reactions by non-club-mates) | `supabase/prepared-migrations/20261005120000_*`, `…120100_*`, `…120200_*` (outside `supabase/migrations/`, so `supabase db push` / `scripts/local_cd.sh` cannot deploy them; listed in `supabase/tests/pending_migrations.txt`) | Production may already differ through out-of-chain changes: run the read-only pre/post audit queries in each header; `git mv` into `supabase/migrations/` only after approval; `.checksums` not updated |
+| `concierge-recommend` / `concierge-parse` rule extraction (`router.ts`, `rules.ts`; no behaviour change) | those function directories | Optional redeploy |
+
+**Open items and blockers** (from the ledger and the E7 notes in `docs/modules/edge-functions.md`; none is resolved by this document):
+1. **`user_id` casing (F1, R-E3-4).** The app still sends `session.user.id.uuidString` (UPPER-case) verbatim, exactly as before, while the captured RLS compares lower-case `auth.uid()::text`. One decision point, `UserIdText.value(for:)` in `KuroSupabase` (named `SupabaseLibraryBackend.listUserId(for:)` in the ledger's E3 ruling) and used by the list adapter, `LibraryRealtime` and the `user_airing_next` filter, lets the owner switch to `.lowercased()` after a READ-ONLY production check (`select count(*) filter (where user_id <> lower(user_id))` on the list tables, plus `pg_policies`). Not done: production access was outside the brief.
+2. **Club RLS owner decisions.** R4: any member can read other members' raw `club_votes`, `club_rail_item_reactions` and `club_members` rows, also in private clubs; restricting reads alone breaks `fetch_club_bundle`/`fetch_club_bundle_loading`, which are SECURITY INVOKER. R5: leaving/removal is not final, the same invite code rejoins (the leave dialog's "You'll need a new invite code to rejoin" is not true).
+3. **SDK `detail`/`details`.** supabase-swift 2.54.1 decodes the PostgREST error field `detail`, but PostgREST sends `details`, so codes raised only in SQL DETAIL (`RAISE ... DETAIL = 'ERROR_CODE'`; only `add_club_rail_item` relies on it) never reach the app. `ClubError(_:)` checks detail → hint → message → SQLSTATE, so club RPCs that put the code in the message classify correctly, and `add_club_rail_item` failures fall back to SQLSTATE (`23505` → `uniqueViolation`, `42501` → `permissionDenied`) or `.other`. Pre-dates this work (since migration `20260216193000`); no security impact (the server still rejects); needs an owner-decided fix (code in HINT or MESSAGE server-side, or an SDK upgrade/patch).
+4. **`concierge-apply`/`-undo` behaviour changes are pending deployment** (table above); until then the app keeps sending stored rating/notes on update (`ImportReconciler.sendsStoredRatingAndNotes = true`).
+5. **Clubs realtime.** `club_members` is not in the Realtime publication, so there is no server signal for removal (a cached club persists until the next failing request or the 300 s TTL); rail-item/vote/reaction subscriptions are unfiltered (only polls are filtered). Product work, unchanged here.
+6. **Other recorded items.** A revoked notification permission is never noticed (reminders silently undelivered); `AppleFMService.synopsisCache` is keyed by bare `mediaId` (anime 7 and manga 7 share an entry); two of the three Collection requests fetch card pages no view reads (kept for request-count fidelity); collection request dates are sent without a time zone (safe only while the DB session TZ is UTC); `concierge-resolve` has no caller and leaks budget reservations when Groq throws; `mirror-images` fetches without a host allowlist, size cap or timeout.
+7. **Contract items and deviations.** Typed navigation outputs now exist (`Kuro/Views/Routing/KuroRoutes.swift`; 26 cross-feature construction sites migrated; the remaining `MediaDetailSheet(` constructions are Catalog-private sections and the route target itself). Recorded deviations from contracts §4: `presentTrackingEditor` takes a `TrackingEditorRequest` carrying `any MediaDisplayable` (its id is still the `MediaKey`), and `presentAddToClub(MediaKey)` was added. Behaviour deltas established by reasoning only (sheets anchor at the context root, pull-to-refresh no longer inherited, one deep-link slot replaces the open sheet and discards an open root editor's unsaved edits, consecutive Concierge recommendations replace each other) need a device check. The `RuntimeFlags` read-only snapshot was not introduced; the single injected `FeatureFlags` instance is used instead.
+8. **Verification gaps.** UI/device journeys were not run. SDK-bound legs (real sign-in/out, deletion, callback `setSession`) are verified by source reading and stubbed HTTP only. Realtime delivery after revocation, Storage, GoTrue and PostgREST behaviour are not provable in the fixture. Full migration replay and production schema equality are BLOCKED (recovery path: `supabase/tests/README.md`); production migration rehearsal stays open. Local `supabase start` is unavailable (Docker daemon down, no `supabase/config.toml`). Hosted/capacity proof is not claimed, and this architecture work does not pass the Home/detail master's offline, product or capacity gates.
 
 <!-- BEGIN AUTO-IOS-MAP -->
 
 ## 3.2) Auto iOS backend usage index
 
-Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
+Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
-- Swift files scanned: **88** (all `Kuro/**/*.swift`)
+- Swift files scanned: **91** (all `Kuro/**/*.swift`)
 
-### RPCs used by iOS (count: 40)
+### RPCs used by iOS (count: 45)
 - `add_club_rail_item`
 - `batch_provider_availability_for_media_v2`
 - `batch_providers_for_media`
@@ -663,6 +1129,9 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - `fetch_friend_activity_for_title`
 - `fetch_my_clubs_enriched`
 - `fetch_my_clubs_loading`
+- `fetch_my_taste_profile`
+- `fetch_personalized_new_to_you`
+- `fetch_taste_deck_batch`
 - `get_manga_chapter_status`
 - `get_media_availability_status`
 - `get_media_ladder`
@@ -670,6 +1139,8 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - `join_club`
 - `leave_club`
 - `recommend_ids_similar_to_seeds`
+- `record_outbound_link`
+- `record_taste_deck_signal`
 - `save_user_streaming_services`
 - `search_anime_page`
 - `search_manga_page`
@@ -704,10 +1175,10 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 **Architecture details:**
 - 4 `@Generable` structs with `@Guide` annotations: `FMDisambiguationOutput`, `FMModeOutput`, `FMSynopsisOutput`, `FMSearchIntentOutput` (all reasoning-before-selection pattern)
 - `withFMTimeout` helper: uses `ThrowingTaskGroup` to race the FM call against a sleep timer; cancels loser
-- `StubFMProvider`: no-op implementation for devices/OS versions without Foundation Models support
+- `StubFMProvider`: no-op implementation for devices/OS versions without Foundation Models support. Correction (2026-10-05): it is defined but never instantiated; the real fallback is `AppleFMService.isAvailable` (`#available(iOS 26, *)` + `SystemLanguageModel.default.isAvailable`) guarding every capability, which returns `nil` so callers use their non-FM path
 - Compile guards: `#if canImport(FoundationModels)` + `#available(iOS 26, *)`
 - **No entitlement needed**: Foundation Models framework works via simple `import FoundationModels` — no capability toggle or entitlement required in the Developer Portal. Only the Adapter entitlement (for custom LoRA fine-tunes) requires a separate request.
-- Integrated into `SupabaseService.fmService` (property on both production and mock service)
+- One instance per object graph, created by `AppComposition.makeAssistant` (`deviceIntelligence`) and read by views through `@Environment(AppleFMService.self)` (was `SupabaseService.fmService` until 2026-10-05)
 
 ## 3.4) Network monitoring
 
@@ -725,7 +1196,9 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 
 ## 4) Design system (current)
 
-**Design philosophy:** Editorial minimalism + premium glass surfaces
+**Design philosophy:** Editorial minimalism. Home, series detail and Profile (9 October 2026) use a scoped neutral canvas: `kuroCanvasPage` `#FFFFFF`, `kuroCanvasQuiet` `#F6F6F6`, `kuroInk` `#252625` (the prototype's ink since 2026-11-01; was `#181818`), `kuroInkSecondary` `#5C5C5C`, `kuroInkQuiet` `#6B6B6B`, `kuroHairline` black at 10%. Other pages still use `kuroBackground`. Artwork keeps its own color. `KuroSceneryLoop` is the shared mountain banner.
+
+**Prototype palette and artwork materials (2026-11-01, prototype-fidelity Task 2):** `kuroCanvasHome` `#fffef8` (Home/Taste canvas), `kuroPaper` `#f5f5f4` (detail paper), `kuroMuted` `#696c6b`, `kuroLine` (`#272b29` at alpha 0x20), raised key faces `kuroKeyLightTop/Bottom` `#f1f4f2/#d5ded8` and `kuroKeyDarkTop/Bottom` `#444a47/#2c322f`. Per-title tint comes from `ArtworkMaterial` (`Kuro/Design/ArtworkMaterial.swift`, port of the prototype's `art-hue-v1`; white text ≥ 7:1; neutral `#3a3d3c`) served by `ArtworkMaterialStore` (seed `cover_image_color` first, derived material later, memory + disk cache). Motion tokens `KuroMotion.contact/settle/medium` (120/220/320 ms) use the prototype ease `cubic-bezier(.2,.8,.25,1)`.
 
 **Key design primitives**
 - `KuroGlassCard` in `Kuro/Views/KuroGlass.swift`
@@ -733,15 +1206,21 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - `KuroScoreBadge`, `KuroPortraitCard`, `KuroCompactCard` in `Kuro/Views/KuroRefinedCard.swift`. Card widths are adaptive: `floor((screenWidth - 56) / 2.8)` clamped to [112, 144]. `CompactHorizontalSection` / `CompactHorizontalMangaSection` require explicit `containerWidth` (no default). All surfaces pass screen width or GeometryReader width.
 - Concierge iconography: `KuroConciergeMark` (butler glyph) in `Kuro/Views/KuroConciergeMark.swift`
 
-**Typography**
-- Serif for titles and editorial feel
-- Light weights for subtitles
-- Uppercase tracking for section titles
+**Typography** (since 2026-11-01, prototype-fidelity Task 2)
+- Display roles (`kuroHero/Display/Feature/Headline/Title`) use the system sans at the prototype's weights (heavy/semibold); tight negative tracking via `.kuroTracking(_:)`
+- Serif (`kuroEditorial(size:)`) only for the prototype's editorial headings (club name/quote, "Between us.", manga detail title/hook, "Your bookmark", "Seen the anime?")
+- The medium switch words use `kuroMediumWord()` / `.kuroMediumWordStyle()` (heavy uppercase sans)
+- Uppercase tracking for kickers (`kuroKicker()`)
 
 **Card details (current)**
 - Rating pill in top-right of poster
 - Metadata line shows `YEAR · EPS/CH` under title
 - Poster corners rounded (8–12pt depending on card type)
+
+**Design law (ADR `2026-07-31-adr-design-direction.md`, 2026-07-31)**
+- One hero grammar: full-bleed heroes use the club-hero grain recipe (blurred artwork + grain overlay + gradient fades + serif italic title) — Taste Deck hero follows it.
+- `KuroAnimation` tokens only for motion; no ad-hoc springs/durations on new UI.
+- One placeholder spec for new UI (shared fallback treatment, no per-screen improvisations).
 
 ---
 
@@ -767,6 +1246,15 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
   - `skipIfMirrored` (default true)
   - `cacheControl` (default 604800)
   - `timeBudgetMs` (default 90000)
+
+### Image convergence v1 (migration `20260731020000_image_convergence_v1.sql`, 2026-07-31)
+- **Remote-only selection**: mirror candidates are now assets whose live column is still a remote URL — the old fixed-window re-scan ceilings are gone.
+- **Anti-unmirror triggers**: `protect_mirrored_image_columns` BEFORE UPDATE triggers on `anime`/`manga` (`cover_image_large/medium`, `banner_image`) and `characters`/`staff` (`image_large`) — once a column holds a storage URL, imports can't overwrite it with a remote URL or NULL.
+- **Priority queue (mirror-on-view)**: `image_mirror_state.priority_at` + partial index; `enqueue_image_mirror(p_media_type, p_media_id)` RPC (authenticated, 60/day via `rate_limit_hit`). Each `mirror-images` run drains up to 50 priority rows first.
+- **Visibility ordering**: `image_mirror_character_candidates` / `image_mirror_staff_candidates` views (service_role) order characters/staff by catalog join count so high-visibility images mirror first.
+- **Coverage metrics**: `image_mirror_coverage` view (service_role) — total/mirrored/% per media type + pending priority count.
+- **Baseline measured 2026-07-31 (via REST)**: anime 602/21668 (2.8%), manga 600/41721 (1.4%), characters 200/97800 (0.2%), staff 201/41220 (0.5%) — exactly the old fixed-window ceilings; convergence is now unblocked.
+- **Cron windows rescheduled** (same job names/times, actionable windows): anime-manga offsets 0/600/1200 (limit 200), character/staff limit 300.
 
 ### Storage bucket
 - Public bucket name used by default: `media`
@@ -846,6 +1334,24 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - RPCs (5): `upsert_title_comment`, `delete_title_comment`, `toggle_comment_reaction`, `fetch_friend_activity_for_title`, `count_friends_tracking`
 - Rate limits: 10 comments per 5 minutes, 30 reactions per minute
 - Feature flag: `social_activity_v1` (100% rollout)
+- **Sharing-level enforcement fix** (migration `20260731040000_clubs_trust_pack_v1.sql`, 2026-07-31): `fetch_friend_activity_for_title` + `count_friends_tracking` now apply club sharing semantics per subject member — effective rank = min(club level, member self-downgrade) across shared non-archived clubs; eff_rank 0 excluded entirely, 1 = status only (progress/rating NULLed), 2 = full detail. Previously these RPCs bypassed sharing levels (privacy hole, now closed).
+
+### Taste / personalization (2026-07-30 → 2026-07-31; v2 math live since 2026-07-31 evening)
+- `taste_signal_events` (RLS select-own; writes via SECURITY DEFINER only) — durable semantic events from list triggers + deck signals (`deck_love` +0.55 / `deck_known` +0.25 / `deck_skip` −0.45 / `deck_pass` 0.00 memory-only, added evening).
+- `taste_profile_recompute_queue` (service_role only; `last_error` jsonb column added 2026-07-31).
+- `taste_import_context` + `begin_taste_import_context` / `clear_taste_import_context` (import-origin marking).
+- `media_tag_vectors` matview (v2, migration `20260731060000_taste_math_v2.sql`) — per (media_type, media_id, tag) IDF-weighted tag space: w = (rank/100) × IDF, `IDF = ln(1 + N/(1+df))`; genres folded in as `genre:` pseudo-tags; per-media L2 norm. Refreshed nightly by pg_cron `taste-tag-vectors-refresh` (03:50). Built uniqueness-by-construction (max-rank tag collapse, distinct genre unnest) because prod has case-variant tag rows + duplicated `genres` arrays.
+- `taste_tag_stats` (v2) — per-user per-tag α/β posteriors (Beta(1,1) prior) powering the deck's deterministic UCB explore slots; weekly ×0.95 decay via pg_cron `taste-tag-stats-decay` (Sun 04:10).
+- `user_taste_profiles` (pre-existing from concierge core; written by `recompute_user_taste_profile` v3 — user vector in the same IDF space: events × title tag vectors, 180-day half-life decay, import ×0.25, weighted evidence n (strong = 1.0 / weak = 0.5), smooth shrinkage w = 0.20·n/(n+20) replacing the old tier-step weights, symmetric absolute-mass caps, per-title cap 8%, per-franchise cap 15% via `media_relations` family, genre weight 1.2×√IDF, stored vector = top-60 tag keys by abs mass + ALL `genre:` keys with abs(w) > 0.001, per-name negative floor −1.0; avoided tags: ≥2 negative events or cumulative ≤ −0.8 AND net-negative sentiment — the net-negative guard fixes loved-yet-avoided artifacts).
+- RPCs: `fetch_taste_deck_batch` (v3: 2-axis stratified dealing, 6 genre clusters × 3 popularity strata; explore ratio max(0.25, 0.75·e^(−n/50)); UCB explore slots; MMR λ = 0.7; ≤ 4/12 per cluster, ≤ 2/12 per franchise; negative-space probe p = 0.10 from avoided list), `record_taste_deck_signal` (300/day incl. passes, latest action wins, retract supported, `pass` accepted server-side), `fetch_my_taste_profile`, `recompute_user_taste_profile`, `drain_taste_recompute_queue` (internal-only — EXECUTE revoked from public/anon/authenticated on 12 internal/definer functions in hotfix `20260731070000`; tier-2 helpers stay authenticated-callable because SECURITY INVOKER RPCs call them as the caller), `fetch_personalized_new_to_you` (v2: cosine fit + w blend) (+ SECURITY DEFINER impression helpers `_taste_recent_impressed_ids` / `_taste_stamp_impressions`; RLS now enabled on `discover_rail_impressions`), `recommend_ids_similar_to_seeds` (v2: full cosine + L3 craft multiplier × ≤ 2, popularity removed from similarity).
+- Ops view: `taste_pipeline_status` v2 (service_role).
+- Feature flags: `taste_deck_v1` (100%), `personalized_new_to_you_v1` (0% — ramp criteria: drain telemetry sane + staff rail check).
+
+### Monetization ledger (migration `20260731030000_outbound_link_ledger_v1.sql`, 2026-07-31)
+- `outbound_link_events` (bigserial id, user_id FK CASCADE, media_type ANIME/MANGA, media_id, link_kind CHECK(watch/read/provider_sheet/external_reference), provider, created_at).
+- RLS: select-own only; writes exclusively via `record_outbound_link` RPC (SECURITY DEFINER, 120 events/user/hour).
+- Retention: `purge_outbound_link_events` + daily 04:40 cron (90-day retention).
+- Posture (ADR `2026-07-31-adr-monetization-posture.md`): no ads ever; click ledger now, affiliate decoration later behind `affiliate_links_v1` (seeded OFF, compliance review precedes any flip); Kuro Selects + Patron as roadmap.
 
 ### Ops / metrics
 - `concierge_metrics_hourly`
@@ -860,7 +1366,7 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 ### Auth + RLS
 - Supabase Auth is used (email/password, email confirmation disabled; OAuth can be added later).
 - Inline sign-up validation: `AuthView.swift` checks email format (regex) and uniqueness (debounced `check_email_exists` RPC) in real time. `check_email_exists` is a SECURITY DEFINER function querying `auth.users`, granted to anon+authenticated.
-- `profiles` row is ensured on sign-in (`SupabaseService.ensureProfileRow()`).
+- `profiles` row is ensured on sign-in (`AuthService.ensureProfileRow()`, called by `SessionController`; was `SupabaseService.ensureProfileRow()` until 2026-10-05).
 - RLS is enabled; user tables are scoped to `auth.uid()` in migrations.
 - Concierge endpoints always derive user id from JWT (never accept raw user_id from client).
 - **Clubs RLS**: 30+ policies across 9 tables. All access gated by membership via `is_club_member()` / `is_club_admin_or_owner()` / `is_club_owner()` (SECURITY DEFINER helpers to avoid infinite recursion on club_members self-query). club_members INSERT is managed via SECURITY DEFINER RPCs only (no direct policy). Rail lock enforced in `club_rail_items` INSERT policy (`cr.is_locked = false`). `club_rail_item_reactions`: member-gated SELECT/INSERT, self-only DELETE. `club_messages`: member-gated SELECT/INSERT, self-only DELETE. **Merged policy** (P2): duplicate `club_members` DELETE policies consolidated into single `club_members_delete_self_or_admin`.
@@ -931,7 +1437,7 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 6. `cast_club_vote` -- SECURITY DEFINER; validates membership + open poll + option belongs to poll; delete+reinsert for re-vote
 7. `create_club_rail` -- SECURITY DEFINER; membership check, title 1-120 chars, auto sort_order; returns {rail_id, title}
 8. `create_club_poll` -- SECURITY DEFINER; membership check, question 1-200 chars, 2-10 options; returns {poll_id, question}
-9. `toggle_club_reaction` -- SECURITY DEFINER; membership check, toggle insert/delete; returns {action, emoji}
+9. `toggle_club_reaction` -- SECURITY DEFINER; membership check, toggle insert/delete; returns {action, emoji}. **Fixed 2026-07-31** (`20260731040000_clubs_trust_pack_v1.sql`): emoji allowlist aligned to the client's canonical keys (`fire`/`heart`/`eyes`/`100`) — the previous server allowlist didn't match what the app sends, so reactions were API-dead; rate limit 30/min preserved
 10. `fetch_my_clubs_enriched` -- SECURITY DEFINER; returns caller's clubs with member_count, last_activity_at, activity_preview, ordered by activity
 11. `send_club_message` -- SECURITY DEFINER; membership check, 280 char max, rate-limited (20/min); returns {message_id, created_at}
 12. `fetch_club_messages` -- SECURITY DEFINER; membership check, paginated newest-first (max 100/page); returns messages
@@ -952,7 +1458,7 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 
 ### iOS views
 - `ClubsView.swift`: 5th page in swipe pager (rightmost). No `NavigationStack` wrapper; club detail opens as sheet. Lists joined clubs with enriched cards (member count, activity preview, unread dot). Empty state with create/join prompts. Foreground notification check on `willEnterForeground`.
-- `ClubDetailView.swift`: 3-tab segmented picker (RAILS / THIS WEEK / POLLS). Chat tab removed in favor of title-level social activity layer. Settings sheet for owner/admin. Reactions row (fire/heart/eyes/100 capsules) on each rail item (gated by `clubs_reactions_v1`). Pace text on This Week items ("3 ep behind the group" / "In sync", gated by `clubs_pace_sync_v1`, requires sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title. Realtime subscription (on appear/disappear, gated by `clubs_realtime_v1`). Add-to-rail: "+" button per rail header (gated by lock status + role), opens `AddItemToRailSheet` with media type toggle, debounced server-side search, typed `PostgrestError` handling (DUPLICATE_ITEM, NOT_A_MEMBER, RAIL_LOCKED, MEDIA_NOT_FOUND). Task lifecycle managed via `.onDisappear` cancellation. **Vote error handling**: `castVote` wrapped in do/catch with `.error` toast + `errorHaptic()`. **Accessibility**: `.accessibilityAddTraits(.isHeader)` on section headers.
+- `ClubDetailView.swift`: 3-tab segmented picker (RAILS / ACTIVE / POLLS). Chat tab removed in favor of title-level social activity layer. Settings sheet for owner/admin. Reactions row (fire/heart/eyes/100 capsules) on each rail item (gated by `clubs_reactions_v1`). Pace text on Active items ("3 ep behind the group" / "In sync", gated by `clubs_pace_sync_v1`, requires sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title. Realtime subscription (on appear/disappear, gated by `clubs_realtime_v1`). Add-to-rail: "+" button per rail header (gated by lock status + role), opens `AddItemToRailSheet` with media type toggle, debounced server-side search, typed `PostgrestError` handling (DUPLICATE_ITEM, NOT_A_MEMBER, RAIL_LOCKED, MEDIA_NOT_FOUND). Task lifecycle managed via `.onDisappear` cancellation. **Vote error handling**: `castVote` wrapped in do/catch with `.error` toast + `errorHaptic()`. **Accessibility**: `.accessibilityAddTraits(.isHeader)` on section headers.
 - `ClubActivitySection.swift`: Embedded on `AnimeDetailView` and `MangaDetailView`. Shows club context: which clubs have this title, aggregate member statuses.
 - `ProfileView.swift`: "Clubs" row opens ClubsView sheet (secondary access path).
 - Monochrome status pills (no colored dots).
@@ -973,6 +1479,12 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 - Last-seen stored in local UserDefaults per club (`com.kuro.clubLastSeen.*`).
 - Badge dot on Clubs page indicator in header when unseen activity exists.
 - Badge cleared when navigating to Clubs page.
+
+### Clubs trust pack v1 (migration `20260731040000_clubs_trust_pack_v1.sql`, 2026-07-31)
+- `toggle_club_reaction` allowlist fixed to client canonical keys (`fire`/`heart`/`eyes`/`100`) — reactions were API-dead before (server rejected every client emoji).
+- `fetch_friend_activity_for_title` + `count_friends_tracking` now enforce sharing levels (see Social activity section) — privacy hole closed.
+- Flags re-seeded (`ON CONFLICT DO NOTHING`, remotely flippable): `clubs_reactions_v1` + `clubs_list_enriched_v1` at 100%; `clubs_realtime_v1`, `clubs_pace_sync_v1`, `clubs_notifications_v1` at 0% (dark until ramped).
+- iOS (2026-07-31): club share text now includes `kuro://join/<code>` (deep link → prefilled join sheet); fixed "You were removed" copy for never-members; duo clubs show honest "Activity unlocks at 3 members" copy.
 
 ---
 
@@ -1017,6 +1529,18 @@ Client + edge functions rely on these RPCs:
   - `batch_providers_for_media(p_media_type, p_media_ids)` — returns streaming/reading providers for a batch of media IDs, joined against user's selected services
   - `club_shared_providers(p_club_id)` — returns providers shared by all members of a club (intersection)
   - `save_user_streaming_services(p_service_ids, p_language)` — upserts user's selected streaming services + language preference
+- **Taste RPCs** (2026-07-31; v2 math live since evening):
+  - `fetch_taste_deck_batch(p_limit)` — SECURITY INVOKER; v3: one-title-at-a-time deck, half anime/half manga, 2-axis stratified (6 genre clusters × 3 popularity strata), UCB explore slots, MMR λ = 0.7 (≤ 4/12 per cluster, ≤ 2/12 per franchise), negative-space probe p = 0.10, never repeats listed/signaled/passed titles
+  - `record_taste_deck_signal(...)` — writes `deck_love`/`deck_known`/`deck_skip`/`deck_pass` (+0.55/+0.25/−0.45/0.00 memory-only); latest action wins; retract supported; 300/day cap
+  - `fetch_my_taste_profile()` — caller reads their own `user_taste_profiles` row
+  - `recompute_user_taste_profile(p_user_id)` — SECURITY DEFINER; v3: user vector in the `media_tag_vectors` IDF space (180-day half-life, weighted evidence n, shrinkage w = 0.20·n/(n+20), symmetric absolute-mass caps, genre weight 1.2×√IDF, top-60 tags + all genre keys > 0.001 stored, net-negative avoidance guard)
+  - `drain_taste_recompute_queue()` — pure-SQL drain, 50 users/run, per-user error capture (pg_cron `taste-profile-drain-15m`); internal-only (EXECUTE revoked from public/anon/authenticated)
+  - `fetch_personalized_new_to_you(p_limit, p_media_type)` — SECURITY INVOKER; v2: cosine fit + (1−w)×prior + w×fit blend, avoided-genre penalty (genre keys only), 7-day impression rotation
+- **Monetization ledger RPCs** (2026-07-31):
+  - `record_outbound_link(p_media_type, p_media_id, p_link_kind, p_provider)` — SECURITY DEFINER, 120/hr per user; only write path into `outbound_link_events`
+  - `purge_outbound_link_events()` — 90-day retention, daily 04:40 cron
+- **Image pipeline RPCs** (2026-07-31):
+  - `enqueue_image_mirror(p_media_type, p_media_id)` — SECURITY DEFINER, authenticated, 60/day; marks remote assets priority for the next mirror run
 - **Ops functions**:
   - `check_mirror_health()` — returns JSONB with mirror run stats (total runs, successes, failures, consecutive failures, alert boolean). Used for operational health monitoring.
 
@@ -1024,7 +1548,7 @@ Client + edge functions rely on these RPCs:
 
 ## 7.1) Auto migration map (objects by migration)
 
-Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
+Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
@@ -1551,6 +2075,38 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 - Functions (5): `public.browse_anime_page`, `public.browse_manga_page`, `public.discover_bundle`, `public.search_anime_page`, `public.search_manga_page`
 - Indexes (1): `discover_rail_impressions_lookup_idx`
 
+### supabase/migrations/20260730160000_taste_signal_events_v1.sql
+- Tables (3): `public.taste_import_context`, `public.taste_profile_recompute_queue`, `public.taste_signal_events`
+- Functions (8): `public._taste_emit_event`, `public._taste_enqueue_recompute`, `public._taste_meaningful_progress`, `public._taste_parse_user_id`, `public.begin_taste_import_context`, `public.clear_taste_import_context`, `public.taste_bump_list_updated_at`, `public.taste_capture_list_mutation`
+- Indexes (3): `taste_signal_events_type_idx`, `taste_signal_events_user_created_idx`, `taste_signal_events_user_media_idx`
+- Triggers (4): `taste_bump_anime_user_lists_updated_at`, `taste_bump_manga_user_lists_updated_at`, `taste_capture_anime_user_lists`, `taste_capture_manga_user_lists`
+
+### supabase/migrations/20260731010000_taste_deck_v1.sql
+- Functions (3): `public.fetch_my_taste_profile`, `public.fetch_taste_deck_batch`, `public.record_taste_deck_signal`
+
+### supabase/migrations/20260731011000_taste_profile_recompute_v1.sql
+- Functions (2): `public.drain_taste_recompute_queue`, `public.recompute_user_taste_profile`
+
+### supabase/migrations/20260731012000_personalized_nty_and_flags_v1.sql
+- Views (1): `public.taste_pipeline_status`
+- Functions (3): `public._taste_recent_impressed_ids`, `public._taste_stamp_impressions`, `public.fetch_personalized_new_to_you`
+
+### supabase/migrations/20260731020000_image_convergence_v1.sql
+- Views (3): `public.image_mirror_character_candidates`, `public.image_mirror_coverage`, `public.image_mirror_staff_candidates`
+- Functions (2): `public.enqueue_image_mirror`, `public.protect_mirrored_image_columns`
+- Indexes (1): `idx_image_mirror_state_priority_at`
+- Triggers (4): `protect_mirrored_image_columns_anime`, `protect_mirrored_image_columns_characters`, `protect_mirrored_image_columns_manga`, `protect_mirrored_image_columns_staff`
+- Cron (5): `mirror-images-anime-manga-0 @ 0 2 * * *`, `mirror-images-anime-manga-200 @ 15 2 * * *`, `mirror-images-anime-manga-400 @ 30 2 * * *`, `mirror-images-character @ 45 2 * * *`, `mirror-images-staff @ 0 3 * * *`
+
+### supabase/migrations/20260731030000_outbound_link_ledger_v1.sql
+- Tables (1): `public.outbound_link_events`
+- Functions (2): `public.purge_outbound_link_events`, `public.record_outbound_link`
+- Policies (1): `public.outbound_link_events:outbound_link_events_select`
+- Cron (1): `outbound-link-ledger-retention @ 40 4 * * *`
+
+### supabase/migrations/20260731040000_clubs_trust_pack_v1.sql
+- Functions (3): `public.count_friends_tracking`, `public.fetch_friend_activity_for_title`, `public.toggle_club_reaction`
+
 
 <!-- END AUTO-MIGRATION-MAP -->
 
@@ -1568,6 +2124,15 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
   - Warmup endpoint: `concierge-parse?warmup=true` returns 204 immediately (used by iOS on view appear)
   - Import reconciliation: returns `existing_entry` per item after candidate resolution; proposes Add/Update/Skip actions
   - Items processed in parallel via `Promise.all`
+
+### AniList import
+- `concierge-import-anilist` Edge Function
+  - Imports a user's AniList list into concierge import sessions
+  - **Auth hardened 2026-07-31**: added explicit `auth.getUser()` 401 gate — unauthenticated calls are rejected before any work
+
+### Concierge product posture (2026-07-31)
+- Concierge UI is archived from the pager (Taste Deck owns index 0; see section 3). Entry points: Profile row, `kuro://concierge` deep link (sheet, prompt preserved), `--kuro-start=concierge`. All concierge backend functions, RPCs, budgets, and iOS code remain live and unchanged in behavior.
+- `concierge-apply` begins/clears `taste_import_context` around session upserts so list writes from imports mark taste events `is_import=true` (best-effort).
 
 ### Disambiguation
 - `concierge-resolve` Edge Function
@@ -1681,7 +2246,7 @@ Response JSON:
 
 ## 8.2) Auto edge-function map (contracts + dependencies)
 
-Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
+Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
 ### auth-callback
 - Source: `supabase/functions/auth-callback/index.ts`
@@ -1701,7 +2266,7 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 ### concierge-apply
 - Source: `supabase/functions/concierge-apply/index.ts`
 - Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
-- RPCs: `check_concierge_rate_limit`, `log_concierge_run`
+- RPCs: `begin_taste_import_context`, `check_concierge_rate_limit`, `clear_taste_import_context`, `log_concierge_run`
 - Tables touched: `anime`, `anime_user_lists`, `episodes`, `import_session_items`, `import_sessions`, `manga`, `manga_user_lists`, `title_aliases`
 
 ### concierge-import-anilist
@@ -1765,7 +2330,7 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - Source: `supabase/functions/mirror-images/index.ts`
 - Env vars: `IMPORT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `acquire_import_lock`, `release_import_lock`
-- Tables touched: `anime`, `characters`, `image_mirror_state`, `manga`, `mirror_runs`, `staff`
+- Tables touched: `anime`, `characters`, `image_mirror_character_candidates`, `image_mirror_staff_candidates`, `image_mirror_state`, `manga`, `mirror_runs`, `staff`
 
 
 <!-- END AUTO-EDGE-MAP -->
@@ -1807,6 +2372,14 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 **Mirror cron jobs** (P1-16: fixed contention — was 58% skip rate):
 - 5 `pg_cron` mirror jobs, spaced 15 min apart (02:00, 02:15, 02:30, 02:45, 03:00)
 - Batch size: 200 (was 500), per-batch lock keys, 120s TTL (was 1800s)
+- **Rescheduled 2026-07-31** (`20260731020000_image_convergence_v1.sql`): same job names/times, actionable remote-only windows — anime/manga offsets 0/600/1200 (limit 200 each), `mirror-images-character` + `mirror-images-staff` limit 300. Selection is remote-only, character/staff ordered by catalog join-count visibility, and each run drains up to 50 `priority_at` rows first.
+
+**Taste pipeline cron** (2026-07-31):
+- `taste-profile-drain-15m` — `*/15 * * * *`, pure SQL (`select public.drain_taste_recompute_queue();`), 50 users per run, per-user error capture into `taste_profile_recompute_queue.last_error`. No HTTP/GUC pattern.
+- **Added evening (v2):** `taste-tag-vectors-refresh` (03:50 nightly — refreshes the `media_tag_vectors` matview) and `taste-tag-stats-decay` (Sunday 04:10 — weekly ×0.95 decay on `taste_tag_stats` α/β posteriors so old evidence re-widens into exploration).
+
+**Outbound link ledger cron** (2026-07-31):
+- `outbound-link-ledger-retention` — `40 4 * * *` daily, `select public.purge_outbound_link_events();` (90-day retention).
 
 **Bulk import cron jobs** (P0-4: auth added):
 - 4 `pg_cron` bulk import jobs send `x-import-secret` header for auth
@@ -1826,6 +2399,8 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
   - `llm_usage_daily_totals`
   - `rate_limit_recent_top`
 - Mirror health: `check_mirror_health()` function returns JSONB with run stats, consecutive failures, and alert boolean
+- Image coverage: `image_mirror_coverage` view (service_role) — total/mirrored/% per media type + pending priority rows (2026-07-31)
+- Taste pipeline: `taste_pipeline_status` view v2 (service_role) — recompute queue depth, last processed_at, events by type (24h), users with profiles, avg confidence (2026-07-31; v2 evening)
 - Ops doc: `supabase/CONCIERGE_OPS.md`
 - Scripts:
   - `scripts/check_cron_health.js`
@@ -1861,15 +2436,16 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 
 ### Client caching
 - `ImagePipeline` with memory + disk caching
-- SupabaseService uses in-flight task de-duplication for:
-  - discover bundle
-  - concierge recommend/parse
-  - collection feeds
-  - upcoming airing windows
+- Since 2026-10-05 each capability owner holds its own caches and in-flight de-duplication (TTL caches via `TimedCache`, keyed account-scoped loads via `KuroCore.AccountScopedLoads`), e.g.:
+  - discover bundle (`DiscoveryStore`)
+  - concierge recommend/parse (`ConciergeStore`, `ImportsService`)
+  - collection feeds (`CollectionStore`)
+  - upcoming airing windows (`ReleasesStore`)
+- Private caches are cleared or account-keyed through `AccountScopedState`; public caches survive sign-out (§3.1).
 
 ### Retry logic (P1-18)
-- `SupabaseService.withRetry` — static helper with exponential backoff (max 2 retries, URLError-only; non-network errors thrown immediately)
-- Wrapped call sites: `fetchMoreAnime`, `fetchMoreManga`, `fetchDiscoverBundle`, `conciergeParse`, `conciergeRecommend`
+- `withRetry` — free function in `Kuro/Infrastructure/Retry.swift` (moved unchanged from `SupabaseService.withRetry` on 2026-10-05): exponential backoff 500 ms, 1 s (max 2 retries), `URLError`-only; non-network errors thrown immediately; the backoff sleep is injectable for tests
+- Wrapped call sites today: Discover bundle (`DiscoveryStore`), concierge parse (`ImportsService`), concierge recommend (`ConciergeStore`). The former `fetchMoreAnime`/`fetchMoreManga` wrappers no longer exist (removed with the retired service).
 
 ### Apple FM synopsis cache
 - `AppleFMService.synopsisCache` — `[Int: String]` dictionary keyed on `mediaId` (or `description.hashValue` fallback)
@@ -1880,39 +2456,42 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - Indexes added in migrations (see `20260203223000_scale_perf_bundle_and_indexes.sql`)
 
 ### Pagination defaults
-- `SupabaseService` default page size: **50**
+- Page sizes are per owner since 2026-10-05 (the former `SupabaseService` default of 50 no longer exists): e.g. episode/chapter pages 50 (`CatalogStore`), collection feed 90 (`CollectionStore`), Browse view pages 60 (`BrowseView`); the Library list fetch pages 1000 rows per table (`SupabaseLibraryBackend`, assumes PostgREST `max_rows` ≥ 1000)
 - Collection feed uses keyset pagination on `(updated_at, id)` for anime/manga lists
 - Browse + Search use RPC paging (`browse_*`, `search_*`)
 
 ### Realtime
-- `SupabaseService` subscribes to user-scoped realtime channels to keep lists/collection fresh.
-- Subscriptions are stopped on sign out.
+- `LibraryRealtime` (`Kuro/Library/`) owns the account's user-list channel (refreshes Library, Collection and Releases after a debounce); `ClubRealtimeCoordinator` (`Kuro/Clubs/`) is the single owner of club channels.
+- `SessionController` stops both on sign-out and account switch (SDK sign-out first, channel teardown last); late events from an ended account are rejected.
 
 ### Perf instrumentation
 - `KuroPerf` is used around heavy RPCs + image fetches for perf logging.
 
 ---
 
-## 12) Current UI state (Concierge + Header + Clubs)
+## 12) Current UI state (Taste Deck + Header + Clubs)
 
-- Concierge is a **full page** (left swipe). Uses **inline chat architecture** — no state machine, no full-screen takeovers.
+- **Taste Deck** (`taste_deck_v1` = 100%) owns pager index 0: full-bleed tap-to-decide card (NOT FOR ME / I KNOW THIS / CALLS TO ME — left action relabeled from PASS to its true dislike semantics 2026-07-31 evening), 12-card stratified sessions (v3 dealing: genre clusters × popularity strata, explore UCB, MMR diversity), "Kuro is listening." summary, Your leanings sheet, undo, long-press synopsis, grain hero, Reduce Motion honored. `TasteDeckView.swift` + `TasteStore.swift` (was `SupabaseService+Taste.swift` until 2026-10-05).
+- Concierge is **archived from the pager** (2026-07-31) — opens as a sheet from the Profile row, `kuro://concierge`, or `--kuro-start=concierge` (prompt injection preserved). Uses **inline chat architecture** — no state machine, no full-screen takeovers.
   - `ConciergeDisplayState` enum deleted. Everything renders inline in the chat scroll: typing indicator for loading, inline confirm bubble for imports, editorial rails for recommendations, toast+undo for completion.
   - All UI components use `KuroDesignSystem` tokens (`Font.kuroBody()`, `.kuroCaption()`, `KuroRadius.sm/md/lg`, `KuroAnimation.editorial/fast`, `KuroDesignSpacing.*`).
   - `ConciergeRecCard`: `KuroCachedAsyncImage` + `KuroScoreBadge` overlay, `contextMenu` for save/hide, press state `scaleEffect(0.98)`, KURO watermark on failure. Cards: 130x195pt.
   - `ConciergeConfirmBubble`: inline import review with curated section labels (`NEW`, `UPDATE`, `UNCHANGED`) and concise action summary.
   - Auto-apply: high-confidence imports (all items score >= 0.85, no ambiguous adaptations) auto-apply with undo toast.
 - Header left is **only KURO text**.
-- A small **chat icon** appears next to the section title **only on Concierge page**.
-- Profile is a **top-right menu** (not a dedicated page).
-- **Swipe pager**: 5 pages in order: Concierge (0) ← **Discover** (1, default) → Browse (2) → Collection (3) → Clubs (4). Natural discovery funnel: find → collect → share.
-- **Clubs** is the 5th page (rightmost). Profile sheet also has a "Clubs" shortcut. Club list cards show member count, activity preview, and unread dot. Club detail has 3 tabs (Rails/This Week/Polls — chat tab removed). Reactions (fire/heart/eyes/100) on rail items. Pace tracking on This Week. Milestone celebrations. Realtime updates. Badge dot on Clubs page indicator for unseen activity. Cards have "Add to Club..." context menu. Friend activity indicators on cards show how many friends are tracking each title.
+- A small **chat icon** appears next to the section title **only on Concierge page** (legacy pager mode).
+- Profile is a **top-right menu** (not a dedicated page). Profile sheet rows include **Concierge** (sheet) and Clubs.
+- **Swipe pager** (flag-aware): with `taste_deck_v1` on: Taste (0) ← **Discover** (1, default) → Browse (2) → Collection (3) → Clubs (4). Legacy order when off: Concierge (0) ← Discover (1) → Browse (2) → Collection (3) → Clubs (4).
+- **Onboarding**: the five-card tour ends on Clubs copy; its flag-gated primary CTA says "Teach Kuro your taste" and enters the Taste Deck. Skip leaves Discover selected. This card/action mismatch is an open design-review finding (2026-09-25).
+- **Clubs** is the rightmost page. Profile sheet also has a "Clubs" shortcut. Club list cards show member count, activity preview, and unread dot. Club detail has 3 tabs (Rails/Active/Polls — chat tab removed). Reactions (fire/heart/eyes/100) on rail items (server allowlist fixed 2026-07-31 — reactions work again). Pace tracking on Active. Milestone celebrations. Badge dot on Clubs page indicator for unseen activity. Cards have "Add to Club..." context menu. Friend activity indicators on cards show how many friends are tracking each title (sharing levels enforced server-side since 2026-07-31). Club share text includes a `kuro://join/<code>` deep link that opens the join sheet prefilled; duo clubs show honest "Activity unlocks at 3 members" copy.
 - **Browse** is a first-class page (3rd position), no longer a sheet modal.
 - **Search** remains a global sheet accessible from the header magnifying-glass icon on any page.
 - **Performance**: distance-based page mounting (current ± 1 neighbors mounted, distant pages use placeholder). `.snappy(duration: 0.22)` pager animation. 120fps ProMotion enabled via `CADisableMinimumFrameDurationOnPhone`. Exclusion zone filtering limited to viewport.
 - **Gesture system**: Card taps use `.kuroDeliberateTap {}` modifier (simple `.onTapGesture` + `suppressCardTaps` environment check). The pager sets `suppressCardTaps = true` during swipes to prevent accidental taps; the `.kuroDeliberateTap` modifier reads this flag and ignores taps when suppressed. No custom `DragGesture` on card taps — avoids competing with ScrollView vertical/horizontal drags. Pager constants in `KuroGesturePolicy.swift` (`postSwipeTapCooldownMs`, `fastFlingPredictedDxPt`, `fastFlingDirectionRatio`). The `swipe_tap_guard_v1` feature flag (100%) gates the pager's `suppressCardTaps` logic, not the tap recognizer itself.
 - **Detail views** (AnimeDetailView, MangaDetailView):
-  - **Synopsis condenser**: descriptions > 200 chars are condensed to 2-sentence hooks via `fmService.condenseSynopsis()` on supported devices; falls back to full description on non-FM devices.
+  - **Synopsis condenser**: descriptions > 200 chars are condensed to 2-sentence hooks via `deviceIntelligence.condenseSynopsis()` (injected `AppleFMService`) on supported devices; falls back to full description on non-FM devices.
   - **Next Up picks**: `NextUpSection` (anime) and `MangaNextUpSection` (manga) show personalized next episode/chapter recommendations based on user progress.
+  - **Outbound click ledger** (2026-07-31): WATCH/READ CTAs, provider sheet picks, and external reference links fire `record_outbound_link` (`watch`/`read`/`provider_sheet`/`external_reference`) via `OutboundLinkTelemetry` (`Kuro/Telemetry/`; was `SupabaseService+Monetization.swift` until 2026-10-05). Ledger only — no affiliate decoration (`affiliate_links_v1` OFF).
 - **Offline banner**: monochrome "OFFLINE" text at top of `RootView` when `networkMonitor.isConnected == false`.
 
 ---
@@ -1922,6 +2501,9 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - Xcode project: `Kuro.xcodeproj`
 - Scheme: `Kuro`
 - Default simulator: iPhone 17 Pro (iOS 26.0)
+- Local package `Packages/KuroModules` is linked into the app target; build/test it alone with `cd Packages/KuroModules && swift test` (macOS host).
+- App unit tests: `xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:KuroTests`.
+- Architecture boundaries: `scripts/quality-gates/check_architecture.sh`. Local database authorization tests: `scripts/db/run_local_db_tests.sh` (throwaway PostgreSQL 17; refuses non-local targets). Edge rules: `deno test --no-prompt supabase/functions/<fn>/`.
 
 ---
 
@@ -1929,7 +2511,12 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 
 Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in `.githooks/pre-commit`.
 
-### Gate scripts (8 gates + runner + test data)
+### Gate scripts (10 gates in `run_all.sh` + runner + test data)
+
+**2026-10-05 update (modular architecture):** `run_all.sh` now runs 10 gates in this order: `secrets`, `migrations`, `corpora-shape+exec` (`test_concierge_corpora.sh`: corpus JSON shape plus 107 parser + 67 router corpus cases executed through the production `rules.ts`/`router.ts` with deno; disagreements pinned and printed), `router-rules-exec` (`test_router_offline.sh`: the production `router.ts` chain against the 73 offline cases in `router_test_cases.js` + 22 German-only alternatives; deno replaces the former node-run copy of the router), `rails-audit`, `docs-current-state` (now package-aware: also counts Swift files under `Packages/`, excluding `.build`), `swift-packages` (`test_packages.sh`: `swift test` for `Packages/KuroModules` on the macOS host), `architecture` (`check_architecture.sh`: retired-facade, flags-injection, view SDK-import, tracking-table, package-purity and tracking-writer boundaries), `ios-build`, `ios-test`. Both corpus/router gates now require `deno`. The disposable database tests are NOT part of `run_all.sh`; run `scripts/db/run_local_db_tests.sh` separately (see §3.1). The numbered descriptions below are the earlier text; item 3's "`router_test_cases.js` tests `scoreMode()`" is superseded by this paragraph.
+
+**2026-11-01 update (prototype fidelity, Task 3):** `run_all.sh` adds `branded-states` (`check_branded_states.sh`), registered warning-only (`branded-states:check_branded_states.sh:0`). It lists every `ProgressView(` under `Kuro/Views` outside `Kuro/Views/Shared/KuroBrandedStates.swift` (comment lines ignored; extra paths can be passed to prove the rule on a scratch file). `run_all.sh` now honours the blocking flag: a warning-only gate that exits non-zero is recorded as `WARN` with its own summary count and does not fail the run (exit 0 when nothing else fails). Phase 3 of the prototype-fidelity plan flips it to `:1` once the screen lanes have replaced their spinners (25 offenders in 15 files at Task 3). Since the Phase 1 review follow-up it scans all of `Kuro/` (launch and auth bootstrap included); 9 offenders in 6 lane-owned files remain (plan Task 3 follow-up note).
+
 1. **`check_secrets.sh`** — Scans Swift/TypeScript/JavaScript for hardcoded secrets (service_role JWTs, sbp_/sk-/gsk_ keys). No false-positive on publishable anon key (by design: only flags service_role patterns). Whitelists test fixtures and env var references.
 2. **`check_migrations.sh`** — Checks for untracked/modified SQL files in `supabase/migrations/`, generates/verifies SHA-256 checksums (`.checksums` file). Read-only by default; pass `--update` to write checksums. Warning-only (no hard fail on modified migrations).
 3. **`test_router_offline.sh`** — Runs `router_test_cases.js` which tests `scoreMode()` / `mapStrongGenreToModeId()` logic offline (no network). Hard fail on test failure.
@@ -1996,12 +2583,41 @@ This single command:
 ### Current build
 
 - **Version**: 1.0
-- **Latest build**: 2 (uploaded 2026-02-15)
+- **Build evidence (2026-09-25)**: source settings 1.0 (17); connected iPhone installed 1.0 (19), developer-built. Latest TestFlight/public release unverified. Historical first uploaded build: 2 on 2026-02-15.
 - **Bundle ID**: `com.Kuro.app` (capital K)
 
 ---
 
 ## 14) Change Log (append-only)
+
+- **2026-10-07 — Independent Home/series review requests changes:** Added R01–R16, source fingerprints and local Swift/SQLite reproduction evidence in [docs/handoffs/2026-10-07-home-series-evidence/INDEPENDENT_REVIEW.md](docs/handoffs/2026-10-07-home-series-evidence/INDEPENDENT_REVIEW.md). Supersedes earlier approval-only/readiness and visual-pass conclusions; progress/import/privacy/series/design/query gaps remain open. Five focused package tests pass; fresh PostgreSQL tests blocked by host shared-memory exhaustion. Documentation/evidence only; app/SQL/flags/live unchanged.
+
+- **2026-10-07 — Recalibrate Home release gates (docs only):** Clarified that “Concierge apply/undo” is the import-session receipt path (Concierge stays a sheet), and “pending progress map” is the in-memory optimistic +1 on `HomeStore` (not chat UI). Demoted 1000/5000-session burst/soak and 10M EXPLAIN from hard release blockers to optional pre-user load tooling. Hard bar remains: owner-approved migrate, flags still owner-gated, existing throwaway races/receipt/import + 1M plans, device VoiceOver/haptics before native flag at 100%, live check after deploy. Ledger: `docs/handoffs/2026-10-07-home-series-evidence/ledger.md`. No Swift/SQL edits; flags stay off; no `db push` or edge deploy.
+
+- **2026-10-07 — Finish first Home plan, still not deployed:** Prepared `20261007040000_series_home_foundation_v1.sql` now routes import-session `apply_import_session` / `undo_import_session` progress and status through `_apply_progress_mutations_for_user` / `_fence_set_progress_status` (notes/rating stay direct; Concierge remains a sheet). Throwaway `81_import_session_receipt.sql` 20 PASS. `HomeStore` publishes one pending progress map for Home, both series details, and series Collection; receipt ack clears pending after `adoptServerProgress`. Inner EXPLAIN at 1M list rows recorded in `docs/handoffs/2026-10-07-home-series-evidence/db/explain-largest-fixture.txt` (10M optional/NOT RUN). Poster and native screenshots at 320/390/430 under that handoff’s `screenshots/`; composition rules clean, no layout fix. `series_foundation_v1` / `series_home_native_v1` stay off. No `db push`, edge deploy, or flag enablement. Device VoiceOver/haptics remain a native-flag gate; 1000/5000 soak is optional (see recalibration entry).
+
+- **2026-10-07 — Home and detail closure, flags off, not deployed:** Prepared `supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql` stays out of `supabase/migrations/`. `series_foundation_v1` and `series_home_native_v1` stay off. When the foundation flag is on, `SupabaseLibraryBackend` sends progress, status and removal through `apply_progress_mutations_v1` / `apply_remove_mutations_v1`; notes, rating and verdict stay on PATCH and still advance `server_revision`. MAL XML and AniList `libraryItems` apply through `start_library_import_v1` / `apply_import_chunk_v1` (added, updated, conflict, unmatched; no percentage). Collection uses `collection_series_page_v1` only while the native flag is on. Throwaway PostgreSQL: `93_series_fence_races.sql` 22 assertions PASS, `81_library_import_counts.sql` 9 assertions PASS. Small-fixture `EXPLAIN` of the three bundle calls is a function-call Result node, not a 100k/1M/10M plan. Device, screenshot overlay, 1000/5000 sessions and production apply are NOT RUN. Nothing was pushed or deployed. Evidence: `docs/handoffs/2026-10-07-home-series-evidence/`.
+
+- **2026-09-25 — Current-product and design review:** Added detailed decision review, two-page visual brief, interactive phone proposals and sanitized live/source evidence under `docs/research/2026-09-25-kuro-design-review/`. Verified live flag states, migration-version inventory, active-function inventory, catalogue scheduling coverage, rating constraints and installed-build identity. Recorded functional/source risks before design priorities; corrected nonhistorical Active-tab, onboarding and build labels. Six independent lanes, 11 additional community records. No product source changes, builds, deployments, hosted mutations or user-account/list edits; pre-existing AuthView changes preserved. Commit: uncommitted documentation initiative.
+
+
+- **2026-09-25 — Tracking-market research:** Added the detailed research report (Markdown/PDF) and owner visual brief (HTML/PDF) under `docs/research/2026-09-25-anime-tracking/`. Covered tracking trust, import/export, manga units, franchise mapping, search, discovery, releases, design, and proposed validation. Reconciled the pre-existing top-level migration inventory to 235 actual local files (93 app Swift files unchanged). No app source, database, flags, deployment, or external-account writes. Commit: uncommitted research initiative.
+
+- **2026-09-25 — Expanded comparative research and free-core monetization:** Replaced the four research deliverables with edition 02 after six independent research lanes and focused source/commercial audits. Added direct Anime-Planet/MangaBaka forum evidence, substantially deeper MAL/MyAniList coverage, native-client maintenance evidence, merchant programme feasibility, publisher precedents, explicit hypothetical economics and 10 monetization decisions. Report: 47 pages; visual brief: two pages. All 110 source headings and 28 decisions verified in the rendered documents; documentation inventory check passes. No product source, backend, provider flags, partner outreach/enrolment, deployment or unrelated dirty-file changes. Commit: uncommitted research revision.
+
+### 2026-08-06 — Independent deep review (2 waves) + same-day fix wave
+
+Two adversarial external review waves ran against the `kuro/taste-overhaul` branch (11 agents total, every claim re-verified live against the remote — nothing taken on trust from prior docs). Full reports: `docs/superpowers/specs/2026-08-06-independent-review.md` (wave 1) and `docs/superpowers/specs/2026-08-06-independent-review-wave2.md` (wave 2). Headline: engineering record is honest (row counts reproduce exactly), but the 0.512 → 0.823 quality numbers are model self-graded with zero human vetoes, and 77% of the 5,548-row realm-descriptor corpus is template junk.
+
+New migrations (both applied to remote; backend commit `ae89ced`):
+- `supabase/migrations/20260806000000_security_and_mirror_repair.sql` — revokes the leftover `authenticated` grant on `upsert_rec_edges` (proven exploitable end-to-end: any signed-up user could inject rating-100000 edges that flowed into edges-first serving; one injected edge was pinning a false #1 on A Silent Voice's rail), deletes the poison rows and restores 16→15 to its true rating (6003), re-stales the seed-16 store rows for rebuild, purges `audit-*` buckets, adds a CHECK constraint enforcing the penalty-sign convention (a positive penalty silently becomes a boost without it), and revokes `rate_limit_hit` from anon+authenticated (all callers are definer functions; verified PGRST202). Its header documents the remote cron re-arm below.
+- `supabase/migrations/20260806010000_serving_fixes_v1.sql` — tonight's-shelf franchise cap ≤2 per cluster via `media_franchise_components` (was 6/12 AoT slots for the demo profile), hidden-gem argument sentence-trim + capitalization (was raw scraper text; residual wart: HTML tags can still survive — iOS must sanitize like the deck), craft lift now requires own score ≥70 (was promoting a 63-score title to "acclaimed" via director lineage).
+
+Remote-only change (no migration — literals intentionally kept out of git): all 5 `mirror-images` and both `manga-chapter-enrich` pg_cron jobs re-armed via the Supabase Management API, with literals transplanted from `kuro-import-anime-hourly`. They had been 401ing since Jul 31 because they read `app.settings.import_secret` / `supabase_url` / `supabase_anon_key` GUCs that are empty in this project — mirror coverage was flat for 5 days and chapter enrichment was silently dead (the era-1 "convergence unblocked" claim was untrue until now). Owner follow-up: IMPORT_SECRET rotation still pending (literal in 4 import-cron commands).
+
+iOS (commit `49f3227`): deck gesture-trap fix (edge-origin drags, 24pt, page out instead of recording NOT FOR ME; fast-fling check moved before rail guards), taste-signal retry queue + transient banner, loading watchdog + retry state, accessibility (contrast, VoiceOver undo window 8s, synopsis action), prefetch image downsampling.
+
+Repo inventory after this wave: 93 app Swift files, 232 SQL migrations (headers updated; `check_docs_current_state.py` green again). Also corrected the false 2026-02-06 baseline-capture claim (see its entry below). Open items from the review are recorded under **Open Questions / Unknowns**.
 
 ### 2026-03-06 — Detail CTA copy fallback cleanup
 
@@ -2693,7 +3309,7 @@ Documentation updated in this pass:
 - 2026-02-06: Deleted legacy edge functions `Bulk-import-anime` (capital B, v7) and `manga-bulk-import-` (trailing dash, v5). Active functions now: 8.
 - 2026-02-06: Concierge UI polish: signal badges (MASTERPIECE/CLASSIC/MATCH) now visible on recommendation cards, serif title fonts, editorial divider on rail headers, larger import candidate hit targets (10→12px), serif CONCIERGE header + editorial divider on intro card.
 - 2026-02-06: Curated rail expansion: +366 editorial picks (90 classics_anime, 97 classics_manga, 75 gateway_anime, 104 gateway_manga). All picks verified: no Ecchi/Hentai genres, score >= 76 (classics) / >= 78 (gateway). Removed problematic picks from initial draft (ecchi-tagged, low-score). Fixed candidate generation script criteria. Migration: `20260206120000_curated_rails_expansion.sql`.
-- 2026-02-06: Baseline schema SQL captured in `supabase/migrations/20250109_remote_applied_placeholder.sql`: consolidates legacy root SQL (02-14) **plus** remote-only objects (`import_runs`, `import_locks`, lock RPCs, 7 materialized views incl. `mv_anime_current_season`, and the `kuro-refresh-matviews` pg_cron job). Defensive fixes for `tags.kitsu_id` and `comments.user_id` type drift. Original SQL files moved to `legacy_sql/`.
+- 2026-02-06: **(Entry corrected 2026-08-06 — the original claim below was false.)** Original claim: "Baseline schema SQL captured in `supabase/migrations/20250109_remote_applied_placeholder.sql`: consolidates legacy root SQL (02-14) **plus** remote-only objects (`import_runs`, `import_locks`, lock RPCs, 7 materialized views incl. `mv_anime_current_season`, and the `kuro-refresh-matviews` pg_cron job). Defensive fixes for `tags.kitsu_id` and `comments.user_id` type drift. Original SQL files moved to `legacy_sql/`." — **Correction:** the placeholder file is comment-only (4 lines, zero SQL); none of that consolidation ever happened. The baseline was never captured: the legacy root SQL lives only in `legacy_sql/`, and the remote-only objects exist solely on the remote database. Consequence (verified 2026-08-06): the migration chain cannot be replayed from scratch — it dies at migration #16. Fix direction: capture a full schema dump via the Management API as a real baseline migration; until then, treat "rebuild from migrations" as impossible.
 - 2026-02-06: Removed iOS dead code: `ConciergeOverlay.swift`, `KuroChanMascot.swift`, `getByMood()`, `#if false SearchViewNew` block (~500 lines total).
 - 2026-02-06: Concierge modes expanded to 14 (v3) and deployed: added `short_one_season`, `movie_night`, `romance_serious`, `romcom`, `fantasy_non_isekai`, `isekai`. Enriched synonyms (incl. German) across all modes. Migration: `20260206100000_concierge_modes_v3_expanded.sql`. Edge function deployed: `supabase/functions/concierge-recommend/index.ts`.
 - 2026-02-05: Concierge recommend perf: reuse shared candidate pools + media context across rails to reduce DB queries/latency. Commit: `ca671d5`
@@ -2710,10 +3326,21 @@ Documentation updated in this pass:
 
 ## 15) Open Questions / Unknowns
 
-- **User ID type mismatch**: Club tables use `user_id UUID REFERENCES auth.users(id)`, but legacy tables (`anime_user_lists`, `manga_user_lists`) use `user_id TEXT`. All joins between club_members and user-list tables must cast: `cm.user_id::text = aul.user_id`. A future migration may unify them.
+- **Modular architecture open items (2026-10-05)**: `user_id` casing check (F1), club RLS decisions R4/R5, the supabase-swift `detail`/`details` mismatch, `concierge-apply`/`-undo` and `delete-account` changes pending deployment, the 3 prepared club RLS migrations, unrun UI/device journeys, blocked full migration replay and unclaimed hosted/capacity proof. Canonical list: §3.1 "Open items and blockers" and the execution ledger.
+- **User ID type mismatch**: Club tables use `user_id UUID REFERENCES auth.users(id)`, but legacy tables (`anime_user_lists`, `manga_user_lists`) use `user_id TEXT`. All joins between club_members and user-list tables must cast: `cm.user_id::text = aul.user_id`. A future migration may unify them. Casing is a separate open question: the app sends the UPPER-case `uuidString` while RLS compares lower-case `auth.uid()::text` (decision point `UserIdText.value(for:)`, §3.1 item 1).
 - Materialized view definitions in the foundation migration are inferred from usage (discover_bundle RPC + Swift client). If the remote MV definitions differ (e.g., different LIMIT, extra WHERE clauses), update the foundation to match.
 - v8 modes (23 total) are deployed; if you add new modes later, deploy with `supabase db push --linked` + `supabase functions deploy concierge-recommend --linked`.
-- **Apple FM availability**: `AppleFMService` gracefully degrades on non-FM devices via `StubFMProvider`. The `condenseSynopsis` cache is in-memory only (lost on app restart); consider persisting to disk if cache hit rates are low.
+- **Apple FM availability**: `AppleFMService` gracefully degrades on non-FM devices through its own availability guards (each capability returns `nil`; `StubFMProvider` is defined but unused). The `condenseSynopsis` cache is in-memory only (lost on app restart); consider persisting to disk if cache hit rates are low.
+- **`personalized_new_to_you_v1` ramp**: flag seeded at 0% (2026-07-31). Ramp criteria (canary %, confidence thresholds) not yet defined — decide before flipping.
+- **Clubs dark flags**: `clubs_realtime_v1`, `clubs_pace_sync_v1`, `clubs_notifications_v1` re-seeded at 0% (`ON CONFLICT DO NOTHING` — rows that already existed kept their prior values; verify live values before assuming 0%). Ramp plan TBD.
+- **`affiliate_links_v1`**: seeded OFF; legal/compliance review precedes any flip. `outbound_link_events` collects the click ledger in the meantime.
+- **Taste deck signal semantics**: `deck_known` (+0.25) currently counts as a positive signal — watch for false-positive profile drift from users marking familiar titles they don't actually like.
+- **Similar-titles store coverage gap (2026-08-06)**: only 28/75 sampled score≥70 pool seeds serve from `media_similar_titles`; the other ~63% fall back to the 1.5–3.1s live scorer with no entry-point mapping and no own-franchise exclusion. This contradicts `media_similar_seed_state` showing 7,537 seeds / 0 stale — the table is service-role-only, so resolve with a service-role check (`count(*) from media_similar_seed_state where built_at is not null` vs pool count) plus a look at driver batch failures. Until then, "p95 ≤105ms" and entry-point canonicalization hold only for the covered slice.
+- **Migration chain unreproducible (2026-08-06)**: the baseline catalog schema was never captured in a migration (see the corrected 2026-02-06 change-log entry) — a fresh replay dies at migration #16 and 4 hollowed Feb migrations remain hollow. Capture a baseline via a Management-API schema dump as a real migration; no gate replays the chain today.
+- **Hidden-gem argument HTML (2026-08-06)**: sentence-trim + capitalization shipped in `20260806010000_serving_fixes_v1.sql`, but raw HTML tags from scraper text can still survive into the argument — iOS must sanitize it the way the deck already does (or strip server-side).
+- **Owner veto pass pending (2026-08-06)**: the headline quality numbers (0.512 → 0.823) rest entirely on model self-judgment with zero human vetoes — treat the scoreboard as self-graded until the owner veto pass happens.
+- **Descriptor corpus quality (2026-08-06)**: 77% of the 5,548-row realm-descriptor corpus is template junk (bulk-writer artifact; Groq wrote only 1.5%). Hide or regenerate before any user-visible surface reads it.
+- **Realm refresh crons need SET-first guards (2026-08-06)**: the realm-membership/affinity refresh pg_cron jobs need `set statement_timeout='600s';` as their own first statement — the postgres role's 2-min default cannot be re-armed from inside a function via `SET LOCAL` (same failure class as the 2026-08-04 tier-refresh timeouts).
 
 ---
 
@@ -5467,9 +6094,9 @@ node scripts/generate_app_state_live_snapshot.js
 
 ---
 
-## 25) Appendix J — Source of truth excerpts (auto-generated)
+## 25) Appendix J — Historical source excerpts (auto-generated)
 
-This appendix inlines the **exact current source** for the most important runtime components so another LLM can reason from ground truth without opening the repo.
+This appendix preserves the **26 March source snapshot** shown by its generation timestamp. It includes retired service code and is historical reference only. Read current repository files and the module map for current behavior; these excerpts cannot establish acceptance or deployment.
 
 For a complete (very large) source bundle, see: `archive/CURRENT_APP_STATE_CODEBASE.md` (auto-generated).
 
@@ -16872,6 +17499,66 @@ grant execute on function public.admin_schema_snapshot() to service_role;
 
 ## Change Log
 
+### 2026-08-02: Realm descriptor Groq pipeline (Stage 2b) — salvage + edge function + drain
+
+Finished the Realm Graph Stage 2b writer path without agent-swarm spend.
+
+**Shipped / applied:**
+- Design: `docs/superpowers/specs/2026-08-02-realm-descriptor-groq-pipeline-design.md`
+- Edge function `realm-describe` (IMPORT_SECRET gate, `--no-verify-jwt`): loads title context, calls Groq (`GROQ_MODEL_REALM` default `llama-3.3-70b-versatile`), validates against `upsert_media_realm_llm` contract, batch mode ≤25 with one upsert/call.
+- Scripts: `realm_llm_salvage_swarm.js`, `realm_descriptor_worker.js` (checkpointed), `realm_descriptor_validate_selftest.js`; reuse `realm_llm_pass_fetch.js` / `realm_llm_pass_submit.js`.
+- Migrations: `20260802010000` enqueue + ops helpers + drain cron; `20260802013000` resolve import secret from `kuro-import-*` cron literals when GUC empty; `20260802014000` upsert rate budget 60→600/hr; `20260802015000` pause 2m cron while worker owns TPM.
+- Salvage: 1510 valid `/tmp/realm_out_*.jsonl` rows submitted (`kimi-swarm-2026-08`).
+- Live smoke: Llama descriptors writing; Spirited Away similarity still Ghibli-class after earlier penalty clamp.
+- Drain: checkpointed worker running against `media_realm_llm_pending` (Groq on_demand TPM-limited; overnight catch-up via worker rounds).
+
+- Security follow-up applied: `upsert_media_realm_llm` revoked from `authenticated` (service_role / realm-describe only); dropped `_ops_peek_import_secret` + `_ops_list_import_crons`.
+**Out of scope (deferred):** craft taste indicators; LLM membership ±0.2 apply; gold-set edges eval; Stage 4 Discover Shelf/Hidden Gem.
+
+### 2026-08-02 (cont.): Drain pacing under Groq TPM + edge idle timeout
+
+- Redeployed `realm-describe` with 429 “try again in Xs” parse + harder backoff.
+- Worker only checkpoints successes; exponential cool-down on 429/zero-progress (45s→5m); yields after streak ≥6.
+- Durable Mac drain restarted at **batch-size 1** (batch 2 hit Supabase Functions `IDLE_TIMEOUT` 150s while Groq slept inside the request).
+- Cron `realm-describe-drain-*` stays unscheduled (`20260802120000`) so it does not fight the Mac worker for TPM.
+- Live counts ~1618 done / ~5548 pending (mostly salvage); throughput capped by Groq on_demand ~8k TPM — expect multi-day drain unless tier bumped.
+
+### 2026-08-02 (cont.): Groq descriptor drain abandoned — agent-written pass
+
+- Product decision: **stop using Groq** for Stage 2b descriptors. Mac `realm_descriptor_worker` / `realm-describe` Groq path stopped; cron stays off.
+- Writer path returns to `realm_llm_pass_fetch.js` → agent-authored JSONL → `realm_llm_pass_submit.js` with `SUPABASE_SERVICE_ROLE_KEY` (authenticated upsert remains revoked).
+- Model id for this pass: `kimi-k3-max-2026-08`. Operating from Kimi master plan §6 (not the Groq design doc).
+- **Descriptor drain complete 2026-08-02:** `media_realm_llm_pending` = 0; ~7166 rows in `media_realm_llm` (~5548 `kimi-k3-max-2026-08`).
+- `realm-describe` edge function may remain deployed but is **not** the active writer.
+
+### 2026-08-02 (cont.): Stage 2 membership deltas + QA — DONE
+
+- Migrations: `20260802123000_media_realm_membership_delta_v1` (delta table + `media_realm_membership_effective` view + `recompute_media_realm_llm_deltas` + similarity gates on effective), `20260802124000` / `20260802125000` (float4 ±0.2 clamp/CHECK fix).
+- Scripts: `scripts/realm_llm_apply_deltas.js`, `scripts/realm_llm_qa_fetch.js`.
+- QA: rewrote all **208** `confidence < 0.7` rows (all were `kimi-swarm-2026-08`) → model `kimi-k3-max-2026-08-qa`; low-conf count now **0**. Spirited Away upgraded off Groq to the same QA model.
+- Deltas: `recompute_media_realm_llm_deltas(0.7)` → **~20,986** overlay rows. Rules matview unchanged; similarity reads effective.
+- Spirited Away neighbors (spot-check): Mononoke, Howl’s, Kiki’s, Boy and the Heron, Ponyo, xxxHOLiC, Noragami Aragoto, Natsume movie… — Ghibli/folklore-heavy top. Residual LN/shounen leakage (e.g. Re:ZERO S4, JJK) still in the long tail via affinity — Stage 3 gate polish, not delta infra.
+### 2026-08-02 (cont.): Tracks A+B+C — gate harden, gold eval, Stage 4 rails
+
+- **Spirited Away gate harden** (`20260802140000`): canon seeds use membership ≥ 0.35 for S + shared-pass requires candidate top ∈ S; affinity vetoes battle-shounen↔yokai and isekai↔auteur. Re:ZERO/JJK gone from top-20. Report: `reports/realm-acceptance/2026-08-02-spirited-away.md`.
+- **canon_seed.blessed** (`20260802141000`, default true) + merit floor honors blessed. Owner can veto without deleting citations.
+- **Stage 3 gold harness**: `scripts/eval_realm_rec_gold.js` + `eval/realm_rec_gold/{seeds,judgments}.jsonl` (100 seeds). Heuristic P@10 (47/100 scored): raw 0.81 / gated 0.25 / ∩ 0.19 — **do not ship edges into ranking** (Δ∩−gated = −0.06; needs owner judgments). Report: `reports/realm-rec-gold/latest.md`.
+- **Stage 4 Discover rails** (flag `discover_realm_rails_v1` @ 0%): RPCs `fetch_tonight_shelf`, `fetch_realm_hidden_gem`; iOS wired in Discover behind the flag. Smoke-tested on demo account (horror-dread shelf + Umineko gem).
+- Still deferred: owner gold judgments, taste indicators, realm maintenance cron, Bridge/This Week.
+
+### 2026-08-02 (cont.): Curation sources expand (EN+JP research → ingest)
+
+- Research writeup: `docs/superpowers/specs/2026-08-02-curation-sources-research.md`.
+- Migration `20260802150000_curation_sources_expand_v1` (pushed):
+  - New Tier-A `canon_seed`: **Japan Cartoonists Association Award** (21), Annecy expansion (source renamed from `Annecy Cristal`; 13 total), Manga Taishō ≥80-pt nominees (+4 → 23), Kono Manga #2/#3 (→ 66).
+  - Split opaque **Critic Consensus** into named desks (**Paste Magazine** 19, **Time Out** 15, **The A.V. Club** 6) then deleted Critic Consensus rows.
+  - New table `curation_seasonal_signal` (18 rows): Filmarks H1 rankings, 次にくるマンガ大賞, EN yearlist exemplars — **not** canon.
+  - `fetch_realm_hidden_gem` prefers seasonal-signal titles inside tonight's realm pool.
+- Tooling: `scripts/compile_curation_ingest.js` + `scripts/data/curation_ingest_candidates.json`; reports in `reports/curation-ingest/`.
+- Owner gold scaffolding: `scripts/realm_gold_owner_shortlist.js` → `eval/realm_rec_gold/owner_shortlists.jsonl` + `owner_judgments.template.jsonl` (100 seeds). Owner still must fill judgments before Stage 3 ship.
+- Note: matview refresh timed out inside the migration txn — rely on pg_cron / manual `refresh materialized view concurrently public.media_realm_tier`.
+
+
 ### 2026-02-24 — Fix Detail Page Scrolling Issues
 - **Vertical dead zone fix**: Added `.padding(.bottom, -safeTop)` after `.offset(y: -safeTop)` on hero sections in both `AnimeDetailView.swift` and `MangaDetailView.swift`. The offset is visual-only and didn't shrink the layout frame, creating a phantom gap at the bottom of the scroll content equal to `safeTop` (~59pt). The negative bottom padding compensates.
 - **Horizontal scroll fix**: Removed `.kuroSwipeExclusionZone()` from `SimilarSection` (AnimeDetailView:332) and `MangaSimilarSection` (MangaDetailView:289). These sections only appear inside `.sheet()` presentations where the root pager's gesture doesn't apply. The exclusion zone added a competing `DragGesture(minimumDistance: 4)` that fought with the native horizontal ScrollView gesture and the `.kuroDeliberateTap` gesture on each card, preventing horizontal scrolling.
@@ -17888,3 +18575,1282 @@ Replaced KuroGlassCard-based club rows with clean editorial entries (serif typog
   - only durable list-state signals are allowed in v1
   - editorial prior remains structurally dominant
 - This surface is intentionally written to constrain LLM execution: every sprint now has allowed/forbidden surfaces, required artifacts, validation commands, failure conditions, rollback paths, and a brutal `Done only if` checklist.
+
+### 2026-07-30: Personalization Sprint 01 — durable taste signal capture
+
+- Applied migration `20260730160000_taste_signal_events_v1.sql` (linked remote):
+  - `public.taste_signal_events` (+ RLS select-own; writes via security definer only)
+  - `public.taste_profile_recompute_queue` (service_role only; enqueued on emit)
+  - `public.taste_import_context` + `begin_taste_import_context` / `clear_taste_import_context`
+  - AFTER triggers `taste_capture_anime_user_lists` / `taste_capture_manga_user_lists`
+- Design locks vs live DB:
+  - list `rating` CHECK is **1–10** (not 10–100); thresholds `>=8` / `<=4`
+  - list `user_id` remains TEXT; `_taste_parse_user_id` never blocks list writes
+  - import origin via `taste_import_context` (PostgREST cannot span `SET LOCAL` across upserts); no new list column
+- `concierge-apply` begins/clears import context around session upserts (best-effort).
+- Out of scope (unchanged): Discover UI, Search/Browse ranking, profile computation, streaming flag, CDN mirror.
+- SQL transition checks passed: insert→planned_add, no-op suppressed, status/rating/verdict/lifecycle events, bad UUID write succeeds without events, import context sets `is_import=true`.
+
+### 2026-07-31: KIMI K3 Agent Swarm overnight epic prompt authored
+
+- Added planning/prompt surface: `docs/superpowers/specs/2026-07-31-kimi-k3-agent-swarm-overnight-epic.md`.
+- Scope for unattended overnight run: full backend audit; CDN/`mirror-images` convergence; Tinder-style taste swipe deck replacing leftmost Concierge page (archive Concierge UI); taste profile/cluster mapping; clubs invite + shared-club social audit/fix.
+- Hard freeze: do not touch in-progress Auth light redesign (`AuthView`, KuroMark/KuroSceneryLoop assets, auth redesign spec).
+- No product code shipped in this initiative — prompt/spec only.
+
+### 2026-07-31: Overnight prompt expanded — taste doctrine + monetization
+
+- Expanded same spec with §4B taste product doctrine (signals → profile → explainable neighborhoods → per-surface list jobs; Discover default; personalize `New to You` first; portrayal rules per surface).
+- Added §4C re-verified revamp backlog (CDN, club bundle weight, design drift, Sprint 02 gap, user_id debt, secret hygiene) with “don’t boil the ocean” limits.
+- Added §4D ad-free monetization: Kuro Plus (StoreKit) primary; affiliate read/buy/watch/merch via tagged `external_links`; explicit bans on ads and paid ranking injection; overnight scaffold expectations.
+
+### 2026-07-31: Overnight prompt rewritten for creativity-first
+
+- Replaced prescription-heavy overnight prompt with creativity-first Agent Swarm brief in `docs/superpowers/specs/2026-07-31-kimi-k3-agent-swarm-overnight-epic.md`.
+- Phase 0 is mandatory first: full-system check (incl. design) + creative ideation deck (≥3 competing concepts per problem space) + Red Team + ADRs before any feature coding.
+- Human priors (swipe deck, CDN, clubs, ad-free money) reframed as problems/hunches, not the answer key; swarm must invent/improve.
+
+### 2026-07-31: KIMI K3 swarm overnight ship — Taste Deck, taste profiles, image convergence, clubs trust pack, monetization ledger
+
+Overnight swarm executed the epic. Shipped to production (build + KuroTests green; all migrations applied to linked remote).
+
+**Docs produced (Phase 0):**
+- `docs/superpowers/specs/2026-07-31-phase0-full-system-check.md`, `2026-07-31-creative-ideation-deck.md`
+- 6 ADRs: `2026-07-31-adr-taste-learning-and-representation.md`, `-adr-leftmost-surface-and-concierge-archive.md`, `-adr-image-cdn-strategy.md`, `-adr-clubs-overnight-posture.md`, `-adr-monetization-posture.md`, `-adr-design-direction.md`
+
+**Migrations (6, all applied to production):**
+- `20260731010000_taste_deck_v1.sql` — RPCs `fetch_taste_deck_batch` (half anime/half manga, score ≥70, no adult/Ecchi/Hentai, no ancillary formats, never repeats listed/signaled), `record_taste_deck_signal` (`deck_love` +0.55 / `deck_known` +0.25 / `deck_skip` −0.45; 300/day; latest action wins; retract supported), `fetch_my_taste_profile`.
+- `20260731011000_taste_profile_recompute_v1.sql` — `recompute_user_taste_profile` (events × tag rank/100 + genres ×0.6; import ×0.25; confidence tiers 0.05–0.20; title cap 8%, franchise cap 15% via `media_relations`; avoidance floors ≥2 negatives or ≤−0.8 cumulative, per-name floor −1.0), `drain_taste_recompute_queue`, pg_cron `taste-profile-drain-15m` (*/15, pure SQL, 50 users/run), `taste_profile_recompute_queue.last_error`.
+- `20260731012000_personalized_nty_and_flags_v1.sql` — `fetch_personalized_new_to_you` (editorial_prior×0.8 + fit×confidence, editorial stays dominant; avoided-tag penalty; 7-day impression rotation via 2 SECURITY DEFINER helpers), flags `taste_deck_v1` (100%) + `personalized_new_to_you_v1` (0%), RLS enabled on `discover_rail_impressions`, `taste_pipeline_status` view (service_role).
+- `20260731020000_image_convergence_v1.sql` — `protect_mirrored_image_columns` triggers (anime/manga/characters/staff image columns: storage URLs can't be overwritten by remote/NULL), `image_mirror_state.priority_at` + index, `enqueue_image_mirror` RPC (60/day), `image_mirror_coverage` view (service_role), character/staff candidate views by join-count visibility, mirror crons rescheduled (anime-manga offsets 0/600/1200 limit 200; char/staff limit 300).
+- `20260731030000_outbound_link_ledger_v1.sql` — `outbound_link_events` (RLS select-own; writes via RPC only), `record_outbound_link` (120/hr), `purge_outbound_link_events` + daily 04:40 cron (90-day retention), `affiliate_links_v1` flag seeded OFF.
+- `20260731040000_clubs_trust_pack_v1.sql` — `toggle_club_reaction` allowlist fixed to client keys (fire/heart/eyes/100; reactions were API-dead), `fetch_friend_activity_for_title` + `count_friends_tracking` enforce sharing levels (eff_rank 0 excluded, 1=status only, 2=full — privacy hole closed), flags seeded `ON CONFLICT DO NOTHING`: `clubs_reactions_v1`/`clubs_list_enriched_v1` 100%, `clubs_realtime_v1`/`clubs_pace_sync_v1`/`clubs_notifications_v1` 0% (remotely flippable).
+
+**Edge functions deployed:**
+- `mirror-images` — remote-only selection, character/staff visibility ordering, 50-row priority drain per run.
+- `concierge-import-anilist` — added `auth.getUser()` 401 gate.
+
+**iOS (build + KuroTests green):**
+- NEW `Kuro/Views/TasteDeckView.swift` (914 lines) — full-bleed tap-to-decide taste ritual at pager index 0: PASS / I KNOW THIS / CALLS TO ME, 12-card sessions, "Kuro is listening." summary, Your leanings sheet, undo, long-press synopsis, grain hero, `KuroAnimation` tokens only, Reduce Motion honored.
+- NEW `Kuro/Services/SupabaseService+Taste.swift` (289 lines), `Kuro/Services/SupabaseService+Monetization.swift` (`recordOutboundLink`, fire-and-forget).
+- `ContentView.swift` — pager flag-aware: `[taste, discover, browse, collection, clubs]` with `taste_deck_v1` (legacy order with concierge when off); `kuro://concierge` deep link + `--kuro-start=concierge` present ConciergeView as sheet (prompt injection preserved); `kuro://join/<code>` → clubs page + prefilled join sheet; deep links stashed while logged out now consumed via `onAppear`.
+- `ProfileView` — Concierge row added. `OnboardingView` — final card "Teach Kuro your taste" CTA + updated copy (EN/DE).
+- `EditorialDiscoverView` — hero title token fix (`kuroTitle`); NEW TO YOU rail uses `fetchPersonalizedNewToYou` when `personalized_new_to_you_v1` on.
+- `FeatureFlags` — `tasteDeckV1Enabled`, `personalizedNewToYouV1Enabled`.
+- `AnimeDetailView`/`MangaDetailView`/`ExternalLinksSection` — outbound click instrumentation (`watch`/`read`/`provider_sheet`/`external_reference`).
+- `ClubDetailSheets` — share text includes `kuro://join/<code>`; `ClubDetailView` — fixed "You were removed" copy for never-members; `ClubDetailTabComponents` — honest "Activity unlocks at 3 members" for duo clubs.
+- `KuroTests` — +TasteDeckTests (8), +DeepLinkRouterTests (5).
+
+**Image coverage baseline (measured 2026-07-31 via REST):** anime 602/21668 (2.8%), manga 600/41721 (1.4%), characters 200/97800 (0.2%), staff 201/41220 (0.5%) — exactly the old fixed-window ceilings; convergence now unblocked (remote-only selection + anti-unmirror trigger + priority queue).
+
+**Key product decisions (ADRs):**
+- Concierge archived from pager (code + backend fully preserved; entry via Profile row + `kuro://concierge`).
+- Monetization: no ads ever; click ledger now, affiliate decoration later (`affiliate_links_v1` OFF, compliance review first), Kuro Selects + Patron roadmap.
+- Design law: one hero grammar (club-hero grain recipe), `KuroAnimation` tokens only, one placeholder spec for new UI.
+
+**Totals:** 91 Swift files (+3), 176 migrations (+7 incl. Sprint 01), 15 edge functions (2 redeployed).
+
+### 2026-07-31 (later): Taste Deck v1.1 — meta strip on the image, flick gestures
+
+- Deck redesign per owner direction: the image now carries ONLY a modern meta strip (sans capsules: `24 EP` / `2 SEASONS` / `FILM` / `VOL 14` / `1 CH` + `DUB`/`SUB` on positive knowledge only, scrim `kuroBlack45`); serif title, genres·year·format caption, the three actions and quiet `3 / 12` progress moved to a panel below the image (74/26 split); in-card TASTE eyebrow + on-image progress removed. Real flicks on the image (right = calls to me, left = pass, up = I know this; ~90pt or fast-flick commit, ≤8° tilt, spring-back cancel, Reduce Motion → crossfade exit); image registered as pager swipe-exclusion (`kuroSwipeExclusionZone`), pager still swipes from panel + screen edges. `TasteDeckCard` gains `episodes`/`chapters`/`volumes`/`seasonsCount`/`hasDub`/`hasSub` + `metaChips`. Migration `20260731050000_taste_deck_meta_v1.sql` (NOT yet pushed): `fetch_taste_deck_batch` recreated (drop + create; name/params unchanged) with the new columns — `seasons_count` via recursive PREQUEL/SEQUEL walk over `media_relations` (depth ≤10, visited-array guard, TV-only count + self), `has_dub`/`has_sub` tri-state from `provider_availability` (NULL when no rows), plus `provider_availability_public_read` RLS policy (SECURITY INVOKER needs it; catalog-level data). KuroTests +9 (meta decoding + chips).
+
+### 2026-07-31 (evening): Taste Math v2 shipped + live-verified — vector-space profiles, stratified deck, pass memory, NOT FOR ME
+
+Taste-math v2 spec (`docs/superpowers/specs/2026-07-31-taste-math-v2-critical-review.md`) implemented, pushed to production, hotfixed twice against live failures, then verified end-to-end with real throwaway users. No git commits (out of scope).
+
+**Migrations (4, all applied to production):**
+- `20260731060000_taste_math_v2.sql` — `media_tag_vectors` matview (IDF-weighted tag space, genres folded as `genre:` pseudo-tags, per-media L2 norm), `taste_tag_stats` (per-user per-tag α/β posteriors), `recompute_user_taste_profile` v3 (user vector in same space: 180-day half-life, weighted evidence n strong = 1.0 / weak = 0.5, smooth shrinkage w = 0.20·n/(n+20) replacing tier-step weights, cosine fit, avoidance floors), `fetch_taste_deck_batch` v3 (2-axis stratified dealing: 6 genre clusters × 3 popularity strata; explore ratio max(0.25, 0.75·e^(−n/50)); UCB explore slots; MMR λ = 0.7; ≤ 4/12 per cluster, ≤ 2/12 per franchise; negative-space probe p = 0.10), `fetch_personalized_new_to_you` v2 (cosine + w blend), `recommend_ids_similar_to_seeds` v2 (full cosine + craft multiplier × ≤ 2, popularity removed from similarity), crons `taste-tag-vectors-refresh` (03:50) + `taste-tag-stats-decay` (Sun 04:10), `taste_pipeline_status` v2. Initial push FAILED on tag/genre duplicate keys (prod has case-variant tag rows + duplicated `genres` arrays) → fixed with uniqueness-by-construction (max-rank collapse, distinct unnest) and re-pushed clean.
+- `20260731070000_taste_math_v2_hotfix.sql` — live verification found: P0 deck 100% down (`pg_safeupdate` blocked bare DELETE on temp table); P2 `drain_taste_recompute_queue` callable by any authenticated user (Postgres default EXECUTE-to-PUBLIC → explicit revokes from public/anon/authenticated on 12 internal/definer functions; tier-2 helpers kept authenticated-callable because SECURITY INVOKER RPCs call them as the caller); P3 profile vector inverted personas (positive-only caps + IDF-drowned genres — a Fantasy lover's vector was 87% negative with `genre:fantasy` negative) → symmetric absolute-mass caps, genre weight 1.2×√IDF, top-80, NTY penalty narrowed to genre keys/Genre-category.
+- `20260731080000_taste_math_v2_fix2.sql` — P0 STILL down (two bare UPDATEs without WHERE survived; fixed), genre retention (top-60 tags + ALL `genre:` keys with abs > 0.001 — genres were being truncated out), avoidance net-sentiment guard (avoided only if ≥2 negatives or ≤−0.8 AND net-negative — fixes loved-yet-avoided Drama artifact), + profile re-enqueue wave.
+- `20260731090000_taste_deck_pass_memory.sql` — `pass` action (`deck_pass`, strength 0.00, no stats/evidence/recompute, excluded from future deals — live-verified: 2/12 of one batch 2 were batch-1 passes). iOS: left action restored to DISLIKE semantics and relabeled **NOT FOR ME** (`deck_skip` −0.45) per the "continuous liking/disliking" product decision; `.pass` remains supported server-side.
+
+**iOS:** `TasteDeckView.swift` (now 1002 lines) — NOT FOR ME label + dislike semantics on the left action; `SupabaseService+Taste.swift` (now 335 lines) — `.pass` case in `TasteDeckAction`. No new Swift files.
+
+**Live verification (3 runs; 4 throwaway users created+deleted via public auth API — signup autoconfirm is ON; exercised via curl against REST/RPC, not the iOS UI):** signal contract exact; α/β stats 141/141 and 118/118 exact; evidence/event_count exact; avoidance sets exact incl. guard; profile negative-mass ratio 87% → 14%; genres retained with correct signs; ramp w verified at n = 0/5.5/6.5 (taste ~4% of ranking at 5.5 evidence — by design); NTY replicated 20/20 positionally ×3; deck VERIFIED LIVE: 12 cards 6/6 anime-manga, stratified (head/mid/gems spread, not the popularity chart), 12/12 mirrored covers, zero repeats vs signaled titles, meta fields (episodes/seasons_count) populated; drain cron fired on two */15 boundaries; delete-account cascades clean.
+
+**Open items:** (1) run-2 phantom `discover_rail_impressions` anomaly (20 foreign rows hid top-20 from one fresh user; did not recur; needs one service-role SQL query to close — prime suspect: deploy-window activity 15:55–16:10 UTC); (2) `taste_pipeline_status` contents + `cron.job` registration unverifiable without service-role access (403 correctly enforced); (3) positive-mass caps vs small profiles — watch as data grows; (4) KuroTests has zero deck-action coverage; (5) `deck_known` false-positive watch continues; (6) `personalized_new_to_you_v1` flag still 0% — ramp criteria: drain telemetry sane + staff rail check.
+
+**Totals:** 91 Swift files (unchanged), 181 migrations (+5: 050000 was previously uncounted, +4 evening), 15 edge functions (unchanged).
+- 2026-07-31 (deck v2): **Taste Deck v2 — full-page glass, endless, single-source leanings** — deck art now fills the entire page body edge-to-edge (root pager ignores the bottom safe area and passes the inset through; every other page restores it as padding) with a floating monochrome glass container (`KuroGlassCard` new `.onImage` tone: `kuroBlack65` fill, white gradient hairline, no color tint) carrying the serif title, caption line and the three actions (NOT FOR ME hairline / I KNOW THIS text / CALLS TO ME solid white). The 12-card session boundary and the "Kuro is listening." interstitial are gone: the deck is endless (batch prefetch at ≤3 remaining), progress is a quiet total-judged count inside a persistent top-right LEANINGS capsule, and a genuinely exhausted catalog is the only summary left. "Your leanings" reads the server profile exclusively (local per-session genre tally deleted): it stamps computed_at as "UPDATED N MIN AGO" and adds a quiet "Kuro is still thinking about your latest swipes" note when deck signals are newer than the profile. Meta strip gains an ANIME/MANGA chip in first position (manga keeps VOL/CH, anime keeps EP/SEASONS/FILM/DUB/SUB). Undo chip (4s retract) re-anchored above the measured glass height; long-press synopsis restyled as dimmed art + glass sheet. Files: `Kuro/Views/TasteDeckView.swift` (rewritten), `Kuro/Views/KuroGlass.swift` (tone), `Kuro/Services/SupabaseService+Taste.swift` (metaChips), `Kuro/ContentView.swift` (pager inset plumbing). Build green; layout verified via simulator screenshot.
+- 2026-07-31 (discover P1): **Discover P1 — The One Thing, Because-You rail, glass/chrome pass, monochrome score chips** — migration `20260731100000_discover_p1.sql` (NOT pushed; lead pushes): `fetch_daily_feature()` (SECURITY INVOKER; rotates eligible `editorial_boosts` by day-of-year mod pool; argument = boost label else synopsis sentence-trimmed to ≤320 chars via new `_discover_sentence_trim`; adds `editorial_boosts_authenticated_read` RLS policy — table was service_role-only) and `fetch_because_you_rail(p_limit)` (top-3 positive seeds by summed strength from own `taste_signal_events`, ≥2 required else 0 rows; `recommend_ids_similar_to_seeds` v2 per seed media type, interleaved when both; deck-signal exclusion added on top of the RPC's list exclusion; every row carries `reason_title` = #1 seed title). iOS: `SupabaseService+Discover.swift` (new: `DailyFeature`, `BecauseYouCard`, both fetches, `toMedia()`); `DiscoverOneThingCard.swift` (new hero: 4:5 crop banner??cover, grain + dual gradient + bottom `KuroGlassCard` `.onImage` with THE ONE THING eyebrow / serif title / 5-line argument / quiet chevron → MediaDetailSheet; shimmer skeleton; nil RPC → legacy `KuroHeroCard` fallback kept); `EditorialDiscoverView` hero block replaced, BECAUSE YOU LOVED rail (flag `personalized_new_to_you_v1`, ≥4 cards, mixed feed shown under ALL filter) replaces NEW TO YOU with italic serif reason line (`DiscoverReasonLine` slot added to all four section components), horizontal rail cards ~19% larger via `largeCards` param (divisor 2.8→2.35, clamp 112–144→132–170; Discover call sites only, GenreHub untouched), root spacing tokenized to `KuroDesignSpacing.lg/xl`; `KuroScoreBadge` is now a monochrome glass chip (`kuroBlack45` scrim, white text, `kuroWhite20` hairline — kills the last colored/drift badge look on Discover+Browse rails; `CompactAnimeCard`'s hand-rolled chip deleted). Route `animeBecauseYou` added. Build green; visuals verified on iPhone 17 Pro sim (fixture-driven hero shot + shipped fallback shot). RPCs verified against a local scratch Postgres (auth/rotation/interleave/floors) — remote returns PGRST202 until the lead pushes.
+
+### 2026-08-04/05 (overnight): Realm repair Phase 1 — penalty restored, gates→costs, tier split-brain closed, precomputed similarity serving, hygiene
+
+Autonomous run per `docs/superpowers/plans/2026-08-04-claude-code-autonomous-phase123-prompt.md`, executing `docs/superpowers/specs/2026-08-04-realm-repair-and-critique-plan.md` §3. Seven migrations (`20260804100000`–`150000`), all applied to production AND committed; every fix went through implement → live-verify → defect-first review (all APPROVE). Evidence: `reports/realm-repair/m1-verify.md` (all SQL + per-check verdicts), `reports/realm-repair/phase1-acceptance.{md,json}` (harness: `scripts/realm_repair/run_phase1_acceptance.js` — 13 PASS / 0 FAIL / 1 documented SOFT-FAIL).
+
+- **Fix 1 (`100000`)** — `recommend_ids_similar_to_seeds` penalty operator restored to the Feb convention: `+ coalesce(penalty, 0)` with values staying NEGATIVE (`editorial_penalty_tags` untouched). History: Feb `+negative` guard → July realm rewrite flipped to `−` (penalties became boosts, the "+28 band") → Aug 1 clamp `greatest(0, …)` zeroed the term entirely. Guard is live again: Berserk top-25 junk-free, zero penalty-tagged titles.
+- **Fix 2 (`100000`)** — realm gates became costs: hard exclusion ONLY tier-distance > 1 or (no shared family AND affinity < 0.6); ladder ×1.0 (top realm ∈ S) / ×0.85 (affinity ≥ 0.6) / ×0.65 (family only); membership cliffs → smooth `mem_term` (floor 0.5, anchor 0.35); the 2 Spirited-Away-specific affinity-veto override rows deleted; NULL candidate tier coalesced to 'solid' (no more silent drops). Totoro re-entered SA's list at **#10** after `110000` backfilled its missing credits (Miyazaki `Original Creator` + Studio Ghibli, ids resolved from sibling rows — Totoro had ZERO staff/studio rows; **60 canon anime share that hole**, early-import id cohort ~160–230). G3 (Hanako-kun S2 above Wolf Children) is a documented SOFT-FAIL: AniList's studio-edge `isMain` was never captured at import (29,830/30,005 role-NULL rows) + tag-space proximity — importer work + Phase 5 regrade, not RPC mechanics.
+- **Fix 3+4 (`120000`, `121000`)** — `media_realm_tier` converted matview → RLS table built FROM `media_realm_membership_effective` (split-brain closed: tier and similarity now read the same membership), seeded from the outgoing matview (no empty committed state), rebuilt by `rebuild_media_realm_tier()` (SECURITY DEFINER, pg_temp-hardened, TRUNCATE+INSERT swap, EMPTY_STAGE guard, service_role-only after `121000` closed the default-privileges EXECUTE trap). Root cause of the 0/4 dead cron: the postgres role's 2-min `statement_timeout` cannot be re-armed by in-function `SET LOCAL`; the new job runs `set statement_timeout = '600s';` as its own statement first (pg_cron simple protocol re-arms per statement). Green run 136.3s. T1 = 0 missing tiers (the ~600 tier-less visible titles are covered); ~57,310 tier rows.
+- **Fix 5 (`130000`, `131000`, `132000`, `140000`)** — precomputed serving: `media_similar_titles` (top-30 neighbors per visible seed; 225,541 rows / 7,519 seeds; 7,537 tracked, 18 legitimately empty — no tag vectors), chunked builder `rebuild_media_similar_titles(p_batch)` with advisory-lock claiming, self-healing `realm-similar-drive-5m` cron + `realm-similar-nightly` re-stale (05:10). RPC is now an indexed read with multi-seed blend (sum score, franchise `DISTINCT ON` via new `media_franchise_components` table — single label source for builder AND read path), per-user `user_lists` exclusion at read time, verbatim M1 scorer preserved as `_recommend_ids_similar_to_seeds_live` (service-role-only) fallback for un-precomputed seeds; `p_allow_gimmicks=true` routes live (baked scores contain penalties). **Measured: p50 36–93ms / p95 42–105ms authenticated (was p50 1.91s / p95 3.61s; pre-M1: 53/100 gold seeds timed out). Gold eval now 100/100, zero timeouts.** Seed-111 output byte-identical to the live scorer.
+- **Fix 6 (`150000`)** — hygiene: `_ops_import_secret_from_cron()` + sole caller `enqueue_realm_describe_batch()` dropped (secret-scraper family fully gone); 3 SECURITY DEFINER view advisors cleared via `ALTER VIEW … SET (security_invoker = true)` (byte-identical bodies) + grant trims (`media_realm_profile` loses anon; `realm_affinity_effective` service_role-only). **Security advisor ERRORs: 3 → 0.**
+- **Incidents (on the record):** (1) the builder's `work_mem='256MB'` override × ~14 hash joins OOM'd the 1GB Micro instance — **~25min production outage 19:20–19:45 UTC, forced restart**; fixed by `131000` (default work_mem, disk spill is safe). (2) 200-seed manga batches exceeded the 600s ceiling under drained burst-IO — 10 failed driver runs 21:05–22:55 UTC; fixed by `132000` (batch 100). (3) CORRECTIVE NOTE: `131000`'s header blames a "Management-API-mangled cron command" — superseded; the `"SET"`-tagged run rows are a pg_cron run-details display artifact (details recorded per-statement while the command continues). Do not institutionalize that comment's root-cause claim.
+- **Carried forward (tuning/import backlog):** penalty magnitudes (−3…−37) on a 0–2.5 score scale act as hard bans — collateral: Attack on Titan (Reincarnation tag) off Berserk's list, Boy and the Heron off SA's; Phase 2 gold eval should decide scaling. Vending-machine title holds `acclaimed` within isekai-reincarnation (within-realm percentile artifact). Genre-overlap cliff still structurally blocks Kon films from SA's neighborhood. Several One Piece entries have zero `media_relations` rows (franchise dedupe can't see them). Importer gaps: studio-edge `isMain`, the 60-title zero-credits cohort. **Owner security items: rotate IMPORT_SECRET and move it out of cron-command literals (Vault/GUC) — the scraping tooling is gone but the literal remains; consider dropping anon's live-fallback compute path.**
+- **Watch:** first natural `realm-tier-refresh` fire 04:50 UTC + nightly re-stale/drain cycle 05:10 (one green confirmation pending). Nightly full re-stale takes ~1–6h of driver fires on the Micro — owner decision: weekly cadence or compute bump.
+- **Phase 2/3 state:** owner gold judgments still absent (`owner_judgments.jsonl` — the Stage 3 ship gate); Round 0 critique-site dossiers written (12: 7 EN + 5 JP) in `reports/critique-pilot/dossiers/` — robots forensics: Sakuga Blog/THEM/AniFem/マンバ通信/Filmarks block or 403 AI fetchers; fully green: ANN review desk, Manga Bookshelf, Wrong Every Time, Fujitsu column (ClaudeBot explicitly permitted), WEBアニメスタイル; JP manga desk = open gap. NO sites blessed (owner-only). Flags unchanged: `discover_realm_rails_v1` 0%, `personalized_new_to_you_v1` 0%.
+
+### 2026-08-05 (later): Realm corrections applied + edges-first serving fork — similar-rails quality 0.512 → 0.823 P@10
+
+- **393 double-judged realm corrections live** (`20260805110000` + `112000`): `realm_audit_overrides` table + conditional-ordering weight swap in `media_realm_membership_effective` (swap only while demote outranks promote — absorbed overrides no-op and become deletable; absorption count 0 at ship). 84 fiat memberships on record. Tier re-realmed (Perfect Blue → psychological-thriller/canon, ARIA → iyashikei, Free! → sports-competition, Demon Slayer manga → battle-shounen). Audit basis: 6-agent sweep of 3,000 most-served titles, 13.4% misfiled, all corrections second-judged (`reports/realm-audit/`).
+- **Edges-first serving** (`20260805120000`, owner-decided fork): `rebuild_media_similar_titles` now ranks AniList community edges first (per-seed min-max rating → score 3.0–4.0, penalties clamp to 2.6 floor), realm/tier/franchise/merit checks as safety demotion, cosine backfill to depth 30 (score ≤2.5, always below edges); store gains `src` column; RPC/blend/exclusions unchanged; revert = restore 140000 builder body. Store: 91.9% of top-10 slots are edge-sourced across gold seeds. SA rail is now the Miyazaki list (Howl, Totoro #2, Kiki, Ponyo, Mononoke…); Berserk rail = Vinland Saga/Vagabond/Claymore/Kingdom.
+- **Measured**: gold gated P@10 0.512 → **0.823** (raw ceiling 0.850) after delta-judging 302 newly-surfaced edge candidates (85.5% relevant). Acceptance harness 13 PASS / 0 FAIL; P1/P2 re-scoped to junk-class intent (penalized AND sub-merit-75; demotion-below-clean-band check) — canon titles with community tags (AoT/LotL/HxH) are demoted, not vanished. G2 improved: Totoro #2.
+- One Thing lowercase-argument bug fixed (`20260805100000` — display fallback was the lowercased search column). Full-catalog propagation of all of the above rides the 05:10 nightly re-stale.
+- Backlog fed by tonight's evidence: entry-point canonicalization (other-franchise sequels in rails), mahou-shoujo realm proposal, low-w1 re-review queue, 3 held corrections, edges coverage for seeds with zero surviving edges (2/100).
+
+### 2026-08-05 (night): Critique ingestion pilot live + entry-point canonicalization
+
+- **Critique schema live** (`20260805130000`): critic_sources (5 seeded, 3 agent-blessed) · critic_reviews (no-prose-by-construction) · media_critic_claims (axis/verdict 0-4/verbatim quote ≤300/flags) · media_craft_scores + tier-weighted rebuild fn · media_content_notes (deadpan) · verdict_voice (30 EN labels) · atomic validated `upsert_critic_review_claims` (service-role, structured DETAILs).
+- **Pilot parsed**: 25 reviews / 55 claims / 5 content notes / 25 titles scored, from Wrong Every Time (8), Manga Bookshelf (14, 4 named critics), Fujitsu column (3, JP). **Quote fidelity 100% mechanically enforced**; 0 misattributions; edition/season mismatches skipped, never guessed. Gate verdict (`reports/critique-pilot/gate.md`): parser PROVEN, coverage structural (21%) — scale levers: ANN re-admission (WET's real reviews live there), Medium owner-session lane, Kincaid permission, (url, media_id) key widening for multi-title essays.
+- **Entry-point canonicalization** (`20260805140000` + `150000`): rails recommend franchises via entry points (media_franchise_entry_points, 2,946 entries; format→year→id selection; upward/equal-tier substitution). Named failures fixed (TR → MHA S1 + WIND BREAKER S1; Death Parade → Danganronpa: The Animation via a documented editorial bridge — AniList lacks the edge). SA/Berserk byte-identical; 380 rows remapped / 95 gold stores; acceptance 13 PASS. Full catalog converges via nightly re-stale.
+
+### 2026-08-06 (later): Deep-review fix-up wave 2
+- `20260806020000_serving_hardening_v1.sql`: own-franchise exclusion at the similar-titles read path (AoT Final P2 rail now zero-leak, live-verified), compilation bridges (AoT/Haikyuu/Mob recaps, SIDE_STORY + source='editorial'), hidden-gem argument HTML sanitization, edge floor 2.6→2.4, SET-first timeout guards on membership/affinity refresh crons, discover_rail_impressions added to delete_user_concierge_data (GDPR).
+- IMPORT_SECRET rotated; all 11 secret-gated crons re-armed via Management API (they were 401ing on empty GUCs/stale literals — mirror flat 5 days, enrich dead, catalog imports silent since ~Jun 19). Owner: set the new IMPORT_SECRET in local env before running import scripts.
+- Purged 5,304 template-junk descriptors + 15,902 inherited delta rows; Groq regeneration pass running for the purged set.
+- Similarity store truth: 7,534/7,537 seeds built (wave-2's "63% missing" was a pre-rebuild measurement).
+
+- 2026-09-25, owner correction: Withdrew the incorrect welcome replacement and condensed introduction from the design proposal. Existing welcome remains unchanged; visual alignment of authentication is pending the correct reference.
+
+
+### 2026-09-25 — Approved GitHub welcome and consolidated review
+
+Pinned the owner-approved welcome to `b943e457`, separated it from local composition edits, rechecked auth/collection/home source differences, and continued the review of authentication, phone home, lists, releases, friends and free-core monetization. Updated detailed review, two-page brief and browser concepts. GitHub branch/manual release facts verified; no deployment or current phone rendering claimed. No app source or backend changed; inventory remains 93 app Swift files and 235 migrations.
+
+### 2026-09-25 — Visual concepts withdrawn after owner critique
+
+Owner rejected all five proposed email/first-login/Home/Collection/Agenda layouts and specified that the approved animation sets the visual direction. Replaced browser proposal with an unapproved two-screen animation-led study; updated brief/review to withdraw old layouts. Research requirements remain proposals; first-login/Collection/Agenda visuals remain unresolved. No app source/backend changes.
+
+
+### 2026-09-26 — Design contract and every-call architecture audit (documentation only)
+
+Recorded auth-only animation, retained top swipe, persistent media scope, Home/Discover separation, optional shelves and club-only opt-in activity. Added the complete review, concise visual brief, comprehensive draft execution prompt, five call registers, coverage inventories and sanitized hosted evidence under `docs/research/2026-09-26-kuro-plan/`. Withdrew earlier moving-Home prototype. Source remains 93 Swift files and 235 migrations; existing AuthView edits preserved. Sixteen sampled function bodies match live; runtime, full schema replay and deployment equivalence remain unverified. No app/backend/flags/jobs changed; no implementation commit created.
+
+Validation for this documentation initiative: current-state gate PASS (93 Swift / 235 migrations); all 93 Swift source hashes unchanged; CSV source locations valid; two-page brief and 143-page full report checked for page bounds and sampled visually. No new app build/runtime or deployment proof.
+
+### 2026-09-27 — Discover issue layout
+
+Discover’s scroll is now one issue instead of the rail stack. `DiscoverIssuePage` shows an Anime/Manga switch, a lead on a single jacket color with the title and up to two sentences, then title-plus-one-sentence rows, then up to two color blocks. No contents numbers and no episode counts. Opening a title is a full-screen spread; a horizontal swipe turns to the next title in the issue; Details opens the existing title sheet. Reduce Motion skips the travel. Teasers come from the daily-feature argument or a trimmed synopsis. Jacket color is `cover_image_color`, with a stable muted fallback. `fetchDiscoverIssueSources` loads only those columns for the titles on the page. Home, Collection, welcome, and the catalog rails’ data load are unchanged; the old rail UI is no longer on the Discover scroll. See All routes from the old sections remain in code. Unsigned generic iOS build succeeded with code signing disabled. New files: `Kuro/Views/DiscoverIssuePage.swift`, `Kuro/Views/DiscoverIssueCopy.swift`, `KuroTests/DiscoverIssueCopyTests.swift`. App Swift count is 95. Title taps respect the pager’s tap suppression, and Reduce Motion uses `KuroMotion`’s cross-fade. The lead, the two blocks, and the opened spread now crop in the real cover or banner; the jacket color remains the field behind the type and until the image arrives. The issue continues past the two blocks with more title-and-teaser rows from the same rails. Following titles are pictures with one line, not a text list. The full-app restyle brief is `docs/research/2026-09-27-issue-style/EXECUTION_PROMPT.md`. It is a prompt, not a claim that Collection, Browse, Search, detail, or clubs already use the frame.
+
+### 2026-09-27 — Issue frame across the app
+
+One component, `KuroIssueFrame` (`Kuro/Views/KuroIssueFrame.swift`), is the picture-plus-line used by Discover’s following titles, Browse hero and grid, Search results, and Collection grid and list. The Discover lead stays the larger issue block (still, THIS ISSUE, up to two sentences, OPEN). Detail tops (`AnimeDetailView`, `MangaDetailView`, including Concierge’s direct presentation) are a full-width still, then title and one sentence on `cover_image_color`. Club rail items (`JournalRailItemCard`) are the same frame; member progress sits under the picture. Profile and `AuthView` are unchanged. Welcome scenery is not on Discover. Launch destination is still Discover.
+
+Stamp: Collection `+1` calls `incrementProgress`, which updates one list row and does not reload both libraries. The count moves only after that write returns true, with a medium haptic. A failed write keeps the previous count and stays silent. Title pages stamp a confirmed `setUserProgress` the same way and do not gain a `+1` button. Episode totals are not invented from the next airing, and manga chapter totals are not invented from the indexed maximum.
+
+Collection search pages the existing feed before filtering, so a title past the first page can match. Teasers for saved titles come from `fetchDiscoverIssueSources` for the ids just shown. Manga current status reads Reading where anime reads Watching. Anime/Manga stays a local control on Discover, Browse, Search, and Collection.
+
+Still the old chrome: Discover See All sheets and `GridAnimeCard`, detail genre/score lines below the jacket, similar-title rails, the add-to-list sheet, Taste, Concierge rails, and profile. Browse and Search cards have no synopsis on `AnimeCard`/`MangaCard`, so those frames are picture and title until a later fetch. No migration, edge deploy, flag change, or TestFlight upload. App Swift count is 96. Unsigned generic iOS build with `CODE_SIGNING_ALLOWED=NO` succeeded. `DiscoverIssueCopyTests` passed on the iPhone 17 Pro simulator, including the failed-stamp case and the lead-not-repeated case.
+
+### 2026-09-28 — Route, plate, scrub, and staged music
+
+Discover is a route of stops for the current Anime or Manga issue. Dragging the selected picture moves along that route. Tapping a stop that is already selected, or any title under it, opens the existing detail sheet. Pressing a title on Discover, Browse, Search, Collection, and club rails brightens it. Collection progress draws plate marks on the picture and still stamps only after `incrementProgress` confirms. Anime and manga detail stills scrub between banner and cover when both exist. Anime detail loads `get_anime_music_credits` behind `anime_music_credits_v1` (off, 0%). A verified official https link is the only play control. It opens outside the app. There is no in-app audio file, YouTube player, or soundtrack for manga. Migration `20260928020000_anime_music_credits_staged.sql` is in the repo and is not pushed. The pager is unchanged. New files: `KuroRouteMotion.swift`, `AnimeMusicCredit.swift`, `SupabaseService+Music.swift`, `AnimeMusicSection.swift`, `KuroTests/AnimeMusicCreditTests.swift`. App Swift count is 100. Migrations: 236. Unsigned generic iOS build with `CODE_SIGNING_ALLOWED=NO` succeeded. `AnimeMusicCreditTests` and `DiscoverIssueCopyTests` passed on the iPhone 17 Pro simulator. See All grids and compact rail cards now use `KuroIssueFrame` with the dimmer press, without the score badge. Club list cards sit on paper. Detail stat lines are type only. Debug builds accept `--kuro-skip-auth`, which opens the app without a session and marks onboarding complete so a simulator walkthrough can pass the login screen. Catalog reads still use the anon client. Lists and clubs stay empty without a real account. Release builds ignore the argument.
+
+### 2026-09-28 — Taste is a short list
+
+The left pager page stays named Taste. It no longer opens the judgment deck. It shows at most four titles for the selected medium. Personal Because You rows are used when at least two are not already on the list. Otherwise it uses New To You, then a short Essentials start. The training deck remains in the project and is not the pager page. Discover, Browse, Search, Collection, and Clubs stay the live layouts. App Swift count is 94.
+
+### 2026-09-30 — Local live-window viewer
+
+Added `tools/live-preview/index.html` and `scripts/serve_live_preview.py`. Localhost-only server at port8799 serves only its page (other paths404). Browser window-sharing displays the selected Simulator window with requested60fps and measured presentation rate; no recording/upload or backend changes. User must select the window; actual stream/framerate not yet verified. This is a live current-window mirror, not an all-screens gallery or automatic Swift rebuild. Original app edits preserved; no scheduled automation added. Validation: HTTP200 page, non-page404; browser page opens.
+
+
+### 2026-09-30 — Current original-project screen canvas
+
+Supersedes the single-window viewer above. `tools/live-preview/index.html` now renders simultaneous phone captures with pan, zoom, Fit all, search and full-size inspection. `scripts/capture_screen_canvas.py` snapshots current original source (including local edits), builds a separate `com.Kuro.canvaspreview` app and captures registered SwiftUI screens; `--watch` rebuilds on source fingerprint changes. `scripts/serve_live_preview.py` serves only the viewer, manifest and PNG captures on loopback port 8799. Instructions: `tools/live-preview/README.md`.
+
+The original app's Swift files/designs are unchanged by this initiative. Capture-only routing and local club sample injection occur in a disposable `/tmp` source copy. No account credentials, deployments, scheduled automations or backend writes were added. Account-dependent screens are anonymous; club detail is a labeled empty local sample. This is a screen-review canvas, not exhaustive scroll/alert/state coverage or instant Swift hot reload. Build failures retain previous captures with a stale warning. Initial 16-frame native build/capture and browser search, enlargement and Fit all verified; expanded capture verification is recorded below when complete.
+
+
+### 2026-09-30 — Portable screen canvas
+
+Added `tools/screen-canvas/index.html` with 52 representative layout captures, bundled PNGs, offline data and source provenance. Open after downloading/cloning; no Simulator or localhost server needed for viewing. `scripts/export_screen_canvas.py` exports completed captures and rejects incomplete or missing assets. Capture, export, commit and push alongside UI changes to refresh GitHub. Initial captures include local original-app edits not bundled into this canvas-only commit. Anonymous/sample states and scroll/dialog coverage limits remain labeled. No app source or production changes. Validation: 52 unique frames, local asset references and Python/JavaScript syntax checked. Direct file opening could not be browser-tested because the browser tool blocks file URLs.
+
+
+### 2026-09-30 — Copyable canvas screen references
+
+Each of the 52 canvas frames now has Copy reference (screen name/ID, SwiftUI source, screenshot path, capture fingerprint and edit instruction), Copy image (PNG clipboard) and Save PNG. Text clipboard denial opens a selectable reference; unsupported image copying points to Save PNG. All frame IDs have explicit source mappings. Updated both localhost template and portable export. Verified sign-in text clipboard contents and image/png clipboard entry in browser; JavaScript syntax passes. No native app source changes.
+
+
+### 2026-09-30 — Three editorial design directions
+
+Added `tools/design-directions/` (12 files: HTML prototype, README, two artwork manifests, eight covers). Local comparison at port 8803: Edition, Index and Gallery, each with Home/Taste, Anime/Manga, title and club panels. State is in-memory; all account/release/social content is illustrative. Browser checks passed for medium-separated progress, +1/Undo, add/Undo, list status, protected comments, singleton panels and reset; images loaded and no console errors observed. No Swift, database, deployed or production changes. Existing app file counts unchanged.
+
+
+### 2026-09-30 — Reduce prototype text
+
+Simplified all three local design directions following user feedback: removed introductory slogans, duplicate labels, main-feed descriptions and comparison essays. Home now emphasizes covers, titles, progress, upcoming dates and compact club signals. Taste keeps only a short vibe phrase; fuller descriptions appear on title tap. Core demo controls remain. Prototype-only change; native application and backend unchanged.
+
+
+### 2026-09-30 — Folio design study
+
+User rejected the initial prototypes as generic. Added `tools/design-directions/folio.html` with a new shared visual composition across Home, Taste and Title: offset numbered artwork, progress marks, compact release spines and staggered selections. Earlier concepts remain available. Progress/Undo, current-title switch, save, Anime/Manga and protected club notes were browser-checked. Design review remains pending; this is local sample-data HTML, with no app/backend/deployment changes. Prototype folder now has 13 files.
+
+
+### 2026-09-30 — Personal Home replaces numbered Folio
+
+The user rejected decorative numbering and asked for a more useful, distinctive Home. Rebuilt `tools/design-directions/folio.html` around current titles with immediate progress controls, a followed-release horizon, a compact club conversation, and a route into Taste. Two previews distinguish anime and manga; Returning / Caught up / New here show different content states. No decorative ordinals or padded counts. Meaningful episode/chapter progress remains. Progress/Undo, medium isolation, list access, title/save, spoiler reveal and first-visit behavior verified locally in the browser. Current folder remains 13 files. Design acceptance is pending; no SwiftUI, backend or deployment change.
+
+
+### 2026-09-30 — Sharp artwork and direct Home interaction
+
+Refined the accepted-for-further-exploration Personal Home direction in `tools/design-directions/folio.html`: four bundled 1800–1900 px catalogue banners replace stretched thumbnail art in the primary presentation; compact covers preserve proportions. Current titles switch through artwork swipe, thumbnail tap or keyboard. Progress targets the selected title, provides animated confirmation and Undo; title detail uses the same visual composition. Browser verified pointer drag, keyboard/tap switching, progress recovery, medium isolation, source dimensions and no console errors. AniList extraLarge cover lookup returned 403; no full-resolution cover upgrade is claimed. Prototype folder: 17 files. Native haptics, source-image ingestion improvements and final design approval remain pending. No SwiftUI, hosted data or release changes.
+
+
+### 2026-09-30 — Panels alternative Home study
+
+User rejected the latest visual treatment; it is not approved. Added `tools/design-directions/panels.html`, preserving the previous Home. Unequal artwork panels put both current titles and progress controls in view; releases occupy a compact band and club comments sit within their title artwork. No decorative numbering. Added two sourced high-resolution club banners; prototype folder now has 20 files. Browser checks covered per-title progress/Undo, medium isolation, detail routing, protected club comments and save/Undo. This is an unapproved local sample-data design study; no SwiftUI, hosted backend or deployment change.
+
+
+### 2026-09-30 — Distinct medium layouts in one Home
+
+User requires Anime and Manga to have different layouts within a coherent app. `tools/design-directions/panels.html` now opens one Home preview: Anime is scene/episode/schedule-led; Manga is book/bookmark/chapter/edition-led. Both retain the same navigation and common controls. Optional Compare layouts is review-only. Medium selection persists only under a localhost prototype key; progress is sample memory state. Browser checked medium persistence, independent progress with Undo, reading-title switching, different structural layouts, image loading and no console errors. Design approval remains pending. No SwiftUI, backend or deployment changes; prototype folder remains 20 files.
+
+
+### 2026-09-30 — Personal context in the Home design prototype
+
+Status: local design hypothesis, awaiting review. `tools/design-directions/panels.html` now derives Home from one coherent fictional account in new `home-profile.js`: list status/progress, saved titles, followed releases, shared-club relevance and manga edition language. Anime and Manga retain distinct compositions. Compact summary, saved-title start, paused-manga resume, follow-filtered releases and an inspectable context panel add useful information without long feed copy. Returning/new-member fixtures are explicitly labelled; no real account connection, recommendation engine or verified release/news feed is claimed. Medium preference alone persists; account changes reset on reload.
+
+Browser checks: episode count responds to progress and caps at sample availability; progress/Undo and start/Undo restore list state, with previous primary title restored; resuming manga retains chapter 12 and Undo restores paused state; German hides English-only releases; unfollow removes the title's release card; a new account has no invented club/continue activity, and saving from Taste creates a personal queue entry. Both layouts inspected; all 13 displayed images loaded and no console errors observed. Cover-only titles avoid landscape stretching. New prototype folder count: 21 files. Original SwiftUI, backend and release state unchanged. Native integration, haptics, real recommendation quality and production behavior remain unverified.
+
+
+### 2026-09-30 — Interactive scenes and open-shelf Home study
+
+Added `tools/design-directions/interlude.html` as a separate local Home exploration after the user rejected Panels as boring. Existing prototypes preserved. Anime: swipe/tap/keyboard scene rotation, selected-title progress/release/club context tabs, followed-release appointments and saved/club entry points. Manga: selectable overlapping covers, bookmark progress, edition language and margin conversation. Shared collection/detail drawers, status changes, follow toggles, Undo, spoiler reveal and reduced-motion rules. Reuses existing fictional account/art assets. Only medium preference persists; account mutations reset on reload. Prototype folder now 22 files; native file counts unchanged.
+
+Browser checks covered episode cap and Undo, starting saved anime, medium independence, paused manga resume/Undo, language-empty state, follow removal/restoration (2→1→2 release cards), title-specific empty club comments, spoiler reveal, keyboard navigation and pointer swipe without opening details. Both compositions visually inspected. No backend, SwiftUI, auth or deployment change. This is an unapproved design study, not real-account, retention, native-haptics or production proof.
+
+
+### 2026-09-30 — Multi-title, image-led vertical Home
+
+User rejected Interlude's selected-title hero, overlapping books and Your Place/What's Next/Club tabs. Added `tools/design-directions/flow.html` as a separate local study; prior files preserved. Home is a continuous vertical feed with four active titles per medium, independent progress controls, follow-filtered release groups (three concurrent releases plus two later), separate new-release grids (two Anime, three Manga), and club imagery. No context tabs, carousel selection or modal navigation. Optional details expand inline. Anime uses compact landscape mosaics; Manga uses full cover/bookplate pairs with progress beside each cover. Group renderers map their full supplied arrays; no one-title-per-day or slice cap. Native scrolling, sticky day headings and reduced-motion support; no custom wheel interception.
+
+Browser verified: 4 current titles, release groups [3,2], new grids [2 Anime/3 Manga], zero context tabs; progress caps with Undo and unchanged other-medium progress; saving/Undo; German missing-edition state; unfollow removes both relevant scheduled events (groups [2,1]) and Undo restores; detail opens inline with zero dialogs; all 27 comparison images loaded, no console errors observed. Source JavaScript syntax and diff whitespace checked. Source/local proof only: no SwiftUI, hosted data, auth or deployment changes. Fictional releases reuse existing title artwork to demonstrate layout capacity; they are not actual announcements. Production pagination, real catalogue/release mapping, native feel/haptics, broader accessibility and performance validation remain pending. Prototype folder now 23 files.
+
+
+### 2026-09-30 — Three divergent Home composition studies
+
+User rejected Flow as boring. Added `tools/design-directions/studies.html` for a visual comparison using identical fictional personal content: Thread connects artwork along a vertical timeline; Cut interlocks edge-to-edge image frames with paper captions; Journal alternates covers and annotations. Manga has separate cover-led layout rules. External review controls switch Anime/Manga, open a direction at full phone size, or reset samples. Direct URL `studies.html?direction=cut` opens Cut. No in-app context tabs or modal routing.
+
+Each variant renders four current titles, release groups of three and two, two new-release examples and inline club notes. Progress and saved-release state are shared across variants for comparison but independent by medium. Browser checked episode cap/Undo, save/Undo, inline spoiler reveal with zero dialogs, medium isolation, content counts and full-size visual presentation. Samples reuse existing local artwork; no real account or actual-release claims. No new media ingested, no SwiftUI/backend/deployment changes. Design approval, native implementation/haptics, real data and production-scale behavior remain pending. One added HTML file; prototype folder now 24 files.
+
+
+### 2026-10-01 — Visual-reference reset after Home study rejection
+
+User rejected the Thread/Cut/Journal studies; none is approved. Added `tools/design-directions/references.html`: eight official App Store promotional screenshots from MUBI, Cosmos, Sofa and Sequel, source links, enlargement, and short Kuro-specific adaptations. Mobbin public site was checked; its library was inaccessible in the logged-out browser and no callable Mobbin connector was found. No Mobbin screen-library research is claimed. Visual judgments are explicitly separated from behavioral/retention proof. Remote images require internet; no reference media copied into the app or catalogue.
+
+Verified all eight remote images loaded, enlargement/close worked and board rendered in the current browser viewport. Prototype folder now 25 files. Native SwiftUI, backend, deployment and unrelated dirty work preserved. Next design remains pending: artwork-led, medium-specific composition, multiple active titles, multi-event releases and continuous scrolling without context submenus.
+
+
+### 2026-10-01 — Personal Home interactive prototype
+
+Added `tools/design-directions/journal.html`, `journal.css`, `journal.js` and `journal-data.js` as one new reference-informed prototype. This is separate from the rejected Journal option in `studies.html`. Anime uses paired scene compositions; Manga uses intact cover pairs and chapter bookmarks. Both show four active titles, followed-release groups of three and two, a separate two-title new-release section, two distinct discovery titles with short sample vibe copy, and club context. Continuous in-phone scrolling; no context tabs. Artwork opens a local detail overlay, with progress, start and save actions. Medium preference persists under a prototype-only key; account mutations reset on reload.
+
+Added ten public catalogue images (eight covers, two banners) for distinct discovery/release examples; exact sources are recorded in `journal-data.js`. Some cover paths use PNG, others JPG. Original portrait-cover resolution limitations remain for preexisting assets. Design folder now 39 files (+14); no Swift files added or changed by this initiative.
+
+Local verification: independent per-title/medium progress, cap and Undo; save/Undo; simulated save failure leaves state unchanged; new account has no active/followed/club data, and starting a title does not invent club membership; quiet account hides new activity; missing-art placeholders and unconfirmed dates; release groups [3,2] per medium; spoiler reveal; detail progress/Escape; persistent medium; first-use scroll; 390px viewport with no horizontal feed overflow; loaded artwork; JavaScript syntax and no browser console errors. Native haptics/shared-image transitions, real account integration, catalogue-wide pagination, real release provenance and design approval remain pending. Dates, release labels, commentary and progress are illustrative, not actual announcements. Original native app/backend/auth/deployment and unrelated dirty edits preserved.
+
+
+### 2026-10-01 — Living-world Home experiment
+
+User explicitly requested a completely different direction and authorized an interactive living-world prototype. Added `tools/design-directions/world.html`, `world.css`, `world.js`, `world-art.json`, `assets/world-landscape.png`, and `assets/world-paper.png` (6 files; design folder 45 files). Built-in image generation created two authored 1024×1536 landscapes; full prompts and project asset paths are in `world-art.json`. Title artwork and provenance reuse `journal-data.js`. This permission applies to a separate concept, not a native design-system replacement.
+
+Anime is a night archipelago; Manga is a paper-and-ink landscape. Both support native scroll/touch pan, mouse dragging on terrain, zoom, overview, recenter, four initial title places with direct progress, title sheets, add/start/finish/remove with latest-action Undo, new places below the pier, title-location lookup, a shared-club gathering with spoiler reveal, and arrivals grouped [3,2] plus two separate new-release samples. Completed titles retain their place. Medium alone persists under a prototype key; account changes reset on reload. A new-member fixture has no list/follow/club history. Single save failure is locally simulated without mutating state.
+
+Local verification: progress/cap/Undo and medium isolation; failed write; add/place lookup/start; completion/Undo; club pointer and keyboard access/spoilers; empty account/add/Undo; release group capacity; mouse drag changed camera by (+70,+150); recenter; zoom and overview; narrow 390px viewport with all initial Manga progress targets inside the viewport above dock, plus horizontally fitting Anime controls; all displayed images loaded; JS syntax and diff checks. Fixed three prototype defects during review: a browser-global function-name collision, toast overlap with sheet actions, and active-transform displacement of translated gathering buttons. Phone-width home zoom now adapts; the review phone has a minimum height to retain usable controls. Reduced-motion CSS present; native iPhone touch/pinch/haptic testing not performed. Pinch zoom and audio are not implemented.
+
+Limitations: authored static scenery and small fictional account, not a procedurally generated/personalized world or verified recommendation engine; additional places extend into a simple area below the illustrated map, not newly generated scenery. Dates/releases/club relationships are samples. Production-scale spatial clustering, accessibility audit, native rendering/performance and user design acceptance remain pending. No SwiftUI, backend, auth, production or deployment changes; unrelated dirty source preserved.
+
+
+### 2026-10-01 — Modern Home comparison: Shelf / Screen / Today
+
+The user rejected the living-world direction for poor visibility and an immature public-use appearance. Added `tools/design-directions/modern.html`, `modern.css`, and `modern.js`: three independent local compositions using the same six ongoing titles and three initial updates per medium. Shelf puts a compact cover collection first; Screen uses a graphite surface and scene compositions (intact covers for Manga); Today leads with newly available episodes/chapters. Each includes grouped followed releases [3,2], two separate new releases and protected club commentary. Existing sourced artwork/fixtures are reused from `journal-data.js`; no new assets. Design folder now 48 files (+3).
+
+Interactive comparison includes full-size views, persistent medium preference, shared progress across variants with independent Anime/Manga state, progress caps, latest-action Undo, detail sheets, saving and simulated failed writes. Browser checks passed for six-title capacity, release groups, image loading, cap/update-count synchronization, medium isolation, Undo, unchanged state after failure, detail/Escape, save/Undo, spoiler reveal, and settled 390px layout without horizontal feed overflow. JavaScript syntax checked. Header destinations are visual context. Activity, releases and progress are fictional; no authenticated/backend calls. Native haptics, large/empty-account behavior for these new layouts, accessibility audit and real-user validation remain unverified. User design acceptance pending; Screen's dark palette is prototype-only. No SwiftUI, backend, auth or deployment changes.
+
+
+### 2026-10-01 — Aperture Home / artwork medium switch
+
+User rejected the modern comparison as insufficiently creative and explicitly requested a different top switch/visual. Added `tools/design-directions/aperture.html`, `aperture.css`, `aperture.js` (design folder 51 files). Prototype replaces medium tabs with a single full-width artwork selector: tap or horizontal pointer swipe changes medium; selected medium persists separately. Anime uses staggered frame compositions; Manga uses open-volume layouts with intact covers and margin progress. Six active titles per medium, follow-release groups [3,2], new releases and protected club commentary remain continuously scrollable. Existing sourced artwork is reused; data is fictional. No native/backend changes.
+
+Local browser verification: tap and pointer-swipe switch, independent medium progress, caps/Undo, failure leaves progress unchanged, in-dialog progress/Undo feedback, save/Undo, spoilers, six-title capacity, [3,2] release groups, image loading, 390px no horizontal overflow, no captured console errors; JS syntax and diff checks. Native touch/haptics, empty/large accounts, full accessibility review, backend integration and user design approval remain pending. Header navigation/profile are visual context only. Mutations reset on reload; medium alone persists. Prior variants and unrelated source preserved.
+
+
+### 2026-10-01 — Aperture material and interaction polish
+
+Refined existing `tools/design-directions/aperture.css` and `aperture.js` at the user's request. Anime has inset translucent mounts, cutout seams, layered shadows and recessed progress buttons; Manga has paper/cloth-like CSS backgrounds, layered page edges, folded corners and ribbon bookmarks. Medium selector has an inset artwork tray, highlight sweep and swipe-follow feedback. Added press compression, progress spring/ring confirmation, animated progress fill, staggered medium entrances, artwork-origin detail opening and animated close/Escape. Motion is bounded to interactions; no ambient animation loop. Reduced-motion CSS and JS guards are present. No new files/assets in design folder (51 files), no additional copy or native/backend changes.
+
+Browser checked: progress cap, Undo, failed save unchanged state, in-dialog progress/Undo, animated close and Escape, save/Undo, spoiler reveal and 390px no horizontal overflow. Reduced-motion emulation confirmed content animation name `none`; all-animation enumeration was unavailable in the read-only browser scope, so full runtime animation inventory was not verified. Temporary emulation/viewport overrides reset. JS syntax and whitespace checks passed. Native haptics, real device motion/performance, comprehensive accessibility and design acceptance remain pending. Fictional local account only; unrelated source edits preserved.
+
+
+### 2026-10-01 — Pinterest-informed Aperture palettes
+
+Reviewed actual Pinterest images for editorial mobile, book-app and movie-app layouts, plus burgundy/cream and blue/butter palette grids. Refined `tools/design-directions/aperture.html`, `.css`, `.js` in place: explicit reusable palette tokens, Oxblood/parchment (default), Ink/powder and Olive/butter controls; a compact high-contrast artwork switch, calmer borders/shadows, larger small text, full Anime covers instead of portrait crops of scene banners, simplified Manga page surfaces, and restrained confirmation motion. Removed the prior dense textures/gloss/curls. Palette controls are review UI and remain accessible at phone widths. Palette and medium persist under separate prototype keys; palette changes do not rerender or reset account state. `?palette=ink|oxblood|olive` selects a shareable starting palette. Reference links are in the desktop review panel and design README. Asset query versions avoid stale CSS/JS during local review. Three existing files changed; design folder remains 51 files, no imported reference media.
+
+Verification: palette persistence/reload, progress/cap/Undo across palette changes, failed-save unchanged state, list saving/Undo across palettes, detail/Escape, spoilers, all displayed images loaded, Anime and Manga fit 390px without horizontal overflow, reduced-motion content animation computes to none (temporary overrides reset), JS syntax and diff checks. Calculated secondary-text contrast on the soft release-panel surface: Oxblood 4.84:1, Ink 4.76:1, Olive 4.52:1; these token checks are not a full accessibility audit. User approval/native integration, haptics and device performance remain unverified. Fictional local account; native source/backend unchanged.
+
+
+### 2026-10-01 — Composition diagnosis after palette rejection
+
+User rejected Aperture colours and the broader composition. Added local `tools/design-directions/composition-review.html` with `assets/original-discover-review.png` (copied saved 30 September SwiftUI preview) and `assets/aperture-review.png` (current browser frame); design folder now contains 54 files. Compared official promotional screenshots for MUBI, Cosmos and Sequel; these are visual references, not tested app sessions. Findings: oversized medium control, expensive nested/book containers, and six-title queue burying personal updates. At the measured 412 × 878 scroll area, first artwork starts at 295px; upcoming Anime/Manga sections start at 1363/1692px and club sections at 2166/2495px. Fixture layout measurements are not user-study evidence.
+
+Next-study targets (proposed, not implemented or approved): neutral composition study, compact switch alongside familiar pager, four identifiable active titles plus start of personal updates in the 390 × 844 opening view, multiple releases and club context in the following view; shared controls with distinct media proportions/progress units. Test new, quiet and busy accounts before sign-off. Aperture implementation, native source and backend unchanged by this review. Existing unrelated edits preserved. Local server restarted on 127.0.0.1:8803. Verified five review images load, enlargement/Escape and visual comparison; no release claim.
+
+
+### 2026-10-01 — New references after MUBI/Sequel rejection
+
+Added `tools/design-directions/reference-atlas.html` (55 design files total), with original externally hosted screenshots, two optional video clips, enlargement/Escape and clearly labelled palette interpretations. New shortlist: Savee July 2026 native redesign (image density/reflow), Family (collection controls/transitions), Not Boring Calculator (material/interaction precision; older reference), Gentler Streak (varied personal recap composition). Read primary product/designer sources and inspected media visually. DICE and Not Boring Vibes/Guava/Sesame also explored; loud Guava and whole-world metaphors not selected. MUBI/Sequel rejected; Cosmos partial only. Existing composition review now labels earlier references superseded and links the new atlas. No current prototype, native/backend or feature-flag changes.
+
+Recommendation is a study proposal, not acceptance: Savee image composition plus Family component craft; selective Not Boring touch feedback; distinct release/club modules informed by Gentler. Palette strips are interpretive relationships, not exact brand tokens or implemented Kuro themes. Native monochrome status controls remain the contract. Browser proof: four reference images loaded, two clips ready and playable, playing one pauses the other, enlargement/Escape, no horizontal overflow at 390px (viewport reset). Demos are publisher media, not hands-on native testing. External media requires internet. Prior dirty work preserved.
+
+
+### 2026-10-01 — !Boring-led tactile Home study
+
+User explicitly selected !Boring as the strongest reference, replacing the prior Savee/Family lead, then authorized building it. Added `tools/design-directions/instrument.html`, `instrument.css`, `instrument.js` (58 design files total). Local URL: `http://127.0.0.1:8803/instrument.html`. Silver/graphite surfaces, recessed full-cover artwork, dimensional episode numerals and pressable progress controls; compact mechanical medium rocker supports tap, arrow keys and horizontal pointer swipe. Anime has four initial compact dark panels; Manga has four lighter horizontal rows with chapter readouts. Releases follow these four, before the remaining two ongoing items; three tomorrow releases, three later announcements, club context/spoiler protection and two new-release samples. Uses existing local artwork/provenance, not copied !Boring assets. Episode/chapter numerals are real fixture progress, not decorative numbering.
+
+Interaction proof (local browser): known progress cap/disabled control; Undo restores; simulated failure leaves state unchanged; in-detail update/Undo; list save/Undo and detail reflects saved state; spoiler reveal/hide; three-announcement dialog; six active titles per medium; medium persists across reload; pointer swipes both ways; new-account hides active/follow sections, quiet scenario supports caught-up known totals. At 390 × 844, four full active titles and release-section beginning visible in both media with no horizontal overflow. Images loaded; captured console warnings/errors empty. Reduced-motion emulation gives no counter animation and zero switch transition; override and viewport reset. JS syntax/diff checks passed. No native/backend calls or release claims.
+
+Scope limitations: fictional release dates/activity, in-memory mutations reset on reload, only medium persists under `kuro-instrument-medium`; Home pager label/profile are visual context, not implemented navigation. Native haptics, live-account integration, full accessibility/performance audit and user design acceptance remain unverified. Existing original/overnight designs and unrelated Swift edits preserved.
+
+
+### 2026-10-01 — Instrument composition revision after owner rejection
+
+The first !Boring-led implementation was rejected as superficial. Revised the existing `tools/design-directions/instrument.html`, `.css`, `.js` in place (58 design files, no new catalogue media). Anime now uses one graphite housing with a six-title, three-column contact sheet, full printed covers, attached compact progress keys and on-cover club access. Manga uses a light surface, two-column bound-book objects with page blocks, four initial titles and the remaining two after personal updates. Removed giant episode readouts and individual beveled card housings. A cobalt/graphite rocker, coordinated artwork/key progress response and staggered medium transitions are local design experiments. Three release samples, three later announcements, club spoiler controls and two new-title samples remain. Catalogue art provenance remains in `journal-data.js`.
+
+Reviewed official !Boring [checkbox design rationale](https://notbor.ing/words/the-most-satisfying-checkbox) and [Camera](https://notbor.ing/product/camera), including the Camera hero visually. Applied coherent material and repeated-action feedback principles; did not copy their media or claim a full 3D rendering/native haptic implementation. All actions remain local fixtures. Header pager/profile are visual context only.
+
+Local browser verification: six active titles per medium; episode/chapter cap and Undo; failed save keeps prior value; club-context details; three-announcement dialog; new-account add/Undo with no existing activity; caught-up known totals; images loaded; no horizontal document overflow at 320px or 390px. Reduced-motion counter animation computes `none` and rocker transition `0s`. Captured console warnings/errors empty; JS syntax and whitespace checks passed. Anime exposes all six titles in the opening phone view; Manga prioritizes larger book covers and requires more vertical scrolling. This explicitly supersedes the prior four-title-plus-release-first-fold target. Screenshots are local browser proof, not native/release/acceptance proof. Native haptics, device performance and comprehensive accessibility remain unverified. No native/backend/deployment changes; unrelated edits preserved.
+
+
+### 2026-10-01 — Home hierarchy and action-depth refinement
+
+Owner feedback now supports the material direction but identifies clumsy sections and controls. Revised `tools/design-directions/instrument.{html,css,js}` in place; inventory remains 58 design files. The six-cover Anime / bound-book Manga compositions remain. Quiet episode/chapter readouts now sit beside separate 44px progress keys, so reading a number cannot mutate progress. Shared action tokens define shallow resting depth, 2px press travel and recessed saved/caught-up states. Capping a title moves keyboard focus back to its artwork (or detail close control) instead of trying to focus a newly disabled button.
+
+Replaced the separate later-announcement dialog with a continuous Tomorrow / Later timeline containing three releases and three visible announced-title rows. Club content now associates the person, progress and comment with the specific title; second sample member activity is visible and spoiler content remains hidden until requested. Recommendations retain cover artwork and show brief original vibe copy. Clear Watching / Reading, Coming up, Sunday Club and For you labels replace ambiguous headings. Fixed desktop device-shell stretching and phone outer-page overflow. Kept catalogue provenance, fixture isolation and distinct medium layouts. No backend or native changes.
+
+Local browser checks: episode/chapter increments and caps, Undo, unchanged progress on failed update, failed list save remains unsaved, recommendation save/Undo, announced-title details, matching club detail context, spoiler reveal/hide, new-account absence of fictitious prior activity, known-total caught-up states, all six active titles and three-plus-three upcoming items per medium. Both media fit 320px without horizontal document overflow; progress buttons remain 44px wide. At 390px visual review covers progress, timeline, club activity and recommendation sections. Reduced-motion counter animation is none and button transition is 0s. No captured console errors/warnings; images loaded, JS syntax and diff checks pass. Emulation reset after verification. Local server was no longer running and was restarted bound only to 127.0.0.1:8803; a fresh browser tab recovered from the stale connection-error document.
+
+Limitations: local fictional account only; recommendation copy is creative fixture copy, not live personalized inference. Native haptics, live/released behavior, comprehensive accessibility and design acceptance remain pending. Earlier first-fold and announcement-dialog descriptions are historical. Current screenshots: `/tmp/kuro-refined-controls.png`, `/tmp/kuro-refined-timeline.png`, `/tmp/kuro-refined-clubs.png`.
+
+
+### 2026-10-01 — Restrained material and motion finish
+
+Owner explicitly likes member names, Coming up and Sunday Club, but rejects childish depth and heavy controls. Kept those sections and their content/behavior. Refined existing `tools/design-directions/instrument.{html,css,js}`: 32px tonal circular progress faces within unchanged 44px targets; SVG action glyphs; no extruded edges, white keycaps, button travel or gloss; neutral medium indicator without decorative grip; quieter cover shadows/book edges and Sunday Club panel. List saving uses fine borders and tonal selected feedback. Removed progress cover-flips, counter bounce, staggered 3D medium changes and failed-save shake; shortened detail transitions. Dark empty-account actions have explicit legible foreground/background treatment. No new files (58 design files), native code, backend or deployment changes.
+
+Local browser verification: progress cap/Undo and unchanged value on simulated failure; chapter update/Undo; spoiler reveal/hide; new-account save/Undo; both media fit 320px without horizontal overflow and retain 44px targets; 390px visual inspection; six active titles, three releases and three later announcements remain. Reduced motion disables the counter animation and pseudo-element transitions; emulation reset. Images loaded; JS syntax and diff checks pass. Design acceptance, native haptics and real-device performance remain pending. Prior decorative-motion/depth descriptions are historical, not the current presentation.
+
+
+### 2026-10-01 — Porcelain surfaces and direct medium selection
+
+Owner requested a broader polish of the underlying color, depth, buttons and Anime/Manga switch. Revised existing `tools/design-directions/instrument.{html,css,js}` in place; no new design files (58 remain). Consolidated CSS into one surface system: cool porcelain base, one ink tray for six anime covers, lighter bound-book manga surfaces, gentle contact shadows and a quieter white club panel. Member names, three tomorrow releases, three later announcements, Sunday Club and brief recommendation copy remain.
+
+Replaced the prior small toggle with typographic Anime/Manga labels and a draggable selection rail. Tap and arrow keys also work; horizontal threshold/capture and vertical rejection prevent accidental mode changes while scrolling. Progress actions retain 44px targets and show a real known-total ring; unknown chapter totals have a dashed track with no false percentage. Save controls use filled bookmark confirmation. Removed obsolete illustrative percentage styling. Scoped selector rendering to buttons so medium dataset attributes on containers cannot be mistaken for controls. Reduced motion removes transitions and animated ring updates.
+
+Local checks: 390px visual inspection of both media and club panel; both media fit 320px with no horizontal document overflow and 44px visible progress targets. Tap, bidirectional drag, vertical rejection and arrow switching checked. Episode cap, Undo, failed update preserving prior count/ring, uncapped unknown-total chapter update, new-account save/Undo, club-context details and spoiler reveal/hide passed. Six active titles, three releases and three later announcements retained. Images loaded; captured browser warning/error log empty. Reduced-motion counter animation is none and ring/selector transitions are 0s; viewport/media emulation reset. JavaScript syntax and whitespace checks passed. Screenshots: `/tmp/kuro-porcelain-anime.png`, `/tmp/kuro-porcelain-manga.png`, `/tmp/kuro-porcelain-clubs.png`.
+
+All data/actions are local fixtures; only medium persists across reload. This is an unapproved visual iteration, not native, backend, live-account, haptic, comprehensive accessibility or release proof. No native/backend changes or deployment; unrelated edits preserved.
+
+
+### 2026-10-01 — Extend the porcelain/ink Home idea
+
+Owner requested continuing the current direction after reviewing screenshots on iPad. Updated existing `instrument.html`, `instrument.css`, and `instrument.js` under `tools/design-directions/`; no files added/removed. Upcoming titles share a white day tray, with time/volume labels beneath artwork. Selecting a cover expands one inline release summary; selecting it again collapses it. Selection uses `aria-expanded` / `aria-controls`, clears on medium/account reset, and survives progress rerenders. Three later announcements stay in the continuous scroll.
+
+Compact title sheets now pair artwork with title/vibe, one progress control, and named club context when entered from a club action. Anime uses ink and manga paper/book depth. Removed duplicate progress readouts. Added exact source-control restoration when a mutation replaces the original DOM node. Club-title touch target increased to 44px and spoiler control uses the shared subtle-depth treatment. Tablet preview shell fits 768px without overflow.
+
+Local browser verification: release open/change/collapse, anime episode and manga volume summaries, progress cap/Undo, failed save leaving count unchanged, unknown-total chapter increment/Undo, new-account detail save/Undo, Escape and close dismissal, exact release-origin focus after rerender. Both media and long-title sheets fit 320px without horizontal overflow; detail progress target 44px. 390px visual checks and 768px document fit passed. Reduced-motion chevron/selector transitions 0s; shared JS animation helper retains reduced-motion guard. Captured browser warning/error log empty; JS syntax and diff checks passed. Emulation reset. Screenshots: `/tmp/kuro-next-release-tray.png`, `/tmp/kuro-next-anime-sheet.png`, `/tmp/kuro-next-manga-sheet.png`.
+
+Prototype scope only: release dates/numbers, activity and mutations are sample fixtures. Screenshots are provided directly in chat for iPad; localhost is still bound to the Mac and no external hosting was created. No native/backend/deployment changes; unrelated edits preserved. Final design acceptance, native haptics and comprehensive accessibility/device-performance validation remain pending.
+
+
+### 2026-10-01 — Initial Home polish; further flows deferred
+
+Owner corrected the previous scope expansion: polish the initial page's containers, buttons, scroll animations, visuals and hierarchy before developing subsequent interactions. Existing detail/release interactions are retained but were not expanded this pass. Modified only `tools/design-directions/instrument.{html,css,js}` plus documentation; no new design files (58 remain).
+
+Refined the initial Anime/Manga selector alignment and recessed rail; artwork trays use softer layered edges and controlled contact shadows. Titles now allow two lines, including Fullmetal Alchemist, with stable metadata spacing. Each card's progress readout and 44px action share a subtle recessed dock. Manga club badges move onto the cover to avoid uneven metadata heights. Recommendation covers/copy/save controls now share one quiet surface. Lower sections have a clearer spacing rhythm; the slim Home header remains visible with a translucent scroll state.
+
+Native overflow scrolling is preserved. One IntersectionObserver rooted in the phone applies a 10px / 340ms entrance to upcoming/club/recommendation sections once per medium/account mode. Content is never hidden waiting for JavaScript. Rerenders disconnect the old observer and preserve seen-section keys; no repeating animation on mutations. A passive, requestAnimationFrame-coalesced scroll listener toggles the header state. Reduced motion skips entrances and cancels any current Home animation; pagehide disconnects the observer and cancels pending work.
+
+Local verification: 390px visual inspection of both initial Homes and lower Home sections; six active fixtures retained. Known chapter cap/Undo and failed episode save preserving its prior count passed. Club rerender reports settled motion rather than replay. Reduced-motion sections report static, header/progress transitions 0s. Both media have no document/tray horizontal overflow at 320px and retain 44px progress targets; 768px preview fits. Images loaded; JS syntax/diff checks passed. Browser emulation reset. Screenshots `/tmp/kuro-home-polish-anime.png`, `/tmp/kuro-home-polish-manga.png`, `/tmp/kuro-home-polish-lower.png` show Home only, cropped to the app viewport rather than review controls.
+
+No new native/backend/deployment work or claim of final visual acceptance. Scroll verification is local browser evidence, not physical iPad/iPhone frame-rate or native haptic proof. All release/activity data remain fictional fixtures. Unrelated dirty native files preserved.
+
+
+### 2026-10-01 — !Boring research and approved temporary iPad preview
+
+Added `tools/design-directions/boring-study.html` and `scripts/serve_design_share.py`. Studied official Calculator, Habits, Timer, Weather and Camera pages plus the maker's checkbox breakdown. The board distinguishes observed publisher behavior from proposed Kuro adaptations. Its focus is the initial Home: consistent depth and lighting, complete press/cancel/commit/settle states, image-led hierarchy, direct scrolling, coherent Anime/Manga selection and quiet feedback. Exact reference timings, physical haptics and native frame rates were not measured. No native application, backend, account or Home design changes in this pass; unrelated dirty work preserved.
+
+Temporary public base: https://criterion-vice-contributions-thinking.trycloudflare.com
+- Research: `/boring-study.html`; current Home: `/instrument.html`.
+- Owner explicitly approved public sharing of only these preview files and sample artwork for 12 hours.
+- Started 2026-10-01 14:44 UTC; scheduled stop 2026-10-02 02:44 UTC (04:44 CEST). Availability depends on the Mac and tunnel remaining online. This is not durable hosting or a released app.
+- Loopback port 8814; 21-file allowlist; no directory browsing; no repository documents, accounts or backend access. Refresh reads current allowed files. No cron or recurring automation created.
+- Official Cloudflare executable resides temporarily at `/tmp/kuro-preview-bin/cloudflared`. Supervisor invocation: `python3 scripts/serve_design_share.py --cloudflared /tmp/kuro-preview-bin/cloudflared --hours 12`. A future public run requires authorization for that run's scope/duration.
+
+Verification: all 21 allowlisted resources returned HTTP 200; `.git/config`, `CURRENT_APP_STATE.md`, encoded traversal to Info.plist, the assets directory and AGENTS.md returned 404. Both public pages returned HTTP 200. At 768px browser width, research and Home fit without document overflow; Home switched to Manga and exposed Currently reading. Reference image loading was checked for Weather/Camera; the embedded checkbox recording played and paused. Browser viewport override reset. Python source compiles. These are browser/HTTP checks, not a physical iPad test. Screenshot: `/tmp/kuro-boring-research-board.png`.
+
+
+### 2026-10-01 — Build out reference-led initial Home
+
+Updated `tools/design-directions/instrument.html`, `instrument.css`, `instrument.js`, and the research board's implementation notes. No new files; 59 design-directory files remain. Added a shared sliding selector with small film/book material symbols, coherent monochrome surfaces, distinct graphite anime and paper manga stages, and restrained local progress-control depth. Kept multiple active titles, simultaneous releases and club context. Removed the IntersectionObserver/fade-rise entrances; content stays static and readable while scrolling adjusts header depth. Reduced Motion disables transitions and feedback animation.
+
+Press state follows pointer contact and clears on release, movement, cancellation or blur. A movement threshold suppresses the resulting click; keyboard activation remains available. Successful mutations settle locally; failed saves preserve their prior value and show a dashed failed control plus an explicit message. Existing cap/Undo and medium persistence behavior retained. No expansion of subsequent screens or changes to Swift/backend/auth. Native dirty work preserved.
+
+Verification on the public temporary preview: anime cap/disabled state, Undo, failed progress save; manga unknown-total increment/Undo; new-account failed list save, retry and Undo; caught-up state; pointer drag away from a progress action left its count unchanged; horizontal selector drag and keyboard arrows switched medium. Both media fit 320px; progress targets are 44x44. At 768px all artwork loaded and no document overflow occurred. Reduced-motion emulation showed zero selector transition and static sections; emulation reset. Console warning/error capture empty; `node --check` and `git diff --check` passed. Screenshots: `/tmp/kuro-material-home-anime.png`, `/tmp/kuro-material-home-manga.png`, `/tmp/kuro-material-home-releases.png`.
+
+Native touch-event injection was unsupported by the in-app browser. Pointer-drag checks do not establish physical iPad/iPhone gesture behavior, haptics or frame-rate quality. Final design acceptance is pending. Existing public link remains under the original 12-hour approval, ending approximately 2026-10-02 02:44 UTC; no new tunnel, timer or automation created.
+
+
+### 2026-10-01 — Fluid direction after rejection of raised materials
+
+Owner said the material v8 direction was wrong and selected “fluid and just more creative.” Reworked `instrument.html`, `instrument.css`, and `instrument.js` around a continuous artwork composition. Anime has a three-column staggered rhythm; Manga has wider paired covers. Six active titles appear together in each medium. Removed the shared graphite tray, faux hardware symbols, beveled controls and per-title dial appearance. Thin progress traces and compact 44px actions sit below the covers. Releases share a light date rule; club context and suggestions remain in the same scroll.
+
+Medium switching maps cover positions between layouts with a 460ms transform transition; title/control text settles separately. Rapid switching cancels prior reflow animations. Reduced Motion disables the reflow and CSS transitions. Existing local mutation failure handling, progress caps, Undo, keyboard switching and cancelled-press guard retained. No native/backend changes, no new product flows. Saved the prior study in `tools/design-directions/archive/material-v8/` (HTML/CSS/JS with adjusted local asset references and separate medium preference). Current design folder now has 62 files.
+
+Checks: public preview loaded; anime cap and Undo; failed progress write preserved count; keyboard medium switching; visible intermediate cover transform and settled layout; Reduced Motion reports no cover transform and 0s selector transition; six active entries per medium; 320px layouts have no document overflow and retain 44px progress targets; 768px fits with all artwork loaded. Warning/error log empty. JS syntax and diff checks pass. Screenshot: `/tmp/kuro-fluid-home-anime.png`. Physical iPad/iPhone gestures, native haptics and frame-rate quality are not established by these browser checks; user design acceptance pending.
+
+Previous local/public servers had stopped. Restarted local port 8803 and restored the same approved 21-file public preview, without adding the archive or extending access time. New base: https://checked-hospitals-clocks-asset.trycloudflare.com ; Home `/instrument.html`, board `/boring-study.html`. Supervisor started 2026-10-01 19:05 UTC with only the time remaining until 2026-10-02 02:44 UTC (04:44 CEST). Old `criterion-vice-contributions-thinking` URL no longer resolves. No cron or recurring automation created. Mac/tunnel must stay online.
+
+### 2026-10-01 — Home v10: soft forms and action detail (browser prototype)
+
+Changed `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`. Artwork containers have a curved opening for a 44px progress control; only the backing is masked, so cover artwork and touch targets remain intact. Anime uses six staggered compact covers; Manga uses six larger paired covers. New-release actions get stronger monochrome contrast. The selected Anime/Manga surface morphs during direct manipulation, while existing artwork reflow remains cancellable. Confirmation briefly replaces the plus with a check; failed mutations preserve state and offer explicit feedback. Progress traces now measure against their own track, correcting premature apparent completion; unknown chapter totals hide the trace. Releases, recommendations and club notes use related soft shapes with restrained depth. Club-title target increased to 44px. All Web Animations are tracked for cancellation; offscreen covers skip reflow.
+
+Preserved v9 in three files under `tools/design-directions/archive/fluid-v9/`, with corrected asset paths and a separate stored medium preference. Design directory inventory: 65 files. No native, auth or backend edits for this initiative. The public allowlisted prototype URL is https://checked-hospitals-clocks-asset.trycloudflare.com/instrument.html, with the original authorized expiry of 2026-10-02 02:44 UTC (04:44 CEST), dependent on the Mac/tunnel remaining online.
+
+Verified browser fixtures: 16 artwork images load; six active titles per medium; no horizontal document overflow at 320/390/768px; all six progress targets remain 44px at 320px; cap and Undo; failed progress mutation; cancelled selector drag and cancelled progress press; unknown-total chapter increment/Undo; release preview; new-account failed save, retry and Undo; keyboard and rapid medium switching. Reduced Motion produces no cover transforms and a 0s selector transition. Warning/error log empty; JavaScript syntax and whitespace checks pass. Screenshot: `/tmp/kuro-soft-home-anime.png`. These checks do not establish physical iPad gesture quality, native haptics, backend correctness or owner design approval.
+
+### 2026-10-01 — Home v11: aligned composition and deliberate controls
+
+Owner requested the studio/reference board in the sidebar and questioned the mismatched banner arrangement. Interpreted that as staggered card rows and inconsistent container corners; aligned active and recommended titles, normalized release/club corner radii, and straightened the club artwork. Preserved curved progress openings and distinct six-title Anime/Manga layouts. Extended cancellable contact feedback to club art/title/secondary rows, release-detail, close and Undo controls. Replaced progress overshoot with a 180ms settle, clarified enabled secondary actions, and made selector dragging use its actual half-width travel. Removed decorative inactive Home arrows. Studio now links directly to `boring-study.html`; reference summary updated.
+
+Changed only `tools/design-directions/instrument.html`, `instrument.css`, `instrument.js`, `boring-study.html`, the design README and required state/plan documentation. No new repository files (65 design files); pre-edit v10 copies at `/tmp/kuro-home-v10-before-refinement/`. Existing local studio tab was stale and was refreshed. Board opened in the sidebar; public preview verified serving v11 with original expiry unchanged. Browser checks: aligned equal-height Manga row pairs, 16 loaded images, no 320px overflow in either medium, six 44px progress targets, cap/Undo, failed progress preserving count, spoiler expand/collapse, no warning/error logs. JavaScript syntax and whitespace checks pass. Screenshot `/tmp/kuro-home-aligned-refinement.png`. This is prototype evidence only, not native haptic/physical iPad or release proof; visual approval remains pending.
+
+### 2026-10-01 — Home v12: continuous artwork surface
+
+Implemented the proposed Home-only composition in `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`. Ongoing covers share one rounded white surface rather than individual masked card backings. Each progress well responds to contact; successful updates add a 620ms edge highlight alongside the count/check. Reduced Motion removes the highlight and transitions. Action targets stay fixed and 44px. Anime keeps a six-title compact grid; Manga retains larger paired artwork. Upcoming groups follow a fine date spine with room for three simultaneous releases. Club artwork, identity and comment share an open composition, and recommendations no longer have separate white backings.
+
+Browser checks: cap at 5, Undo, failed progress preserving count at 4, cancelled vertical drag preserving count, inline release expansion, club spoiler expand/collapse, both media at 320px without horizontal overflow or progress-label/button overlap, six 44px Manga progress targets, and 768px layout with all 16 images loaded. Reduced Motion reported highlight animation none and 0s transitions while the count updated. Warning/error log empty; JS syntax and diff whitespace checks pass. Public URL verified serving v12; original approved expiry unchanged (2026-10-02 02:44 UTC). Screenshot: `/tmp/kuro-home-continuous-phone.png`. Pre-edit v11 copies: `/tmp/kuro-home-v11-before-surface/`. No new repo files (design inventory65); required documentation updated. No native/backend changes or physical iPad/haptic proof; owner review pending.
+
+### 2026-10-01 — Home v13: foreground and ongoing composition
+
+Owner clarified that visual hierarchy and the overall experience needed a substantive rethink. Changed `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`: reduced the opening headline, emphasized two available titles with larger artwork, and moved four ongoing titles into a compact two-column layout. Anime gets dark artwork framing and Manga gets light print-like margins. The existing release timeline and open club composition retain different visual roles. All six titles have direct 44px progress controls; compact club shortcuts remain visible over the artwork edge. The new heading derives singular/plural availability from the two featured fixtures and falls back to Keep watching/reading when caught up. Featured slots remain fixed during progress updates.
+
+Browser proof: both media at 320px have no document overflow or progress-label/button overlap; Manga has six 44px progress targets. At 390px, a direct pointer tap updated progress 4→5 and heading 2→1, while all six card coordinates and scrollTop=0 remained unchanged. Semantic browser clicks were observed to auto-scroll 13px before interaction; the direct pointer check separates that automation behavior from app reflow. Undo restored progress/header, failure preserved both, club shortcut opened the correct title context, caught-up fixture disabled all known-total Anime actions, and new-account fixture showed two suggestions with no active cards. Reduced Motion yielded no artwork transforms. At 768px, no horizontal overflow and all16 images loaded. JS syntax and whitespace checks pass; warning/error log empty. Public preview verified v13 with2 featured/4 compact entries; original sharing expiry unchanged. Screenshots: `/tmp/kuro-composition-anime.png`, `/tmp/kuro-composition-manga.png`.
+
+Pre-edit v12 files preserved at `/tmp/kuro-home-v12-before-composition/`. No new repo files (65 design files). Updated the reference summary, README and three required state/plan documents. Native/backend files untouched. Physical-device/haptic feel and owner acceptance remain unverified. This fixture study is not a complete availability ranking algorithm: a production Home must handle additional new titles in the ongoing group and use genuine release metadata.
+
+### 2026-10-01 — Home v14: story discovery and complete control pass
+
+Owner asked for more deliberate UI across every element and a short story sentence only on new recommendations. Updated `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`: recommendations now immediately follow ongoing titles; their cards combine artwork, title, format and a concise premise into one opening target, with separate 44px Plan to watch/read toggles. Planned state is visibly filled and reversible. Ongoing title names now open details with cancellable press feedback; no premise is shown on ongoing cards or their tracked-title sheet. Internal arrows use forward chevrons. Static avatar decoration became plain For Max identity text. New-account content starts directly with recommendations, removing repeated empty-state headings/artwork. Notifications now have a 44px dismiss action that restores focus to the triggering control. Found and corrected four compact cover targets that were39px wide at320px.
+
+Verification: all visible Home buttons in both Anime and Manga meet44px width/height at320px, with no horizontal overflow. Both story layouts retain19–35px between premise and save control at320px. Verified save/remove/Undo, failed save preserving false state, failed progress→retry→cap→Undo, notification dismissal/focus return, full story opening, tappable ongoing title, no tracked-title premise, keyboard Enter/Escape with correct focus restoration, cancelled title drag, release expansion/detail opening, spoiler reveal/conceal, reduced-motion0s story image transition, and768px layout with all16 images loaded. Console warning/error log empty; JavaScript syntax and diff checks passed. Public allowlisted link servesv14; original expiry2026-10-02 02:44UTC unchanged. Screenshots `/tmp/kuro-home-v14.png` and `/tmp/kuro-story-cards-v14.png`. Public verification tab closed to preserve the user's single-tab workspace.
+
+Saved pre-editv13 files at `/tmp/kuro-home-v13-before-story-cards/`. No new repository files (65 design files). Required docs/README/reference summary updated; no native/backend edits. Story copy is four manually authored, publisher-checked fixture sentences, not a production generation pipeline. Physical iPad/native haptics and owner design acceptance remain unverified.
+
+
+### 2026-10-01 — Home v15: scenes and printed pages
+
+Owner authorized building the proposed distinct Anime/Manga Home experience. Anime now uses two existing, high-resolution catalog banners in landscape frames, a dark caption dock with subtle artwork-related color and separate episode controls, then four compact ongoing titles. Manga uses an asymmetric bordered reading spread, preserves each cover and its lettering, and places chapter controls inside precise rectangular caption strips. An open-book/scene glyph accompanies each readable medium label; the selected frame changes material while tap, horizontal drag and keyboard semantics remain shared. Six current titles remain directly actionable in each medium without an extra submenu.
+
+Recommendations differ structurally: Anime pairs a panoramic Your Name illustration with an intact A Silent Voice portrait card; Manga uses two cover plates, compact story captions and aligned planning actions. Premises remain exclusive to unstarted recommendations. Anime releases follow a fine chronological line; Manga releases use volume plates and ruled dates. Club context has a restrained Anime surface and a Manga margin/quotation treatment. Short press responses, reversible mutations, failure feedback, disabled caps, explicit spoilers, focus return and artwork-to-detail motion remain implemented. The CSS was consolidated from accumulated historical overrides into one current system. No generated imagery, fake Manga preview panels, autoplay, native haptics, or backend connections added.
+
+Testing found that animating a whole entering section could move a save target during its first tap. Fixed by animating only images inside stationary controls. Retested an immediate offscreen-to-visible save successfully. Reveals occur once per section and medium, do not replay after progress mutations, and respect Reduced Motion. Removed a decorative double rule that could be mistaken for a menu button.
+
+Verification completed in the browser: both media at 320px have no horizontal overflow and no Home button below 44x44; story-copy/save spacing is 11–22px Anime and 12–20px Manga. Tested six ongoing entries, direct title opening, absent tracked-title premises, independent episode/chapter caps and Undo, failed progress preserving count, save/remove/Undo, failed save preserving membership, notification dismissal/focus return, release expansion/detail opening, spoiler reveal/conceal, keyboard Enter/Escape/focus return and cancelled pointer drag preserving progress. New-account fixtures show only two recommendations; all six known-total Anime actions disable in the caught-up fixture. Reduced Motion yields 0s transition and no image transform. At 768px, no page/phone overflow and all 16 images loaded. No console warning/error entries observed. JS syntax, Python source compilation and diff whitespace checks pass. Initial Python bytecode-cache write was sandbox-blocked; the source-only compile passed without needing cache permissions.
+
+Files: instrument.html, instrument.css, instrument.js, boring-study.html, README.md, scripts/serve_design_share.py and the three required root state/plan documents. No new repository files or assets; design inventory remains 65. Before-change backup: /tmp/kuro-home-v14-before-medium-layouts/. Screenshots: /tmp/kuro-home-v15-anime.png, /tmp/kuro-home-v15-manga.png, /tmp/kuro-home-v15-manga-stories.png.
+
+Public preview refreshed at 21:00 UTC to serve the three selected existing catalog banners in addition to the original 21 approved files (24 allowlisted files total). Current URL: https://graduate-sullivan-aside-floyd.trycloudflare.com/instrument.html . Public browser verified v15 and all 16 Anime images loaded, including all three banners. Expiry remains 2026-10-02 02:44 UTC /04:44 CEST; access was not extended. Supervisor session 27617. The previous checked-hospitals-clocks-asset URL was retired. No cron, recurring automation, private repository exposure, database changes or native release. Temporary public verification tab was closed.
+
+These are local/sample-account browser proofs and temporary hosted preview proofs only. Native SwiftUI, physical touch/haptics, live accounts, production ranking/release data and final owner approval remain outside this pass.
+
+
+### 2026-10-01 — Home v16: deliberate polish of the accepted direction
+
+The owner explicitly liked v15 and authorized the full next refinement. Preserved its distinct Anime scenes and Manga reading spread; this is not a new art direction. Six areas completed in `tools/design-directions/instrument.html`, `instrument.css` and `instrument.js`: aligned Manga title/progress/metadata rows using subgrid (with a flex fallback), equal Anime caption docks, quieter inset action materials, clearer compact typography, persistent caught-up/check states with known availability denominators, and a coordinated 320ms medium transition that animates images rather than hit targets. Unknown Manga totals remain unbounded and omit fractions/percentage tracks. Removed a redundant recommendation label.
+
+The interaction audit found that mutations rebuilt the entire feed and title sheet. Replaced that path with `syncActions(k)`: update only affected progress, save state, accessible labels, availability, heading and open-sheet summary. Spoilers likewise change only their own disclosure. Undo retains focus within the replacement result message, and dismiss returns to the source. In-place updates preserve surrounding controls and scroll. Release-detail entrance now fades its copy without translating the next action.
+
+Browser evidence: at390px both Anime captions measure89px including the border, and both Manga title/progress/metadata rows share identical y coordinates. At320px, both layouts have zero horizontal overflow and all visible Home buttons are at least44x44. Compact labels do not overlap progress buttons; recommendation premises retain11–20px before saving in Anime and12–20px in Manga. Tested cap→Undo, failure→retry, independent media, unknown Manga totals, synchronized Home/sheet progress and save removal, notification focus and unchanged scroll (683px before/after save Undo), new-account saving, caught-up fixtures, release switching/collapse, protected club spoiler reveal/hide and correct club context. Keyboard arrows and reload retain the chosen medium; rapid medium switching settles to one selected state with no cover-button transforms. A14px cancelled pointer drag leaves progress at4 and clears contact. Reduced Motion removes transitions and retains completion feedback. At768px, no page/phone overflow and all16 displayed images loaded. Browser warning/error log empty. JavaScript syntax and diff whitespace checks pass.
+
+Files: three Instrument files, reference-board summary, design README and the three required root state/plan documents. No new repository files/assets; design inventory remains65. Backup: `/tmp/kuro-home-v15-before-polish/`. Screenshots: `/tmp/kuro-home-v16-anime.png`, `/tmp/kuro-home-v16-manga.png`. Public browser verified `instrument.js?v=16`, equal caption docks and loaded artwork at https://graduate-sullivan-aside-floyd.trycloudflare.com/instrument.html . Original expiry remains2026-10-02 02:44UTC /04:44CEST, subject to Mac/tunnel availability. No server restart, new public files or extension of access.
+
+Scope and proof: owner endorsement applies to v15 direction, not automatic acceptance of every v16 detail. Native SwiftUI, backend/auth, real-account data, release/news accuracy, physical iPad/Safari behavior and haptics are unchanged/unverified. This is local and temporarily hosted browser-fixture proof only. Required project memory is recorded through the allowed memory extension mechanism, not by overwriting the memory registry.
+
+
+### 2026-10-01 — Home v17: matching Manga frames and reusable context
+
+Owner reported that Solo Leveling and Chainsaw Man looked inconsistently framed and liked the named club-reader treatment. Replaced the1.2:1 columns with equal columns and identical2:3 outer frames,6px inset and border. Natural artwork proportions remain intact through contain; inner whitespace may differ with source aspect ratios. Shared caption/progress baselines and the paper-spread material remain. This supersedes the unequal featured-cover layout fromv15/v16, without changing Anime.
+
+Added Manga context to both featured cards and relevant compact shelf entries. A small page mark identifies chapter updates; reader names are a separate44px club action. Neither substitutes for the other. Title-specific sample readers replace the identical hardcoded pair on Manga cards; opening the action shows those same people reading that title. Empty/unknown activity adds no invented reader count or chapter badge. A small fixture map separates newly released chapter ranges from unread backlog: Jujutsu Kaisen has5 unread but2 new, and reading an older chapter leaves2 new. Manga's heading includes current unread new chapters across all six sample titles. Progress/cap/Undo patches the update label and total while preserving the reader action.
+
+Verification:390px frames both155x232.5 at the same y position;320px both129x193.5 with no page overflow, no compact context overlap and all Home buttons at least44x44. At768px the frames both162px wide, no horizontal overflow and all images loaded. Featured and compact reader actions opened correct title/name context. Cap changed1 new chapter→Up to date and heading4→3 while retaining Mina; Undo restored both, failure retained count24 and4 new chapters. Advancing the backlog16→17 left2 new releases. Caught-up retained all4 reader actions. Unknown-total entries show no fake chapter update. Anime retained2 scene cards, its2-new-episodes summary and no Manga context. Console warnings/errors empty; JS syntax and diff whitespace checks passed.
+
+Public browser verifiedv17 at https://graduate-sullivan-aside-floyd.trycloudflare.com/instrument.html . Expiry remains2026-10-02 02:44UTC /04:44CEST; no access extension, restart or new public files. Changed three Instrument files, README and three required root docs. No new repo files/artwork; design inventory65. Screenshot `/tmp/kuro-home-v17-manga.png`; backup `/tmp/kuro-home-v16-before-manga-consistency/`. All names/releases are illustrative browser fixtures. No real club/chapter data, native implementation, physical-device haptics or release proof is claimed. Required memory saved through the permitted extension-note mechanism.
+
+### 2026-10-02 — Home v18: controls, busy calendars and private-club identity
+
+Owner requested a closer review of individual buttons and the Anime/Manga switch, a release section that supports many followed titles, and a more distinctive Sunday Club. Updated the three Instrument files in place; the accepted Anime scenes and equal Manga cover frames remain.
+
+- Medium choice: full-width named Anime/Manga targets with custom frame/book line icons and a shared moving ink rule. Each target is 64px high. The availability summary sits beneath it. Tap, horizontal drag, arrow keys and remembered choice remain supported; a vertical drag does not commit a switch. Stable hit areas stay separate from artwork transition.
+- Button hierarchy: progress has a consistent shallow 44px key with an inset face; dark Anime surfaces use the inverse face. Plan actions use labelled, lower-emphasis buttons with a filled Planned state. Navigation rows remain light; disclosures use chevrons, preserving plus for incrementing progress. Contact, cancellation, completed/disabled, failed, saved and Undo states remain distinct. Failure uses an outlined face as well as a result message.
+- Coming up: compact date headings contain a meaningful calendar date, count and small cover fan. Only the nearest group opens initially, with three rows visible. Busy days expand in place through Show more/Show fewer; later groups open in the same vertical feed. Four dates render initially; Next 4 dates appends the next batch and focuses its first header. No separate calendar page or context submenu. Undated announcements have their own Dates to come group and Date TBA labels. Manga distinguishes chapter releases from volume/English-edition releases; Anime uses episode/time labels. Release-unit fixtures are independent of mutable progress.
+- Sunday Club: dark ink enclosure, small custom club seal, member initials and an inset light conversation card. Title artwork, named member actions and protected spoilers retain their existing behavior. A lighter secondary activity row stays inside the club enclosure. The new visual identity does not invent a separate club-navigation destination.
+
+Verification: the Full calendar fixture has 48 scheduled events across six followed titles and eight dates. Initial render has four date groups and three visible event rows. Expanding all groups and rows reached 48 unique event IDs with no lost events; loading later dates removed the exhausted control and transferred focus correctly. Collapse/Show fewer restored the three-row preview. Undated-only showed no fabricated scheduled dates; a new account omitted calendar/club/current-title content. Caught-up used Keep reading and retained reader context. At 320px both media had no horizontal overflow and all rendered Home buttons were at least 44x44; 390px and 768px previews were also inspected, with loaded artwork. Failed progress remained unchanged; retry, cap, Undo and plan/Undo worked. Updating progress did not change future release numbers. Spoiler reveal/hide, correct club title context and focus return were checked. Keyboard medium changes, pointer contact/cancel and Reduced Motion (zero CSS transition) were checked. Console warnings/errors were empty; JavaScript syntax and diff-whitespace checks passed.
+
+Public preview verified instrument.js?v=18 and loaded artwork at https://graduate-sullivan-aside-floyd.trycloudflare.com/instrument.html . The original expiry remains 2026-10-02 02:44 UTC / 04:44 CEST, subject to Mac/tunnel availability. No new public files, restart or access extension. Changed three Instrument files, the reference-board summary, design README and three required root state/plan documents. No new repository files/artwork; prototype inventory remains 65. Backup: /tmp/kuro-home-v17-before-controls-calendar/. Screenshots: /tmp/kuro-home-v18-anime.png, /tmp/kuro-home-v18-manga.png, /tmp/kuro-home-v18-calendar.png and /tmp/kuro-home-v18-club.png. Required project memory is recorded through the permitted extension-note mechanism.
+
+Boundary: this is local and temporarily hosted browser-fixture evidence. The 48-event case is not 48 distinct followed titles or a production load test. Backend paging, real release provenance, real club privacy/data, native SwiftUI, physical iPad/Safari behavior and haptics remain unchanged or unverified. The user has not yet reviewed v18; previous endorsement covers the direction, not every new detail.
+
+
+### 2026-10-02 — Incomplete series plan and Home v19 sketch
+
+Created `docs/plans/2026-10-02-series-and-home-rebuild-DRAFT.md`: an explicitly INCOMPLETE living draft with 16 tasks across exactly two waves, neither started. Covers stable series identity above preserved catalogue entries, logical seasons/parts, structured provider imports, reversible mapping/backfill, bounded server grouping, tracking/privacy preservation and design changes across Home, detail, Collection, Discover, clubs and profiles. Success criteria, dependencies, failure cases and owner additions remain visible. No migration, production API contract, native implementation or deployment was executed.
+
+The three Instrument files now demonstrate current-season strips on two large and two compact Anime cards, an optional Manga part strip and a read-only section overview. The full strip is one accessible 44px target; tiny digits are not separate controls. Opening it never changes progress. Current-season progress updates and Undo refresh the overview; other seasons remain Progress unknown. Upcoming Anime rows include sample season context. Existing matching Manga cover frames and reader links remain.
+
+Verified browser evidence: 320/390/768px layouts without document overflow or Home targets below 44px; equal 390px Manga frames 155 × 232.5; large and compact strips open the correct title; Manga opens Parts without invented strips on other titles; +1/cap/Undo preserves the selected season; simulated failure leaves progress unchanged; Escape returns focus to the initiating strip. JS syntax passed and no browser error logs observed. Sample data does not prove catalogue accuracy, native behavior or backend performance. Long-series paging and true per-season writes remain planned work.
+
+Temporary public preview served v19 with loaded images at https://graduate-sullivan-aside-floyd.trycloudflare.com/instrument.html . Original expiry remains 2026-10-02 02:44 UTC / 04:44 CEST, dependent on Mac/tunnel availability. No public files were added and access was not extended. Draft plan remains local. Screenshots: /tmp/kuro-home-v19-anime.png, /tmp/kuro-home-v19-manga.png, /tmp/kuro-home-v19-seasons.png. Backup: /tmp/kuro-home-v18-before-series/. One new repository plan; design directory remains 65 files. Required memory saved through the permitted extension-note mechanism. Changes remain uncommitted.
+
+
+### 2026-10-02 — Home v20: season control design
+
+Reworked the three Instrument files after owner feedback that the initial season treatment needed stronger design. Anime uses a continuous inset rail with engraved stops and a shallow light current-position face; the whole rail remains one 44px target. Compact cards retain that grammar. Manga uses joined paper-index tabs and a cut bookmark silhouette, without changing the matched cover frames or reader context. Only the current marker has emphasis; other numbers do not imply completed seasons.
+
+The overview replaces repetitive progress-unknown rows with larger browsable panels. The actual current section stays marked independently of the inspected section. Choosing another panel shows an unknown-progress preview and hides current-season progress controls; Back to season/part restores them and returns focus. Preview selection never changes resume or tracking. Contact depth is small and releases on pointer cancellation; status changes settle in 180ms through the existing reduced-motion-aware helper. No new artwork or invented season-specific images.
+
+Checked local browser layouts at 320/390/768px, including compact rails: no horizontal card overflow and no narrow-phone Home controls below 44px. Equal Manga frames remain. Anime Season 3/4 and Manga Part 2 browsing leave Home progress/current markers unchanged; return-to-current, cap, Undo and simulated failure passed. Escape returns focus to the source strip. Reduced motion sets transitions to 0s and keeps browsing functional. JS syntax passed, browser error logs empty. This is browser-fixture evidence only; native touch/haptics, catalogue accuracy and backend integration remain unverified.
+
+Existing approved public preview serves v20; original expiry remains 2026-10-02 02:44 UTC /04:44 CEST while Mac/tunnel stays online. No extension, new public files or native/backend writes. The two-wave plan remains INCOMPLETE and neither wave has started. Updated its design specification and evidence log, the three required root documents and design README. No new repository files; design directory remains 65 files. Backup: /tmp/kuro-home-v19-before-season-design/. Screenshots: /tmp/kuro-home-v20-anime.png, /tmp/kuro-home-v20-manga.png, /tmp/kuro-home-v20-seasons.png. Required memory recorded through the extension-note mechanism.
+
+
+### 2026-10-02 — Home v21: seasons belong to the title
+
+Owner's screenshot rejected the boxed Home season rail while explicitly retaining the v20 detail-page design. Replaced Anime Home rails with a quiet numbered sequence directly below the title. The current number uses brighter/heavier text plus a short underline. The title and sequence form one accessible target, avoiding tiny digit buttons and a separate compact-card footer. Compact titles align at the top of their shared card area. Progress stays a separate action; release and club context stay in their existing footer.
+
+The detail rendering/browsing functions are byte-identical to the v20 backup and their styles are preserved. Manga parts remain as v20. Checked at 320/390/768px: no card/title overflow, narrow-phone Home controls at least 44px, correct large/compact overview navigation, current-state preservation while inspecting another season, Escape focus return, progress cap and Undo. Tablet Manga frames remain equal at 162x243. JS syntax/diff whitespace passed; browser error logs empty. Browser fixture evidence only.
+
+Three Instrument files plus README, the three required root docs and existing incomplete plan updated. No new/deleted repository files; design directory remains 65 files. Plan still INCOMPLETE with two unstarted waves. No native/backend writes. Backup: /tmp/kuro-home-v20-before-inline-seasons/. Screenshots: /tmp/kuro-home-v21-anime.png and /tmp/kuro-home-v21-season-context.png. Existing approved preview retains its original 2026-10-02 02:44 UTC /04:44 CEST expiry; no extension or new public files. Required memory saved through the extension-note mechanism.
+
+### 2026-10-02 — Withdraw rejected compact list
+
+Home v23 withdraws the rejected v22 full-width Also watching list and restores the v21 two-column layout. The compact season treatment is still unresolved; this restoration is not design approval. The owner-liked v20 detail selector, large cards and Manga remain unchanged. Browser fixture only; no native/backend change. CSS matches the pre-v22 layout after removing its override block; JavaScript is unchanged. Cache version incremented to 23. No files added or deleted.
+
+### 2026-10-02 — Home v24 compact Anime sleeve proposal
+
+Home v24 proposes compact Anime sleeves for Also watching: intact larger poster artwork, a numbered season edge with the current season highlighted, and an integrated episode/progress/+ footer. Two-column layout retained. Season edge opens the existing overview without changing tracking. Owner-liked detail panels, large Anime cards and Manga remain unchanged. Design awaits owner review; browser fixture only. Checked 320/390/768px fit, minimum 44px compact targets, opening/inspecting seasons without tracking changes, +1, Undo and simulated save failure. Browser error log empty. JS syntax and diff checks pass. No native/backend changes; no new/deleted repository files.
+
+### 2026-10-02 — Home v25 minimal compact season line
+
+Home v25 restores the original compact Also watching cards after rejection of v24 sleeves. Season numbers now interrupt a fine line under the episode count, with a ring around the current season. The combined progress/season summary is a 44px overview target; + remains a separate mutation. Large Anime cards, Manga and the liked detail selector remain unchanged. Browser proposal awaiting owner review. Restored 92px compact card height. Verified 320/390/768px fit, 44px targets, season preview independent of tracking, focus return, +1, Undo and simulated failure. Noncompact progress markup is identical for anime/manga, known/unknown totals and completion cases. Syntax/diff checks passed. Existing approved public preview serves v25; expiry unchanged. Three prototype files and existing docs updated; no repository files added/deleted, native/backend work or deployment.
+
+### 2026-10-02 — Home v26 centered season indexes
+
+Home v26 extends the minimal season index to main Anime cards: centered beneath each card, separated from title/progress and club context. A softly raised current-season ring and fine connecting line are shared with the compact treatment through one renderer. Compact cards stay 92px tall. Liked detail selector and Manga remain unchanged. Design proposal awaits review; browser fixture only. Verified centered alignment and no overflow at 320/390/768px, 44px controls, preview-without-tracking changes, focus return, episode cap, Undo and failed saves. Detail/overview/Manga rendering functions unchanged. No new/deleted repo files, native/backend writes or deployment. The two-wave series plan remains INCOMPLETE and NOT STARTED.
+
+### 2026-10-02 — Home v27 season cut-outs
+
+Home v27 replaces the rejected detached v26 number line with a centered season index inside the lower edge of each main Anime card. The current number forms a paper-colored cut-out tab; other numbers remain unboxed. Compact cards retain the v25 plain outlined marker and original 92px height. Liked detail selector and Manga are unchanged. Browser fixture proposal awaiting owner review, not an approved design or native implementation. Verified 320/390/768px fit, 44px season targets, exact main-index centering and bottom-edge alignment, season preview independent of tracking, focus return, episode cap, Undo and simulated save failure. Detail, Manga, compact and progress rendering functions unchanged; JS syntax and diff checks passed. No browser errors observed. No new/deleted repository files, native/backend changes or deployment. Series plan remains INCOMPLETE with both waves NOT STARTED.
+
+### 2026-10-02 — Three season-label treatments
+
+Home label comparison v28 is available at `instrument.html?seasons=compare`: Caption notch, Rail caption and Artwork tab, each demonstrated on one main Anime card and two compact cards. The default Home remains v27; the liked detail selector and Manga are unchanged. No option selected or approved. This is an isolated browser fixture comparison. Verified 320/390/768/1280px layouts (320px overflow corrected), 92px compact heights, season targets of at least 44px, large/compact/artwork season entry points, preview without tracking changes, focus return, progress and Undo across the shared examples. Default Home/detail/Manga/progress renderer parity, JavaScript syntax and diff checks pass. No new/deleted repository files; design directory stays at 65 files. No native/backend changes or deployment.
+
+
+### 2026-10-02 — Local preview server restored
+
+The local design server on 127.0.0.1:8803 was stopped and has been restarted, bound to localhost and serving only `tools/design-directions`. Verified HTTP 200 for the season comparison page and v28 JavaScript. Browser reload was blocked by the browser URL policy on its internal error page; owner must refresh the existing tab. No design/source/backend change, new automation, public tunnel renewal or deployment.
+
+### 2026-10-02 — Selected artwork season markers
+
+Home v29 saves the owner-selected Artwork tab treatment: only a white Season N marker on main Anime images and an S-number stamp on mapped Also watching covers. Numbered season rows are removed from both sizes. Tapping the marker/compact cover opens the existing full season overview; episode progress remains separate. The comparison board marks Artwork tab as selected and reflects the same simplification. Approval applies to this season treatment, not the complete Home or implementation plan. Browser prototype only; no native/backend deployment. Checked 320/390/768px fit, main targets at least 44px high and small-cover targets 44×66px, correct full-season counts in details, preview independent of tracking, compact progress/Undo, and Manga preservation. Liked detail/Manga helper/progress functions remain identical. JS syntax and diff checks pass. No new/deleted repository files; design directory remains 65 files.
+
+
+### 2026-10-02 — Scoped Home design checkpoint
+
+Prepared a scoped local Git checkpoint of the selected v29 Home prototype, required sample data/artwork, linked reference board and focused run instructions (`tools/design-directions/INSTRUMENT_README.md`). Only relevant current-state/plan documentation is staged; unrelated working-tree changes remain local. No push or deployment. One run-instructions file added; design directory now contains 66 local files.
+
+- 2026-10-02 — Extended the existing incomplete two-wave series plan and added v30 interactive Anime/Manga detail mockups. Selected-season context, characters, music search, creator credits, source handoff and club presentation are local design fixtures; no ingestion, native or production changes.
+
+- 2026-10-02 — v31 detail visual/interaction polish in the local prototype; existing plan updated in place. Checked responsive fit, touch targets, season isolation, next-unit progress/Undo/failure and manga caught-up behavior. No native, hosted or released claim.
+
+- 2026-10-02 — v32 local detail club roster/comments and season-first manga guide; plan v0.4 remains incomplete. Browser-only checks recorded above; no native or hosted changes.
+
+- 2026-10-02 — v33 season-specific editorial copy and artwork-led club detail refinement; source social capabilities audited, no live/backend claims.
+
+- 2026-10-02 — v34 saved artwork materials, linked adaptation guide and Manga bookmark structure. Local checks: 320/390/768px fit, Home/detail colour equality, chapter update/Undo/failure, guide progress isolation, fallback/evidence guards and deterministic palette generation. No native/backend/live proof.
+
+- 2026-10-02 — v35 Anime detail: larger cover, single visible hook, expandable story; local responsive and interaction checks passed. No native/backend changes.
+
+- 2026-10-02 — v36 local visuals/Taste separation and plan v0.7 research. Browser verified 320px Anime/Manga/long-title fit, recommendation isolation, new-account Taste entry. Source findings distinguish chapter indexes from release evidence and current text/capped import from planned durable import. No live data writes.
+
+- 2026-10-02 — v37 corrected horizontal Anime opening, compact Manga refinement and detailed offline-progress plan. Browser fixture checks only; durable native queue and backend receipts remain future work.
+
+- 2026-10-02 — v38 Manga Home visual shelf refinement and focused browser checks. No native/backend change or deployment.
+
+- 2026-10-02 — v39 Manga Home artwork wash, softened outlines and chapter/cover motion; focused local checks passed. No native/backend change.
+
+- 2026-10-02 — v40 Manga reading desk, three interactive switch proposals and scoped gesture fix. One HTML review board added. Native waves remain NOT STARTED.
+
+- 2026-10-02 — v41 replaces rejected switch studies with Ribbon, Dial and Window; local responsive/interaction checks passed. Existing two-wave native plan remains INCOMPLETE and NOT STARTED.
+
+- 2026-10-02 — v42 page-edge medium control and Manga reading folio proposal; local phone/interaction checks passed. No native changes or deployment.
+
+- 2026-10-02 — v43 generated editorial switch, bundled fonts and graceful image fallback; local checks passed. Six asset/provenance files added. Native/backend unchanged.
+
+- 2026-10-02 — v44 replaces rejected generated switch comparison with Shelf and Masthead; local responsive, tap/keyboard and reduced-motion checks passed. No new files or native/backend changes. Owner review pending.
+
+- 2026-10-02 — v45 compact medium control integrated into Home header; local fit, tap/keyboard, Taste navigation and reduced-motion checks passed. No new files or native/backend changes.
+
+- 2026-10-02 — v46 five compact medium-switch proposals beneath navigation; local responsive, tap/keyboard and reduced-motion checks passed for every option. Owner review pending; no new files or native/backend change.
+
+- 2026-10-02 — v47 custom glass/paper material selector; local responsive, selection, reduced-motion and blocked-image recovery checks passed. Two asset/provenance files added. Owner review pending; no native/backend changes.
+
+- 2026-10-02 — v48: five local visual families and independently interactive comparison; phone fit, selection and reduced-motion verified locally, no shipping changes.
+
+- 2026-10-02 — v49: owner selected Poster; local typography, selection line, button/card edge polish and phone interaction checks; no release changes.
+
+- 2026-10-02 — v50: Poster Manga reading-spread proposal, explicit fixture-header artwork provenance and local chapter control checks.
+
+- 2026-10-02 — v51: replaced rejected Manga spreads with a continuous artwork shelf; local progress/error/undo and narrow-screen checks passed.
+
+- 2026-10-02 — Instrument v52: rejected v51 cabinet replaced by chapter margins and compact reading index; local checks passed, owner review pending.
+
+- 2026-10-02 — Instrument v53: attached chapter bookmarks, larger lead art and two-column current-read index; local reader-flow checks passed, design review pending.
+
+- 2026-10-03 — Added five-source local visual reference board; current Home unchanged, next Manga design pending review.
+
+- 2026-10-03 — Added three opt-in Manga Home compositions and live comparison; local checks passed, owner selection pending.
+
+
+### 2026-10-03 — Rejected study checkpoint and Crosscut proposal
+
+**Manga Crosscut proposal (2026-10-03):** Owner rejected Edition, Contact and Index as recycled compositions and palette changes. They remain accessible as explicitly rejected historical studies. Added opt-in `reading=crosscut` to the existing local renderer: alternating wide/narrow artwork panels share aligned chapter gutters cut into their bottom edges, with a direct 44px advance key, title and named club reader context. No added theme wash or dark presentation. New `manga-crosscut.html` hosts one interactive phone, sample account selector and optional rationale outside product UI. Shared Instrument remains the sole owner of progress, failure, completion, Undo, detail/club/Taste and medium navigation. Added Crosscut panels to existing one-time entrance observation and reused reduced-motion/cancellation guards. Existing default Home, Anime, Poster, release chronology and Sunday Club are retained. Local browser checks: 320/390px page and phone fit; six loaded artworks, six 44x44 keys and no chapter-gutter overflow; failed chapter change stays 24, completion 25 disables advance, Undo restores 24; unknown-total Berserk 12 to 13 and Undo; artwork opens details, named reader opens the private club section; full fixture six releases on one date and eight dates plus a pending-date group; caught-up fixture disables three known-total titles, new account has no current panels, undated fixture has only the pending group; Taste and Anime navigation; reduced-motion chapter update works with 0s image transition; no captured console warnings/errors. Artwork is cropped into panels, so full-cover visibility is not claimed. Native touch/haptics, Dynamic Type, real account/backend/offline and catalogue-wide density are unverified. Owner approval pending. One repository HTML file added; no assets added/deleted, deployment, public sharing or commit.
+
+
+### 2026-10-03 — Equal artwork and four Manga Home philosophies
+
+**Four Manga Home philosophies (2026-10-03):** Owner rejected Crosscut's unequal/offset manga artwork and containers. Added independent local `library`, `chapterboard`, `journal`, and `clubroom` studies under the opt-in `reading` query, compared in `manga-four.html`. Library presents six equal cover windows and a single selected-title chapter workbench; Chapter Board uses one uniform dashboard with known-total unread metrics and direct keys; Journal groups reads by explicit fictional recency in a continuous timeline; Club Room groups overlapping reads into a private club table with solo reads underneath. These are different organising/interaction priorities, with a shared neutral palette and equal artwork geometry within each study. Artwork uses consistent crops, not guaranteed intact source covers. `manga-philosophies.js` receives existing artwork/title/progress/context and typed local position helpers; a delegated library selector patches only its workbench, and `sync` updates library mini-counts and board metrics after existing mutations/Undo. No new persistence or request engine. Existing default Home, Anime, Poster and Coming Up/Sunday Club discussions retained. Crosscut is marked rejected in its review page. Local checks in all four: 320/390px page/phone fit, six loaded equal-sized artwork frames (Library fractional rounding under 0.02px at 320), no progress overflow, 44x44 chapter keys; failure retains 24, completion 25 disables, Undo 24; unknown-total 12 to 13 and Undo; Library selected title and mini-count update, board unread metric becomes zero; detail/private club/Taste/Anime navigation; caught-up known-total keys disabled, new account has no active study; reduced-motion update and 0s artwork transition; no captured browser warnings/errors. Shared full-calendar path checked with six same-day events/eight dated groups plus pending. Comparison at 320px has no inner-phone/control overflow. Journal recency and club roster are fixtures, not live account activity. Native/backend/offline, Dynamic Type, real libraries, multiple clubs and catalogue-wide crops are unverified. Three repository files added (`manga-philosophies.js`, `.css`, `manga-four.html`); design-directions tracked/non-ignored file count 93. Owner approval pending; no assets, commits, deployment or public sharing.
+
+
+### 2026-10-03 — Library selection and polish
+
+**Library selected and polished (2026-10-03):** Max selected Library from the four Manga Home philosophies. Poster Manga now defaults to Library when no valid `reading` study is requested; explicit historical study URLs remain available. Added `manga-library.html` as the focused selected preview and labelled Library selected in `manga-four.html`. Refined equal cover geometry, aligned title/chapter rows, shallow cover edges and a thin selected frame/underline. The shared workbench shows a known available chapter total and fine progress trace, omitting both for unknown totals. Its 92x48 Next control keeps existing failure/completion/Undo semantics; the label is outside the replaceable icon cap so it survives shared sync. Fixed icon/label overlap caused by the inherited relative icon-cap position. A helper updates only the workbench on selection and announces the chosen title/current chapter without advancing progress. Arrow keys move one item horizontally or three vertically, with bounds checks and keyboard focus retained on the selected cover. Clicking an already selected cover leaves the workbench untouched. CSS-only selection/press transitions reuse reduced-motion guards. Local checks: default no-reading URL resolves Library; six covers exactly 88x119 at 320px and 106x138 at 390px; page/phone/workbench no overflow, all checked controls at least44px, Next92x48, icon/label no overlap; keyboard right/down selection, correct workbench title/count and live status; failed update24 stays24, completion25 disables and updates shelf count25, Undo24 retains Next label; unknown-total12->13 and Undo with no total/trace; detail/private club/Taste/Anime navigation; caught-up selected key disabled, empty account no library; reduced-motion arrow selection with0s image transition; no captured browser errors/warnings. Artwork remains consistently cropped. Native touch/haptics, Dynamic Type, real library density, account data and durable offline writes are unverified. One HTML file added; non-ignored design-directions count94. Native/backend, assets, commits/deployments and public sharing untouched. Selected composition is recorded; this polish remains local browser proof.
+
+
+### 2026-10-03 — Library unified touch targets
+
+**Library unified touch targets (2026-10-03):** Removed the adjacent cover-select/title-detail split. Each book is now one semantic button containing artwork, title and chapter position; all three select the same workbench without changing progress or opening details. The workbench title is static, with a separate labelled Details button (83x44). Existing focus return, keyboard selection and shared chapter actions remain. Local browser checks: cover/title/chapter taps select the expected title with detail closed; Details opens that title and closing restores its button focus; arrow-right selection works. At320/390px there is no page overflow, equal artwork stays88x119/106x138, whole-book targets are88x187/106x208, Next92x48, no nested interactive elements or grid detail targets. Simulated failure retains24 with explicit feedback; completion25 disables and syncs shelf count; Undo24. No captured console warnings/errors. Physical touch, native accessibility, backend and offline persistence are unverified. Five prototype files changed, no files/assets added or deleted; design-directions count remains94. No commit, deployment or public sharing.
+
+
+### 2026-10-03 — Library direct detail access
+
+**Library direct detail access (2026-10-03):** Supersedes the selection-only book interaction. Tapping cover, title or chapter now opens that book’s details immediately and updates the shared workbench first. The existing Details control is an optional shortcut. Navigation buttons have Open-details labels and data-selected visual context instead of misleading toggle semantics. Closing details restores focus to the originating book; opening does not advance progress. Library book/Details controls now participate in Instrument’s existing movement/pointer-cancellation guard; actual touch-drag testing was unavailable because the in-app browser does not support CDP touch input. Local browser checks: image/title/chapter open correct Solo Leveling/Jujutsu Kaisen/Berserk details, workbench follows, progress unchanged; keyboard arrow selection plus Enter opens correct title; dismissal restores book focus. At320/390px no page overflow, artwork88x119/106x138, whole-book targets88x187/106x208, no nested interactive controls or toggle aria-pressed. Simulated failure retains24, completion25 disables/syncs shelf, Undo24; reduced-motion details work; no captured console errors/warnings. Six prototype files changed; no new/deleted files/assets (count94). Native touch/accessibility/backend/offline proof remains open; no commit, deployment or public sharing.
+
+
+### 2026-10-03 — Library independent selection/navigation
+
+**Library independent selection/navigation (2026-10-03):** Owner rejected forcing detail navigation to select a read. Supersedes both prior bar-only details and whole-book direct-open models. Cover/title/chapter form one selection button; each book has a separate full-width Open button beneath it. Selection updates only the workbench; Open navigates without changing selection or progress. Removed redundant workbench Details button. Selection uses aria-pressed; Open uses navigation labels and existing Instrument routing/cancellation. Detail artwork origin lookup includes library-art. Local browser checks: image/title/chapter select correctly with dialog closed, opening unselected Solo Leveling preserves Berserk selection, close restores Open-button focus, arrow/Enter selection does not navigate. At320/390px no page overflow, equal artwork88x119/106x138, six Open targets88x44/106x44 and no nested controls. Failure24unchanged, completion25disabled/shelfcount synced, Undo24; reduced-motion unselected-title navigation preserves selection; no captured console warnings/errors. Additional Open rows increase shelf height. Physical touch/scroll arbitration, VoiceOver/Dynamic Type, native/backend/offline proof remain open. Six existing prototype files changed, no added/deleted files/assets (count94); no commit, deployment or public sharing.
+
+
+### 2026-10-03 — Library per-book tracking proposal
+
+**Library per-book tracking proposal (2026-10-03):** Owner rejected the repeated Open rows/shared-selection approach. Removed selected-book state, selection handlers/announcements, shared workbench and Open buttons. Equal cover/title targets now open details; each read has its own adjacent44x44 chapter-advance key using existing Instrument progress/mutation/Undo. The counter belongs to that title; no selection step. Removed obsolete Library CSS while retaining other philosophy layouts. Existing entrance observer and cancellation guard now target library-story. Coming Up and Sunday Club remain. Local checks: cover/title open correct details with focus return; Berserk12->13 leaves Chainsaw24 and details closed, Undo12;320/390px no page overflow, equal artwork88x119/106x138, six44x44 keys, no obsolete UI/nested controls. Failure24retained, completion25disabled while Solo8unchanged, Undo24; reduced-motion keyboard detail activation, caught-up3disabled, new0library, no captured browser warnings/errors. Totals are hidden visually in compact footers but preserved in accessible progress labels/detail pages. No files/assets added/deleted (count94); six prototype files changed. New interaction proposal awaits owner review. Native touch/accessibility/backend/offline remain unverified; no commit/deployment/public sharing.
+
+
+### 2026-10-03 — Temporary phone preview
+
+**Temporary phone preview (2026-10-03):** Owner requested off-studio iPhone access. Updated existing scripts/serve_design_share.py for current Instrument dependencies:45 allowlisted sample UI/artwork/font files, no directory/repository/config/backend access. Existing local helper binds8814; official Cloudflare cloudflared2026.9.3 downloaded to /private/tmp/kuro-preview-tunnel and running a quick tunnel for12hours. Preview: https://trees-marc-amongst-obtain.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. Started3October14:39 Europe/Berlin; automatic stop by4October02:39 (earlier if host/process stops). Fresh HTTP200 for HTML/module/detail-data/art/font; configuration/doc probes404 and traversal400. Public browser390px fit, six loaded covers and Jujutsu Kaisen detail opening/closing verified. Physical Safari/iPhone not tested; fixture changes are browser-only. One existing script modified; no repository files/assets added/deleted, no native/backend deployment or account data shared. Refresh sees allowlisted local edits while running.
+
+
+### 2026-10-03 — Coming Up first-viewport summary
+
+**Phone-visible Coming Up (2026-10-03):** Owner liked the per-book Library rework and requested a more visible Coming Up on short phones. Instrument now places a 72px artwork-led calendar summary between the Poster medium switch and Now Watching/Reading. It uses the existing releaseGroups() fixtures, shows next-day count and whole-range count, and is one full-width button to the complete calendar. No second schedule source, date invention, feed submenu, reduced cover geometry or progress-engine changes. All six reads remain; Library chapter keys remain44x44. Focus moves to the calendar without a second jump, scrolls only the phone, and uses instant scrolling for reduced motion. Unknown dates show pending announcements; new accounts and Taste hide the strip. Embed height uses100dvh. Browser checks:320x568,390x667,390x844, both media no horizontal overflow, summaryy147..219; landingy83 below71px header, keyboard/focus,48-release fixture/8 dates,6 same-day rows, undated/new/caught-up/Taste checked; three summary images loaded and no captured console warnings/errors. Source files instrument.html/css/js only; CSS54/JS60. Same45-file public share and original expiry retained; no scope/TTL extension. Physical Safari, VoiceOver, native/backend/offline proof remains open. No files/assets added or deleted, no commit or deployment. New summary awaits owner review; v0.8 remains INCOMPLETE with two native/backend waves NOT STARTED.
+
+
+### 2026-10-03 — Restore remaining phone-preview session
+
+**Temporary preview restored (2026-10-03):** Browser/app restart stopped the earlier preview and removed its temporary binary/screenshot. The old trees-marc-amongst-obtain link is unavailable. Restored the same45-file design-only allowlist via official Cloudflare2026.9.3; current link: https://cage-sustained-copy-when.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. Only the remaining authorized duration is used, still stopping4October02:39 Europe/Berlin. No account/backend data, share-scope expansion, recurring automation or TTL renewal. Replacement public page and loaded artwork verified; original Coming Up local/browser checks remain valid.
+
+
+### 2026-10-03 — iPad preview recovery
+
+**iPad preview recovery (2026-10-03, 21:34 Berlin):** Owner reported the replacement link did not work. The previous8814 listener and temporary binary were absent; the cage-sustained-copy-when link did not resolve. Restored the same45-file allowlisted preview with official Cloudflare2026.9.3 in the visualization runtime folder, using a detached subprocess rather than a foreground chat-terminal session. Current link: https://ratio-yarn-raise-scholarships.trycloudflare.com/instrument.html?switch=poster&medium=manga. Original automatic stop remains4October02:39 Europe/Berlin; no renewed duration, recurring service or expanded public files. Fresh HTTP200 for HTML/CSS/Instrument/Library modules and404 for .env/current-state docs. Browser tool is currently unavailable, so no new screenshot, Safari or iPad visual proof claimed. No UI/native/backend source changes; two-wave v0.8 implementation plan remains INCOMPLETE and unstarted.
+
+
+### 2026-10-04 — Reopen local studio preview
+
+Restarted the loopback-only design server on8803 (detached PID70343) and visibly opened manga-library.html in the Codex browser. Confirmed the embedded current Library/Coming Up renders. No UI/native/backend changes, public tunnel renewal, commit or deployment. Series/Home plan remains INCOMPLETE; native/backend waves unstarted.
+
+
+### Change Log — 4 October 2026: Manga story overview
+
+**Manga story overview (2026-10-04):** Local Instrument now supplies real story premises for all six Library books. Added publisher-paraphrased hook/premise/optional synopsis fixtures for Solo Leveling, Berserk, SPY x FAMILY and Vagabond; Chainsaw Man/Jujutsu Kaisen retain existing copy. Unknown generic Manga stories show unavailable rather than repeating a mood descriptor. Home geometry, palette, chapter mutation engine and clubs are unchanged. Detail-data54/JS61; Library iframe version61 avoids the stale embedded document observed during review. Browser proof: all six premises visible, optional synopses initially collapsed, Solo expansion works, opening/closing preserves progress, JJK season1/2 descriptions remain distinct;390x667 has no horizontal page overflow. No new warning/error entries observed during this navigation sequence (historical MutationObserver errors exist in the tab log). Four prototype files edited, none added/deleted by this initiative. Source audit confirms AniList-ID relation resolution exists but skips missing target rows; relation retention/batching remains planned. No native/backend writes, ingestion result, commit, deployment or physical-device proof. Singular v0.8 remains INCOMPLETE, exactly two native/backend waves NOT STARTED.
+
+
+### Change Log — 4 October 2026: Master-plan retention
+
+Retained adaptation matching and story-overview requirements in the single master plan; no execution status changed.
+
+
+### Change Log — 4 October 2026: Home/detail execution specification v1.0
+
+**Home/detail master plan finalized (2026-10-04):** The single docs/plans/2026-10-02-series-and-home-rebuild-DRAFT.md is now v1.0, PLANNING COMPLETE FOR HOME + ANIME/MANGA DETAILS. Two delivery waves, six integrated work packages tracing the original16 IDs, paste-ready executor prompt, source/wiring inventory, bounded contracts, identity/import/enrichment/release truth, precise progress/revision fences, durable offline/Undo, artwork/copy/music/adaptation/private-club behavior, acceptance/performance matrix, review/rollback and ledger are specified. Prior v0.x retained as a clearly superseded historical appendix. Native/backend waves NOT STARTED; no staging/live/release proof or execution/deploy authority from this planning turn. Documentation-only; code/prototypes/assets unchanged.
+
+
+### Change Log — 5 October 2026: Production executor handout v1.1
+
+**Production executor handout (2026-10-05):** Singular Home/detail master plan advanced to v1.1 with mandatory pre-implementation every-call/schema/RLS audit, bounded hot paths, rapid-edit/revision/lifecycle races, membership-removal/realtime/cache revocation, AniList+MAL field/organization fidelity and1000/5000-session large-table mixed-load/burst/soak qualification. New docs/handoffs/2026-10-05-claude-code-production-handoff.md puts the Claude Code Sonnet5.5 executor prompt first, includes the complete active specification and pins46 local preview/dependency hashes for another machine. Exactly two waves/six work packages remain; both native/backend waves NOT STARTED, capacity/staging/live/released NOT VERIFIED. Source risks: broad club table subscriptions and normalized/text AniList import do not establish current hosted defects. Documentation-only; no app/prototype/backend changes, builds, load tests, commit, deployment, credentials, public share or automation.
+
+### Change Log — 5 October 2026: Modular architecture and measured migration plan
+
+**Modular architecture planning (2026-10-05):** [Modular architecture and migration plan](docs/plans/2026-10-05-modular-architecture-plan.md) defines module ownership, dependency/state rules, size review thresholds and hard ceilings, legacy exceptions, nine migration checkpoints and completion gates. Local inventory: 94 app Swift files / 46,537 physical lines; 34 files exceed 600 and contain 79.1% of native source; 11 exceed 1000. SupabaseService plus 12 extensions totals 7154 lines, with environment references in 30 Swift files. Baseline JSON records paths/digests; no local package targets currently exist. Proposed default production file ceiling 600 and module ceiling 3000, with narrower responsibility budgets, cohesion review and dated exceptions. Architectural execution NOT STARTED. Companion to the singular Home/detail v1.1 specification; its two product delivery waves remain unchanged. Documentation/inventory only; no native/backend/prototype/CI implementation, build, deployment or capacity proof.
+
+### Change Log — 5 October 2026: Judgment based modularity review policy
+
+**Modular architecture planning (2026-10-05, revised policy):** [Modular architecture and migration plan](docs/plans/2026-10-05-modular-architecture-plan.md) now uses LOC, complexity and dependency breadth as review signals, with no mandatory source-length ceilings or blanket no-growth rule. Firm gates cover coherent ownership, acyclic dependencies, typed adapter boundaries, account/task lifecycle, single write authority, compatibility and verified behavior. Reviews record keep, semantic split or concrete deferral decisions. Added current-source extraction assignments, a vertical extraction recipe, review examples/template and explicit overlap with the two Home/detail product waves. Measured baseline remains 94 app Swift files / 46,537 physical lines; shared service family 7154 lines with environment references in 30 files. Architectural execution NOT STARTED. Supersedes the initial hard-cap proposal; earlier change-log entries are historical. Documentation-only; no native/backend/prototype/CI changes, build, deployment or capacity proof.
+
+### Change Log — 5 October 2026: Autonomous modular architecture execution brief
+
+**Modular architecture execution brief (2026-10-05):** [Claude Code execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) now begins with a paste-ready prompt for autonomous local execution using coordinated specialist sub-agents and independent review. Removes effort/schedule estimates; priorities are correctness/account isolation 35%, ownership/maintainability 25%, compatibility 20%, verification quality 10%, simplicity/efficiency 10%. Weights never override mandatory G0–G7 gates. Stages E0–E8 establish safe verification, repair lifecycle in place, complete contracts/ownership, integrate Library, introduce justified packages, migrate all current consumers, qualify backend/active operations, and retire legacy authority. Adds exact risk-to-test scenarios, selective rerun rules, explicit Swift isolation/import/resource handling, shared UI/routing ownership, all production capability assignments, file-exclusive agent work and lead-owned documentation. Baseline stays 94 native Swift files / 46,537 physical lines. Planning artifact updated; architecture implementation NOT STARTED, all gates UNPASSED. Native/backend/prototypes/CI unchanged; no build, database test, deployment or capacity proof.
+
+### Change Log — 5 October 2026: Modular architecture executed locally
+
+**Modular architecture execution (2026-10-05):** Executed the [execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) stages E0–E8 in this checkout (retirement done in source; stage and gate status per the ledger) with coordinated specialist agents and independent reviewers; record of rulings, per-stage evidence, review rounds and blockers: [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md). Structure (verified by source inspection): `SupabaseService` and its 12 extensions (7,154 lines) deleted; composition root `Kuro/Composition/AppComposition.swift` (`makeGraph`, one SDK client, one `AccountSessionCoordinator`, one `makeAccountScopedStates` list); owner folders `Kuro/{Identity,Library,Catalog,Discovery,Search,Collection,Releases,Providers,Social,Clubs,Imports,Concierge,Taste,Telemetry}` plus `Kuro/Infrastructure/` (shared helpers) and `Kuro/Composition/` (root); local package `Packages/KuroModules` with targets `KuroCore`, `KuroLibrary`, `KuroSupabase` (no SwiftUI/UIKit/supabase-swift imports); other capabilities stay in-app by recorded decision; `FeatureFlags` injected (no `.shared`); seven unreferenced view files deleted. Final lanes: typed navigation routes (`Kuro/Views/Routing/KuroRoutes.swift`; recorded deviation: the tracking-editor route carries `any MediaDisplayable`, plus an added `presentAddToClub`), shared cards/sheets moved to `Kuro/Views/SharedCards/`, detail-page decomposition D1–D3 (`DetailSharedComponents.swift`, `ProviderLinkViews.swift`, `Kuro/Providers/ProviderLinkBuilders.swift`, `ProviderAvailabilityStore+DetailLinks.swift`, `Kuro/Design/FlowLayout.swift`, load tables in the page headers), Concierge/Profile decisions extracted to `Kuro/Concierge/ConciergeRouting.swift` and `ImportReconciler`; the tautological "Kuro App Tests" suite deleted. Behaviour corrections (evidence per correction, including the red→green reproductions, in the ledger): database 1–10 rating scale for every Library writer, field-masked absolute edits (no stale full-row rewrites), `save` never overwrites, per-key FIFO with typed outcomes, Library change sinks instead of the global refresh quartet, account-context guards on every private publication, fail-closed `kuro://auth/callback` guard, sign-out/deletion ordering, club revocation invalidation, import apply gated on a loaded Library and server-OR-local tracked titles never auto-applied, export-text id collision and personalised NEW TO YOU cross-account leak fixed. Backend (prepared, NOT deployed): `delete-account` hardening, `concierge-apply`/`-undo` field fidelity (behaviour changes listed in §3.1), club RLS fixes R1–R3 in `supabase/prepared-migrations/`, `concierge-recommend`/`-parse` rule extraction. New verification: package `swift test`, KuroTests HTTP-level contract tests over `StubPostgREST`, `check_architecture.sh` and `test_packages.sh` in `run_all.sh`, package-aware docs gate, deno corpus/router gates against production rules, and the disposable local PostgreSQL fixture `scripts/db/run_local_db_tests.sh` (audited schema, not a migration replay; full replay BLOCKED). Test totals and gate status (G0–G7): see the ledger final section — this entry claims no gate as passed. Not done or not proven: the 16 device smoke journeys for the routes (`docs/modules/README.md`), production `user_id` casing check, club RLS decisions R4/R5, the supabase-swift `detail`/`details` mismatch (DETAIL-only SQL error codes never reach the app), deployment of any prepared change, UI/device journeys, Realtime/Storage/GoTrue/PostgREST behaviour, hosted/capacity proof, and the Home/detail master's offline/product/capacity gates. Inventory: 129 app Swift files, 14 package Swift files, 23 KuroTests files, 235 migrations (+3 prepared). Documentation: this file (§1, §1.1, §2, §3, §3.1, §3.3, §11, §12, §13, §13.1, §15), `CURRENT_APP_STATE_PLAIN.md`, `IMPLEMENTATION_PLAN_Variation1.md`, `CLAUDE.md`, `docs/documentation-surface-map.md`, the ownership map (final state), the brief's status line and `docs/modules/README.md`. Commit: uncommitted (dirty working tree preserved).
+
+### Change Log — 5 October 2026: Grok integration of the open cross-layer seams
+
+**Cross-layer integration (2026-10-05, continuation, NOT COMPLETE):** Took over the dirty tree at `471c609943d2374c6dda940aebdfde2fcb077d50` on `kuro/taste-overhaul` (private checkpoint `refs/backup/kuro-takeover-20261005` = `197e27b58b14d0975f10c084c2d25295b2526dff`, plus untracked archive). No mutation markers. Wired the prepared Apply/Undo v2 contract into the app without deploying it: one idempotency key per user action, partial outcomes stay undoable in Concierge and Profile, retryable 500/503 and invalid 400 are typed, `sendsStoredRatingAndNotes` stays true. Club realtime listens to `club_activity_signals` and `club_membership_signals` on their own channels; `club_members` is not subscribed; the four legacy content streams stay behind `SupabaseClubChannel.listensToLegacyContentTables` until `20261005160000` is applied. Resolve, retrieve-assist, retrieve-feedback and import-anilist fail closed on a limiter error. Provider preference reads/writes and Concierge recommend/warmup/feedback use a credential lease. Deleted club authors decode as nil. Dropped `CancellationError` does not toast. Latest-session SQL already orders by `created_at desc, id desc` (F80). Tests this slice: `ImportApplyOutcomeTests` 2, `ClubAuthorDecodingTests` 1, `ImportReconcilerTests/applyItemRules`, `AssistantContractTests/applyAndUndoRefreshLibraryOnce`, `CredentialLeaseTests` — **TEST SUCCEEDED** on iPhone 17 Pro. Deno `rate_limit_gate_test.ts` 7 passed; `deno check` clean for resolve and both retrieve functions. `concierge-import-anilist` still fails `deno check` on the pre-existing `truncated` field (F67). Nothing deployed. G0–G7 are not passed. Backend run extraction, workers, fixture UI journeys and an independent review of this batch remain open.
+
+### Change Log — 5 October 2026: Review repairs R1–R8
+
+**Independent review rejected the integration batch (2026-10-05).** The sentence above that partial imports were already undoable in Profile was wrong: Profile had no session id and no Undo action. This follow-up repairs that, and the other seven review items. A lost Apply response now retries the frozen payload and key; a new gesture gets a new key. All-rejected imports present as failures, not "Nothing to add" or "Import completed". Profile stores `undoSessionId` and shows Undo. Concierge lists applied titles separately from titles that need review. Resolve finalizes only budget scopes it actually acquired, and a malformed budget response does not call the provider. Tests: `ImportApplyOutcomeTests` 3 passed; `ImportsContractTests` suite **TEST SUCCEEDED** on iPhone 17 Pro, including `lostApplyReplaysAndProfileUndoKeepsItsSession`; Deno `budget_test.ts` 5 passed. These repairs are not independently re-accepted. The migration remains **NOT COMPLETE**. Nothing deployed.
+
+### Change Log — 5 October 2026: Import retry follow-up S1–S3
+
+**Second review, still not accepted (2026-10-05).** Changing a selected title now changes the Apply identity: the stamp includes the candidate's medium and id, so Anime 7 is not resent after the user picks Manga 99. Profile recovers a lost import from an explicit Retry control before it reconciles against the library; starting the AniList importer again is a new import. A Profile Undo that finishes after the card was dismissed or replaced does not restore the old card. iPhone 17 Pro: `ImportApplyOutcomeTests` and `ImportsContractTests`, 15 passed, 0 failed. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Operations root and deploy default
+
+**Local only (2026-10-05).** `scripts/local_cd.sh` now defaults `DEPLOY_SUPABASE` to 0, so a plain run does not push the database or deploy functions. `scripts/kuro_project_root.sh` is the shared checkout root for media-relations, the unified dashboard, and local CD. Media-relations reads its own config before other pipelines' plists. `bash scripts/test_kuro_ops_defaults.sh` passed 10 checks. Git hooks stay opt-in. Nothing was deployed. F57–F60 are pending review, not accepted.
+
+### Change Log — 5 October 2026: Swift worker run seams
+
+**Local only (2026-10-05).** The synopsis, catalog-safety, and provider-availability workers now call a testable run from their production entry. Offline checks re-ran clean: synopsis 17, catalog safety 19, provider availability 19. Installed jobs were not started. The media-relations worker is still outside this slice. F52 stays partial. Nothing deployed.
+
+### Change Log — 5 October 2026: Bulk import run seams
+
+**Local only (2026-10-05).** `bulk-import-anime` and `bulk-import-manga` keep their slugs and `IMPORT_SECRET` check. Each index calls a `run()`. A provider failure releases the lock and does not advance the cursor. Re-ran both handler tests: **4 passed, 0 failed**. Both entrypoints type-check. Not deployed. F51 stays partial until enrichment and image mirroring land.
+
+### Change Log — 5 October 2026: Enrichment and image-mirror runs
+
+**Local only (2026-10-05).** Chapter enrich, source review, and image mirroring now have testable runs behind the same slugs. A failed image fetch keeps the existing catalog URL. Re-ran the three suites: **5 passed, 0 failed**. The chapter-enrich run file is still the mixed matcher, transport, and persistence body behind a thin entry. Nothing deployed. F66 is pending review. F51 stays partial.
+
+### Change Log — 5 October 2026: Register rows matched to landed evidence
+
+**Bookkeeping only (2026-10-05).** The fixture test host (F48) and the edge-function gate (F49) were already in the tree and are now marked pending review instead of open. The AniList import request accepts `truncated`, and `deno check` of that function exited 0 (F67 stays partial until a cached import run proves the truncation shape). Live Auth, Storage, and PostgREST qualification stay blocked. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Synopsis cache identity
+
+**Local only (2026-10-05).** Condensed synopsis text is cached by a stable FNV-1a digest of the description. A text-only entry and a media entry are different keys, and Anime 7 does not reuse Manga 7. `SynopsisCacheTests` passed 8 and failed 0 on iPhone 17 Pro. The non-FM stub returns no assist and is still not the live provider. Nothing deployed. F18 and F26 are pending review. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Chapter enrich split
+
+**Local only (2026-10-05).** Manga chapter enrichment now keeps title matching, MangaDex fetches, and database writes in separate files. The run still owns the lock, the time budget, and the candidate loop. Re-ran that suite: **3 passed, 0 failed**. The entry slug is unchanged. Nothing deployed. F51 stays partial because the AniList import function still mixes paging and cached text. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Media-relations run
+
+**Local only (2026-10-05).** The media-relations worker now has a testable run. Loading the file does not create a client or write a report. A launch without the service-role key still stops before any network or report write. Offline checks: **8 passed, 0 failed**. Report names and queue statuses are unchanged. Installed jobs were not started. F52 is pending review. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Unused catalog paths
+
+**Local only (2026-10-05).** Changing the status of several collection titles now refreshes the list once, then reads the visible feed once. Export titles come from one catalog read per medium, and a title that read misses is labeled `Untitled anime #id` or `Untitled manga #id` instead of disappearing. The unused Genre Hub screen is gone. Auth still loads trending anime. Collection card pages stay, because Profile, Concierge, live updates, and sign-in still ask for them even though no screen displays those arrays. The agent reported Collection 15, Imports 20, and Discovery 16 passed on iPhone 17 Pro. This follow-up checked the source and did not re-run the simulator. F21, F23, and F24 are pending review. F22 stays open. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Unused provider request type
+
+**Local only (2026-10-05).** The unused provider-availability request type is gone. The genre picker sheet stays, because the local screen-capture script still builds it. The AniList import file was not renamed. The agent reported an iPhone 17 Pro simulator build succeeded. This follow-up checked the source and did not re-run the build. F69 stays partial. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: View client boundary
+
+**Local only (2026-10-05).** Screens are now rejected by the architecture check if they construct the database client or call its auth, database, functions, or channel APIs. The check passed on the current tree. A temporary file with those calls failed the check and was deleted. Other feature-to-feature references are still a convention, because the app is one module. F54 stays partial. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: AniList import split
+
+**Local only (2026-10-05).** The AniList import function now checks the user and the rate limit in its entry, then runs a separate import. Line conversion, page fetches, and the choice between cached text and a fresh list are separate files. Re-ran that suite: **4 passed, 0 failed**. A truncated cached import does not contact AniList. A failed page does not invent titles. The 200-item cap is unchanged. Nothing deployed. F67 is pending review. F51 stays partial because retrieval assist is still one file. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Collection feed is the only list refresh
+
+**Local only (2026-10-05).** The app no longer loads a second copy of the saved-title cards that no screen showed. Sign-in, Profile sync, Concierge, and live updates refresh the collection feed, which is the list on screen. A batch status change still refreshes that feed once. The agent reported 35 passed and 0 failed on iPhone 17 Pro. This follow-up checked the source and did not re-run the simulator. F22 is pending review. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Lane review reopened eight defects
+
+**Not a completion (2026-10-05).** An independent review of the integrated tree found eight defects and changed no files. Image downloads can hang after the headers arrive. A failed bulk-import lock is treated as permission to run, and a failed catalog write can still move the cursor and report success. A collection status batch reads the visible list twice. A manga synopsis can reuse an anime synopsis with the same description. Three worker launchers still build from `/Applications/Kuro`. Media-relations can pair a URL from one config with a key from another. A MangaDex request can outlive the worker budget. Those findings are open again. Real login, storage, and database proof stay blocked. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Worker checkout and credential pairs
+
+**Local only (2026-10-05).** The synopsis, catalog-safety, and provider-availability launchers now compile and write reports in this checkout. Media-relations accepts a Supabase URL and service-role key only when both come from the same place: the environment, the media-relations config, or one fallback file that contains both. An incomplete pair stops and names the missing setting. Offline checks: launcher paths **3 passed**, ops defaults **12 passed**. Installed jobs were not started. The three local dashboards for those workers still fall back to `/Applications/Kuro` for their report folder. F52 and F58 are pending review. F57 stays partial. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Bulk import lock and cursor
+
+**Local only (2026-10-05).** A bulk import whose lock cannot be acquired no longer writes the catalog or releases a lock it does not hold. A failed primary save keeps the cursor where the run started, so that page is tried again, and the run reports failure. Re-ran both suites: **14 passed, 0 failed**. Nothing deployed. F51 stays partial. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Fetch deadlines
+
+**Local only (2026-10-05).** An image download now stays cancellable while the file body is read, so a stall after the headers does not hang the job or replace the catalog image. A MangaDex request is cancelled when the chapter-enrich budget ends. That job releases a lock only when it actually acquired one. Re-ran those suites: **7 passed, 0 failed**. Nothing deployed. F66 is pending review. F51 stays partial. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: One collection refresh and separate synopses
+
+**Local only (2026-10-05).** Changing the status of several saved titles now refreshes the visible collection once. The screen does not fetch that list a second time. A shortened synopsis for anime is no longer reused for manga with the same description, and a different title or genre list is a different cache entry. The agent reported 19 tests passed and 0 failed on iPhone 17 Pro. This follow-up checked the source and did not re-run the simulator. F18 and F21 are pending review. Nothing deployed. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Live Auth, Storage, and Realtime
+
+**Live project only (2026-10-05).** Disposable accounts on `bkdifromsqxkndnllmdj` signed in, refreshed a session, and could not change another account's profile. The deployed delete-account function (version 8) removed those auth users and left their uploaded JPEGs publicly readable. A token that GoTrue already rejected could still upload. A club member received a live poll event; a non-member did not. Nothing was deployed and no existing account was changed. F44 is partial. F45 and F88 fail on the deployed storage behavior. Three test images could not be removed without a service-role key. Evidence: `docs/handoffs/2026-10-05-live-service-evidence.md`. The migration remains **NOT COMPLETE**.
+
+### Change Log — 5 October 2026: Deletion barrier deployed
+
+**Production (2026-10-05).** The account-deletion write barrier and the club membership lifecycle are applied on `bkdifromsqxkndnllmdj`. `delete-account` is version 9. Media uploads take the same per-user lock and are refused after deletion starts. A disposable account's JPEG was removed, GoTrue rejected the user, and a later upload returned `ACCOUNT_DELETION_IN_PROGRESS`. The three leftover test images from the earlier run were deleted and are gone at the origin. Apply/Undo SQL, realtime signal cutover, and an App Store release are not in this deploy. The migration remains **NOT COMPLETE**.
+
+### Change Log — 6 October 2026: Database side of the remaining migration
+
+**Production database (2026-10-06).** The remaining prepared SQL is applied on `bkdifromsqxkndnllmdj`: club member column grants, club rail insert rule, comment-reaction visibility, Apply/Undo transactions, realtime signal tables, the user-list view running as the caller, and lower-case list user ids. The Apply and Undo edge functions did not deploy. The CLI was rejected with `FGA Authentication Error`. The simulator still calls the previous functions (`concierge-apply` last updated 2026-07-30, `concierge-undo` last updated 2026-02-24). The app still sends stored ratings and notes, and it still listens to the old club tables as well as the new signal tables. No App Store build. The migration remains **NOT COMPLETE**.
+
+### Change Log — 6 October 2026: Apply and Undo functions deployed
+
+**Production (2026-10-06, 17:24 UTC).** `concierge-apply` is version 26 and `concierge-undo` is version 17 on `bkdifromsqxkndnllmdj`. The simulator now calls those handlers. The app still sends stored ratings and notes, and it still listens to the old club tables as well as the new signals. There is no App Store build.
+
+### Change Log — 7 October 2026: Production-ready leftovers for the simulator build
+
+**Live project + local client (2026-10-07).** Simulator build leftovers against `bkdifromsqxkndnllmdj` — not an App Store release, and **G0–G7 are not all passed**.
+
+- Client: `ImportReconciler.sendsStoredRatingAndNotes = false`; after a live member/non-member `club_activity_signals` check, `listensToLegacyContentTables = false`; account-switch test clears Concierge/Clubs/Collection private state; `ClubError` reads PostgREST `details` when `detail` is empty.
+- Locked rules: ambiguous parse does not auto-apply when `clarify_v2` is off; Finished with no title stores no status; bare numbers in titles stay in the title; AniList may return 200 and Apply takes the first 100 with omitted messaging; private club cards show count only, not names; old half-finished import sessions stay non-undoable; no new deletion-barrier cron.
+- DB: `20261006120000_import_sessions_select_only` applied (authenticated SELECT-only; app never wrote those tables).
+- Edge: `concierge-retrieve-assist` split to thin `index.ts` + `run.ts` (deno **5 passed**), deployed **v8**; `rag_assist_v1` stays off.
+- Still open: the sixteen route smoke journeys in `docs/modules/README.md` are a simulator checklist, not a claimed pass; F51 remains partial overall; no independent review of this batch.
+
+### Change Log — 7 October 2026: Multi-user page verification harness
+
+**Verification only (2026-10-07).** Added an agent-runnable three-layer harness. It does **not** claim G0–G7, the 16 device journeys, App Store readiness, production UI, or enabling `rag_assist_v1`.
+
+- Layer A: `scripts/quality-gates/test_leftovers_verify.sh` (build + leftover KuroTests filters + offline Deno; optional local DB).
+- Layer B: `KuroTests/MultiUserPageOrchestrationTests` — three AppGraphs (A/B/C) exercise Concierge/Collection, Clubs privacy initials, Discover/Browse/Search + account switch. Runner: `scripts/quality-gates/test_multi_user_pages.sh` (optional; not in `run_all.sh`). **Passed** on iPhone 17 Pro.
+- Layer C: `scripts/live/probe_*.js` — disposable accounts only. Import sessions SELECT-only **ok**; `club_activity_signals` member/outsider realtime **ok**. Accounts deleted via `delete-account`.
+- Reports: `reports/leftovers-verify/`.
+
+### Change Log — 7 October 2026: Home production closure, still not deployed
+
+**Local only (2026-10-07).** The Home/detail closure is in the working tree. Flags stay off. The prepared migration was not moved into `supabase/migrations/` and was not pushed.
+
+- Progress, status and removal use the receipt RPCs when `series_foundation_v1` is on. Notes and ratings stay on direct update and still move `server_revision`, so a stale progress write conflicts.
+- `93_series_fence_races.sql`: 22 assertions PASS (progress versus a note, add/delete/add lifecycle, import versus a local edit, membership removal versus a comment).
+- `81_library_import_counts.sql`: 9 assertions PASS (0/1/50 items, duplicate custom-list rows, score 0, private notes off the list and off club comments, a later omission does not delete a local title).
+- Profile can import a MAL XML export and, when the foundation flag is on, apply AniList `libraryItems` as the same job. Counts are added, updated, conflict and unmatched. No percentage. The old Concierge text preview remains the path while the flag is off.
+- Collection, Home load-more and detail season changes use the bundle RPCs when the native flag is on. A season change replaces the in-flight request.
+- The outbox is drained per account, on foreground and on reconnect, at most 50 at a time. Undo of an unsent tap restores the prior position. A conflict offers keep-server or reapply.
+- iPhone 17 Pro simulator build succeeded. Small-fixture `EXPLAIN` does not estimate inner rows. 100k/1M/10M, device VoiceOver/haptics, native-versus-prototype screenshots and a live check after deploy are NOT RUN. The app is not called live.
+
+
+### Change Log — 7 October 2026: Codex migration repair execution
+
+Executed targeted migration repairs with proportionate verification: rag-v2 scopes Anime/Manga/unscoped cache and avoids outage poisoning; recommendation rejects wrong-medium seeds; exact deletion barrier becomes terminal rather than retryable in server/client. Live probes now prove real delivery and genuine journal denial with bounded cleanup. Existing native owner journey now exercises real dispatch and passed1test. Backend affected suites16+32passed, script checker12passed, focused independent review accepted. Fresh live journal Apply/Undo and six42501denials passed; both disposable users deleted. No deployment/flag change/App Store upload. Native terminal-error contract also passed exactly 1 test (0 failed, 0 skipped); the earlier zero-test selector was corrected and not counted as a pass. The concurrent Home compile mismatch was repaired by its owner. Release access and remaining findings stay open. Evidence: docs/handoffs/2026-10-07-modularity-execution-evidence/README.md. New files: retrieval recommendation repository test, probe support/checker, native runner helper, active execution note and sanitized evidence files. Existing files retained; no deletion by this initiative.
+
+- 2026-10-07: Started authorized independent-review repairs (durable sync, import replay/fidelity, account/privacy, selected-season and schema/query contracts). See repair ledger for exact proof and open work; not production closure.
+
+### Change Log — 7 October 2026: Cursor, ops and register reconciliation
+
+F20 shared production/test PostgREST DB encoder emits fractional UTC Z, retains millisecond precision and leaves Auth/decoding intact. Two existing cursor contracts passed (structured2/0/0), independently accepted. F57 three dashboard/six installer root defaults use established resolver with tuning preserved;13 offline checks plus syntax checks and independent acceptance, no jobs executed. New file: Kuro/Composition/PostgrestRequestEncoding.swift; current inventory134 app/20 package/245 migration files. Parser/alias F27–F31 source acceptance and no-backfill/no-cron residuals reconciled. Current Swift manifest185rows and generator expanded for packages and operational source types. Historical source/ownership/completion claims explicitly superseded. Remaining architecture/native/deployment work remains NOT COMPLETE; no deployment/flag/upload.
+
+### Change Log — 7 October 2026: Home repair evidence reconciliation
+
+Preserved unrelated dirty work while repairing R01–R16; shared integration is now on `codex/integrated-testflight`. Detailed source/proof matrix and logs: [repair ledger](docs/handoffs/2026-10-07-home-series-evidence/REPAIR_LEDGER.md). Producer backfill locks source before queue mutation; completion locks catalogue before job; source revisions/leases reject stale writes. Club disclosure purges enriched/private caches immediately, rejects stale uncached provider responses and separates privacy refresh from membership loss. New files for this initiative include `scripts/series_enrichment_worker.py`, its offline test, actual Home drain runner/repro, `KuroTests/ClubDisclosureRepairTests.swift`, SQL94/95 and SQL96 backfill race specifications, and repair evidence/docs. No repository file was deleted by this repair. Package76/Home/AniList7/enrichment8 PASS; native parse only. SQL94 historical50 PASS is not latest SQL qualification. Current SQL/performance/native/device/live/release remain incomplete; no IPC cleanup, deployment, flag activation, scheduled worker or upload. The new integrated envelope is an explicit later user scope decision, not a silent waiver.
+
+- Repair documentation gate PASS: current shared inventory 150 app Swift files, 22 package Swift files, 245 migrations. Inventory markers in the two current-state docs and CLAUDE were refreshed without changing rules. SQL96 specification independently reviewed; still NOT RUN.
+
+
+### Change Log — 7 October 2026: Integrated TestFlight source continuation
+
+Approved integrated two-wave scope and preserved dirty/untracked migration inputs on codex/integrated-testflight. Added Library-owned progress/status recovery, exact unit/string cursors, bounded personal Home offline snapshot/partial tracking knowledge, initial SDK reconciliation and transport-only expired-session presentation restore, account-scoped tester enrollment cache, captured-account deletion cleanup/admission SQL95/96, capability-specific model/RPC ownership, Profile import workflow coordinator, Concierge action lifetime, native selected-season/unit/edition controls and legacy detail loader/paging cancellation. Staged Fastlane freezes/validates exact inputs and separates real live-service evidence from valid local SQL; no zero-test or partial release pass.
+
+Evidence: actual compiled Library/Home/SQLite/precision/cache harness passes; focused high-risk source review repairs discovered defects; Fastlane10tests44assertions, live-evidence/SQL-partition9tests, native-runner5offlinecases and20distinct offline probe cases passed (12 affected legacy-probe cases rerun after the bounds delta; unchanged8 reused). Swift syntax and architecture boundaries passed. These are local/owner/offline/source proofs. Final SQL cannot start with exhausted shared-memory resources left untouched per user; Xcode license blocks typed native/package/SDK runs; management/admin/signing/MAL registration/consent/physical-device proof are unavailable. MAL account list importer and final release qualification remain incomplete. No backend deployment, new hosted writes, archive or upload by this continuation. Source/evidence checkpoint at docs/handoffs/2026-10-07-integrated-release-evidence/source-checkpoint.json is not a frozen release artifact. Full checklist/executor: docs/handoffs/2026-10-07-integrated-testflight-execution.md.
+
+New capability files: fourteen shared model/RPC owner files, Kuro/Home/HomePersonalSnapshot.swift, Kuro/Imports/MALNativeAccountConnector.swift, Kuro/Imports/ProfileImportCoordinator.swift, Kuro/Concierge/ConciergeWorkflowLifetime.swift, Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift and focused regression sources. Central SupabaseModels/SupabaseRPCParams retired. Prepared flag/account lifecycle SQL and regressions95/96 are not deployed. Backend review repaired rejected mapping reuse, failed mapping/deactivation reads, malformed deletion acknowledgments and provider deadlines; the final alias-decision read fails closed and is independently source-accepted. Chapter8/deletion22/recommendation9 focused Deno cases pass, with unchanged relevant evidence reused. Provider URL normalization and retrieval confidence/identity validation passed actual Foundation/Deno checks. App Store metadata/reviewer draft, eight-category privacy manifest and source-reviewed FileTimestamp reasons are prepared; vendor/archive/Connect privacy qualification remains open. Runtime/release/probe helper files are listed in the ownership/evidence snapshot; unrelated work retained. Inventory below is current; older point-in-time counts remain historical.
+
+
+### 2026-10-07 — proportionate gates and remaining integrated source
+
+Proportionate gates are implemented in Fastlane: affected local checks during development, one integrated native/package/backend/selected-SQL verification, then real service and installed TestFlight proof. Future signing/live/device access is not due during development; correctness/privacy/replay and required workflows remain mandatory for release. MAL account ingestion for both media is implemented, primary contracts retrieved and source-reviewed, with controlled registration/consent still unavailable. Original-account/mount admission, Collection batch isolation, stale conflict controls and Profile deletion/preferences are repaired and independently source-accepted. Actual Core action tests, MAL reader, Library/Home/SQLite and Collection policy checks pass. Ten affected PostgreSQL suites pass253assertions, all12prepared migrations apply; historical baseline replay stays incomplete. No deployment, archive, upload or installation. Xcode license, Supabase administration, signing, controlled MAL consent and physical-device proof remain the precise release prerequisites. See [the complete executor/evidence/checklist](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+New source: `Kuro/Imports/ImportsService+MALAccount.swift`, `Packages/KuroModules/Sources/KuroCore/AccountActionScope.swift`, `Packages/KuroModules/Sources/KuroLibrary/MALAccountList.swift`. Existing rendering, identity, tracking, import and release owners were repaired in place; required regressions reuse existing suites. Inventory:151app/24package Swift files,29native test files,245migrations; no new SQL migration. Legacy uppercase list rows require read-only live counts before any reviewed repair. Unrelated work and local servers were preserved. This entry supersedes the earlier IPC-blocked/MAL-source-incomplete notes; it does not qualify a release.
+
+
+### 2026-10-07 — Xcode and release-access refresh
+
+**Access refresh, 7 October — NOT RELEASED.** Xcode27.0 first-launch validation passes. Actual package81tests, Home snapshot5cases and credential/permission contract3cases PASS. Native compilation errors (missing KuroCore import and duplicate Home declaration) and three outdated test fixtures are repaired and independently source-accepted. The broader native runner stalled after its logged host exited; it was interrupted and has no finalized acceptance result. No whole-native PASS is claimed. Physical iPhone “Max” is paired/booted on iOS26.6; one development and one distribution signing identity are present. Existing ASC key4Y9VLAQLQN returns403 `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`; the Account Holder must review agreements, then team/app/upload permissions can be checked. Fastlane references an absent older key. Supabase administration and controlled MAL registration/consent are still unavailable. No credential changes, backend deployment, upload or physical installation. Earlier license/hardware absence notes are superseded by these observations.
+
+### 2026-10-07 — Simulator-only delivery and live administrative inspection
+
+**Current target, 7 October — SIMULATOR ONLY / INTEGRATION IN PROGRESS.** Max explicitly removed TestFlight upload and physical-device delivery from this initiative. Debug 1.0 (17), bundle com.Kuro.app, built successfully and is installed/launched on iPhone 17 Pro / iOS 26.0; onboarding is visually verified, not a signed-in workflow pass. Supabase browser administration now works through existing GitHub sign-in. Two bounded read-only live audits found no malformed/noncanonical/colliding legacy list IDs, and confirmed exact auth.uid()::text owner policies. The six Home/detail/page RPCs, Home flag rows and feature_flag_overrides table are absent on the live project. No schema/customer/flag changes or deployment. MAL registration is pending: the browser site policy blocks apiconfig/create; the user must complete the prepared form and provide the Client ID. Existing 81 package / 5 snapshot / 3 contract passes remain valid; the broader native runner stays incomplete. Signing agreements, archive, upload, TestFlight and physical qualification are outside the current target. [Execution and evidence](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+Evidence: `simulator-only-install-receipt.json`, `simulator-only-build-pass.log`, `simulator-only-installed.png` and `simulator-live-readonly-audit.json` under `docs/handoffs/2026-10-07-integrated-release-evidence/`. Two read-only5second-bounded queries return metadata/aggregates only; no customer identities/content or administrative credentials retained. Sixteen deployed function slugs observed; exact versions/source not inspected. No Swift files added/removed and no code changed in this initiative;151app/24package/29unit/3UI Swift files and245migrations remain. The current directive supersedes earlier mandatory TestFlight/physical delivery clauses without waiving safety or required advertised workflows.
+
+
+### 2026-10-07 — Focused native authentication/import recovery and live contract preflight
+
+**Latest simulator follow-through, 7 October — INTEGRATION IN PROGRESS.** Owner authorized live sign-in/Home/import/recovery checks. Focused Xcode SDK authentication: 19 PASS, 0 failures; import apply/outcome/retry/Undo: 6 PASS. Controlled HTTP is used, so these are native SDK proof, not live UI/GoTrue/Home proof. Initial 21-pass/4-fail run is retained. Two fixture issues were corrected without weakening assertions: per-scenario real SQLite/WAL injection prevents shared-file cleanup contention, and the stale-account fixture now really returns A then B. Independent review accepted the narrow change; production storage defaults are unchanged. Two further read-only live audits confirm eight new Home/tracking/import RPCs and eight checked foundation tables are absent; live has nine 5 October migrations plus 6 October import-session policy. Aggregate existing list rows: 37 Anime, 11 Manga. Exact two-migration deployment draft is prepared, not applied; global flags stay off. Real simulator login and concrete production-grant approval are pending. Native UI automation timed out after the clone test run. No live account/customer/schema/flag changes, TestFlight or upload. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-auth-import-recovery.md). Earlier status banners below are historical and superseded where they conflict.
+
+Changed native files: `Kuro/Composition/AppComposition.swift`, `KuroTests/IdentityCompositionTests.swift`. Added read-only preflight, pinned deployment draft and finalized test summaries/logs/receipt under the integrated evidence directory. Inventory unchanged: 151 app Swift, 24 package Swift, 245 historical migration files. No new tests, deployment or hosted mutations.
+
+
+### Change Log — 7 October 2026: Final scoped simulator checks and exact SQL rehearsal
+
+**Latest simulator execution, 7 October — LOCAL CHECKS PASS / LIVE INTEGRATION PENDING.** All387 distinct native cases have passing evidence across the initial362-case run, affected-suite repairs and the previous19SDK/6import cases; no unchanged whole-suite rerun. Four test files repaired with focused independent acceptance; production guards unchanged. The selected16SQL suites pass511assertions, and the exact two-migration atomic transaction/history rehearsal passes31assertions. Backend imports pass52tests/typecheck. Latest Debug1.0(17) is installed/launched on iPhone17Pro/iOS26.0 and the real sign-in form is open; signed-in workflows remain unverified. Live read-only preflight confirms all20newfoundation tables absent/all31existing prerequisites present, no orphan list rows, current deletion helper reviewed. No live changes/deployment/global rollout or TestFlight. Actual sign-in, specific production-grant approval and controlled MAL registration/consent remain pending. [Current evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-integration-progress.json). Earlier banners are historical where superseded.
+
+This initiative changed four native fixture files (CollectionContractTests, IdentityCompositionTests, ClubsContractTests, LibraryFacadeTests), preserving real SDK credentials, batch ordering, immediate private-cache purge and successful progress assertions. No production source file changed in this follow-through. Evidence includes failed initial runs and a stopped owned clone-start/diagnostics attempt; no zero-test or interrupted run counted as acceptance. No app/package/migration files added or removed; inventory remains151app/24package/29native-unit/3UI Swift files and245migrations. Operational SQL assembly/evidence added under the integrated handoff. Global flags stay off; live trigger behavior also affects existing clients when eventually deployed. Historical migration replay remains incomplete.
+
+
+### Change Log — 7 October 2026: Requested sign-in and MAL registration attempt
+
+Actual simulator login fields are empty; the normal saved-password option supplied no credentials. No sign-in/reset/new account. The existing MyAnimeList registration page is explicitly blocked by browser site-security policy; no bypass attempted and no form filled/submitted. Native public-client/callback values checked and owner handoff prepared in docs/handoffs/2026-10-07-integrated-release-evidence/simulator-sign-in-mal-handoff.md. The owner must enter Kuro credentials locally and complete the blocked MAL form with actual applicant/homepage and agreement acceptance. Existing MAL configuration remains empty/not approved; no production source, live account/schema/provider/flag changes or TestFlight. Prior valid local evidence remains unchanged.
+
+
+### Change Log — 7 October 2026: Reusable development login and sidebar handoff
+
+**Latest access initiative, 7 October — SIGN-IN PASS / RESTORE FAIL / MAL HANDOFF.** One owner-authorized ordinary persistent GoTrue development account was created; credentials retained privately outside the repo. Genuine password sign-in and authenticated identity pass, and the simulator Profile shows the expected development email/build1.0(17). Ordinary restart returns to welcome, including after normal signed build/install; root cause unresolved, no auth-code repair claimed. Final simulator is signed in again. MAL registration is confirmed open in the sidebar for manual owner completion under the existing site-security restriction; client remains unconfigured. No existing account changes, admin grants, schema/flags/deploy/TestFlight. Prior unchanged local evidence remains valid at its layer; installed restore is a new failed check. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/development-account-sidebar-handoff.md). Earlier banners are historical where superseded.
+
+No app/package/migration files added or removed. Added sanitized auth/install evidence and handoff; credentials stay outside repo and evidence. Actual restart failure remains open, with prior local proof retained.
+
+
+### Change Log — 8 October 2026: Actual sign-in, callback identity and restore qualification
+
+**Latest simulator qualification, 8 October — SIGN-IN / RESTORE / SIGN-OUT PASS; MAL CLIENT ID PENDING.** Actual normal password-form sign-in and restart restore pass on com.Kuro.app. A dedicated iPhone17Pro/iOS26.0 simulator also proves supported SDK callback, same-account restore and immediate sign-out to AuthView. Earlier callback FAIL is not current-artifact proof: the original simulator has a canvas preview also claiming kuro://; old observations remain historical. Existing preview apps/data were preserved; no production auth repair or unchanged broad suite rerun. Owner reports MAL registration complete; site policy blocks reading issued client values, public Client ID requested, connector remains disabled. Home/import candidate RPCs still absent live. No new live account, admin/schema/flag/deploy/TestFlight changes. [Current installed proof](docs/handoffs/2026-10-08-simulator-qualification/qualification.md). Earlier banners are superseded where they conflict.
+
+No app/package/migration inventory changes. Added targeted installed-app evidence and one isolated simulator; only ignored callback orchestration and state/evidence documents changed. Secrets remain privately retained outside repo.
+
+### Change Log — 8 October 2026: Published MAL registration configured for simulator
+
+**MAL registration/configuration, 8 October — SIMULATOR CONFIGURED; SERVER INTEGRATION BLOCKED.** User screenshots verify the published native iOS registration and exact kuro://mal/callback. Debug.xcconfig enables the public client only for iphonesimulator; Shared/Release remain disabled and no confidential secret is embedded. Normal signed build/install and matching built Info.plist pass. Actual Profile exposes Connect and import MAL, which reports Library synchronization is not enabled yet before any provider consent. Existing sign-in survives the update. Exact Home/import SQL is still prepared/rehearsed, not deployed; controlled OAuth and real import/recovery remain pending. No live schema/grant/flag changes, archive or TestFlight. [Evidence](docs/handoffs/2026-10-08-simulator-qualification/qualification.md).
+
+### Change Log — 8 October 2026: Effective backend integration and precise import repair
+
+**Backend integration, 8 October — SOURCE/LOCAL ACCEPTED; NOT DEPLOYED.** Fresh live audits mapped61 frontend RPCs,19 literal relations and7 Edge slugs;16 new Home/Library/import/social RPCs are absent, existing runtime SQL/table dependencies for six changed handlers are present. Existing Supabase CLI management access works without new keys; two read-only Auth/Storage administrative cleanup-access checks pass. Expanded minimum deployment is three pinned SQL inputs plus AniList, Apply, Undo, deletion, recommend and retrieve-assist closures (JWT enabled, flags unchanged). New forward SQL preserves precise units/labels and entry lifecycles; historical Undo without lifecycle proof skips legacy_lifecycle_unavailable, with no backfill. Independent review accepted the repair and exact3SQL assembly; exact disposable fixture rehearsal passes118assertions (9 install/history/data,40 import,69 writer), historical replay incomplete. Six Edge closures match accepted checkpoint, unchanged tests reused. Live rag_assist_v1 is already5% for DE/AT/CH, superseding older off claims; no flag change. Named production deployment approval and fresh simulator/live workflow proof remain pending. Simulator only; no TestFlight. [Complete mapping, findings, deployment and recovery](docs/handoffs/2026-10-08-backend-integration/backend-integration.md). Earlier conflicting banners are historical.
+
+
+### Change Log — 8 October 2026: Deep import user-journey review and deployment hold
+
+**Import/Library/Home deep review, 8 October — REQUEST CHANGES / DEPLOYMENT HOLD.** Independent source and user-journey review found27 concrete findings; six structured SQL defects were reproduced in a disposable PostgreSQL fixture with the accepted legacy repair installed. Normal AniList preview/confirm bypasses structured input; existing values can be overwritten without consent; MAL underscore statuses fail; exact progress and score pairs become inconsistent; recovery is not discoverable and can block new jobs; results/navigation and mounted Collection/Library/detail consistency remain incomplete. XML parser normalization/semantic-validation defects were observed separately. The prior118 assertions and legacy Apply/Undo approval remain narrow evidence, not import acceptance. Deployment draft is explicitly HOLD; hashes preserved, no implementation repair, live writes, rollout or TestFlight in this review. [All findings, user contract, two-wave repair sequence and focused checks](docs/handoffs/2026-10-08-backend-integration/import-user-journey-review.md). Earlier readiness banners are superseded.
+
+### Change Log — 8 October 2026: Import review, recovery and shared Library integration
+
+Implemented the two-wave specification without replacing existing capability owners. New source files: `ImportsService+Workflow.swift`, `ImportsService+WorkflowRPC.swift`, `ImportsService+WorkflowSources.swift`, `ImportWorkflowPresentation.swift`, `ImportWorkflowSheet.swift`, `ImportCatalogMatchPicker.swift`, `ImportHistorySection.swift`, `CollectionStore+ImportedTitles.swift`, package `LibraryImportWorkflow.swift`, `LibraryImportWorkflowJournal.swift`, `ImportWorkflowJournalTests.swift` and native `ImportWorkflowIntegrationTests.swift`. Added forward `20261008110000_import_review_recovery_v2.sql` and SQL97 regression suite. Existing AniList/MAL adapters, journal, Library transport/sequencing, projection consumers, actual entrypoints and composition were repaired in place; legacy Concierge compatibility stays available.
+
+Default Keep, selected-field approval, coupled progress/score identity, provider-ID namespace, strict XML/status/range checks, staged coverage, immutable receipts, Stop, lifecycle/revision-guarded Undo, persistent results and same-device recovery are implemented. Final independent review also closed an Apply/Resume race with newer unsent progress or admitted removal/notes. Terminal retirement is receipt-first/manifest-last; a saved result awaiting projection keeps its full recovery input. Imported navigation remains a Collection filter. No lossless claim is added to legacy text export.
+
+Evidence: exact four-input guarded SQL rehearsal265 assertions, package95 tests, native r5 41 distinct methods/54 executions and two affected generic-reservation tests pass. The final affected11-import/3-publication run passes14/14 methods, zero failures/skips and222 unchanged candidate inputs. Exact tested simulator candidate installed; all bundle hashes match and normal launch restores the existing account. SQL and high-risk source independent acceptance is recorded in the same27-finding register. Historical full schema replay is incomplete; fixtures are not hosted GoTrue/Storage/PostgREST/Realtime proof. Production approval and controlled live provider/simulator journeys/cleanup remain pending.
+
+Inventory:159 app Swift,27 package Swift,30 native test Swift;245 historical migrations;14 prepared top-level SQL inputs plus one opt-in historical backfill (excluded). No applied-history rewrites, customer backfill, deletion-barrier cron, deployment, TestFlight or global Home activation. Rules: one lifecycle owner/typed API, immutable attempted actions, missing-versus-clear semantics, current account/permission guards, persistent partial outcomes, semantic line-length review signals and focused independent high-risk review. Unrelated dirty changes were preserved.
+
+Final local delivery addendum: affected native14/14 PASS,222 candidate inputs unchanged; exact tested simulator1.0(17) installed with complete bundle-hash match. Actual launch restores the existing account; MAL pauses safely with foundation disabled. [Evidence and four gates](docs/handoffs/2026-10-08-backend-integration/import-v2-implementation-evidence.md). Full completion remains BLOCKED pending exact live deployment approval and subsequent included provider/installed/live journeys and cleanup. No deployment or TestFlight.
+
+
+### Change Log — 8 October 2026: Exact approved backend deployment and native Home qualification
+
+**Approved import/Library/Home backend, 8 October — EXACT SET DEPLOYED; QUALIFICATION IN PROGRESS.** The user approved the pinned four-input SQL transaction and six Edge closures. Effective migration identities/RLS/grants/search paths and function versions are verified; global Home remains disabled. Real v2 import contracts pass142 bounded requests/two disposable accounts: both media, stage/no-write, Keep, selected updates, replay, later-edit conflict, guarded Undo, Stop, persistent results and outsider denial; exact account/job/list/item cleanup verified. Corrected Realtime qualification passes23 requests/three disposable accounts and club cleanup. Storage origin removal and old-token denial pass, but a previously cached public URL remains a CDN HIT through the60second observation, so that producer remains FAIL; all recorded URLs subsequently return decoded NoSuchKey. Initial failed evidence is retained. Native Home/detail fidelity is repaired and independently reviewed; six affected native tests pass and rendered inspection repaired image overflow. The shared reader incorrectly requested Manga-only volumes_progress from Anime; narrow query repair and two package regressions pass without weakening readiness. Its exact223-input-stable build is installed, and actual restored Home is visible against the live backend. First-time Manga selection cache fallback is repaired and independently accepted; its exact223-input-stable build is installed and actual Anime→Manga selection passes. MAL login is dismissed because a controlled user account is unavailable; real MAL account qualification is specifically blocked. Independent provider/recovery/results journeys remain pending. No TestFlight, public release, global Home rollout, backfill, worker scheduling or deletion cron. [Current deployment/live/native evidence](docs/handoffs/2026-10-08-backend-integration/approved-deployment-live-evidence.md). Earlier conflicting banners below are historical.
+
+Inventory:160 app Swift,27 package Swift,30 native test Swift;245 historical migrations remain unchanged. Added HomeCalendarPresentation.swift (display-only) and probe_import_workflow_v2.js (bounded existing harness); repaired the existing Storage/Realtime producers and Library selector. No new lifecycle owner, test framework or scheduler. Ownership map updated. Prior r6/r3 and presentation-only install evidence remains scoped historical; current reader-build install has223 stable inputs and matching bundle hashes.
+
+
+**Simulator visibility and MAL clarification, 8 October:** The user clarified that no MAL user account is available. The browser login was dismissed; the separate Xcode Simulator window was raised with Home visible. “Qualification” is the device name, not a product screen or completed verdict. The final independently accepted Manga cache correction is now installed with exact bundle identity, retained app data/Keychain and local Debug flags; actual Anime→Manga selection remains selected. No provider login, consent or real account-list ingestion is claimed. Only controlled MAL account qualification depends on obtaining a test account; other Home/Library/AniList/XML/recovery journeys remain independently executable and pending. No backend change or TestFlight action. [Installed state](docs/handoffs/2026-10-08-backend-integration/approved-installed-home-readiness.json).
+
+
+### Change Log — 8 October 2026: Native design polish planning
+
+Saved the scoped native design plan covering shared palette/type/motion, image-led empty Home, populated Anime/Manga, detail continuity and Profile account-hub grouping. Inspected actual login scenery, onboarding, Profile and native screenshots. First-action routing, honest empty/planned/error states, account privacy and durable recovery remain with existing owners. Two native implementation passes and proportionate verification are specified. No runtime source, asset, schema or deployment change; no tests rerun for this documentation initiative. [Plan](docs/plans/2026-10-08-native-design-polish.md).
+
+
+### Change Log — 8 October 2026: Fresh-session handoff
+
+Documentation-only checkpoint: the handoff records freshly verified remote tips (local HEAD 46 commits ahead of main), all dirty paths, original design references, current installed source pins and live migration/function identities. Approved backend deployment is complete; the native polish remains planned and the remaining provider/installed journeys retain their precise blockers. No runtime, deployment, Git delivery or simulator changes. Handoff provenance includes a dirty-file manifest, checkout snapshot and read-only live metadata. No app/package/migration files added or removed; runtime inventory is unchanged. [Handoff and next-session prompt](docs/handoffs/2026-10-08-fresh-session/HANDOFF.md).
+
+### Change Log — 9 October 2026: Native design polish first pass
+
+Built the scoped neutral Home, series detail and Profile pass from `docs/plans/2026-10-08-native-design-polish.md`. New files: `Kuro/Views/KuroSceneryLoop.swift`, `Kuro/Views/Home/HomeShelfPolicy.swift`, `Kuro/Views/ImportSourceChooser.swift`, `KuroTests/HomeShelfPolicyTests.swift`. Login welcome uses the shared scenery loop and keeps its saturation; empty Home cools the sky. Drift stops offscreen, in the background, with Reduce Motion, and in Low Power Mode. Find opens Search scoped to the selected medium. Import presents the existing coordinator's AniList, MAL file and MAL account paths without a new credential owner. Shelf policy tests and the Home composition snapshot suite pass, including empty Home and a tall Profile render. Screenshots: `docs/handoffs/2026-10-08-fresh-session/native-polish-screenshots/`. Debug 1.0 (17) installed on the owned qualification simulator; the restored empty account shows the Manga invitation. The previous bundle hash is stale. Owner visual acceptance is still open. No backend deploy, flag rollout, commit, TestFlight, MAL account proof or Storage CDN retest.
+
+Inventory: 163 app Swift, 27 package Swift, 31 native test Swift. Historical migrations unchanged.
+
+Follow-up the same day: the cover was tightened after the form-like pass was rejected. The mountain ridge is magnified into the empty Home and Profile masthead. The headline is display type over the picture. Find and Import sit as a paired line under a short rule. Watching titles use a gradient foot and a circular advance mark instead of a solid bar. Coming up and the calendar dropped their gray cards. Library counts on Profile are three large figures. Snapshot suite passed again and Debug 1.0 (17) was reinstalled on the owned simulator. Visual acceptance is still open.
+
+### Change Log — 9 October 2026: One cover, then paper
+
+Unified empty and populated Home into one cover object, then a paper index. `HomeView` drops the artwork mask on Anime/Manga (ink + underline only). The first active title (or the mountain when none) fills the same full-bleed frame; type band and action line stay in one place. Later Anime titles are index rows with a small still and the same advance control; Manga keeps equal covers for titles after the first. Coming up is one line under the cover with the date list beneath; club renders only when items exist. Saved shelf uses the same cover with Collection. `HomeCompositionSnapshotTests` re-rendered empty/anime/manga at 390; Debug reinstalled on the owned qualification simulator. Visual acceptance remains open. No backend, flag, commit or TestFlight change.
+
+### Change Log — 9 October 2026: One picture, one page
+
+Owner rejected the cover-then-white-paper mash-up. `HomeView` now keeps one picture behind the full scroll (mountain or first title). The selected medium word is restored as a mask of that same image. Type, actions, later titles, Coming up, calendar and club are ink on a soft wash of the picture; gray calendar/club cards are removed. Snapshot suite re-rendered at 390; Debug reinstalled on `7FC4B58A-430C-457D-A017-6B0095723F3F`. Visual acceptance remains open. No backend, flag, commit or TestFlight change.
+
+### Change Log — 9 October 2026: Full Poster Home
+
+The empty invitation is unchanged. A saved shelf now follows the original Poster Home with the owner’s adjustments: Coming up is an ink row under the switch, Anime titles are shallow scenes with a white foot and a light raised plus, Manga titles are equal covers with the chapter ticket on the art and a dark raised plus, then the calendar and a dark club room when real notes exist. Visual acceptance remains open. The v1.1 backend waves were not re-executed.
+
+### Change Log — 9 October 2026: Empty and saved Home
+
+`homeInvitation` is true only when the selected medium’s shelf scene is `.invitation`. That is the only time `HomePagePicture` and the clear header are drawn. A saved or in-progress anime or manga shelf uses the white page and the original shelf: first title as the large line and progress control, later anime as rows, later manga as equal covers. Visual acceptance remains open.
+
+### Change Log — 9 October 2026: Home continues
+
+The short wash rectangle under the invitation was ending in a hard line. Home now uses one full-phone wash that stays readable at the header and the type and eases out at the bottom. Scroll content background is hidden so the picture shows through. On Home, KURO, the section window, search, and profile use ink on a light field. Unselected Anime/Manga is full ink; the selected word keeps a white rim under the picture mask. Find switches to Discover. `ImportSourceChooser` uses the invitation kicker, serif line, rule, and arrow. Debug `--kuro-seed-samples` saves Cowboy Bebop (117, watching), Ping Pong the Animation (758, planning), Berserk (5, reading), and Oyasumi Punpun (11, planning) through `LibraryStore.save`. Visual acceptance remains open.
+
+### Change Log — 9 October 2026: Invitation type
+
+Empty Home keeps its words. The cover sentence uses light display serif, tight tracking, and the same short ink rule as the selected medium word. Find and Import are separate actions: `kuroKicker()` (wide-tracked caps), a serif line, a full ink rule, and an arrow. `kuroKicker()` lives on `View` in `KuroDesignSystem.swift` so later screens can use the same small voice. Behavior of Find and Import is unchanged. Visual acceptance remains open.
+
+### Change Log — 9 October 2026: Picture through header
+
+The white band above Home was app chrome (`Color.kuroBackground` + opaque `KuroHeaderNew`) sitting above the pager. When `selection == .home`, `KuroMainView` now pins shared `HomePagePicture` full-screen with `.ignoresSafeArea()` behind the header and pager; other pages keep the white field. On Home, `KuroHeaderNew` clears its fill, shadow and divider. `HomeView` drops the scrolling duplicate picture and the white.opacity(0.92) cut; soft wash stays over the lower type; the medium word uses `HomePagePictureFill`. New file: `Kuro/Views/Home/HomePagePicture.swift`. `HomeCompositionSnapshotTests` re-rendered; Debug reinstalled on `7FC4B58A-430C-457D-A017-6B0095723F3F`; evidence `home-picture-through-header.png`. Visual acceptance remains open. No backend, flag, commit or TestFlight change.
+
+### Change Log — 31 October 2026: Snapshot, commits and gate cleanup
+
+Saved the uncommitted October work: full-tree backup ref `refs/backup/kuro-snapshot-20261031` (`1f13f56`) and archive `~/Kuro-backups/kuro-snapshot-20261031-1f13f56.tar.gz`, then five grouped local commits on `codex/integrated-testflight` (`076eed2` iOS, `cd65c05` backend, `a055e11` tooling, `9580268` docs/evidence, `a21a867` design tools); not pushed. `.gitignore` now ignores `*.xcresult/` and `__pycache__/`. Secret scan over all previously untracked text files: no keys/tokens (only `mailbox.invalid` probe addresses, public anon key, public MAL client id).
+
+Gate cleanup: `HomeView` DEBUG sample seeding writes through `LibraryActions.save` (architecture gate PASS); inventory 164 app Swift files (docs gate PASS); migrations tracked (migration gate PASS). Force unwraps on runtime data replaced with guards that take each function's existing failure exit (`HomeStore` progress send skips intents lacking lifecycle/revision — unreachable because `drainProgress` already marks them `invalid_target`; import journal, `LibraryStore`, `LibraryProgress`, `ProgressOutbox`, `MALAccountList`, `MALNativeAccountConnector` (registration URL now throws `.registrationUnavailable`), `ClubDetailTabComponents`, `ImportWorkflowSheet`, `ConciergeImportCards`, `HomePersonalSnapshot`). Accepted: URL/static literals and the type-safe `try!` in `LibraryImportBatch.payloadHash`. Package tests 96/96; generic simulator build succeeded. `CLAUDE.md` resynced (navigation, file map, flags, warnings, migration-history caveat, memory path).
+
+Open, not changed (pre-existing in deployed code): signed-out `kuro://auth/callback` adopts any supplied session (login-CSRF; needs flow binding/PKCE); `concierge-parse` per-IP limit trusts first `x-forwarded-for` entry. Also stale: `supabase/tests/pending_migrations.txt`, duplicate replay of nine `20261005*` files in `scripts/db/replay_migrations.sh`, missing deploy receipt for `concierge-import-anilist` v6. No deployment, simulator install or flag change.
+
+### Change Log — 1 November 2026: Overnight production pass (local, not deployed)
+
+Branch `kuro/overnight-2026-11-01` (local, not pushed). Morning report: `docs/overnight-2026-11-01/REPORT.md`; spec with lead decisions D1–D16 and data contracts: `docs/superpowers/specs/2026-11-01-overnight-production-pass-design.md`; design authority: `docs/overnight-2026-11-01/understand/DESIGN_RULEBOOK.md`; audits (API surface, intake, schema, sources, screens, auth, product surfaces) in `docs/overnight-2026-11-01/understand/`. Live state verified read-only: `series_foundation_v1`/`series_home_native_v1` 0%, `feature_flag_overrides` absent live, `theme_links`/`release_events`/`series` empty, `volumes`/`chapters` placeholders.
+
+- **Backend (PREPARED ONLY):** `supabase/prepared-migrations/20261101000000_release_schedule_and_themes_v2.sql` (release_events certainty columns + `release_precision`, theme_links extensions, RPCs `user_release_schedule_v1` / `media_release_schedule_v1` / `media_themes_v1`, service-role writers `upsert_release_events_v1` / `upsert_theme_links_v1`; stale-AniList-row fix), `…010000_perf_hotpaths.sql` (change-gated similar-titles rebuild, audit retention, concurrent matviews, change-aware updated_at), `…010100_perf_drop_duplicate_indexes.sql` (22 exact duplicates; non-transactional), `…020000_bridge_identity_fix.sql`, `…030000_auth_hardening.sql` (revoke anon `check_email_exists`). New edge function `release-intake` (AniList airing window; MangaUpdates official-group releases, `MU_OFFICIAL_GROUP_IDS` empty by default); bulk-import robustness (shared 25/min AniList limiter with Retry-After, GraphQL errors fail the run, per-track queries, onConflict joins, no clobbering of mirrored images/synopsis state); `polite_fetch` bounded streaming reads; themes worker on AnimeThemes GraphQL (manual only); MangaDex volume grouping kept. Harness: replay dedupes the duplicated 20261005 files, `pending_migrations.txt` corrected. Nothing scheduled (licensing D11).
+- **iOS foundation:** neutral palette roles + aliases, `KuroTypeScale` Dynamic Type, `KuroLocale`, shared components in `Kuro/Views/Shared/`, release/theme read model in `Kuro/Releases/` with silent fallback while the RPCs are undeployed (elapsed releases filtered, schedule coverage `complete/nextSevenDays/noSource/failed`, foreground refresh), `FeatureFlags` overrides DEBUG-only and non-destructive, realtime own-write echo suppression, header VoiceOver + adjustable paging, Browse route for the flag-on world, iPhone portrait lock + iPad 680 pt column, AccentColor ink.
+- **Screens:** Home (tokens, honest Coming up/calendar, planned titles never the in-progress hero, contrast floor on the art-filled medium word), legacy + series detail (next release, songs, EN/DE, dock inset, merged metadata, neutral provider chips), Discover/Search/Browse/Taste (issue frames, one bundle per launch, recent searches per account with deletion purge, Search pre-scoped), Clubs (inhabited cards, honest states, `#222222` room, case-preserving invite links), Profile (identity, lists preview, imports & connections, Advanced, About → Data sources & credits), **Folio lists** in Collection for both flag worlds (`Kuro/Views/Lists/`), Auth (pending-flow callback guard, PKCE exchange, set-new-password, error mapping, form rebrand, no live email probing), Onboarding (3 welcome-style frames, per-account completion), 5 email templates re-skinned (not uploaded).
+- **Data delivery:** explicit catalog columns (no internal pipeline/moderation fields), card projections, bounded credits, cached watch-link chain, size-aware image cache, friend-count freshness, single Library read at bootstrap, Clubs staleness window.
+- **Verification:** see `docs/overnight-2026-11-01/REPORT.md` (final KuroTests, deno, local DB harness, Release build, gates). Review: 5-lens adversarial review (15 confirmed findings fixed incl. a Release-build break), simulator visual QA (`docs/overnight-2026-11-01/screenshots/`). Codex second opinion could not start (local Codex config error).
+- Inventory: 191 app Swift files, 27 package Swift files, 245 SQL migrations (+19 prepared files).
+
+### Change Log — 1 November 2026: Prototype fidelity, Task 2 (tokens, sans type ramp, artwork materials; local, not deployed)
+
+- Branch `kuro/prototype-fidelity`, plan `docs/superpowers/plans/2026-11-01-prototype-fidelity.md` Task 2.
+- **Tokens** (`Kuro/Design/KuroDesignSystem.swift`):
+  - `kuroInk` is now the prototype's `#252625` (was `#181818`).
+  - New tokens: `kuroCanvasHome` `#fffef8`, `kuroPaper` `#f5f5f4`, `kuroMuted` `#696c6b`, `kuroLine` (`#272b29` at alpha 0x20), and key faces `kuroKeyLightTop/Bottom` `#f1f4f2/#d5ded8` and `kuroKeyDarkTop/Bottom` `#444a47/#2c322f`.
+  - Every existing token name still compiles.
+- **Type ramp:**
+  - `kuroHero/Display/Feature/Headline/Title` are now system sans. Default weights: heavy / semibold / semibold / semibold / semibold. Sizes, text styles and caps are unchanged, and explicit `weight:` arguments are still honoured.
+  - Tracking is `KuroTypeRole.trackingEm`/`.tracking` plus `.kuroTracking(_:)`, because a `Font` cannot carry tracking.
+  - New: `Font.kuroEditorial(size:weight:)` (system serif), `Font.kuroMediumWord(size:)` with `.kuroMediumWordStyle(size:)` (heavy, uppercase, −1.9/36 tracking), and `KuroTypeRole.mediumWord`.
+- **Motion:** `KuroMotion.contact` (120 ms) and `.settle` (220 ms) now use the prototype ease `cubic-bezier(.2,.8,.25,1)`. Added `KuroMotion.medium` (320 ms) and `KuroMotion.ease(_:)`.
+- **Artwork materials (new):**
+  - `Kuro/Design/ArtworkMaterial.swift` (`KuroRGB`, `ArtworkMaterial`) ports the prototype's `art-hue-v1` from `build_art_materials.py`.
+  - `fromHex` gives the first paint from AniList `cover_image_color`, clamped to 7:1. With no colour it uses the neutral base `#3a3d3c`.
+  - `Kuro/Design/ArtworkMaterialStore.swift` (`@MainActor @Observable`) returns the seed first and publishes the derived material later. It caches in memory and on disk (`Caches/ArtworkMaterials-art-hue-v1`, SHA-256 of the URL) and loads images through `ImagePipeline.shared`.
+  - The store is built in `AppComposition.makeShell` (`ShellOwners`/`AppGraph.artworkMaterials`) and injected in `KuroApp`.
+- **Tests:** `KuroTests/ArtworkMaterialTests.swift`, 10 tests. Base colours match the Python reference for anime0–3 and manga0. Full KuroTests: 624/624 passed.
+- Inventory: 193 app Swift files, 27 package Swift files, 245 SQL migrations.
+
+### Change Log — 1 November 2026: Prototype fidelity, Task 3 (keys, motion, branded states, header; local, not deployed)
+
+- Branch `kuro/prototype-fidelity`, plan `docs/superpowers/plans/2026-11-01-prototype-fidelity.md` Task 3.
+- **Keys** (`Kuro/Views/Shared/KuroAdvanceKey.swift`): `KuroAdvanceKey.Style` is now `.light | .dark | .material(ArtworkMaterial)` (Equatable) with the prototype's raised faces inside the 44 pt target: light 34 pt r7 `kuroKeyLightTop→Bottom` ink `#29352c`; dark (manga leaf) 38 pt r6 solid `#2b342e` ink `#f8faf7`; material 34 pt r7 artwork `base→deep`, white ink. Pressed: scale 0.95, darkened 14 %, inset shadow (120 ms contact). New optional `confirmTrigger: Int = 0`: changing it after a durable save plays the press settle (160 ms), `confirm` (✓ cap) and `restore` (+ cap); a caught-up key plays neither. Existing call sites compile unchanged.
+- **Motion** (`Kuro/Views/Shared/KuroMotionEffects.swift`, new): `.kuroConfirmStamp(trigger:)` (650 ms, `--ease`), `.kuroRestore(trigger:)` (650 ms, CSS `ease`), `.kuroCountRoll(value:pageTurn:)` (220 ms lift / 280 ms manga page turn, `(.2,.75,.25,1)`), `.kuroPressSettle(trigger:)`; `KuroMotion.playsMotion(reduceMotion:lowPower:)` and `KuroMotionAllowance` (Low Power observed live through an async notification sequence). All one-shot; Reduce Motion / Low Power show the final frame.
+- **Branded states** (`Kuro/Views/Shared/KuroBrandedStates.swift`, new): `KuroBrandedState.resolve(isLoading:hasContent:isOffline:failed:)` (content online → nil; offline → `.offline(hasContent)`; failed → `.failed(hasContent)`; loading → `.loading`; else `.empty`), `KuroBrandedCopy` (EN/DE), `KuroRidge`/`KuroRidgeShape`/`KuroRidgeStroke` (the `KuroZenMountains` ridge traced into 57 normalized points, drawn once over 1.2 s), `KuroScrubLine` (1.6 s travel only while visible, scene active and motion allowed), `KuroWordmarkSettle` (60 ms stagger), `KuroLoadingView(scope: .inline | .page)`, `KuroSkeleton(kind: .sceneCard | .coverLeaf | .calendarDay | .detailSection | .row)`, `KuroErrorView(headline:message:retryTitle:retry:)`, `KuroOfflineView(hasContent:retry:)`, `KuroEmptyView(headline:message:actions:)`, `KuroOutlineButton`, `KuroStateLayout`.
+- `KuroStateView` keeps its API and `KuroStateCopy` pins; it now renders through the branded family (no `ProgressView`).
+- **Header** (`Kuro/ContentView.swift`, `KuroHeaderNew`): KURO wordmark (SF 18 w800, tracking 3, ink) left; page name (`Section.spokenName`, SF 11 muted) centred with 3 pt dots; "‹ Taste" / "Home ›" neighbour link (`KuroHeaderNeighbour`, only when the pager holds both pages); Search and Profile as quiet ink glyphs. The Home page canvas (root and header) is `kuroCanvasHome` via `KuroMainView.Section.canvas`. `KuroHeaderRowLayout.resolve` shares the row: when it is short the neighbour link steps aside before the wordmark (only German at 320 pt at the default size); the wordmark steps aside only at the largest text sizes. VoiceOver adjustable section control, reading order, Clubs badge and the empty-Home picture variant are kept.
+- **Gate:** `scripts/quality-gates/check_branded_states.sh` (new) lists `ProgressView(` in `Kuro/Views` outside `KuroBrandedStates.swift`; registered warning-only in `run_all.sh`, which now records non-zero `:0` gates as `WARN` (own count, no hard fail). 25 offenders in 15 files at this step; Phase 3 flips it to blocking.
+- **Tests:** `KuroTests/BrandedStateTests.swift` (13 tests: resolve precedence incl. Review Focus 5, copy pins, motion gate, ridge, header neighbour link, header row layout). Full KuroTests: 637/637 passed.
+- Inventory: 195 app Swift files, 27 package Swift files, 245 SQL migrations.
+
+### Change Log — 1 November 2026: Prototype fidelity, Phase 1 review follow-up (Tasks 2-3; local, not deployed)
+
+- Branch `kuro/prototype-fidelity`. Two reviewers checked Tasks 2-3; every major finding and the cheap minors are fixed here.
+- **States** (`KuroBrandedStates.swift`, `KuroStateView.swift`): a full-page `KuroStateView(.empty, retry:)` keeps Try again (`KuroOutlineButton`; pure rule `KuroStateView.showsRetry(kind:hasRetry:)`); `KuroLoadingView` shows the caller's `label` as a muted caption (`KuroLoadingView.caption(for:)`); `KuroErrorView` defaults `message` to "Try again in a moment."; `KuroRidgeStroke` counts as drawn when it appears still, so turning Reduce Motion / Low Power off never empties the ridge; `KuroScrubLine(traceFraction:tint:track:)` also stops when scrolled out of its scroll view (`onScrollVisibilityChange`); new `KuroBusyMark(width:tint:track:)` for working controls.
+- **Spinners:** launch (`KuroLaunchView`) and auth bootstrap (`KuroApp`) use `KuroLoadingView(scope: .page)`; `KuroInkButton`, `KuroLoadMoreSentinel` and every unowned file (Concierge AniList import, ConciergeComponents, QuickVerdictActionCard, EditorialSearchView load-more, EditorialCollectionView load-more, FriendsActivitySection, EntityDetailSheets, AddToClubRailSheet) use `KuroBusyMark` / `KuroLoadingView`. `check_branded_states.sh` scans `Kuro/`; 9 offenders remain, all in lane-owned files.
+- **Motion:** `confirm` restarts from scale .8 / opacity 0 on every trigger; the header's page-name slide, dots and canvas fade honour Low Power (`KuroMotion.playsMotionNow(reduceMotion:)`).
+- **Header** (`ContentView.swift`): `KuroHeaderRowLayout.resolve(rowWidth:pageNames:neighbourTitle:traits:)` never shows the "‹ Taste" link without the wordmark and clamps the centre shift to the room beside it (`metrics(rowWidth:pageNames:traits:)`); `Section.canvas(mangaHome:)`: `#fffef8` on Home and Taste, `kuroCanvasHomeManga` `#f5f5f3` while Home shows manga (320 ms medium crossfade).
+- **Type ramp** (`KuroDesignSystem.swift`): the display roles map `.ultraLight/.thin/.light` to their own weight (`KuroTypeRole.displayWeight`), so leftover serif-ramp weights never render thin sans; `KuroTypeRole.font(weight:)` and `.kuroRoleText(_:weight:)` apply font and tracking together (lanes adopt it; Task 10 sweeps the rest).
+- **Medium switch** (`KuroMediumSwitch.swift`): heavy sans uppercase via `.kuroMediumWordStyle(size:)`, 36 pt (30 pt when the row is ≤ 328 pt, a ≤ 360 pt phone), compact 24 pt; the selected word is filled with the title's `material:` (`base → deep`, or the prototype's #253a2a), the other word `kuroMuted`. Deliberate difference: a material gradient, not the artwork image clipped into the letters (contrast stays guaranteed).
+- **Keys:** `KuroAdvanceKey.Style.ink` (34 pt r7 `kuroKeyDarkTop → Bottom`, ink #f8faf7) for keys without artwork; Folio's key (`FolioItems.swift:240`) uses it again (Task 3 had moved it to the manga-leaf face).
+- **Artwork materials** (`ArtworkMaterial.swift`, `ArtworkMaterialStore.swift`): `ArtworkMaterial.deriveIfHued(from:banner:)` returns nil for greyscale artwork; the store keeps the AniList seed then (cached as `method "no-hue"`) instead of the port's invented hue .4. A failed URL is retried after 60 s (`failureRetryInterval`, injectable `now`); the memory cache evicts oldest first (`memoryLimit`, default 600); the unused `trimMemory()` is removed. Production derives from the 360 px pipeline decode, now covered by a test (anime0-3, manga0 unchanged; `journal-manga-23-cover.jpg` is a neighbour-bin flip reported in review, accepted and recorded in the store header).
+- **Tests:** +13 test functions: `ArtworkMaterialTests` +2 (360 px parity, parameterized over anime0-3 and manga0; no-hue port), `ArtworkMaterialStoreTests` +3 (retry after interval, greyscale keeps seed incl. disk, oldest-first eviction), `BrandedStateTests` +8 (empty retry, loading caption, error default, header at AX sizes, canvases, switch sizes, display weights, ink key). Task 2/3 suites 36/36; full KuroTests 650/650.
+- Inventory unchanged: 195 app Swift files, 27 package Swift files, 245 SQL migrations.
+
+### Change Log — 1 November 2026: Prototype fidelity, Task 10 integration (lanes 4–9 merged; local, not deployed)
+
+- Branch `kuro/prototype-fidelity` (lanes `pf-home-anime`, `pf-home-manga`, `pf-detail-anime`, `pf-firstrun`, `pf-restyle` merged). Lead rulings: `docs/prototype-fidelity/LANE_AMENDMENTS.md` 14–21.
+- **Home** (`Kuro/Views/Home/HomeView.swift`): embeds `HomeCalendarCard` (replaces the old calendar section; keeps `.id("upcoming-calendar")` and VoiceOver focus from the glance), `HomeClubRoom` (`ClubsStore.myClubs` → `ClubSummary` → `pick`/`presentation`; notes only with one club, so `notesFailed` is false with several; `HomeClubRoomFailure` when the clubs read failed with none known; `refreshMyClubsIfStale()` on appear), `HomeMangaLeaves`/`HomeMangaLeavesLoading` for manga (the old book grid and chapter ticket are removed), `HomeFooter` last in populated content, and `HomeNewAccount` for a new account (opening row "YOUR COLLECTION / Begin here.", `.tastePlanHost` outside the scroll view, toast dismissed when the Library leaves `.loaded`). New `HomeView` inputs: `onExploreTaste`, `onOpenClubs`, `newAccountLatch`.
+- **New-account decision:** `ContentView` holds the latch (`TastePageCopy.latchNewAccount` over the whole Library, cleared when the Library leaves `.loaded`); `HomeShelfPolicy.showsNewAccount(latched:onlyPlannedTitles:scene:otherMediumOccupied:)` decides for both the page picture and Home, so the mountain never shows behind the new-account block. While latched the block stays only while every Library entry is planned and nothing is in progress (an import ends it; the Library stays `.loaded` through an import). The approved invitation stays for an empty medium beside an occupied one.
+- **Taste canvas:** the pager owns Taste's medium (`TastePicksView(medium:)`); `Section.canvas(mangaHome:mangaTaste:)` paints `#f5f5f3` for manga Taste behind the pager and under the header (no `#fffef8` seam or iPad margins).
+- **One span rule and one count:** `HomeCalendarPresentation.summary` reads `HomeScheduleSpan` (`HomeGlanceSummary.calendarSummary` removed); `HomeCalendarPresentation.releaseCount` is the one count. German release counts read "N Veröffentlichung(en)" everywhere; caught up reads "Auf dem neuesten Stand" (manga leaf included). Both added to `PROTOTYPE_SPEC.md` §7.1.
+- **Shared Poster switch:** `KuroPosterMediumSwitch` + `KuroArtWordFill` (in `HomePagePicture.swift`) are Home's switch; Taste's `TasteOpening` uses them with the first pick's artwork (was `KuroMediumSwitch` with the material gradient). `TastePicksView` no longer reads `ArtworkMaterialStore`.
+- **Club room** colours and drop come from `Kuro/Views/ClubRoomStyle.swift` (`ClubRoomPalette` gained the room's note, member, row and seal-knot tokens; `ClubRoomBackground` replaces Home's private shell).
+- **Branded states:** `KuroStateLayout` headline is SF 24 w700, tracking −0.8 (as `KuroEmptyView`); `KuroSkeleton` blocks are translucent ink (0.08 / deep 0.13), visible on `#fffef8`, `#f5f5f3`, `#f5f5f4`; `check_branded_states.sh` is blocking in `run_all.sh` (0 offenders).
+- **Folio:** the manga key is the solid manga-leaf key (`FolioPolicy.keyStyle(.manga) == .dark`).
+- **Test isolation fix (SessionSDKTests):** account deletion cleanup called the device Keychain through `MALNativeAccountConnector.removeCredentials`; an unsigned test host (`CODE_SIGNING_ALLOWED=NO`) has no Keychain entitlement, so `SecItemDelete` returned `errSecMissingEntitlement` (-34018) and `deleteAccount()` threw (IdentityCompositionTests 865/906/988). The connector now takes a `MALCredentialStore` (`KeychainMALCredentialStore` in the app; `InMemoryMALCredentialStore` in `AppComposition.testingGraph` and the tests' direct `ImportsService` constructions), so tests never touch or share the device Keychain. `TelemetryAttributionTests` waited only for the last of two fire-and-forget event sends; it now waits for both.
+- Docs: `docs/modules/detail-pages.md` (the "Between us." loader row), `AddToClubRailSheet` header (its only constructor is `KuroRoutes`).
+
+### Change Log — 2 November 2026: Prototype fidelity, Task 10 Home fidelity review fixes (local, not deployed)
+
+- Branch `kuro/prototype-fidelity`. Review of Home anime/manga (busy, full, undated, quiet at 320/390/430) against `docs/prototype-fidelity/reference/`; every finding is fixed, justified or open in `docs/prototype-fidelity/FIDELITY_REVIEW.md`.
+- **Layout:** `HomeView` measures its container outside the scroll view (a manga 320 pt page was laid out at 374 pt and clipped); the calendar and footer sit on the paper feed's 22/18 pt padding and the club room bleeds 5 pt past it (`HomeFeedInsets`); manga leaves sit in the opening stack (21 pt under the opening row); 32 pt above the club room; footer top 28.
+- **Calendar:** "No confirmed dates yet." band when nothing is dated; Dates to come starts closed (`HomeCalendarPresentation.initiallyOpenGroup`); open lists on the events fill; rows read "S2 · Episode 9" (`rowUnit`, season from the card's ladder number); ⌄/⌃ text marks; card shadow `0 2 6 −4` without side spread.
+- **Scene / Also watching:** season tab face 31 pt; fixed 112 pt progress column; tile text column fixed (114, 89 at ≤ 360); the tile's track level with the key face; poster shadow below only, stamp without shadow; a caught-up tile's trace is full.
+- **Keys:** light-weight key caps; manga leaf face 40 pt with a 10 pt cap at .75; caught-up manga leaf shows the light raised ✓ key (`HomeLeafCaughtUpKey`) and keeps its count.
+- **Review findings:** PF-QA-1 (manga +1 release ceiling via `homeKeyCaughtUp`), PF-QA-2 (`HomeShelfPolicy.onlyBarePlans`), PF-QA-4 (German club VoiceOver verb), SEC-1 (`DetailBetweenUs.headingNames` honours `social_activity_v1`), SEC-2 (`ArtworkMaterialStore.clearAll` from Profile "Clear cache", gated disk writes, per-launch prune to 1,500 files).
+- **Fixtures:** schedule anchored to calendar days; reference totals; undated anime via announced next episodes; spoiler notes; manga Berserk/Vinland Saga on hiatus; English renders under `-testRegion GB`.
+- **Open (owner/backend):** club verbs need the author's list status in `home_bundle_v1` (SECURITY DEFINER helper); manga undated "N new chapters" needs a released-chapter count in `HomeBundle`; "English edition" needs an edition-language field.
+
+### Change Log — 2 November 2026: Prototype fidelity complete (branch `kuro/prototype-fidelity`, local, not deployed)
+
+Home (anime/manga), both detail pages, first-run Home, Taste and the restyled screens now follow the approved prototype (`tools/design-directions/instrument.html?switch=poster`) per `docs/superpowers/specs/2026-11-01-prototype-fidelity-design.md` and `docs/prototype-fidelity/LANE_AMENDMENTS.md`. Round 2 fixed the remaining detail/first-run/Taste differences and pathway findings: Up next +1 on a Planned title moves it to Watching/Reading (Undo restores Planned), Remove asks first and offers Undo, detail ladder read failures show the branded failed state, loading/failed sheets keep a close control, Home +1 shows a toast with Undo. Per-screen evidence and remaining justified differences: `docs/prototype-fidelity/FIDELITY_REVIEW.md`; comparison gallery `docs/prototype-fidelity/gallery/`. Verification: full KuroTests 784/784 on the owned simulator (en-GB), Release build OK, gates PASS except the known BLOCKED local-db/live-services and skipped name-targeted iOS gates. Inventory: 212 app Swift files, 27 package Swift files, 245 migrations.
+
+### Change Log — 2 November 2026: Contact form (website + app), sole-trader legal details (local, NOT deployed)
+
+Owner decision: Kuro is run by the sole trader "Lazy", owner Max Hufschlag (Aachen); no phone number, the Impressum's second fast contact channel (§ 5 Abs. 1 Nr. 2 DDG) is a contact form on the website and in the app.
+
+- **Backend (prepared, NOT deployed):** `supabase/prepared-migrations/20261102100000_contact_messages.sql` — `public.contact_messages` (source web/app, topic enum, email/name/message/app_version/locale with CHECKs, `user_id` → `auth.users` ON DELETE SET NULL, status new/handled), RLS on with NO client policies and all privileges revoked from anon/authenticated, `purge_contact_messages_v1()` (12 months, service role only, `search_path = public, extensions`), idempotent daily pg_cron job `contact-messages-retention` (04:50). Listed in `supabase/tests/pending_migrations.txt`. Local DB test `supabase/tests/rls/93_contact_messages.sql` (28 assertions) + test 50's reviewed SET NULL set; full run: 34 files, 1196 assertions passed (exit 4 = the known BLOCKED scopes).
+- **Edge function (prepared, NOT deployed):** `supabase/functions/contact-submit/` (index/handler/handler_test, 28 offline deno tests). verify_jwt must be off at deploy (`--no-verify-jwt`; the repo has no `supabase/config.toml`). CORS: `https://kuro.app`, `https://www.kuro.app`, `https://kuro-legal-<hash>-lazy-53aeee76.vercel.app`; no Origin allowed (app); other origins 403. Honeypot `website` → silent 200. user_id only from a user JWT verified with `auth.getUser` (the anon key / anon-role token = website, source `web`). Limiter `check_concierge_rate_limit` kind `contact`, 5/h per HMAC-hashed IP (`CONTACT_IP_HASH_SECRET`, fallback service role key) and per user; fail closed (500). Optional Resend mail (`RESEND_API_KEY` + `CONTACT_NOTIFY_TO` + `CONTACT_NOTIFY_FROM`), reply-to = sender, never fails the request. Responses 200 `{ok:true}` / 400 `{error:'invalid',fields}` / 401 `{error:'unauthorized'}` / 429 `{error:'rate_limited',retry_after_s}` / 500 `{error:'internal'}`.
+- **Website (`web/legal/`):** new `kontakt.html` (`/contact` alias; bilingual form, inline script allowed by a CSP `script-src` sha256 hash, `connect-src` = the function URL only; recompute the hash after any script change, command in `PLACEHOLDERS.md` §4). Kontakt linked in nav/footer of every page and as "Kontaktformular" in the Impressum. Legal form Einzelunternehmen, Inhaber/Owner and § 18 Abs. 2 MStV person Max Hufschlag. Privacy policy §4.15 (`#kontaktformular` / `#contact-form`), recipients/transfer/retention/account-deletion text; Resend marked `[prüfen: Resend aktiv?]`.
+- **App:** new owner `Kuro/Support/SupportStore.swift` (account-scoped draft, cleared on every account transition; one `functions.invoke("contact-submit")` per send as a credential lease; no auto-retry) and `Kuro/Views/About/ContactSheet.swift` (Profile → About → Contact us). `AppComposition.makeSupport`, `AppGraph.support`, `makeAccountScopedStates` (before interaction telemetry), `KuroApp` environment. `KuroLegalLinks` unchanged (`terms` nil: kuro.app does not resolve). Tests: `KuroTests/SupportContactTests.swift` (request shape over the real SDK + StubPostgREST, answer mapping, validation, account change, late answer dropped). Debug build-for-testing and Release build passed; architecture, branded-states and docs gates pass.
+- **To go live (owner approval):** deploy the migration, then the function with `--no-verify-jwt`, set `CONTACT_IP_HASH_SECRET` (and optionally the Resend vars), redeploy the legal site; until then the website form and the app sheet show their failure state.
+
+### Change Log — 2 November 2026: Contact form review fixes (local, NOT deployed)
+
+Reviewer findings on the contact form fixed; nothing deployed, nothing pushed.
+
+- **`contact-submit` limiter redesign** (`supabase/functions/contact-submit/handler.ts`): every `check_concierge_rate_limit` call now runs on the ANON client with an explicit key in `p_ip` (auth.uid() adds no implicit bucket). IP keys hash `ipBucketKey(ip)`: IPv4 whole, IPv6 reduced to its /64, IPv4-mapped IPv6 as IPv4, brackets/zone/port dropped. Order: (1) IP bucket BEFORE any token verification — web kind `contact` 5/h, a caller presenting a user token kind `contact_app_ip` 30/h (CGNAT neighbours no longer lock each other out; forged-token floods are throttled before `auth.getUser`); (2) verified user kind `contact_user` 5/h keyed on the verified user id; (3) web only: global store ceiling kind `contact_global` 200/h → 429 (app users never hit a global 429); after the insert, notification ceiling kind `contact_notify` 50/h (beyond it, or limiter unavailable: stored without e-mail). CORS `ALLOWED_ORIGINS` now includes `https://kuro-legal.vercel.app` (the project's only live hostname) and the team alias `https://kuro-legal-lazy-53aeee76.vercel.app`. `index.ts`: the Resend alert is REQUIRED for go-live (logs an error on every POST while unset; message still stored). deno tests 28 → 39 (IPv6 grouping, global and notify ceilings, CGNAT cap, forged-token throttling, live-site CORS).
+- **Local DB test** `supabase/tests/rls/93_contact_messages.sql` 28 → 33 assertions: anon calls with an explicit key count only that bucket (5 allowed, 6th denied, `user_hits` null), kinds are separate counters, the global key counts across callers. No SQL change.
+- **App:** `KuroLegalLinks.legalSiteBase` (`https://kuro-legal.vercel.app`) + `privacyContactForm(german:)` (`/datenschutz#kontaktformular` / `#contact-form`), used by the ContactSheet consent link (was `kuro.app/privacy`, which does not resolve and redirects to the English text). `SupportStore.serverLength` (UTF-16 code units, like the server's JS `.length`) for validation and the message counter; `SupportStore.prepareForReopen()` (sent → fresh form keeping the e-mail; failed/offline/rate-limited → idle with the draft kept) called on sheet appear. Report-content topic shows the Art. 16(2) DSA hint. "usually within a few working days" removed. `SupportContactTests` +3 tests (UTF-16 limits, reopen, consent link); 11/11 pass on the owned simulator.
+- **Legal site:** privacy §1 (DE/EN), Terms §1 and the landing page lead with the natural person ("Max Hufschlag, handelnd unter „Lazy“ (Einzelunternehmen)"); Terms §7 names the contact form as an Art. 16 DSA channel; `kontakt.html` lists the Art. 16(2) elements and says receipt is confirmed by e-mail (by hand; no automatic acknowledgement, to avoid a mail relay); response-time promise removed; privacy §4.15 limiter text matches the code; Terms §15 double period fixed. Inline script unchanged (CSP hash unchanged).
+- **Release gate:** `docs/go-live/2026-11-02/CONTACT_FORM_RELEASE.md` — hard prerequisite before publishing the legal site or submitting an app build: migration → function `--no-verify-jwt` → `CONTACT_IP_HASH_SECRET` + Resend alert → CORS host → live smoke from web and app (stored AND e-mailed). `web/legal/PLACEHOLDERS.md` §1/§2 resolved rows struck through, §4 rewritten.
+- Inventory: 214 app Swift files, 61 in `KuroTests/` (`SupportContactTests.swift` is the 61st); this pass adds no Swift file.
+
+### Change Log — 2 November 2026: Go-live — backend data on, contact form live, TestFlight build 20
+
+Owner-authorized production work on project `bkdifromsqxkndnllmdj` (records: `docs/go-live/2026-11-02/` — `STAGE2_RECEIPT.md`, `STAGE4_DATA_ON.md`, `CONTACT_DEPLOY.md`, `CONTACT_FORM_RELEASE.md`).
+
+- **Catalogue import restored:** cron jobs 101–104 had sent the import secret with a stray character (401s since ~August); `IMPORT_SECRET` rotated and all 11 secret-carrying jobs updated. `1aea675`: `bulk-import-anime`/`-manga` never request a page past AniList's 5,000-entry depth (`pastAniListPageDepth` in `_shared/anilist_client.ts`), so the legacy cursor wraps by itself; stop-gap job 118 removed. `2ce65d1`: `characters.age` is written only for a plain whole number (`characterAge`, AniList ages are free text such as "17-18"), and the authors write no longer sends `primary_occupations` (only `staff` has it) — these caused ~150 per-item errors per heavy run. Live: anime v84, manga v83.
+- **Release data on:** `release-intake` airing hourly (job 116) and manga daily (job 117). `92398d7`: manga candidates now include RELEASING titles with an active MangaDex link (431; only 1 of the top-200 popular had one), so the MangaDex → MangaUpdates chain resolves. First manga rows: official weekly chapter dates plus one `kuro_estimate` (confidence ≥ 0.7). Coverage is bounded by `MU_OFFICIAL_GROUP_IDS` (3 official groups) by design. AnimeThemes backfill: 7,060 `theme_links` rows; daily local song job `com.kuro.series-enrichment` (05:20).
+- **Contact form live:** migration `20261102100000_contact_messages` applied + recorded, retention cron 119, `contact-submit` deployed `--no-verify-jwt`. `b3d307f`: every rate-limit bucket name is HMAC(`CONTACT_IP_HASH_SECRET`, label) because `check_concierge_rate_limit` is anon-executable (guessable `contact:global` could be filled to block the form); secret set. Smoke: web 200 (row deleted), invalid 400. Open: Resend secrets, so messages are stored but not yet e-mailed.
+- **Client IP:** a live probe (temporary function, deleted) showed the platform rebuilds `x-forwarded-for`; XFF[0] equals `cf-connecting-ip` and is not client-controllable, so "leftmost XFF is spoofable" findings do not apply on Supabase hosting.
+- **App:** icon M (brushed KURO on ink), App Store name "Kuro: Anime & Manga Tracker", home-screen name "Kuro". Build number 20 (`50880a3`; root `Info.plist` `CFBundleVersion` now `$(CURRENT_PROJECT_VERSION)` instead of a hardcoded 17), uploaded 13:37 CET and registered as build 20; `fastlane/Fastfile` uses API key `4Y9VLAQLQN` (`KURO_ASC_KEY_ID`). Verification before upload: 795/795 KuroTests on the owned simulator, gates PASS (local-db and live-services BLOCKED as usual).
+- **Not done:** `20261101030000_auth_hardening` (after release), series flags still 0%, legal site still preview-only, `concierge-parse` local changes not deployed.
+- Inventory unchanged by this pass: 214 app Swift files, 61 KuroTests files.
+
+### Change Log — 2 November 2026: Navigation contract foundation (local, not deployed)
+
+Shared foundation for the navigation contract (`docs/superpowers/specs/2026-11-02-navigation-contract-design.md`, CLAUDE.md Rule 5); the screen migrations follow in lanes.
+- New `Kuro/Views/Routing/KuroJourney.swift`: `JourneyPage` (media, club, character, staff, studio, author, browse, seeAll/seasonOverview/profileList/custom over `AnyJourneyPage`; equality = kind-prefixed id), pure `JourneyPolicy` (push, N5 pop-to-existing / same-top no-op, pop, tool classification) and `NavigationCollapsePolicy` (N10 order: cover first, then sheets/tool/journey, then open; same top keeps the journey).
+- New `JourneyHost.swift`: one `NavigationStack(path:)` per journey sheet, `JourneyNavigator` (path + one tool slot, N7), `\.kuroJourney` `JourneyContext` (`isPushed`, `pop`, `close`), `.kuroLeavesJourney()`, `KuroJourneyAwareStack`.
+- New `KuroJourneyChrome.swift`: `.kuroJourneyChrome(title:collapseProgress:material:)` (back when pushed, ✕, compact paper bar with hairline; Reduce Motion snaps), `.kuroCollapseTracking`, pure `KuroCollapse`, `KuroInteractivePopEnabler` (pop gesture delegate allows the edge swipe when the stack has >1 page and no transition runs; public UIKit only).
+- New `KuroNavigationCoordinator.swift`: the app root presenter `.kuroRootNavigation(_:)` (KuroRootView, replaces its `.routePresenter()`), `\.kuroNavigation`, `collapseThenOpen` / `collapseThen` / `collapseAll`, `.kuroNavigationLayer(_:kind:isPresented:)` registration.
+- New `Kuro/Views/Shared/KuroFold.swift`: `KuroFoldMemory` (session-only, held by KuroRootView, `\.kuroFoldMemory`), `KuroFoldButton` (settle easing, Reduce Motion instant, Expanded/Collapsed value).
+- `KuroRoutes.swift`: additive `AppRoute.page`, `RouteDestination.journeyPage`, `RoutePolicy.journeyPage(for:)`, `KuroRoutes.openPage` + `openCharacter/openStaff/openStudio/openAuthor`; presenters now open pages as journeys and tools as tool sheets; `.routePresenter()` inside a journey forwards (pushes) unless a legacy sheet covers the journey; new NESTING RULE in the file header.
+- `DetailCloseButton` / `DetailSheetCloseButton` close the whole journey inside one (N3); the four entity sheets use `KuroJourneyAwareStack` (no nested stack when pushed).
+- Follow-up: ✕ closes the journey only when no foreign sheet covers it (`JourneyContext.closeOrDismiss`, pure `closesJourney(isCovered:)`), and the legacy page-local sheets the gate lists (cast, credits, adaptation, entity sheets in `AnimeDetailSections`, nested detail sheets) apply `.kuroLeavesJourney()`, so they keep their own stack and Close until the lanes turn them into pushes. A throwaway XCUITest (not committed) confirmed the root journey's ✕ is tappable under the empty system bar (`kuro://anime/1` → "Close details" → sheet gone).
+- Gate `scripts/quality-gates/check_navigation.sh` registered WARN (`:0`) in `run_all.sh`; 16 offenders left for the lanes (legacy `.sheet` page builds in detail/credits/cast/adaptation/ClubsView, ClubDetailView hidden bar).
+- Verification: Debug build (owned simulator) and Release (generic iOS) with `CODE_SIGNING_ALLOWED=NO` succeeded; KuroTests 812/812 pass (new `JourneyPolicyTests`; 17 tests after the follow-up).
+- Inventory: 219 app Swift files (+5), 62 KuroTests files (+1).
+
+### Change Log — 2 November 2026: Navigation lane "detail" — anime/manga detail as journey pages (local, not deployed)
+- Branch `kuro/nav-detail` (from foundation `b03c885`). `AnimeDetailPage` / `MangaDetailPage` are journey pages: the pinned `DetailCloseButton` overlay is gone; `.detailJourneyChrome` (over the foundation's `.kuroJourneyChrome`) draws Back when pushed and ✕ always, as round keys over the hero (anime: artwork material; manga: neutral paper key) and as ink glyphs in the paper compact bar with the title once the hero scrolls under it (H1-H4). Progress lives in `DetailCollapseState` (@Observable; only the chrome reads it, the page body is not re-run per frame); distance = hero height − 52 pt (`DetailCollapse.distance`).
+- Grabber always visible (N8): `DetailLoaderChrome.dragIndicator` is now `.visible` (was hidden once loaded); loader loading/failed states carry the journey chrome (Back when pushed).
+- Every in-detail tap pushes via `\.kuroRoutes` (`DetailNavigation`, pure): season tiles, original-story / "Seen the anime?" cards (incl. guide "Open this season"), characters rail, "Behind the frames/pages." rows (staff, studio, author), the ladder-sourced "Original work" row when the ladder maps to a title (new `DetailCreditRow.Target.media`), and "In your club rails" cards (club name row opens the club, N9). The pages' own `.routePresenter()` and the local entity `.sheet(item:)`s are removed. Verdict and provider sheets stay page-local tool sheets (`.kuroLeavesJourney()`, their Close only closes them, N7).
+- Folds (F1-F3) through `KuroFoldButton` + `\.kuroFoldMemory` per title (`DetailFold`): story Read more, episodes/chapters More (restored-open lists load their pages), songs Show all, "Where this season meets the manga", "I've watched the anime"; a collapse scrolls the section back into view only when its top had scrolled away.
+- Legacy unreachable sections (`NextPickSection`, `MangaNextPickSection`, `AdaptationPathSection`, `CastSection`, `ProductionSection`, `MangaProductionSection`, `AllCreditsSheet`, `CharacterDirectorySheet`, `FranchisePathSheet`) push through routes instead of building detail/person sheets; their list sheets get their own `.routePresenter()` + `.kuroLeavesJourney()`.
+- New files: `Kuro/Views/DetailPages/Prototype/DetailNavigation.swift`, `KuroTests/NavdetailTests.swift` (`NavdetailTests` 12 pure tests + `NavdetailRenderTests` journey renders to a temp folder). `check_navigation.sh`: 16 → 2 offenders (both clubs: `ClubsView.swift:111`, `ClubDetailView.swift:125`).
+- Verification: Debug build-for-testing on a lane simulator and Release generic iOS (`CODE_SIGNING_ALLOWED=NO`) succeeded; the detail/routing suites pass (see the lane report).
+
+### Change Log — 2 November 2026: Navigation lane "clubs" (local, not deployed)
+
+Clubs, Home season overview and the tool sheets of this lane follow the navigation contract (`docs/superpowers/specs/2026-11-02-navigation-contract-design.md`); branch `kuro/nav-clubs` on the foundation `b03c885`.
+- Club detail is a journey page: `ClubsView` opens clubs with `routes.openClub` (its local `NavigationStack { ClubDetailView }` sheet is gone); `JournalStatusBar` is the journey chrome (back only when pushed, settings, ✕ = `journey.closeOrDismiss`, the paper `kuroPaper` bar with a `kuroLine` hairline fading in with `KuroCollapse` via `.kuroCollapseTracking`, pure `ClubChromeRules`); the loading/failed state draws the same bar; `ClubDetailView` hides the system bar and restores edge swipe-back with `KuroInteractivePopEnabler` (gate offender gone). Rail items and the "Active" (This week) entries push their title inside the journey (`ClubActivityTarget`, N9). Settings / new rail / new poll / add a title stay tool sheets (`.kuroLeavesJourney()`, visible grabber; busy saves block swipe-down).
+- Creating a club opens it: the created id is stashed and `routes.openClub` runs in the create sheet's `onDismiss` (`ClubCreationFollowUp`). Joining is unchanged.
+- Cross-lane touch: `ProfileView`'s Clubs sheet content installs `.routePresenter()` so a club opened there presents over that sheet.
+- Home season overview is a root journey (`routes.openPage(HomeSeasonJourney.page(for:))`, id `season:home:<mediaId>`), with `.kuroJourneyChrome` (✕, back when pushed), a visible grabber and rows that push titles; the `seasonCard` sheet is gone.
+- Unsaved input (N7): new `Kuro/Views/Shared/KuroDiscardGuard.swift` (`KuroDiscardGuard` pure rules + `.kuroDiscardGuard(isDirty:isBusy:isConfirming:onDiscard:)`: swipe-down blocked while dirty or busy, Cancel/✕ asks "Discard changes?" / "Änderungen verwerfen?"). Applied to create club / rail / poll (`ClubFormRules`), `AddToListSheet` (`TrackingDraft.hasChanges(from:)` against the filled draft) and `ContactSheet` (`ContactDiscardRule`; Discard really empties the draft kept in `SupportStore`, the prefilled e-mail never counts).
+- Verdict sheets (N8): drawn capsules replaced by the visible system grabber plus a Cancel button (detents 290 / 220).
+- Import chooser (N7): while importing, the top control is Stop (confirm "Stop the import?"; stops the coordinator and starts a fresh one so the chooser stays usable; "Import stopped." line); a running Undo keeps Close disabled (`ImportChooserTopControl`). Close returns to the opener.
+- Home club room notes already open the title journey through root routes (verified, unchanged).
+- Gate `check_navigation.sh`: 16 → 14 offenders (both club lines gone). Tests: new `KuroTests/NavclubsTests.swift` (13 tests); NavclubsTests + RoutingTests + JourneyPolicyTests 34/34, full KuroTests 824/825 on a lane simulator (the one failure, `ImportsContractTests` "A's apply/Undo finishing after B signed in" (`.undo`/`.success` case), is a timing check in the imports harness this lane does not touch; the suite passed 3/3 when rerun alone); Debug build and Release generic (`CODE_SIGNING_ALLOWED=NO`) succeeded.
+- Inventory: 220 app Swift files (+1), 63 KuroTests files (+1).
+
+### Change Log — 2 November 2026: Navigation lanes integrated ("entity", "shell" recorded here), gate blocking, offline UI chain tests (local, not deployed)
+- Merged into `kuro/prototype-fidelity` with `--no-ff`: `kuro/nav-detail` (`7c393a6`), `kuro/nav-entity` (`cf078d2`), `kuro/nav-clubs` (`50b425e`), `kuro/nav-shell` (`55480b0`). Conflicts resolved:
+  - `CastSection.swift`: the entity version, which pushes the character directory as a `seeAll` journey page.
+  - `ClubsView.swift`: union of both sides. The clubs lane's created-club follow-up and `.kuroLeavesJourney()` on the create/join sheets are combined with the shell lane's `routes.openClub`.
+  - `ProfileView.swift`: the shell version. Profile → Your clubs is a pushed page, so the clubs lane's Clubs-sheet `.routePresenter()` is gone.
+  - The three docs' change logs: both entries kept.
+- Lane "entity" (`2044929`):
+  - Character, staff, studio and author pages are journey pages: `.kuroJourneyChrome` with a scroll-tied compact bar, works push, and Back never reloads.
+  - The staff page lists anime and manga works with an All/Anime/Manga filter, through the new `Catalog/EntityWorks.swift` and `CatalogStore.fetchMangaByStaff` / `fetchStaffWorks` with `staffMangaWorksCache`.
+  - The cast "See all" pushes the character directory.
+  - Voice actors are still not linked: no data exists for them; adding it needs an importer and schema change.
+- Lane "shell" (`c2ab56e`, `1701da7`, `2e9b7bb`):
+  - Profile, Search and Concierge are `ShellJourneyHost` journeys (`Views/ShellJourneys.swift`) registered as navigation layers. Their rows and results push.
+  - Discover "See all" is a journey page.
+  - `handleDeepLink` goes through the pure `ShellLinkPolicy` and the coordinator's collapse (N10). A link that arrives during onboarding is held until the cover is dismissed.
+  - Profile → Your lists says "Opens Collection" and closes Profile (N11).
+  - `ProfileView` no longer takes `onOpenConciergeImportReview`.
+- Integration fixes:
+  - **H4:** new `.kuroJourneyRefreshable` (pure `JourneyContext.allowsPullToRefresh`). A journey's first page has no pull-to-refresh, so pull-down dismisses it. This applies to `ClubDetailView`, `EditorialSearchView` and `BrowseView` (as a journey root); pushed pages and pager pages keep refresh.
+  - **N8:** `JourneyHost` always sets `.presentationDragIndicator(.visible)`.
+  - **N8:** `KuroNavigationCoordinator`'s dismissal wait went from 450 to 700 ms. A journey re-presented 450 ms after a collapse came up without its grabber on iOS 26; this was observed with `simctl openurl` into the running app and a pixel check (one sample per setting).
+  - Accessibility identifiers: `journey.back` / `journey.close` on `KuroJourneyChromeKey`, and `addToList.close`.
+  - Account change: `ContentView.id(currentUserId)` rebuilds the root coordinator, so root journeys (including the Home season overview) close.
+- Gate `check_navigation.sh`: 0 offenders after the merges. It is now BLOCKING (`navigation:check_navigation.sh:1` in `run_all.sh`).
+- Offline UI tests:
+  - New DEBUG-only `Kuro/Views/Routing/NavigationFixture.swift`. `--kuro-nav-fixture` with `--kuro-fixture-host` opens a fixture journey once per process, built from real navigation parts plus the real `AnimeDetailPage` over preview content.
+  - New `KuroUITests/NavigationContractUITests.swift`, 10 tests on the owned simulator:
+    - Back pops one level with the position kept (±2 pt).
+    - Edge swipe-back pops; a half swipe stays.
+    - ✕ on level 5 (fixture → fixture → fixture → detail → character) lands on the pager.
+    - Swipe-down on level 3 collapses the journey.
+    - Pull-down at the top of the first page dismisses it, on the fixture page and on Search (`testPullDownOnSearchJourneyDismissesIt`; it fails when Search's `.refreshable` is put back: negative control).
+    - The tracking editor's ✕ returns to its detail.
+    - N5 pop-to-existing, and the top page is not pushed twice.
+    - A deep link collapses the journey, then opens the target; a link to the page already on top keeps the journey (Back stays). Links are delivered to the running app with `XCUIDevice.shared.system.open`: `XCUIApplication.open(URL)` relaunches the app and would bypass the collapse. `NavshellUITests` was switched the same way.
+- Evidence: new `KuroTests/NavigationEvidenceTests.swift` writes renders to `docs/navigation-2026-11-02/` (see `INDEX.md` there, plus the UI shots in `ui/`).
+- Verification, all on the owned simulator `7FC4B58A` with `CODE_SIGNING_ALLOWED=NO`, unless noted:
+  - KuroTests: 865/865 in 143 suites (`-parallel-testing-enabled NO`).
+  - UI tests: NavigationContractUITests 10/10 and NavshellUITests 4/4. NavshellUITests reads live data; nothing else touched the network.
+  - Release build (generic iOS) succeeded.
+  - `swift test` in Packages/KuroModules: 96 tests (14 + 73 + 9) passed.
+  - `run_all.sh` with `SKIP_IOS_BUILD=1 SKIP_IOS_TEST=1 SKIP_RAILS_AUDIT=1`: 11 PASS (incl. navigation, docs-current-state, architecture, branded-states), local-db and live-services BLOCKED as expected, 3 SKIP.
+- Lane worktrees `/Users/max/Kuro-wt/nav-{detail,entity,clubs,shell}` were removed. No `Kuro-Lane-nav-*` simulators remained; the lanes created and deleted their own.
+- Inventory: 224 app Swift files, 67 KuroTests files, 5 KuroUITests files.
+
+### Change Log — 2 November 2026: Navigation review fixes (local, not deployed)
+- Fourteen reviewer findings were checked against the code. All were real. Three were duplicates of another finding, so there are eleven fixes and nothing was rejected. Details and the per-rule compliance table: `docs/navigation-2026-11-02/INDEX.md`.
+- **N10 collapse:**
+  - **Pager-page sheets.** Every page-level sheet registers with `.kuroNavigationLayer` (new `item:` overload; one registration per view instance, `"<name>#<uuid>"`): Clubs create/join, Collection classify/import, Browse filters, Home import/recovery, the verdict card's editor, Concierge AniList/import-review/Why-this.
+  - **Kept journeys.** Journey-page tool sheets register too (anime/manga verdict and providers; club settings, new rail, new poll, add a title). Each records its journey (`JourneyContext.journeyID`), so a link that keeps the journey closes them (`.closeJourneySheets`).
+  - **Header journeys.** `ShellJourneyHost(root:layer:)` attaches its navigator, so a link to the top of Profile, Search or Concierge keeps that journey (`sheetJourneyTops`, `.closeSheetJourneyTool`).
+  - **A second link during a dismissal** waits (`Snapshot.dismissalInFlight` → `.awaitDismissalInFlight`).
+  - **Last resort.** An unregistered presentation over the pager is dismissed through UIKit (`foreignSheetOpen`; `KuroPresenterProbe` resolves the root controller; DEBUG logs it).
+- **Isolation:** `.kuroJourneyRefreshable` takes a `@MainActor @Sendable` action (`content.refreshable { await action() }`). The two Release warnings it introduced (`JourneyHost.swift:169`, `ClubDetailView.swift:194`) are gone, and no warning is new.
+- **H2 contrast:** `KuroCollapse.handover` (0.5).
+  - Below it: a whole material disc with a white glyph.
+  - From it: an ink glyph on a paper bar that is solid by then (`barOpacity`).
+  - The title shows from the handover (`titleOpacity`).
+  - Two glyph colours never cross-fade. A pure test checks composited contrast: glyph ≥ 3:1 and title ≥ 4.5:1 at every progress.
+- **Accessibility:** the chrome bar and `JournalStatusBar` get sort priority 1. New `.kuroJourneyEscape()` (escape gesture = Back when pushed, ✕ on a journey's first page) on chrome pages and club detail.
+- **N7:** the AniList import sheet blocks swipe-down while busy, and Done becomes a confirmed Stop that resets the form.
+- **N8:** grabbers added to the AniList import sheet, `ImportWorkflowSheet`, `ImportCatalogMatchPicker`, the chooser's Concierge review sheet and `StreamingServicePickerSheet`.
+- **§1/N9:** inside a journey, `ImportSourceChooser` pushes the Concierge review onto that journey and closes; the sheet stays only for Onboarding and the pager's pages.
+- **F1–F3:** Profile "Advanced" is a `KuroFoldButton` with session memory (`profile#advanced`). `KuroFold.transaction` marks fold toggles, so Profile's animation suppression lets them animate.
+- **Verification** (owned simulator):
+  - KuroTests 872/872.
+  - `NavigationContractUITests` 11/11, including the new `testDeepLinkCollapsesPagerPageSheetThenOpensTarget`. Negative control: it fails with the fix removed.
+  - `NavshellUITests` 4/4.
+  - Release build OK.
+  - `check_navigation.sh` 0 offenders.
+- No new Swift files; inventory unchanged.
+
+### Change Log — 2 November 2026: New Home for the owner account (TestFlight build 21)
+
+Owner request "turn on the new home for my account". `20261007120000_feature_flag_overrides` applied and recorded (history md5 = file md5 `22bf45b3…`); RLS on, `authenticated` may only SELECT its own rows, no client writes. Rows: contact@lazy.space → `series_foundation_v1` = true, `series_home_native_v1` = true; global flags unchanged (0%). `FeatureFlags.readsAccountOverrides` is now true in every build (was DEBUG only); a failed lookup still keeps the cached cohort. Build 21 (`a58a5fb` on `kuro/build21-home-cohort`, from build 20's commit; cherry-picked here as `27bc59c`) passed 795/795 KuroTests and was uploaded 14:55 CET. It does not contain the navigation-contract work; the next build (22) will.
+
+### Change Log — 2 November 2026: Live walkthrough of the navigation contract; TestFlight build 22
+
+Owner request "go through it all": every chain walked on live data with the new Home on (record: `docs/navigation-2026-11-02/walkthrough/README.md`, driver `KuroUITests/LiveWalkthroughUITests.swift`, skipped unless `TEST_RUNNER_KURO_WALK=1`). Fixes: `67e78a1` pager tap gate — `KuroPagerTapGate` + `KuroRoutes.gated(by:)` wrap the routes the pager hands its pages, so a horizontal swipe that starts on a card (Home's scene artwork opened the title) turns the page instead; `356ac51` Today's pick argument sanitised (`DailyFeature.displayArgument`, no raw `<br>`); `a4b45fe` Search list resets to the top per scope (`.id(scope)`), releasing manga read "publishing" on work cards, AniList import copy without "MVP/OAuth". Verification: 874/874 KuroTests, 15/15 navigation UI tests, Release build, gates PASS (navigation gate blocking). Build 22 uploaded 19:51 CET. Open: no character→voice-actor data; live club chain not walked (dev account has no club); VoiceOver order needs a device.
+
+### Change Log — 2 November 2026: New Home rolled out to everyone
+
+Owner request "roll out the new home to everyone". Pre-check: all ten RPCs the series Home and release read model call (`apply_progress_mutations_v1`, `home_bundle_v1`, `home_events_page_v1`, `home_pending_page_v1`, `series_detail_bundle_v1`, `series_editions_page_v1`, `series_units_page_v1`, `user_release_schedule_v1`, `media_release_schedule_v1`, `media_themes_v1`) exist live and are executable by `authenticated`. `feature_flags`: `series_foundation_v1` and `series_home_native_v1` set to enabled / 100% at 20:53:24 UTC (both were enabled=false / 0%). Verified on the owned simulator without any `--ff-on` override (dev account, no override row): the pager opens on the new Home. Rollback: set both back to enabled=false / 0 (clients keep a 24h offline cache of these two flags). The redesigned Home and the navigation contract ship in TestFlight build 22; older builds show their own Home version when the flags are on.

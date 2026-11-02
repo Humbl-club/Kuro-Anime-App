@@ -1,0 +1,186 @@
+import KuroCore
+import KuroLibrary
+import SwiftUI
+
+// MARK: - Profile "Your lists" (rulebook §14.3, spec D9)
+// One row per main status: the word and its real count, then up to six equal covers (56 pt wide).
+// A row is one target: it opens Collection filtered to that status, in the medium that holds most of
+// that status (ties: the medium of its newest title). Collection cannot render inside Profile's journey
+// (one shared feed in `CollectionStore`), so each row says "Opens Collection" and the journey collapses
+// like ✕ before the pager switches (navigation contract N11). Counts come from the whole Library; covers from Collection's bounded preview read.
+
+/// Pure rules of the preview (tested in `KuroTests/ProfileLaneTests.swift`).
+enum ProfileListsPolicy {
+    /// The previewed statuses and their Library statuses.
+    static let rows: [(status: ListStatus, covers: Set<ListStatus>)] = [
+        (.current, [.current, .repeating]),
+        (.planning, [.planning]),
+        (.completed, [.completed])
+    ]
+
+    /// Titles per previewed status, both media.
+    static func count(_ entries: [LibraryEntry], status: ListStatus) -> Int {
+        let covered = rows.first { $0.status == status }?.covers ?? [status]
+        return entries.filter { covered.contains($0.status) }.count
+    }
+
+    /// "42 anime · 86 manga · 51 completed" (real counts; never lifetime history). A part whose count
+    /// is zero is left out, so the line never shows a zero ("12 manga", not "0 anime · 12 manga ·
+    /// 0 completed"); no entries at all give "" (Profile then shows the new-account block instead).
+    static func summary(_ entries: [LibraryEntry], german: Bool) -> String {
+        let anime = entries.filter { $0.key.kind == .anime }.count
+        let manga = entries.filter { $0.key.kind == .manga }.count
+        let done = entries.filter { $0.status == .completed }.count
+        let parts: [(Int, String)] = german
+            ? [(anime, "\(anime) Anime"), (manga, "\(manga) Manga"), (done, "\(done) abgeschlossen")]
+            : [(anime, "\(anime) anime"), (manga, "\(manga) manga"), (done, "\(done) completed")]
+        return parts.filter { $0.0 > 0 }.map(\.1).joined(separator: " · ")
+    }
+
+    /// What Profile's library section draws (prototype-fidelity Task 9): the branded loading or failed
+    /// state before the first read publishes, `.empty` (the new-account block: "Nothing saved yet",
+    /// Import, Find; never zero counts) for a loaded, empty library, or `nil` (the counts and lists).
+    /// `ProfileView.librarySection` switches on this value.
+    static func libraryState(entryCount: Int, loadState: LibraryStore.LoadState) -> KuroBrandedState? {
+        if entryCount > 0 { return nil }
+        switch loadState {
+        case .loaded: return .empty
+        case .failed: return .failed(hasContent: false)
+        case .loading, .notLoaded: return .loading
+        }
+    }
+
+    /// The new-account block's copy (EN, DE).
+    static func newAccountHeadline(german: Bool) -> String { german ? "Noch nichts gespeichert." : "Nothing saved yet." }
+    static func newAccountLine(german: Bool) -> String {
+        german ? "Importiere deine Liste oder finde einen ersten Titel." : "Import your list, or find a first title."
+    }
+    static func importTitle(german: Bool) -> String { german ? "Importieren" : "Import" }
+
+    /// N11: a list row leaves Profile's journey for the Collection page, and says so.
+    static func opensCollection(german: Bool) -> String { german ? "Öffnet Sammlung" : "Opens Collection" }
+    static func findTitle(german: Bool) -> String { german ? "Finden" : "Find" }
+
+    /// The row word for both media together.
+    static func title(_ status: ListStatus, german: Bool) -> String {
+        switch (status, german) {
+        case (.current, false), (.repeating, false): return "Watching & reading"
+        case (.current, true), (.repeating, true): return "Schaue & lese ich"
+        case (.planning, false): return "Planned"
+        case (.planning, true): return "Geplant"
+        case (.completed, false): return "Completed"
+        case (.completed, true): return "Abgeschlossen"
+        case (.paused, false): return "Paused"
+        case (.paused, true): return "Pausiert"
+        case (.dropped, false): return "Dropped"
+        case (.dropped, true): return "Abgebrochen"
+        }
+    }
+
+    /// The Collection request a row opens: its status, in the medium with more titles of that status
+    /// (Library counts), so "Watching & reading 11" never lands on a strip of 1. A tie (or no
+    /// entries) uses the newest cover's medium; nothing at all keeps the page's remembered medium.
+    static func request(for status: ListStatus, entries: [LibraryEntry], covers: [Media]) -> CollectionListRequest {
+        let covered = rows.first { $0.status == status }?.covers ?? [status]
+        let anime = entries.filter { $0.key.kind == .anime && covered.contains($0.status) }.count
+        let manga = entries.filter { $0.key.kind == .manga && covered.contains($0.status) }.count
+        let medium: MediaKind?
+        if anime != manga { medium = anime > manga ? .anime : .manga } else { medium = covers.first?.kind }
+        return CollectionListRequest(medium: medium, status: status)
+    }
+}
+
+struct ProfileListsPreview: View {
+    let entries: [LibraryEntry]
+    let previews: [ListStatus: [Media]]
+    let previewFailed: Bool
+    let onOpen: (CollectionListRequest) -> Void
+    let onOpenCollection: () -> Void
+
+    var body: some View {
+        let german = KuroLocale.isGerman
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(ProfileListsPolicy.rows, id: \.status) { row in
+                let count = ProfileListsPolicy.count(entries, status: row.status)
+                if count > 0 {
+                    ProfileListRow(
+                        title: ProfileListsPolicy.title(row.status, german: german),
+                        count: count,
+                        covers: Array((previews[row.status] ?? []).prefix(CollectionStore.previewLimit))
+                    ) {
+                        onOpen(ProfileListsPolicy.request(for: row.status, entries: entries, covers: previews[row.status] ?? []))
+                    }
+                    Rectangle().fill(Color.kuroHairline).frame(height: 0.5)
+                }
+            }
+            if previewFailed && previews.isEmpty {
+                Text(german ? "Cover konnten nicht geladen werden. Die Zahlen sind aktuell."
+                            : "Covers couldn't load. The counts are current.")
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.vertical, KuroDesignSpacing.sm)
+            }
+            KuroInkButton(german ? "Sammlung öffnen" : "Open Collection", role: .secondary, action: onOpenCollection)
+                .padding(.top, KuroDesignSpacing.sm)
+        }
+    }
+}
+
+private struct ProfileListRow: View {
+    let title: String
+    let count: Int
+    let covers: [Media]
+    let action: () -> Void
+
+    var body: some View {
+        let german = KuroLocale.isGerman
+        Button(action: {
+            KuroAccessibility.impactHaptic(.light)
+            action()
+        }) {
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.sm) {
+                    Text(title)
+                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
+                        .foregroundStyle(Color.kuroInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("\(count)")
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .monospacedDigit()
+                    Spacer(minLength: 0)
+                    // N11: the row leaves Profile for the Collection page; it says so before the tap.
+                    Text(ProfileListsPolicy.opensCollection(german: german))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkQuiet)
+                        .lineLimit(1)
+                }
+                if !covers.isEmpty {
+                    // Up to six equal covers; a narrow width shows fewer instead of shrinking them.
+                    ViewThatFits(in: .horizontal) {
+                        coverRow(covers)
+                        coverRow(Array(covers.prefix(5)))
+                        coverRow(Array(covers.prefix(4)))
+                        coverRow(Array(covers.prefix(3)))
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.vertical, KuroDesignSpacing.md)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(german ? "\(title), \(count) Titel" : "\(title), \(count) \(count == 1 ? "title" : "titles")")
+        .accessibilityHint(german ? "Öffnet diese Liste in der Sammlung" : "Opens this list in Collection")
+    }
+
+    private func coverRow(_ items: [Media]) -> some View {
+        HStack(spacing: KuroDesignSpacing.sm) {
+            ForEach(items, id: \.stableKey) { media in
+                FolioArtwork(url: media.imageURL, width: 56, height: 80, cornerRadius: 2, maxPixelSize: 180, topBiased: true)
+            }
+        }
+    }
+}

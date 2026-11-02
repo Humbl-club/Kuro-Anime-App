@@ -1,0 +1,580 @@
+{
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "at": "2026-10-08T00:19:43.099263+00:00",
+  "read_only": true,
+  "http_status": 201,
+  "result": [
+    {
+      "installed_backend": {
+        "tables": [
+          {
+            "rls": true,
+            "name": "adaptation_coverage"
+          },
+          {
+            "rls": true,
+            "name": "artwork_materials"
+          },
+          {
+            "rls": true,
+            "name": "catalogue_units"
+          },
+          {
+            "rls": true,
+            "name": "detail_copy"
+          },
+          {
+            "rls": true,
+            "name": "home_publications"
+          },
+          {
+            "rls": true,
+            "name": "library_import_baselines"
+          },
+          {
+            "rls": true,
+            "name": "library_import_items"
+          },
+          {
+            "rls": true,
+            "name": "library_import_jobs"
+          },
+          {
+            "rls": true,
+            "name": "list_entry_tombstones"
+          },
+          {
+            "rls": true,
+            "name": "mapping_revision_spans"
+          },
+          {
+            "rls": true,
+            "name": "mapping_revisions"
+          },
+          {
+            "rls": true,
+            "name": "mutation_receipts"
+          },
+          {
+            "rls": true,
+            "name": "provider_entry_refs"
+          },
+          {
+            "rls": true,
+            "name": "release_events"
+          },
+          {
+            "rls": true,
+            "name": "series"
+          },
+          {
+            "rls": true,
+            "name": "series_enrichment_jobs"
+          },
+          {
+            "rls": true,
+            "name": "series_entry_spans"
+          },
+          {
+            "rls": true,
+            "name": "series_sections"
+          },
+          {
+            "rls": true,
+            "name": "theme_links"
+          },
+          {
+            "rls": true,
+            "name": "user_series_intent"
+          }
+        ],
+        "home_flags": [
+          {
+            "name": "rag_assist_v1",
+            "enabled": true,
+            "rollout": 5
+          },
+          {
+            "name": "series_foundation_v1",
+            "enabled": false,
+            "rollout": 0
+          },
+          {
+            "name": "series_home_native_v1",
+            "enabled": false,
+            "rollout": 0
+          }
+        ],
+        "captured_at": "2026-10-08T00:19:43.056116+00:00",
+        "required_rpcs": [
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "f6574efa61d8e955a65ada053798ceb2",
+            "args": "p_user text, p_mutations jsonb",
+            "name": "_apply_progress_mutations_for_user",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "6a5a3d589a9b726ea18d128337ab71a8",
+            "args": "p_user text, p_medium text, p_media_id integer, p_mutation_id uuid, p_progress integer, p_status text",
+            "name": "_fence_set_progress_status",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "285d477a6f893a86bc39aa06bae639ba",
+            "args": "p_job_id uuid, p_items jsonb",
+            "name": "apply_import_chunk_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "7a2a5771c7aea75ba4890098b37d2d32",
+            "args": "p_job_id uuid, p_action_id text, p_decisions jsonb",
+            "name": "apply_import_chunk_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "44bd598f67c5ccd97daf4107cfa038d5",
+            "args": "p_user_id uuid, p_session_id uuid, p_idempotency_key text, p_items jsonb",
+            "name": "apply_import_session",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "d791b98e278ee85c27f06b07ef10d769",
+            "args": "p_mutations jsonb",
+            "name": "apply_progress_mutations_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "a5fb58f946a5d6c895d858f187eb65b0",
+            "args": "p_mutations jsonb",
+            "name": "apply_remove_mutations_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "ad6edec6ef77528d6501c24747e3fc34",
+            "args": "p_job_id uuid",
+            "name": "cancel_library_import_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "f8e528a910a114e972961649eceae28d",
+            "args": "p_medium text, p_group_key text, p_status text DEFAULT NULL::text, p_query text DEFAULT NULL::text, p_after_id integer DEFAULT NULL::integer, p_limit integer DEFAULT 50",
+            "name": "collection_series_children_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "c449a3aeb2e2c82b904cd5916bf254ef",
+            "args": "p_medium text, p_status text DEFAULT NULL::text, p_query text DEFAULT NULL::text, p_limit integer DEFAULT 30, p_cursor text DEFAULT NULL::text",
+            "name": "collection_series_page_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "d77d6d5967ef1ab6f743c4d1c6758afc",
+            "args": "p_job_id uuid, p_exhausted boolean",
+            "name": "finish_library_import_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "9f3930bec5d67387ca6c26dd0621af3f",
+            "args": "p_job_id uuid",
+            "name": "finish_library_import_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres"
+            ],
+            "md5": "8b9d97910e71de142188901fd58a0e7e",
+            "args": "p_media_type text, p_media_id integer, p_after_comment_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_comment_id uuid DEFAULT NULL::uuid, p_after_friend uuid DEFAULT NULL::uuid",
+            "name": "friend_activity_page_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "ec78da553378caddf769e0474a19528d",
+            "args": "p_medium text, p_locale text DEFAULT 'en'::text, p_window_days integer DEFAULT 7, p_active_limit integer DEFAULT 12, p_event_limit integer DEFAULT 20, p_cursor text DEFAULT NULL::text",
+            "name": "home_bundle_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "66f91c62915e78f89aafd62ad0176a59",
+            "args": "p_medium text, p_window_days integer DEFAULT 7, p_limit integer DEFAULT 20, p_cursor text DEFAULT NULL::text",
+            "name": "home_events_page_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "8fc05ade833eb2cf52cebc3c547e0b0f",
+            "args": "p_medium text, p_limit integer DEFAULT 20, p_cursor text DEFAULT NULL::text",
+            "name": "home_pending_page_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "fcb812f1afcc1db1f193158221fd0eec",
+            "args": "p_job_id uuid, p_cursor text DEFAULT NULL::text, p_limit integer DEFAULT 50",
+            "name": "import_items_page_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "cea5e591ee1cb2e3c16287fee92161b5",
+            "args": "p_job_id uuid",
+            "name": "import_job_status_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "3e35b12477bde1b3db05347dcb1ac839",
+            "args": "p_job_id uuid",
+            "name": "import_job_status_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "010a730f6489ed06f0f7d86f44ab738d",
+            "args": "p_cursor text DEFAULT NULL::text, p_limit integer DEFAULT 50",
+            "name": "import_jobs_page_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "2f3da1059045f71fdea4d788ac2a41b4",
+            "args": "p_job_id uuid, p_items jsonb, p_exhausted_media jsonb DEFAULT '{}'::jsonb",
+            "name": "prepare_import_chunk_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "2e82a7e45ccd4c52e4e6ef64af0bfac7",
+            "args": "p_medium text, p_media_id integer, p_section_id uuid DEFAULT NULL::uuid, p_locale text DEFAULT 'en'::text",
+            "name": "series_detail_bundle_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "f4a60781e92a3ddc1c635108b998465b",
+            "args": "p_medium text, p_media_id integer, p_section_id uuid DEFAULT NULL::uuid, p_after_key text DEFAULT NULL::text, p_limit integer DEFAULT 50",
+            "name": "series_editions_page_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "5ff6d16f837a22eb926f39d999a7499f",
+            "args": "p_medium text, p_media_id integer, p_section_id uuid DEFAULT NULL::uuid, p_edition_key text DEFAULT NULL::text, p_after_order numeric DEFAULT NULL::numeric, p_after_id uuid DEFAULT NULL::uuid, p_limit integer DEFAULT 20",
+            "name": "series_units_page_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": false
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "anon=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "d45073a07036ff82717e699520057789",
+            "args": "p_provider text, p_source_kind text, p_medium_filter text, p_idempotency_key text, p_payload_hash text",
+            "name": "start_library_import_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "9e99d0d052fdaacc08bd41cfb5bedb7a",
+            "args": "p_selection jsonb, p_action_id text",
+            "name": "start_library_import_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "2475c8569a2c503784fc52c63e31b827",
+            "args": "p_user_id uuid, p_session_id uuid",
+            "name": "undo_import_session",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "c4f50ed52d06703414a2e15a07798a8c",
+            "args": "p_job_id uuid, p_action_id text, p_cursor text DEFAULT NULL::text, p_limit integer DEFAULT 100",
+            "name": "undo_library_import_chunk_v2",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "md5": "d1bd9b066e82f2c7613d4d070e2bb772",
+            "args": "p_media_type text, p_media_id integer, p_text text, p_spoiler_scope text",
+            "name": "upsert_title_comment_scoped_v1",
+            "config": [
+              "search_path=public, extensions"
+            ],
+            "return": "jsonb",
+            "security_definer": true
+          }
+        ],
+        "deletion_helper_md5": "371d495002a7e36cbe3c286d14a078e3",
+        "new_migration_history": [
+          {
+            "name": "series_home_foundation_v1",
+            "version": "20261007040000",
+            "statements_md5": "991dc2bcc625cea4210392cf59c561ae",
+            "statements_count": 1
+          },
+          {
+            "name": "series_account_lifecycle",
+            "version": "20261007130000",
+            "statements_md5": "7366bfc0f783361ae87fe7921547355a",
+            "statements_count": 1
+          },
+          {
+            "name": "import_status_fence_preserves_units",
+            "version": "20261008100000",
+            "statements_md5": "35d4f62031173fd10d248e8ef2f6d1eb",
+            "statements_count": 1
+          },
+          {
+            "name": "import_review_recovery_v2",
+            "version": "20261008110000",
+            "statements_md5": "e852744d273d333fc89ac062f6666e8c",
+            "statements_count": 1
+          }
+        ]
+      }
+    }
+  ]
+}

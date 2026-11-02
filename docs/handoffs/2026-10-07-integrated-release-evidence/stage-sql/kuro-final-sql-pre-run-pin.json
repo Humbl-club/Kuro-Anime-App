@@ -1,0 +1,14 @@
+{
+  "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+  "supabase/prepared-migrations/20261007120000_feature_flag_overrides.sql": "c4abf009f6e36d835506f83531dee99aa4e040239a0313ea757213e7c0d7909d",
+  "scripts/db/run_local_db_tests.sh": "ec8ea967cb17cb04877da0a615fd660e331be51091c51dd727d0a7814500ce71",
+  "supabase/tests/rls/94_series_home_review_repairs.sql": "031b201f56bb91508105af47ac847c82d646d19ce8aa567a9d4c6b396efe49df",
+  "supabase/tests/rls/95_feature_flag_overrides.sql": "293500a018f80d9b5359e9fd17522e94b82dbb48fc7fb746db8b0ff60b535b2c",
+  "supabase/tests/rls/95_series_producers_disclosure.sql": "2934122ae55a3063c863c61d2d19e2178ab62923aa6e553d804332aefa944478",
+  "supabase/tests/rls/96_series_account_lifecycle.sql": "0307487bfd3539399235db1d9cad7b2724a81782b4af37620a27ba0b15d63823",
+  "supabase/tests/rls/80_series_home_foundation.sql": "df313c502fed88289ad4e4f3922e201c4edaaf79c7b4f6e4eab8ffd5fdda6913",
+  "supabase/tests/rls/81_library_import_counts.sql": "685cba9ee0180f261f43853d773b70f11661db2330a36776e995261dab85914d",
+  "supabase/tests/rls/81_import_session_receipt.sql": "a5d75721eb518c77f00d0075af44b9daa9989492d7e31a1c8416da228c7e94a0",
+  "supabase/tests/concurrency/92_series_progress_race.sql": "a32519f052fc1f9a4c0280050dd81ce84e640982e336eff2cc9ed58427bd58bc",
+  "supabase/tests/concurrency/93_series_fence_races.sql": "258cbf11275b4ff31a3c7d77fe1afb3dc794020837d67e4d866f3c43363bcee8"
+}

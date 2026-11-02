@@ -1,0 +1,93 @@
+{
+  "captured_at": "2026-10-07T22:32:34.041240+00:00",
+  "target": "simulator only",
+  "simulator_id": "7FC4B58A-430C-457D-A017-6B0095723F3F",
+  "bundle_id": "com.Kuro.app",
+  "version": "1.0",
+  "app_path": "/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app",
+  "install_launch": "PASS: final conditional simulator configuration installed and launched",
+  "registration_evidence": "User-provided 8 October screenshots: native iOS client, PUBLISHED, exact kuro://mal/callback",
+  "configuration_proof": {
+    "native_id_matches_supplied_registration": true,
+    "exact_redirect_matches": true,
+    "registration_approved": true,
+    "client_secret_embedded": false,
+    "scope": "Debug with iphonesimulator SDK only; shared/Release disabled",
+    "physical_debug_effective_settings": "PASS: Xcode iphoneos Debug approval NO, native client unset"
+  },
+  "installed_action": "Connect and import MAL visible and enabled after Profile mounts; action reports Library synchronization is not enabled yet",
+  "oauth_consent": "NOT RUN: existing foundation flag blocks before browser authorization",
+  "import_recovery": "BLOCKED: prepared Home/import RPCs absent live",
+  "backend_changes": false,
+  "testflight_upload": false,
+  "evidence_layer": "Registered client configuration and actual installed native safe-pause behavior; not provider OAuth or import success",
+  "bundle_files": [
+    [
+      "AppIcon60x60@2x.png",
+      "64885e10b5a5a5c6d47ca50c708b250d53ddcf4589262361bf50f48f044e523d"
+    ],
+    [
+      "AppIcon76x76@2x~ipad.png",
+      "c65d63971a8dfbec089463dd30287f86b542287cfe35cf6d4d8f3fe9adde0b9d"
+    ],
+    [
+      "Assets.car",
+      "2dbac1154a94058067ff76cf2e7cb1fc6943c342d1ae52d535b52505aed2c961"
+    ],
+    [
+      "Info.plist",
+      "bda6299ce62ee851bb4b7c34a42e1a77aa9621a0d84399e1bf4c1a32a320c1a9"
+    ],
+    [
+      "Kuro",
+      "fca7789a8cda0098f6289af5ee2a4a6168d400e7719de7f07f3612cbb19e2acf"
+    ],
+    [
+      "Kuro.debug.dylib",
+      "fbb53a10e1b5f9dd1400ba695835b624b2544730b4d71562e2d1d5a37e27305b"
+    ],
+    [
+      "PkgInfo",
+      "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+    ],
+    [
+      "PrivacyInfo.xcprivacy",
+      "0441b32cd4410d141275220713d5fd439b49a48bfe7fd434bd71b9f5a7e47efc"
+    ],
+    [
+      "_CodeSignature/CodeResources",
+      "181734e3ff474ec29a7eb0e98aee19a968988ef1f66936182cec674908983d9d"
+    ],
+    [
+      "__preview.dylib",
+      "77dff5a86c9834c98c34611619ca1c30bf9ad29b1a21b39d55178b459d69bb57"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/Info.plist",
+      "d29b3ea018ee60444369666b7e1e3337a409f024a412e1a0228ecb08c415f054"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/PrivacyInfo.xcprivacy",
+      "42fb8a30dd8d7ba0900e1bf17fe64ed8c12cfdb8a9c791ab6b4e1eceb0f299c0"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeDirectory",
+      "0d8efa77dc8f96a033b50b4a9a53f8cbbba4346a8a95a7854b8e21c70f7c475e"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeRequirements",
+      "987920904eab650e75788c054aa0b0524e6a80bfc71aa32df8d237a61743f986"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeResources",
+      "992cb9b56db418544103d3f0d9cfe363d28882ab1d8aa3cac3cd2099aa799d4d"
+    ],
+    [
+      "swift-crypto_Crypto.bundle/_CodeSignature/CodeSignature",
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    ]
+  ],
+  "build_status": "PASS: normal signed Debug simulator build",
+  "build": "17",
+  "installed_bundle_hashes_match": true
+}

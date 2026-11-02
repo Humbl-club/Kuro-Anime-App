@@ -1,0 +1,2 @@
+Folio: composed from the Folio components (KuroMediumSwitch, FolioStatusStrip, FolioControlsRow, FolioShelf/FolioIndex) with fixture Media + LibraryEntry rows; the full EditorialCollectionView needs the network feed RPC and writes density to the app's @AppStorage, so it was not hosted.
+German: KuroLocale reads Locale.preferredLanguages and has no override hook; German variants of Profile and Auth sign-in were skipped (writing AppleLanguages would change the real app's preferences).

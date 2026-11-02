@@ -1,0 +1,1154 @@
+{
+ "status": "DRAFT — owner blesses before any fetch (plan §5 Round 1)",
+ "generated_at": "2026-08-05",
+ "rules": "gold seeds (dual-use with eval) + acceptance anchors + >=25% manga; per-site coverage TBD at Round 2 pre-flight AFTER site blessing (no pre-bless fetching)",
+ "counts": {
+  "total": 117,
+  "anime": 86,
+  "manga": 31,
+  "manga_share": 0.265
+ },
+ "titles": [
+  {
+   "media_type": "ANIME",
+   "media_id": 2,
+   "title": "Attack on Titan",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "dark-fantasy",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 3,
+   "title": "Demon Slayer: Kimetsu no Yaiba",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "battle-shounen",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 4,
+   "title": "Death Note",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "psychological-thriller",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 5,
+   "title": "JUJUTSU KAISEN",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "battle-shounen",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 7,
+   "title": "Hunter x Hunter (2011)",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "crime-underworld",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 9,
+   "title": "Tokyo Ghoul",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "dark-fantasy",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 11,
+   "title": "ONE PIECE",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 12,
+   "title": "Fullmetal Alchemist: Brotherhood",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "classic-serial-canon",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 15,
+   "title": "Your Name.",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "time-parallel-worlds",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 16,
+   "title": "A Silent Voice",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "coming-of-age",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 20,
+   "title": "Attack on Titan Final Season",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "classic-serial-canon",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 22,
+   "title": "Mob Psycho 100",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "comedy-parody",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 23,
+   "title": "Your lie in April",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "romance-slow-burn",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 24,
+   "title": "ERASED",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "mystery-detective",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 28,
+   "title": "Re:ZERO -Starting Life in Another World-",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "time-parallel-worlds",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 30,
+   "title": "HAIKYU!!",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "sports-competition",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 91,
+   "title": "Black Clover",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 92,
+   "title": "Noragami",
+   "reasons": [
+    "gold-seed",
+    "anchor: content-notes test case"
+   ],
+   "realm": "supernatural-yokai",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 93,
+   "title": "No Game, No Life",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "isekai-reincarnation",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 94,
+   "title": "Kaguya-sama: Love is War",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "comedy-parody",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 96,
+   "title": "Toradora!",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "romantic-comedy",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 97,
+   "title": "SPY x FAMILY",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "family-generations",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 98,
+   "title": "Violet Evergarden",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "quiet-melancholy",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 102,
+   "title": "Vinland Saga",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "historical-epic",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 104,
+   "title": "Horimiya",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "coming-of-age",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 109,
+   "title": "Code Geass: Lelouch of the Rebellion",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "mecha",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 110,
+   "title": "Neon Genesis Evangelion",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "mecha",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 111,
+   "title": "Spirited Away",
+   "reasons": [
+    "gold-seed",
+    "anchor: SA acceptance seed"
+   ],
+   "realm": "supernatural-yokai",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 112,
+   "title": "Death Parade",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "mind-game-strategy",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 117,
+   "title": "Cowboy Bebop",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "cyberpunk-dystopia",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 118,
+   "title": "Kakegurui",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "mind-game-strategy",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 124,
+   "title": "Tokyo Revengers",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "crime-underworld",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 125,
+   "title": "That Time I Got Reincarnated as a Slime",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "isekai-reincarnation",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 135,
+   "title": "Food Wars!",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "romantic-comedy",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 139,
+   "title": "HAIKYU!! 2nd Season",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "sports-competition",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 141,
+   "title": "Made in Abyss",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "horror-dread",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 146,
+   "title": "Another",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "horror-dread",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 153,
+   "title": "Dororo",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "quiet-melancholy",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 158,
+   "title": "PSYCHO-PASS",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "cyberpunk-dystopia",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 159,
+   "title": "Code Geass: Lelouch of the Rebellion R2",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "war-military",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 160,
+   "title": "I Want to Eat Your Pancreas",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "romance-slow-burn",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 161,
+   "title": "Howl‘s Moving Castle",
+   "reasons": [
+    "gold-seed",
+    "anchor: Ghibli-class"
+   ],
+   "realm": "auteur-cinema",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 162,
+   "title": "Hyouka",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "mystery-detective",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 167,
+   "title": "The Disastrous Life of Saiki K.",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "slice-of-life-iyashikei",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 172,
+   "title": "Miss Kobayashi's Dragon Maid",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "workplace-adult-life",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 176,
+   "title": "Dr. STONE: STONE WARS",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "war-military",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 177,
+   "title": "Wotakoi: Love is Hard for Otaku",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "workplace-adult-life",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 181,
+   "title": "Monster",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "psychological-thriller",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 183,
+   "title": "SPY x FAMILY Cour 2",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "family-generations",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 189,
+   "title": "Hell’s Paradise",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "sword-samurai",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 195,
+   "title": "Oshi No Ko",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "idol-showbiz",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 198,
+   "title": "Mushoku Tensei: Jobless Reincarnation Cour 2",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "ecchi-fanservice",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 200,
+   "title": "Princess Mononoke",
+   "reasons": [
+    "gold-seed",
+    "anchor: Ghibli-class"
+   ],
+   "realm": "auteur-cinema",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 208,
+   "title": "WONDER EGG PRIORITY",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "seinen-drama",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 220,
+   "title": "K-ON!",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "music-performance",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 221,
+   "title": "My Neighbor Totoro",
+   "reasons": [
+    "anchor: G2 test case"
+   ]
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 227,
+   "title": "Food Wars! The Second Plate",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "food-craft",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 229,
+   "title": "Fate/stay night: Unlimited Blade Works",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "sword-samurai",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 233,
+   "title": "The Apothecary Diaries",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "historical-epic",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 241,
+   "title": "Plastic Memories",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "sci-fi-space",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 250,
+   "title": "Call of the Night",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "seinen-drama",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 271,
+   "title": "BOCCHI THE ROCK!",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "moe-cgdct",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 282,
+   "title": "Yuri!!! on ICE",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "bl-yuri",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 286,
+   "title": "Perfect Blue",
+   "reasons": [
+    "gold-seed",
+    "anchor: Kon / G5 test case"
+   ],
+   "realm": "idol-showbiz",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 288,
+   "title": "Food Wars! The Third Plate",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "food-craft",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 313,
+   "title": "given",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "bl-yuri",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 334,
+   "title": "Wolf Children",
+   "reasons": [
+    "anchor: Hosoda / G3 test case"
+   ]
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 336,
+   "title": "Grave of the Fireflies",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "tragedy-tearjerker",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 338,
+   "title": "NANA",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "music-performance",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 339,
+   "title": "High School DxD NEW",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "ecchi-fanservice",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 356,
+   "title": "Nisemonogatari",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "arthouse-experimental",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 358,
+   "title": "Free! -Iwatobi Swim Club-",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "moe-cgdct",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 374,
+   "title": "Ponyo",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "kids-family",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 410,
+   "title": "Teasing Master Takagi-san",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "kids-family",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 416,
+   "title": "Laid-Back Camp",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "slice-of-life-iyashikei",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 424,
+   "title": "Kizumonogatari Part 1: Tekketsu",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "arthouse-experimental",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 429,
+   "title": "Trigun",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "sci-fi-space",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 486,
+   "title": "Paprika",
+   "reasons": [
+    "anchor: Kon / G5 test case"
+   ]
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 493,
+   "title": "The Fruit of Grisaia",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "tragedy-tearjerker",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 1381,
+   "title": "Reborn as a Vending Machine",
+   "reasons": [
+    "anchor: beautiful-trash candidate"
+   ]
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 1621,
+   "title": "Blue Literature Series",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "gekiga-alternative",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 2015,
+   "title": "Bungo Stray Dogs WAN!",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "gag-short-form",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 2142,
+   "title": "Toilet-bound Hanako-kun S2",
+   "reasons": [
+    "anchor: G3 counterpart"
+   ]
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 4152,
+   "title": "Hyouge Mono",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "gekiga-alternative",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 4409,
+   "title": "PUI PUI MOLCAR",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "gag-short-form",
+   "tier": "canon"
+  },
+  {
+   "media_type": "ANIME",
+   "media_id": 13287,
+   "title": "Vending Machine S2",
+   "reasons": [
+    "anchor: beautiful-trash candidate"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 4,
+   "title": "Jujutsu Kaisen",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "battle-shounen",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 5,
+   "title": "Berserk",
+   "reasons": [
+    "anchor: P1 acceptance seed"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 7,
+   "title": "One Piece",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 11,
+   "title": "Oyasumi Punpun",
+   "reasons": [
+    "manga-share top-up: canon"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 14,
+   "title": "Vagabond",
+   "reasons": [
+    "anchor: canon manga"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 16,
+   "title": "Vinland Saga",
+   "reasons": [
+    "manga-share top-up: canon"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 22,
+   "title": "Bleach",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "battle-shounen",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 25,
+   "title": "Black Clover",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 29,
+   "title": "Monster",
+   "reasons": [
+    "anchor: canon manga"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 30,
+   "title": "20th Century Boys",
+   "reasons": [
+    "anchor: canon manga"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 79,
+   "title": "Naruto",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "battle-shounen",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 84,
+   "title": "Dr. STONE",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 89,
+   "title": "Frieren: Beyond Journey’s End",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 97,
+   "title": "Kingdom",
+   "reasons": [
+    "manga-share top-up: canon"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 98,
+   "title": "Slam Dunk",
+   "reasons": [
+    "manga-share top-up: canon"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 116,
+   "title": "The Climber",
+   "reasons": [
+    "manga-share top-up: canon"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 130,
+   "title": "Fairy Tail",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 151,
+   "title": "Delicious in Dungeon",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 162,
+   "title": "Real",
+   "reasons": [
+    "manga-share top-up: canon"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 163,
+   "title": "A Returner's Magic Should Be Special",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 169,
+   "title": "Akira",
+   "reasons": [
+    "manga-share top-up: canon"
+   ]
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 182,
+   "title": "Second Life Ranker",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 254,
+   "title": "Tomb Raider King",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 364,
+   "title": "FFF-Class Trashero",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 375,
+   "title": "Mythic Item Obtained",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 428,
+   "title": "Log-in Murim",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 465,
+   "title": "Fairy Tail: 100 Years Quest",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 494,
+   "title": "Helck",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "canon"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 533,
+   "title": "An Archdemon's Dilemma: How to Love Your Elf Bride",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 786,
+   "title": "Demon Devourer",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  },
+  {
+   "media_type": "MANGA",
+   "media_id": 833,
+   "title": "Ragna Crimson",
+   "reasons": [
+    "gold-seed"
+   ],
+   "realm": "grand-adventure",
+   "tier": "acclaimed"
+  }
+ ]
+}

@@ -1,0 +1,785 @@
+{
+  "ok": false,
+  "status": "FAIL",
+  "exitCode": 1,
+  "runId": "20261008T002710781Z-70688242",
+  "target": "https://bkdifromsqxkndnllmdj.supabase.co",
+  "storageResponses": {
+    "initialUpload": {
+      "status": 200,
+      "body": {
+        "Key": "media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+        "Id": "386e5130-de9a-4903-9037-bc3d08d09816"
+      },
+      "path": "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "bucket": "media",
+      "userId": "97602b38-99ee-4d87-ae04-7f232453a1af"
+    },
+    "originBefore": {
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "MISS",
+        "cache-control": "no-cache"
+      },
+      "path": "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "bucket": "media"
+    },
+    "overlappingUpload": {
+      "tokenSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "path": "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png",
+      "bucket": "media",
+      "userId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "startedAt": "2026-10-08T00:27:11.970Z",
+      "startedNs": "369433467326458",
+      "endedAt": "2026-10-08T00:27:12.281Z",
+      "endedNs": "369433778234291",
+      "status": 200,
+      "body": {
+        "Key": "media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png",
+        "Id": "0d672cf8-1d11-4d5e-a44f-84993a25ef68"
+      }
+    },
+    "deleteAccount": {
+      "tokenSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "userId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "startedAt": "2026-10-08T00:27:12.171Z",
+      "startedNs": "369433667947250",
+      "endedAt": "2026-10-08T00:27:13.451Z",
+      "endedNs": "369434948011375",
+      "status": 200,
+      "body": {
+        "success": true
+      }
+    },
+    "deletedUserRead": {
+      "status": 403,
+      "endedAt": "2026-10-08T00:27:13.480Z"
+    },
+    "oldTokenUpload": {
+      "startedAt": "2026-10-08T00:27:13.480Z",
+      "startedNs": "369434976998208",
+      "tokenSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "path": "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-after.png",
+      "bucket": "media",
+      "userId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "status": 400,
+      "body": {
+        "statusCode": "403",
+        "error": "Unauthorized",
+        "message": "ACCOUNT_DELETION_IN_PROGRESS",
+        "code": "AccessDenied"
+      },
+      "endedAt": "2026-10-08T00:27:13.755Z"
+    },
+    "adminAuthRead": {
+      "status": 404,
+      "userId": "97602b38-99ee-4d87-ae04-7f232453a1af"
+    },
+    "adminObjects": {
+      "status": 200,
+      "rows": [],
+      "prefix": "97602b38-99ee-4d87-ae04-7f232453a1af/",
+      "bucket": "media"
+    },
+    "originReads": {
+      "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png": {
+        "origin": {
+          "status": 400,
+          "body": {
+            "statusCode": "404",
+            "error": "not_found",
+            "message": "Object not found",
+            "code": "NoSuchKey"
+          },
+          "cacheHeaders": {
+            "cf-cache-status": "BYPASS"
+          }
+        },
+        "cachedObservations": [
+          {
+            "at": "2026-10-08T00:27:14.900Z",
+            "elapsedMs": 1449,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:19.972Z",
+            "elapsedMs": 6521,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:25.042Z",
+            "elapsedMs": 11591,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:30.106Z",
+            "elapsedMs": 16655,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:35.184Z",
+            "elapsedMs": 21733,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:40.268Z",
+            "elapsedMs": 26817,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:45.333Z",
+            "elapsedMs": 31882,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:50.404Z",
+            "elapsedMs": 36953,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:27:55.473Z",
+            "elapsedMs": 42022,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:28:00.541Z",
+            "elapsedMs": 47090,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:28:05.624Z",
+            "elapsedMs": 52173,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          },
+          {
+            "at": "2026-10-08T00:28:10.777Z",
+            "elapsedMs": 57326,
+            "status": 200,
+            "body": null,
+            "cacheHeaders": {
+              "cf-cache-status": "HIT",
+              "cache-control": "no-cache"
+            }
+          }
+        ],
+        "propagationLimitMs": 60000,
+        "status": "FAIL"
+      },
+      "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png": {
+        "origin": {
+          "status": 400,
+          "body": {
+            "statusCode": "404",
+            "error": "not_found",
+            "message": "Object not found",
+            "code": "NoSuchKey"
+          },
+          "cacheHeaders": {
+            "cf-cache-status": "BYPASS"
+          }
+        },
+        "cachedObservations": [],
+        "propagationLimitMs": 60000,
+        "status": "FAIL"
+      },
+      "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-after.png": {
+        "origin": {
+          "status": 400,
+          "body": {
+            "statusCode": "404",
+            "error": "not_found",
+            "message": "Object not found",
+            "code": "NoSuchKey"
+          },
+          "cacheHeaders": {
+            "cf-cache-status": "BYPASS"
+          }
+        },
+        "cachedObservations": [],
+        "propagationLimitMs": 60000,
+        "status": "FAIL"
+      }
+    }
+  },
+  "requestCount": 28,
+  "protocol": [
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/657024a9-e263-4189-b317-97f9b3de61df",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:27:10.782Z",
+      "status": 404,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:27:11.086Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/list/media",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:27:11.086Z",
+      "requestBody": {
+        "prefix": "kuro-preflight-20261008T002710781Z-70688242/",
+        "limit": 1
+      },
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:27:11.130Z"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:11.287Z",
+      "requestBody": {
+        "email": "kuro-probe-storage-owner-20261008T002710781Z-70688242@mailbox.invalid"
+      },
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422831,
+        "user": {
+          "id": "97602b38-99ee-4d87-ae04-7f232453a1af",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-storage-owner-20261008t002710781z-70688242@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:27:11.396931972Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:27:11.402800966Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-storage-owner-20261008t002710781z-70688242@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "97602b38-99ee-4d87-ae04-7f232453a1af"
+          },
+          "identities": [
+            {
+              "identity_id": "fe8dc823-2666-4a3a-8a50-bc470846b6c6",
+              "id": "97602b38-99ee-4d87-ae04-7f232453a1af",
+              "user_id": "97602b38-99ee-4d87-ae04-7f232453a1af",
+              "identity_data": {
+                "email": "kuro-probe-storage-owner-20261008t002710781z-70688242@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "97602b38-99ee-4d87-ae04-7f232453a1af"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:27:11.390834953Z",
+              "created_at": "2026-10-08T00:27:11.390886Z",
+              "updated_at": "2026-10-08T00:27:11.390886Z",
+              "email": "kuro-probe-storage-owner-20261008t002710781z-70688242@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:27:11.385865Z",
+          "updated_at": "2026-10-08T00:27:11.411721Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:27:11.432Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:11.487Z",
+      "credentialSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "Key": "media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+        "Id": "386e5130-de9a-4903-9037-bc3d08d09816"
+      },
+      "endedAt": "2026-10-08T00:27:11.634Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:11.687Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "MISS",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:11.970Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png",
+      "actorUserId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:11.970Z",
+      "credentialSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "Key": "media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png",
+        "Id": "0d672cf8-1d11-4d5e-a44f-84993a25ef68"
+      },
+      "endedAt": "2026-10-08T00:27:12.281Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:12.171Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:27:13.451Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:13.451Z",
+      "credentialSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "status": 403,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:27:13.480Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-after.png",
+      "actorUserId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:13.652Z",
+      "credentialSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "status": 400,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "statusCode": "403",
+        "error": "Unauthorized",
+        "message": "ACCOUNT_DELETION_IN_PROGRESS",
+        "code": "AccessDenied"
+      },
+      "endedAt": "2026-10-08T00:27:13.755Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:13.853Z",
+      "credentialSha256": "1347de830df0d3b52d34048e0ca876761221815dd21c86931e264fc525e7d9b9",
+      "status": 403,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:27:13.926Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/97602b38-99ee-4d87-ae04-7f232453a1af",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:27:14.054Z",
+      "status": 404,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:27:14.106Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/97602b38-99ee-4d87-ae04-7f232453a1af",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:27:14.255Z",
+      "status": 404,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:27:14.297Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/list/media",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:27:14.456Z",
+      "requestBody": {
+        "prefix": "97602b38-99ee-4d87-ae04-7f232453a1af/",
+        "limit": 100
+      },
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:27:14.505Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png?cacheNonce=20261008T002710781Z-70688242-6f5f6073-c905-4013-a1c5-e6eb7acef32d",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:14.658Z",
+      "status": 400,
+      "cacheHeaders": {
+        "cf-cache-status": "BYPASS"
+      },
+      "responseBody": {
+        "statusCode": "404",
+        "error": "not_found",
+        "message": "Object not found",
+        "code": "NoSuchKey"
+      },
+      "endedAt": "2026-10-08T00:27:14.758Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:14.858Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:14.900Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:19.902Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:19.972Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:24.974Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:25.042Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:30.043Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:30.106Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:35.107Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:35.184Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:40.185Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:40.268Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:45.268Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:45.332Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:50.332Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:50.404Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:27:55.404Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:27:55.473Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:28:00.474Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:28:00.541Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:28:05.545Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:28:05.624Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:28:10.626Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "HIT",
+        "cache-control": "no-cache"
+      },
+      "responseBody": null,
+      "endedAt": "2026-10-08T00:28:10.777Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png?cacheNonce=20261008T002710781Z-70688242-f42d6245-caed-4574-8590-f60fef0f56e4",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:28:13.452Z",
+      "status": 400,
+      "cacheHeaders": {
+        "cf-cache-status": "BYPASS"
+      },
+      "responseBody": {
+        "statusCode": "404",
+        "error": "not_found",
+        "message": "Object not found",
+        "code": "NoSuchKey"
+      },
+      "endedAt": "2026-10-08T00:28:13.571Z"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/media/97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-after.png?cacheNonce=20261008T002710781Z-70688242-d235ae77-e80a-4447-9008-9539d999545b",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:28:13.654Z",
+      "status": 400,
+      "cacheHeaders": {
+        "cf-cache-status": "BYPASS"
+      },
+      "responseBody": {
+        "statusCode": "404",
+        "error": "not_found",
+        "message": "Object not found",
+        "code": "NoSuchKey"
+      },
+      "endedAt": "2026-10-08T00:28:13.807Z"
+    }
+  ],
+  "resources": {
+    "accounts": [
+      {
+        "email": "kuro-probe-storage-owner-20261008T002710781Z-70688242@mailbox.invalid",
+        "userId": "97602b38-99ee-4d87-ae04-7f232453a1af"
+      }
+    ],
+    "clubs": [],
+    "journals": [],
+    "objects": [
+      "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+      "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png",
+      "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-after.png"
+    ]
+  },
+  "cleanup": [
+    {
+      "type": "account",
+      "email": "kuro-probe-storage-owner-20261008T002710781Z-70688242@mailbox.invalid",
+      "userId": "97602b38-99ee-4d87-ae04-7f232453a1af",
+      "status": "PASS"
+    },
+    {
+      "type": "storage",
+      "paths": [
+        "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-seed.png",
+        "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-race.png",
+        "97602b38-99ee-4d87-ae04-7f232453a1af/kuro-20261008T002710781Z-70688242-after.png"
+      ],
+      "status": "FAIL"
+    }
+  ],
+  "error": "Physical Auth/media cleanup, uncached origin absence, or bounded CDN invalidation failed; inspect recorded observations and emergency cleanup"
+}

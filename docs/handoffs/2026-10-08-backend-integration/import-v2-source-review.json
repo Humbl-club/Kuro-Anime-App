@@ -1,0 +1,17 @@
+{
+  "scope": "Focused changed high-risk source; local acceptance, not deployed proof",
+  "apply_resume_review": "Accepted by focused_review; affected targets share existing FIFO/durable-pending guards; terminal-only publication outside mutation admission",
+  "sql_review": "Accepted by retrieval_fix and focused_review; exact four-input transaction pinned separately",
+  "journal_review": "Accepted after crash-safe retirement and unready-terminal recovery repairs",
+  "source_sha256": {
+    "Kuro/Imports/ImportsService+Workflow.swift": "248a3814406b3b128c4a539f7fe8365e79a46c06bb40b34ee47fac47764e6383",
+    "Kuro/Imports/ImportsService+WorkflowRPC.swift": "58626cc2ad8ff116147093380c4100ee9e4560670615c25ace20ac86c247eb95",
+    "Kuro/Imports/ImportsService+WorkflowSources.swift": "c6e71557dd5ed5d9164d0d376c2699897459caebcd77b54a07962acdcc665ac5",
+    "Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift": "cdcbf20b7c2fefc7fed19ad432e50a27a842d9590214a343a60b4bd57269ce14",
+    "Packages/KuroModules/Sources/KuroLibrary/LibraryImportWorkflowJournal.swift": "16025ea433a6163871fe4c8261a89d10a10a6215f46fd73d6b5f9c5517b34bd6",
+    "Kuro/Library/LibraryActions.swift": "4e35368a19620115369f40d56c9687994ddee883104275d073cfacd7494d7be9",
+    "Kuro/Composition/LibraryRefreshHook.swift": "a697adb62b6bc4ff6f64afd7851289e656bcf6a8ab297be9a59d0e22293fe081",
+    "Kuro/Views/ImportWorkflowSheet.swift": "4c4cdf20faf69729bfcb4ae4c8852f97287b5656db5395dfe871cba28bfe7db9",
+    "KuroTests/ImportWorkflowIntegrationTests.swift": "4286d1f4ab379bca0bbb687779637fce599529f29dfdeae654dd7f15d54a3bc1"
+  }
+}

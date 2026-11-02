@@ -30,9 +30,12 @@ struct KuroLoadMoreSentinel: View {
     var body: some View {
         Group {
             if hasMore {
-                ProgressView()
-                    .tint(tint)
+                // The branded busy mark (a short scrub line), centred like the spinner it replaces.
+                KuroBusyMark(width: 44, tint: tint, track: tint.opacity(0.18))
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(KuroLocale.text("Loading more", "Lädt weitere"))
             }
         }
         .onAppear {
