@@ -1,0 +1,601 @@
+{
+  "captured_at_utc": "2026-11-02T10:48:25.293758+00:00",
+  "rpc_grants": [
+    {
+      "fn": "public.user_release_schedule_v1(text,integer)",
+      "anon": false,
+      "authenticated": true,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.media_release_schedule_v1(text,integer,integer)",
+      "anon": true,
+      "authenticated": true,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.media_themes_v1(integer)",
+      "anon": true,
+      "authenticated": true,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.upsert_release_events_v1(jsonb)",
+      "anon": false,
+      "authenticated": false,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.upsert_theme_links_v1(jsonb)",
+      "anon": false,
+      "authenticated": false,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.check_email_exists(text)",
+      "anon": true,
+      "authenticated": true,
+      "service_role": true,
+      "public_acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.repair_legacy_bridge_identity_v1()",
+      "anon": false,
+      "authenticated": false,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.media_similar_nightly_v1()",
+      "anon": false,
+      "authenticated": false,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "fn": "public.rebuild_media_similar_titles(integer)",
+      "anon": false,
+      "authenticated": false,
+      "service_role": true,
+      "public_acl": "{postgres=X/postgres,service_role=X/postgres}"
+    }
+  ],
+  "rpc_grants_expected": {
+    "user_release_schedule_v1": "authenticated only (anon=false) -> OK",
+    "media_release_schedule_v1": "anon+authenticated -> OK",
+    "media_themes_v1": "anon+authenticated -> OK",
+    "writers upsert_*": "service_role only -> OK"
+  },
+  "rpc_calls_as_anon_rolled_back": {
+    "airing_anime_with_next_airing_at_gt_now": "NONE (0 rows; max(anime.next_airing_at)=2026-10-22T15:00Z, max(last_synced_at)=2026-06-07) -> used anime id 11 (ONE PIECE, status RELEASING, stale next_airing_at 2026-05-03)",
+    "media_release_schedule_v1(anime,11,10)": "executes as anon; 0 rows (release_events empty; AniList pointer is in the past)",
+    "media_themes_v1(11)": "executes as anon; 0 rows (theme_links empty)",
+    "user_release_schedule_v1 as anon": "ERROR 42501 permission denied (expected)",
+    "return_types": "all three RETURNS TABLE (set-returning)"
+  },
+  "similar_titles_gate": {
+    "wrapper_and_core_exist": {
+      "rebuild_wrapper": true,
+      "core": true,
+      "dirty_rows": 1,
+      "gate_row": {
+        "id": 1,
+        "last_core_run_at": null
+      }
+    },
+    "after_first_runs": {
+      "now": "2026-11-02T10:55:44.741385+00:00",
+      "gate": {
+        "id": 1,
+        "last_core_run_at": "2026-11-02T10:50:00.086278+00:00"
+      },
+      "dirty": 0,
+      "runs87": [
+        {
+          "status": "succeeded",
+          "start": "2026-11-02T10:55:00.086326+00:00",
+          "end": "2026-11-02T10:55:08.12457+00:00",
+          "msg": "SET"
+        },
+        {
+          "status": "succeeded",
+          "start": "2026-11-02T10:50:00.085769+00:00",
+          "end": "2026-11-02T10:51:50.066497+00:00",
+          "msg": "1 row"
+        },
+        {
+          "status": "succeeded",
+          "start": "2026-11-02T10:45:00.296827+00:00",
+          "end": "2026-11-02T10:46:46.435269+00:00",
+          "msg": "1 row"
+        }
+      ]
+    },
+    "stale_seeds_at_10_55": {
+      "stale": 837,
+      "total": 7537,
+      "note": "backlog from the last blanket re-stale (05:10); runs keep working ~100 seeds/5 min until drained, then the gate short-circuits"
+    }
+  },
+  "cron_after": [
+    {
+      "jobid": 15,
+      "jobname": "kuro-import-runs-retention",
+      "schedule": "10 1 * * *",
+      "active": true,
+      "command": "\n  DELETE FROM public.import_runs\n  WHERE started_at < now() - interval '30 days';\n  "
+    },
+    {
+      "jobid": 16,
+      "jobname": "concierge_housekeeping_daily",
+      "schedule": "0 4 * * *",
+      "active": true,
+      "command": "select public.concierge_housekeeping();"
+    },
+    {
+      "jobid": 18,
+      "jobname": "rag-cache-cleanup",
+      "schedule": "15 * * * *",
+      "active": true,
+      "command": "SELECT rag_cleanup_expired_cache()"
+    },
+    {
+      "jobid": 30,
+      "jobname": "cleanup-cron-history",
+      "schedule": "0 5 * * *",
+      "active": true,
+      "command": "DELETE FROM cron.job_run_details WHERE end_time < now() - interval '14 days'"
+    },
+    {
+      "jobid": 35,
+      "jobname": "manga-source-review-auto-expire-daily",
+      "schedule": "20 4 * * *",
+      "active": true,
+      "command": "\n    update public.manga_source_link_review\n    set\n      status = 'rejected',\n      reason = 'auto_expired',\n      auto_expired_at = now()\n    where status = 'pending'\n      and created_at < now() - interval '30 days';\n  "
+    },
+    {
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "schedule": "*/15 * * * *",
+      "active": true,
+      "command": "select public.drain_taste_recompute_queue();"
+    },
+    {
+      "jobid": 43,
+      "jobname": "outbound-link-ledger-retention",
+      "schedule": "40 4 * * *",
+      "active": true,
+      "command": "select public.purge_outbound_link_events();"
+    },
+    {
+      "jobid": 44,
+      "jobname": "taste-tag-vectors-refresh",
+      "schedule": "50 3 * * *",
+      "active": true,
+      "command": "refresh materialized view concurrently public.media_tag_vectors;"
+    },
+    {
+      "jobid": 45,
+      "jobname": "taste-tag-stats-decay",
+      "schedule": "10 4 * * 0",
+      "active": true,
+      "command": "update public.taste_tag_stats set alpha = alpha * 0.95, beta = beta * 0.95;"
+    },
+    {
+      "jobid": 51,
+      "jobname": "realm-tier-refresh",
+      "schedule": "50 4 * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; select public.rebuild_media_realm_tier();"
+    },
+    {
+      "jobid": 87,
+      "jobname": "realm-similar-drive-5m",
+      "schedule": "*/5 * * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; select public.rebuild_media_similar_titles(100);"
+    },
+    {
+      "jobid": 99,
+      "jobname": "realm-membership-refresh",
+      "schedule": "30 4 * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; refresh materialized view concurrently public.media_realm_membership;"
+    },
+    {
+      "jobid": 100,
+      "jobname": "realm-affinity-refresh",
+      "schedule": "40 4 * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; refresh materialized view concurrently public.realm_affinity;"
+    },
+    {
+      "jobid": 101,
+      "jobname": "kuro-import-anime-hourly",
+      "schedule": "5 * * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 102,
+      "jobname": "kuro-import-anime-weekly",
+      "schedule": "0 * * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 103,
+      "jobname": "kuro-import-manga-hourly",
+      "schedule": "35 * * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "schedule": "10 * * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 106,
+      "jobname": "mirror-images-anime-manga-0",
+      "schedule": "0 2 * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 107,
+      "jobname": "mirror-images-anime-manga-200",
+      "schedule": "15 2 * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 108,
+      "jobname": "mirror-images-anime-manga-400",
+      "schedule": "30 2 * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 109,
+      "jobname": "mirror-images-character",
+      "schedule": "45 2 * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 110,
+      "jobname": "mirror-images-staff",
+      "schedule": "0 3 * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 111,
+      "jobname": "manga-chapter-enrich-nightly-sweep",
+      "schedule": "35 3 * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 112,
+      "jobname": "manga-chapter-enrich-15m",
+      "schedule": "*/15 * * * *",
+      "active": true,
+      "command": "<http_post; redacted>"
+    },
+    {
+      "jobid": 114,
+      "jobname": "kuro-refresh-matviews",
+      "schedule": "30 1 * * *",
+      "active": true,
+      "command": "select public.refresh_discover_matviews_v1();"
+    },
+    {
+      "jobid": 115,
+      "jobname": "realm-similar-nightly",
+      "schedule": "10 5 * * *",
+      "active": true,
+      "command": "select public.media_similar_nightly_v1();"
+    }
+  ],
+  "cron_change_summary": {
+    "paused_then_resumed": [
+      87,
+      101,
+      102,
+      103,
+      104
+    ],
+    "replaced_by_migration": {
+      "54 realm-similar-nightly": "-> 115 realm-similar-nightly, 10 5 * * *, select public.media_similar_nightly_v1(); active",
+      "113 kuro-refresh-matviews": "-> 114 kuro-refresh-matviews, 30 1 * * *, select public.refresh_discover_matviews_v1(); active"
+    },
+    "owner_of_new_jobs": "postgres/postgres/localhost (same as before)"
+  },
+  "duplicate_indexes": {
+    "remaining": null,
+    "invalid_or_not_ready_indexes_in_public": null,
+    "survivors": [
+      {
+        "i": "anime_anilist_id_key",
+        "valid": true
+      },
+      {
+        "i": "anime_mal_id_key",
+        "valid": true
+      },
+      {
+        "i": "anime_pkey",
+        "valid": true
+      },
+      {
+        "i": "authors_pkey",
+        "valid": true
+      },
+      {
+        "i": "characters_pkey",
+        "valid": true
+      },
+      {
+        "i": "manga_anilist_id_key",
+        "valid": true
+      },
+      {
+        "i": "manga_mal_id_key",
+        "valid": true
+      },
+      {
+        "i": "manga_pkey",
+        "valid": true
+      },
+      {
+        "i": "staff_pkey",
+        "valid": true
+      },
+      {
+        "i": "studios_pkey",
+        "valid": true
+      },
+      {
+        "i": "tags_pkey",
+        "valid": true
+      },
+      {
+        "i": "volumes_pkey",
+        "valid": true
+      }
+    ]
+  },
+  "migration_history": {
+    "count": 253,
+    "tail": [
+      {
+        "version": "20261101020000",
+        "name": "bridge_identity_fix",
+        "len": 10119,
+        "n": 1
+      },
+      {
+        "version": "20261101010100",
+        "name": "perf_drop_duplicate_indexes",
+        "len": 7018,
+        "n": 1
+      },
+      {
+        "version": "20261101010000",
+        "name": "perf_hotpaths",
+        "len": 22436,
+        "n": 1
+      },
+      {
+        "version": "20261101000000",
+        "name": "release_schedule_and_themes_v2",
+        "len": 61228,
+        "n": 1
+      },
+      {
+        "version": "20261008110000",
+        "name": "import_review_recovery_v2",
+        "len": 75989,
+        "n": 1
+      },
+      {
+        "version": "20261008100000",
+        "name": "import_status_fence_preserves_units",
+        "len": 44410,
+        "n": 1
+      }
+    ]
+  },
+  "auth_hardening_20261101030000": {
+    "history_row": 0,
+    "anon_can_check_email": true
+  },
+  "edge_functions_after": [
+    {
+      "slug": "bulk-import-anime",
+      "version": 80,
+      "version_before": 79,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "bulk-import-manga",
+      "version": 79,
+      "version_before": 78,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "mirror-images",
+      "version": 17,
+      "version_before": 17,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-parse",
+      "version": 45,
+      "version_before": 45,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-apply",
+      "version": 27,
+      "version_before": 27,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-undo",
+      "version": 18,
+      "version_before": 18,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-recommend",
+      "version": 50,
+      "version_before": 50,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-resolve",
+      "version": 16,
+      "version_before": 16,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-retrieve-assist",
+      "version": 9,
+      "version_before": 9,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-retrieve-feedback",
+      "version": 5,
+      "version_before": 5,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "delete-account",
+      "version": 10,
+      "version_before": 10,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "auth-callback",
+      "version": 5,
+      "version_before": 4,
+      "verify_jwt": false,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "concierge-import-anilist",
+      "version": 6,
+      "version_before": 6,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "manga-chapter-enrich",
+      "version": 67,
+      "version_before": 66,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "manga-source-review-action",
+      "version": 5,
+      "version_before": 5,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "realm-describe",
+      "version": 9,
+      "version_before": 9,
+      "verify_jwt": true,
+      "verify_jwt_before": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "release-intake",
+      "version": 1,
+      "version_before": null,
+      "verify_jwt": true,
+      "verify_jwt_before": null,
+      "status": "ACTIVE"
+    }
+  ],
+  "edge_probes_after": {
+    "auth-callback GET (no auth)": "200; platform serves it as Content-Type text/plain with CSP sandbox (supabase.co default-domain HTML restriction), so browsers show source, not the page",
+    "release-intake POST (no auth)": "401 (gateway JWT check; also requires x-import-secret)"
+  },
+  "advisors": {
+    "security": {
+      "total": 212,
+      "by_lint": {
+        "INFO rls_enabled_no_policy": 34,
+        "WARN anon_security_definer_function_executable": 73,
+        "WARN auth_leaked_password_protection": 1,
+        "WARN authenticated_security_definer_function_executable": 93,
+        "WARN extension_in_public": 1,
+        "WARN function_search_path_mutable": 1,
+        "WARN materialized_view_in_api": 9
+      },
+      "mentioning_objects_from_this_deploy": [
+        "Function `public.media_release_schedule_v1(p_medium text, p_media_id integer, p_limit integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/media_release_schedule_v1`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "Function `public.media_themes_v1(p_anime_id integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/media_themes_v1`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "Function `public.media_release_schedule_v1(p_medium text, p_media_id integer, p_limit integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/media_release_schedule_v1`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "Function `public.media_themes_v1(p_anime_id integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/media_themes_v1`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "Function `public.user_release_schedule_v1(p_medium text, p_limit integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/user_release_schedule_v1`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional."
+      ],
+      "duplicate_index_lints": []
+    },
+    "performance": {
+      "total": 128,
+      "by_lint": {
+        "INFO auth_db_connections_absolute": 1,
+        "INFO no_primary_key": 2,
+        "INFO unindexed_foreign_keys": 21,
+        "INFO unused_index": 95,
+        "WARN auth_rls_initplan": 9
+      },
+      "mentioning_objects_from_this_deploy": [],
+      "duplicate_index_lints": []
+    }
+  },
+  "preexisting_problem_found": {
+    "bulk_import_cron_401": "net._http_response: kuro-import-* calls at 10:00/10:05/10:10/10:35 returned 401 {\"error\":\"Unauthorized\"}; import_state last updated 2026-08-06; anime.last_synced_at max 2026-06-07. Catalog import is not running; not caused or changed by this deploy."
+  }
+}

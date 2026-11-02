@@ -1,0 +1,685 @@
+{
+  "captured_at_utc": "2026-11-02 10:45:16.846386+00",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "server_version": "PostgreSQL 17.6 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit",
+  "backups": {
+    "pitr_enabled": false,
+    "walg_enabled": true,
+    "region": "eu-central-1",
+    "latest_physical_backups": [
+      {
+        "id": 2142354365,
+        "is_physical_backup": true,
+        "status": "COMPLETED",
+        "inserted_at": "2026-11-02T05:49:33.793Z"
+      },
+      {
+        "id": 2132537370,
+        "is_physical_backup": true,
+        "status": "COMPLETED",
+        "inserted_at": "2026-11-01T05:50:38.376Z"
+      },
+      {
+        "id": 2122791498,
+        "is_physical_backup": true,
+        "status": "COMPLETED",
+        "inserted_at": "2026-10-31T05:49:38.903Z"
+      }
+    ]
+  },
+  "cron_jobs": [
+    {
+      "jobid": 15,
+      "jobname": "kuro-import-runs-retention",
+      "schedule": "10 1 * * *",
+      "active": true,
+      "command": "\n  DELETE FROM public.import_runs\n  WHERE started_at < now() - interval '30 days';\n  "
+    },
+    {
+      "jobid": 16,
+      "jobname": "concierge_housekeeping_daily",
+      "schedule": "0 4 * * *",
+      "active": true,
+      "command": "select public.concierge_housekeeping();"
+    },
+    {
+      "jobid": 18,
+      "jobname": "rag-cache-cleanup",
+      "schedule": "15 * * * *",
+      "active": true,
+      "command": "SELECT rag_cleanup_expired_cache()"
+    },
+    {
+      "jobid": 30,
+      "jobname": "cleanup-cron-history",
+      "schedule": "0 5 * * *",
+      "active": true,
+      "command": "DELETE FROM cron.job_run_details WHERE end_time < now() - interval '14 days'"
+    },
+    {
+      "jobid": 35,
+      "jobname": "manga-source-review-auto-expire-daily",
+      "schedule": "20 4 * * *",
+      "active": true,
+      "command": "\n    update public.manga_source_link_review\n    set\n      status = 'rejected',\n      reason = 'auto_expired',\n      auto_expired_at = now()\n    where status = 'pending'\n      and created_at < now() - interval '30 days';\n  "
+    },
+    {
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "schedule": "*/15 * * * *",
+      "active": true,
+      "command": "select public.drain_taste_recompute_queue();"
+    },
+    {
+      "jobid": 43,
+      "jobname": "outbound-link-ledger-retention",
+      "schedule": "40 4 * * *",
+      "active": true,
+      "command": "select public.purge_outbound_link_events();"
+    },
+    {
+      "jobid": 44,
+      "jobname": "taste-tag-vectors-refresh",
+      "schedule": "50 3 * * *",
+      "active": true,
+      "command": "refresh materialized view concurrently public.media_tag_vectors;"
+    },
+    {
+      "jobid": 45,
+      "jobname": "taste-tag-stats-decay",
+      "schedule": "10 4 * * 0",
+      "active": true,
+      "command": "update public.taste_tag_stats set alpha = alpha * 0.95, beta = beta * 0.95;"
+    },
+    {
+      "jobid": 51,
+      "jobname": "realm-tier-refresh",
+      "schedule": "50 4 * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; select public.rebuild_media_realm_tier();"
+    },
+    {
+      "jobid": 54,
+      "jobname": "realm-similar-nightly",
+      "schedule": "10 5 * * *",
+      "active": true,
+      "command": "update public.media_similar_seed_state set stale = true where stale = false;"
+    },
+    {
+      "jobid": 87,
+      "jobname": "realm-similar-drive-5m",
+      "schedule": "*/5 * * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; select public.rebuild_media_similar_titles(100);"
+    },
+    {
+      "jobid": 99,
+      "jobname": "realm-membership-refresh",
+      "schedule": "30 4 * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; refresh materialized view concurrently public.media_realm_membership;"
+    },
+    {
+      "jobid": 100,
+      "jobname": "realm-affinity-refresh",
+      "schedule": "40 4 * * *",
+      "active": true,
+      "command": "set statement_timeout = '600s'; refresh materialized view concurrently public.realm_affinity;"
+    },
+    {
+      "jobid": 101,
+      "jobname": "kuro-import-anime-hourly",
+      "schedule": "5 * * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-anime',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 102,
+      "jobname": "kuro-import-anime-weekly",
+      "schedule": "0 * * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-anime',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 103,
+      "jobname": "kuro-import-manga-hourly",
+      "schedule": "35 * * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-manga',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "schedule": "10 * * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-manga',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 106,
+      "jobname": "mirror-images-anime-manga-0",
+      "schedule": "0 2 * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 107,
+      "jobname": "mirror-images-anime-manga-200",
+      "schedule": "15 2 * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 108,
+      "jobname": "mirror-images-anime-manga-400",
+      "schedule": "30 2 * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 109,
+      "jobname": "mirror-images-character",
+      "schedule": "45 2 * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 110,
+      "jobname": "mirror-images-staff",
+      "schedule": "0 3 * * *",
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := 'https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/mirror-images',\n    headers := jsonb_build_object(\n      'Content-Type','application/json',\n      'Authorization','Bearer <REDACTED_JWT>"
+    },
+    {
+      "jobid": 111,
+      "jobname": "manga-chapter-enrich-nightly-sweep",
+      "schedule": "35 3 * * *",
+      "active": true,
+      "command": "\n    select net.http_post(\n      url := coalesce(\n        nullif('https://bkdifromsqxkndnllmdj.supabase.co', ''),\n        'https://bkdifromsqxkndnllmdj.supabase.co'\n      ) || '/functions/v1/manga-chapter-enrich',\n      headers := jsonb_strip_nulls(\n        jsonb_build_object(\n          'Content-Typ"
+    },
+    {
+      "jobid": 112,
+      "jobname": "manga-chapter-enrich-15m",
+      "schedule": "*/15 * * * *",
+      "active": true,
+      "command": "\n    select net.http_post(\n      url := coalesce(\n        nullif('https://bkdifromsqxkndnllmdj.supabase.co', ''),\n        'https://bkdifromsqxkndnllmdj.supabase.co'\n      ) || '/functions/v1/manga-chapter-enrich',\n      headers := jsonb_strip_nulls(\n        jsonb_build_object(\n          'Content-Typ"
+    },
+    {
+      "jobid": 113,
+      "jobname": "kuro-refresh-matviews",
+      "schedule": "30 1 * * *",
+      "active": true,
+      "command": "\n        REFRESH MATERIALIZED VIEW public.mv_anime_trending;\n        REFRESH MATERIALIZED VIEW public.mv_anime_top_rated;\n        REFRESH MATERIALIZED VIEW public.mv_anime_current_season;\n        REFRESH MATERIALIZED VIEW public.mv_anime_newly_added;\n        REFRESH MATERIALIZED VIEW public.mv_manga"
+    }
+  ],
+  "cron_jobs_54_113_full": [
+    {
+      "jobid": 54,
+      "jobname": "realm-similar-nightly",
+      "schedule": "10 5 * * *",
+      "command": "update public.media_similar_seed_state set stale = true where stale = false;",
+      "username": "postgres",
+      "database": "postgres",
+      "nodename": "localhost",
+      "nodeport": 5432,
+      "active": true
+    },
+    {
+      "jobid": 113,
+      "jobname": "kuro-refresh-matviews",
+      "schedule": "30 1 * * *",
+      "command": "\n        REFRESH MATERIALIZED VIEW public.mv_anime_trending;\n        REFRESH MATERIALIZED VIEW public.mv_anime_top_rated;\n        REFRESH MATERIALIZED VIEW public.mv_anime_current_season;\n        REFRESH MATERIALIZED VIEW public.mv_anime_newly_added;\n        REFRESH MATERIALIZED VIEW public.mv_manga_trending;\n        REFRESH MATERIALIZED VIEW public.mv_manga_top_rated;\n        REFRESH MATERIALIZED VIEW public.mv_manga_newly_added;\n        ",
+      "username": "postgres",
+      "database": "postgres",
+      "nodename": "localhost",
+      "nodeport": 5432,
+      "active": true
+    }
+  ],
+  "cron_job_owner": "all jobs username=postgres database=postgres",
+  "schema_migrations": {
+    "count": 249,
+    "columns": [
+      "version",
+      "statements",
+      "name",
+      "created_by",
+      "idempotency_key",
+      "rollback"
+    ],
+    "last6": [
+      {
+        "version": "20261008110000",
+        "name": "import_review_recovery_v2",
+        "n_statements": 1,
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261008100000",
+        "name": "import_status_fence_preserves_units",
+        "n_statements": 1,
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261007130000",
+        "name": "series_account_lifecycle",
+        "n_statements": 1,
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261007040000",
+        "name": "series_home_foundation_v1",
+        "n_statements": 1,
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261006120000",
+        "name": "import_sessions_select_only",
+        "n_statements": 11,
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261005180000",
+        "name": "list_user_id_canonical_case",
+        "n_statements": 6,
+        "created_by": null,
+        "idempotency_key": null
+      }
+    ]
+  },
+  "october_deploy_history_convention": {
+    "rows": [
+      {
+        "version": "20261007040000",
+        "name": "series_home_foundation_v1",
+        "n_statements": 1,
+        "stmt1_head": "-- Series / Home foundation (prepared, NOT deployed).\n-- Additive identity, revision fence, bounded Home/detail/Collection reads,\n-- import jobs and progress receipts. Existing anime/manga ids and lis",
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261007130000",
+        "name": "series_account_lifecycle",
+        "n_statements": 1,
+        "stmt1_head": "-- Forward lifecycle repair for the integrated series foundation. Prepared only.\n-- Auth foreign keys validate existing ownership; orphaned data aborts this migration\n-- for explicit review rather tha",
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261008100000",
+        "name": "import_status_fence_preserves_units",
+        "n_statements": 1,
+        "stmt1_head": "-- Forward-only repair: preserve exact tracking through legacy Apply and Undo.\n-- Existing migration identities and deployed history remain unchanged.\n-- All replacements are atomic; ownership, admiss",
+        "created_by": null,
+        "idempotency_key": null
+      },
+      {
+        "version": "20261008110000",
+        "name": "import_review_recovery_v2",
+        "n_statements": 1,
+        "stmt1_head": "-- Import review/recovery v2. Forward only: existing identities and legacy repair\n-- are retained. One existing job/item lifecycle, with explicit review receipts.\nbegin;\nalter table public.library_imp",
+        "created_by": null,
+        "idempotency_key": null
+      }
+    ],
+    "statement_lengths": [
+      {
+        "v": "20261007040000",
+        "len": 205260,
+        "rollback_null": true
+      },
+      {
+        "v": "20261007130000",
+        "len": 2961,
+        "rollback_null": true
+      },
+      {
+        "v": "20261008100000",
+        "len": 44410,
+        "rollback_null": true
+      },
+      {
+        "v": "20261008110000",
+        "len": 75989,
+        "rollback_null": true
+      }
+    ],
+    "convention": "version + name (no version prefix, no .sql) + statements = ARRAY[<whole file text>] (one element); created_by, idempotency_key, rollback NULL"
+  },
+  "long_running_queries_over_30s": null,
+  "cron_runs_in_progress": null,
+  "catalog_activity": null,
+  "recent_job_runs": [
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:40:00.062067+00:00",
+      "end_time": "2026-11-02T10:41:46.151941+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:35:00.166427+00:00",
+      "end_time": "2026-11-02T10:36:51.256854+00:00"
+    },
+    {
+      "jobid": 103,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:35:00.160708+00:00",
+      "end_time": "2026-11-02T10:35:00.208273+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:30:00.245551+00:00",
+      "end_time": "2026-11-02T10:31:47.750058+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:25:00.034364+00:00",
+      "end_time": "2026-11-02T10:26:37.629533+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:20:00.161454+00:00",
+      "end_time": "2026-11-02T10:22:01.36643+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:15:00.181447+00:00",
+      "end_time": "2026-11-02T10:16:49.954314+00:00"
+    },
+    {
+      "jobid": 104,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:10:00.120397+00:00",
+      "end_time": "2026-11-02T10:10:00.151072+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:10:00.108433+00:00",
+      "end_time": "2026-11-02T10:11:45.722098+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:05:00.150661+00:00",
+      "end_time": "2026-11-02T10:06:59.743397+00:00"
+    },
+    {
+      "jobid": 101,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:05:00.136376+00:00",
+      "end_time": "2026-11-02T10:05:00.228871+00:00"
+    },
+    {
+      "jobid": 87,
+      "status": "succeeded",
+      "start_time": "2026-11-02T10:00:00.206917+00:00",
+      "end_time": "2026-11-02T10:03:13.937161+00:00"
+    }
+  ],
+  "import_runs_in_progress": [
+    {
+      "id": 42078,
+      "media_type": "MANGA",
+      "run_type": "chapter_enrich",
+      "status": "running",
+      "started_at": "2026-11-02T10:45:02.014+00:00"
+    }
+  ],
+  "objects": {
+    "tables": {
+      "public.release_events": true,
+      "public.theme_links": true,
+      "public.media_relations": true,
+      "public.franchise_component_cut": true,
+      "public.anime": true,
+      "public.manga": true,
+      "public.media_similar_seed_state": true,
+      "public.catalog_safety_audit": true,
+      "public.mv_anime_current_season": true,
+      "public.mv_anime_trending": true,
+      "public.catalogue_units": true,
+      "public.episodes": true,
+      "public.chapters": true,
+      "public.media_similar_graph_dirty": false,
+      "public.media_similar_rebuild_gate": false
+    },
+    "functions": {
+      "public.home_events_page_v1(text,integer,text)": false,
+      "public.rebuild_media_similar_titles(integer)": true,
+      "public._rebuild_media_similar_titles_core_v1(integer)": false,
+      "public.update_updated_at_column()": true,
+      "public.check_email_exists(text)": true,
+      "public.backfill_legacy_series_units_v1(integer)": false
+    },
+    "fn_by_name": [
+      {
+        "n": "_bridge_legacy_unit_v1",
+        "args": "p_medium text, p_source_id integer, p_media_id integer, p_number integer, p_title text, p_synopsis text, p_image text, p_day date, p_instant timestamp with time zone, p_removed boolean"
+      },
+      {
+        "n": "backfill_legacy_series_units_v1",
+        "args": "p_medium text, p_after_id integer, p_limit integer"
+      },
+      {
+        "n": "check_email_exists",
+        "args": "p_email text"
+      },
+      {
+        "n": "finish_series_enrichment_v1",
+        "args": "p_medium text, p_media_id integer, p_source_revision text, p_lease_token uuid, p_copy jsonb, p_material jsonb, p_themes jsonb, p_error text"
+      },
+      {
+        "n": "home_events_page_v1",
+        "args": "p_medium text, p_window_days integer, p_limit integer, p_cursor text"
+      },
+      {
+        "n": "rebuild_media_similar_titles",
+        "args": "p_batch integer"
+      }
+    ],
+    "dup_indexes_present": [
+      "idx_anime_anilist_id",
+      "idx_anime_id",
+      "idx_anime_mal_id",
+      "idx_authors_anilist_id",
+      "idx_authors_id",
+      "idx_authors_mal_id",
+      "idx_catalog_safety_audit_state",
+      "idx_characters_anilist_id",
+      "idx_characters_id",
+      "idx_characters_mal_id",
+      "idx_manga_anilist_id",
+      "idx_manga_id",
+      "idx_manga_mal_id",
+      "idx_staff_anilist_id",
+      "idx_staff_id",
+      "idx_staff_mal_id",
+      "idx_studios_anilist_id",
+      "idx_studios_id",
+      "idx_studios_mal_id",
+      "idx_tags_anilist_id",
+      "idx_tags_id",
+      "idx_tags_mal_id",
+      "idx_volumes_id"
+    ],
+    "triggers": [
+      {
+        "t": "anime",
+        "n": "update_anime_updated_at",
+        "f": "update_updated_at_column"
+      },
+      {
+        "t": "manga",
+        "n": "update_manga_updated_at",
+        "f": "update_updated_at_column"
+      }
+    ],
+    "release_events_rows": 0,
+    "theme_links_rows": 0,
+    "catalogue_units_rows": 0
+  },
+  "rollback_capture": {
+    "duplicate_index_defs": {
+      "idx_catalog_safety_audit_state": "CREATE INDEX idx_catalog_safety_audit_state ON public.catalog_safety_audit USING btree (decision_state, scanned_at DESC)",
+      "idx_anime_anilist_id": "CREATE INDEX idx_anime_anilist_id ON public.anime USING btree (anilist_id)",
+      "idx_anime_id": "CREATE INDEX idx_anime_id ON public.anime USING btree (id)",
+      "idx_anime_mal_id": "CREATE INDEX idx_anime_mal_id ON public.anime USING btree (mal_id)",
+      "idx_authors_anilist_id": "CREATE INDEX idx_authors_anilist_id ON public.authors USING btree (anilist_id)",
+      "idx_authors_id": "CREATE INDEX idx_authors_id ON public.authors USING btree (id)",
+      "idx_authors_mal_id": "CREATE INDEX idx_authors_mal_id ON public.authors USING btree (mal_id)",
+      "idx_characters_anilist_id": "CREATE INDEX idx_characters_anilist_id ON public.characters USING btree (anilist_id)",
+      "idx_characters_id": "CREATE INDEX idx_characters_id ON public.characters USING btree (id)",
+      "idx_characters_mal_id": "CREATE INDEX idx_characters_mal_id ON public.characters USING btree (mal_id)",
+      "idx_manga_anilist_id": "CREATE INDEX idx_manga_anilist_id ON public.manga USING btree (anilist_id)",
+      "idx_manga_id": "CREATE INDEX idx_manga_id ON public.manga USING btree (id)",
+      "idx_manga_mal_id": "CREATE INDEX idx_manga_mal_id ON public.manga USING btree (mal_id)",
+      "idx_staff_anilist_id": "CREATE INDEX idx_staff_anilist_id ON public.staff USING btree (anilist_id)",
+      "idx_staff_id": "CREATE INDEX idx_staff_id ON public.staff USING btree (id)",
+      "idx_staff_mal_id": "CREATE INDEX idx_staff_mal_id ON public.staff USING btree (mal_id)",
+      "idx_studios_anilist_id": "CREATE INDEX idx_studios_anilist_id ON public.studios USING btree (anilist_id)",
+      "idx_studios_id": "CREATE INDEX idx_studios_id ON public.studios USING btree (id)",
+      "idx_studios_mal_id": "CREATE INDEX idx_studios_mal_id ON public.studios USING btree (mal_id)",
+      "idx_tags_anilist_id": "CREATE INDEX idx_tags_anilist_id ON public.tags USING btree (anilist_id)",
+      "idx_tags_id": "CREATE INDEX idx_tags_id ON public.tags USING btree (id)",
+      "idx_tags_mal_id": "CREATE INDEX idx_tags_mal_id ON public.tags USING btree (mal_id)",
+      "idx_volumes_id": "CREATE INDEX idx_volumes_id ON public.volumes USING btree (id)"
+    },
+    "mv_anime_current_season": {
+      "definition": " SELECT id,\n    anilist_id,\n    mal_id,\n    kitsu_id,\n    title_english,\n    title_romaji,\n    title_native,\n    title_synonyms,\n    cover_image_large,\n    cover_image_medium,\n    cover_image_color,\n    banner_image,\n    format,\n    status,\n    description,\n    description_normalized,\n    episodes,\n    duration,\n    total_duration,\n    season,\n    season_year,\n    next_episode_number,\n    next_airing_at,\n    start_date_year,\n    start_date_month,\n    start_date_day,\n    end_date_year,\n    end_date_month,\n    end_date_day,\n    average_score,\n    mean_score,\n    popularity,\n    trending,\n    favourites,\n    genres,\n    source,\n    country_of_origin,\n    is_adult,\n    age_rating,\n    site_url,\n    created_at,\n    updated_at,\n    last_synced_at,\n    updated_at_anilist\n   FROM anime\n  WHERE status = 'RELEASING'::text AND season_year IS NOT NULL AND season_year >= (EXTRACT(year FROM now())::integer - 1);",
+      "indexes": [
+        "CREATE INDEX idx_mv_anime_current_season_popularity ON public.mv_anime_current_season USING btree (popularity DESC)",
+        "CREATE UNIQUE INDEX mv_anime_current_season_id_uidx ON public.mv_anime_current_season USING btree (id)"
+      ],
+      "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+    }
+  },
+  "edge_functions_before": [
+    {
+      "slug": "bulk-import-anime",
+      "version": 79,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1776907807264
+    },
+    {
+      "slug": "bulk-import-manga",
+      "version": 78,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1776907808122
+    },
+    {
+      "slug": "mirror-images",
+      "version": 17,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1785470451835
+    },
+    {
+      "slug": "concierge-parse",
+      "version": 45,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1771975457531
+    },
+    {
+      "slug": "concierge-apply",
+      "version": 27,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1791418810459
+    },
+    {
+      "slug": "concierge-undo",
+      "version": 18,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1791418811185
+    },
+    {
+      "slug": "concierge-recommend",
+      "version": 50,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1791418813226
+    },
+    {
+      "slug": "concierge-resolve",
+      "version": 16,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1771975460918
+    },
+    {
+      "slug": "concierge-retrieve-assist",
+      "version": 9,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1791418814371
+    },
+    {
+      "slug": "concierge-retrieve-feedback",
+      "version": 5,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1771975462410
+    },
+    {
+      "slug": "delete-account",
+      "version": 10,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1791418812022
+    },
+    {
+      "slug": "auth-callback",
+      "version": 4,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1771975465657
+    },
+    {
+      "slug": "concierge-import-anilist",
+      "version": 6,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1791418793515
+    },
+    {
+      "slug": "manga-chapter-enrich",
+      "version": 66,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1776907809266
+    },
+    {
+      "slug": "manga-source-review-action",
+      "version": 5,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1771975467611
+    },
+    {
+      "slug": "realm-describe",
+      "version": 9,
+      "verify_jwt": true,
+      "status": "ACTIVE",
+      "updated_at_ms": 1786063009346
+    }
+  ],
+  "edge_probe_before": {
+    "auth-callback GET without Authorization": 401,
+    "note": "live verify_jwt=true contradicts auth-callback/index.ts header (verify_jwt=false)"
+  }
+}
