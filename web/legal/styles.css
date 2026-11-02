@@ -1,0 +1,83 @@
+/* Kuro legal site. No external fonts, scripts, cookies or trackers. */
+:root {
+  color-scheme: light;
+  --paper: #fffef8;
+  --ink: #252625;
+  --ink-2: rgba(37, 38, 37, 0.66);
+  --ink-3: rgba(37, 38, 37, 0.5);
+  --rule: rgba(37, 38, 37, 0.14);
+  --wash: rgba(37, 38, 37, 0.05);
+  --ph-bg: #fff1a8;
+  --ph-ink: #4a3b00;
+  --serif: "New York", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.62 var(--sans);
+}
+a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+.draft {
+  background: var(--ink); color: var(--paper);
+  font-size: 13px; line-height: 1.45; padding: 8px 16px; text-align: center;
+}
+header.site { border-bottom: 1px solid var(--rule); }
+header.site .wrap { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; padding-top: 20px; padding-bottom: 16px; }
+.wordmark { font-family: var(--serif); font-size: 26px; letter-spacing: 0.18em; text-decoration: none; font-weight: 600; }
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 14px; }
+nav.site a { text-decoration: none; color: var(--ink-2); }
+nav.site a[aria-current="page"] { color: var(--ink); text-decoration: underline; }
+main { padding: 32px 0 56px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.2; letter-spacing: -0.005em; }
+h1 { font-size: clamp(30px, 6vw, 42px); margin: 0 0 8px; }
+h2 { font-size: 23px; margin: 44px 0 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
+h3 { font-size: 18px; margin: 28px 0 8px; }
+p, ul, ol, dl, table { margin: 0 0 14px; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+.lede { color: var(--ink-2); font-size: 17px; }
+.meta { color: var(--ink-3); font-size: 14px; }
+.langswitch { display: flex; gap: 10px; font-size: 14px; margin: 18px 0 8px; }
+.langswitch a { padding: 4px 12px; border: 1px solid var(--rule); border-radius: 999px; text-decoration: none; }
+.lang-section { scroll-margin-top: 16px; }
+.lang-section + .lang-section { margin-top: 64px; padding-top: 32px; border-top: 3px double var(--rule); }
+.toc { background: var(--wash); border-radius: 12px; padding: 14px 18px; font-size: 15px; }
+.toc ol { margin: 0; }
+.box { border: 1px solid var(--ink); border-radius: 12px; padding: 14px 18px; margin: 18px 0; }
+.box h3 { margin-top: 0; }
+.note { color: var(--ink-2); font-size: 14px; }
+mark.ph {
+  background: var(--ph-bg); color: var(--ph-ink);
+  padding: 0 4px; border-radius: 3px; font-weight: 600;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 14px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 520px; margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; background: var(--wash); }
+address { font-style: normal; }
+dl.kv { display: grid; grid-template-columns: minmax(130px, max-content) 1fr; gap: 6px 16px; }
+dl.kv dt { color: var(--ink-2); }
+dl.kv dd { margin: 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 18px 0; }
+.card { display: block; border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; text-decoration: none; }
+.card strong { font-family: var(--serif); font-size: 19px; display: block; }
+.card span { color: var(--ink-2); font-size: 14px; }
+.card:hover { border-color: var(--ink); }
+footer.site { border-top: 1px solid var(--rule); padding: 20px 0 32px; font-size: 13px; color: var(--ink-3); }
+footer.site a { color: var(--ink-2); }
+@media (max-width: 520px) {
+  dl.kv { grid-template-columns: 1fr; gap: 0 0; }
+  dl.kv dd { margin-bottom: 8px; }
+}
+@media print {
+  .draft, nav.site, .langswitch { display: none; }
+  body { background: #fff; }
+}

@@ -1,0 +1,22 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/privacy", "destination": "/datenschutz#en", "permanent": false },
+    { "source": "/privacy-policy", "destination": "/datenschutz#en", "permanent": false },
+    { "source": "/terms", "destination": "/nutzungsbedingungen#en", "permanent": false },
+    { "source": "/legal-notice", "destination": "/impressum#en", "permanent": false },
+    { "source": "/index", "destination": "/", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Permissions-Policy", "value": "interest-cohort=(), browsing-topics=()" }
+      ]
+    }
+  ]
+}
