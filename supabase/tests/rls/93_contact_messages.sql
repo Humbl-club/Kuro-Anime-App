@@ -104,4 +104,25 @@ select tests.eq('account deletion keeps the message but clears user_id (SET NULL
   (select coalesce(user_id::text, 'null') from public.contact_messages where id = 'c0000000-0000-4000-8000-000000000002'),
   'null');
 
+-- ===================== 8. limiter buckets contact-submit relies on ===========
+-- contact-submit calls check_concierge_rate_limit only as anon (callerClient(null)) with an
+-- explicit key in p_ip, so auth.uid() adds no implicit bucket; kinds keep the counters apart.
+select tests.ok('fixture: check_concierge_rate_limit exists',
+  to_regprocedure('public.check_concierge_rate_limit(text,text,integer,integer,integer)') is not null);
+select tests.as_anon();
+create temp table _rl on commit drop as
+  select n, public.check_concierge_rate_limit('contact', 'contact:t93-ip', 3600, 5, 5) as r
+  from generate_series(1, 6) n;
+select tests.eq('anon, explicit key: five allowed per hour, the sixth denied',
+  (select string_agg((r->>'allowed'), ',' order by n) from _rl), 'true,true,true,true,true,false');
+select tests.eq('anon caller adds no user bucket (user_hits is null)',
+  (select count(*) from _rl where r->>'user_hits' is not null), 0::bigint);
+select tests.ok('the same key under another kind is a separate counter (contact_app_ip, 30/h)',
+  (public.check_concierge_rate_limit('contact_app_ip', 'contact:t93-ip', 3600, 30, 30)->>'allowed')::boolean
+  and (public.check_concierge_rate_limit('contact_app_ip', 'contact:t93-ip', 3600, 30, 30)->>'ip_hits')::int = 2);
+select tests.ok('global ceiling key counts across callers',
+  (public.check_concierge_rate_limit('contact_global', 'contact:global', 3600, 200, 200)->>'ip_hits')::int = 1
+  and (public.check_concierge_rate_limit('contact_global', 'contact:global', 3600, 200, 200)->>'ip_hits')::int = 2);
+select tests.reset();
+
 rollback;
