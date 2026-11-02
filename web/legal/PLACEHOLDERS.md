@@ -1,5 +1,7 @@
 # Kuro legal site: placeholders and open review points
 
+**Filled on 2026-11-02 from the owner:** provider "Lazy", Martinstraße 10–12, 52062 Aachen (Nordrhein-Westfalen); email contact@lazy.space; not entered in the commercial register; supervisory authority LDI NRW. Owner does not want a phone number: a second fast contact channel (e.g. a contact form) is still needed under § 5 Abs. 1 Nr. 2 DDG. Lead defaults (review): VSBG non-participation, termination notice four weeks, no DPO (Art. 37 GDPR / § 38 BDSG). **Still open:** legal form and the owner's name ([RECHTSFORM], [VERTRETEN DURCH], § 18 MStV responsible person) — required by law for an unregistered business; VAT ID if one exists; the review items below.
+
 Status: **DRAFT for legal review** (2026-11-02). The pages in this folder are not legal advice. A lawyer or data-protection advisor must review them before publication. The German text is the binding version; the English text is a convenience translation.
 
 Every placeholder is shown on the pages as a yellow `[BRACKETED]` mark. None of these values were found in the repository, and none were invented.
