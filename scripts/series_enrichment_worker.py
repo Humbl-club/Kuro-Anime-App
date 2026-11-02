@@ -222,7 +222,7 @@ def run_theme_pass(client, candidates, fetch=fetch_theme_batch, pacer=None):
             by_anilist.setdefault(row['anilist_id'], row['id'])
     ids = list(by_anilist)
     summary = {'requested': len(ids), 'requests': 0, 'matched': 0, 'not_found': 0, 'ambiguous': 0,
-               'rows': 0, 'inserted': 0, 'updated': 0, 'unchanged': 0}
+               'rows': 0, 'inserted': 0, 'updated': 0, 'unchanged': 0, 'oversized': 0}
     pending = []
     def flush():
         while pending:
@@ -238,7 +238,12 @@ def run_theme_pass(client, candidates, fetch=fetch_theme_batch, pacer=None):
         summary['ambiguous'] += len(ambiguous)
         summary['not_found'] += len([i for i in batch if i not in matched and i not in ambiguous])
         for anilist_id, anime in matched.items():
-            rows = theme_rows(by_anilist[anilist_id], anime)
+            try:
+                rows = theme_rows(by_anilist[anilist_id], anime)
+            except ValueError:
+                # Over the per-title row bound: skip this title (last-good kept), not the whole pass.
+                summary['oversized'] += 1
+                continue
             if not rows:
                 continue  # Unknown; retain last-good themes, never write an empty set.
             summary['matched'] += 1

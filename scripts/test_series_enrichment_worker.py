@@ -181,6 +181,21 @@ class ThemePassContracts(unittest.TestCase):
         self.assertEqual([c[0] for c in calls],['upsert_theme_links_v1'])
         self.assertEqual({r['anime_id'] for r in calls[0][1]['p_rows']},{101})
 
+    def test_theme_pass_skips_title_over_row_bound_and_keeps_going(self):
+        many={'id':9,'slug':'detective_conan','resources':{'edges':[{'node':{'site':'ANILIST','externalId':235}}]},
+              'animethemes':[{'id':10000+i,'type':'OP','sequence':1+(i%99),'song':{'title':{'romaji':f'Song {i}'}},
+                              'animethemeentries':[{'id':20000+i,'episodes':'1','nsfw':False,'spoiler':False,'version':1}]}
+                             for i in range(worker.MAX_THEME_ROWS_PER_ANIME+1)]}
+        calls=[]
+        class Client:
+            def call(self,name,payload):
+                calls.append(payload); return {'inserted':len(payload['p_rows']),'updated':0,'unchanged':0}
+        summary=worker.run_theme_pass(Client(),[{'id':1,'anilist_id':235},{'id':2,'anilist_id':16498}],
+                                      fetch=lambda ids,pacer=None:[many,AOT])
+        self.assertEqual(summary['oversized'],1)
+        self.assertEqual(summary['matched'],1)
+        self.assertEqual({r['anime_id'] for r in calls[0]['p_rows']},{2})
+
     def test_theme_pass_batches_25_ids_per_request(self):
         sizes=[]
         def fetch(ids,pacer=None):
