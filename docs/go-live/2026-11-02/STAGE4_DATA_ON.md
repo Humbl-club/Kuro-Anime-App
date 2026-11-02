@@ -202,3 +202,12 @@ page ends the list like an empty page, so the legacy cursor wraps to 0 by itself
 anime 23/23, manga 16/16, `_shared` 31/31 (two new depth tests per importer). Deployed
 `bulk-import-anime` v83 and `bulk-import-manga` v82 (verify_jwt stays on; the cron jobs send a
 bearer token). Job 118 `kuro-import-cursor-depth-guard` unscheduled (0 rows remain).
+
+### Heavy-run item errors (diagnosed and fixed, 2026-11-02 11:47 UTC)
+Function logs 09:00–12:00 UTC: 89 × `authors upsert error` ("Could not find the
+'primary_occupations' column of 'authors'": only `staff` has it) and ~60 × `characters upsert
+error` ("invalid input syntax for type integer": AniList ages are free text such as "17-18",
+"16+", "15 (Past) 18 (Present)"), plus 1 duplicate episode number. `2ce65d1`: the authors write
+drops the column, and both importers store `characters.age` only when it is a plain whole number
+(`characterAge` in `bulk-import-anime/mapping.ts`). Deployed `bulk-import-anime` v84 and
+`bulk-import-manga` v83. The duplicate episode row is left as is (one row, harmless).
