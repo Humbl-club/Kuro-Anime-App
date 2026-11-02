@@ -194,3 +194,11 @@ step commits only this receipt). The launch agent runs the working-tree copies.
 5. CLAUDE.md Rule 1/2 updates (`CURRENT_APP_STATE*.md`, implementation plan, MEMORY.md) were not
    part of this step.
 6. Everything still open from `STAGE2_RECEIPT.md` (auth hardening migration, dashboard items, PITR).
+
+### Page-depth fix (supersedes job 118, 2026-11-02 11:46 UTC)
+`1aea675`: `bulk-import-anime` and `bulk-import-manga` never request a page past AniList's
+5,000-entry depth (`pastAniListPageDepth(page, perPage)` in `_shared/anilist_client.ts`); that
+page ends the list like an empty page, so the legacy cursor wraps to 0 by itself. Offline tests:
+anime 23/23, manga 16/16, `_shared` 31/31 (two new depth tests per importer). Deployed
+`bulk-import-anime` v83 and `bulk-import-manga` v82 (verify_jwt stays on; the cron jobs send a
+bearer token). Job 118 `kuro-import-cursor-depth-guard` unscheduled (0 rows remain).
