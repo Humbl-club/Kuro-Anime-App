@@ -281,9 +281,13 @@ struct HomeAnimeLaneTests {
     func mediumWordContrastFloor() {
         let canvas = KuroRGB(1, 0xFE / 255, 0xF8 / 255)
         func contrast(_ ink: KuroRGB) -> Double { (canvas.luminance + 0.05) / (ink.luminance + 0.05) }
-        #expect(HomeMediumWordInk.floor.luminance < HomeMediumWordInk.unselected.luminance)
-        #expect(contrast(HomeMediumWordInk.floor) > contrast(HomeMediumWordInk.unselected))
-        #expect(contrast(HomeMediumWordInk.floor) >= 4.5, "The lightest the selected word can be still passes AA.")
+        // The lightest mean the art band keeps (a neutral grey at the target luma) is darker, so more
+        // legible on the canvas, than the unselected word, and still passes AA on its own.
+        let target = HomeMediumWordInk.targetLuma
+        let lightest = KuroRGB(target, target, target)
+        #expect(lightest.luminance < HomeMediumWordInk.unselected.luminance)
+        #expect(contrast(lightest) > contrast(HomeMediumWordInk.unselected))
+        #expect(contrast(lightest) >= 4.5, "The lightest mean the selected word can have still passes AA.")
         #expect(HomeMediumWordInk.unselected.hex.lowercased() == "#6e786f")
     }
 
@@ -388,6 +392,69 @@ struct HomeAnimeLaneTests {
         try await Self.render(Self.home(graph, materials).environment(\.dynamicTypeSize, .accessibility5),
                               width: 390, height: 4_000, to: url)
         #expect(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    // MARK: +1 toast (PROTOTYPE_SPEC.md §3.4, §6)
+
+    /// A real +1 through `HomeStore` (a signed-in account with a progress outbox), then the toast the
+    /// page shows for it at the screen foot: "Progress saved." with Undo and the dismiss ×. Rendered on
+    /// a 390 × 844 screen, so the toast sits where the reader sees it, over the feed.
+    @Test("Home +1: the toast with Undo sits at the screen foot, for the title Home advanced")
+    func progressToastRender() async throws {
+        Self.seedArtwork()
+        let materials = ArtworkMaterialStore(cacheDirectory: nil, loader: Self.fixtureLoader)
+        await Self.warm(materials)
+        let suite = "home-toast-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let outbox = try ProgressOutbox(path: FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(suite).sqlite").path)
+        // The Library row Home's card stands for (Jujutsu Kaisen, episode 6, the card's lifecycle).
+        let backend = FakeLibraryBackend()
+        let lifecycle = try #require(UUID(uuidString: "11111113-1111-4111-8111-111111111111"))
+        backend.setRows([LibraryEntry(key: MediaKey(kind: .anime, id: 3), rowId: 3, status: .current, progress: 6,
+                                      createdAt: Date(), updatedAt: Date(), revision: 2, lifecycleId: lifecycle)],
+                        for: LifecycleFixtures.userA)
+        let graph = AppComposition.testingGraph(
+            testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
+            libraryBackend: backend,
+            flags: FeatureFlags(userDefaults: defaults, launchArguments: ["--ff-on=series_foundation_v1"]),
+            progressOutbox: outbox)
+        _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "home@example.com")
+        await graph.libraryActions.libraryRefreshTask?.value
+        graph.home.seedForVisualQA(anime: Self.bundle(.busy), manga: nil, medium: "anime")
+        graph.releases.schedule = Self.schedule(.busy)
+        Self.seedClub(graph)
+        let card = try #require(graph.home.bundle?.active.first { $0.mediaId == 3 })
+        let before = graph.home.displayedProgress(for: card)
+        // Undo through the store puts the count back while the save is still on this device.
+        await graph.home.advance(card)
+        await graph.home.undo(card)
+        #expect(HomeProgressToastCopy.undoResult(before: before, after: graph.home.displayedProgress(for: card)) == .undone)
+        await graph.home.advance(card)
+        let after = graph.home.displayedProgress(for: card)
+        #expect(after == before + 1, "The +1 is saved on this device (\(graph.home.statusMessage ?? "no status")).")
+        let account = try #require(graph.accountSession.current)
+        let undo = HomeProgressToasts.Undo(medium: "anime", mediaId: card.mediaId, lifecycleId: card.lifecycleId,
+                                           before: before, account: account)
+        #expect(HomeProgressToasts.undoApplies(undo, lastKey: graph.home.lastAdvancedKey,
+                                               lastLifecycle: graph.home.lastAdvancedLifecycle?.uuidString))
+        let result = try #require(HomeProgressToastCopy.advanceResult(before: before, after: after,
+                                                                      caughtUpAfter: false, saveFailed: false))
+        let toasts = HomeProgressToasts(holdSeconds: 60)
+        // After the page's first appearance (which resets its presentation for the account), as a tap
+        // on the key would be.
+        let message = HomeProgressToastCopy.message(result, german: KuroLocale.isGerman)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            toasts.show(message, undo: undo)
+        }
+        let url = Self.outDir.appendingPathComponent("home-busy-anime-toast\(KuroLocale.isGerman ? "-de" : "")-390.png")
+        try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
+        try await Self.render(Self.home(graph, materials, progressToasts: toasts), width: 390, height: 844, to: url,
+                              deviceSafeArea: false)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+        await graph.session.endSession()
     }
 
     // MARK: Manga Home through HomeView (Task 10 integration; written only with KURO_WRITE_SNAPSHOTS=1)
@@ -570,9 +637,11 @@ struct HomeAnimeLaneTests {
     }
 
     static func home(_ graph: AppGraph, _ materials: ArtworkMaterialStore,
-                     canvas: Color = .kuroCanvasHome, newAccountLatch: Bool? = nil) -> some View {
-        HomeView(skipNetworkLoad: true, newAccountLatch: newAccountLatch)
+                     canvas: Color = .kuroCanvasHome, newAccountLatch: Bool? = nil,
+                     progressToasts: HomeProgressToasts? = nil) -> some View {
+        HomeView(skipNetworkLoad: true, newAccountLatch: newAccountLatch, progressToasts: progressToasts)
             .environment(graph.home)
+            .environment(graph.catalog)
             .environment(graph.library)
             .environment(graph.libraryActions)
             .environment(graph.imports)
@@ -790,8 +859,11 @@ struct HomeAnimeLaneTests {
     }
 
     static func render<V: View>(_ view: V, width: CGFloat, height: CGFloat, to url: URL,
-                                canvas: Color = .kuroCanvasHome) async throws {
+                                canvas: Color = .kuroCanvasHome, deviceSafeArea: Bool = true) async throws {
         let host = UIHostingController(rootView: view.frame(width: width, height: height))
+        // A screen-sized render (the toast at the screen foot): the page fills the screen as the pager's
+        // page does, with no device inset around the frame.
+        if !deviceSafeArea { host.safeAreaRegions = [] }
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: height))
         window.rootViewController = host
         window.isHidden = false

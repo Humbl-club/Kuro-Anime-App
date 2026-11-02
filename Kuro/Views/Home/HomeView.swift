@@ -27,6 +27,10 @@ struct HomeView: View {
     @State private var actionScope = AccountActionScope()
     /// The new-account block's Plan results (toast with Undo at the screen foot, `tastePlanHost`).
     @State private var plans = TastePlanController()
+    /// The +1 result at the screen foot ("Progress saved." / "Caught up." with Undo; §3.4, §6).
+    @State private var progressToasts: HomeProgressToasts
+    /// The new-account block's first pick cover per medium (the selected medium word's art).
+    @State private var newAccountArt: [MediaKind: String] = [:]
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -66,7 +70,8 @@ struct HomeView: View {
          onImportNavigation: ((ImportResultDestination) -> Void)? = nil,
          onExploreTaste: (() -> Void)? = nil,
          onOpenClubs: (() -> Void)? = nil,
-         newAccountLatch: Bool? = nil) {
+         newAccountLatch: Bool? = nil,
+         progressToasts: HomeProgressToasts? = nil) {
         self.skipNetworkLoad = skipNetworkLoad
         self.onOpenImport = onOpenImport
         self.onFindTitle = onFindTitle
@@ -75,6 +80,8 @@ struct HomeView: View {
         self.onExploreTaste = onExploreTaste
         self.onOpenClubs = onOpenClubs
         self.newAccountLatch = newAccountLatch
+        // A caller's slot (fixtures render the toast after a real +1); otherwise Home's own.
+        self._progressToasts = State(initialValue: progressToasts ?? HomeProgressToasts())
         self._scheduleChecked = State(initialValue: skipNetworkLoad)
     }
 
@@ -110,6 +117,11 @@ struct HomeView: View {
         .tint(Color.kuroInk)
         // Outside the scroll view, so the new-account block's Plan toast sits at the screen foot.
         .tastePlanHost(plans)
+        // The +1 toast, in the same slot: one result toast on Home at a time.
+        .overlay(alignment: .bottom) { progressToast }
+        .kuroAnimation(KuroMotion.contact, value: progressToasts.toast?.id)
+        .onChange(of: plans.toast?.id) { _, id in if id != nil { progressToasts.dismiss() } }
+        .onChange(of: home.medium) { _, _ in progressToasts.dismiss() }
         .onAppear {
             resetPresentationForAccount()
             actionScope.activate(session: libraryActions.accountSession)
@@ -117,7 +129,7 @@ struct HomeView: View {
         .onChange(of: home.privacyEpoch) { _, _ in resetPresentationForAccount() }
         // Leaving `.loaded` (sign-out, account switch, reload) ends the Plan toast and its Undo.
         .onChange(of: library.loadState) { _, state in
-            if state != .loaded { plans.dismiss() }
+            if state != .loaded { plans.dismiss(); progressToasts.dismiss() }
         }
         // The private club room's clubs (`ClubsStore` keeps a 60 s window, so a revisit costs nothing).
         .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)") {
@@ -204,6 +216,8 @@ struct HomeView: View {
         inProgressPages = [:]; pagingForInProgress = false
         confirmations = [:]
         plans.dismiss()
+        progressToasts.dismiss()
+        newAccountArt = [:]
         seasonCard = nil; showImportRecovery = false; importRecoveryJob = nil; showImportChooser = false
     }
 
@@ -320,11 +334,17 @@ struct HomeView: View {
 
     /// The prototype's switch (`KuroPosterMediumSwitch`, shared with Taste): the selected word shows the
     /// lead title's artwork clipped into its letters with a contrast floor (`HomeMediumWordInk`), so it
-    /// never reads lighter than the unselected word; an empty shelf shows the mountain.
+    /// never reads lighter than the unselected word. A new account has no lead title: the word shows its
+    /// first starter pick, as Taste does (one rule for both pages); the invitation (this medium empty,
+    /// the other occupied) shows the mountain behind it.
     private var mediumSwitch: some View {
         KuroPosterMediumSwitch(selection: mediumKind, contentWidth: contentWidth,
                                onSelect: { home.selectMedium($0 == .manga ? "manga" : "anime") }) {
-            HomePagePictureFill(fallback: shelfScene == .invitation ? .mountain : .solid)
+            if showsNewAccount {
+                KuroArtWordFill(raw: newAccountArt[mediumKind])
+            } else {
+                HomePagePictureFill(fallback: shelfScene == .invitation ? .mountain : .solid)
+            }
         }
     }
 
@@ -389,9 +409,14 @@ struct HomeView: View {
                 kicker: HomeOpeningLine.kicker(newAccount: true, medium: mediumKind),
                 headline: HomeOpeningLine.headline(available: 0, caughtUp: false, newAccount: true, medium: mediumKind),
                 compact: compactColumn)
+            // `.home-opening`'s 18 pt bottom margin, above the block's own 50 pt top padding, plus the
+            // 1 pt the native opening row sets shorter than its 18.2 pt line box (measured against
+            // `ref-home-new-*`: the ＋ lands at the reference's y at 320, 390 and 430).
+            .padding(.bottom, 19)
             HomeNewAccount(medium: mediumKind,
                            onImport: { showImportChooser = true },
-                           onExploreTaste: { onExploreTaste?() })
+                           onExploreTaste: { onExploreTaste?() },
+                           onLeadArt: { medium, art in newAccountArt[medium] = art })
                 .padding(.horizontal, -gutter)
         }
     }
@@ -586,39 +611,21 @@ struct HomeView: View {
         }
     }
 
+    /// Home's status line under the feed. The +1 result and its Undo are the screen-foot toast
+    /// (`progressToast`), so this line carries only what the toast does not: Library's "Saved on this
+    /// device." while offline (online, the save is on its way and the toast already said so), and
+    /// Home's other states (choose the next unit on its page, a page that failed to load).
     @ViewBuilder
     private func shelfStatus(origin: AccountActionScope.Ticket?, renderedMedium: String) -> some View {
-        if let status = home.statusMessage {
-            HStack(spacing: KuroDesignSpacing.sm) {
-                Text(HomeCopy.display(status))
-                    .font(.kuroMeta())
-                    .foregroundStyle(Color.kuroInkSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                // Undo keys on Library's raw message, never on the displayed (translated) text.
-                if status == HomeCopy.librarySavedOnDevice,
-                   home.lastAdvancedKey?.kind.rawValue.lowercased() == home.medium,
-                   let card = home.bundle?.active.first(where: {
-                       $0.mediaId == home.lastAdvancedKey?.id
-                           && UUID(uuidString: $0.lifecycleId) == home.lastAdvancedLifecycle
-                   }) {
-                    Button {
-                        perform(origin: origin) {
-                            guard home.medium == renderedMedium else { return }
-                            await home.undo(card)
-                        }
-                    } label: {
-                        Text(KuroLocale.text("Undo", "Rückgängig"))
-                            .font(.kuroMeta(weight: .semibold))
-                            .foregroundStyle(Color.kuroInk)
-                            .underline()
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(HomeContactStyle())
-                }
-            }
-            .accessibilityElement(children: .combine)
+        if let status = home.statusMessage,
+           HomeProgressToastCopy.statusLineShows(status, savedOnDevice: HomeCopy.librarySavedOnDevice,
+                                                 notSaved: HomeCopy.progressNotSaved, offline: !network.isConnected,
+                                                 toastShowing: progressToasts.toast != nil) {
+            Text(HomeCopy.display(status))
+                .font(.kuroMeta())
+                .foregroundStyle(Color.kuroInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         if let conflict = home.conflict, let token = home.conflictToken {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -851,17 +858,78 @@ struct HomeView: View {
                     performTicketed(origin: origin) { ticket in
                         guard home.medium == renderedMedium else { return }
                         let before = home.displayedProgress(for: card)
+                        let account = libraryActions.accountSession.current
                         await home.advance(card)
                         // The account can change during the save (`resetPresentationForAccount` clears the
                         // stamps): stamp only for the same presentation, medium, and a raised count.
                         let current = actionScope.isCurrent(ticket, session: libraryActions.accountSession)
-                        guard HomeShelfPolicy.shouldStamp(
-                            before: before, after: current ? home.displayedProgress(for: card) : before,
-                            ticketCurrent: current, mediumUnchanged: home.medium == renderedMedium) else { return }
+                        let sameMedium = home.medium == renderedMedium
+                        guard current, sameMedium else { return }
+                        let after = home.displayedProgress(for: card)
+                        reportAdvance(card, before: before, after: after, account: account)
+                        guard HomeShelfPolicy.shouldStamp(before: before, after: after, ticketCurrent: current,
+                                                          mediumUnchanged: sameMedium) else { return }
                         confirmations[stampKey, default: 0] += 1
                     }
                 }
             }
+        }
+    }
+
+    // MARK: +1 toast (PROTOTYPE_SPEC.md §3.4, §6)
+
+    /// After a +1 for the presentation that made it: "Progress saved." / "Caught up." with Undo, or the
+    /// failure (no Undo). A +1 that needs a choice on the title's page shows no toast (the status line
+    /// says so).
+    private func reportAdvance(_ card: HomeCard, before: Int, after: Int, account: AccountContext?) {
+        // Every way Home's +1 fails to save says `progressNotSaved` (storage unavailable included).
+        let saveFailed = home.statusMessage == HomeCopy.progressNotSaved
+        guard let result = HomeProgressToastCopy.advanceResult(
+            before: before, after: after, caughtUpAfter: keyState(card).caughtUp, saveFailed: saveFailed) else { return }
+        let undo = account.flatMap { account -> HomeProgressToasts.Undo? in
+            guard result != .failed else { return nil }
+            return HomeProgressToasts.Undo(medium: home.medium, mediaId: card.mediaId, lifecycleId: card.lifecycleId,
+                                           before: before, account: account)
+        }
+        plans.dismiss()
+        progressToasts.show(HomeProgressToastCopy.message(result, german: KuroLocale.isGerman), undo: undo)
+    }
+
+    /// The toast's Undo, offered only while `HomeStore.undo` would act on its title.
+    private var progressUndoApplies: Bool {
+        guard let undo = progressToasts.toast?.undo else { return false }
+        return HomeProgressToasts.undoApplies(undo, lastKey: home.lastAdvancedKey,
+                                              lastLifecycle: home.lastAdvancedLifecycle?.uuidString)
+    }
+
+    @ViewBuilder
+    private var progressToast: some View {
+        if let toast = progressToasts.toast {
+            let german = KuroLocale.isGerman
+            TastePlanToastView(message: toast.message, showsUndo: progressUndoApplies, german: german,
+                               onUndo: { undoAdvance() },
+                               onDismiss: { progressToasts.dismiss() })
+                .id(toast.id)
+                .transition(.opacity)
+                .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+        }
+    }
+
+    /// Restores the count the toast reports, once, for the account and medium that made the +1; then
+    /// "Undone." or the failure.
+    private func undoAdvance() {
+        guard progressUndoApplies, let undo = progressToasts.takeUndo(),
+              libraryActions.accountSession.isCurrent(undo.account), home.medium == undo.medium,
+              let card = home.bundle?.active.first(where: {
+                  $0.mediaId == undo.mediaId && $0.lifecycleId.lowercased() == undo.lifecycleId.lowercased()
+              }) else { return }
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        performTicketed(origin: origin) { ticket in
+            await home.undo(card)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession),
+                  home.medium == undo.medium else { return }
+            let result = HomeProgressToastCopy.undoResult(before: undo.before, after: home.displayedProgress(for: card))
+            progressToasts.show(HomeProgressToastCopy.message(result, german: KuroLocale.isGerman), undo: nil)
         }
     }
 

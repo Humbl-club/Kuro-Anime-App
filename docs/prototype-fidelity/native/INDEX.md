@@ -13,7 +13,7 @@ Paths are relative to this folder. All renders are fixture-only (no network, pro
 
 | Reference | Primary native render | Supplementary |
 |---|---|---|
-| `ref-home-busy-anime-390.png` | `home-anime/home-busy-anime-390.png` | `home-anime/home-busy-anime-de-390.png`, `home-anime/home-busy-anime-ax5-390.png`, `home-manga/home-anime-calendar-club-390.png`, `home-manga/home-anime-calendar-club-ax5-390.png` (lane harness: calendar + club only) |
+| `ref-home-busy-anime-390.png` | `home-anime/home-busy-anime-390.png` | `home-anime/home-busy-anime-toast-390.png` and `-toast-de-390.png` (the +1 toast after a real +1, on a 390 × 844 screen), `home-anime/home-busy-anime-de-390.png`, `home-anime/home-busy-anime-ax5-390.png`, `home-manga/home-anime-calendar-club-390.png`, `home-manga/home-anime-calendar-club-ax5-390.png` (lane harness: calendar + club only) |
 | `ref-home-busy-anime-320.png` | `home-anime/home-busy-anime-320.png` | - |
 | `ref-home-busy-anime-430.png` | `home-anime/home-busy-anime-430.png` | - |
 | `ref-home-full-anime-390.png` | `home-anime/home-full-anime-390.png` | - |
@@ -47,9 +47,9 @@ Paths are relative to this folder. All renders are fixture-only (no network, pro
 | `ref-detail-anime-top-390.png` | `detail/detail-anime-top-390.png` | `detail/detail-anime-top-320.png`, `detail/detail-anime-top-ax5-320.png` |
 | `ref-detail-manga-390.png` | `detail/detail-manga-390.png` | `detail/detail-manga-bundle-390.png`, `detail/detail-manga-untracked-390.png`, `detail/detail-manga-untracked-de-390.png`, `detail/detail-manga-untracked-de-320.png`, `detail/detail-manga-ax5-320.png` |
 | `ref-detail-manga-top-390.png` | `detail/detail-manga-top-390.png` | `detail/detail-manga-top-320.png`, `detail/detail-manga-top-ax5-320.png` |
-| `ref-taste-busy-anime-390.png` | `firstrun/taste-busy-anime-390.png` | `firstrun/taste-busy-anime-de-390.png`, `firstrun/taste-busy-anime-ax5-390.png`, `firstrun/taste-loading-anime-390.png`, `firstrun/taste-busy-anime-banner-joined-390.png`, `firstrun/taste-busy-anime-planned-390.png` |
+| `ref-taste-busy-anime-390.png` | `firstrun/taste-busy-anime-390.png` | `firstrun/taste-busy-anime-de-390.png`, `firstrun/taste-busy-anime-ax5-390.png`, `firstrun/taste-loading-anime-390.png`, `firstrun/taste-busy-anime-planned-390.png` |
 | `ref-taste-busy-manga-390.png` | `firstrun/taste-busy-manga-390.png` | `firstrun/taste-busy-manga-de-390.png`, `firstrun/taste-busy-manga-ax5-390.png`, `firstrun/taste-loading-manga-390.png` |
-| `ref-taste-new-anime-390.png` | `firstrun/taste-new-anime-390.png` | `firstrun/taste-live-new-anime-390.png` (TastePicksView itself over the seeded bundle) |
+| `ref-taste-new-anime-390.png` | `firstrun/taste-new-anime-390.png` | `firstrun/taste-live-new-anime-390.png` (TastePicksView itself over the seeded bundle and catalogue) |
 | `ref-taste-new-manga-390.png` | `firstrun/taste-new-manga-390.png` | - |
 
 Every reference has a primary native render (38 references).
@@ -58,11 +58,11 @@ Every reference has a primary native render (38 references).
 
 | Folder | Test | What it renders |
 |---|---|---|
-| `home-anime/` | `KuroTests/HomeAnimeLaneTests.swift`, `animeHomeRenders` | `HomeView`, anime, busy / full / undated / quiet |
+| `home-anime/` | `KuroTests/HomeAnimeLaneTests.swift`, `animeHomeRenders`, `progressToastRender` | `HomeView`, anime, busy / full / undated / quiet; the +1 toast |
 | `home-manga/home-{state}-manga-*` | `KuroTests/HomeAnimeLaneTests.swift`, `mangaHomeRenders` | `HomeView`, manga, busy / full / undated / quiet |
 | `home-manga/home-manga-*`, `home-anime-calendar-club-*` | `KuroTests/HomeMangaLaneTests.swift`, `HomeMangaLaneSnapshotTests` | lane-4/5 component stacks (2x scale) |
 | `firstrun/home-new-*-homeview-*` | `KuroTests/FirstRunSnapshotTests.swift`, `newAccountHomeView` | `HomeView` for a new account (latched, empty Library, seeded Discover bundle) |
-| `firstrun/` (other) | `KuroTests/FirstRunSnapshotTests.swift` | first-run harness, `TastePageContent` (the content `TastePicksView` hosts), search, collection invitation; see `firstrun/NOTES.txt` |
+| `firstrun/` (other) | `KuroTests/FirstRunSnapshotTests.swift` | first-run harness, `TastePageContent` (the content `TastePicksView` hosts), search, collection invitation, at 1 px = 1 pt; see `firstrun/NOTES.txt` |
 | `detail/` | `KuroTests/DetailAnimeSnapshotTests.swift`, `DetailMangaSnapshotTests.swift` | the prototype detail pages over a complete fixture bundle |
 | `restyle/` | `KuroTests/RestyleSnapshotTests.swift` | the remaining restyled screens (no reference in `reference/`) |
 
@@ -98,9 +98,21 @@ Differences that stay, and why, are listed per finding in `../FIDELITY_REVIEW.md
   her ending-scoped spoiler are on Death Note (anime) / Berserk (manga); Jules's note is on Attack on
   Titan / Solo Leveling. The verbs "Finished …" / "… started" need data Home does not have yet
   (FIDELITY_REVIEW note B).
-- **New account.** The selected medium word shows the mountain (empty shelf), the picks come from the
-  seeded Discover bundle (`HomeNewAccount`'s own loader), and the page sits on the medium's canvas.
-- **Re-rendered in this pass (en_GB):** every `home-anime/` and `home-manga/` render (German ones under
+- **New account.** The selected medium word shows the first starter pick's cover (the same rule as Taste),
+  the picks come from the seeded Discover bundle (`HomeNewAccount`'s own loader) and are completed from the
+  seeded catalogue detail rows (premises), and the page sits on the medium's canvas.
+- **Taste.** Busy and new picks go through the page's own path: the rows as their reads return them, then
+  the catalogue read (`TasteCardDetails`) adds the premise and, for the first busy anime pick, the banner
+  (so busy anime opens with the landscape card). The catalogue rows are seeded into `CatalogStore`'s detail
+  cache with the prototype's sample premises (fixture data only).
+- **+1 toast.** `progressToastRender` saves a real +1 through `HomeStore` (signed-in fixture account, a
+  temporary progress outbox, Jujutsu Kaisen 6 → 7), checks that Undo restores it, saves it again, and
+  renders the page with the toast that +1 produces ("Progress saved." with Undo and ×) at the screen foot.
+- **Re-rendered in round 2 (2026-11-02):** every `home-anime/` and `home-manga/` render (the art-filled word
+  and the switch rule changed; German under de_DE), every `firstrun/` render (now 1 px = 1 pt, like the
+  references; previously 3x), plus the new toast renders. `taste-busy-anime-banner-joined-390.png` is gone:
+  the primary busy render now shows the landscape card through the catalogue read.
+- **Re-rendered in the Task 10 pass (en_GB):** every `home-anime/` and `home-manga/` render (German ones under
   de_DE), the first-run HomeView renders, and `restyle/folio-*` (the key caps and the 40 pt manga
   leaf face changed). Not re-rendered: the other `firstrun/` and `restyle/` renders and all of
   `detail/` (they were made under the default US region before this pass; the detail pages draw
