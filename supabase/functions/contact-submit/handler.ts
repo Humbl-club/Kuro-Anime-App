@@ -64,9 +64,9 @@ export const RATE_LIMIT = {
   /** Verified app submissions per account. */
   user: { kind: "contact_user", max: 5 },
   /** All website submissions together; beyond it the website gets 429. */
-  webGlobal: { kind: "contact_global", key: "contact:global", max: 200 },
+  webGlobal: { kind: "contact_global", label: "global", max: 200 },
   /** Notification e-mails in total; beyond it messages are stored without an e-mail. */
-  notifyGlobal: { kind: "contact_notify", key: "contact:global:notify", max: 50 },
+  notifyGlobal: { kind: "contact_notify", label: "global:notify", max: 50 },
 } as const;
 
 const ALLOWED_ORIGINS = new Set([
@@ -435,7 +435,8 @@ export async function handleContactSubmit(req: Request, platform: ContactPlatfor
     // auth.uid() stays null so the RPC never adds an implicit per-user bucket of its own.
     const limiterClient = platform.callerClient(null);
     const service = platform.serviceClient();
-    if (!limiterClient || !service || !platform.ipHashSecret) {
+    const hashSecret = platform.ipHashSecret;
+    if (!limiterClient || !service || !hashSecret) {
       console.error("contact-submit: missing SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY / IP hash secret");
       return json({ error: "internal" }, 500);
     }
@@ -469,7 +470,10 @@ export async function handleContactSubmit(req: Request, platform: ContactPlatfor
 
     // 1. IP bucket first, before any token is verified (a fixed bucket when no IP header exists, so
     //    the limiter never answers "no uid/ip -> allowed").
-    const ipBucket = `contact:${await hashIp(ipBucketKey(clientIp(req) ?? "unknown"), platform.ipHashSecret)}`;
+    // Every bucket name is secret-keyed: check_concierge_rate_limit is anon-callable, so a guessable
+    // name (the global ceiling, a user id) could be filled by anyone to block the contact channel.
+    const bucket = async (label: string) => `contact:${await hashIp(label, hashSecret)}`;
+    const ipBucket = await bucket(ipBucketKey(clientIp(req) ?? "unknown"));
     const ipLimit = caller.kind === "user" ? RATE_LIMIT.appIp : RATE_LIMIT.web;
     const ipBlocked = blocked(await check(ipLimit.kind, ipBucket, ipLimit.max));
     if (ipBlocked) return ipBlocked;
@@ -483,11 +487,11 @@ export async function handleContactSubmit(req: Request, platform: ContactPlatfor
       const id = data?.user?.id;
       if (error || typeof id !== "string" || id.length === 0) return json({ error: "unauthorized" }, 401);
       userId = id;
-      const userBlocked = blocked(await check(RATE_LIMIT.user.kind, `contact:user:${id}`, RATE_LIMIT.user.max));
+      const userBlocked = blocked(await check(RATE_LIMIT.user.kind, await bucket(`user:${id}`), RATE_LIMIT.user.max));
       if (userBlocked) return userBlocked;
     } else {
       // 3. Website only: the global ceiling bounds table growth from address pools.
-      const globalBlocked = blocked(await check(RATE_LIMIT.webGlobal.kind, RATE_LIMIT.webGlobal.key, RATE_LIMIT.webGlobal.max));
+      const globalBlocked = blocked(await check(RATE_LIMIT.webGlobal.kind, await bucket(RATE_LIMIT.webGlobal.label), RATE_LIMIT.webGlobal.max));
       if (globalBlocked) return globalBlocked;
     }
     const source: "web" | "app" = userId ? "app" : "web";
@@ -512,7 +516,7 @@ export async function handleContactSubmit(req: Request, platform: ContactPlatfor
     // The inbox and the mail quota stay bounded: beyond the hourly notification ceiling (or when the
     // limiter cannot answer) the message is stored without an e-mail.
     if (platform.notify) {
-      const notifyDecision = await check(RATE_LIMIT.notifyGlobal.kind, RATE_LIMIT.notifyGlobal.key, RATE_LIMIT.notifyGlobal.max);
+      const notifyDecision = await check(RATE_LIMIT.notifyGlobal.kind, await bucket(RATE_LIMIT.notifyGlobal.label), RATE_LIMIT.notifyGlobal.max);
       if (notifyDecision.kind !== "allowed") {
         console.warn(`contact-submit: notification skipped for ${id} (${notifyDecision.kind})`);
       } else {

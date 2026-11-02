@@ -240,7 +240,9 @@ Deno.test("app: user_id comes from the verified JWT only; a body user_id is igno
   // Every limiter call runs on the anon client with an explicit key (no implicit auth.uid() bucket).
   assert.ok(f.rpcCalls.every((c) => c.authHeader === null));
   assert.deepEqual(f.rpcCalls.map((c) => c.args.p_kind), ["contact_app_ip", "contact_user", "contact_notify"]);
-  assert.equal(f.rpcCalls[1].args.p_ip, `contact:user:${USER_ID}`);
+  // Bucket names are secret-keyed: the limiter RPC is anon-callable, so a guessable key could be filled by anyone.
+  assert.equal(f.rpcCalls[1].args.p_ip, `contact:${await hashIp(`user:${USER_ID}`, "test-secret")}`);
+  assert.ok(!String(f.rpcCalls[1].args.p_ip).includes(USER_ID));
   assert.equal(f.rpcCalls[1].args.p_max_user, 5);
   assert.equal(f.rpcCalls[1].args.p_max_ip, 5);
 });
@@ -316,7 +318,8 @@ Deno.test("rate limit: web is kind contact, 5/hour, keyed-hash IP (never the raw
   assert.equal(args.p_max_ip, 5);
   assert.equal(args.p_ip, `contact:${await hashIp("203.0.113.7", "test-secret")}`);
   assert.ok(!String(args.p_ip).includes("203.0.113.7"));
-  assert.equal(f.rpcCalls[1].args.p_ip, "contact:global");
+  assert.equal(f.rpcCalls[1].args.p_ip, `contact:${await hashIp("global", "test-secret")}`);
+  assert.notEqual(f.rpcCalls[1].args.p_ip, "contact:global");
   assert.equal(f.rpcCalls[1].args.p_max_ip, 200);
   assert.ok(f.rpcCalls.every((c) => c.authHeader === null), "limiter always on the anon client");
 });
@@ -428,7 +431,7 @@ Deno.test("email: beyond the hourly notification ceiling the message is stored w
   assert.equal(f.inserts.length, 1);
   assert.equal(f.notifications.length, 0);
   const notifyCall = f.rpcCalls.find((c) => c.args.p_kind === "contact_notify");
-  assert.equal(notifyCall?.args.p_ip, "contact:global:notify");
+  assert.equal(notifyCall?.args.p_ip, `contact:${await hashIp("global:notify", "test-secret")}`);
   assert.equal(notifyCall?.args.p_max_ip, 50);
 });
 
