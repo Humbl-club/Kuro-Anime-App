@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discover Clubs Final</title>
+<meta name="description" content="Final, binding Discover + Clubs design (2026-11-03): Editorial direction with Calm and Personal grafts. Binding text: docs/superpowers/specs/2026-11-03-discover-clubs-redesign-design.md.">
+<style>
+/* ------------------------------------------------------------------
+   Tokens: Home grammar (HOME_GRAMMAR.md) + prototype measured inks.
+   Light mode only (the app is light-only: .preferredColorScheme(.light)).
+   ------------------------------------------------------------------ */
+:root{
+  --canvas:#FFFEF8;          /* kuroCanvasHome */
+  --canvas-manga:#F5F5F3;    /* kuroCanvasHomeManga */
+  --paper:#F5F5F4;           /* kuroPaper */
+  --ink:#252625;             /* kuroInk */
+  --muted:#696C6B;           /* kuroMuted */
+  --kicker:#666C68;          /* HomeInk.kicker */
+  --summary:#656C66;         /* HomeInk.calendarSummary */
+  --quiet:#6B6B6B;           /* kuroInkQuiet */
+  --line:#272B2920;          /* kuroLine (header hairline) */
+  --hair:#0000001a;          /* kuroHairline */
+  --switch-off:#6E786F;      /* HomeInk.switchUnselected */
+  --switch-mark:#203027;     /* HomeInk.switchMark */
+  --switch-hair:#20302744;   /* HomeInk.switchHairline */
+  --glance:#FFFEFA; --glance-border:#29312918; --glance-ink:#303932; --glance-muted:#687064;
+  --foot-title:#FAFAFA; --foot-fact:#DCE2DF; --foot-secondary:#DCE3DF;
+  --tab-face:#F3F4F4; --tab-ink:#26372C;
+  --key-light-top:#FBFBF9; --key-light-bottom:#E7E9E5; --key-ink:#29352C;
+  --cal:#FAFCF9; --cal-border:#D8DDD9; --cal-row:#E3E7E1; --cal-more:#F6F8F4; --cal-more-border:#D9E0D7;
+  /* ClubRoomPalette */
+  --room:#252B28; --room-glow:#444A46; --room-border:#535A554C; --room-text:#F0F4EF; --room-kicker:#C0CBBB;
+  --room-row:#F1F5ED; --room-row2:#C1CDB7; --room-footer:#B4C2A9; --room-key:#2B342E;
+  --note:#F5F6EF; --note-ink:#2E342C; --note-meta:#66705D;
+  --spoiler:#E9EDE2; --spoiler-border:#CCD4C3; --spoiler-ink:#59664E;
+  --m1:#D0D8CB; --m2:#ADBBA6; --m3:#899A82; --m-ink:#33412E; --m-rim:#2F3730;
+  --skel:#2526251f; /* placeholder, overridden below */
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --serif:"New York",ui-serif,"Iowan Old Style",Georgia,serif;
+  --studio:#E9E8E2; --studio-ink:#2B2E2C;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--studio);color:var(--studio-ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+img{display:block}
+button{font:inherit;color:inherit}
+
+/* ------------------------------ studio page ------------------------------ */
+.studio-head{max-width:1180px;margin:0 auto;padding:40px 24px 8px}
+.studio-head .eyebrow{font-size:10px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker)}
+.studio-head h1{font-size:40px;line-height:1.05;letter-spacing:-1.4px;font-weight:650;margin:8px 0 10px}
+.studio-head p{max-width:680px;font-size:14px;line-height:1.55;color:#4d524f;margin:0 0 8px}
+.studio-head .rule{width:46px;height:2px;background:var(--ink);margin:16px 0 4px}
+.row-label{max-width:1180px;margin:28px auto 10px;padding:0 24px;font-size:10px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker)}
+.strip{display:flex;gap:28px;overflow-x:auto;padding:6px 24px 26px;scroll-snap-type:x proximity}
+.strip::after{content:"";flex:0 0 1px}
+.cell{flex:none;scroll-snap-align:start}
+.cell>h3{font-size:12px;font-weight:600;margin:0 0 3px;letter-spacing:-.1px}
+.cell>p.cap{font-size:11px;color:#5e6460;margin:0 0 10px;max-width:390px;line-height:1.45}
+
+/* ------------------------------ the phone ------------------------------ */
+.phone{position:relative;width:390px;height:844px;border-radius:46px;overflow:hidden;background:var(--canvas);
+  box-shadow:0 0 0 9px #1d201e,0 0 0 10px #3a3f3c,0 30px 50px -24px #1a1f1c80;margin:10px;color:var(--ink);font-family:var(--sans)}
+.phone.short{height:560px}
+.phone.manga{background:var(--canvas-manga)}
+.status{position:absolute;inset:0 0 auto 0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 34px;font-size:15px;font-weight:600;z-index:30}
+.status i{font-style:normal;font-size:11px;letter-spacing:1px}
+.status.on-dark{color:#F0F4EF}
+.phone>.status:not(.on-dark){background:inherit}
+.scroll{position:absolute;inset:0;overflow:hidden}
+
+/* App header (KuroHeaderNew): paints the page canvas -> no seam (P1) */
+.app-header{position:absolute;top:47px;left:0;right:0;height:54px;padding:0 10px 0 22px;display:flex;align-items:center;gap:8px;background:inherit;z-index:20;border-bottom:.5px solid var(--line)}
+.phone .app-header{background:var(--canvas)}
+.phone.manga .app-header{background:var(--canvas-manga)}
+.wordmark{font-size:18px;font-weight:800;letter-spacing:3px}
+.page-name{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.dots{display:flex;gap:4px}.dots b{width:3px;height:3px;border-radius:50%;background:#25262530}.dots b.on{background:var(--ink)}
+.dots b.badge{position:relative}.hdr-icons{display:flex;align-items:center}
+.hdr-btn{width:44px;height:44px;display:grid;place-items:center}
+.ring{width:24px;height:24px;border-radius:50%;border:1px solid #2526258c;display:grid;place-items:center;font-size:11px;font-weight:500}
+.unseen{display:inline-block;width:5px;height:5px;border-radius:50%;background:#252625b3;margin-left:3px;vertical-align:2px}
+
+.content{position:absolute;left:0;right:0;top:101px;padding:7px 20px 0}
+.content.flush{padding-left:0;padding-right:0}
+
+/* ------------------------------ Home type ------------------------------ */
+.opening{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.eyebrow{font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);white-space:nowrap}
+.opening h2{margin:0;font-size:14px;font-weight:600;letter-spacing:-.3px;text-align:right}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:9px;margin:0 0 14px}
+.sec-head h2{margin:0;font-size:24px;line-height:1.1;font-weight:600;letter-spacing:-.85px}
+.sec-head small{font-size:10px;color:var(--summary);text-align:right}
+.sub-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 4px}
+.sub-head h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.sub-head small{font-size:10px;color:var(--muted)}
+.text-action{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:500;color:var(--ink)}
+
+/* ------------------------------ Discover: issue switch ------------------------------ */
+/* KuroPosterMediumSwitch grammar with three words spread edge to edge; 28 pt heavy (24 at <=328 pt). Measured: 244 pt of words at 28 pt (fits 350), 210 pt at 24 pt (fits SE 280). */
+.issue-switch{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--switch-hair);min-height:50px;margin:2px 0 12px;position:relative}
+.issue-switch span{font-size:28px;font-weight:900;letter-spacing:-1.45px;text-transform:uppercase;color:var(--switch-off);line-height:44px;position:relative;white-space:nowrap}
+.issue-switch span:nth-child(2){text-align:center}.issue-switch span:nth-child(3){text-align:right}
+.issue-switch span.on{color:transparent;-webkit-background-clip:text;background-clip:text;background-size:cover;background-position:center}
+.issue-switch span.on::after{content:"";position:absolute;bottom:-1px;width:28px;height:2px;background:var(--switch-mark);left:0}
+.issue-switch span:nth-child(2).on::after{left:50%;margin-left:-14px}
+.issue-switch span:nth-child(3).on::after{left:auto;right:0}
+
+/* ------------------------------ Discover: cover story (scene-card language) ------------------------------ */
+.cover-story{border-radius:5px;overflow:hidden;box-shadow:0 1px 1px #19221B0A;position:relative}
+.cs-art{position:relative;aspect-ratio:2.2/1;background:var(--mb,#3a3d3c)}
+.cs-art img{width:100%;height:100%;object-fit:cover}
+.cs-art::after{content:"";position:absolute;inset:50% 0 0 0;background:linear-gradient(transparent,#0000002e)}
+.cs-art .rim{position:absolute;inset:0;border:1px solid #ffffff25;border-bottom:0;border-radius:5px 5px 0 0;z-index:2}
+.tab{position:absolute;left:12px;bottom:0;z-index:3;background:var(--tab-face);border-radius:8px 8px 0 0;min-height:27px;padding:6px 9px 4px;display:flex;align-items:baseline;gap:5px;box-shadow:inset 0 1px #ffffff65}
+.tab small{font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:var(--tab-ink)}
+.tab b{font-size:13px;font-weight:600;color:var(--tab-ink);letter-spacing:-.2px}
+.foot{background:linear-gradient(135deg,var(--mb),var(--md));display:flex;align-items:stretch;min-height:58px;padding:0 10px 0 14px;border-top:1px solid #ffffff18;color:var(--foot-title)}
+.foot .t{flex:1;min-width:0;padding:11px 10px 11px 0}
+.foot .t b{display:block;font-size:17px;font-weight:600;letter-spacing:-.35px;line-height:1.2}
+.foot .t span{display:block;font-size:11px;line-height:1.45;color:var(--foot-secondary);margin-top:4px}
+.foot .div{width:1px;background:#ffffff24;margin:10px 0}
+.foot .k{width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.foot .k small{font-size:9px;color:var(--foot-secondary)}
+.fact{background:linear-gradient(135deg,var(--mb),var(--md));display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;padding:0 14px;border-top:1px solid #ffffff0d;font-size:10px;color:var(--foot-fact)}
+.fact .who{display:flex;align-items:center;gap:6px}
+.disc{width:17px;height:17px;border-radius:50%;background:#ffffff14;border:1px solid #ffffff44;display:grid;place-items:center;font-size:7px}
+
+/* Keys (KuroAdvanceKey faces) */
+.key{width:44px;height:44px;display:grid;place-items:center;flex:none}
+.key i{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:19px;font-weight:300;border:1px solid #20282326;box-shadow:inset 0 1px #ffffff35,0 1px 1px #14231912}
+.key.light i{background:linear-gradient(var(--key-light-top),var(--key-light-bottom));color:var(--key-ink)}
+.key.mat i{background:linear-gradient(var(--mb),var(--md));color:#fff;border-color:#ffffff30}
+.key.ink i{background:linear-gradient(#3A423D,#232925);color:#F2F5F0}
+.key.ghost i{background:none;border:none;box-shadow:none;color:#767B77;font-size:13px}
+.key.on-art.ghost i{color:#B9C5C1}
+
+/* Glance (HomeComingUpGlance) */
+.glance{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 12px;background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;box-shadow:0 1px 1px #29312905}
+.glance .g-copy{flex:1;min-width:0}
+.glance .g-copy b{display:block;font-size:14px;font-weight:600;letter-spacing:-.3px;color:var(--glance-ink)}
+.glance .g-copy span{display:block;font-size:10px;color:var(--glance-muted);margin-top:4px;line-height:1.35}
+.thumbs{display:flex}
+.thumbs img{width:27px;height:38px;object-fit:cover;border-radius:2px;border:1px solid var(--glance);box-shadow:0 1px 2px #26352B14;margin-left:-7px}
+.thumbs img:first-child{margin-left:0}
+.count{min-width:39px;text-align:right}
+.count b{display:block;font:500 21px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:-.6px;color:var(--glance-ink)}
+.count small{display:block;font-size:8px;color:var(--glance-muted);margin-top:3px}
+.chev{font-size:16px;color:#727D73;width:12px;text-align:center}
+
+/* Contents (in this issue) */
+.contents{padding:12px 0 2px;border-top:1px solid var(--hair)}
+.contents ol{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}
+.contents li{font-size:12px;font-weight:500;display:flex;align-items:baseline;gap:4px;min-height:22px}
+.contents li small{font-size:10px;color:var(--muted);font-weight:400}
+.link-row{display:flex;align-items:center;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--ink)}
+.link-row .lr{display:flex;flex-direction:column;gap:3px}
+.link-row .lr small{font-size:9px;font-weight:500;letter-spacing:2.1px;text-transform:uppercase;color:var(--quiet)}
+.link-row .lr b{font-size:17px;font-weight:600;letter-spacing:-.35px}
+.link-row .arr{font-size:13px}
+
+/* Feature + three (fewer, better) */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.trio .c img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:4px;box-shadow:0 2px 3px #242C2514}
+.trio .c b{display:block;font-size:12px;font-weight:500;line-height:1.3;margin-top:7px}
+.trio .c small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.mark{display:inline-block;font-size:9px;color:#5B635C;border:1px solid #D7DBD5;border-radius:4px;padding:1px 4px;margin-top:4px}
+
+/* Index list (Essentials) */
+.index{list-style:none;margin:0;padding:0;border-top:1px solid var(--hair)}
+.index li{display:flex;align-items:center;gap:12px;min-height:76px;padding:8px 0;border-bottom:.5px solid var(--hair)}
+.index .n{font:500 13px ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted);width:20px}
+.index img{width:40px;height:60px;object-fit:cover;border-radius:2px;box-shadow:0 1px 2px #242C2514}
+.index .x{flex:1;min-width:0}
+.index .x b{display:block;font-size:15px;font-weight:500;letter-spacing:-.2px;line-height:1.25}
+.index .x small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+
+/* Local refinement chips (rail-scoped, deliberately small: not the medium switch) */
+.refine{display:flex;gap:16px;margin:0 0 12px}
+.refine span{font-size:11px;font-weight:500;color:var(--muted);padding-bottom:5px;position:relative;min-height:28px;display:flex;align-items:flex-end}
+.refine span.on{color:var(--ink)}
+.refine span.on::after{content:"";position:absolute;left:0;bottom:0;width:16px;height:1.5px;background:var(--ink)}
+.rail{display:flex;gap:14px;overflow:hidden;margin-right:-20px}
+.rail .c{flex:none;width:106px}
+.rail .c img{width:106px;height:138px;object-fit:cover;border-radius:4px;box-shadow:0 2px 3px #242C2514}
+.rail .c b{display:block;font-size:12px;font-weight:500;line-height:1.3;margin-top:7px}
+.rail .c small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+
+.fold{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 14px;background:var(--cal-more);border:1px solid var(--cal-more-border);border-radius:10px;font-size:12px;font-weight:500}
+.fold small{font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap}
+.fold span{white-space:nowrap}
+.home-footer{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:28px 2px 28px}
+.home-footer b{letter-spacing:2px}
+
+/* ------------------------------ Clubs: the room ------------------------------ */
+.room{position:relative;border-radius:24px;padding:18px 16px 10px;color:var(--room-text);
+  background:radial-gradient(ellipse 260px 220px at 0 0,var(--room-glow),transparent 100%),var(--room);
+  border:1px solid var(--room-border);box-shadow:inset 0 1px #ffffff21,0 10px 20px -14px #10171066}
+.masthead{display:flex;align-items:center;gap:10px}
+.seal{width:36px;height:36px;flex:none;border:1px solid #bfcabd44;border-radius:9px;display:grid;place-items:center}
+.seal svg{width:28px;height:28px;fill:none;stroke:#D2DACD;stroke-width:.9;transform:rotate(-12deg)}
+.room .kick{display:block;font-size:7px;letter-spacing:1.4px;color:var(--room-kicker);text-transform:uppercase;margin-bottom:4px}
+.room h2{font-family:var(--serif);font-weight:400;font-size:22px;line-height:1.08;letter-spacing:-.6px;margin:0}
+.room .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--room-text);margin-left:6px;vertical-align:4px}
+.fan{display:flex;margin-left:auto;flex:none;padding-left:8px}
+.fan img{width:30px;height:44px;object-fit:cover;border-radius:2px;border:1.5px solid #2F3730;margin-left:-9px;box-shadow:-2px 0 3px #0000002a}
+.fan img:first-child{margin-left:0}
+.meta-line{display:flex;align-items:center;gap:8px;margin:12px 0 2px;font-size:10px;color:var(--room-row2)}
+.members{display:flex;flex:none}
+.members span{width:22px;height:22px;border-radius:50%;border:2px solid var(--m-rim);display:grid;place-items:center;font-size:7px;color:var(--m-ink);background:var(--m1);margin-left:-6px;font-weight:600}
+.members span:first-child{margin-left:0}
+.members span:nth-child(3n+2){background:var(--m2)}.members span:nth-child(3n+3){background:var(--m3)}
+.members span.you{background:none;border:1px solid #F0F4EF99;color:var(--room-text);font-size:6.5px;width:24px;height:24px}
+.members span.more{background:#3A433D;color:var(--room-row2)}
+.r-row{display:flex;align-items:center;gap:10px;min-height:62px;padding:10px 2px;border-top:1px solid #c5d2b81c;margin-top:10px}
+.r-row img{width:30px;height:44px;object-fit:cover;border-radius:3px}
+.r-row .rr{flex:1;min-width:0}
+.r-row b{display:block;font-size:11px;font-weight:500;color:var(--room-row)}
+.r-row .rr span{display:block;font-size:10px;color:var(--room-row2);margin-top:3px}
+.r-row .ch{font-size:15px;color:#CFDBC5}
+.r-foot{display:flex;justify-content:space-between;align-items:center;font-size:8px;color:var(--room-footer);padding:9px 2px 2px;border-top:1px solid #c5d2b81c}
+.room.manga{border-radius:13px}
+.room + .room{margin-top:14px}
+.note{background:var(--note);color:var(--note-ink);border:1px solid #ffffff88;border-radius:14px;box-shadow:0 3px 7px #00000022;padding:15px;margin-top:16px;display:flex;gap:13px}
+.note img{width:60px;height:90px;object-fit:cover;border-radius:3px;box-shadow:0 3px 6px #252B2625;flex:none}
+.note .nc{flex:1;min-width:0}
+.note .by{display:flex;justify-content:space-between;font-size:11px}
+.note .by b{font-weight:600}.note .by small{font-size:10px;color:var(--note-meta)}
+.note .on{font-size:10px;color:var(--note-meta);margin-top:3px}
+.spoiler{display:flex;align-items:center;justify-content:space-between;min-height:46px;padding:7px 10px;margin-top:10px;background:var(--spoiler);border:1px solid var(--spoiler-border);border-radius:8px;font-size:10px;color:var(--spoiler-ink)}
+.spoiler i{font-style:normal;font-size:16px}
+.note .ttl{display:block;font-size:10px;color:var(--note-meta);padding-top:9px}
+.room-key{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border-radius:9px;background:linear-gradient(#36413A,var(--room-key));border:1px solid #5B665E;box-shadow:inset 0 1px #ffffff22;color:var(--room-text);font-size:13px;font-weight:500}
+.room-quiet{display:flex;align-items:center;justify-content:space-between;min-height:44px;font-size:12px;color:var(--room-row2);padding:0 2px}
+
+/* Club journey sheet */
+.backdrop{position:absolute;inset:0;background:#0b0e0c}
+.backdrop .peek{position:absolute;left:12px;right:12px;top:47px;height:30px;border-radius:12px 12px 0 0;background:#d9d8d1;opacity:.55}
+.sheet{position:absolute;left:0;right:0;top:57px;bottom:0;border-radius:12px 12px 0 0;overflow:hidden;background:var(--canvas)}
+.grabber{position:absolute;top:6px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:#ffffff55;z-index:9}
+.hero{position:relative;padding:22px 18px 16px;border-radius:0 0 24px 24px;color:var(--room-text);
+  background:radial-gradient(ellipse 300px 240px at 0 0,var(--room-glow),transparent 100%),var(--room);box-shadow:0 10px 20px -14px #10171066}
+.hero-btns{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:5}
+.round{width:44px;height:44px;display:grid;place-items:center}
+.round i{width:34px;height:34px;border-radius:50%;background:#ffffff1f;border:1px solid #ffffff22;display:grid;place-items:center;font-style:normal;font-size:15px;color:#F0F4EF;backdrop-filter:blur(10px)}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:30px;letter-spacing:-.9px;line-height:1.05;margin:14px 0 6px}
+.hero .desc{font-size:12px;line-height:1.45;color:var(--room-row2);margin:0}
+.hero .meta-line{margin-top:13px}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px 18px 4px}
+.act{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 10px;border-radius:7px;background:linear-gradient(var(--key-light-top),var(--key-light-bottom));border:1px solid #20282326;box-shadow:inset 0 1px #ffffff90,0 1px 1px #14231912;font-size:12px;font-weight:500;color:var(--key-ink)}
+.act i{font-style:normal;font-size:15px;width:14px;text-align:center}
+.tabs{display:flex;gap:22px;padding:0 18px;border-bottom:1px solid var(--switch-hair);margin-top:10px;background:var(--canvas)}
+.tabs span{position:relative;min-height:44px;display:flex;align-items:center;gap:5px;font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--switch-off)}
+.tabs span small{font-size:10px;font-weight:400;color:var(--muted)}
+.tabs span.on{color:var(--ink)}
+.tabs span.on::after{content:"";position:absolute;left:0;bottom:-1px;width:28px;height:2px;background:var(--switch-mark)}
+.cbar{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;padding:0 6px 0 16px;background:#FFFEF8EB;backdrop-filter:blur(18px);border-bottom:.5px solid var(--line);z-index:8}
+.cbar b{flex:1;text-align:center;font-size:15px;font-weight:600;letter-spacing:-.2px;padding-left:44px}
+.cbar .g{width:44px;height:44px;display:grid;place-items:center;font-size:17px;color:var(--ink)}
+.list-block{padding:18px 18px 4px}
+.list-block .desc{font-size:11px;color:var(--muted);margin:2px 0 12px;line-height:1.4}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tile{display:flex;gap:9px}
+.tile img{width:44px;height:66px;object-fit:cover;border-radius:4px;box-shadow:0 3px 3.5px #22222255;flex:none}
+.tile .tt{flex:1;min-width:0}
+.tile .tt b{display:block;font-size:12px;font-weight:500;line-height:1.28}
+.tile .tt small{display:block;font-size:10px;color:#5B635C;margin-top:3px;line-height:1.3}
+.tile .tt .nlink{color:var(--ink);text-decoration:underline;text-decoration-color:#25262540;text-underline-offset:2px}
+.react{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.react span{font-size:10px;padding:2px 6px;border-radius:9px;background:#2526250d;color:#4c524e;min-height:20px;display:flex;align-items:center;gap:3px}
+.react span.mine{background:#2526251c;color:var(--ink)}
+.add-inline{font-size:12px;font-weight:500;color:var(--ink);display:flex;align-items:center;min-height:44px;gap:4px}
+.hairline{height:1px;background:var(--hair);margin:16px 18px 0}
+
+/* This week: HomeCalendarCard grammar */
+.cal{background:var(--cal);border:1px solid var(--cal-border);border-radius:18px;overflow:hidden;box-shadow:0 2px 3px #1D291C14}
+.day{display:flex;align-items:center;gap:11px;min-height:70px;padding:12px}
+.day+.day,.day+.ev,.ev+.day{border-top:1px solid var(--cal-row)}
+.chip{width:40px;height:44px;border-radius:10px;background:#fff;border:1px solid #D4DBD4;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.chip b{font:500 17px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:-.6px}
+.chip small{font-size:8px;letter-spacing:.4px;color:#667267;margin-top:2px;text-transform:uppercase}
+.day .dl{flex:1}
+.day .dl b{display:block;font-size:12px;font-weight:600}
+.day .dl small{display:block;font-size:10px;color:#68736A;margin-top:2px}
+.stack{display:flex}.stack img{width:23px;height:34px;object-fit:cover;border-radius:2px;border:2px solid #fff;margin-left:-6px;box-shadow:-2px 0 3px #243A2120}
+.disc-ch{font-size:19px;font-weight:300;color:#727D73;width:20px;text-align:center}
+.ev{display:flex;align-items:center;gap:11px;min-height:70px;padding:11px 12px 11px 63px;background:#fff}
+.ev img{width:32px;height:48px;object-fit:cover;border-radius:3px}
+.ev .el{flex:1;min-width:0}
+.ev .el p{margin:0;font-size:12px;line-height:1.35}
+.ev .el small{display:block;font-size:10px;color:#68736A;margin-top:3px}
+.ev .when{font-size:10px;color:#58665B;max-width:62px;text-align:right}
+.ev .c12{font-size:12px;color:#798679}
+
+/* Polls */
+.poll{background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;padding:14px 14px 6px;box-shadow:0 1px 1px #29312905}
+.poll .ph{display:flex;justify-content:space-between;align-items:baseline}
+.poll h4{font-size:17px;font-weight:600;letter-spacing:-.35px;margin:6px 0 10px;line-height:1.25}
+.opt{display:flex;align-items:center;gap:10px;min-height:58px;border-top:1px solid #E3E7E1;padding:7px 0}
+.opt img{width:27px;height:38px;object-fit:cover;border-radius:2px}
+.opt .ol{flex:1;min-width:0}
+.opt .ol b{font-size:13px;font-weight:500;display:flex;justify-content:space-between}
+.opt .bar{height:3px;background:#E4E7E2;border-radius:2px;margin-top:6px;overflow:hidden}
+.opt .bar i{display:block;height:100%;background:var(--ink)}
+.opt .ol small{font-size:10px;color:var(--muted);display:block;margin-top:4px}
+.opt .vote{width:22px;height:22px;border-radius:50%;border:1px solid #9AA39C;flex:none;display:grid;place-items:center;font-size:11px}
+.opt .vote.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* States */
+.sk{background:#2526251f;background:rgba(37,38,37,.08);border-radius:5px}
+.sk.deep{background:rgba(37,38,37,.13)}
+.scrub{width:96px;height:1px;background:#D7D9D7;margin:18px auto 0;position:relative;overflow:hidden}
+.scrub::after{content:"";position:absolute;left:0;top:0;bottom:0;width:38%;background:#626962}
+.state{text-align:center;padding:20px 32px}
+.state h4{font-size:24px;font-weight:700;letter-spacing:-.8px;margin:14px 0 6px}
+.state p{font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.45}
+.retry{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:500;border-bottom:1px solid var(--ink)}
+.band{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#FFFFFF80;border:1px solid #DCE1DC;border-radius:8px;font-size:11px;color:var(--muted);margin-bottom:12px}
+.band b{color:var(--ink);font-weight:600}
+.quietcard{font-size:11px;color:var(--muted);padding:12px;background:#FFFFFF80;border:1px solid #DCE1DC;border-radius:8px}
+
+/* Manga lead fallback (cover spread, capped) */
+.spread{display:flex;border-radius:5px;overflow:hidden;max-height:220px;box-shadow:0 1px 1px #19221B0A}
+.spread img{width:132px;height:198px;object-fit:cover}
+.spread .sp{flex:1;background:linear-gradient(135deg,var(--mb),var(--md));color:#FAFAFA;padding:14px 12px 10px 14px;display:flex;flex-direction:column}
+.spread .sp small.k{font-size:7px;letter-spacing:1.4px;color:var(--foot-secondary);text-transform:uppercase}
+.spread .sp b{font-size:20px;font-weight:600;letter-spacing:-.5px;margin-top:6px}
+.spread .sp span{font-size:11px;line-height:1.45;color:var(--foot-secondary);margin-top:6px;flex:1}
+.spread .sp .bot{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--foot-fact)}
+
+/* Docs below */
+.doc{max-width:1180px;margin:0 auto;padding:10px 24px 80px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:28px 40px}
+.doc section h2{font-size:24px;font-weight:600;letter-spacing:-.85px;margin:22px 0 10px}
+.doc section h3{font-size:15px;font-weight:600;letter-spacing:-.2px;margin:18px 0 6px}
+.doc section p,.doc section li{font-size:13px;line-height:1.6;color:#3f4441}
+.doc section ul,.doc section ol{padding-left:18px;margin:6px 0}
+.doc code{font:12px ui-monospace,"SF Mono",Menlo,monospace;background:#2526250d;padding:1px 4px;border-radius:3px}
+.doc .wide{grid-column:1/-1}
+table.copy{width:100%;border-collapse:collapse;font-size:12px}
+table.copy th{text-align:left;font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);font-weight:500;padding:8px 10px 8px 0;border-bottom:1px solid var(--ink)}
+table.copy td{padding:8px 10px 8px 0;border-bottom:.5px solid #00000018;vertical-align:top;line-height:1.45}
+table.copy td:first-child{color:#5e6460;width:22%}
+.tag{display:inline-block;font-size:9px;letter-spacing:.6px;text-transform:uppercase;border:1px solid #9aa39c;border-radius:4px;padding:1px 5px;color:#4f5651;margin-left:4px;vertical-align:1px}
+
+@media (max-width:520px){.strip{gap:12px;padding-inline:4px}.phone{transform:scale(.86);transform-origin:top left;margin-bottom:-110px;margin-right:-50px}.studio-head h1{font-size:30px}}
+
+/* ---------- FINAL additions ---------- */
+/* TastePlanKey (TastePicksView.swift:1455): labelled 44 pt plan key; saved = dark face + filled bookmark */
+.plan-key{display:inline-flex;align-items:center;justify-content:space-between;gap:5px;min-height:44px;padding:0 10px 0 12px;border-radius:10px;
+  background:#F4F6F5;border:1px solid #E0E5E1;box-shadow:inset 0 1px #fff;color:#36433A;font-size:11px;font-weight:500;white-space:nowrap;flex:none}
+.plan-key .bm{width:11px;height:13px;fill:none;stroke:currentColor;stroke-width:1.1}
+.plan-key .bm.fill{fill:currentColor}
+.plan-key.leaf{background:#FFFFFC;border-color:#BEC5B8;font-size:10px;width:96px;padding:0 8px 0 10px}
+.plan-key.saved{background:#303932;border-color:#303932;color:#fff;box-shadow:none}
+.plan-key.leaf.saved{background:#30352B;border-color:#30352B}
+.foot .k.k-plan{width:118px;padding-left:10px}
+.foot .k.k-plan .plan-key{width:100%}
+.spread .bot .plan-key{min-height:40px}
+/* iPhone SE frame (320 pt): gutter 16, switch 24 pt */
+.phone.se{width:320px}
+.phone.se .content{padding:7px 16px 0}
+.phone.se .opening .eyebrow{font-size:8px}.phone.se .opening h2{font-size:13px}
+.phone.se .issue-switch span{font-size:24px;letter-spacing:-1.25px}
+.phone.se .foot .k.k-plan{width:100px}
+.phone.se .trio{gap:10px}
+/* members row on a single-key (member) view */
+.actions.one{grid-template-columns:1fr}
+/* inline spoiler note under a tile (notes other than the hero note) */
+.tnote{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:5px;padding:5px 7px;border:1px solid #CCD4C3;background:#E9EDE2;border-radius:6px;font-size:9.5px;color:#59664E;min-height:28px}
+/* invite tool sheet */
+.tool{position:absolute;left:0;right:0;bottom:0;top:180px;border-radius:14px 14px 0 0;background:var(--canvas);box-shadow:0 -8px 24px #0000002a;padding:14px 20px}
+.tool .tg{width:36px;height:5px;border-radius:3px;background:#25262530;margin:0 auto 10px}
+.tool .tc{display:flex;justify-content:space-between;align-items:center;min-height:44px;font-size:15px}
+.code{font:500 24px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:3px;margin:8px 0 6px}
+.tool-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.final-note{max-width:1180px;margin:0 auto;padding:8px 24px 80px;font-size:13px;line-height:1.6;color:#3f4441}
+.final-note h2{font-size:24px;font-weight:600;letter-spacing:-.85px;margin:22px 0 10px;color:var(--studio-ink)}
+.final-note code{font:12px ui-monospace,"SF Mono",Menlo,monospace;background:#2526250d;padding:1px 4px;border-radius:3px}
+.final-note li{margin:3px 0}
+code{overflow-wrap:anywhere}
+.studio-head .eyebrow{white-space:normal}
+</style>
+</head>
+<body>
+
+<header class="studio-head">
+  <div class="eyebrow">Kuro · Discover + Clubs · FINAL (binding with the spec) · 3 Nov 2026</div>
+  <h1>Discover is an issue.<br>Clubs are rooms. <span style="color:#8a908c">Final.</span></h1>
+  <p>Home is the authority. Discover becomes a daily issue edited from Home’s scene-card language: one cover story on the title’s own artwork material, a contents line, then a few sections with clear hierarchy (a feature, a numbered index, one rail) instead of ten identical poster blocks. Clubs keep the one surface people already love on Home, the dark room, and use it everywhere: the list, the empty page and the club’s own page.</p>
+  <p>All pages paint Home’s warm canvas (#FFFEF8; manga #F5F5F3) and the header paints the same colour, so swiping from Home no longer jumps to white. Every number, title and line on these frames maps to a field the app already loads. Nothing here needs a backend change.</p>
+  <p><b>Binding text:</b> <code>docs/superpowers/specs/2026-11-03-discover-clubs-redesign-design.md</code>. Scores: <code>JUDGING.md</code>. Changes from the Editorial mockup: TastePlanKey for Plan, invite and Ask keys for owners and admins only, “Rails” kept in English, one placement per note, “N members” on list rooms, shipped German copied exactly. Frames 5b, 9 and SE-1 are new.</p>
+  <div class="rule"></div>
+</header>
+
+<!-- =============================== DISCOVER =============================== -->
+<div class="row-label">Discover · All / Anime / Manga · pager page (no back control)</div>
+<div class="strip">
+
+  <!-- 1. Discover All, top -->
+  <div class="cell">
+    <h3>1 · Discover, All (top)</h3>
+    <p class="cap">Opening row, the three-word issue switch (art in the selected word), the cover story with the existing TastePlanKey (plan → toast with Undo; tracked → editor), the Airing-today glance, the contents line with Browse, then section one.</p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening"><span class="eyebrow">Today’s issue · Mon 3 Nov</span><h2>Edited for you.</h2></div>
+        <div class="issue-switch" role="group" aria-label="Show">
+          <span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/journal-anime-15-banner.jpg)">All</span><span>Anime</span><span>Manga</span>
+        </div>
+
+        <article class="cover-story" style="--mb:#3c5870;--md:#253541">
+          <div class="cs-art"><img src="../../../tools/design-directions/assets/journal-anime-15-banner.jpg" alt=""><span class="rim"></span>
+            <span class="tab"><small>Today’s</small><b>pick</b></span></div>
+          <div class="foot">
+            <div class="t"><b>Your Name.</b><span>Two strangers, one comet, and the ache of almost remembering.</span></div>
+            <span class="div"></span>
+            <div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div>
+          </div>
+          <div class="fact"><span>2016 · Movie</span><span class="who"><span class="disc">J</span>2 in your clubs ›</span></div>
+        </article>
+
+        <div class="glance" style="margin-top:12px">
+          <div class="g-copy"><b>Airing today</b><span>Next: Mob Psycho 100 · Ep. 7 at 21:30</span></div>
+          <div class="thumbs"><img src="../../../tools/design-directions/assets/journal-anime-22-cover.jpg" alt=""><img src="../../../tools/design-directions/assets/anime1.jpg" alt=""><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""></div>
+          <div class="count"><b>6</b><small>today</small></div><span class="chev">›</span>
+        </div>
+
+        <div class="contents" style="margin-top:12px">
+          <span class="eyebrow">In this issue</span>
+          <ol><li>New to you <small>8</small></li><li>Essential anime <small>10</small></li><li>Manga new to you <small>8</small></li><li>Trending <small>20</small></li><li>Essential manga <small>10</small></li><li>+4 more <small>↓</small></li></ol>
+          <div class="link-row" style="margin-top:6px"><span class="lr"><small>Everything</small><b>Browse the catalogue</b></span><span class="arr">→</span></div>
+        </div>
+
+        <div style="margin-top:28px">
+          <div class="sec-head"><h2>New to you.</h2><small>Unseen by you · changes daily</small></div>
+          <article class="cover-story" style="--mb:#493146;--md:#2c212c">
+            <div class="cs-art" style="aspect-ratio:3.25/1"><img src="../../../tools/design-directions/assets/journal-anime-22-banner.jpg" alt=""><span class="rim"></span></div>
+            <div class="foot"><div class="t"><b>Mob Psycho 100</b><span>2016 · TV · 12 eps</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Discover Anime, scrolled -->
+  <div class="cell">
+    <h3>2 · Discover, Anime (scrolled)</h3>
+    <p class="cap">Mid-page: the end of “New to you” (feature + three), Essentials as a numbered index with TastePlanKeys (a tracked row shows “On your list”, which opens the editor), Trending as the one horizontal rail with its own small local refinement, then the fold for the remaining sections (Classics, This season, Top rated, Newly added).</p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content" style="top:101px;padding-top:0">
+        <div class="trio" style="margin-top:-176px">
+          <div class="c"><img src="../../../tools/design-directions/assets/anime3.jpg" alt=""><b>Death Note</b><small>2006 · TV · 37 eps</small></div>
+          <div class="c"><img src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt=""><b>Fullmetal Alchemist: Brotherhood</b><small>2009 · TV</small></div>
+          <div class="c"><img src="../../../tools/design-directions/assets/journal-anime-16-cover.jpg" alt=""><b>A Silent Voice</b><small>2 in your clubs</small><span class="mark">On your list</span></div>
+        </div>
+        <span class="text-action">See all 8 ›</span>
+
+        <div style="margin-top:8px">
+          <div class="sec-head"><h2>Essential anime.</h2><small>The canon, in our order</small></div>
+          <ol class="index">
+            <li><span class="n">01</span><img src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt=""><span class="x"><b>Fullmetal Alchemist: Brotherhood</b><small>2009 · TV · 64 eps</small></span><span class="plan-key leaf">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+            <li><span class="n">02</span><img src="../../../tools/design-directions/assets/anime0.jpg" alt=""><span class="x"><b>Attack on Titan</b><small>2013 · TV · 25 eps</small></span><span class="plan-key leaf saved">On your list<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+            <li><span class="n">03</span><img src="../../../tools/design-directions/assets/anime3.jpg" alt=""><span class="x"><b>Death Note</b><small>2006 · TV · 37 eps</small></span><span class="plan-key leaf">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+          </ol>
+          <span class="text-action">See all 10 ›</span>
+        </div>
+
+        <div style="margin-top:8px">
+          <div class="sec-head" style="margin-bottom:4px"><h2>Trending.</h2><small>This week on Kuro</small></div>
+          <div class="refine" role="group" aria-label="Refine this rail"><span class="on">All</span><span>Short</span><span>Long</span><span>Finished</span></div>
+          <div class="rail">
+            <div class="c"><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""><b>Jujutsu Kaisen</b><small>2020 · TV</small></div>
+            <div class="c"><img src="../../../tools/design-directions/assets/journal-anime-22-cover.jpg" alt=""><b>Mob Psycho 100</b><small>Ep. 7 · 21:30</small></div>
+            <div class="c"><img src="../../../tools/design-directions/assets/anime1.jpg" alt=""><b>Demon Slayer</b><small>2019 · TV</small></div>
+            <div class="c"><img src="../../../tools/design-directions/assets/anime0.jpg" alt=""><b>Attack on Titan</b><small>2013 · TV</small></div>
+          </div>
+        </div>
+
+        <div class="fold" style="margin-top:14px"><span>Show 4 more sections</span><small>Classics, Top rated +2 ⌄</small></div>
+        <div class="home-footer"><span>Your pace. Your place.</span><b>KURO</b></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SE-1. Discover All at 320 -->
+  <div class="cell">
+    <h3>SE-1 · Discover, All at 320 pt (iPhone SE)</h3>
+    <p class="cap">Gutter 16, a 288 pt column. The switch words drop to 24 pt and are not scaled down (210 pt of words). The opening kicker is 8 pt. The key column is 100 pt.</p>
+    <div class="phone se short">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening"><span class="eyebrow">Today’s issue · Mon 3 Nov</span><h2>Edited for you.</h2></div>
+        <div class="issue-switch"><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/journal-anime-15-banner.jpg)">All</span><span>Anime</span><span>Manga</span></div>
+        <article class="cover-story" style="--mb:#3c5870;--md:#253541">
+          <div class="cs-art"><img src="../../../tools/design-directions/assets/journal-anime-15-banner.jpg" alt=""><span class="rim"></span><span class="tab"><small>Today’s</small><b>pick</b></span></div>
+          <div class="foot"><div class="t"><b>Your Name.</b><span>Two strangers, one comet, and the ache of almost remembering.</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+          <div class="fact"><span>2016 · Movie</span><span class="who"><span class="disc">J</span>2 in your clubs ›</span></div>
+        </article>
+      </div>
+    </div>
+  </div>
+  <!-- 2b. Manga lead fallback -->
+  <div class="cell">
+    <h3>2b · Discover, Manga (top, no banner)</h3>
+    <p class="cap">Manga canvas #F5F5F3. A cover-only pick becomes a capped spread (≤ 220 pt) instead of a 560 pt cover (P14). Selected word fills with the cover.</p>
+    <div class="phone manga short">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening"><span class="eyebrow">Today’s issue · Mon 3 Nov</span><h2>Edited for you.</h2></div>
+        <div class="issue-switch"><span>All</span><span>Anime</span><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/journal-manga-14-cover.png)">Manga</span></div>
+        <article class="spread" style="--mb:#313a49;--md:#20262e">
+          <img src="../../../tools/design-directions/assets/journal-manga-14-cover.png" alt="">
+          <div class="sp"><small class="k">Today’s pick</small><b>Vagabond</b><span>Every stroke has weight. A swordsman’s life, drawn like ink on rice paper.</span>
+            <div class="bot"><span>1998 · Manga</span><span class="plan-key">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+        </article>
+        <div class="glance" style="margin-top:12px">
+          <div class="g-copy"><b>Manga new to you</b><span>Eight volumes you haven’t opened</span></div>
+          <div class="thumbs"><img src="../../../tools/design-directions/assets/manga3.jpg" alt=""><img src="../../../tools/design-directions/assets/journal-manga-16-cover.jpg" alt=""><img src="../../../tools/design-directions/assets/journal-manga-23-cover.jpg" alt=""></div>
+          <div class="count"><b>8</b><small>new</small></div><span class="chev">↓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============================== CLUBS =============================== -->
+<div class="row-label">Clubs · pager page · the room everywhere</div>
+<div class="strip">
+
+  <!-- 3. Clubs list -->
+  <div class="cell">
+    <h3>3 · Clubs list</h3>
+    <p class="cap">Each club is a room (seal, kicker, serif name, positional member fills). Meta has its own line: member_count, rail_count, poll_count (no “You + n” here: list rows carry no member ids; Home’s room does the same). Covers appear as a small fan, only the real ones: no dark empty slots. A long German name wraps inside the room.</p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Clubs<span class="dots"><b></b><b></b><b></b><b></b><b class="on"></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening" style="margin-bottom:12px"><span class="eyebrow">Your private clubs · 3</span><h2>2 with something new.</h2></div>
+
+        <article class="room">
+          <div class="masthead">
+            <span class="seal"><svg viewBox="0 0 40 40"><path d="M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10"/></svg></span>
+            <div style="min-width:0"><span class="kick">Progress shared</span><h2>Sunday Club<span class="dot" aria-label="New activity"></span></h2></div>
+            <span class="fan"><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""><img src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt=""><img src="../../../tools/design-directions/assets/anime0.jpg" alt=""></span>
+          </div>
+          <div class="meta-line"><span class="members"><span>M</span><span>J</span><span>A</span><span>B</span></span><span>5 members · 3 rails · 1 open poll</span></div>
+          <div class="r-row"><img src="../../../tools/design-directions/assets/journal-anime-16-cover.jpg" alt=""><span class="rr"><b>Added A Silent Voice</b><span>3 hr ago</span></span><span class="ch">›</span></div>
+        </article>
+
+        <article class="room manga">
+          <div class="masthead">
+            <span class="seal"><svg viewBox="0 0 40 40"><path d="M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10"/></svg></span>
+            <div style="min-width:0"><span class="kick">Statuses shared</span><h2>Ink Readers<span class="dot" aria-label="New activity"></span></h2></div>
+            <span class="fan"><img src="../../../tools/design-directions/assets/manga2.jpg" alt=""><img src="../../../tools/design-directions/assets/manga3.jpg" alt=""></span>
+          </div>
+          <div class="meta-line"><span class="members"><span>C</span><span>D</span></span><span>3 members · 1 rail · 1 open poll</span></div>
+          <div class="r-row"><img src="../../../tools/design-directions/assets/manga3.jpg" alt=""><span class="rr"><b>Poll: Berserk or Vagabond next?</b><span>5 days ago</span></span><span class="ch">›</span></div>
+        </article>
+
+        <article class="room">
+          <div class="masthead" style="align-items:flex-start">
+            <span class="seal"><svg viewBox="0 0 40 40"><path d="M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10"/></svg></span>
+            <div style="min-width:0"><span class="kick">Totals only</span><h2>Die sehr lange Freitagabend-Runde der Anime-Freunde</h2></div>
+          </div>
+          <div class="meta-line"><span class="members"><span>L</span></span><span>2 members · no rails yet</span></div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3b. Clubs list, end -->
+  <div class="cell">
+    <h3>3b · Clubs list (end)</h3>
+    <p class="cap">Scrolled past the last room: Home’s invitation link rows on paper (kicker, 17 pt title, arrow, ink rule). Joining now opens the club it joined (P16). The footer ends the page.</p>
+    <div class="phone short">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Clubs<span class="dots"><b></b><b></b><b></b><b></b><b class="on"></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content" style="padding-top:0">
+        <div style="margin-top:20px">
+          <div class="link-row"><span class="lr"><small>New</small><b>Start a club.</b></span><span class="arr">→</span></div>
+          <div class="link-row" style="margin-top:22px"><span class="lr"><small>Invite code</small><b>Join a club.</b></span><span class="arr">→</span></div>
+        </div>
+        <div class="home-footer" style="padding-top:40px"><span>Your pace. Your place.</span><b>KURO</b></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Clubs empty -->
+  <div class="cell">
+    <h3>4 · Clubs, empty</h3>
+    <p class="cap">The existing room invitation, now on warm paper, with a translated kicker and the dark room key. Under it, one quiet card says what a club holds; the words match what the club page actually shows.</p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Clubs<span class="dots"><b></b><b></b><b></b><b></b><b class="on"></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening" style="margin-bottom:12px"><span class="eyebrow">Your private clubs</span><h2>Just your people.</h2></div>
+        <article class="room" style="padding:22px 18px 12px">
+          <div class="masthead">
+            <span class="seal"><svg viewBox="0 0 40 40"><path d="M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10"/></svg></span>
+            <div><span class="kick">Your private club</span></div>
+          </div>
+          <h2 style="font-size:30px;letter-spacing:-.9px;margin:18px 0 8px">A room for the people you watch with.</h2>
+          <p style="font-size:12px;line-height:1.5;color:var(--room-row2);margin:0 0 20px">Two to twenty friends. Rails of titles you pick together, a week of who watched what, and polls for what’s next. Only members see what you share.</p>
+          <div class="room-key">Start a club</div>
+          <div class="room-quiet" style="margin-top:6px"><span>Join with a code</span><span>›</span></div>
+          <div class="r-foot" style="margin-top:6px"><span>Shared stories. Your people.</span><span>2–20 people</span></div>
+        </article>
+        <div class="quietcard" style="margin-top:12px">You choose what members see: totals only, statuses, or your progress. You can change it later in the club’s settings.</div>
+        <div class="home-footer"><span>Your pace. Your place.</span><b>KURO</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============================== CLUB DETAIL =============================== -->
+<div class="row-label">Club page · a journey (sheet + navigation stack) · root shows ✕ only (N3)</div>
+<div class="strip">
+
+  <!-- 5. Club detail top -->
+  <div class="cell">
+    <h3>5 · Club page, top</h3>
+    <p class="cap">The hero is the room (glow, seal, kicker, serif name, rounded foot), not a flat band. “You” is its own ring, so there are no duplicate initials. The member note appears once, in Home’s warm note card, still behind the spoiler line because rail notes carry no spoiler scope. Owner/admin view: Add a title, Invite (only owners and admins receive invite_code), Ask. A member sees only “Add a title” (frame 5b).</p>
+    <div class="phone">
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="status on-dark"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="sheet">
+        <div class="grabber"></div>
+        <div class="hero">
+          <div class="hero-btns"><span class="round"><i>···</i></span><span class="round"><i>✕</i></span></div>
+          <div class="masthead">
+            <span class="seal"><svg viewBox="0 0 40 40"><path d="M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10"/></svg></span>
+            <span class="kick" style="font-size:7px;letter-spacing:1.4px;color:var(--room-kicker);text-transform:uppercase">Your private club · progress shared</span>
+          </div>
+          <h1>Sunday Club</h1>
+          <p class="desc">Five friends, one episode on Sundays, no spoilers before Monday.</p>
+          <div class="meta-line"><span class="members"><span class="you">You</span><span>M</span><span>J</span><span>A</span><span>B</span></span><span>5 members · 3 rails · 1 open poll</span></div>
+          <div class="note">
+            <img src="../../../tools/design-directions/assets/anime1.jpg" alt="">
+            <div class="nc">
+              <div class="by"><b>Mina</b><small>Sunday watch</small></div>
+              <div class="on">A note on Demon Slayer</div>
+              <div class="spoiler"><span>May contain spoilers. Tap to read.</span><i>⌄</i></div>
+              <span class="ttl">Demon Slayer ›</span>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <span class="act"><i>＋</i>Add a title</span>
+          <span class="act"><i>↗</i>Invite</span>
+          <span class="act"><i>?</i>Ask</span>
+        </div>
+        <div class="tabs"><span class="on">Rails <small>3</small></span><span>This week <small>5</small></span><span>Polls <small>1</small></span></div>
+        <div class="list-block">
+          <div class="sub-head"><h3>Sunday watch</h3><small>4 titles</small></div>
+          <p class="desc">One episode a week, together.</p>
+          <div class="tiles">
+            <div class="tile"><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""><span class="tt"><b>Jujutsu Kaisen</b><small>You · Ep. 7 of 24<br>Mina, Jules watching</small></span></div>
+            <div class="tile"><img src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt=""><span class="tt"><b>Fullmetal Alchemist: Brotherhood</b><small>Ari finished it</small></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 5b. Club page, member view -->
+  <div class="cell">
+    <h3>5b · Club page, member view</h3>
+    <p class="cap">A member gets no Invite key, because invite_code is withheld from members, and no Ask key, because only admins can start polls. “Add a title” appears only when a rail is unlocked. If only one rail is unlocked, it goes straight to that rail; if there are several, a chooser opens first.</p>
+    <div class="phone short">
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="status on-dark"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="sheet">
+        <div class="grabber"></div>
+        <div class="hero">
+          <div class="hero-btns"><span class="round"><i>···</i></span><span class="round"><i>✕</i></span></div>
+          <div class="masthead"><span class="seal"><svg viewBox="0 0 40 40"><path d="M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10"/></svg></span><span class="kick" style="font-size:7px;letter-spacing:1.4px;color:var(--room-kicker);text-transform:uppercase">Your private club · statuses shared</span></div>
+          <h1>Ink Readers</h1>
+          <p class="desc">One volume a fortnight. Say it in the club before you say it anywhere.</p>
+          <div class="meta-line"><span class="members"><span class="you">You</span><span>C</span><span>D</span></span><span>3 members · 1 rail · 1 open poll</span></div>
+        </div>
+        <div class="actions one"><span class="act"><i>＋</i>Add a title</span></div>
+        <div class="tabs"><span class="on">Rails <small>1</small></span><span>This week <small>2</small></span><span>Polls <small>1</small></span></div>
+        <div class="list-block">
+          <div class="sub-head"><h3>Next up</h3><small>3 titles</small></div>
+          <div class="tiles">
+            <div class="tile"><img src="../../../tools/design-directions/assets/journal-manga-14-cover.png" alt=""><span class="tt"><b>Vagabond</b><small>You · Ch. 12 of 327<br>Dana reading</small></span></div>
+            <div class="tile"><img src="../../../tools/design-directions/assets/manga3.jpg" alt=""><span class="tt"><b>Berserk</b><small>Planned by 2</small></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 6. Club detail scrolled -->
+  <div class="cell">
+    <h3>6 · Club page, scrolled (Rails)</h3>
+    <p class="cap">The compact paper bar (H1/H2): title, settings ···, ✕, always 44 pt. The tabs pin under it. Titles use the Also-watching tile grammar with the live reaction row; the hero’s note (the first in rail order) is linked from its tile as “Mina’s note ↑” (scrolls up); every other note stays under its own tile as a spoiler-gated line. Each note appears exactly once. Each list has its own “Add”, so Add never guesses the first list.</p>
+    <div class="phone">
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="status on-dark"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="sheet">
+        <div class="cbar"><b>Sunday Club</b><span class="g">···</span><span class="g">✕</span></div>
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0;overflow:hidden">
+          <div class="tabs" style="margin-top:0"><span class="on">Rails <small>3</small></span><span>This week <small>5</small></span><span>Polls <small>1</small></span></div>
+          <div class="list-block">
+            <div class="sub-head"><h3>Sunday watch</h3><small>4 titles</small></div>
+            <p class="desc">One episode a week, together.</p>
+            <div class="tiles">
+              <div class="tile"><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""><span class="tt"><b>Jujutsu Kaisen</b><small>You · Ep. 7 of 24<br>Mina, Jules watching</small><span class="react"><span class="mine">🔥 3</span><span>👀 1</span></span></span></div>
+              <div class="tile"><img src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt=""><span class="tt"><b>Fullmetal Alchemist: Brotherhood</b><small>Ari finished it</small><span class="react"><span>💯 2</span><span>＋</span></span></span></div>
+              <div class="tile"><img src="../../../tools/design-directions/assets/anime1.jpg" alt=""><span class="tt"><b>Demon Slayer</b><small>Mina · Ep. 4 of 26<br><span class="nlink">Mina’s note ↑</span></small><span class="react"><span>❤️ 2</span><span>＋</span></span></span></div>
+              <div class="tile"><img src="../../../tools/design-directions/assets/anime0.jpg" alt=""><span class="tt"><b>Attack on Titan</b><small>Planned by 2</small><span class="tnote"><span>Jules’s note · may contain spoilers</span><span>⌄</span></span><span class="react"><span>＋</span></span></span></div>
+            </div>
+            <span class="add-inline">＋ Add to Sunday watch</span>
+          </div>
+          <div class="hairline"></div>
+          <div class="list-block">
+            <div class="sub-head"><h3>Movie nights</h3><small>2 titles · locked</small></div>
+            <p class="desc">Chosen by the admins, watched by everyone.</p>
+            <div class="tiles">
+              <div class="tile"><img src="../../../tools/design-directions/assets/journal-anime-15-cover.png" alt=""><span class="tt"><b>Your Name.</b><small>Jules, Bo watched</small><span class="react"><span>❤️ 4</span><span>＋</span></span></span></div>
+              <div class="tile"><img src="../../../tools/design-directions/assets/journal-anime-16-cover.jpg" alt=""><span class="tt"><b>A Silent Voice</b><small>Added by Ari</small><span class="react"><span>＋</span></span></span></div>
+            </div>
+          </div>
+          <div class="hairline"></div>
+          <div class="list-block">
+            <div class="sub-head"><h3>Someday</h3><small>6 titles</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. This week -->
+  <div class="cell">
+    <h3>7 · Club page, This week</h3>
+    <p class="cap">The tab is called what it does. The existing activity entries are filtered on the device to the last seven days and grouped by day in Home’s calendar card, now with each entry’s cover. Older updates sit behind “Earlier”. The pace line is a Home glance.</p>
+    <div class="phone">
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="status on-dark"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="sheet">
+        <div class="cbar"><b>Sunday Club</b><span class="g">···</span><span class="g">✕</span></div>
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0;overflow:hidden">
+          <div class="tabs" style="margin-top:0"><span>Rails <small>3</small></span><span class="on">This week <small>5</small></span><span>Polls <small>1</small></span></div>
+          <div style="padding:16px 18px 0">
+            <div class="glance">
+              <div class="g-copy"><b>You’re 3 episodes behind</b><span>Sunday watch · the group is on Ep. 10 of Jujutsu Kaisen</span></div>
+              <div class="count"><b>3</b><small>behind</small></div><span class="chev">›</span>
+            </div>
+            <div class="sec-head" style="margin-top:22px"><h2>This week.</h2><small>5 updates since Mon 27 Oct</small></div>
+            <div class="cal">
+              <div class="day"><span class="chip"><b>3</b><small>Nov</small></span><span class="dl"><b>Today</b><small>2 updates</small></span><span class="stack"><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""><img src="../../../tools/design-directions/assets/journal-anime-16-cover.jpg" alt=""></span><span class="disc-ch">⌃</span></div>
+              <div class="ev"><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""><span class="el"><p><b>Mina</b> reached episode 10</p><small>Jujutsu Kaisen</small></span><span class="when">21:04</span><span class="c12">›</span></div>
+              <div class="ev"><img src="../../../tools/design-directions/assets/journal-anime-16-cover.jpg" alt=""><span class="el"><p><b>Ari</b> finished it</p><small>A Silent Voice</small></span><span class="when">18:12</span><span class="c12">›</span></div>
+              <div class="day"><span class="chip"><b>2</b><small>Nov</small></span><span class="dl"><b>Sunday</b><small>2 updates</small></span><span class="stack"><img src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt=""><img src="../../../tools/design-directions/assets/anime1.jpg" alt=""></span><span class="disc-ch">⌄</span></div>
+              <div class="day"><span class="chip"><b>30</b><small>Oct</small></span><span class="dl"><b>Thursday</b><small>1 update</small></span><span class="stack"><img src="../../../tools/design-directions/assets/journal-anime-15-cover.png" alt=""></span><span class="disc-ch">⌄</span></div>
+            </div>
+            <div class="fold" style="margin-top:14px"><span>Earlier</span><small>Show 12 older updates ⌄</small></div>
+            <div class="home-footer"><span>Shared stories. Your people.</span><b>KURO</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Polls -->
+  <div class="cell">
+    <h3>8 · Club page, Polls</h3>
+    <p class="cap">“You asked” for the viewer. The deadline (closes_at) is shown. Options that are titles get a cover (from the club’s lists when the title is there) and open the title, so no tap is dead (N9). Each option shows votes as well as a percentage.</p>
+    <div class="phone">
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="status on-dark"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="sheet">
+        <div class="cbar"><b>Sunday Club</b><span class="g">···</span><span class="g">✕</span></div>
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0;overflow:hidden">
+          <div class="tabs" style="margin-top:0"><span>Rails <small>3</small></span><span>This week <small>5</small></span><span class="on">Polls <small>1</small></span></div>
+          <div style="padding:18px 18px 0">
+            <div class="poll">
+              <div class="ph"><span class="eyebrow">You asked · closes Sun 9 Nov</span><span style="font-size:10px;color:var(--muted)">4 votes</span></div>
+              <h4>What do we start after Jujutsu Kaisen?</h4>
+              <div class="opt"><img src="../../../tools/design-directions/assets/journal-anime-22-cover.jpg" alt=""><span class="ol"><b><span>Mob Psycho 100 ›</span><span>50%</span></b><span class="bar"><i style="width:50%"></i></span><small>2 votes · yours</small></span><span class="vote on">✓</span></div>
+              <div class="opt"><img src="../../../tools/design-directions/assets/anime3.jpg" alt=""><span class="ol"><b><span>Death Note ›</span><span>25%</span></b><span class="bar"><i style="width:25%"></i></span><small>1 vote</small></span><span class="vote"></span></div>
+              <div class="opt"><span style="width:27px"></span><span class="ol"><b><span>Something new from the season</span><span>25%</span></b><span class="bar"><i style="width:25%"></i></span><small>1 vote</small></span><span class="vote"></span></div>
+            </div>
+            <div class="link-row" style="margin-top:16px"><span class="lr"><small>Admins</small><b>Ask the club.</b></span><span class="arr">→</span></div>
+            <div class="sub-head" style="margin-top:26px"><h3>Closed</h3><small>2</small></div>
+            <div class="quietcard" style="margin-top:8px"><b style="color:var(--ink);font-weight:600">Mina asked:</b> Sub or dub for Frieren? · Sub won, 4 to 1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Invite tool -->
+  <div class="cell">
+    <h3>9 · Invite tool (owners and admins)</h3>
+    <p class="cap">“Invite” opens this tool over the club page. It does not open Settings. It holds the code, Copy and the system share sheet, all of which exist in Settings today. It has a grabber and Cancel, and closing it returns to the club page (N7, N8).</p>
+    <div class="phone short">
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="status on-dark"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="sheet" style="background:#d9d8d1">
+        <div class="hero" style="opacity:.5"><div class="masthead"><span class="seal"><svg viewBox="0 0 40 40"><path d="M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10"/></svg></span></div><h1>Sunday Club</h1></div>
+        <div class="tool">
+          <div class="tg"></div>
+          <div class="tc"><span style="font-size:15px">Cancel</span><span></span></div>
+          <span class="eyebrow">Invite code</span>
+          <div class="code">AbC12xYz</div>
+          <p style="font-size:11px;color:var(--muted);margin:0;line-height:1.45">Anyone with this code can join Sunday Club. Share it only with people you watch with.</p>
+          <div class="tool-row"><span class="act" style="justify-content:center">Copy</span><span class="act" style="justify-content:center">↗ Share</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============================== STATES =============================== -->
+<div class="row-label">Branded states · KuroBrandedState.resolve · one retry style (“Try again →”)</div>
+<div class="strip">
+  <div class="cell">
+    <h3>S1 · Discover loading</h3>
+    <p class="cap">KuroSkeleton shapes of the real parts: switch, cover story, glance, index rows. Blocks at ink .08, deep parts .13 (fixes P10’s 5 %). Scrub line underneath.</p>
+    <div class="phone short">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div style="display:flex;justify-content:space-between"><span class="sk" style="width:120px;height:9px"></span><span class="sk" style="width:110px;height:12px"></span></div>
+        <div style="display:flex;gap:12px;margin:16px 0 14px"><span class="sk" style="flex:1;height:26px"></span><span class="sk" style="flex:1;height:26px"></span><span class="sk" style="flex:1;height:26px"></span></div>
+        <div class="sk" style="height:159px;border-radius:5px 5px 0 0"></div><div class="sk deep" style="height:58px;border-radius:0 0 5px 5px"></div>
+        <div class="sk" style="height:72px;margin-top:12px;border-radius:8px"></div>
+        <div style="display:flex;gap:12px;margin-top:16px;align-items:center"><span class="sk" style="width:40px;height:60px;border-radius:2px"></span><span style="flex:1"><span class="sk" style="display:block;width:70%;height:12px"></span><span class="sk" style="display:block;width:40%;height:9px;margin-top:6px"></span></span></div>
+        <div class="scrub"></div>
+      </div>
+    </div>
+  </div>
+  <div class="cell">
+    <h3>S2 · Discover offline, with content</h3>
+    <p class="cap">The offline band is a quiet card under the header, not a page-pushing block. The issue stays readable. Plan keys stay visible. If a Plan save fails offline, the toast says “Not saved. Your list is unchanged.” and the key keeps its previous state.</p>
+    <div class="phone short">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="band"><span><b>You’re offline.</b> Showing the last issue you loaded.</span><span class="retry" style="min-height:28px">Try again →</span></div>
+        <div class="opening"><span class="eyebrow">Today’s issue · Mon 3 Nov</span><h2>Edited for you.</h2></div>
+        <div class="issue-switch"><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/journal-anime-15-banner.jpg)">All</span><span>Anime</span><span>Manga</span></div>
+        <article class="cover-story" style="--mb:#3c5870;--md:#253541">
+          <div class="cs-art"><img src="../../../tools/design-directions/assets/journal-anime-15-banner.jpg" alt=""><span class="rim"></span><span class="tab"><small>Today’s</small><b>pick</b></span></div>
+          <div class="foot"><div class="t"><b>Your Name.</b><span>Two strangers, one comet, and the ache of almost remembering.</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+        </article>
+      </div>
+    </div>
+  </div>
+  <div class="cell">
+    <h3>S3 · Clubs failed (never “no clubs”)</h3>
+    <p class="cap">KuroErrorView on the warm canvas: ridge, 24 pt headline, 13 pt line, the ink-rule retry. On the dark room (Home, club hero), HomeClubRoomFailureLine instead.</p>
+    <div class="phone short">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Clubs<span class="dots"><b></b><b></b><b></b><b></b><b class="on"></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="state" style="margin-top:70px">
+          <svg width="148" height="36" viewBox="0 0 148 36" fill="none" stroke="#252625" stroke-width="1.2" stroke-linejoin="round"><path d="M2 34 L34 14 L50 24 L74 4 L98 22 L112 14 L146 34"/></svg>
+          <h4>Couldn’t load your clubs.</h4>
+          <p>Your clubs are safe. Check your connection and try again.</p>
+          <span class="retry">Try again →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cell">
+    <h3>S4 · This week, quiet</h3>
+    <p class="cap">A quiet week is said plainly in Home’s quiet card; the “Earlier” fold still reaches older updates, so nothing is hidden. Discover empty uses the same retry style as this family.</p>
+    <div class="phone short">
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="status on-dark"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="sheet">
+        <div class="cbar"><b>Sunday Club</b><span class="g">···</span><span class="g">✕</span></div>
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0">
+          <div class="tabs" style="margin-top:0"><span>Rails <small>3</small></span><span class="on">This week</span><span>Polls</span></div>
+          <div style="padding:18px">
+            <div class="sec-head"><h2>This week.</h2><small>Since Mon 27 Oct</small></div>
+            <div class="quietcard">Quiet week. Nobody has moved on since Monday.</div>
+            <div class="fold" style="margin-top:14px"><span>Earlier</span><small>Show 12 older updates ⌄</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============================== RATIONALE =============================== -->
+
+<div class="final-note">
+  <h2>What this page fixes, and where the rules live</h2>
+  <ul>
+    <li><b>Binding spec:</b> <code>docs/superpowers/specs/2026-11-03-discover-clubs-redesign-design.md</code>. It has every size, token, string (EN/DE), state, tap target and the lane file split. If this page and the spec disagree, the spec wins.</li>
+    <li><b>Judging:</b> <code>JUDGING.md</code>. Editorial 8.45, Calm 8.18, Personal-first 7.03.</li>
+    <li><b>Plan:</b> the existing <code>TastePlanKey</code> / <code>TastePlanController</code>. It plans or unplans with an Undo toast, and a tracked title opens the editor. It is not the +1 <code>KuroAdvanceKey</code>, whose tracked state would be a disabled “Caught up” key.</li>
+    <li><b>Invite / Ask:</b> owners and admins only (<code>invite_code</code> is withheld from members). A member sees “Add a title” only when a rail is unlocked (frame 5b).</li>
+    <li><b>Vocabulary:</b> English keeps “rails” and German keeps “Listen”. The tabs are Rails · This week · Polls.</li>
+    <li><b>Notes:</b> each note appears exactly once. The first one in rail order sits in the hero card, and its tile says “Mina’s note ↑”. Every other note stays under its own tile, behind the spoiler line. No times are shown, because rail notes have none.</li>
+    <li><b>List rooms:</b> they show “N members”, with initials taken from <code>member_names</code> as Home’s room does. “You” appears only on the club page, where members carry user ids.</li>
+    <li><b>Not on this page:</b> Collection stays white (owner decision, spec D16), and Browse, Search and Taste are unchanged.</li>
+  </ul>
+</div>
+</body>
+</html>

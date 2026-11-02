@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kuro Personal Direction</title>
+<style>
+/* Direction "Personal-first" for Discover + Clubs, 2026-11-03. Design-only mockup; not shipped code.
+   Tokens are Home's (HOME_GRAMMAR.md, PROTOTYPE_SPEC.md, instrument.css). Light mode only. */
+:root{
+  --canvas:#fffef8; --canvas-manga:#f5f5f3; --paper:#f5f5f4; --white:#fff;
+  --ink:#252625; --muted:#696c6b; --kicker:#666c68; --quiet:#6b6b6b; --line:#272b2920; --hair:#0000001a;
+  --switch-off:#6e786f; --switch-mark:#203027; --switch-hair:#20302744;
+  --glance:#fffefa; --glance-border:#29312918; --glance-ink:#303932; --glance-muted:#687064;
+  --cal:#fafcf9; --cal-border:#d8ddd9; --cal-rule:#e3e7e1; --cal-label:#68736a; --cal-when:#58665b; --cal-chev:#798679;
+  --room:#252b28; --room-glow:#444a46; --room-border:#535a554c; --room-text:#f0f4ef; --room-kicker:#c0cbbb;
+  --room-seal:#899c8c; --room-knot:#d2dacd; --note:#f5f6ef; --note-ink:#2e342c; --note-meta:#656e65; --note-link:#66705d;
+  --spoil:#e9ede2; --spoil-border:#ccd4c3; --spoil-ink:#59664e; --row-ink:#f1f5ed; --row-2:#c1cdb7; --room-footer:#b4c2a9;
+  --member-ink:#33412e; --member-rim:#2f3730; --key-top:#f1f4f2; --key-bottom:#d5ded8; --key-ink:#29352c;
+  --key-dark-top:#444a47; --key-dark-bottom:#2c322f; --sk:#25262514; --sk-deep:#25262521;
+  --ease:cubic-bezier(.2,.8,.25,1);
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --serif:Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#e9e8e2;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:left}
+img{display:block}
+
+/* ---------- studio page (outside the phones) ---------- */
+.studio{max-width:1720px;margin:0 auto;padding:40px 24px 80px}
+.studio-head{display:flex;flex-wrap:wrap;gap:24px 48px;align-items:flex-end;justify-content:space-between;margin-bottom:28px}
+.studio-head h1{font-size:40px;font-weight:700;letter-spacing:-1.4px;line-height:1.02}
+.studio-head p{font-size:14px;color:#4b4f4c;max-width:62ch;line-height:1.55;margin-top:10px}
+.lang{display:flex;gap:6px;align-items:center;font-size:12px;color:#4b4f4c}
+.lang button{min-height:36px;padding:0 14px;border:1px solid #bfc4bd;border-radius:10px;background:#fffef8;font-size:12px}
+.lang button[aria-pressed=true]{background:var(--ink);color:#fffef8;border-color:var(--ink)}
+.rationale{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:36px}
+.rationale section{background:#fffef8;border:1px solid #d8ddd9;border-radius:8px;padding:16px 18px}
+.rationale h2{font-size:15px;font-weight:600;letter-spacing:-.2px;margin-bottom:8px}
+.rationale li{font-size:12.5px;line-height:1.55;color:#3b403d;margin:0 0 6px 16px}
+.rationale code{font-size:11px;background:#eef0ea;padding:1px 4px;border-radius:3px}
+.frames{display:flex;flex-wrap:wrap;gap:40px 32px;align-items:flex-start}
+figure.frame{width:390px;flex:none}
+figure.frame figcaption{margin-top:12px;font-size:12px;line-height:1.5;color:#3b403d}
+figure.frame figcaption>b{display:block;font-size:13px;color:var(--ink);margin-bottom:4px}
+figure.frame figcaption ol{margin-left:18px}
+figure.frame figcaption li{margin-bottom:3px}
+figure.frame.wide{width:100%}
+.wide figcaption{max-width:900px}
+
+/* ---------- phone ---------- */
+.phone{position:relative;width:390px;height:844px;overflow:hidden;border-radius:46px;background:var(--canvas);
+  box-shadow:0 0 0 1px #00000014,0 24px 48px -28px #1d241f66;isolation:isolate}
+.phone.manga{background:var(--canvas-manga)}
+.sys{position:relative;z-index:4;height:47px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 8px 36px;font-size:15px;font-weight:600;background:inherit}
+.sys span{font-size:11px;letter-spacing:1px}
+.app{height:54px;display:flex;align-items:center;justify-content:space-between;padding:4px 22px;border-bottom:.5px solid var(--line);background:inherit;position:relative;z-index:3}
+.wordmark{font-size:18px;font-weight:800;letter-spacing:3.4px}
+.loc{position:absolute;left:50%;transform:translateX(-50%);display:grid;justify-items:center;gap:5px}
+.loc span{font-size:11px;color:var(--muted)}
+.dots{display:flex;gap:4px}.dots i{width:3px;height:3px;border-radius:50%;background:#2526252e}.dots i.on{background:var(--ink)}
+.hdr-r{display:flex;align-items:center}
+.hdr-r .t44{width:44px;height:44px;display:grid;place-items:center}
+.ring{width:24px;height:24px;border-radius:50%;border:1px solid #2526258c;display:grid;place-items:center;font-size:11px;font-weight:500}
+.page{padding:7px 20px 0}
+.feed-in{padding:0 2px}
+
+/* ---------- Home type ---------- */
+.opening{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-height:20px}
+.eyebrow{font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);white-space:nowrap}
+.opening h2{font-size:14px;font-weight:600;letter-spacing:-.3px;text-align:right}
+.h-section{display:flex;align-items:baseline;justify-content:space-between;gap:9px}
+.h-section h2{font-size:24px;font-weight:600;letter-spacing:-.85px;line-height:1.1}
+.h-section span{font-size:10px;color:#656c66;text-align:right}
+.h-feed{display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.h-feed h3{font-size:15px;font-weight:600;letter-spacing:-.2px}
+.h-feed .r{display:flex;align-items:center;gap:10px}
+.h-feed .count{font-size:10px;color:var(--muted)}
+.h-feed .see{font-size:12px;font-weight:500;min-height:44px;display:flex;align-items:center}
+.kick21{font-size:9px;font-weight:500;letter-spacing:2.1px;text-transform:uppercase;color:var(--quiet)}
+
+/* ---------- medium switch (poster, 3 words) ---------- */
+.switch{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;min-height:58px;align-items:center;border-bottom:1px solid var(--switch-hair)}
+.switch.two{grid-template-columns:1fr 1fr}
+.switch button{font-size:30px;font-weight:800;letter-spacing:-1.58px;text-transform:uppercase;color:var(--switch-off);line-height:1;min-height:58px;white-space:nowrap}
+.switch button.on{color:transparent;-webkit-background-clip:text;background-clip:text;background-size:cover;background-position:center 30%}
+.switch .mark{position:absolute;bottom:-1px;width:28px;height:2px;background:var(--switch-mark)}
+.switch.compact{min-height:50px}.switch.compact button{font-size:24px;letter-spacing:-1.27px;min-height:50px}
+
+/* ---------- glance ---------- */
+.glance{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 12px;background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;box-shadow:0 1px 1px #29312905;width:100%}
+.glance .gt{flex:1;min-width:0}
+.glance .gt b{display:block;font-size:14px;font-weight:600;letter-spacing:-.3px;color:var(--glance-ink)}
+.glance .gt span{display:block;font-size:10px;color:var(--glance-muted);margin-top:4px}
+.thumbs{display:flex}.thumbs img{width:27px;height:38px;object-fit:cover;border-radius:2px;border:1px solid var(--glance);box-shadow:0 1px 2px #26352b14}
+.thumbs img+img{margin-left:-7px}
+.rrow .thumbs.dark{display:flex;margin-top:0;flex:none}
+.rrow .thumbs.dark img{border:1px solid #2f3730;width:27px;height:38px;border-radius:2px}
+.gcount{min-width:39px;text-align:right}
+.gcount b{display:block;font-size:21px;font-weight:400;letter-spacing:-.6px;font-variant-numeric:tabular-nums;color:var(--glance-ink)}
+.gcount span{font-size:8px;color:var(--glance-muted)}
+.garrow{font-size:16px;color:var(--glance-ink)}
+.quietcard{font-size:11px;color:var(--muted);padding:12px;background:#ffffff80;border:1px solid #dce1dc;border-radius:8px}
+
+/* ---------- scene card ---------- */
+.scene{border-radius:5px;overflow:hidden;box-shadow:0 1px 1px #19221b0a}
+.scene .art{position:relative;aspect-ratio:3.25/1;background:var(--m-base)}
+.scene .art img{width:100%;height:100%;object-fit:cover;object-position:center 35%}
+.scene .art::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 50%,#0000002e);border-top-left-radius:5px;border-top-right-radius:5px;box-shadow:inset 0 0 0 1px #ffffff25}
+.tab{position:absolute;left:12px;bottom:0;z-index:2;background:#f3f4f4;border-radius:8px 8px 0 0;min-height:31px;padding:7px 10px 5px;display:flex;align-items:baseline;gap:5px;box-shadow:inset 0 1px #ffffff65}
+.tab small{font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:#26372c}
+.tab b{font-size:13px;font-weight:600;color:#26372c;letter-spacing:-.2px}
+.foot{display:flex;align-items:center;min-height:58px;padding:0 10px 0 14px;background:linear-gradient(135deg,var(--m-base),var(--m-deep));border-top:1px solid #ffffff18}
+.foot .ft{flex:1;min-width:0;font-size:17px;font-weight:600;letter-spacing:-.35px;color:#fafafa;padding:10px 0}
+.foot .div{width:1px;height:48px;background:#ffffff24;margin:0 10px}
+.foot .col{width:104px;display:flex;align-items:center;justify-content:space-between}
+.foot .col small{font-size:9px;color:#dce3df;line-height:1.25}
+.fact{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;background:linear-gradient(135deg,var(--m-base),var(--m-deep));border-top:1px solid #ffffff0d;font-size:10px;color:#dce2df}
+.fact .sep{opacity:.5}
+.disc{width:17px;height:17px;border-radius:50%;background:#ffffff14;border:1px solid #ffffff44;display:grid;place-items:center;font-size:8px;color:#fff}
+
+/* ---------- keys ---------- */
+.key{position:relative;width:44px;height:44px;display:grid;place-items:center;flex:none}
+.key::before{content:"";position:absolute;inset:5px;border-radius:7px;border:1px solid #20282326;background:linear-gradient(var(--kt,var(--key-top)),var(--kb,var(--key-bottom)));box-shadow:inset 0 1px #ffffff35,0 1px 1px #14231912}
+.key svg{position:relative;width:16px;height:16px;fill:none;stroke:var(--ki,var(--key-ink));stroke-width:1.4;stroke-linecap:round}
+.key.mat{--kt:var(--m-base);--kb:var(--m-deep);--ki:#fff}
+.key.ink{--kt:var(--key-dark-top);--kb:var(--key-dark-bottom);--ki:#fff}
+.key.stamp::after{content:"✓";position:absolute;font-size:13px;color:var(--key-ink);opacity:.0}
+
+/* ---------- leaves (equal covers, HomeMangaLeafMetrics) ---------- */
+.leaves{display:grid;grid-template-columns:repeat(3,106px);column-gap:14px;row-gap:22px}
+.leaf .cov{position:relative;width:106px;height:138px;border-radius:4px;overflow:hidden;background:#e9e9e6;box-shadow:0 2px 3px #242c2514}
+.leaf .cov img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.stamp{position:absolute;left:0;top:0;background:#f3f4f4;border-bottom-right-radius:5px;font-size:7px;letter-spacing:.4px;text-transform:uppercase;color:#26372c;padding:3px 5px}
+.leaf .lt{font-size:12px;font-weight:500;line-height:1.3;margin-top:7px;min-height:31px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.leaf .lm{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail{display:flex;gap:14px;overflow:hidden;margin-right:-20px}
+.rail .leaf{flex:none}
+
+/* ---------- tiles (Also watching) ---------- */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tile{display:flex;gap:9px;align-items:center;min-height:66px}
+.tile img{width:44px;height:66px;object-fit:cover;border-radius:4px;box-shadow:0 3px 4px -3px #2225;flex:none}
+.tile b{display:block;font-size:12px;font-weight:500;line-height:1.3}
+.tile span{display:block;font-size:10px;color:#5b635c;margin-top:4px}
+
+/* ---------- invitation link row ---------- */
+.inv{display:flex;align-items:flex-end;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--ink);padding-bottom:9px;width:100%}
+.inv b{display:block;font-size:19px;font-weight:600;letter-spacing:-.4px;margin-top:5px}
+.inv i{font-style:normal;font-size:13px}
+.words{display:flex;gap:16px;border-bottom:1px solid #2526251a;margin-bottom:12px}
+.words button{font-size:12px;color:var(--muted);min-height:36px;position:relative}
+.words button.on{color:var(--ink);font-weight:600}
+.words button.on::after{content:"";position:absolute;left:0;bottom:-1px;width:16px;height:1.5px;background:var(--ink)}
+
+/* ---------- club room ---------- */
+.room{position:relative;margin:0 -3px;padding:20px 16px 12px;border:1px solid var(--room-border);border-radius:24px;
+  background:radial-gradient(ellipse at 0 0,var(--room-glow) 0,transparent 65%),var(--room);box-shadow:inset 0 1px #ffffff21,0 10px 20px -14px #10171066;color:var(--room-text)}
+.room.list{padding:16px 14px 10px}
+.mast{display:flex;align-items:center;gap:10px;min-height:44px;margin-bottom:14px}
+.seal{width:36px;height:36px;flex:none;display:grid;place-items:center;border:1px solid #bfcabd44;border-radius:9px}
+.seal svg{width:28px;height:28px;fill:none;stroke:var(--room-knot);stroke-width:.9;transform:rotate(-12deg)}
+.mast .mk{display:block;font-size:7px;letter-spacing:1.4px;text-transform:uppercase;color:var(--room-kicker);margin-bottom:4px}
+.mast h3{font-family:var(--serif);font-size:22px;font-weight:400;letter-spacing:-.6px;line-height:1.05}
+.mast .nm{min-width:0;flex:1}
+.mast .unread{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--room-text);margin-left:7px;vertical-align:middle}
+.members{display:flex;flex:none;padding-left:6px}
+.members span{width:22px;height:22px;display:grid;place-items:center;border:2px solid var(--member-rim);border-radius:50%;background:#d0d8cb;color:var(--member-ink);font-size:7px;margin-left:-6px}
+.members span:nth-child(2){background:#adbba6}.members span:nth-child(3){background:#899a82}
+.members span.more{background:#3a423c;color:var(--row-2)}
+.roomsum{font-size:10px;color:var(--row-2);margin:-6px 0 14px;line-height:1.5}
+.note{padding:15px;background:var(--note);border:1px solid #fff8;border-radius:14px;color:var(--note-ink);box-shadow:0 3px 7px #0002}
+.note .entry{display:flex;gap:13px}
+.note .entry img{width:60px;height:90px;object-fit:cover;border-radius:3px;box-shadow:0 3px 6px #252b2625;flex:none}
+.note .by{display:flex;justify-content:space-between;font-size:11px;font-weight:600}
+.note .by span{font-weight:400;font-size:10px;color:var(--note-meta)}
+.note p.q{font-family:var(--serif);font-size:18px;line-height:1.3;letter-spacing:-.3px;margin-top:8px}
+.note .tl{display:flex;align-items:center;min-height:44px;font-size:10px;color:var(--note-link)}
+.spoil{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;padding:7px 10px;margin-top:10px;border:1px solid var(--spoil-border);background:var(--spoil);border-radius:8px;font-size:10px;color:var(--spoil-ink);width:100%}
+.spoil i{font-style:normal;font-size:18px}
+.rrow{display:flex;align-items:center;gap:10px;min-height:62px;padding:9px 2px;width:100%;color:var(--row-ink)}
+.rrow+.rrow{border-top:1px solid #c5d2b81c}
+.rrow img{width:30px;height:44px;object-fit:cover;border-radius:3px;flex:none}
+.rrow .pace{width:30px;height:44px;flex:none;display:grid;place-items:center;border:1px solid #c1cdb744;border-radius:3px;font-size:10px;color:var(--row-2);font-variant-numeric:tabular-nums}
+.rrow .rt{flex:1;min-width:0}
+.rrow b{display:block;font-size:11px;font-weight:500;line-height:1.35}
+.rrow span{display:block;font-size:10px;color:var(--row-2);margin-top:3px}
+.rrow .ch{color:#cfdbc5;font-size:13px}
+.rfoot{display:flex;justify-content:space-between;gap:10px;padding:10px 2px 0;border-top:1px solid #c5d2b81c;font-size:8px;color:var(--room-footer)}
+.ractions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 12px}
+.ractions button{min-height:44px;border-radius:10px;font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:space-between;padding:0 13px}
+.ractions .primary{background:var(--note);color:var(--note-ink);box-shadow:inset 0 1px #fff,0 1px 1px #0003}
+.ractions .second{border:1px solid #c1cdb755;color:var(--row-ink)}
+.rinvite{display:grid;gap:12px;margin-top:4px}
+.rinvite .start{min-height:46px;border-radius:10px;background:#2b342e;color:#f8faf7;display:flex;justify-content:space-between;align-items:center;padding:0 14px;font-size:15px;box-shadow:inset 0 1px #ffffff1c}
+.rinvite .join{min-height:46px;border-radius:10px;background:var(--spoil);border:1px solid var(--spoil-border);color:var(--spoil-ink);display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:14px}
+
+/* ---------- journey sheet ---------- */
+.phone.sheet{background:#1f2321}
+.sheetbody{position:absolute;left:0;right:0;top:56px;bottom:0;background:var(--canvas);border-radius:12px 12px 0 0;overflow:hidden}
+.grab{width:36px;height:5px;border-radius:3px;background:#2526253a;margin:6px auto 0}
+.jbar{display:flex;justify-content:flex-end;align-items:center;height:46px;padding:0 8px}
+.jbar .t44{width:44px;height:44px;display:grid;place-items:center;font-size:17px}
+.cbar{display:flex;align-items:center;gap:6px;height:52px;padding:0 8px 0 20px;background:var(--paper);border-bottom:1px solid var(--line)}
+.cbar b{flex:1;font-size:15px;font-weight:600;letter-spacing:-.25px}
+.cbar .t44{width:44px;height:44px;display:grid;place-items:center;font-size:17px}
+.ctabs{display:flex;gap:22px;position:relative;border-bottom:1px solid var(--switch-hair);min-height:46px;align-items:center}
+.ctabs button{font-size:15px;letter-spacing:-.2px;color:var(--switch-off);min-height:46px;position:relative}
+.ctabs button.on{color:var(--ink);font-weight:600}
+.ctabs button.on::after{content:"";position:absolute;left:0;bottom:-1px;width:28px;height:2px;background:var(--switch-mark)}
+.ctabs .badge{font-size:10px;color:var(--muted);font-weight:400;margin-left:4px}
+
+/* ---------- pace + calendar ---------- */
+.pacecard{background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;padding:0 12px}
+.prow{display:flex;align-items:center;gap:10px;min-height:86px}
+.prow+.prow{border-top:1px solid #29312914}
+.prow img{width:44px;height:66px;object-fit:cover;border-radius:4px;flex:none;box-shadow:0 3px 4px -3px #2225}
+.prow .pt{flex:1;min-width:0}
+.prow .pt b{display:block;font-size:12px;font-weight:500}
+.prow .pt span{display:block;font-size:10px;color:#5b635c;margin-top:3px}
+.scrub{position:relative;height:16px;margin-top:5px}
+.scrub .tr{position:absolute;left:0;right:0;top:7px;height:1px;background:#d7d9d7}
+.scrub .me{position:absolute;left:0;top:7px;height:1px;background:#626962}
+.scrub .grp{position:absolute;top:3px;width:1px;height:9px;background:var(--switch-mark)}
+.cal{background:var(--cal);border:1px solid var(--cal-border);border-radius:18px;box-shadow:0 2px 3px -1px #1d291c20;overflow:hidden}
+.day{display:flex;align-items:center;gap:11px;min-height:76px;padding:12px;width:100%}
+.day+.day,.ev+.day{border-top:1px solid var(--cal-rule)}
+.day.open{background:#fff}
+.chip{width:40px;height:44px;flex:none;border:1px solid #d4dbd4;border-radius:10px;background:#fff;display:grid;place-content:center;text-align:center}
+.chip b{font-size:19px;font-weight:500;letter-spacing:-.6px;font-variant-numeric:tabular-nums;line-height:1}
+.chip small{font-size:9px;letter-spacing:.4px;color:#667267;text-transform:uppercase}
+.day .dl{flex:1}
+.day .dl b{display:block;font-size:12px;font-weight:600}
+.day .dl span{font-size:10px;color:var(--cal-label)}
+.stack{display:flex}.stack img{width:23px;height:34px;object-fit:cover;border:2px solid #fff;border-radius:2px;box-shadow:-2px 0 3px #243a2120}.stack img+img{margin-left:-6px}
+.disc-g{font-size:21px;font-weight:300;color:#727d73;width:22px;text-align:center}
+.ev{display:flex;align-items:center;gap:11px;min-height:74px;padding:13px 12px;border-top:1px solid var(--cal-rule);background:#fff;width:100%}
+.ev img{width:32px;height:48px;object-fit:cover;border-radius:3px;flex:none}
+.ev .et{flex:1;min-width:0}
+.ev .et b{display:block;font-size:12px;font-weight:500}
+.ev .et span{display:block;font-size:10px;color:var(--cal-label);margin-top:3px}
+.ev .when{font-size:10px;color:var(--cal-when);max-width:62px;text-align:right}
+.ev .chev{font-size:12px;color:var(--cal-chev)}
+
+/* ---------- reactions (monochrome glyphs, one 44pt control) ---------- */
+.react{display:flex;align-items:center;gap:8px;min-height:44px;font-size:10px;color:var(--ink);font-variant-numeric:tabular-nums}
+.react svg{width:12px;height:12px;fill:none;stroke:var(--ink);stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round;vertical-align:-2px}
+.react .mine svg{fill:var(--ink)}
+.react .add{color:var(--muted)}
+.lock{font-size:10px;color:var(--muted)}
+
+/* ---------- states ---------- */
+.states{display:grid;grid-template-columns:repeat(auto-fill,320px);gap:24px}
+.mini{width:320px;background:var(--canvas);border-radius:18px;box-shadow:0 0 0 1px #00000014;padding:16px;overflow:hidden}
+.mini.manga{background:var(--canvas-manga)}
+.mini h4{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#7a7f7b;margin-bottom:12px;font-weight:500}
+.sk{background:var(--sk);border-radius:5px}.sk.deep{background:var(--sk-deep)}
+.scrubline{width:96px;height:1px;background:#2526251f;margin:14px auto 0;position:relative;overflow:hidden}
+.scrubline::after{content:"";position:absolute;left:0;top:0;width:34px;height:1px;background:var(--ink);animation:scrub 1.4s var(--ease) infinite}
+@keyframes scrub{from{transform:translateX(-34px)}to{transform:translateX(96px)}}
+@media (prefers-reduced-motion:reduce){.scrubline::after{animation:none;transform:translateX(31px)}}
+.ridge{width:148px;height:36px;margin:8px auto 10px;display:block}
+.statetxt{text-align:center;padding:8px 8px 4px}
+.statetxt b{display:block;font-size:20px;font-weight:700;letter-spacing:-.7px}
+.statetxt p{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
+.retry{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:500;border-bottom:1px solid var(--ink);margin-top:6px}
+.band{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #dce1dc;border-radius:8px;background:#ffffff80;font-size:11px;color:var(--muted)}
+.band .retry{font-size:12px;margin:0;min-height:36px;white-space:nowrap}
+.poll{background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;padding:12px}
+.poll .pm{font-size:10px;color:var(--muted)}
+.poll h5{font-size:15px;font-weight:600;letter-spacing:-.2px;margin:4px 0 8px}
+.opt{display:flex;align-items:stretch;border-top:1px solid #29312914}
+.opt .vote{flex:1;display:grid;grid-template-columns:18px 1fr auto;column-gap:9px;align-items:center;min-height:52px;padding:6px 0}
+.opt .radio{width:16px;height:16px;border-radius:50%;border:1.2px solid #8a908b}
+.opt .radio.on{border:5px solid var(--ink)}
+.opt .vl{font-size:12px}
+.opt .pc{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.opt .bar{grid-column:2/4;height:3px;background:#e6e8e3;border-radius:2px;margin-top:5px;position:relative}
+.opt .bar i{position:absolute;left:0;top:0;bottom:0;background:#3a403c;border-radius:2px}
+.opt .open{width:52px;display:flex;align-items:center;justify-content:flex-end;gap:5px;border-left:1px solid #29312914;font-size:12px;color:var(--cal-chev)}
+.opt .open img{width:27px;height:38px;object-fit:cover;border-radius:2px}
+.foot-page{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:28px 2px}
+.foot-page b{letter-spacing:2px}
+.legend{font-size:11px;color:#4b4f4c;margin:6px 0 20px}
+</style>
+</head>
+<body>
+<main class="studio">
+
+<div class="studio-head">
+  <div>
+    <div class="kick21" style="margin-bottom:8px">Kuro · Discover + Clubs · Direction B: personal-first · 2026-11-03</div>
+    <h1>For you first.<br>Your people, right now.</h1>
+    <p>Discover opens with what is new <em>to this person</em>: their airings today, today's pick as a Home scene card, and New to you as equal leaves. The curated catalogue comes after that and stays editorial. Clubs open on what friends are doing: each club is Home's club room, and a club's first tab is "This week", showing pace and dated updates. Everything is built from Home's components and data the app already loads. There are no backend or flag changes.</p>
+  </div>
+  <div class="lang" role="group" aria-label="Language">
+    <span>Copy</span>
+    <button type="button" data-lang="en" aria-pressed="true">EN</button>
+    <button type="button" data-lang="de" aria-pressed="false">DE</button>
+  </div>
+</div>
+
+<div class="rationale">
+  <section>
+    <h2>Why personal-first</h2>
+    <ul>
+      <li>Today the top of Discover is the same for every reader: a lead frame, then ten poster sections at one scale. Home already proves that Kuro feels like Kuro when the page knows you.</li>
+      <li>"Continue" stays on Home. Discover shows only one compact personal glance ("From your list today"), so the two pages never compete. The scene-card weight goes to something new: today's pick.</li>
+      <li>Clubs lose the "four looks" problem (P4). The list, the club page and Home's card are all the same room, and the room leads with the latest human line.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Home is the authority (reused by name)</h2>
+    <ul>
+      <li>Canvas <code>kuroCanvasHome</code>; manga <code>kuroCanvasHomeManga</code>. The page and <code>KuroMainView.Section.canvas</code> change together, so the header carries no seam (P1).</li>
+      <li><code>KuroPosterMediumSwitch</code> with <code>KuroArtWordFill</code>, widened to three words; <code>HomeOpeningLineView</code>; the 24/−0.85 section head; the 15/−0.2 in-feed head.</li>
+      <li><code>HomeComingUpGlance</code> style, <code>HomeSceneCard</code> recipe, <code>HomeMangaLeafMetrics</code> leaves, <code>HomeAlsoWatchingTile</code>, <code>HomeCalendarCard</code>, <code>ClubRoomBackground</code> / <code>ClubRoomPalette</code> / <code>ClubSeal</code> (promoted), <code>KuroAdvanceKey</code>, <code>HomeFooter</code>.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Rules held</h2>
+    <ul>
+      <li>Only data the app already loads: <code>discover_bundle</code>, <code>DailyFeature</code>, <code>ReleasesStore.upcomingAirings</code>, <code>LibraryStore</code>, <code>SocialActivityStore.friendCount</code>, <code>ClubListRow</code>, <code>ClubBundle</code>.</li>
+      <li>Navigation contract: titles, clubs and See all open journeys (✕ on the root, back when pushed); tools return to their page; no nested targets.</li>
+      <li>Every string in EN/DE (toggle above). Light mode only. Widths come from the measured container: 320 compact, 390, 430, and the 680 iPad column. States use <code>KuroSkeleton</code> / <code>KuroStateView</code>, with one retry style.</li>
+    </ul>
+  </section>
+</div>
+
+<p class="legend">Frames are 390 × 844 pt (iPhone 17 Pro). Artwork comes from the prototype's assets (<code>tools/design-directions/assets</code>), with the Kuro storage URLs as fallback. Club members, notes and times are samples.</p>
+
+<div class="frames">
+
+<!-- ===================================================== F1 DISCOVER ALL ===================================================== -->
+<figure class="frame">
+<div class="phone">
+  <div class="sys">9:41<span>●●● ▰</span></div>
+  <header class="app">
+    <span class="wordmark">KURO</span>
+    <span class="loc"><span data-de="Entdecken">Discover</span><span class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></span></span>
+    <span class="hdr-r"><span class="t44"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.4"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5" stroke-linecap="round"/></svg></span><span class="t44"><span class="ring">M</span></span></span>
+  </header>
+  <div class="page">
+    <div class="switch" role="group">
+      <button class="on" data-fill="yourname-b" data-de="Alle">All</button>
+      <button>Anime</button>
+      <button>Manga</button>
+      <span class="mark" style="left:0"></span>
+    </div>
+    <div style="height:12px"></div>
+    <div class="opening"><span class="eyebrow" data-de="Für dich · Dienstag">For you · Tuesday</span><h2 data-de="12 neu für dich">12 new to you</h2></div>
+    <div style="height:6px"></div>
+    <button class="glance">
+      <span class="gt"><b data-de="Heute auf deiner Liste">From your list today</b><span data-de="2 Folgen · ab 16:00">2 episodes · from 16:00</span></span>
+      <span class="thumbs"><img data-art="ds" alt=""><img data-art="aot" alt=""></span>
+      <span class="gcount"><b>2</b><span data-de="heute">today</span></span>
+      <span class="garrow">↓</span>
+    </button>
+    <div style="height:12px"></div>
+    <article class="scene" style="--m-base:#3c5870;--m-deep:#253541">
+      <div class="art"><img data-art="yourname-b" alt=""><span class="tab"><small data-de="Tipp des Tages">Today's pick</small></span></div>
+      <div class="foot">
+        <button class="ft">Your Name.</button>
+        <span class="div"></span>
+        <span class="col"><small data-de="Vor&shy;merken">Plan to<br>watch</small><span class="key" aria-label="Plan to watch Your Name."><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span></span>
+      </div>
+      <div class="fact"><span data-de="Zwei Leben, fast berührt.">Two lives, almost touching.</span><span class="sep">·</span><span data-de="Film · 2016">Film · 2016</span></div>
+    </article>
+    <div style="height:12px"></div>
+    <div class="h-feed"><h3 data-de="Neu für dich">New to you</h3><span class="r"><span class="count" data-de="12 Titel">12 titles</span><button class="see" data-de="Alle ansehen ›">See all ›</button></span></div>
+    <div class="leaves">
+      <div class="leaf"><div class="cov"><img data-art="mob" alt=""></div><div class="lt">Mob Psycho 100</div><div class="lm">TV · 2016</div></div>
+      <div class="leaf"><div class="cov"><img data-art="spy" alt=""><span class="stamp">Manga</span></div><div class="lt">SPY x FAMILY</div><div class="lm" data-de="2 in deinen Clubs">2 in your clubs</div></div>
+      <div class="leaf"><div class="cov"><img data-art="fma" alt=""></div><div class="lt">Fullmetal Alchemist: Brotherhood</div><div class="lm">TV · 2009</div></div>
+      <div class="leaf"><div class="cov"><img data-art="jjk" alt=""></div><div class="lt">Jujutsu Kaisen</div><div class="lm">TV · 2020</div></div>
+      <div class="leaf"><div class="cov"><img data-art="vinland" alt=""><span class="stamp">Manga</span></div><div class="lt">Vinland Saga</div><div class="lm">2005</div></div>
+      <div class="leaf"><div class="cov"><img data-art="dn" alt=""></div><div class="lt">Death Note</div><div class="lm">TV · 2006</div></div>
+    </div>
+  </div>
+</div>
+<figcaption><b>1 · Discover, All (top)</b>
+<ol>
+<li>Warm canvas, so the header and page are one colour and the white seam is gone (P1). The canvas follows the medium; Manga turns #F5F5F3.</li>
+<li>Home's poster switch with three words (P5). The selected word is filled with today's pick artwork.</li>
+<li>The opening row speaks to this reader. The glance appears only when <code>upcomingAirings</code> has a slot today, and opens inline (fold, F1); each row opens its title.</li>
+<li>Today's pick uses the scene-card recipe: the artwork's material foot carries it. The light key means <b>Plan</b> ("Vormerken"), never +1. The stamp and Undo toast play only after the durable save. The argument and format/year come from <code>DailyFeature</code>.</li>
+<li>New to you (server-rotated per user) is 6 equal leaves, not 8 tall frames. In All it mixes both media with a Manga stamp. With <code>personalized_new_to_you_v1</code> on, Because-you replaces it in the same slot.</li>
+</ol></figcaption>
+</figure>
+
+<!-- ===================================================== F2 DISCOVER ANIME SCROLLED ===================================================== -->
+<figure class="frame">
+<div class="phone">
+  <div class="sys">9:41<span>●●● ▰</span></div>
+  <header class="app">
+    <span class="wordmark">KURO</span>
+    <span class="loc"><span data-de="Entdecken">Discover</span><span class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></span></span>
+    <span class="hdr-r"><span class="t44"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.4"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5" stroke-linecap="round"/></svg></span><span class="t44"><span class="ring">M</span></span></span>
+  </header>
+  <div class="page" style="padding-top:0">
+    <div class="leaves" style="margin-top:-118px">
+      <div class="leaf"><div class="cov"><img data-art="jjk" alt=""></div><div class="lt">Jujutsu Kaisen</div><div class="lm">TV · 2020</div></div>
+      <div class="leaf"><div class="cov"><img data-art="dn" alt=""></div><div class="lt">Death Note</div><div class="lm">TV · 2006</div></div>
+      <div class="leaf"><div class="cov"><img data-art="mob" alt=""></div><div class="lt">Mob Psycho 100</div><div class="lm">TV · 2016</div></div>
+    </div>
+    <div style="height:13px"></div>
+    <div class="h-feed"><h3 data-de="In deinen Clubs">In your clubs</h3><span class="count" data-de="2 Titel">2 titles</span></div>
+    <div class="tiles">
+      <button class="tile"><img data-art="fma" alt=""><span><b>Fullmetal Alchemist: Brotherhood</b><span data-de="3 in deinen Clubs">3 in your clubs</span></span></button>
+      <button class="tile"><img data-art="silent" alt=""><span><b>A Silent Voice</b><span data-de="1 in deinen Clubs">1 in your clubs</span></span></button>
+    </div>
+    <div style="height:32px"></div>
+    <div class="feed-in">
+      <div class="h-section"><h2 data-de="Der Katalog.">The catalogue.</h2><span data-de="Von Kuro ausgewählt">Picked by Kuro</span></div>
+      <div style="height:14px"></div>
+      <button class="inv"><span><span class="kick21" data-de="Alles">Everything</span><b data-de="Den Katalog durchstöbern">Browse the catalogue</b></span><i>→</i></button>
+    </div>
+    <div style="height:14px"></div>
+    <div class="h-feed"><h3 data-de="Läuft heute">Airing today</h3><span class="r"><span class="count" data-de="9 Titel">9 titles</span><button class="see" data-de="Alle ansehen ›">See all ›</button></span></div>
+    <div class="rail">
+      <div class="leaf"><div class="cov"><img data-art="ds" alt=""><span class="stamp" data-de="Auf der Liste">On your list</span></div><div class="lt">Demon Slayer</div><div class="lm" data-de="Folge 6 · 16:00">Ep. 6 · 16:00</div></div>
+      <div class="leaf"><div class="cov"><img data-art="aot" alt=""><span class="stamp" data-de="Auf der Liste">On your list</span></div><div class="lt">Attack on Titan</div><div class="lm" data-de="Folge 9 · 17:00">Ep. 9 · 17:00</div></div>
+      <div class="leaf"><div class="cov"><img data-art="jjk" alt=""></div><div class="lt">Jujutsu Kaisen</div><div class="lm" data-de="Folge 10 · 18:00">Ep. 10 · 18:00</div></div>
+      <div class="leaf"><div class="cov"><img data-art="mob" alt=""></div><div class="lt">Mob Psycho 100</div><div class="lm" data-de="Folge 3 · 21:30">Ep. 3 · 21:30</div></div>
+    </div>
+    <div style="height:10px"></div>
+    <div class="h-feed"><h3 data-de="Gerade beliebt">Trending</h3><span class="r"><button class="see" data-de="Alle ansehen ›">See all ›</button></span></div>
+    <div class="words"><button class="on" data-de="Alle">All</button><button data-de="Kurz">Short</button><button data-de="Lang">Long</button><button data-de="Abgeschlossen">Finished</button></div>
+    <div class="rail">
+      <div class="leaf"><div class="cov"><img data-art="fma" alt=""></div></div>
+      <div class="leaf"><div class="cov"><img data-art="dn" alt=""></div></div>
+      <div class="leaf"><div class="cov"><img data-art="yourname" alt=""></div></div>
+    </div>
+  </div>
+</div>
+<figcaption><b>2 · Discover, Anime, scrolled to the catalogue</b>
+<ol>
+<li>"In your clubs" draws on untracked titles already loaded for the page (<code>friendCount</code> &gt; 0), deduped against today's pick and New to you, and shows only with 2 or more. It uses the Also-watching tile <em>style</em> (the component requires a progress readout) with no key and a count only; names would need a read the page doesn't make.</li>
+<li>A 24 pt section head, "The catalogue.", marks where the personal part ends (P2, P3). Everything below is curated and the same for everyone.</li>
+<li>"Browse the catalogue" moves up to the catalogue's head as Home's invitation row. It appears only where <code>DiscoverBrowseEntry.isOffered</code> (the live series world). N11: Browse opens as a journey.</li>
+<li>Rails use the same 106 pt leaves, with an "On your list" stamp from <code>LibraryStore.isTracked</code>. Airing slots are only the stated time, never an estimate.</li>
+<li>The rail filter words stay small and local (12 pt, 16 × 1.5 rule), so they never read as the page switch.</li>
+</ol></figcaption>
+</figure>
+
+<!-- ===================================================== F3 CLUBS LIST ===================================================== -->
+<figure class="frame">
+<div class="phone">
+  <div class="sys">9:41<span>●●● ▰</span></div>
+  <header class="app">
+    <span class="wordmark">KURO</span>
+    <span class="loc"><span>Clubs</span><span class="dots"><i></i><i></i><i></i><i></i><i class="on"></i></span></span>
+    <span class="hdr-r"><span class="t44"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.4"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5" stroke-linecap="round"/></svg></span><span class="t44"><span class="ring">M</span></span></span>
+  </header>
+  <div class="page">
+    <div class="opening" style="min-height:44px;align-items:center"><span class="eyebrow" data-de="Deine Clubs · 3">Your clubs · 3</span><h2 data-de="2 mit Neuem">2 with news</h2></div>
+    <div style="height:6px"></div>
+    <button class="room list" style="display:block;width:calc(100% + 6px);text-align:left">
+      <div class="mast">
+        <span class="seal"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9"/><path d="M8 11c4 0 8 6 12 6M8 17c4 0 8-6 12-6"/></svg></span>
+        <span class="nm"><span class="mk" data-de="Fortschritt geteilt">Progress shared</span><h3>Sunday Club<span class="unread" aria-label="New"></span></h3></span>
+        <span class="members"><span>M</span><span>J</span><span>A</span><span class="more">+1</span></span>
+      </div>
+      <div class="rrow" style="padding-top:0"><span class="rt"><b data-de="Neu: Attack on Titan">Added Attack on Titan</b><span data-de="vor 16 Min.">16 min ago</span></span><span class="thumbs dark"><img data-art="aot" alt=""><img data-art="ds" alt=""><img data-art="jjk" alt=""></span><span class="ch">›</span></div>
+      <div class="rfoot"><span data-de="3 Listen · 1 offene Umfrage">3 rails · 1 open poll</span><span data-de="Du + 4">You + 4</span></div>
+    </button>
+    <div style="height:14px"></div>
+    <button class="room list" style="display:block;width:calc(100% + 6px);text-align:left">
+      <div class="mast">
+        <span class="seal"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9"/><path d="M8 11c4 0 8 6 12 6M8 17c4 0 8-6 12-6"/></svg></span>
+        <span class="nm"><span class="mk" data-de="Status geteilt">Status shared</span><h3>Manga Mondays<span class="unread"></span></h3></span>
+        <span class="members"><span>J</span><span>S</span></span>
+      </div>
+      <div class="rrow" style="padding-top:0"><span class="rt"><b data-de="Umfrage: Welcher Arc als Nächstes?">Poll: Which arc next?</b><span data-de="vor 2 Tagen">2 days ago</span></span><span class="thumbs dark"><img data-art="vagabond" alt=""><img data-art="berserk" alt=""></span><span class="ch">›</span></div>
+      <div class="rfoot"><span data-de="2 Listen">2 rails</span><span data-de="Du + 2">You + 2</span></div>
+    </button>
+    <div style="height:14px"></div>
+    <button class="room list" style="display:block;width:calc(100% + 6px);text-align:left">
+      <div class="mast">
+        <span class="seal"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9"/><path d="M8 11c4 0 8 6 12 6M8 17c4 0 8-6 12-6"/></svg></span>
+        <span class="nm"><span class="mk" data-de="Privat">Private</span><h3 style="font-size:20px">Ghibli-Abende mit Familie</h3></span>
+        <span class="members"><span>P</span><span>R</span><span>L</span></span>
+      </div>
+      <div class="rrow" style="padding-top:0;min-height:44px"><span class="rt"><b data-de="Noch nichts hinzugefügt.">Nothing added yet.</b></span><span class="ch">›</span></div>
+      <div class="rfoot"><span data-de="1 Liste">1 rail</span><span data-de="Du + 3">You + 3</span></div>
+    </button>
+    <div style="height:22px"></div>
+    <div class="feed-in" style="display:grid;gap:22px">
+      <button class="inv"><span><span class="kick21" data-de="Neu">New</span><b data-de="Noch einen Club gründen.">Start another club.</b></span><i>→</i></button>
+      <button class="inv"><span><span class="kick21" data-de="Einladungscode">Invite code</span><b data-de="Einem Club beitreten.">Join a club.</b></span><i>→</i></button>
+    </div>
+  </div>
+</div>
+<figcaption><b>3 · Clubs list</b>
+<ol>
+<li>Each club is Home's room, not a white card (P4): <code>ClubRoomBackground</code>, the promoted <code>ClubSeal</code>, the audience kicker, the serif name, positional member fills and an ink unread dot. Sorted by <code>last_activity_at</code>.</li>
+<li>The room leads with the newest thing that happened: <code>activity_preview</code> as rendered today by <code>ClubsListCardRules.recentLine</code> ("Added X" / "Poll: Q" / "Vote on Q", EN/DE), with the time from <code>last_activity_at</code> and up to three <code>cover_images</code> as glance thumbs. Who did what and the pace live in the club, which reads the bundle. Clubs without covers show no art and no dark empty slots (P11).</li>
+<li>The footer carries <code>rail_count</code> / <code>poll_count</code>, which the list didn't show before. Members read "You + 4", so the viewer is never a stranger (P15).</li>
+<li>Each room is one button to the club journey; there are no nested targets. "Join a club." follows below as a second invitation row, and joining opens the club (P16).</li>
+<li>Private clubs still show who is a member (initials), and the preview never names anyone. Inside, activity shows only as totals (see 8).</li>
+</ol></figcaption>
+</figure>
+
+<!-- ===================================================== F4 CLUBS EMPTY ===================================================== -->
+<figure class="frame">
+<div class="phone">
+  <div class="sys">9:41<span>●●● ▰</span></div>
+  <header class="app">
+    <span class="wordmark">KURO</span>
+    <span class="loc"><span>Clubs</span><span class="dots"><i></i><i></i><i></i><i></i><i class="on"></i></span></span>
+    <span class="hdr-r"><span class="t44"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.4"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5" stroke-linecap="round"/></svg></span><span class="t44"><span class="ring">M</span></span></span>
+  </header>
+  <div class="page">
+    <div class="opening" style="min-height:44px;align-items:center"><span class="eyebrow" data-de="Private Clubs">Private clubs</span><h2 data-de="2 bis 20 Leute">2 to 20 people</h2></div>
+    <div style="height:6px"></div>
+    <div class="room">
+      <div class="mast">
+        <span class="seal"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9"/><path d="M8 11c4 0 8 6 12 6M8 17c4 0 8-6 12-6"/></svg></span>
+        <span class="nm"><span class="mk" data-de="Dein privater Club">Your private club</span><h3 data-de="Gemeinsam schauen.">Watch together.</h3></span>
+      </div>
+      <div class="note">
+        <p style="font-size:13px;line-height:1.5" data-de="Ein Club sind 2 bis 20 Freunde, die du einlädst. Nichts darin ist öffentlich.">A club is 2 to 20 friends you invite. Nothing in it is public.</p>
+        <div class="rinvite" style="margin-top:14px">
+          <button class="start"><span data-de="Club gründen">Start a club</span><span>＋</span></button>
+          <button class="join"><span data-de="Mit Code beitreten">Join with a code</span><span>›</span></button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="rfoot"><span data-de="Geteilte Geschichten. Deine Leute.">Shared stories. Your people.</span><span data-de="2–20 Leute">2–20 people</span></div>
+    </div>
+    <div style="height:24px"></div>
+    <div class="feed-in">
+      <div class="h-feed" style="min-height:21px;margin-bottom:12px"><h3 data-de="Was ein Club teilt">What a club shares</h3><span class="count" data-de="du entscheidest">you choose</span></div>
+      <div style="display:grid">
+        <div class="tile" style="min-height:56px;border-top:.5px solid var(--hair)"><span><b data-de="Privat">Private</b><span data-de="Nur Zahlen: wie viele schauen, nicht wer.">Counts only: how many are watching, not who.</span></span></div>
+        <div class="tile" style="min-height:56px;border-top:.5px solid var(--hair)"><span><b data-de="Status">Status</b><span data-de="Wer was schaut. Kein Fortschritt.">Who is on what. No progress.</span></span></div>
+        <div class="tile" style="min-height:56px;border-top:.5px solid var(--hair);border-bottom:.5px solid var(--hair)"><span><b data-de="Fortschritt">Progress</b><span data-de="Folgen, Kapitel und euer gemeinsames Tempo.">Episodes, chapters and your shared pace.</span></span></div>
+      </div>
+    </div>
+    <div class="foot-page"><span data-de="Dein Tempo. Dein Ort.">Your pace. Your place.</span><b>KURO</b></div>
+  </div>
+</div>
+<figcaption><b>4 · Clubs, empty</b>
+<ol>
+<li>Keeps today's best-matched surface (the room invitation), now on warm paper, with the seal replacing the plain ＋ ring and the kicker translated ("Private Clubs").</li>
+<li>Below it, a quiet three-row "What a club shares", built from the existing audience copy. It explains the three sharing levels before anyone creates a club, so the personal promise is honest.</li>
+<li>Shown only after a successful empty read. A failed read is never "no clubs" (<code>ClubsListRules</code>).</li>
+</ol></figcaption>
+</figure>
+
+<!-- ===================================================== F5 CLUB DETAIL TOP ===================================================== -->
+<figure class="frame">
+<div class="phone sheet">
+  <div class="sys" style="color:#f0f4ef;background:transparent">9:41<span>●●● ▰</span></div>
+  <div class="sheetbody">
+    <div class="grab"></div>
+    <div class="jbar"><span class="t44" aria-label="Club settings">···</span><span class="t44" aria-label="Close">✕</span></div>
+    <div class="page" style="padding-top:0">
+      <div class="room">
+        <div class="mast">
+          <span class="seal"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9"/><path d="M8 11c4 0 8 6 12 6M8 17c4 0 8-6 12-6"/></svg></span>
+          <span class="nm"><span class="mk" data-de="Fortschritt geteilt">Progress shared</span><h3>Sunday Club</h3></span>
+          <span class="members"><span>M</span><span>J</span><span>A</span><span class="more">+1</span></span>
+        </div>
+        <p class="roomsum" data-de="Du + 4 · 3 Listen · 1 offene Umfrage. Eine Folge pro Sonntag, keine Spoiler vor Montag.">You + 4 · 3 rails · 1 open poll. One episode on Sundays, no spoilers before Monday.</p>
+        <div class="note">
+          <div class="entry">
+            <img data-art="aot" alt="">
+            <div style="flex:1;min-width:0">
+              <div class="by">Mina <span>Sunday watch</span></div>
+              <div class="tl">Attack on Titan ›</div>
+              <button class="spoil" style="margin-top:2px"><span data-de="Minas Notiz · kann spoilern">Mina's note · may spoil</span><i>⌄</i></button>
+            </div>
+          </div>
+        </div>
+        <div style="height:6px"></div>
+        <button class="rrow"><span class="pace">−3</span><span class="rt"><b data-de="Du liegst 3 Folgen hinter der Gruppe">You're 3 episodes behind the group</b><span data-de="Attack on Titan · Gruppe bei Folge 14">Attack on Titan · group at Ep. 14</span></span><span class="ch">›</span></button>
+        <button class="rrow"><img data-art="dn" alt=""><span class="rt"><b data-de="Jules hat Death Note beendet">Jules finished Death Note</b><span data-de="Gestern">Yesterday</span></span><span class="ch">›</span></button>
+        <div class="ractions">
+          <button class="primary"><span data-de="Titel hinzufügen">Add a title</span><span>＋</span></button>
+          <button class="second"><span data-de="Einladen">Invite</span><span>›</span></button>
+        </div>
+        <div class="rfoot"><span data-de="Geteilte Geschichten. Deine Leute.">Shared stories. Your people.</span><span data-de="6 Updates diese Woche">6 updates this week</span></div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="ctabs"><button class="on" data-de="Diese Woche">This week</button><button data-de="Listen">Rails</button><button><span data-de="Umfragen">Polls</span><span class="badge">1</span></button></div>
+      <div style="height:6px"></div>
+      <div class="h-feed"><h3 data-de="Dein Tempo">Your pace</h3><span class="count" data-de="du und die Gruppe">you and the group</span></div>
+    </div>
+  </div>
+</div>
+<figcaption><b>5 · Club detail, top (journey root)</b>
+<ol>
+<li>The hero is the same rounded room as on Home and the list (P4), opened from the Clubs page as a journey root: ✕ and ··· (settings) only, no back chevron, with a grabber.</li>
+<li>The first note in rail order (<code>ClubRoomCopy.firstNote</code>) appears <b>once</b>, here, in Home's warm note card (P7). Rail notes carry no time, so the card names the rail instead of "2h ago". Rail notes carry no spoiler scope, so the text stays behind one spoiler line.</li>
+<li>Room rows show friends right now. Pace (<code>JournalPaceBanner</code> maths: the group median against <code>my_progress</code>) appears only in progress clubs with 3 or more members; then the newest member update.</li>
+<li>The floating icon capsule is gone (P8). "Add a title" opens the add sheet with a rail picker, or the create-rail sheet when the club has no rails, and respects <code>is_locked</code>. "Invite" opens the invite code and share sheet, and is shown to owners and admins only (only they get <code>invite_code</code>).</li>
+<li>Tabs in Home's in-feed type, with the switch's 28 × 2 mark. "This week" is the default tab when the last 7 days have updates.</li>
+</ol></figcaption>
+</figure>
+
+<!-- ===================================================== F6 CLUB DETAIL SCROLLED (RAILS) ===================================================== -->
+<figure class="frame">
+<div class="phone sheet">
+  <div class="sys" style="color:#f0f4ef;background:transparent">9:41<span>●●● ▰</span></div>
+  <div class="sheetbody">
+    <div class="cbar"><b>Sunday Club</b><span class="t44">···</span><span class="t44">✕</span></div>
+    <div class="page" style="padding-top:0">
+      <div class="ctabs"><button data-de="Diese Woche">This week</button><button class="on" data-de="Listen">Rails</button><button><span data-de="Umfragen">Polls</span><span class="badge">1</span></button></div>
+      <div style="height:8px"></div>
+      <div class="h-feed"><h3>Sunday watch</h3><span class="r"><span class="count" data-de="4 Titel">4 titles</span><button class="see" data-de="＋ Hinzufügen">＋ Add</button></span></div>
+      <p style="font-size:11px;color:var(--muted);margin:-6px 0 12px" data-de="Eine Folge pro Woche, gemeinsam.">One episode a week, together.</p>
+      <div class="rail">
+        <div class="leaf"><div class="cov"><img data-art="aot" alt=""></div><div class="lt">Attack on Titan</div><div class="lm" data-de="Du: Folge 11 von 28">You: Ep. 11 of 28</div><div class="lm" data-de="Mina, Jules schauen">Mina, Jules watching</div>
+          <button class="react" aria-label="Reactions: 3 fire, 2 heart. Opens the reactions."><span class="mine"><svg viewBox="0 0 12 12"><path d="M6 1c.5 2 3 3 3 6a3 3 0 0 1-6 0c0-1.5.8-2.3 1.4-3 .2 1 .8 1.4 1.3 1.4C5.4 4.200 5.5 2.500 6 1z"/></svg> 3</span><span><svg viewBox="0 0 12 12"><path d="M6 10.5S1.5 7.600 1.5 4.500A2.200 2.200 0 0 1 6 3.400a2.200 2.200 0 0 1 4.500 1.100C10.500 7.600 6 10.500 6 10.500z"/></svg> 2</span></button></div>
+        <div class="leaf"><div class="cov"><img data-art="ds" alt=""></div><div class="lt">Demon Slayer</div><div class="lm" data-de="Du: Folge 4 von 26">You: Ep. 4 of 26</div><div class="lm" data-de="3 schauen">3 watching</div>
+          <button class="react"><span><svg viewBox="0 0 12 12"><path d="M1 6s2-3.500 5-3.500S11 6 11 6 9 9.500 6 9.500 1 6 1 6z"/><circle cx="6" cy="6" r="1.500"/></svg> 4</span></button></div>
+        <div class="leaf"><div class="cov"><img data-art="dn" alt=""></div><div class="lt">Death Note</div><div class="lm" data-de="Jules: beendet">Jules: finished</div><div class="lm" data-de="Noch nicht auf deiner Liste">Not on your list</div>
+          <button class="react"><span class="add" data-de="＋ Reagieren">＋ React</span></button></div>
+        <div class="leaf"><div class="cov"><img data-art="jjk" alt=""></div></div>
+      </div>
+      <div style="height:16px;border-bottom:.5px solid var(--hair)"></div>
+      <div style="height:6px"></div>
+      <div class="h-feed"><h3 data-de="Manga-Ecke">Manga corner</h3><span class="r"><span class="lock" data-de="Gesperrt">Locked</span><button class="see" data-de="＋ Hinzufügen">＋ Add</button></span></div>
+      <div class="rail">
+        <div class="leaf"><div class="cov"><img data-art="csm" alt=""></div><div class="lt">Chainsaw Man</div><div class="lm" data-de="Du: Kap. 98">You: Ch. 98</div></div>
+        <div class="leaf"><div class="cov"><img data-art="vagabond" alt=""></div><div class="lt">Vagabond</div><div class="lm" data-de="Jules: Kap. 12">Jules: Ch. 12</div></div>
+        <div class="leaf"><div class="cov"><img data-art="berserk" alt=""></div><div class="lt">Berserk</div><div class="lm" data-de="2 lesen">2 reading</div></div>
+      </div>
+      <button class="spoil" style="background:#ffffff80;border-color:#dce1dc;color:var(--muted)"><span data-de="Jules' Notiz zu Vagabond · kann spoilern">Jules's note on Vagabond · may spoil</span><i>⌄</i></button>
+    </div>
+  </div>
+</div>
+<figcaption><b>6 · Club detail, scrolled (Rails)</b>
+<ol>
+<li>H1 compact bar on paper (#F5F5F4) with the club name, ··· and ✕, always visible. The tabs pin under it.</li>
+<li>Rails use Home's leaf metrics, not a third poster grammar. The lines say "You: Ep. 11 of 28" (<code>my_progress</code>) and who is watching (<code>member_statuses</code>, progress and status clubs only).</li>
+<li>Reactions are live (100%): one 44 pt control per title with monochrome glyphs and counts, filled where they are yours. No emoji, no colour.</li>
+<li>A locked rail is marked "Locked". The viewer here is an admin, so "＋ Add" stays; members see the lock without the add control. The rail's own note stays a quiet line; the newest note already shows in the room.</li>
+</ol></figcaption>
+</figure>
+
+<!-- ===================================================== F7 THIS WEEK ===================================================== -->
+<figure class="frame">
+<div class="phone sheet">
+  <div class="sys" style="color:#f0f4ef;background:transparent">9:41<span>●●● ▰</span></div>
+  <div class="sheetbody">
+    <div class="cbar"><b>Sunday Club</b><span class="t44">···</span><span class="t44">✕</span></div>
+    <div class="page" style="padding-top:0">
+      <div class="ctabs"><button class="on" data-de="Diese Woche">This week</button><button data-de="Listen">Rails</button><button><span data-de="Umfragen">Polls</span><span class="badge">1</span></button></div>
+      <div style="height:6px"></div>
+      <div class="h-feed"><h3 data-de="Dein Tempo">Your pace</h3><span class="count" data-de="du und die Gruppe">you and the group</span></div>
+      <div class="pacecard">
+        <div class="prow" style="--m-base:#493a31;--m-deep:#2c2621">
+          <img data-art="aot" alt="">
+          <div class="pt"><b>Attack on Titan</b><span data-de="Du Folge 11 · Gruppe Folge 14">You Ep. 11 · group Ep. 14</span>
+            <div class="scrub"><span class="tr"></span><span class="me" style="width:39%"></span><span class="grp" style="left:50%"></span></div></div>
+          <span class="key mat" aria-label="Add episode 12 of Attack on Titan"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span>
+        </div>
+        <div class="prow" style="--m-base:#313a49;--m-deep:#20262e">
+          <img data-art="ds" alt="">
+          <div class="pt"><b>Demon Slayer</b><span data-de="Du Folge 4 · Gruppe Folge 5">You Ep. 4 · group Ep. 5</span>
+            <div class="scrub"><span class="tr"></span><span class="me" style="width:15%"></span><span class="grp" style="left:19%"></span></div></div>
+          <span class="key mat" aria-label="Add episode 5 of Demon Slayer"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span>
+        </div>
+      </div>
+      <div style="height:13px"></div>
+      <div class="h-feed"><h3 data-de="Updates">Updates</h3><span class="count" data-de="6 in 7 Tagen">6 in 7 days</span></div>
+      <div class="cal">
+        <button class="day open"><span class="chip"><b>3</b><small data-de="Nov">Nov</small></span><span class="dl"><b data-de="Heute">Today</b><span data-de="2 Updates">2 updates</span></span><span class="disc-g">⌃</span></button>
+        <button class="ev"><img data-art="aot" alt=""><span class="et"><b data-de="Mina hat Folge 14 erreicht">Mina reached episode 14</b><span>Attack on Titan</span></span><span class="when">16:20</span><span class="chev">›</span></button>
+        <button class="ev"><img data-art="vinland" alt=""><span class="et"><b data-de="Du hast Vinland Saga angefangen">You started Vinland Saga</b><span data-de="Kapitel 1">Chapter 1</span></span><span class="when">09:05</span><span class="chev">›</span></button>
+        <button class="day"><span class="chip"><b>2</b><small data-de="Nov">Nov</small></span><span class="dl"><b data-de="Gestern">Yesterday</b><span data-de="3 Updates">3 updates</span></span><span class="stack"><img data-art="dn" alt=""><img data-art="ds" alt=""><img data-art="aot" alt=""></span><span class="disc-g">⌄</span></button>
+        <button class="day"><span class="chip"><b>29</b><small data-de="Okt">Oct</small></span><span class="dl"><b data-de="Do., 29. Okt.">Thu 29 Oct</b><span data-de="1 Update">1 update</span></span><span class="stack"><img data-art="jjk" alt=""></span><span class="disc-g">⌄</span></button>
+      </div>
+      <p style="font-size:10px;color:var(--muted);text-align:center;margin-top:12px" data-de="Ältere Updates findest du bei jedem Titel in den Listen.">Older updates stay with each title in Rails.</p>
+    </div>
+  </div>
+</div>
+<figcaption><b>7 · Club detail, This week</b>
+<ol>
+<li>"This week" (P9, the owner's word) filters <code>member_statuses.updated_at</code> on the client to the last 7 days. Older updates stay with their titles under Rails.</li>
+<li>Your pace: Also-watching tiles with a scrub showing your trace and a tick at the group's median. The material +1 key is the same <code>LibraryActions.incrementProgress</code> as Home's, and the stamp plays after the durable save.</li>
+<li>Updates reuse <code>HomeCalendarCard</code>'s pattern and palette (day toggles, chips, rows; the component itself is typed on release items). Every row has the cover the entry already carries and opens its title (N9). The viewer reads as "You".</li>
+<li>An empty week shows Home's quiet card. A failed read shows the inline failure state, never an empty week.</li>
+</ol></figcaption>
+</figure>
+
+<!-- ===================================================== F8 STATES + VARIANTS ===================================================== -->
+<figure class="frame wide">
+<div class="states">
+  <div class="mini">
+    <h4 data-de="Entdecken · lädt">Discover · loading</h4>
+    <div class="sk" style="height:46px"></div>
+    <div style="height:12px"></div>
+    <div class="sk" style="height:70px;border-radius:8px"></div>
+    <div style="height:12px"></div>
+    <div class="sk deep" style="height:84px;border-radius:5px 5px 0 0"></div><div class="sk" style="height:52px;border-radius:0 0 5px 5px"></div>
+    <div style="height:16px"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px"><div class="sk" style="height:119px;border-radius:4px"></div><div class="sk" style="height:119px;border-radius:4px"></div><div class="sk" style="height:119px;border-radius:4px"></div></div>
+    <div class="scrubline"></div>
+  </div>
+  <div class="mini">
+    <h4 data-de="Entdecken · offline mit Inhalt">Discover · offline with content</h4>
+    <div class="band"><span data-de="Offline. Du siehst den letzten Stand.">Offline. Showing what you saw last.</span><button class="retry" data-de="Erneut versuchen →">Try again →</button></div>
+    <div style="height:12px"></div>
+    <div class="opening"><span class="eyebrow" data-de="Für dich · Dienstag">For you · Tuesday</span><h2 data-de="12 neu für dich">12 new to you</h2></div>
+    <div style="height:10px"></div>
+    <div class="quietcard" data-de="Heutige Folgen erscheinen wieder, wenn du online bist.">Today's episodes show again when you're online.</div>
+  </div>
+  <div class="mini">
+    <h4 data-de="Entdecken · fehlgeschlagen">Discover · failed</h4>
+    <svg class="ridge" viewBox="0 0 148 36" fill="none" stroke="#252625" stroke-width="1.1" stroke-linejoin="round"><path d="M2 33 34 12l14 9 22-17 24 20 14-8 38 17"/></svg>
+    <div class="statetxt"><b data-de="Entdecken konnte nicht geladen werden.">Couldn't load Discover.</b><p data-de="Deine Liste ist sicher. Versuch es gleich noch einmal.">Your list is safe. Try again in a moment.</p><button class="retry" data-de="Erneut versuchen →">Try again →</button></div>
+  </div>
+  <div class="mini">
+    <h4 data-de="Clubs · lädt">Clubs · loading</h4>
+    <div class="sk" style="height:20px;width:60%"></div>
+    <div style="height:12px"></div>
+    <div class="sk deep" style="height:148px;border-radius:24px"></div>
+    <div style="height:14px"></div>
+    <div class="sk" style="height:148px;border-radius:24px"></div>
+    <div class="scrubline"></div>
+  </div>
+  <div class="mini">
+    <h4 data-de="Clubraum · Aktivität fehlgeschlagen">Club room · activity failed</h4>
+    <div class="room" style="margin:0">
+      <div class="mast"><span class="seal"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9"/><path d="M8 11c4 0 8 6 12 6M8 17c4 0 8-6 12-6"/></svg></span><span class="nm"><span class="mk" data-de="Fortschritt geteilt">Progress shared</span><h3>Sunday Club</h3></span></div>
+      <svg viewBox="0 0 148 36" width="120" height="30" fill="none" stroke="#c1cdb7" stroke-width="1.1"><path d="M2 33 34 12l14 9 22-17 24 20 14-8 38 17"/></svg>
+      <b style="display:block;font-size:15px;font-weight:600;margin-top:8px" data-de="Club-Aktivität nicht geladen.">Couldn't load club activity.</b>
+      <span style="display:block;font-size:11px;color:var(--row-2);margin-top:4px" data-de="Der Club ist da. Nur die Updates fehlen.">The club is fine. Only the updates are missing.</span>
+      <button style="color:var(--row-ink);font-size:13px;min-height:44px;border-bottom:1px solid var(--row-2)" data-de="Erneut versuchen →">Try again →</button>
+    </div>
+  </div>
+  <div class="mini">
+    <h4 data-de="Privater Club · Diese Woche">Private club · This week</h4>
+    <div class="quietcard" data-de="Dieser Club teilt nur Zahlen. Updates erscheinen als Summen, ohne Namen.">This club shares counts only. Updates appear as totals, without names.</div>
+    <div style="height:10px"></div>
+    <div class="cal">
+      <button class="ev" style="border-top:0"><img data-art="silent" alt=""><span class="et"><b data-de="3 schauen · 1 beendet">3 watching · 1 finished</b><span>A Silent Voice</span></span><span class="chev">›</span></button>
+      <button class="ev"><img data-art="mob" alt=""><span class="et"><b data-de="2 schauen">2 watching</b><span>Mob Psycho 100</span></span><span class="chev">›</span></button>
+    </div>
+  </div>
+  <div class="mini">
+    <h4 data-de="Umfrage · Titeloptionen">Poll · title options</h4>
+    <div class="poll">
+      <span class="pm" data-de="Du fragst · endet Fr., 6. Nov.">You asked · closes Fri 6 Nov</span>
+      <h5 data-de="Was schauen wir als Nächstes?">What do we watch next?</h5>
+      <div class="opt"><button class="vote"><span class="radio on"></span><span class="vl">Mob Psycho 100</span><span class="pc" data-de="3 · 60 %">3 · 60%</span><span class="bar"><i style="width:60%"></i></span></button><button class="open" aria-label="Open Mob Psycho 100"><img data-art="mob" alt="">›</button></div>
+      <div class="opt"><button class="vote"><span class="radio"></span><span class="vl">A Silent Voice</span><span class="pc" data-de="2 · 40 %">2 · 40%</span><span class="bar"><i style="width:40%"></i></span></button><button class="open" aria-label="Open A Silent Voice"><img data-art="silent" alt="">›</button></div>
+    </div>
+  </div>
+  <div class="mini">
+    <h4 data-de="320 pt · kompakter Umschalter">320 pt · compact switch</h4>
+    <div class="switch compact"><button data-de="Alle">All</button><button class="on" data-fill="mob-b">Anime</button><button>Manga</button><span class="mark" style="left:calc((100% - 24px)/3 + 12px)"></span></div>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5" data-de="Bei ≤ 328 pt Spaltenbreite 24 pt Wörter (minimumScaleFactor 0,6). Bei AX-Größen stapeln sich die Wörter wie auf Home.">At a column of ≤ 328 pt the words drop to 24 pt (minimumScaleFactor 0.6). At AX sizes they stack, as on Home.</p>
+  </div>
+  <div class="mini manga">
+    <h4 data-de="Entdecken · Manga-Papier">Discover · manga paper</h4>
+    <div class="switch compact"><button data-de="Alle">All</button><button>Anime</button><button class="on" data-fill="berserk-b">Manga</button><span class="mark" style="left:calc(2 * (100% - 24px)/3 + 24px)"></span></div>
+    <div style="height:10px"></div>
+    <article class="scene" style="--m-base:#493431;--m-deep:#2c2321">
+      <div class="art" style="aspect-ratio:2.6/1"><img data-art="csm-b" alt=""><span class="tab"><small data-de="Tipp des Tages">Today's pick</small></span></div>
+      <div class="foot"><span class="ft" style="font-size:15px">Chainsaw Man</span><span class="key" aria-label="Plan to read"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span></div>
+    </article>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5" data-de="Manga zeigt den Tipp als Banner-Szene, nie als 560-pt-Cover (P14).">Manga shows the pick as a banner scene, never a 560 pt cover (P14).</p>
+  </div>
+</div>
+<figcaption><b>8 · States and variants</b> (320 pt insets)
+<ol>
+<li>Loading uses <code>KuroSkeleton</code> blocks shaped like the real components, at ink 8% / 13% instead of 5% (P10), with one <code>KuroScrubLine</code>. The scrub holds still under Reduce Motion.</li>
+<li>One retry style everywhere: the ink-rule "Try again →" (P13). The offline band sits over earlier content; a failure is never shown as empty.</li>
+<li>On the dark room, failures use <code>HomeClubRoomFailureLine</code> inks, because the ink ridge would disappear.</li>
+<li>A private club's This week shows aggregates from <code>member_status_counts</code>, with no names and no pace.</li>
+<li>Poll title options have two targets side by side: vote (left) and open the title (right, with its cover). <code>closes_at</code> shows as the deadline, and the viewer reads "You asked" (P12, P15).</li>
+</ol></figcaption>
+</figure>
+
+</div>
+</main>
+
+<script>
+(function(){
+  var A='../../../tools/design-directions/assets/';
+  var S='https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/';
+  var ART={
+    aot:['anime0.jpg','anime/2/cover_large.jpg'],'aot-b':['anime0-banner.jpg','anime/2/banner.jpg'],
+    ds:['anime1.jpg','anime/3/cover_large.jpg'],'ds-b':['anime1-banner.jpg','anime/3/banner.jpg'],
+    jjk:['anime2.jpg','anime/5/cover_large.jpg'],
+    dn:['anime3.jpg','anime/4/cover_large.jpg'],
+    csm:['manga0.jpg','manga/2/cover_large.png'],'csm-b':['manga0-banner.jpg','manga/2/banner.jpg'],
+    solo:['manga1.jpg','manga/3/cover_large.jpg'],
+    berserk:['manga3.jpg','manga/5/cover_large.jpg'],'berserk-b':['manga3-banner.jpg','manga/5/banner.jpg'],
+    yourname:['journal-anime-15-cover.png','anime/15/cover_large.png'],'yourname-b':['journal-anime-15-banner.jpg','anime/15/banner.jpg'],
+    mob:['journal-anime-22-cover.jpg','anime/22/cover_large.jpg'],'mob-b':['journal-anime-22-banner.jpg','anime/22/banner.jpg'],
+    spy:['journal-manga-13-cover.jpg','manga/13/cover_large.jpg'],
+    vagabond:['journal-manga-14-cover.png','manga/14/cover_large.png'],
+    fma:['journal-anime-12-cover.jpg','anime/12/cover_large.jpg'],
+    silent:['journal-anime-16-cover.jpg','anime/16/cover_large.jpg'],
+    vinland:['journal-manga-16-cover.jpg','manga/16/cover_large.jpg'],
+    dandadan:['journal-manga-23-cover.jpg','manga/23/cover_large.jpg']
+  };
+  document.querySelectorAll('img[data-art]').forEach(function(img){
+    var a=ART[img.dataset.art]; if(!a) return;
+    img.loading='lazy'; img.decoding='async';
+    img.addEventListener('error',function once(){img.removeEventListener('error',once); img.src=S+a[1];});
+    img.src=A+a[0];
+  });
+  // KuroArtWordFill: the selected word shows the artwork under a scrim, on #253A2A (local first, remote below).
+  document.querySelectorAll('[data-fill]').forEach(function(el){
+    var a=ART[el.dataset.fill]; if(!a) return;
+    el.style.backgroundImage='linear-gradient(#15221c55,#15221c88),url("'+A+a[0]+'"),url("'+S+a[1]+'"),linear-gradient(#253a2a,#253a2a)';
+  });
+  // EN/DE copy toggle (KuroLocale.text(en, de) in the app).
+  var nodes=document.querySelectorAll('[data-de]');
+  nodes.forEach(function(n){ n.dataset.en=n.innerHTML; });
+  document.querySelectorAll('[data-lang]').forEach(function(b){
+    b.addEventListener('click',function(){
+      var de=b.dataset.lang==='de';
+      document.documentElement.lang=de?'de':'en';
+      nodes.forEach(function(n){ n.innerHTML=de?n.dataset.de:n.dataset.en; });
+      document.querySelectorAll('[data-lang]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+    });
+  });
+})();
+</script>
+</body>
+</html>
