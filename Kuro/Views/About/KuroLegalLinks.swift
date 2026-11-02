@@ -8,6 +8,16 @@ import Foundation
 
 enum KuroLegalLinks {
     static let privacy = URL(string: "https://kuro.app/privacy")
+    /// The legal site's hostname that resolves today (Vercel project kuro-legal; `kuro.app` did not
+    /// resolve on 2026-11-02). Switch it once the final domain is attached, together with the CORS
+    /// list in supabase/functions/contact-submit/handler.ts.
+    static let legalSiteBase = "https://kuro-legal.vercel.app"
+
+    /// The privacy policy's contact-form section (Art. 13 GDPR information at the point of
+    /// collection): the German section for German, the English one otherwise.
+    static func privacyContactForm(german: Bool) -> URL? {
+        URL(string: legalSiteBase + (german ? "/datenschutz#kontaktformular" : "/datenschutz#contact-form"))
+    }
     /// Owner request: set the confirmed Terms of service URL here; nil hides the row.
     static let terms: URL? = nil
 }

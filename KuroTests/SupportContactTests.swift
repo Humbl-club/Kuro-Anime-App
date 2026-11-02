@@ -187,6 +187,64 @@ struct SupportContactTests {
         #expect(SupportStore.validate(draft) == [.consent])
     }
 
+    @Test("Validation: lengths are counted in UTF-16 code units, like the server's JavaScript .length")
+    func validationCountsUTF16() {
+        var draft = ContactDraft(topic: .general, email: "fan@example.com", name: "", message: "", consent: true)
+        // 2,000 emoji are 2,000 characters but 4,000 UTF-16 units: exactly the server's limit.
+        draft.message = String(repeating: "😀", count: 2000)
+        #expect(SupportStore.serverLength(draft.message) == 4000)
+        #expect(SupportStore.validate(draft).isEmpty)
+        // 2,001 emoji: 2,001 characters (under 4,000) but 4,002 units, which the server rejects.
+        draft.message = String(repeating: "😀", count: 2001)
+        #expect(draft.message.count == 2001)
+        #expect(SupportStore.validate(draft) == [.message])
+        draft.message = "Hi"
+        // A flag is one character but four UTF-16 units.
+        draft.name = String(repeating: "🇩🇪", count: 31)
+        #expect(draft.name.count == 31)
+        #expect(SupportStore.validate(draft) == [.name], "124 units is over the 120 limit")
+    }
+
+    @Test("Reopen: a sent message starts a fresh form; a stale failure clears but keeps the draft")
+    func reopenResetsStaleState() async throws {
+        let sent = try Self.harness()
+        try await sent.signIn()
+        let sentStore = SupportStore(client: sent.client, accountSession: sent.graph.accountSession)
+        Self.fill(sentStore)
+        await sentStore.submit()
+        #expect(sentStore.state == .sent)
+        sentStore.prepareForReopen()
+        #expect(sentStore.state == .idle)
+        #expect(sentStore.draft == ContactDraft(email: "  a@example.com "), "the email is kept for a follow-up")
+        await sent.tearDown()
+
+        let failed = try Self.harness(contact: { _ in .json(#"{"error":"internal"}"#, status: 500) })
+        try await failed.signIn()
+        let failedStore = SupportStore(client: failed.client, accountSession: failed.graph.accountSession)
+        Self.fill(failedStore)
+        let draft = failedStore.draft
+        await failedStore.submit()
+        #expect(failedStore.state == .failed)
+        failedStore.prepareForReopen()
+        #expect(failedStore.state == .idle)
+        #expect(failedStore.draft == draft, "the unsent draft stays")
+        await failed.tearDown()
+
+        let flagged = SupportStore(client: nil, accountSession: AccountSessionCoordinator())
+        await flagged.submit()
+        #expect(flagged.state == .invalid([.email, .message, .consent]))
+        flagged.prepareForReopen()
+        #expect(flagged.state == .invalid([.email, .message, .consent]), "field flags stay")
+    }
+
+    @Test("Consent link: the privacy policy's contact-form section on the live legal site, per language")
+    func privacyContactFormLink() {
+        #expect(KuroLegalLinks.privacyContactForm(german: true)?.absoluteString
+            == "https://kuro-legal.vercel.app/datenschutz#kontaktformular")
+        #expect(KuroLegalLinks.privacyContactForm(german: false)?.absoluteString
+            == "https://kuro-legal.vercel.app/datenschutz#contact-form")
+    }
+
     @Test("Locale: only a plain language subtag is sent")
     func localeTag() {
         #expect(SupportStore.localeTag(preferredLanguages: ["de-DE"]) == "de")

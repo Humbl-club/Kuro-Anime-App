@@ -43,7 +43,10 @@ struct ContactSheet: View {
             }
         }
         .overlay(alignment: .topTrailing) { closeButton(german: german) }
-        .onAppear { support.prepare(prefillEmail: identity.currentUserEmail) }
+        .onAppear {
+            support.prepareForReopen()
+            support.prepare(prefillEmail: identity.currentUserEmail)
+        }
     }
 
     // MARK: Parts
@@ -57,8 +60,8 @@ struct ContactSheet: View {
                 .accessibilityAddTraits(.isHeader)
             Rectangle().fill(Color.kuroInk).frame(width: 46, height: 2)
             Text(german
-                 ? "Schreib uns zu Kuro, deinem Konto oder deinen Daten. Wir antworten per E-Mail, meist innerhalb weniger Werktage."
-                 : "Write to us about Kuro, your account or your data. We reply by email, usually within a few working days.")
+                 ? "Schreib uns zu Kuro, deinem Konto oder deinen Daten. Wir antworten per E-Mail."
+                 : "Write to us about Kuro, your account or your data. We reply by email.")
                 .font(.kuroBody())
                 .foregroundStyle(Color.kuroInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -78,6 +81,9 @@ struct ContactSheet: View {
                         support.draft.topic = topic
                     }
                 }
+            }
+            if support.draft.topic == .reportContent {
+                reportContentHint(german: german)
             }
         }
 
@@ -131,9 +137,21 @@ struct ContactSheet: View {
             .textSelection(.enabled)
     }
 
+    /// Art. 16(2) DSA: what a notice of illegal content should contain (Terms, section 7).
+    private func reportContentHint(german: Bool) -> some View {
+        Text(german
+             ? "Bitte nenne: wo sich der Inhalt befindet (Club, Titel, möglichst mit Bildschirmfoto), warum er rechtswidrig ist, deinen Namen und die Erklärung, dass deine Angaben nach bestem Wissen richtig und vollständig sind."
+             : "Please include: where the content is (club, title, ideally with a screenshot), why it is illegal, your name, and a statement that your information is accurate and complete to the best of your knowledge.")
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroInkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 4)
+    }
+
     private func messageField(german: Bool, isFlagged: Bool) -> some View {
         let bound = Bindable(support)
-        let count = support.draft.message.count
+        // Counted like the server (UTF-16 code units), so the counter and the server agree.
+        let count = SupportStore.serverLength(support.draft.message)
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 fieldLabel(german ? "Nachricht" : "Message", isActive: focus == .message)
@@ -202,7 +220,7 @@ struct ContactSheet: View {
             : ". My details are used only to handle my request."
         var text = AttributedString(lead)
         var link = AttributedString(linkTitle)
-        if let privacy = KuroLegalLinks.privacy {
+        if let privacy = KuroLegalLinks.privacyContactForm(german: german) {
             link.link = privacy
             link.underlineStyle = .single
         }
@@ -260,6 +278,8 @@ struct ContactSheet: View {
                 .font(.kuroBody())
                 .foregroundStyle(Color.kuroInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            // Reopening starts a fresh form (`prepareForReopen` in onAppear); resetting here would
+            // flash the empty form during the dismiss animation.
             KuroInkButton(german ? "Fertig" : "Done") { dismiss() }
                 .padding(.top, KuroDesignSpacing.sm)
             KuroInkButton(german ? "Weitere Nachricht schreiben" : "Write another message", role: .secondary, haptic: false) {

@@ -150,6 +150,20 @@ final class SupportStore: AccountScopedState {
         state = .idle
     }
 
+    /// The sheet is opening again: a sent message starts a fresh form, and a stale failure, offline or
+    /// rate-limit notice from an earlier attempt is dropped (the draft stays). Sending and field flags
+    /// are kept.
+    func prepareForReopen() {
+        switch state {
+        case .sent:
+            startNewMessage()
+        case .failed, .offline, .rateLimited:
+            state = .idle
+        case .idle, .sending, .invalid:
+            break
+        }
+    }
+
     /// Clears a flag on a field the user is editing (and the invalid state once nothing is flagged).
     func clearFlag(_ field: ContactField) {
         guard case .invalid(let fields) = state else { return }
@@ -161,19 +175,26 @@ final class SupportStore: AccountScopedState {
 
     // MARK: Rules (pure)
 
-    /// The fields the server would reject, in the server's order. Pure.
+    /// The length the server counts: JavaScript `.length`, i.e. UTF-16 code units (an emoji is 2, a
+    /// flag 4), not characters. Pure.
+    nonisolated static func serverLength(_ text: String) -> Int {
+        text.utf16.count
+    }
+
+    /// The fields the server would reject, in the server's order. Lengths are counted like the server
+    /// (`serverLength`), so a message the form accepts is never rejected for length. Pure.
     nonisolated static func validate(_ draft: ContactDraft) -> [ContactField] {
         var fields: [ContactField] = []
         let email = draft.email.trimmingCharacters(in: .whitespacesAndNewlines)
-        if email.isEmpty || email.count > ContactDraft.emailLimit || !isPlausibleEmail(email) {
+        if email.isEmpty || serverLength(email) > ContactDraft.emailLimit || !isPlausibleEmail(email) {
             fields.append(.email)
         }
         let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if name.count > ContactDraft.nameLimit || name.contains(where: { $0.isNewline }) {
+        if serverLength(name) > ContactDraft.nameLimit || name.contains(where: { $0.isNewline }) {
             fields.append(.name)
         }
         let message = draft.message.trimmingCharacters(in: .whitespacesAndNewlines)
-        if message.isEmpty || message.count > ContactDraft.messageLimit {
+        if message.isEmpty || serverLength(message) > ContactDraft.messageLimit {
             fields.append(.message)
         }
         if !draft.consent { fields.append(.consent) }
