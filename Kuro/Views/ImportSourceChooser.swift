@@ -10,8 +10,10 @@ import UniformTypeIdentifiers
 /// Profile's new-account block; it owns its own coordinator instance, so it never relies on Profile's):
 /// the progress line, the toast, a retry for an uncertain delivery, and
 /// the result card with Undo (an applied legacy AniList import) or the Concierge review handoff (an
-/// import that needs review). The sheet cannot be closed while an import runs, because closing stops
-/// the coordinator and would cancel the write without a word.
+/// import that needs review). The sheet cannot be swiped away while an import runs, because closing
+/// stops the coordinator and would cancel the write without a word. Instead the top control turns into
+/// Stop (navigation contract N7: the busy state keeps Stop reachable), which asks first, stops the
+/// import and leaves the chooser usable; Close (never while busy) returns to whoever opened it.
 struct ImportSourceChooser: View {
     /// What the result card's primary button does: open the lists, or (Onboarding, which cannot show
     /// the lists yet) continue the presenter's own flow. Either way it calls `onNavigate`.
@@ -50,6 +52,10 @@ struct ImportSourceChooser: View {
     /// From the Retry tap until the resend finishes (covers the gap before the coordinator's own
     /// processing flag is set).
     @State private var retryInFlight = false
+    /// The Stop confirmation is showing.
+    @State private var confirmStop = false
+    /// The last import was stopped here (one honest line until the next source is chosen).
+    @State private var didStop = false
 
     private var isGerman: Bool { KuroLocale.isGerman }
 
@@ -61,17 +67,7 @@ struct ImportSourceChooser: View {
             VStack(alignment: .leading, spacing: 22) {
                 HStack {
                     Spacer()
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text(isGerman ? "Schließen" : "Close")
-                            .font(.kuroMeta(weight: .medium))
-                            .foregroundStyle(busy ? Color.kuroInkQuiet : Color.kuroInk)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(busy)
+                    topControl(ImportChooserTopControl.resolve(busy: busy, undoing: undoing))
                 }
                 Text(isGerman ? "Importiere deine Liste" : "Import your list")
                     .kuroRoleText(.feature)
@@ -96,6 +92,12 @@ struct ImportSourceChooser: View {
                     statusLine(isGerman ? "Import wird rückgängig gemacht …" : "Undoing the import …")
                 } else if busy {
                     statusLine(isGerman ? "Deine Liste wird importiert …" : "Importing your list …")
+                } else if didStop {
+                    Text(ImportChooserTopControl.stoppedLine(german: isGerman))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 }
 
                 if let result = owner?.importResult {
@@ -227,14 +229,19 @@ struct ImportSourceChooser: View {
             if id != nil { sheetDetent = .large }
         }
         .background(ImportWindowAnchor { malAnchor = $0 }.frame(width: 0, height: 0))
+        .confirmationDialog(ImportChooserTopControl.stopTitle(german: isGerman),
+                            isPresented: $confirmStop, titleVisibility: .visible) {
+            Button(ImportChooserTopControl.stopAction(german: isGerman), role: .destructive) { stopImport() }
+            Button(isGerman ? "Weiter importieren" : "Keep importing", role: .cancel) {}
+        } message: {
+            Text(ImportChooserTopControl.stopMessage(german: isGerman))
+        }
+        .onChange(of: busy) { _, isBusy in
+            if isBusy { didStop = false }
+        }
         .task {
             actionScope.activate(session: imports.accountSession)
-            coordinator?.stop()
-            coordinator = ProfileImportCoordinator(
-                imports: imports, library: library, collection: collection,
-                releases: releases, flags: flags, isGermanLocale: isGerman
-            )
-            await coordinator?.refreshMALIdentity()
+            await startCoordinator()
         }
         .onDisappear {
             actionScope.deactivate()
@@ -299,6 +306,50 @@ struct ImportSourceChooser: View {
                 .routePresenter()
             }
         }
+    }
+
+    /// A fresh coordinator (the chooser's own; `stop()` tears the old one down for good).
+    private func startCoordinator() async {
+        coordinator?.stop()
+        coordinator = ProfileImportCoordinator(
+            imports: imports, library: library, collection: collection,
+            releases: releases, flags: flags, isGermanLocale: isGerman
+        )
+        await coordinator?.refreshMALIdentity()
+    }
+
+    /// Stop (confirmed): the running import is cancelled, the chooser stays open and usable.
+    private func stopImport() {
+        guard actionScope.capture(session: imports.accountSession) != nil else { return }
+        coordinator?.stop()
+        aniListInFlight = false
+        retryInFlight = false
+        didStop = true
+        KuroAccessibility.impactHaptic(.light)
+        AccessibilityNotification.Announcement(ImportChooserTopControl.stoppedLine(german: isGerman)).post()
+        Task { @MainActor in await startCoordinator() }
+    }
+
+    @ViewBuilder
+    private func topControl(_ control: ImportChooserTopControl) -> some View {
+        Button {
+            switch control {
+            case .close: dismiss()
+            case .stop: confirmStop = true
+            case .closeDisabled: break
+            }
+        } label: {
+            Text(control == .stop ? ImportChooserTopControl.stopAction(german: isGerman) : (isGerman ? "Schließen" : "Close"))
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(control == .closeDisabled ? Color.kuroInkQuiet : Color.kuroInk)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(control == .closeDisabled)
+        .accessibilityHint(control == .stop
+                           ? (isGerman ? "Hält den laufenden Import an." : "Stops the running import.")
+                           : "")
     }
 
     private func statusLine(_ text: String) -> some View {
@@ -474,5 +525,32 @@ private struct ImportWindowAnchor: UIViewControllerRepresentable {
             super.viewDidDisappear(animated)
             receive?(nil)
         }
+    }
+}
+
+// MARK: - Top control (navigation contract N7)
+
+/// The chooser's top-right control (pure, NavclubsTests): Close when idle (back to the opener), Stop
+/// while an import runs (closing would cancel it silently), and a disabled Close while an Undo is being
+/// written (stopping half an Undo is never offered).
+nonisolated enum ImportChooserTopControl: Equatable {
+    case close
+    case stop
+    case closeDisabled
+
+    static func resolve(busy: Bool, undoing: Bool) -> ImportChooserTopControl {
+        if undoing { return .closeDisabled }
+        return busy ? .stop : .close
+    }
+
+    static func stopAction(german: Bool) -> String { german ? "Anhalten" : "Stop" }
+    static func stopTitle(german: Bool) -> String { german ? "Import anhalten?" : "Stop the import?" }
+    static func stopMessage(german: Bool) -> String {
+        german
+            ? "Was schon in deinen Listen ist, bleibt dort. Du kannst später neu importieren."
+            : "Whatever is already in your lists stays there. You can import again later."
+    }
+    static func stoppedLine(german: Bool) -> String {
+        german ? "Import angehalten. Deine Listen bleiben, wie sie sind." : "Import stopped. Your lists stay as they are."
     }
 }

@@ -1516,3 +1516,7 @@ Status: LIVE on `bkdifromsqxkndnllmdj`. Release schedule + songs RPCs and intake
 ### Change Log — 2 November 2026: Navigation contract foundation
 
 Status: foundation implemented locally on `kuro/prototype-fidelity`, NOT deployed. Journeys (`JourneyHost`, `JourneyPage`, `JourneyPolicy`), chrome + shrinking header, edge swipe-back fix, fold memory, root collapse coordinator (N10) and the WARN gate `check_navigation.sh` exist; screen migrations (detail, club, person pages, Search/Profile/see-all/season sheets, ContentView deep-link wiring) are open for the navigation lanes.
+
+### Change Log — 2 November 2026: Navigation lane "clubs"
+
+Status: implemented locally on `kuro/nav-clubs` (from foundation `b03c885`), NOT deployed, NOT pushed. Club detail is a journey page (chrome with back/settings/✕, shrinking paper bar, swipe-back restored; rail items and This-week entries push titles), creating a club opens it, Home season overview is a journey with ✕ + grabber, verdict sheets have a grabber + Cancel, create club/rail/poll + tracking editor + contact block swipe-down on unsaved input and confirm "Discard changes?", the import chooser keeps Stop reachable while busy. Gate offenders 16 → 14. Open: UI tests on the owned simulator (§5) for Club → rail item → detail → add to club → cancel.

@@ -174,6 +174,9 @@ struct ProfileView: View {
                                 .foregroundStyle(Color.kuroInk)
                         }
                     }
+                    // The Clubs sheet's own presentation context: a club opens as a journey over it
+                    // (nav-clubs lane; the root presenter is covered by this sheet).
+                    .routePresenter()
             }
         }
         .sheet(isPresented: $showDataSources) {

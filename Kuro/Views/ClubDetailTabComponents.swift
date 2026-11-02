@@ -498,6 +498,9 @@ struct JournalActivityContent: View {
         let updatedAt: Date
         let episodeCount: Int?
         let chapterCount: Int?
+
+        /// The title the entry is about (N9: the entry opens it).
+        var mediaKey: MediaKey { ClubActivityTarget.key(mediaType: mediaType, mediaId: mediaId) }
     }
 
     private static let isoFractional: ISO8601DateFormatter = {
@@ -634,9 +637,21 @@ struct JournalActivityContent: View {
 
 // MARK: - Activity Entry
 
+/// Where a "This week" entry leads (pure, NavclubsTests): its title, by the rail item's media type
+/// ("MANGA" in any case is manga; anything else is anime, as the rail cards read it).
+nonisolated enum ClubActivityTarget {
+    static func key(mediaType: String, mediaId: Int) -> MediaKey {
+        MediaKey(kind: mediaType.uppercased() == "MANGA" ? .manga : .anime, id: mediaId)
+    }
+}
+
+/// One member's update. Tapping it opens the title (pushed inside the club's journey, N9).
 struct JournalActivityEntry: View {
     let entry: JournalActivityContent.ActivityEntry
     let timeText: String
+
+    @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     private var parts: ClubActivityProse.Parts {
         ClubActivityProse.parts(status: entry.status, progress: entry.progress,
@@ -667,23 +682,35 @@ struct JournalActivityEntry: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
-            Text(proseText)
-                .foregroundStyle(Color.kuroInk)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        Button {
+            guard !suppressCardTaps else { return }
+            KuroAccessibility.impactHaptic(.light)
+            routes.openMedia(MediaRoute(entry.mediaKey))
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
+                Text(proseText)
+                    .foregroundStyle(Color.kuroInk)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(timeText)
-                .font(.kuroMeta())
-                .monospacedDigit()
-                .foregroundStyle(Color.kuroInkQuiet)
+                Text(timeText)
+                    .font(.kuroMeta())
+                    .monospacedDigit()
+                    .foregroundStyle(Color.kuroInkQuiet)
+            }
+            .padding(.vertical, KuroDesignSpacing.md)
+            .frame(minHeight: 44)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.kuroHairline).frame(height: 1)
+            }
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, KuroDesignSpacing.md)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.kuroHairline).frame(height: 1)
-        }
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
         .padding(.horizontal, KuroDesignSpacing.padding)
         .accessibilityElement(children: .combine)
+        .accessibilityHint(KuroLocale.text("Opens the title.", "Öffnet den Titel."))
+        .accessibilityAddTraits(.isButton)
     }
 }
 

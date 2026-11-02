@@ -95,6 +95,9 @@ struct AddToClubRailSheet: View {
                 }
             }
         }
+        // A tool (N7/N8): visible grabber and Cancel; an add in flight is not swiped away.
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(isSubmitting)
         .onAppear { actionScope.activate(session: clubs.accountSession) }
         .task(id: origin) {
             guard let origin, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }

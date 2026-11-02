@@ -7,68 +7,107 @@ import SwiftUI
 // a light card, hidden until tapped (notes can spoil). Tab content sits on the white page below.
 // No blur, glass, parallax or decorative motion.
 
-// MARK: - Status bar
+// MARK: - Status bar (journey chrome)
 
-/// Close and settings over the room; once the room has scrolled away the bar turns white with the
-/// club name. Both controls are 44 pt circles that keep contrast on either ground.
-struct JournalStatusBar: View {
-    let clubName: String
-    let scrollOffset: CGFloat
-    let heroHeight: CGFloat
-    let safeTop: CGFloat
-    let onBack: () -> Void
-    let onSettings: () -> Void
+/// The club page's rules for its chrome (navigation contract N1–N3, H1–H3). Pure (NavclubsTests).
+nonisolated enum ClubChromeRules {
+    /// How far the collapse runs once it starts (pt of scroll).
+    static let collapseDistance: CGFloat = 60
 
-    private var progress: CGFloat {
-        min(1, max(0, (-scrollOffset - (heroHeight - 120)) / 40))
+    /// The scroll offset at which the paper bar starts to fade in: shortly before the room's bottom
+    /// edge reaches the bar, so the bar is complete just after the room has gone.
+    static func collapseStart(heroHeight: CGFloat) -> CGFloat {
+        max(0, heroHeight - 140)
     }
 
-    private var isOverPage: Bool { progress > 0.5 }
+    /// Back is drawn only on a pushed club page (the first page of a journey shows ✕ only).
+    static func showsBack(isPushed: Bool) -> Bool { isPushed }
+
+    /// The controls sit on the room (white circles) until the bar is half drawn, then on the paper bar
+    /// (plain ink glyphs).
+    static func controlsOnRoom(_ shownProgress: CGFloat) -> Bool { shownProgress < 0.5 }
+}
+
+/// Back (pushed pages only), then the club name, settings and ✕ over the room; once the room has
+/// scrolled away the prototype's paper bar with a hairline fades in with the club name. The progress
+/// is the foundation's `KuroCollapse` (tied to the scroll offset; Reduce Motion snaps half way with a
+/// short cross-fade). Every control is 44 pt and stays put at every offset (H2). ✕ closes the whole
+/// journey (N3); outside a journey it dismisses the sheet.
+struct JournalStatusBar: View {
+    let clubName: String
+    /// Raw collapse progress 0...1 (`kuroCollapseTracking`); 0 while the club is loading.
+    let progress: CGFloat
+    /// nil while the club is loading (no settings to show yet).
+    let onSettings: (() -> Void)?
+
+    @Environment(\.kuroJourney) private var journey
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: 0) {
-            Color.kuroCanvasPage.opacity(Double(progress))
-                .frame(height: safeTop)
-
-            HStack(spacing: KuroDesignSpacing.sm) {
-                ClubCircleButton(systemImage: "xmark",
-                                 label: KuroLocale.text("Close", "Schließen"),
-                                 onRoom: !isOverPage,
-                                 action: onBack)
-                Spacer(minLength: 0)
-                if isOverPage {
-                    Text(clubName)
-                        .font(.kuroTitleName(weight: .medium))
-                        .foregroundStyle(Color.kuroInk)
-                        .lineLimit(1)
-                        .opacity(max(0, Double(progress - 0.5) * 2))
-                        .accessibilityHidden(true)
-                }
-                Spacer(minLength: 0)
+        let shown = KuroCollapse.displayProgress(progress, reduceMotion: reduceMotion)
+        let onRoom = ClubChromeRules.controlsOnRoom(shown)
+        let showsBack = ClubChromeRules.showsBack(isPushed: journey?.isPushed == true)
+        HStack(spacing: KuroDesignSpacing.sm) {
+            if showsBack {
+                ClubCircleButton(systemImage: "chevron.left",
+                                 label: KuroLocale.text("Back", "Zurück"),
+                                 onRoom: onRoom,
+                                 plainOnPage: true) { journey?.pop() }
+            }
+            Text(clubName)
+                .font(.kuroTitleName(weight: .medium))
+                .foregroundStyle(Color.kuroInk)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, showsBack ? 0 : KuroDesignSpacing.sm)
+                .opacity(Double(shown))
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityHidden(shown < 0.5)
+            if let onSettings {
                 ClubCircleButton(systemImage: "ellipsis",
                                  label: KuroLocale.text("Club settings", "Clubeinstellungen"),
-                                 onRoom: !isOverPage,
+                                 onRoom: onRoom,
+                                 plainOnPage: true,
                                  action: onSettings)
             }
-            .padding(.horizontal, KuroDesignSpacing.md)
-            .frame(minHeight: 52)
-            .background(Color.kuroCanvasPage.opacity(Double(progress)))
-
-            Rectangle()
-                .fill(Color.kuroHairline)
-                .frame(height: 1)
-                .opacity(progress > 0.8 ? 1 : 0)
+            ClubCircleButton(systemImage: "xmark",
+                             label: KuroLocale.text("Close", "Schließen"),
+                             onRoom: onRoom,
+                             plainOnPage: true) {
+                if let journey { journey.closeOrDismiss { dismiss() } } else { dismiss() }
+            }
         }
-        .kuroAnimation(KuroMotion.settle, value: isOverPage)
+        .padding(.horizontal, KuroDesignSpacing.md)
+        .frame(height: KuroJourneyChrome.barHeight)
+        .background(alignment: .bottom) {
+            Color.kuroPaper
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.kuroLine).frame(height: 0.5)
+                }
+                .ignoresSafeArea(edges: .top)
+                .opacity(Double(shown))
+                .allowsHitTesting(false)
+        }
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : nil, value: shown)
+        .kuroAnimation(KuroMotion.settle, value: onRoom)
     }
 }
 
-/// A 44 pt circular control: white on the room, ink on the page.
+/// A 44 pt circular control: white on the room, ink on the page (a quiet disc, or a plain ink glyph
+/// in the journey's compact bar with `plainOnPage`).
 struct ClubCircleButton: View {
     let systemImage: String
     let label: String
     let onRoom: Bool
+    var plainOnPage: Bool = false
     let action: () -> Void
+
+    private var fill: Color {
+        if onRoom { return Color.kuroWhite15 }
+        return plainOnPage ? Color.clear : Color.kuroCanvasQuiet
+    }
 
     var body: some View {
         Button {
@@ -79,9 +118,7 @@ struct ClubCircleButton: View {
                 .font(.kuroCustom(16, weight: .medium, relativeTo: .body, maxSize: 22))
                 .foregroundStyle(onRoom ? Color.kuroRoomText : Color.kuroInk)
                 .frame(width: 44, height: 44)
-                .background(
-                    Circle().fill(onRoom ? Color.kuroWhite15 : Color.kuroCanvasQuiet)
-                )
+                .background(Circle().fill(fill))
                 .contentShape(Circle())
         }
         .buttonStyle(KuroPressStyle())

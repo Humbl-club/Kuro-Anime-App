@@ -40,6 +40,17 @@ struct TrackingDraft: Equatable {
     /// The status a missing entry is created with.
     var createIfMissing: ListStatus { status }
 
+    /// Whether the editor holds input a Cancel would lose (navigation contract N7): any shown field
+    /// differs from the draft the editor was filled with. Notes compare trimmed (whitespace alone is
+    /// not a change, matching what a save would send).
+    func hasChanges(from baseline: TrackingDraft) -> Bool {
+        status != baseline.status
+            || progress != baseline.progress
+            || score != baseline.score
+            || notes.trimmingCharacters(in: .whitespacesAndNewlines)
+                != baseline.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// The progress a save writes. `maxProgress` is the known episode/chapter total (0 = unknown).
     func resolvedProgress(maxProgress: Int) -> Int {
         if status == .completed && maxProgress > 0 && progress == 0 {

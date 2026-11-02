@@ -9,14 +9,13 @@
 import KuroCore
 import SwiftUI
 
-// MARK: - Scroll Offset Preference Key
-
-private struct ClubScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
+// Navigation (contract docs/superpowers/specs/2026-11-02-navigation-contract-design.md): the club is a
+// journey page (`JourneyPage.club`, built by `JourneyHost`). Its status bar is the journey chrome:
+// back when pushed, settings and ✕ always (✕ collapses the whole journey), the paper compact bar fading
+// in as the room scrolls away (`KuroCollapse`). The system bar is hidden, so edge swipe-back is restored
+// with `KuroInteractivePopEnabler` (N2). Rail items and "This week" entries push their title inside the
+// journey through `\.kuroRoutes`; settings, new rail, new poll and add-a-title are tool sheets over this
+// page (N7) that leave the journey (`.kuroLeavesJourney()`).
 
 struct ClubDetailView: View {
     let clubId: String
@@ -64,7 +63,8 @@ struct ClubDetailView: View {
     @State private var addToRailId: String? = nil
     @State private var sharedProviders: ProviderAvailabilityStore.ClubSharedProvidersResponse? = nil
     @State private var showSharedAvailability: Bool = false
-    @State private var scrollOffset: CGFloat = 0
+    /// The shrinking header's progress (0 = the room, 1 = the compact bar).
+    @State private var collapse: CGFloat = 0
     @State private var heroHeight: CGFloat = 320
     /// Realtime and membership-loss decisions (`ClubDetailLifecycle`, pure and unit-tested).
     @State private var lifecycle = ClubDetailLifecycle()
@@ -106,9 +106,12 @@ struct ClubDetailView: View {
                     isConnected: networkMonitor.isConnected,
                     onRetry: {
                         actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
-                    },
-                    onClose: { dismiss() }
+                    }
                 )
+                .overlay(alignment: .top) {
+                    // Back (pushed) and ✕ stay reachable before the club is shown.
+                    JournalStatusBar(clubName: loadingBundle?.club.name ?? "", progress: 0, onSettings: nil)
+                }
             }
 
             if let toast {
@@ -122,7 +125,10 @@ struct ClubDetailView: View {
                 .zIndex(100)
             }
         }
+        // The chrome replaces the system bar; edge swipe-back stays on (N2).
         .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .background(KuroInteractivePopEnabler())
         .task(id: origin) {
             guard let origin, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             clubs.markClubSeen(clubId: clubId)
@@ -200,6 +206,7 @@ struct ClubDetailView: View {
                         lifecycle.leavingChanged(leaving)
                     }
                 )
+                .kuroLeavesJourney()
             }
         }
         .sheet(isPresented: $showCreateRail) {
@@ -208,6 +215,7 @@ struct ClubDetailView: View {
                 showToast(.success, title: KuroLocale.text("Rail created", "Liste angelegt"), subtitle: nil)
                 actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
             }
+            .kuroLeavesJourney()
         }
         .sheet(isPresented: $showCreatePoll) {
             CreateClubPollSheet(clubId: clubId) {
@@ -215,6 +223,7 @@ struct ClubDetailView: View {
                 showToast(.success, title: KuroLocale.text("Poll started", "Umfrage gestartet"), subtitle: nil)
                 actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
             }
+            .kuroLeavesJourney()
         }
         .sheet(isPresented: Binding(
             get: { addToRailId != nil },
@@ -226,9 +235,11 @@ struct ClubDetailView: View {
                     showToast(.success, title: KuroLocale.text("Added", "Hinzugefügt"), subtitle: nil)
                     actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
                 }
+                .kuroLeavesJourney()
             }
         }
-        // The club sheet's own presentation context: rail items open their routes here.
+        // Inside a journey this forwards: rail items and "This week" entries push their title onto the
+        // journey's stack. Outside one (previews, snapshot tests) it presents as before.
         .routePresenter()
     }
 
@@ -243,16 +254,6 @@ struct ClubDetailView: View {
             ZStack(alignment: .top) {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // Scroll offset sensor
-                        GeometryReader { proxy in
-                            Color.clear
-                                .preference(
-                                    key: ClubScrollOffsetPreferenceKey.self,
-                                    value: proxy.frame(in: .named("club_detail_scroll")).minY
-                                )
-                        }
-                        .frame(height: 0)
-
                         JournalHeroSection(bundle: bundle, topInset: safeTop + 60)
                             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { heroHeight = $0 }
 
@@ -330,10 +331,10 @@ struct ClubDetailView: View {
                         .kuroReadableWidth()
                     }
                 }
-                .coordinateSpace(name: "club_detail_scroll")
-                .onPreferenceChange(ClubScrollOffsetPreferenceKey.self) { v in
-                    scrollOffset = v
-                }
+                // H1/H3: the compact bar follows the scroll offset (no jump).
+                .kuroCollapseTracking($collapse,
+                                      start: ClubChromeRules.collapseStart(heroHeight: heroHeight),
+                                      distance: ClubChromeRules.collapseDistance)
                 .safeAreaInset(edge: .bottom) {
                     JournalBottomBar(
                         role: bundle.my_role,
@@ -346,13 +347,10 @@ struct ClubDetailView: View {
                 }
                 .ignoresSafeArea(edges: .top)
 
-                // Status bar overlay
+                // The journey chrome: back (pushed), settings, ✕ and the shrinking compact bar.
                 JournalStatusBar(
                     clubName: bundle.club.name,
-                    scrollOffset: scrollOffset,
-                    heroHeight: heroHeight,
-                    safeTop: safeTop,
-                    onBack: { dismiss() },
+                    progress: collapse,
                     onSettings: { showSettings = true }
                 )
             }
@@ -593,13 +591,12 @@ struct ClubDetailView: View {
 
 /// Before the club is shown: the room with what the cheap loading snapshot already knows (name,
 /// counts, artwork), then one honest state: loading, offline, failed (with Retry) or a membership
-/// notice (no Retry). A close control is always reachable.
+/// notice (no Retry). Back (when pushed) and ✕ are always reachable (the chrome over this state).
 private struct ClubDetailInitialState: View {
     let phase: ClubDetailView.ClubDetailLoadPhase
     let loadingBundle: ClubBundleLoading?
     let isConnected: Bool
     let onRetry: () -> Void
-    let onClose: () -> Void
 
     private var coverURLs: [URL] {
         (loadingBundle?.rails ?? [])
@@ -614,13 +611,10 @@ private struct ClubDetailInitialState: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                    HStack {
-                        ClubCircleButton(systemImage: "xmark",
-                                         label: KuroLocale.text("Close", "Schließen"),
-                                         onRoom: true,
-                                         action: onClose)
-                        Spacer()
-                    }
+                    // Room for the journey chrome (back / ✕), drawn over this state by `ClubDetailView`.
+                    Color.clear
+                        .frame(height: 44)
+                        .accessibilityHidden(true)
 
                     if let issue = phase.initialIssue, issue.isMembership {
                         // A membership notice keeps nothing of the club on screen.

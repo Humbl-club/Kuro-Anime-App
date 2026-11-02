@@ -36,7 +36,6 @@ struct HomeView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
-    @State private var seasonCard: HomeCard?
     @State private var showImportRecovery = false
     @State private var showImportChooser = false
     @State private var importRecoveryJob: ImportOutcome?
@@ -150,7 +149,6 @@ struct HomeView: View {
             guard !Task.isCancelled else { return }
             scheduleChecked = true
         }
-        .sheet(item: $seasonCard) { card in HomeSeasonOverview(card: card).routePresenter() }
         .sheet(isPresented: $showImportChooser) {
             ImportSourceChooser { destination in
                 showImportChooser = false
@@ -218,7 +216,7 @@ struct HomeView: View {
         plans.dismiss()
         progressToasts.dismiss()
         newAccountArt = [:]
-        seasonCard = nil; showImportRecovery = false; importRecoveryJob = nil; showImportChooser = false
+        showImportRecovery = false; importRecoveryJob = nil; showImportChooser = false
     }
 
     private var mediumKind: MediaKind { home.medium == "manga" ? .manga : .anime }
@@ -717,7 +715,8 @@ struct HomeView: View {
             fact: fact,
             compact: compactColumn,
             onOpen: { open(card) },
-            onSeason: { seasonCard = card },
+            // The season overview is a journey (navigation contract N8): its rows push titles.
+            onSeason: { routes.openPage(HomeSeasonJourney.page(for: card)) },
             onClub: { open(card) }
         ) {
             advanceKey(card, style: .light, onArt: true)
@@ -1250,12 +1249,27 @@ struct HomeContactStyle: ButtonStyle {
     }
 }
 
+/// The season overview as a journey page (navigation contract §1, N8). Opened from Home it is the
+/// root of a new journey (✕ and a visible grabber); its season rows push the title onto that journey.
+enum HomeSeasonJourney {
+    /// The page's identity inside `.seasonOverview` (JourneyPage id `season:home:<mediaId>`).
+    nonisolated static func pageID(mediaId: Int) -> String { "home:\(mediaId)" }
+
+    static func page(for card: HomeCard) -> JourneyPage {
+        .seasonOverview(AnyJourneyPage(id: pageID(mediaId: card.mediaId), title: card.title) {
+            HomeSeasonOverview(card: card)
+        })
+    }
+}
+
 /// The season overview opened from the artwork's season tab. Inspecting a season never changes
 /// progress.
 private struct HomeSeasonOverview: View {
     let card: HomeCard
     @Environment(HomeStore.self) private var home
     @Environment(\.kuroRoutes) private var routes
+    /// The compact bar's progress: the big title scrolling away brings the bar's title in.
+    @State private var collapse: CGFloat = 0
     @State private var detail: SeriesDetailBundle?
     @State private var failed = false
     /// The season read is not deployed (or answers another contract): seasons are not grouped yet.
@@ -1292,6 +1306,9 @@ private struct HomeSeasonOverview: View {
             .padding(KuroDesignSpacing.padding)
             .kuroReadableWidth()
         }
+        .kuroCollapseTracking($collapse, start: 0, distance: 44)
+        // The chrome's bar sits over the top of the page: the content starts below it.
+        .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: KuroJourneyChrome.barHeight) }
         .background(Color.kuroCanvasPage)
         .tint(Color.kuroInk)
         .task(id: "\(home.privacyEpoch)|\(attempt)") {
@@ -1316,7 +1333,10 @@ private struct HomeSeasonOverview: View {
             #endif
         }
         .onChange(of: home.privacyEpoch) { _, _ in detail = nil; failed = false; notGrouped = false }
-        .presentationDetents([.medium, .large])
+        // ✕ (closes the journey) and Back when pushed; a visible grabber (N8). Full height: the titles
+        // its rows push are detail pages.
+        .kuroJourneyChrome(title: card.title, collapseProgress: collapse)
+        .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder

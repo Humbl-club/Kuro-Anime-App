@@ -104,6 +104,10 @@ struct AddItemToRailSheet: View {
                 searchTask = nil
             }
         }
+        // A tool over the club page (N7/N8): visible grabber and Cancel; an add in flight is not
+        // swiped away.
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(isAdding)
     }
 
     @ViewBuilder
@@ -486,6 +490,9 @@ struct ClubSettingsSheet: View {
                 }
             }
         }
+        // A tool over the club page (N7/N8): visible grabber and Done; a leave in flight is not swiped away.
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(isLeaving)
         .onAppear { actionScope.activate(session: clubs.accountSession) }
         .onDisappear { actionScope.deactivate(); isLeaving = false }
     }

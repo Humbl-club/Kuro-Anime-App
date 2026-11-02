@@ -13,6 +13,9 @@ struct AddToListSheet: View {
     let media: any MediaDisplayable
     /// Status, progress, score (1...10, 0 = unrated) and notes as the editor shows them.
     @State private var draft = TrackingDraft(entry: nil)
+    /// The draft as the editor was filled: anything else is unsaved input (N7).
+    @State private var baseline = TrackingDraft(entry: nil)
+    @State private var confirmDiscard = false
     @State private var isEditingProgress = false
     @State private var isExistingEntry: Bool = false
     @State private var isSaving: Bool = false
@@ -76,6 +79,17 @@ struct AddToListSheet: View {
         AddToListCopy.scoreWord(draft.score, german: german)
     }
 
+    /// Unsaved input (N7): swipe-down is blocked and ✕ asks "Discard changes?" first.
+    private var isDirty: Bool { draft.hasChanges(from: baseline) }
+
+    /// ✕ / Cancel: a clean editor closes; unsaved input asks first.
+    private func cancel() {
+        switch KuroDiscardGuard.cancelStep(isDirty: isDirty) {
+        case .close: dismiss()
+        case .confirm: confirmDiscard = true
+        }
+    }
+
     var body: some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         return GeometryReader { geometry in
@@ -131,7 +145,7 @@ struct AddToListSheet: View {
             .overlay(alignment: .topTrailing) {
                 Button {
                     KuroAccessibility.impactHaptic(.light)
-                    dismiss()
+                    cancel()
                 } label: {
                     Image(systemName: "xmark")
                         .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
@@ -146,6 +160,8 @@ struct AddToListSheet: View {
             }
         }
         .background(Color.kuroCanvasPage)
+        .presentationDragIndicator(.visible)
+        .kuroDiscardGuard(isDirty: isDirty, isBusy: isSaving, isConfirming: $confirmDiscard) { dismiss() }
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear { actionScope.deactivate(); isSaving = false }
         .task(id: EditorIdentity(media: media.libraryKey, origin: origin)) {
@@ -155,6 +171,7 @@ struct AddToListSheet: View {
             let entry = library.entry(for: media.libraryKey)
             isExistingEntry = entry != nil
             draft = TrackingDraft(entry: entry)
+            baseline = draft
         }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected, saveError == offlineMutationMessage {
