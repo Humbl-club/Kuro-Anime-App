@@ -52,6 +52,15 @@ final class NavshellUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
 
+    /// Delivers a link to the RUNNING app (`app.open` relaunches it, which would bypass the collapse);
+    /// confirms the system's "Open in Kuro?" prompt when it appears.
+    private func openLinkInProcess(_ string: String) throws {
+        XCUIDevice.shared.system.open(try XCTUnwrap(URL(string: string)))
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let open = springboard.buttons["Open"]
+        if open.waitForExistence(timeout: 3) { open.tap() }
+    }
+
     func testProfileJourneyPushesBacksAndCollapses() throws {
         openProfile()
         let close = button("Close")
@@ -106,7 +115,7 @@ final class NavshellUITests: XCTestCase {
         sources.tap()
         XCTAssertTrue(button("Back").waitForExistence(timeout: 5))
 
-        app.open(URL(string: "kuro://anime/21")!)
+        try openLinkInProcess("kuro://anime/21")
         // Profile + Data sources collapse; the title opens as a new journey (✕ only, no Back).
         XCTAssertTrue(sources.waitForNonExistence(timeout: 10))
         sleep(3)

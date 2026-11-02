@@ -1,4 +1,5 @@
 import Foundation
+import KuroCore
 import SwiftUI
 
 #if DEBUG
@@ -102,6 +103,10 @@ struct NavigationFixturePage: View {
                 }
                 fixtureButton(KuroLocale.text("Fixture title", "Testtitel"), id: "navfixture.title") {
                     routes.openPage(NavigationFixture.titlePage)
+                }
+                // The same page a `kuro://anime/21` link targets (N10 keep-journey check).
+                fixtureButton(KuroLocale.text("Anime 21", "Anime 21"), id: "navfixture.anime21") {
+                    routes.openMedia(MediaRoute(kind: .anime, id: 21))
                 }
             }
             .padding(.horizontal, KuroDesignSpacing.padding)

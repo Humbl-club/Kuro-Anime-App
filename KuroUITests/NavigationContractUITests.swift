@@ -89,6 +89,15 @@ final class NavigationContractUITests: XCTestCase {
         }
     }
 
+    /// Delivers a link to the RUNNING app (`app.open` relaunches it, which would bypass the collapse);
+    /// confirms the system's "Open in Kuro?" prompt when it appears.
+    private func openLinkInProcess(_ string: String) throws {
+        XCUIDevice.shared.system.open(try XCTUnwrap(URL(string: string)))
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let open = springboard.buttons["Open"]
+        if open.waitForExistence(timeout: 3) { open.tap() }
+    }
+
     // MARK: N1 Back
 
     func testBackChevronPopsOneLevelKeepingScrollPosition() throws {
@@ -192,6 +201,25 @@ final class NavigationContractUITests: XCTestCase {
         assertOnStartPage()
     }
 
+    func testPullDownOnSearchJourneyDismissesIt() throws {
+        // H4 on a real journey root that used to install pull-to-refresh (Search): relaunch without the
+        // fixture journey, open Search from the header, pull down from its content.
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--kuro-nav-fixture" }
+        app.launch()
+        let search = app.buttons["magnifyingglass"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 15))
+        search.tap()
+        let searchClose = app.buttons.matching(NSPredicate(format: "label == 'Close'")).firstMatch
+        XCTAssertTrue(searchClose.waitForExistence(timeout: 10), "Search opened as a journey")
+        sleep(1)
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .fast, thenHoldForDuration: 0)
+        XCTAssertTrue(searchClose.waitForNonExistence(timeout: 6), "pull-down dismissed Search (no refresh took it)")
+        XCTAssertTrue(pagerProfile.waitForExistence(timeout: 5))
+    }
+
     // MARK: N7 tool returns to its page
 
     func testToolCloseReturnsToItsDetail() throws {
@@ -239,7 +267,7 @@ final class NavigationContractUITests: XCTestCase {
     func testDeepLinkCollapsesJourneyThenOpensTarget() throws {
         pushNext(to: 2)
         pushNext(to: 3)
-        app.open(try XCTUnwrap(URL(string: "kuro://anime/21")))
+        try openLinkInProcess("kuro://anime/21")
         XCTAssertTrue(level(3).waitForNonExistence(timeout: 10), "the open journey collapsed")
         sleep(4)
         shot("nav-07-deep-link-target")
@@ -253,5 +281,21 @@ final class NavigationContractUITests: XCTestCase {
         targetClose.tap()
         XCTAssertTrue(targetClose.waitForNonExistence(timeout: 6))
         assertOnStartPage()
+    }
+
+    /// N10 keep-journey: a link to the page already on top of the open journey keeps that journey (its
+    /// Back stays). A rebuilt root (not the coordinator) would show a fresh journey without Back.
+    func testDeepLinkToTopPageKeepsJourney() throws {
+        pushNext(to: 2)
+        tapScrolling(fixtureButton("navfixture.anime21"))
+        let backByLabel = app.buttons.matching(NSPredicate(format: "label == 'Back'")).firstMatch
+        XCTAssertTrue(level(2).waitForNonExistence(timeout: 8), "anime 21 is pushed over level 2")
+        XCTAssertTrue(backByLabel.waitForExistence(timeout: 8), "the pushed title shows Back")
+        try openLinkInProcess("kuro://anime/21")
+        sleep(3)
+        shot("nav-08-deep-link-keeps-journey")
+        XCTAssertTrue(backByLabel.waitForExistence(timeout: 5), "the journey with the target on top was kept")
+        backByLabel.tap()
+        XCTAssertTrue(level(2).waitForExistence(timeout: 5), "…with its stack below intact")
     }
 }

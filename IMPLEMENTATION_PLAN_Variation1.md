@@ -1531,10 +1531,11 @@ Status: done locally on `kuro/prototype-fidelity`. Not pushed, not deployed.
 - **Lanes merged:** the detail, entity, clubs and shell lanes are merged; their worktrees are removed.
 - **Gate:** `check_navigation.sh` is BLOCKING with 0 offenders.
 - **Fixes:** H4 (no pull-to-refresh on a journey's first page) and N8 (grabber always shown; 700 ms dismissal wait).
-- **Offline UI chain tests:** `NavigationContractUITests` 8/8 on the owned simulator, through the `--kuro-nav-fixture` journey.
+- **Offline UI chain tests:** `NavigationContractUITests` 10/10 on the owned simulator (in-process deep links; H4 negative control), through the `--kuro-nav-fixture` journey.
 - **Verification:** KuroTests 865/865; NavshellUITests 4/4 (live data); Release build OK; packages 96/96; run_all 11 PASS / 2 BLOCKED (expected) / 3 SKIP.
 - **Open:**
   - Real-data UI chains (Discover card → detail → character → manga → author → work; Search → result → season → source) need network or richer fixtures.
   - Voice actors need importer and schema work.
   - The Concierge sheet teardown leaves some auxiliary tasks running.
   - Owner visual check of the manga Back key over the folio cover.
+  - `check_navigation.sh` does not implement spec §5's third check ("a sheet without a close/cancel control").

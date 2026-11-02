@@ -30,8 +30,13 @@ These were written with `TEST_RUNNER_KURO_NAV_SHOTS=<dir>`. The app runs `--kuro
 | `ui/nav-04-character-level5.png` | Level 5, the character page pushed from the detail: Back and ✕. |
 | `ui/nav-05-closed-to-start-page.png` | ✕ on level 5: the whole journey closed back to the Discover pager (N3/N4). |
 | `ui/nav-06-tool-open.png` | Tracking editor (tool) over the detail. Its ✕ returns to the same detail, still pushed (N7). |
-| `ui/nav-07-deep-link-target.png` | `kuro://anime/21` while a 3-level journey was open: the journey collapsed and the target opened as a new journey's first page (✕ only; offline loader) (N10). |
+| `ui/nav-07-deep-link-target.png` | `kuro://anime/21`, delivered to the RUNNING app (`XCUIDevice.shared.system.open`), while a 3-level journey was open: the journey collapsed and the target opened as a new journey's first page (✕ only; offline loader) (N10). |
+| `ui/nav-08-deep-link-keeps-journey.png` | The same link while anime 21 was already on top of the open journey: the journey was kept, Back still pops to the level below (N10 keep-journey). |
 
-## Finding fixed during integration
+## Findings during integration
 
-The grabber was missing on a journey re-presented right after a collapse. A deep link closed the open root journey and opened the target 450 ms later. On iOS 26 that sheet came up without its grabber (N8): the grabber pixels were uniform. Raising `KuroNavigationCoordinator`'s dismissal wait to 700 ms brought it back. The fix was checked on the owned simulator with `simctl openurl` and a pixel check of the grabber area.
+The grabber was missing on a journey re-presented right after a collapse. A deep link closed the open root journey and opened the target 450 ms later. On iOS 26 that sheet came up without its grabber (N8): the grabber pixels were uniform. Raising `KuroNavigationCoordinator`'s dismissal wait to 700 ms brought it back. The fix was checked on the owned simulator with `simctl openurl` (same app process, confirmed in the system log) and a pixel check of the grabber area; one sample per setting.
+
+`XCUIApplication.open(URL)` relaunches the app, so a deep-link UI test using it never runs the collapse; the link is handled on a cold launch instead. The deep-link tests (here and in `NavshellUITests`) now deliver links through `XCUIDevice.shared.system.open`. The system log showed the same process and coordinator collapsing an open journey (top `navfixture:level:3`), and keeping one whose top was `media:anime:21`.
+
+H4 negative control: with Search's `.kuroJourneyRefreshable` temporarily reverted to `.refreshable`, `testPullDownOnSearchJourneyDismissesIt` failed (pull-down did not dismiss Search); with the fix it passes.
