@@ -69,7 +69,8 @@ Fixture caveats (read before judging pixels):
 - **Artwork is fixture art.** Covers come from `tools/design-directions/assets/` and do not match their titles. Judge layout, not pairing.
 - **English only.** `KuroLocale` has no override hook. The simulator region gives "Monday, 2. November" and "75 %" (en_DE formatting).
 - **Flags are the test graph's defaults.** Club reactions, streaming "our services", realm rails (Tonight's shelf, Hidden gem) and Because-You did not render, so they are audited from code only.
-- **Create sheet from the list.** "Start another club." could not be activated programmatically (see A4). The create sheet was rendered from the empty invitation's button, which presents the same `CreateClubSheet`.
+  - **The live app differs in two visible ways.** `clubs_reactions_v1` is 100% live, so live rail cards carry a reaction row (`ClubReactionMenu`) under every title, which these renders omit. With the series flags at 100% live, Discover shows "Browse the catalogue" at the end of the page and in the empty state (`DiscoverBrowseEntry`). The renders show the legacy pager order without that button, so the empty state in P13 is the legacy world.
+- **Create sheet from the list.** "Start another club." could not be activated programmatically (see §6, "Programmatic activation fails"). The create sheet was rendered from the empty invitation's button, which presents the same `CreateClubSheet`.
 - **Join sheet.** Rendered prefilled with a fixture code (`AbC12xYz`) through the deep-link path; `PasteButton` shows disabled with no pasteboard.
 - **Accessibility setting.** Programmatic activation needed app accessibility enabled on the lane simulator (`com.apple.Accessibility ApplicationAccessibilityEnabled`). It only matters for re-running the renders.
 
