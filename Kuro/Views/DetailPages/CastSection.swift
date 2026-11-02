@@ -1,11 +1,24 @@
 import SwiftUI
 
 // MARK: - Character Section (compact, importance-first preview)
+//
+// Navigation contract (docs/superpowers/specs/2026-11-02-navigation-contract-design.md): a character
+// opens its page by PUSHING it inside the journey (`routes.openCharacter`), and "See all" pushes the
+// character directory (`JourneyPage.seeAll`, `CastDirectory.journeyID`), whose characters push in turn.
+// Nothing here presents a sheet.
+
+/// The character directory's journey identity (pure, tested in NaventityTests).
+enum CastDirectory {
+    /// `characters:<ids>`: stable for one title's cast (the same characters in the same order), so a
+    /// second "See all" on the same title pops back to the open directory (N5) instead of a copy.
+    static func journeyID(characterIDs: [Int]) -> String {
+        "characters:" + characterIDs.map(String.init).joined(separator: "-")
+    }
+}
 
 struct CastSection: View {
     let characters: [(character: Character, role: String)]
 
-    @State private var showAllCharacters = false
     @Environment(\.kuroRoutes) private var routes
 
     private let previewLimit = 8
@@ -30,6 +43,15 @@ struct CastSection: View {
         Array(filtered.prefix(displayLimit))
     }
 
+    private func openDirectory() {
+        let title = sectionTitle
+        let items = displayedCharacters
+        let id = CastDirectory.journeyID(characterIDs: items.map(\.character.id))
+        routes.openPage(.seeAll(AnyJourneyPage(id: id, title: title) {
+            CharacterDirectoryPage(title: title, characters: items)
+        }))
+    }
+
     var body: some View {
         if !displayedCharacters.isEmpty {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
@@ -45,7 +67,7 @@ struct CastSection: View {
 
                     if displayedCharacters.count > previewLimit {
                         Button {
-                            showAllCharacters = true
+                            openDirectory()
                         } label: {
                             Text(KuroLocale.text("See all", "Alle ansehen"))
                                 .font(.kuroMeta(weight: .medium))
@@ -60,28 +82,18 @@ struct CastSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 14) {
                         ForEach(displayedCharacters.prefix(previewLimit), id: \.character.id) { item in
-                            CastCircleItem(
-                                character: item.character,
-                                role: item.role
-                            )
-                            .onTapGesture {
-                                // Pushed inside the journey (navigation contract), never a sheet.
+                            Button {
                                 routes.openCharacter(item.character)
+                            } label: {
+                                CastCircleItem(character: item.character, role: item.role)
+                                    .contentShape(Rectangle())
                             }
+                            .buttonStyle(KuroPressStyle())
                         }
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .sheet(isPresented: $showAllCharacters) {
-                // A legacy list sheet: its own presenter opens a tapped character as a journey over it.
-                CharacterDirectorySheet(
-                    title: sectionTitle,
-                    characters: displayedCharacters
-                )
-                .routePresenter()
-                .kuroLeavesJourney()
-            }
         }
     }
 }
@@ -205,11 +217,12 @@ private struct CastCircleItem: View {
     }
 }
 
-private struct CharacterDirectorySheet: View {
+/// The full character list as a journey page ("See all"): pushed by `CastSection`, each character
+/// pushes its page. No stack and no Close of its own (the journey chrome draws back and ✕).
+private struct CharacterDirectoryPage: View {
     let title: String
     let characters: [(character: Character, role: String)]
 
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.kuroRoutes) private var routes
 
     private let columns = [
@@ -225,7 +238,7 @@ private struct CharacterDirectorySheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        KuroJourneyAwareStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: KuroSpacing.lg) {
                     EntitySectionLead(
@@ -255,25 +268,25 @@ private struct CharacterDirectorySheet: View {
 
                     LazyVGrid(columns: columns, alignment: .leading, spacing: 18) {
                         ForEach(characters, id: \.character.id) { item in
-                            CastCircleItem(character: item.character, role: item.role)
-                                .onTapGesture {
-                                    routes.openCharacter(item.character)
-                                }
+                            Button {
+                                routes.openCharacter(item.character)
+                            } label: {
+                                CastCircleItem(character: item.character, role: item.role)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(KuroPressStyle())
                         }
                     }
                 }
                 .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.vertical, KuroSpacing.lg)
+                .padding(.top, KuroJourneyChrome.barHeight + KuroSpacing.md)
+                .padding(.bottom, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    DetailSheetCloseButton { dismiss() }
-                }
-            }
+            // No artwork: the compact bar (with the title) from the start.
+            .kuroJourneyChrome(title: title, collapseProgress: 1)
         }
+        .routePresenter()
     }
 }
 

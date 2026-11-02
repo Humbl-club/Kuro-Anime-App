@@ -44,6 +44,7 @@ final class CatalogStore: MemoryPressureTrimmable {
     var studioWorksCache: [String: TimedCache<[Media]>] = [:]
     var staffWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
     var authorWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
+    var staffMangaWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
     var characterWorksCache: [String: TimedCache<[Media]>] = [:]
     var mediaLadderCache: [String: TimedCache<MediaLadderResponse>] = [:]
     var mediaLadderRefreshEnqueueCooldown: [String: Date] = [:]
@@ -76,6 +77,7 @@ final class CatalogStore: MemoryPressureTrimmable {
     private let studioWorksLoads = AccountScopedLoads<String, [Media]>()
     private let staffWorksLoads = AccountScopedLoads<String, [(media: Media, role: String)]>()
     private let authorWorksLoads = AccountScopedLoads<String, [(media: Media, role: String)]>()
+    private let staffMangaWorksLoads = AccountScopedLoads<String, [(media: Media, role: String)]>()
     private let characterWorksLoads = AccountScopedLoads<String, [Media]>()
 
     /// Sheds the entity, ladder, link and detail caches under memory pressure.
@@ -92,6 +94,7 @@ final class CatalogStore: MemoryPressureTrimmable {
         studioWorksCache.removeAll()
         staffWorksCache.removeAll()
         authorWorksCache.removeAll()
+        staffMangaWorksCache.removeAll()
         characterWorksCache.removeAll()
         mediaLadderCache.removeAll()
         mediaLadderRefreshEnqueueCooldown.removeAll()
@@ -668,6 +671,61 @@ final class CatalogStore: MemoryPressureTrimmable {
             #endif
             return []
         }
+    }
+
+    /// A staff member's manga credits (`manga_staff`). The manga importer writes every AniList person
+    /// of a manga into `staff` as well as `authors`, so an anime's "Original work" staff credit reaches
+    /// their manga here (navigation contract §6). Public read (RLS "Public read access").
+    func fetchMangaByStaff(staffId: Int) async -> [(media: Media, role: String)] {
+        let key = "staff-manga-\(staffId)"
+        if let cached = staffMangaWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
+            return cached.value
+        }
+        let result = try? await staffMangaWorksLoads.run(key: key, context: nil) { [weak self] in
+            await self?.loadMangaByStaff(staffId: staffId, key: key) ?? []
+        }
+        return result ?? []
+    }
+
+    private func loadMangaByStaff(staffId: Int, key: String) async -> [(media: Media, role: String)] {
+        do {
+            let client = try requiredClient()
+            let joins: [StaffMangaJoin] = try await client
+                .from("manga_staff")
+                .select("role, manga!inner(id, title_english, title_romaji, cover_image_large, average_score, start_date_year, format, status, genres, is_adult, chapters)")
+                .eq("staff_id", value: staffId)
+                .eq("manga.is_adult", value: false)
+                .order(CatalogColumns.entityWorksOrder(embed: "manga"), ascending: false)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.entityWorksRowLimit)
+                .execute()
+                .value
+            // Defense-in-depth: client-side filter in case nested eq is ignored
+            let result = joins
+                .filter { !$0.manga.isAdult }
+                .compactMap { join -> (media: Media, role: String)? in
+                    let media = join.manga.toMedia()
+                    guard !(media.genres ?? []).contains("Hentai"),
+                          !(media.genres ?? []).contains("Ecchi") else { return nil }
+                    return (media: media, role: join.role ?? "")
+                }
+            trimTimedCache(&staffMangaWorksCache, maxEntries: 50)
+            staffMangaWorksCache[key] = TimedCache(value: result, storedAt: Date())
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchMangaByStaff error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    /// A staff page's whole filmography: anime (`anime_staff`) then manga (`manga_staff`), read in
+    /// parallel (`EntityWorks.staffWorks`).
+    func fetchStaffWorks(staffId: Int) async -> [(media: Media, role: String)] {
+        async let anime = fetchAnimeByStaff(staffId: staffId)
+        async let manga = fetchMangaByStaff(staffId: staffId)
+        return EntityWorks.staffWorks(anime: await anime, manga: await manga)
     }
 
     func fetchMangaByAuthor(authorId: Int) async -> [(media: Media, role: String)] {

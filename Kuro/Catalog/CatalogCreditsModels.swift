@@ -225,6 +225,11 @@ struct StaffAnimeJoin: Codable {
     let anime: AnimeWorkRow
 }
 
+struct StaffMangaJoin: Codable {
+    let role: String?
+    let manga: MangaWorkRow
+}
+
 struct AuthorMangaJoin: Codable {
     let role: String?
     let manga: MangaWorkRow
