@@ -178,6 +178,9 @@ struct EditorialSearchView: View {
                 }
                 .scrollDisabled(false)
                 .scrollDismissesKeyboard(.interactively)
+                // A new scope is a new list: start it at the top (it kept the old offset and hid the
+                // first result under the pinned filters).
+                .id(scope)
                 // H4: Search is a journey's first page, where pull-down dismisses the sheet.
                 .kuroJourneyRefreshable {
                     guard showsSearchContent else { return }

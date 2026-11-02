@@ -281,8 +281,8 @@ struct ConciergeAniListImportSheet: View {
             .padding(.top, 4)
 
             Text(isGermanLocale
-                ? "Nur öffentliche Listen sind im MVP vorgesehen. Private Einträge brauchen später OAuth."
-                : "This MVP uses public lists only. Private entries will need OAuth later."
+                ? "Kuro liest öffentliche AniList-Listen. Private Einträge bleiben privat und werden nicht übernommen."
+                : "Kuro reads public AniList lists. Private entries stay private and are not imported."
             )
             .font(.kuroMicro())
             .foregroundColor(.kuroTextTertiary)

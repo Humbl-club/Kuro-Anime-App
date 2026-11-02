@@ -78,7 +78,7 @@ struct KuroCompactCard: View {
         } else if let chapters = media.chapters, chapters > 0 {
             parts.append("\(KuroCardText.countString(chapters)) ch")
         } else if let status = media.statusRaw?.uppercased() {
-            if status == "RELEASING" { parts.append("airing") }
+            if status == "RELEASING" { parts.append(media.kind == .manga ? KuroLocale.text("publishing", "erscheint") : KuroLocale.text("airing", "läuft")) }
             if status == "FINISHED" { parts.append("finished") }
         } else if let format = media.formatRaw, !format.isEmpty {
             parts.append(format.lowercased())
