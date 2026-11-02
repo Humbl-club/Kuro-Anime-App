@@ -45,6 +45,14 @@ struct DetailBetweenUs: View {
         roster.compactMap { $0.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     }
 
+    /// The club a note's author provably shares with the viewer: the viewer's only club (every friend
+    /// shares it), else a club whose cached roster lists the author. nil otherwise (never a guess).
+    static func clubName(authorId: String, railClubs: [(name: String, memberIds: [String])],
+                         myClubNames: [String]) -> String? {
+        if myClubNames.count == 1 { return myClubNames[0] }
+        return railClubs.first { $0.memberIds.contains(authorId) }?.name
+    }
+
     /// The heading's member names: none while social activity is switched off, whatever was loaded.
     static func headingNames(_ roster: [SocialActivityStore.FriendTitleActivity], socialEnabled: Bool) -> [String] {
         socialEnabled ? rosterNames(roster) : []
@@ -81,7 +89,13 @@ struct DetailBetweenUs: View {
                                            onRoster: { list in
                                                roster = list
                                                onRoster(list)
-                                           }, preview: preview)
+                                           }, preview: preview,
+                                           clubName: { author in
+                                               Self.clubName(authorId: author,
+                                                             railClubs: clubRails.map { ($0.club.name, $0.members.map(\.user_id)) },
+                                                             myClubNames: clubs.myClubs.map(\.name))
+                                           },
+                                           bookish: bookish)
                         .padding(.horizontal, 20)
                         .padding(.top, 13)
                         .padding(.bottom, 13)
@@ -145,7 +159,7 @@ struct DetailBetweenUs: View {
             VStack(alignment: .leading, spacing: 0) {
                 DetailEyebrow(text: KuroLocale.text("Your clubs · private", "Deine Clubs · privat"), size: 7, tracking: 1.2)
                 Text(KuroLocale.text("Between us.", "Unter uns."))
-                    .font(.kuroEditorial(size: 28))
+                    .font(.detailGeorgia(28))
                     .tracking(-0.9)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)

@@ -25,6 +25,11 @@ struct FriendsActivitySection: View {
     var onRoster: (([SocialActivityStore.FriendTitleActivity]) -> Void)? = nil
     /// Fixture renders only (KuroTests): shown instead of reading the activity.
     var preview: SocialActivityStore.FriendActivityResponse? = nil
+    /// Prototype card: the club a note's author provably shares with the viewer (the byline's club
+    /// name); nil leaves the note's age in its place.
+    var clubName: (String) -> String? = { _ in nil }
+    /// Manga's folio card: the squarer "Leave a thought" card (radius 4).
+    var bookish = false
 
     @Environment(ClubsStore.self) private var clubs
     @Environment(SocialActivityStore.self) private var social
@@ -74,7 +79,8 @@ struct FriendsActivitySection: View {
         let origin = actionScope.capture(session: social.accountSession)
         let permission = social.friendScopeGeneration
         if hasClubs {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            // The prototype card spaces its rows itself (note padding 13/0/14, compose m 11).
+            VStack(alignment: .leading, spacing: prototypeStyle ? 0 : KuroDesignSpacing.md) {
                 if showsHeading {
                     EditorialLayout.divider()
 
@@ -97,6 +103,7 @@ struct FriendsActivitySection: View {
                     if !activity.friends_tracking.isEmpty {
                         if prototypeStyle {
                             rosterDisclosure(activity.friends_tracking)
+                                .padding(.bottom, 3)
                         } else {
                             friendTrackingPills(activity.friends_tracking)
                         }
@@ -195,7 +202,7 @@ struct FriendsActivitySection: View {
                         .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 20))
                         .foregroundStyle(Color(hex: "61725D"))
                     Image(systemName: "chevron.down")
-                        .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 16))
+                        .font(.kuroCustom(6, weight: .light, relativeTo: .caption2, maxSize: 14))
                         .rotationEffect(.degrees(showsRoster ? 180 : 0))
                         .foregroundStyle(Color(hex: "61725D"))
                 }
@@ -268,7 +275,7 @@ struct FriendsActivitySection: View {
 
     @ViewBuilder
     private func commentsSection(_ comments: [SocialActivityStore.TitleComment]) -> some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+        VStack(alignment: .leading, spacing: prototypeStyle ? 0 : KuroDesignSpacing.sm) {
             ForEach(comments) { comment in
                 commentRow(comment)
             }
@@ -294,20 +301,23 @@ struct FriendsActivitySection: View {
                 Text(comment.display_name ?? String(comment.user_id.prefix(6)))
                     .font(prototypeStyle ? .kuroCustom(11, weight: .semibold, relativeTo: .footnote, maxSize: 24) : .kuroCaption(weight: .medium))
                     .foregroundColor(prototypeStyle ? .kuroInk : .kuroBlack65)
+                    // The byline's 15.4 pt line (prototype `.note-byline b`).
+                    .padding(.vertical, prototypeStyle ? 1.5 : 0)
+                    // The reactions' VoiceOver actions sit on the author's name, one element that is
+                    // always there (on the note's container they would repeat on every child).
+                    .modifier(NoteReactionsModifier(enabled: prototypeStyle && !comment.is_own, part: .accessibility,
+                                                    actions: noteReactionActions(comment)))
 
-                Text(relativeTime(comment.created_at))
+                // Prototype byline: the shared club's name (`.note-byline span`) when it is provable;
+                // otherwise the note's age. The age stays in the VoiceOver label either way.
+                Text(prototypeStyle ? (clubName(comment.user_id) ?? relativeTime(comment.created_at)) : relativeTime(comment.created_at))
                     .font(prototypeStyle ? .kuroCustom(8, relativeTo: .caption2, maxSize: 18) : .kuroMicro())
                     .foregroundColor(prototypeStyle ? Color(hex: "6B7B6D") : .kuroInkQuiet)
+                    .accessibilityLabel(prototypeStyle
+                                        ? [clubName(comment.user_id), relativeTime(comment.created_at)].compactMap { $0 }.joined(separator: ", ")
+                                        : relativeTime(comment.created_at))
 
                 Spacer(minLength: 0)
-
-                // The prototype card keeps the reactions on the byline row (same buttons, same writes).
-                if prototypeStyle && !comment.is_own {
-                    reactionButton(comment: comment, type: "up", icon: "hand.thumbsup", count: comment.up_count,
-                                   isActive: comment.my_reaction == "up")
-                    reactionButton(comment: comment, type: "down", icon: "hand.thumbsdown", count: comment.down_count,
-                                   isActive: comment.my_reaction == "down")
-                }
 
                 if comment.is_own {
                     Button {
@@ -336,6 +346,12 @@ struct FriendsActivitySection: View {
                     .accessibilityLabel(KuroLocale.text("Delete comment", "Kommentar löschen"))
                 }
             }
+            // Prototype card: the note carries no keys. The live reactions (same writes) sit behind
+            // touch-and-hold on the note and in its VoiceOver actions (`noteReactions`); a quiet tally
+            // shows only when the note has reactions, so nothing the server holds is hidden.
+            .overlay(alignment: .trailing) {
+                if prototypeStyle && !comment.is_own { reactionTally(comment) }
+            }
 
             if comment.spoiler_scope != nil && comment.spoiler_scope != "none" && !comment.is_own && !revealed.contains(comment.id) {
                 if prototypeStyle {
@@ -353,6 +369,7 @@ struct FriendsActivitySection: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .padding(.top, 8)
                     .accessibilityHint(KuroLocale.text("Reveals a club member's spoiler", "Zeigt den Spoiler eines Clubmitglieds"))
                 } else {
                 Button(KuroLocale.text("Spoiler · Reveal", "Spoiler · Anzeigen")) { revealed.insert(comment.id) }
@@ -363,6 +380,8 @@ struct FriendsActivitySection: View {
                 Text(comment.text)
                     .font(prototypeStyle ? .kuroCustom(13, relativeTo: .callout, maxSize: 28) : .kuroBody(weight: .light))
                     .foregroundColor(prototypeStyle ? Color(hex: "405646") : .kuroBlack80).lineSpacing(prototypeStyle ? 5 : 4)
+                    // The prototype's 8 pt margin plus the 13/20.8 line's half-leading.
+                    .padding(.top, prototypeStyle ? 7 : 0)
                 if revealed.contains(comment.id) {
                     Button(KuroLocale.text("Hide spoiler", "Spoiler ausblenden")) { revealed.remove(comment.id) }.frame(minHeight: 44)
                 }
@@ -417,10 +436,48 @@ struct FriendsActivitySection: View {
                 }
             }
         }
-        .padding(.top, prototypeStyle ? 13 : 6)
+        // 13/0/14 as measured, plus the SF ascent the CSS line box adds above the byline.
+        .padding(.top, prototypeStyle ? 15 : 6)
         .padding(.bottom, prototypeStyle ? 14 : 6)
         .overlay(alignment: .bottom) {
             if prototypeStyle { Rectangle().fill(Color(hex: "6F8671", opacity: Double(0x20) / 255)).frame(height: 1) }
+        }
+        .modifier(NoteReactionsModifier(enabled: prototypeStyle && !comment.is_own, part: .menu,
+                                        actions: noteReactionActions(comment)))
+    }
+
+    /// The note's two reactions as menu items / VoiceOver actions.
+    private func noteReactionActions(_ comment: SocialActivityStore.TitleComment) -> [NoteReactionsModifier.Action] {
+        NoteReaction.allCases.map { reaction in
+            NoteReactionsModifier.Action(
+                title: NoteReaction.title(reaction, count: reaction.count(in: comment), german: KuroLocale.isGerman),
+                systemImage: reaction.icon(active: comment.my_reaction == reaction.rawValue),
+                run: noteReactionRunner(comment: comment, type: reaction.rawValue))
+        }
+    }
+
+    /// The quiet tally on a prototype note: shown only when the note has reactions (counts and the
+    /// viewer's own), never as a control. The reactions themselves sit behind touch-and-hold.
+    @ViewBuilder
+    private func reactionTally(_ comment: SocialActivityStore.TitleComment) -> some View {
+        if let tally = NoteReaction.tally(up: comment.up_count, down: comment.down_count, mine: comment.my_reaction) {
+            Text(tally)
+                .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 18))
+                .foregroundStyle(Color(hex: "6B7B6D"))
+                .accessibilityLabel(NoteReaction.tallyLabel(up: comment.up_count, down: comment.down_count,
+                                                            mine: comment.my_reaction, german: KuroLocale.isGerman))
+        }
+    }
+
+    /// The same write as `reactionButton`, captured for the note's menu and VoiceOver actions.
+    private func noteReactionRunner(comment: SocialActivityStore.TitleComment, type: String) -> () -> Void {
+        let origin = actionScope.capture(session: social.accountSession)
+        let permission = social.friendScopeGeneration
+        return {
+            KuroAccessibility.impactHaptic(.light)
+            launchAction(origin: origin, permission: permission) { ticket in
+                await toggleReaction(commentId: comment.id, type: type, origin: ticket, permission: permission)
+            }
         }
     }
 
@@ -536,7 +593,7 @@ struct FriendsActivitySection: View {
 
     /// "Leave a thought · Shared with your clubs" (prototype `.circle-compose`), opening the field.
     private var leaveThoughtCard: some View {
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: bookish ? 4 : 12, style: .continuous)
         return Button {
             withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { composing = true }
         } label: {
@@ -713,5 +770,86 @@ struct FriendsActivitySection: View {
         if seconds < 3600 { return KuroLocale.text("\(Int(seconds / 60))m", "\(Int(seconds / 60)) Min.") }
         if seconds < 86400 { return KuroLocale.text("\(Int(seconds / 3600))h", "\(Int(seconds / 3600)) Std.") }
         return KuroLocale.text("\(Int(seconds / 86400))d", "\(Int(seconds / 86400)) T.")
+    }
+}
+
+
+/// A friend note's two reactions (prototype card): labels, icons and the quiet tally.
+enum NoteReaction: String, CaseIterable {
+    case up, down
+
+    func count(in comment: SocialActivityStore.TitleComment) -> Int {
+        self == .up ? comment.up_count : comment.down_count
+    }
+
+    func icon(active: Bool) -> String {
+        let base = self == .up ? "hand.thumbsup" : "hand.thumbsdown"
+        return active ? "\(base).fill" : base
+    }
+
+    /// The menu item and VoiceOver action title, with the count when there is one.
+    static func title(_ reaction: NoteReaction, count: Int, german: Bool) -> String {
+        let word = reaction == .up
+            ? (german ? "Gedanken mögen" : "Like thought")
+            : (german ? "Gedanken nicht mögen" : "Dislike thought")
+        return count > 0 ? "\(word) (\(count))" : word
+    }
+
+    /// "↑2 ↓1": nil when the note has no reactions (the card then matches the prototype exactly).
+    static func tally(up: Int, down: Int, mine: String?) -> String? {
+        var parts: [String] = []
+        if up > 0 || mine == "up" { parts.append("↑\(max(up, 1))") }
+        if down > 0 || mine == "down" { parts.append("↓\(max(down, 1))") }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    static func tallyLabel(up: Int, down: Int, mine: String?, german: Bool) -> String {
+        var parts: [String] = []
+        if up > 0 { parts.append(german ? "\(up) mögen das" : "\(up) liked") }
+        if down > 0 { parts.append(german ? "\(down) mögen das nicht" : "\(down) disliked") }
+        if mine == "up" { parts.append(german ? "du magst das" : "you liked it") }
+        if mine == "down" { parts.append(german ? "du magst das nicht" : "you disliked it") }
+        return parts.joined(separator: ", ")
+    }
+}
+
+/// Puts a note's reactions behind touch-and-hold (`.menu`, a context menu on the whole note) and in
+/// VoiceOver actions (`.accessibility`, on one element of the note).
+private struct NoteReactionsModifier: ViewModifier {
+    struct Action {
+        let title: String
+        let systemImage: String
+        let run: () -> Void
+    }
+
+    enum Part { case menu, accessibility }
+
+    let enabled: Bool
+    let part: Part
+    let actions: [Action]
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if !enabled {
+            content
+        } else if part == .menu {
+            content
+                .contentShape(.contextMenuPreview, Rectangle())
+                .contextMenu {
+                    ForEach(actions.indices, id: \.self) { index in
+                        Button(action: actions[index].run) {
+                            Label(actions[index].title, systemImage: actions[index].systemImage)
+                        }
+                    }
+                }
+        } else {
+            content
+                .accessibilityActions {
+                    ForEach(actions.indices, id: \.self) { index in
+                        Button(actions[index].title, action: actions[index].run)
+                    }
+                }
+                .accessibilityHint(KuroLocale.text("Touch and hold to react.", "Gedrückt halten, um zu reagieren."))
+        }
     }
 }

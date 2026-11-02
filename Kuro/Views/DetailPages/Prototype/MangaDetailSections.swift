@@ -17,9 +17,11 @@ import SwiftUI
 // | friend activity (`FriendsActivitySection`)   | SocialActivityStore         | club presence, "Between us." (social_activity_v1) |
 // Loading: the hero and story draw at once; the other sections wait behind `KuroSkeleton(.detailSection)`
 // until the ladder, the first chapters, credits and read links settle, and an offline band with Try
-// again sits under the hero. The owners answer a failed read with an empty result (a hidden section).
-// Tracking writes go through `LibraryViewActions.markProgress` and the shared tracking editor route;
-// the page acts only on the entry that is open.
+// again sits under the hero. A failed ladder read shows the branded failed state with Try again; the
+// chapter, credit and link owners still answer a failed read with an empty list (open item).
+// Tracking writes go through `LibraryActions.apply` (`DetailAdvance`: a +1 on a Planned title also
+// makes it Reading), `LibraryActions.remove` (asked first, with Undo) and the shared tracking editor
+// route; the page acts only on the entry that is open.
 //
 // Look (PROTOTYPE_SPEC.md §4 manga tables, instrument.css `dialog[data-rich=true][data-medium=manga]`):
 // paper `#f6f5ef`; the intro band is the artwork `wash → #faf9f2` with a faint 7 pt ruling (the
@@ -103,6 +105,10 @@ struct MangaDetailPage: View {
     @State private var pending: Set<DetailLoadPart>
     /// Try again (offline band) and a reconnect reload the page's reads.
     @State private var reloadToken = 0
+    /// The ladder read failed (not "no adaptation"): the failed state with Try again shows.
+    @State private var ladderFailed = false
+    /// The entry a confirmed "Remove from list" will remove.
+    @State private var pendingRemoval: LibraryEntry?
 
     private var german: Bool { KuroLocale.isGerman }
     private var entry: LibraryEntry? { library.entry(for: manga.libraryKey) }
@@ -167,6 +173,10 @@ struct MangaDetailPage: View {
                         ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
                         }
+                        if pending.isEmpty, ladderFailed, !isOffline {
+                            KuroStateView(.failed(hasCachedContent: true), layout: .inline) { reloadToken += 1 }
+                                .padding(.top, 12)
+                        }
                         if !pending.isEmpty {
                             VStack(alignment: .leading, spacing: 28) {
                                 KuroSkeleton(kind: .detailSection)
@@ -218,6 +228,14 @@ struct MangaDetailPage: View {
         .detailReleases(kind: .manga, id: manga.id, schedule: $releaseItems, songs: $releaseSongs)
         .sheet(isPresented: $showVerdict) {
             QuickVerdictPickerSheet(media: manga, onToast: showToast)
+        }
+        .confirmationDialog(DetailRemoval.confirmTitle(german: german),
+                            isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
+                            titleVisibility: .visible, presenting: pendingRemoval) { removed in
+            Button(DetailRemoval.confirmAction(german: german), role: .destructive) { remove(removed) }
+            Button(KuroLocale.text("Cancel", "Abbrechen"), role: .cancel) {}
+        } message: { _ in
+            Text(DetailRemoval.confirmMessage(kind: .manga, german: german))
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(title: KuroLocale.text("Read on", "Lesen bei"),
@@ -325,15 +343,16 @@ struct MangaDetailPage: View {
 
     private func advance(to next: Int, origin: AccountActionScope.Ticket?) {
         guard !savingNext, actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
-        let previous = progress
         let key = manga.libraryKey
+        let status = entry?.status
         let capped = total.map { min(next, $0) } ?? next
         savingNext = true
         let launched = actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = await LibraryViewActions.markProgress(key, to: capped, actions: libraryActions)
+            // A Planned title becomes Reading in the same edit (Home's in-progress scene follows).
+            let outcome = await DetailAdvance.advance(key, from: status, to: capped, actions: libraryActions)
             savingNext = false
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
-            if outcome.error != nil {
+            guard let change = outcome.change else {
                 KuroAccessibility.errorHaptic()
                 showToast(KuroToastState(kind: .error,
                                          title: KuroLocale.text("Not saved. Your progress is unchanged.", "Nicht gespeichert. Dein Fortschritt ist unverändert."),
@@ -348,7 +367,7 @@ struct MangaDetailPage: View {
                                                      : KuroLocale.text("Progress saved.", "Fortschritt gespeichert."),
                                      subtitle: nil,
                                      actionTitle: KuroLocale.text("Undo", "Rückgängig"),
-                                     onAction: { undo(to: previous, from: capped) }))
+                                     onAction: { undo(change, saved: capped) }))
         }
         // The key never stays on "Saving": not launched, or cancelled before the write ran.
         guard let launched else { savingNext = false; return }
@@ -358,13 +377,21 @@ struct MangaDetailPage: View {
         }
     }
 
-    /// Undo restores the previous position only while the entry still shows the saved one.
-    private func undo(to previous: Int, from saved: Int) {
+    /// Undo reverts the whole +1 (the count and a promoted status; a row the +1 created goes again),
+    /// only while the entry still shows the saved position.
+    private func undo(_ change: LibraryChange, saved: Int) {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         guard progress == saved else { return }
         let key = manga.libraryKey
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = await LibraryViewActions.markProgress(key, to: previous, actions: libraryActions)
+            let outcome: LibraryOutcome
+            if change.kind == .added {
+                outcome = await libraryActions.remove(key)
+            } else if let edit = DetailAdvance.undoEdit(change) {
+                outcome = await libraryActions.apply(edit, to: key, createIfMissing: nil)
+            } else {
+                return
+            }
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
                                      title: outcome.error == nil ? KuroLocale.text("Undone.", "Rückgängig gemacht.")
@@ -373,32 +400,77 @@ struct MangaDetailPage: View {
         }
     }
 
-    /// The live dock's heart: saves to Planned, or removes a saved title.
+    /// The live dock's heart: saves to Planned, or removes a saved title. Removing asks first when the
+    /// entry holds anything beyond a bare plan; the toast then offers Undo.
     private func toggleSaved() {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
-        let wasSaved = entry != nil
+        if let entry {
+            if DetailRemoval.needsConfirmation(entry) { pendingRemoval = entry } else { remove(entry) }
+            return
+        }
         let key = manga.libraryKey
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = wasSaved ? await libraryActions.remove(key) : await libraryActions.save(key, status: .planning)
+            let outcome = await libraryActions.save(key, status: .planning)
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
-            if outcome.change != nil {
-                KuroAccessibility.successHaptic()
-                showToast(KuroToastState(kind: .success,
-                                         title: wasSaved ? KuroLocale.text("Removed from your list.", "Von deiner Liste entfernt.")
-                                                         : KuroLocale.text("Added to your list.", "Zu deiner Liste hinzugefügt."),
-                                         subtitle: nil, actionTitle: nil, onAction: nil))
-            } else {
-                KuroAccessibility.errorHaptic()
-                showToast(KuroToastState(kind: .error,
-                                         title: KuroLocale.text("Not saved. Your list is unchanged.", "Nicht gespeichert. Deine Liste ist unverändert."),
-                                         subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: KuroLocale.isGerman) },
-                                         actionTitle: nil, onAction: nil))
-            }
+            savedToast(outcome, removed: nil)
+        }
+    }
+
+    private func remove(_ removed: LibraryEntry) {
+        pendingRemoval = nil
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
+        let key = manga.libraryKey
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.remove(key)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            savedToast(outcome, removed: removed)
+        }
+    }
+
+    /// Undo after a removal: the removed row comes back with every field.
+    private func restore(_ removed: LibraryEntry) {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        guard entry == nil else { return }
+        let key = manga.libraryKey
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.apply(DetailRemoval.restoreEdit(removed), to: key, createIfMissing: removed.status)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
+                                     title: outcome.error == nil ? KuroLocale.text("Back in your list.", "Wieder in deiner Liste.")
+                                                                 : KuroLocale.text("Not restored. Try again from List settings.", "Nicht wiederhergestellt. Versuch es über die Listeneinstellungen."),
+                                     subtitle: nil, actionTitle: nil, onAction: nil))
+        }
+    }
+
+    private func savedToast(_ outcome: LibraryOutcome, removed: LibraryEntry?) {
+        if outcome.change != nil {
+            KuroAccessibility.successHaptic()
+            showToast(KuroToastState(kind: .success,
+                                     title: removed != nil ? KuroLocale.text("Removed from your list.", "Von deiner Liste entfernt.")
+                                                           : KuroLocale.text("Added to your list.", "Zu deiner Liste hinzugefügt."),
+                                     subtitle: nil,
+                                     actionTitle: removed != nil ? KuroLocale.text("Undo", "Rückgängig") : nil,
+                                     onAction: removed.map { row in { restore(row) } }))
+        } else {
+            KuroAccessibility.errorHaptic()
+            showToast(KuroToastState(kind: .error,
+                                     title: KuroLocale.text("Not saved. Your list is unchanged.", "Nicht gespeichert. Deine Liste ist unverändert."),
+                                     subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: KuroLocale.isGerman) },
+                                     actionTitle: nil, onAction: nil))
         }
     }
 
     private func openProviders() {
+        // The read-links answer is still out: say so, never "no link" before the answer.
+        guard !pending.contains(.links) else {
+            showToast(KuroToastState(kind: .info,
+                                     title: KuroLocale.text("Still checking where to read. Try again in a moment.",
+                                                            "Wir prüfen noch, wo du lesen kannst. Versuch es gleich noch einmal."),
+                                     subtitle: nil, actionTitle: nil, onAction: nil))
+            return
+        }
         guard let primary = publisher, let url = ProviderAvailabilityStore.validatedOutboundURL(primary.url) else {
             showToast(KuroToastState(kind: .info,
                                      title: KuroLocale.text("No legal provider link is available yet.", "Noch kein legaler Anbieter-Link verfügbar."),
@@ -459,6 +531,7 @@ struct MangaDetailPage: View {
         #endif
         let ladder = await catalog.fetchMediaLadder(mediaType: "MANGA", mediaId: manga.id)
         guard !Task.isCancelled, loadGeneration == generation else { return }
+        ladderFailed = DetailReadState.ladderFailed(ladder)
         let adaptation = MangaDetailSections.animeAdaptation(in: ladder)
         content.adaptation = adaptation
         if let adaptation {
@@ -556,24 +629,25 @@ struct MangaDetailHero<Mark: View>: View {
             .padding(.bottom, 24)
         } else {
             ViewThatFits(in: .horizontal) {
-                row(inset: 24, gap: 23, titleSize: 29, titleWidth: 160)
+                row(inset: 24, gap: 23, titleSize: 29, titleWidth: 176)
                 // Small phones (prototype ≤360): tighter inset, 26 pt title.
                 row(inset: 20, gap: 18, titleSize: 26, titleWidth: 125)
             }
         }
     }
 
+    /// The prototype's folio band at its measured size (padding 28/24/24, a 107 × 161 cover, a heading
+    /// column of at most 176 pt, so "Chainsaw Man" breaks onto two lines as in the reference). A wider
+    /// sheet leaves the extra width beside the heading, under the close control.
     private func row(inset: CGFloat, gap: CGFloat, titleSize: CGFloat, titleWidth: CGFloat) -> some View {
         HStack(alignment: .center, spacing: gap) {
-            // The prototype's cover is 35 % of the band's content width, at most 128.
-            book.containerRelativeFrame(.horizontal) { width, _ in min(128, max(0, width - inset * 2) * 0.35) }
+            // 35 % of the prototype's 306 pt content width (107 pt), smaller on narrower phones.
+            book.containerRelativeFrame(.horizontal) { width, _ in min(107.1, max(0, width - inset * 2) * 0.35) }
             heading(titleSize: titleSize)
-                .frame(minWidth: titleWidth, maxWidth: .infinity, alignment: .leading)
-                // The round close (44 pt, 12 pt from the edge) sits over this corner: a tall heading
-                // (long title, German mark on two lines) never runs under it.
-                .padding(.trailing, 32)
+                .frame(minWidth: min(titleWidth, 125), maxWidth: titleWidth, alignment: .leading)
+            Spacer(minLength: 0)
         }
-        .padding(.top, 28 + 16)
+        .padding(.top, 28)
         .padding(.horizontal, inset)
         .padding(.bottom, 24)
     }
@@ -585,15 +659,17 @@ struct MangaDetailHero<Mark: View>: View {
                 .tracking(1.7)
                 .foregroundStyle(MangaInk.kicker)
             Text(title)
-                .font(.kuroEditorial(size: titleSize))
+                .font(.detailGeorgia(titleSize, relativeTo: .title1))
                 .tracking(-1)
                 .foregroundStyle(Color.kuroInk)
-                // Review focus 1: three lines at most, then truncate; never under the close control.
+                // Review focus 1: three lines at most; a word wider than the column shrinks a little
+                // before anything is cut (a two-line title such as "Chainsaw / Man" keeps its size).
                 .lineLimit(3)
-                .minimumScaleFactor(0.85)
+                .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 9)
-                .padding(.bottom, 9)
+                // m 9/0/15 around a 31.9 pt CSS line; Georgia's own line box sits a little higher.
+                .padding(.top, 11)
+                .padding(.bottom, 19)
                 .accessibilityAddTraits(.isHeader)
             mark()
         }
@@ -630,7 +706,18 @@ struct MangaDetailHero<Mark: View>: View {
                     shape.fill(Color(hex: "BBB9AE")).offset(x: 5, y: 2)
                     shape.fill(Color(hex: "F8F7EF")).offset(x: 4, y: 2)
                 }
+                // One shadow for the whole stack: without the group SwiftUI shadows every sheet, so the
+                // upper sheets' shadows darkened the lower ones and the drop read four times as heavy.
+                .compositingGroup()
                 .shadow(color: Color(hex: "25281D", opacity: Double(0x18) / 255), radius: 12, x: 0, y: 16)
+            }
+            .background(alignment: .bottom) {
+                // The cover's ::after page edge (93 × 6, inset 7 at each side): only its lowest rule
+                // shows, 2 pt under the last sheet (measured `#bdbcb2` in `ref-detail-manga-390.png`).
+                Rectangle().fill(Color(hex: "BDBCB2"))
+                    .frame(height: 1)
+                    .padding(.horizontal, 7)
+                    .offset(y: 6)
             }
             .accessibilityHidden(true)
     }
@@ -696,7 +783,7 @@ struct MangaBookmarkCard: View {
         let german = KuroLocale.isGerman
         return VStack(alignment: .leading, spacing: 4) {
                 Text(MangaDetailCopy.bookmark(german: german))
-                    .font(.kuroEditorial(size: 22))
+                    .font(.detailGeorgia(22))
                     .tracking(-0.5)
                     .foregroundStyle(DetailInk.progressLabel)
                     .fixedSize(horizontal: false, vertical: true)
@@ -762,15 +849,18 @@ struct MangaChaptersSection: View {
     private var upNext: Int? { isTracked ? nextChapter : nil }
     private var real: Bool { MangaDetailSections.chaptersAreReal(chapters) }
 
-    /// Collapsed: the last finished chapter and the one after Up next (tracked), or the first three.
-    /// Placeholder lists show no rows at all.
+    /// Collapsed: the last finished chapter under Up next (tracked; the prototype shows no later row),
+    /// or the first three. Placeholder lists show no rows at all.
     private var shownRows: [MangaChapter] {
         guard real else { return [] }
         if showsAll { return allChapters.isEmpty ? chapters : allChapters }
         guard isTracked else { return Array(chapters.prefix(3)) }
-        let finished = chapters.last { $0.number <= progress }
-        let later = chapters.first { $0.number > progress + 1 }
-        return [finished, later].compactMap { $0 }
+        return Self.collapsedRows(chapters, progress: progress)
+    }
+
+    /// The tracked, collapsed list: the last finished chapter only (ref-detail-manga-390.png).
+    static func collapsedRows(_ chapters: [MangaChapter], progress: Int) -> [MangaChapter] {
+        chapters.last { $0.number <= progress }.map { [$0] } ?? []
     }
 
     private var hasMoreToShow: Bool {
@@ -851,7 +941,7 @@ struct MangaChaptersSection: View {
                     .tracking(1.4)
                     .foregroundStyle(DetailInk.upNextKicker)
                 Text(MangaDetailCopy.chapter(number, german: german))
-                    .font(.detailSF(12, .medium, relativeTo: .subheadline))
+                    .font(.detailSF(12, .semibold, relativeTo: .subheadline))
                     .foregroundStyle(Color.kuroInk)
                 if let realTitle {
                     Text(realTitle)
@@ -867,13 +957,17 @@ struct MangaChaptersSection: View {
                             radius: 11) {
                 onAdvance(number)
             }
-            .padding(.top, -7)
         }
+        // The prototype's 58 pt summary (padding 7/9 → 74): the key sits centred, 14 pt from each edge.
+        .frame(minHeight: 58)
         .padding(.vertical, 7)
         .padding(.horizontal, 9)
-        .background(material.wash.color, in: shape)
+        .background {
+            // The shadow belongs to the row's shape only (on the container it would shadow every child).
+            shape.fill(material.wash.color)
+                .shadow(color: Color(hex: "292A20", opacity: 0x08 / 255.0), radius: 2.5, x: 0, y: 2)
+        }
         .overlay(shape.strokeBorder(material.edge.color, lineWidth: 1))
-        .shadow(color: Color(hex: "292A20", opacity: 0x08 / 255.0), radius: 2.5, x: 0, y: 2)
         .padding(.horizontal, -9)
         .padding(.bottom, 4)
     }
@@ -885,14 +979,14 @@ struct MangaChaptersSection: View {
         let date = (chapter.releaseAt ?? chapter.releaseDate).map { $0.formatted(.dateTime.day().month(.abbreviated).year()) }
         let content = HStack(spacing: 12) {
             Text("\(chapter.number)")
-                .font(.kuroEditorial(size: 18, weight: .light).italic())
+                .font(.detailGeorgia(18, italic: true, relativeTo: .title3))
                 .tracking(-1)
                 .monospacedDigit()
                 .foregroundStyle(DetailInk.finished)
                 .frame(minWidth: 26, alignment: .leading)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.detailSF(12, .medium, relativeTo: .subheadline))
+                    .font(.detailSF(12, .semibold, relativeTo: .subheadline))
                     .foregroundStyle(ink)
                     .lineLimit(2)
                 if finished {
@@ -906,15 +1000,12 @@ struct MangaChaptersSection: View {
                 }
             }
             Spacer(minLength: 8)
+            // The prototype's only row keys are ✓ and Up next's +: an unread row that opens the
+            // reading service says so to VoiceOver (hint) without a ↗ key.
             if finished {
                 Image(systemName: "checkmark")
                     .font(.detailSF(11, relativeTo: .footnote))
                     .foregroundStyle(DetailInk.finished)
-            } else if onReadChapter != nil {
-                Image(systemName: "arrow.up.right")
-                    .font(.detailSF(10, relativeTo: .caption2))
-                    .foregroundStyle(DetailInk.finished)
-                    .accessibilityHidden(true)
             }
         }
         // 57 pt as measured; at large type the padding keeps text off the row rules.
@@ -948,9 +1039,12 @@ struct MangaChaptersSection: View {
 
 // MARK: - D7 Seen the anime?
 
-/// "From screen to page · Seen the anime?": the ladder's anime adaptation with "Explore the anime →"
-/// (a sibling route). "I've watched the anime" opens the bundle's season guide and only exists when the
-/// bundle has one (series flags on); the guide never marks chapters as read.
+/// "From screen to page · Seen the anime?": the ladder's anime adaptation. Its one link is the
+/// prototype's "Official anime site ↗" when the adaptation's external links have one; the 映 tile and
+/// title open the anime in the app (the live route, kept without an extra link). Without a site the
+/// link reads "Explore the anime →" (the in-app route), so the card always leads somewhere.
+/// "I've watched the anime" opens the bundle's season guide and only exists when the bundle has one
+/// (series flags on): without coverage it could only say "unknown". The guide never marks chapters read.
 struct MangaAdaptationCard: View {
     let item: MediaLadderItem
     let guides: [SeriesDetailBundle.Coverage]
@@ -971,7 +1065,7 @@ struct MangaAdaptationCard: View {
         VStack(alignment: .leading, spacing: 0) {
             DetailEyebrow(text: KuroLocale.text("From screen to page", "Vom Bildschirm aufs Papier"))
             Text(KuroLocale.text("Seen the anime?", "Den Anime gesehen?"))
-                .font(.kuroEditorial(size: 27))
+                .font(.detailGeorgia(27))
                 .tracking(-0.7)
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -982,45 +1076,37 @@ struct MangaAdaptationCard: View {
             let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
                                  : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
             layout {
-                Text("映")
-                    .font(.kuroEditorial(size: 25))
-                    .foregroundStyle(material.base.color)
-                    .frame(width: 62, height: 76)
-                    .background(MangaInk.symbolFill)
-                    .overlay(Rectangle().strokeBorder(material.edge.color, lineWidth: 1))
-                    .accessibilityHidden(true)
+                // The 映 tile and the title open the anime in the app (the live route, no extra link).
+                Button { onOpen(item.mediaId) } label: {
+                    Text("映")
+                        .font(.detailMincho(25))
+                        .foregroundStyle(material.base.color)
+                        .frame(width: 62, height: 76)
+                        .background(MangaInk.symbolFill)
+                        .overlay(Rectangle().strokeBorder(material.edge.color, lineWidth: 1))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(KuroPressStyle())
+                .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(item.title)
-                        .font(.detailSF(15, .medium, relativeTo: .headline))
-                        .foregroundStyle(Color.kuroInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(KuroLocale.text("Anime adaptation", "Anime-Adaption"))
-                        .font(.detailSF(9, relativeTo: .caption2))
-                        .foregroundStyle(MangaInk.adaptationCaption)
-                        .padding(.top, 5)
                     Button { onOpen(item.mediaId) } label: {
-                        HStack(spacing: 16) {
-                            Text(KuroLocale.text("Explore the anime", "Zum Anime"))
-                                .font(.detailSF(11, relativeTo: .footnote))
-                            Image(systemName: "arrow.right")
-                                .font(.detailSF(13, .light, relativeTo: .body))
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(item.title)
+                                .font(.detailSF(15, .semibold, relativeTo: .headline))
+                                .foregroundStyle(Color.kuroInk)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(KuroLocale.text("Anime adaptation", "Anime-Adaption"))
+                                .font(.detailSF(9, relativeTo: .caption2))
+                                .foregroundStyle(MangaInk.adaptationCaption)
+                                .padding(.top, 5)
                         }
-                        .foregroundStyle(Color.kuroInk)
-                        .frame(minHeight: 44)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    if officialSite != nil {
-                        Button(action: onOpenSite) {
-                            Text(KuroLocale.text("Official anime site ↗", "Offizielle Anime-Seite ↗"))
-                                .font(.detailSF(11, relativeTo: .footnote))
-                                .foregroundStyle(Color.kuroInk)
-                                .frame(minHeight: 44)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint(KuroLocale.text("Opens the anime's official website.", "Öffnet die offizielle Website des Anime."))
-                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityHint(KuroLocale.text("Opens the anime.", "Öffnet den Anime."))
+                    link(german: german)
                 }
                 if !stacked { Spacer(minLength: 0) }
             }
@@ -1036,7 +1122,37 @@ struct MangaAdaptationCard: View {
         .overlay(shape.strokeBorder(material.edge.color, lineWidth: 1))
         .background { shape.fill(MangaInk.guideShadow).offset(x: 3, y: 3) }
         .padding(.top, 27)
-        .padding(.bottom, 30)
+        // The card's 30 pt bottom margin collapses into the next section's own 30 pt top (CSS).
+        .padding(.bottom, 0)
+    }
+
+    /// The card's one link: the official site when known, else the in-app route.
+    @ViewBuilder
+    private func link(german: Bool) -> some View {
+        if officialSite != nil {
+            Button(action: onOpenSite) {
+                Text(KuroLocale.text("Official anime site ↗", "Offizielle Anime-Seite ↗"))
+                    .font(.detailSF(11, relativeTo: .footnote))
+                    .foregroundStyle(Color.kuroInk)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(KuroLocale.text("Opens the anime's official website.", "Öffnet die offizielle Website des Anime."))
+        } else {
+            Button { onOpen(item.mediaId) } label: {
+                HStack(spacing: 16) {
+                    Text(KuroLocale.text("Explore the anime", "Zum Anime"))
+                        .font(.detailSF(11, relativeTo: .footnote))
+                    Image(systemName: "arrow.right")
+                        .font(.detailSF(13, .light, relativeTo: .body))
+                }
+                .foregroundStyle(Color.kuroInk)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private func label(_ guide: SeriesDetailBundle.Coverage, german: Bool) -> String {

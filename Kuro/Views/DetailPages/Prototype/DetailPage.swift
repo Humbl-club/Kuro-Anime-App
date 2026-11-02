@@ -10,9 +10,9 @@ import SwiftUI
 //   `wash`/`edge` on the progress card and the Up next row.
 // - Type is SF (system sans) at the prototype's sizes and tracking; the serif is used only where the
 //   prototype uses Georgia ("Between us." on this page).
-// - The status mark: tapping "○ Watching" opens List settings; a separate 44 pt "⋯" beside it opens the
-//   menu with Favourite, Verdict, Where to watch, Add to a club and Share (spec §3b): nothing the live
-//   dock offered is removed, and nothing hides behind a long-press.
+// - The status mark (spec §50): tapping "○ Watching" opens List settings; the mark's own menu (touch and
+//   hold, and VoiceOver's actions) holds Favourite/Remove, Verdict, Where to watch, Add to a club and
+//   Share. Nothing the live dock offered is removed, and no extra key sits beside the mark.
 // - Motion: every disclosure, scroll jump and toast goes through `KuroMotion.detail(_:reduceMotion:)`,
 //   so Reduce Motion and Low Power show the final frame.
 
@@ -24,6 +24,8 @@ enum DetailInk {
     static let expectation = Color(hex: "56635B")
     static let clubRow = Color(hex: "526459")
     static let avatarFill = Color(hex: "D3DED3")
+    /// `.tiny-people i:nth-child(1…3)`: the prototype's three member fills, cycled by index.
+    static let avatarFills = ["D3DED3", "E2E3D7", "C8D4CE"]
     static let avatarInk = Color(hex: "3C5041")
     static let count = Color(hex: "727873")
     static let tileInk = Color(hex: "7B847E")
@@ -74,6 +76,41 @@ extension Font {
     }
 }
 
+extension Font {
+    /// Georgia, where the prototype sets Georgia (LANE_AMENDMENTS 1): the manga title, hook, "Your
+    /// bookmark", chapter numbers (italic), "Seen the anime?" and "Between us.". Scales with Dynamic Type
+    /// like `kuroCustom` (capped at 1.75×). The shared `kuroEditorial` token stays the system serif.
+    static func detailGeorgia(_ size: CGFloat, italic: Bool = false, relativeTo style: UIFont.TextStyle? = nil) -> Font {
+        let textStyle: UIFont.TextStyle
+        if let style { textStyle = style } else {
+            switch size {
+            case 28...: textStyle = .title1
+            case 22..<28: textStyle = .title2
+            case 17..<22: textStyle = .title3
+            default: textStyle = .body
+            }
+        }
+        let scaled = min(KuroTypeScale.current.scaled(size, relativeTo: textStyle), size * 1.75)
+        return .custom(italic ? "Georgia-Italic" : "Georgia", fixedSize: scaled)
+    }
+
+    /// Hiragino Mincho for the prototype's serif CJK marks (映): the system serif falls back to Gothic.
+    static func detailMincho(_ size: CGFloat) -> Font {
+        .custom("HiraMinProN-W3", fixedSize: min(KuroTypeScale.current.scaled(size, relativeTo: .title2), size * 1.75))
+    }
+}
+
+extension View {
+    /// Pads one line of SF text to the prototype's CSS line height (SwiftUI sets the font's own line
+    /// height, a few points shorter), so rows reach their measured heights. Scales with the type size.
+    func detailLineHeight(_ lineHeight: CGFloat, size: CGFloat, relativeTo style: UIFont.TextStyle = .body) -> some View {
+        let scaled = min(KuroTypeScale.current.scaled(size, relativeTo: style), max(size * 2.2, 22))
+        let natural = UIFont.systemFont(ofSize: scaled).lineHeight
+        let pad = max(0, (lineHeight / size * scaled - natural) / 2)
+        return padding(.vertical, pad)
+    }
+}
+
 /// The detail's small uppercase eyebrow ("SEASON 2", "THE ORIGINAL STORY").
 struct DetailEyebrow: View {
     let text: String
@@ -88,7 +125,8 @@ struct DetailEyebrow: View {
     }
 }
 
-/// A section heading: SF 17 w550, tracking −0.4 (18/−0.7 for "Seasons"), with an optional quiet note.
+/// A section heading: SF 17 w550 (semibold, the nearest weight), tracking −0.4 (18/−0.7 for "Seasons"),
+/// with an optional quiet note.
 struct DetailSectionHeading: View {
     let title: String
     var size: CGFloat = 17
@@ -112,9 +150,11 @@ struct DetailSectionHeading: View {
 
     private var heading: some View {
         Text(title)
-            .font(.detailSF(size, .medium, relativeTo: .title3))
+            .font(.detailSF(size, .semibold, relativeTo: .title3))
             .tracking(tracking)
             .foregroundStyle(Color.kuroInk)
+            // 17/23.8 and 18/25.2 as measured.
+            .detailLineHeight(size * 1.4, size: size, relativeTo: .title3)
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -193,10 +233,12 @@ struct DetailHero<Mark: View>: View {
                 // Side by side while the title keeps at least 140 pt beside the mark; otherwise the mark
                 // goes under the title (the prototype's ≤360 single column, and long German marks).
                 ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .lastTextBaseline, spacing: 12) {
+                    // The prototype's grid centres the mark on the title's (last) line.
+                    HStack(alignment: .bottom, spacing: 12) {
                         titleBlock
                             .frame(minWidth: 140, idealWidth: 140, maxWidth: .infinity, alignment: .leading)
                         mark()
+                            .padding(.bottom, 8)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         titleBlock
@@ -234,10 +276,10 @@ struct DetailHero<Mark: View>: View {
 
 // MARK: - Status mark
 
-/// The hero's status mark ("○ Watching" / "Not in your list" + Add). Tapping the mark opens List settings
-/// (the tracking editor, which also offers the status choice for an untracked title). The "⋯" beside
-/// it opens the menu with Favourite, Verdict, Where to watch, Add to a club and Share on a plain tap;
-/// VoiceOver gets the same actions as custom actions on the mark.
+/// The hero's status mark ("○ Watching" / "Not in your list" + Add), spec §50: a tap on the mark opens
+/// List settings (the tracking editor, which also offers the status choice for an untracked title); the
+/// mark's own menu (touch and hold) holds Favourite/Remove, Verdict, Where to watch, Add to a club and
+/// Share, and VoiceOver gets the same actions as custom actions. No separate key sits beside it.
 struct DetailStatusMark: View {
     let entry: LibraryEntry?
     var kind: MediaKind = .anime
@@ -261,55 +303,56 @@ struct DetailStatusMark: View {
         // Add then drops under the mark instead of clipping.
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 0) {
-                markButton
-                moreMenu
-                addButton.padding(.leading, 4)
+                markMenu
+                addButton.padding(.leading, 10)
             }
             .fixedSize()
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 0) {
-                    markButton
-                    moreMenu
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                markMenu
                 addButton
             }
             .fixedSize()
         }
     }
 
-    private var markButton: some View {
-        Button(action: onListSettings) {
-            HStack(spacing: 6) {
-                Circle()
-                    .strokeBorder(tone.ink, lineWidth: 1)
-                    .frame(width: min(ring, 12), height: min(ring, 12))
-                Text(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
-                    .font(.detailSF(10, relativeTo: .caption1))
-                    .foregroundStyle(tone.ink)
-                    .lineLimit(1)
-            }
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KuroPressStyle())
-        .accessibilityLabel(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
-        .accessibilityHint(isTracked ? KuroLocale.text("Opens list settings.", "Öffnet die Listeneinstellungen.")
-                                     : KuroLocale.text("Opens the status choice.", "Öffnet die Statusauswahl."))
-        .accessibilityActions {
-            ForEach(DetailStatusCopy.actions(isTracked: isTracked).filter { $0 != .listSettings }, id: \.self) { action in
-                if let run = handler(action) {
-                    Button(DetailStatusCopy.actionTitle(action, isTracked: isTracked, kind: kind, german: german), action: run)
-                }
-            }
+    /// The mark's actions besides List settings (its own tap), in menu order.
+    private var menuActions: [DetailStatusAction] {
+        DetailStatusCopy.actions(isTracked: isTracked).filter { $0 != .listSettings }
+    }
+
+    /// The mark's minimum touch height.
+    static let targetHeight: CGFloat = 44
+
+    /// The visible mark: ring and status word, at its own 14 pt line.
+    private var markFace: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .strokeBorder(tone.ink, lineWidth: 1)
+                .frame(width: min(ring, 12), height: min(ring, 12))
+            Text(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
+                .font(.detailSF(10, relativeTo: .caption1))
+                .foregroundStyle(tone.ink)
+                .lineLimit(1)
         }
     }
 
-    /// The actions menu: a plain tap opens it (no long-press).
-    private var moreMenu: some View {
+    /// The band lays out the mark at its own line height (an invisible copy of the face holds the
+    /// place), and the menu sits over it in an overlay at its own 44 pt frame. The overlay adds no
+    /// layout height, and the menu's frame (UIKit-backed or not) is the full 44 pt target, centred on
+    /// the mark, so the touch area never depends on negative padding.
+    private var markMenu: some View {
+        markFace
+            .hidden()
+            .accessibilityHidden(true)
+            .overlay { markMenuControl.fixedSize() }
+    }
+
+    private var markMenuControl: some View {
         Menu {
-            ForEach(DetailStatusCopy.actions(isTracked: isTracked).filter { $0 != .listSettings }, id: \.self) { action in
+            ForEach(menuActions, id: \.self) { action in
                 if handler(action) != nil {
-                    // Removing a saved title drops its progress, notes and score: marked destructive.
+                    // Removing a saved title drops its progress, notes and score: marked destructive
+                    // (and the page asks first, with Undo after).
                     Button(role: action == .favourite && isTracked ? .destructive : nil) {
                         handler(action)?()
                     } label: {
@@ -319,17 +362,27 @@ struct DetailStatusMark: View {
                 }
             }
         } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(tone.ink.opacity(0.85))
-                .frame(width: 44, height: 44)
+            markFace
+                .frame(minWidth: 44, minHeight: Self.targetHeight)
                 .contentShape(Rectangle())
+        } primaryAction: {
+            onListSettings()
         }
         .menuStyle(.button)
-        .buttonStyle(.plain)
-        .accessibilityLabel(KuroLocale.text("More actions", "Weitere Aktionen"))
-        .accessibilityHint(KuroLocale.text("Favourite, verdict, where to watch, clubs and share.",
-                                           "Merken, Urteil, wo ansehen, Clubs und Teilen."))
+        .buttonStyle(KuroPressStyle())
+        .accessibilityLabel(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
+        .accessibilityHint(isTracked
+                           ? KuroLocale.text("Opens list settings. Touch and hold for more actions.",
+                                             "Öffnet die Listeneinstellungen. Gedrückt halten für weitere Aktionen.")
+                           : KuroLocale.text("Opens the status choice. Touch and hold for more actions.",
+                                             "Öffnet die Statusauswahl. Gedrückt halten für weitere Aktionen."))
+        .accessibilityActions {
+            ForEach(menuActions, id: \.self) { action in
+                if let run = handler(action) {
+                    Button(DetailStatusCopy.actionTitle(action, isTracked: isTracked, kind: kind, german: german), action: run)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -346,6 +399,7 @@ struct DetailStatusMark: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(KuroPressStyle())
+                .padding(.vertical, -8)
                 .accessibilityLabel(KuroLocale.text("Add to your list", "Zur Liste hinzufügen"))
             }
     }
@@ -387,7 +441,8 @@ enum DetailMarkTone: Equatable, Sendable {
 
 /// The prototype's round close (44 pt, `base` fill, a soft white rim, white ×).
 struct DetailCloseButton: View {
-    let material: ArtworkMaterial
+    /// nil on the loader's loading and failed states (a neutral paper key, no artwork yet).
+    let material: ArtworkMaterial?
     /// The manga sheet's close is paper (`#edeedf`, 94 %) with a folio-green ×.
     var fill: Color? = nil
     var ink: Color = .white
@@ -399,7 +454,7 @@ struct DetailCloseButton: View {
                 .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
                 .foregroundStyle(ink)
                 .frame(width: 44, height: 44)
-                .background(fill ?? material.base.color, in: Circle())
+                .background(fill ?? material?.base.color ?? Color(hex: "EDEEEC"), in: Circle())
                 .overlay(Circle().strokeBorder(Color.white.opacity(0x45 / 255.0), lineWidth: 1))
                 .contentShape(Circle())
         }
@@ -420,19 +475,24 @@ struct DetailAvatars: View {
 
     var body: some View {
         HStack(spacing: -4) {
-            ForEach(Array(names.prefix(3).enumerated()), id: \.offset) { _, name in
+            ForEach(Array(names.prefix(3).enumerated()), id: \.offset) { index, name in
                 Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
                     // A fixed size: the discs are decorative (hidden from VoiceOver), and a scaled initial
                     // would spill out of a fixed circle at accessibility sizes.
                     .font(.system(size: size > 23 ? 9 : 8))
                     .foregroundStyle(DetailInk.avatarInk)
                     .frame(width: size - 4, height: size - 4)
-                    .background(DetailInk.avatarFill, in: Circle())
+                    .background(Color(hex: Self.fillHex(index)), in: Circle())
                     .overlay(Circle().strokeBorder(rim, lineWidth: 2).frame(width: size, height: size))
                     .frame(width: size, height: size)
             }
         }
         .accessibilityHidden(true)
+    }
+
+    /// The member fill at `index` (the prototype cycles three tints).
+    static func fillHex(_ index: Int) -> String {
+        DetailInk.avatarFills[((index % DetailInk.avatarFills.count) + DetailInk.avatarFills.count) % DetailInk.avatarFills.count]
     }
 }
 

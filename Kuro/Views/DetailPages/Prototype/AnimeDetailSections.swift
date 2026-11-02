@@ -16,10 +16,13 @@ import SwiftUI
 // | `clubActivityForMedia` (cached bundles) | ClubsStore                 | club rails holding this title ("Between us.") |
 // Loading: the hero and story draw at once; the other sections wait behind `KuroSkeleton(.detailSection)`
 // until the ladder walk, the first units and credits settle (no pop-in), and an offline band with Try
-// again sits under the hero. The owners answer a failed read with an empty result, so a failure reads
-// as "no data" (the section stays hidden); there is no separate failed state to show.
-// Tracking writes go through `LibraryViewActions.markProgress` (the live detail's path) and the shared
-// tracking editor route; the page acts only on the entry that is open.
+// again sits under the hero. A failed ladder read (`DetailReadState.ladderFailed`: no coverage status)
+// shows the branded failed state with Try again under the story. The episode, credit and link owners
+// still answer a failed read with an empty list, which the page cannot tell from "none" (open item:
+// those owners need a throwing read).
+// Tracking writes go through `LibraryActions.apply` (`DetailAdvance`: a +1 on a Planned title also
+// makes it Watching), `LibraryActions.remove` (asked first, with Undo) and the shared tracking editor
+// route; the page acts only on the entry that is open.
 
 /// Everything the page shows besides the catalogue row and the Library entry. Fixture renders pass a
 /// complete value; the live page fills it from the owners above.
@@ -46,6 +49,12 @@ struct DetailCreditRow: Identifiable {
     let name: String
     let target: Target
     var id: String { "\(role)|\(name)" }
+
+    /// Only a row with a record to open is a button (an "Original work" name from the ladder is text).
+    var isInteractive: Bool {
+        if case .none = target { return false }
+        return true
+    }
 
     static func anime(staff: [(staff: Staff, role: String)], studios: [Studio], sourceAuthor: String?,
                       german: Bool) -> [DetailCreditRow] {
@@ -113,6 +122,10 @@ struct AnimeDetailPage: View {
     @State private var pending: Set<DetailLoadPart>
     /// Try again (offline band) and a reconnect reload the page's reads.
     @State private var reloadToken = 0
+    /// The ladder read failed (not "no relations"): the failed state with Try again shows.
+    @State private var ladderFailed = false
+    /// The entry a confirmed "Remove from list" will remove.
+    @State private var pendingRemoval: LibraryEntry?
 
     private var german: Bool { KuroLocale.isGerman }
     private var entry: LibraryEntry? { library.entry(for: anime.libraryKey) }
@@ -216,6 +229,12 @@ struct AnimeDetailPage: View {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
+                                // The seasons' selection dot sits on the rule above the progress card.
+                                .zIndex(section == .seasons ? 1 : 0)
+                        }
+                        if pending.isEmpty, ladderFailed, !isOffline {
+                            KuroStateView(.failed(hasCachedContent: true), layout: .inline) { reloadToken += 1 }
+                                .padding(.top, 12)
                         }
                         if !pending.isEmpty {
                             VStack(alignment: .leading, spacing: 28) {
@@ -260,6 +279,14 @@ struct AnimeDetailPage: View {
         .detailReleases(kind: .anime, id: anime.id, schedule: $releaseItems, songs: $releaseSongs)
         .sheet(isPresented: $showVerdict) {
             QuickVerdictPickerSheet(media: anime, onToast: showToast)
+        }
+        .confirmationDialog(DetailRemoval.confirmTitle(german: german),
+                            isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
+                            titleVisibility: .visible, presenting: pendingRemoval) { removed in
+            Button(DetailRemoval.confirmAction(german: german), role: .destructive) { remove(removed) }
+            Button(KuroLocale.text("Cancel", "Abbrechen"), role: .cancel) {}
+        } message: { _ in
+            Text(DetailRemoval.confirmMessage(kind: .anime, german: german))
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(title: KuroLocale.text("Watch on", "Ansehen bei"),
@@ -377,15 +404,16 @@ struct AnimeDetailPage: View {
 
     private func advance(to next: Int, origin: AccountActionScope.Ticket?) {
         guard !savingNext, actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
-        let previous = progress
         let key = anime.libraryKey
+        let status = entry?.status
         let capped = total.map { min(next, $0) } ?? next
         savingNext = true
         let launched = actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = await LibraryViewActions.markProgress(key, to: capped, actions: libraryActions)
+            // A Planned title becomes Watching in the same edit (Home's in-progress scene follows).
+            let outcome = await DetailAdvance.advance(key, from: status, to: capped, actions: libraryActions)
             savingNext = false
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
-            if outcome.error != nil {
+            guard let change = outcome.change else {
                 KuroAccessibility.errorHaptic()
                 showToast(KuroToastState(kind: .error,
                                          title: KuroLocale.text("Not saved. Your progress is unchanged.", "Nicht gespeichert. Dein Fortschritt ist unverändert."),
@@ -400,7 +428,7 @@ struct AnimeDetailPage: View {
                                                      : KuroLocale.text("Progress saved.", "Fortschritt gespeichert."),
                                      subtitle: nil,
                                      actionTitle: KuroLocale.text("Undo", "Rückgängig"),
-                                     onAction: { undo(to: previous, from: capped) }))
+                                     onAction: { undo(change, saved: capped) }))
         }
         // The key never stays on "Saving": not launched, or cancelled before the write ran.
         guard let launched else { savingNext = false; return }
@@ -410,13 +438,21 @@ struct AnimeDetailPage: View {
         }
     }
 
-    /// Undo restores the previous position only while the entry still shows the saved one.
-    private func undo(to previous: Int, from saved: Int) {
+    /// Undo reverts the whole +1 (the count and a promoted status; a row the +1 created goes again),
+    /// only while the entry still shows the saved position.
+    private func undo(_ change: LibraryChange, saved: Int) {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         guard progress == saved else { return }
         let key = anime.libraryKey
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = await LibraryViewActions.markProgress(key, to: previous, actions: libraryActions)
+            let outcome: LibraryOutcome
+            if change.kind == .added {
+                outcome = await libraryActions.remove(key)
+            } else if let edit = DetailAdvance.undoEdit(change) {
+                outcome = await libraryActions.apply(edit, to: key, createIfMissing: nil)
+            } else {
+                return
+            }
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
                                      title: outcome.error == nil ? KuroLocale.text("Undone.", "Rückgängig gemacht.")
@@ -425,34 +461,79 @@ struct AnimeDetailPage: View {
         }
     }
 
-    /// The live dock's heart: saves to Planned, or removes a saved title.
+    /// The live dock's heart: saves to Planned, or removes a saved title. Removing asks first when the
+    /// entry holds anything beyond a bare plan; the toast then offers Undo.
     private func toggleSaved() {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
-        let wasSaved = entry != nil
+        if let entry {
+            if DetailRemoval.needsConfirmation(entry) { pendingRemoval = entry } else { remove(entry) }
+            return
+        }
         let key = anime.libraryKey
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = wasSaved ? await libraryActions.remove(key) : await libraryActions.save(key, status: .planning)
+            let outcome = await libraryActions.save(key, status: .planning)
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
-            if outcome.change != nil {
-                KuroAccessibility.successHaptic()
-                showToast(KuroToastState(kind: .success,
-                                         title: wasSaved ? KuroLocale.text("Removed from your list.", "Von deiner Liste entfernt.")
-                                                         : KuroLocale.text("Added to your list.", "Zu deiner Liste hinzugefügt."),
-                                         subtitle: nil, actionTitle: nil, onAction: nil))
-            } else {
-                KuroAccessibility.errorHaptic()
-                showToast(KuroToastState(kind: .error,
-                                         title: KuroLocale.text("Not saved. Your list is unchanged.", "Nicht gespeichert. Deine Liste ist unverändert."),
-                                         subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: KuroLocale.isGerman) },
-                                         actionTitle: nil, onAction: nil))
-            }
+            savedToast(outcome, removed: nil)
+        }
+    }
+
+    private func remove(_ removed: LibraryEntry) {
+        pendingRemoval = nil
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
+        let key = anime.libraryKey
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.remove(key)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            savedToast(outcome, removed: removed)
+        }
+    }
+
+    /// Undo after a removal: the removed row comes back with every field.
+    private func restore(_ removed: LibraryEntry) {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        guard entry == nil else { return }
+        let key = anime.libraryKey
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.apply(DetailRemoval.restoreEdit(removed), to: key, createIfMissing: removed.status)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
+                                     title: outcome.error == nil ? KuroLocale.text("Back in your list.", "Wieder in deiner Liste.")
+                                                                 : KuroLocale.text("Not restored. Try again from List settings.", "Nicht wiederhergestellt. Versuch es über die Listeneinstellungen."),
+                                     subtitle: nil, actionTitle: nil, onAction: nil))
+        }
+    }
+
+    private func savedToast(_ outcome: LibraryOutcome, removed: LibraryEntry?) {
+        if outcome.change != nil {
+            KuroAccessibility.successHaptic()
+            showToast(KuroToastState(kind: .success,
+                                     title: removed != nil ? KuroLocale.text("Removed from your list.", "Von deiner Liste entfernt.")
+                                                           : KuroLocale.text("Added to your list.", "Zu deiner Liste hinzugefügt."),
+                                     subtitle: nil,
+                                     actionTitle: removed != nil ? KuroLocale.text("Undo", "Rückgängig") : nil,
+                                     onAction: removed.map { row in { restore(row) } }))
+        } else {
+            KuroAccessibility.errorHaptic()
+            showToast(KuroToastState(kind: .error,
+                                     title: KuroLocale.text("Not saved. Your list is unchanged.", "Nicht gespeichert. Deine Liste ist unverändert."),
+                                     subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: KuroLocale.isGerman) },
+                                     actionTitle: nil, onAction: nil))
         }
     }
 
     private func openProviders() {
-        let links = watchLinks?.all ?? []
-        guard let primary = watchLinks?.primary, let url = ProviderAvailabilityStore.validatedOutboundURL(primary.url) else {
+        // The links read is still running: say so, never "no link" before the answer.
+        guard let watchLinks else {
+            showToast(KuroToastState(kind: .info,
+                                     title: KuroLocale.text("Still checking where to watch. Try again in a moment.",
+                                                            "Wir prüfen noch, wo du schauen kannst. Versuch es gleich noch einmal."),
+                                     subtitle: nil, actionTitle: nil, onAction: nil))
+            return
+        }
+        let links = watchLinks.all
+        guard let primary = watchLinks.primary, let url = ProviderAvailabilityStore.validatedOutboundURL(primary.url) else {
             showToast(KuroToastState(kind: .info,
                                      title: KuroLocale.text("No legal provider link is available yet.", "Noch kein legaler Anbieter-Link verfügbar."),
                                      subtitle: nil, actionTitle: nil, onAction: nil))
@@ -497,6 +578,7 @@ struct AnimeDetailPage: View {
         #endif
         let ladder = await catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: anime.id)
         guard !Task.isCancelled, loadGeneration == generation else { return }
+        ladderFailed = DetailReadState.ladderFailed(ladder)
         content.source = ladder.primarySource ?? ladder.sourceMaterial.first
         let current = LadderChainEntry(mediaId: anime.id, title: anime.displayTitle, format: anime.format,
                                        year: anime.seasonYear, coverImage: anime.coverImageLarge)
@@ -584,11 +666,14 @@ struct DetailStorySection: View {
     /// The `detail_copy` premise under the hook (manga prototype; SF 12/19.8).
     var premise: String? = nil
     @State private var expanded = false
+    /// Heights of the synopsis at five lines and in full (hidden probes), to know whether it is cut.
+    @State private var limitedHeight: CGFloat = 0
+    @State private var fullHeight: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Without a `detail_copy` hook the synopsis opens the section (spec §4); long text folds.
+    /// Without a `detail_copy` hook the synopsis opens the section (spec §4), at most five lines.
     private var opensWithSynopsis: Bool { hook == nil }
-    private var foldsSynopsis: Bool { (synopsis?.count ?? 0) > 240 }
+    private var truncated: Bool { fullHeight > limitedHeight + 0.5 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -597,9 +682,9 @@ struct DetailStorySection: View {
             }
             if let hook {
                 Text(hook)
-                    .font(serifHook ? .kuroEditorial(size: 25) : .detailSF(22, .medium, relativeTo: .title2))
+                    .font(serifHook ? .detailGeorgia(25) : .detailSF(22, .medium, relativeTo: .title2))
                     .tracking(serifHook ? -0.6 : -0.65)
-                    .lineSpacing(serifHook ? 31.25 - 29.8 : 0)
+                    .lineSpacing(serifHook ? 31.25 - 28.4 : 27.06 - 26.25)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.bottom, serifHook ? 9 : 3)
@@ -613,15 +698,18 @@ struct DetailStorySection: View {
                 }
             } else if let synopsis {
                 synopsisText(synopsis)
-                    .lineLimit(expanded || !foldsSynopsis ? nil : 5)
+                    .lineLimit(expanded ? nil : 5)
+                    .background { probe(synopsis) }
                     .padding(.bottom, 4)
             }
-            if let synopsis, !opensWithSynopsis || foldsSynopsis {
+            if let synopsis, DetailStoryDisclosure.showsToggle(hasHook: !opensWithSynopsis, truncated: truncated,
+                                                               hasExpectation: expectation != nil) {
                 Button {
                     withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { expanded.toggle() }
                 } label: {
                     HStack {
-                        Text(opensWithSynopsis && expanded ? KuroLocale.text("Show less", "Weniger zeigen") : aboutTitle)
+                        Text(DetailStoryDisclosure.label(hasHook: !opensWithSynopsis, expanded: expanded, about: aboutTitle,
+                                                         german: KuroLocale.isGerman))
                             .font(.detailSF(10, relativeTo: .footnote))
                         Spacer()
                         Text(expanded ? "−" : "+")
@@ -646,7 +734,9 @@ struct DetailStorySection: View {
                         .padding(.top, 12)
                 }
             }
-            Spacer().frame(height: 18)
+            // The section's foot: the open expectation line's 18 pt margin; otherwise the hook block's
+            // 4 pt (anime) or the folio's 15 pt before the club row (manga), as measured.
+            Spacer().frame(height: expanded && expectation != nil ? 18 : (serifHook ? 15 : 4))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -657,6 +747,21 @@ struct DetailStorySection: View {
             .lineSpacing(21.45 - 15.5)
             .foregroundStyle(DetailInk.synopsis)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Hidden copies at the visible text's width: five lines and the whole text.
+    private func probe(_ text: String) -> some View {
+        GeometryReader { box in
+            ZStack(alignment: .topLeading) {
+                synopsisText(text).lineLimit(5)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { limitedHeight = $0 }
+                synopsisText(text)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { fullHeight = $0 }
+            }
+            .frame(width: box.size.width, alignment: .topLeading)
+            .hidden()
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -727,6 +832,8 @@ struct DetailSeasonsSection: View {
                 .padding(.horizontal, 1)
             }
             .scrollClipDisabled()
+            // The dot and its halo sit over the rule (the rule is drawn first).
+            .zIndex(1)
             Rectangle().fill(DetailInk.thread).frame(height: 1)
         }
         .padding(.bottom, 0)
@@ -767,11 +874,13 @@ struct DetailSeasonsSection: View {
                 Spacer(minLength: 4)
                 if current {
                     Text(KuroLocale.text("Current", "Aktuell"))
-                        .font(.detailSF(8, relativeTo: .caption2))
+                        .font(.detailSF(8, .medium, relativeTo: .caption2))
                         .tracking(0.1)
                         .frame(maxWidth: .infinity)
                 } else {
-                    Rectangle().fill(DetailInk.tileInk).frame(width: 6, height: 1)
+                    // The tile's ::after foot dash, as rendered in `ref-detail-anime-390.png`: 12 × 1 and
+                    // composited to about `#d2d6d4` (tile ink at 40 % inside the tile's 0.72 opacity).
+                    DetailSnappedRule(width: 12, color: DetailInk.tileInk.opacity(0.4))
                 }
             }
             .foregroundStyle(current ? Color.white : DetailInk.tileInk)
@@ -787,13 +896,21 @@ struct DetailSeasonsSection: View {
                         LinearGradient(colors: [Color.white, DetailInk.tileFillBottom], startPoint: .topLeading, endPoint: .bottomTrailing)
                     }
                     DetailStripes(ink: current ? Color.white.opacity(0x06 / 255.0) : Color(hex: "232C24", opacity: 0x05 / 255.0))
+                        // The ruling gathers toward the foot, as the prototype's light tiles read.
+                        .mask(LinearGradient(colors: [Color.black.opacity(current ? 1 : 0.35), .black],
+                                             startPoint: .top, endPoint: .bottom))
                     if current {
-                        Rectangle().fill(material.base.color).frame(width: 7, height: 18).padding(.trailing, 12)
+                        // The bookmark ribbon (::after 7×18 in `base`) with a V cut at its foot.
+                        DetailRibbon().fill(material.base.color).frame(width: 7, height: 18).padding(.trailing, 12)
                     }
                 }
             }
             .clipShape(shape)
             .overlay(shape.strokeBorder(current ? material.base.color : DetailInk.tileBorder, lineWidth: 1))
+            .overlay {
+                // The current tile's inset ring (`#718478 0 0 0 1px inset`), just inside its border.
+                if current { shape.inset(by: 1).strokeBorder(Color(hex: "718478"), lineWidth: 1) }
+            }
             .shadow(color: current ? Color(hex: "273B30", opacity: 0x10 / 255.0) : Color(hex: "202923", opacity: 0x05 / 255.0),
                     radius: current ? 3.5 : 1, x: 0, y: current ? 3 : 2)
             .opacity(current ? 1 : 0.72)
@@ -805,6 +922,39 @@ struct DetailSeasonsSection: View {
         .accessibilityValue(current ? KuroLocale.text("Current", "Aktuell") : "")
         .accessibilityHint(current ? "" : KuroLocale.text("Opens this entry without changing your progress",
                                                            "Öffnet diesen Eintrag, ohne deinen Fortschritt zu ändern"))
+    }
+}
+
+/// A 1 pt rule moved onto a whole point, so it draws as one crisp row instead of two half-tone rows
+/// when its line falls on a half point (the season tiles sit on one). Whole points are pixel-aligned
+/// at every screen scale; the offset does not change layout, so the reader never loops.
+struct DetailSnappedRule: View {
+    let width: CGFloat
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let y = proxy.frame(in: .global).minY
+            Rectangle().fill(color)
+                .frame(width: width, height: 1)
+                .offset(y: y.rounded() - y)
+        }
+        .frame(width: width, height: 1)
+        .accessibilityHidden(true)
+    }
+}
+
+/// A ribbon with a V notch cut into its foot.
+struct DetailRibbon: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - rect.width * 0.55))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -990,7 +1140,7 @@ struct AnimeUnitsSection: View {
                     .tracking(1.4)
                     .foregroundStyle(DetailInk.upNextKicker)
                 Text(DetailPageCopy.episode(number, german: KuroLocale.isGerman))
-                    .font(.detailSF(12, .medium, relativeTo: .subheadline))
+                    .font(.detailSF(12, .semibold, relativeTo: .subheadline))
                     .foregroundStyle(Color.kuroInk)
                 if let title = episode.flatMap({ $0.title ?? $0.titleRomaji })?.detailNonEmpty {
                     Text(title)
@@ -1006,14 +1156,19 @@ struct AnimeUnitsSection: View {
                 onAdvance(number)
             }
         }
+        // The prototype's 58 pt summary (padding 7/9 → 74): the key sits centred, 14 pt from each edge.
+        .frame(minHeight: 58)
         .padding(.vertical, 7)
         .padding(.horizontal, 9)
-        .background(material.wash.color, in: shape)
+        .background {
+            // The shadow belongs to the row's shape only (on the container it would shadow every child).
+            shape.fill(material.wash.color)
+                .shadow(color: Color(hex: "344D38", opacity: 0x05 / 255.0), radius: 4, x: 0, y: 3)
+        }
         .overlay(shape.strokeBorder(material.edge.color, lineWidth: 1))
         .overlay(alignment: .top) {
             shape.stroke(Color.white, lineWidth: 1).mask(alignment: .top) { Rectangle().frame(height: 1) }
         }
-        .shadow(color: Color(hex: "344D38", opacity: 0x05 / 255.0), radius: 4, x: 0, y: 3)
         .padding(.horizontal, -9)
     }
 
@@ -1021,51 +1176,54 @@ struct AnimeUnitsSection: View {
         let finished = isTracked && episode.number <= progress
         let description = episode.description?.trimmingCharacters(in: .whitespacesAndNewlines).detailNonEmpty
         let streamURL = ProviderAvailabilityStore.validatedOutboundURL(episode.streamUrl)
-        let expandable = description != nil || streamURL != nil
+        let expandable = Self.isExpandable(description: description, streamURL: streamURL)
         let isOpen = openEpisode == episode.number
         let ink = finished ? DetailInk.finished : Color.kuroInk
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                guard expandable else { return }
-                withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { openEpisode = isOpen ? nil : episode.number }
-            } label: {
-                HStack(spacing: 12) {
-                    Text(String(format: "%02d", episode.number))
-                        .font(.detailSF(18, .light, relativeTo: .title3))
-                        .tracking(-1)
-                        .monospacedDigit()
-                        .foregroundStyle(DetailInk.finished)
-                        .frame(minWidth: 26, alignment: .leading)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(episode.title?.detailNonEmpty ?? DetailPageCopy.episode(episode.number, german: KuroLocale.isGerman))
-                            .font(.detailSF(12, .medium, relativeTo: .subheadline))
-                            .foregroundStyle(ink)
-                            .lineLimit(2)
-                        if let state = stateLine(finished: finished, expandable: expandable, episode: episode) {
-                            Text(state)
-                                .font(.detailSF(9, relativeTo: .caption2))
-                                .foregroundStyle(DetailInk.finishedState)
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    if finished {
-                        Image(systemName: "checkmark")
-                            .font(.detailSF(11, relativeTo: .footnote))
-                            .foregroundStyle(DetailInk.finished)
-                    } else if expandable {
-                        Image(systemName: "chevron.down")
-                            .font(.detailSF(9, relativeTo: .caption2))
-                            .rotationEffect(.degrees(isOpen ? 180 : 0))
-                            .foregroundStyle(DetailInk.finished)
-                    }
+        let line = HStack(spacing: 12) {
+            Text(String(format: "%02d", episode.number))
+                .font(.detailSF(18, .light, relativeTo: .title3))
+                .tracking(-1)
+                .monospacedDigit()
+                .foregroundStyle(DetailInk.finished)
+                .frame(minWidth: 26, alignment: .leading)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(episode.title?.detailNonEmpty ?? DetailPageCopy.episode(episode.number, german: KuroLocale.isGerman))
+                    .font(.detailSF(12, .semibold, relativeTo: .subheadline))
+                    .foregroundStyle(ink)
+                    .lineLimit(2)
+                if let state = stateLine(finished: finished, expandable: expandable, episode: episode) {
+                    Text(state)
+                        .font(.detailSF(9, relativeTo: .caption2))
+                        .foregroundStyle(DetailInk.finishedState)
                 }
-                // 57 pt as measured; at large type the padding keeps text off the row rules.
-                .padding(.vertical, 10)
-                .frame(minHeight: 57)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityHint(expandable ? KuroLocale.text("Shows the episode's details", "Zeigt Details zur Folge") : "")
+            Spacer(minLength: 8)
+            if finished {
+                Image(systemName: "checkmark")
+                    .font(.detailSF(11, relativeTo: .footnote))
+                    .foregroundStyle(DetailInk.finished)
+            } else if expandable {
+                Image(systemName: "chevron.down")
+                    .font(.detailSF(9, relativeTo: .caption2))
+                    .rotationEffect(.degrees(isOpen ? 180 : 0))
+                    .foregroundStyle(DetailInk.finished)
+            }
+        }
+        // 57 pt as measured; at large type the padding keeps text off the row rules.
+        .padding(.vertical, 10)
+        .frame(minHeight: 57)
+        .contentShape(Rectangle())
+        return VStack(alignment: .leading, spacing: 0) {
+            // Only a row with details to show is a button (no dead press feedback, no button trait).
+            if expandable {
+                Button {
+                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { openEpisode = isOpen ? nil : episode.number }
+                } label: { line }
+                .buttonStyle(.plain)
+                .accessibilityHint(KuroLocale.text("Shows the episode's details", "Zeigt Details zur Folge"))
+            } else {
+                line.accessibilityElement(children: .combine)
+            }
             if isOpen {
                 VStack(alignment: .leading, spacing: 8) {
                     if let description {
@@ -1090,7 +1248,13 @@ struct AnimeUnitsSection: View {
                 .padding(.bottom, 10)
             }
         }
-        .overlay(alignment: .top) { Rectangle().fill(DetailInk.rowRule).frame(height: 1) }
+        // The prototype's B:1px under every unit row (the last one closes before "More episodes").
+        .overlay(alignment: .bottom) { Rectangle().fill(DetailInk.rowRule).frame(height: 1) }
+    }
+
+    /// An episode row opens only when it has something to show.
+    static func isExpandable(description: String?, streamURL: URL?) -> Bool {
+        description?.detailNonEmpty != nil || streamURL != nil
     }
 
     private func stateLine(finished: Bool, expandable: Bool, episode: Episode) -> String? {
@@ -1140,7 +1304,6 @@ struct DetailUpNextKey: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(DetailUpNextKeyStyle(material: material, trigger: confirmTrigger, radius: radius))
-        .padding(.top, 7)
         .accessibilityLabel(accessibilityText)
         .accessibilityValue(pending ? KuroLocale.text("Saving", "Wird gespeichert") : "")
     }
@@ -1193,16 +1356,18 @@ struct DetailSourceCard: View {
                 VStack(alignment: .leading, spacing: 0) {
                     DetailEyebrow(text: KuroLocale.text("The original story", "Die Vorlage"), size: 7)
                     Text(item.title)
-                        .font(.detailSF(17, .medium, relativeTo: .title3))
+                        .font(.detailSF(17, .semibold, relativeTo: .title3))
                         .tracking(-0.4)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
+                        .detailLineHeight(23.8, size: 17, relativeTo: .title3)
                         .padding(.top, 6)
                         .padding(.bottom, 2)
                     if let author = item.sourceAuthorName?.detailNonEmpty {
                         Text(author)
                             .font(.detailSF(10, relativeTo: .footnote))
                             .foregroundStyle(DetailInk.author)
+                            .detailLineHeight(14, size: 10, relativeTo: .footnote)
                     }
                     Button(action: onOpen) {
                         HStack(spacing: 16) {
@@ -1275,29 +1440,50 @@ struct DetailSourceCard: View {
     }
 
     /// The 原作 book: a page block with a spine, three offset page edges and a short rule.
+    /// Prototype `.bridge-book`: page `linear-gradient(100deg, #d6dbce 5px, #fafaf0 5px)` (the 5 pt
+    /// spine band runs at 100°, so it shows only as a wedge at the top-left corner), the glyph stack
+    /// centred at 14 pt from the top, and a 12 × 1 rule at the foot's trailing edge (measured in
+    /// `ref-detail-anime-390.png`: ~7 pt from the right, ~12 pt above the foot, `#516149` at ~65 %).
     private var book: some View {
         ZStack {
             Rectangle().fill(Color(hex: "EDEEDF")).offset(x: 6, y: 2)
             Rectangle().fill(Color(hex: "C7CEBD")).offset(x: 4, y: 1)
             Rectangle().fill(Color(hex: "F6F5E9")).offset(x: 3, y: 1)
-            HStack(spacing: 0) {
-                Rectangle().fill(DetailInk.bookSpine).frame(width: 5)
-                Rectangle().fill(DetailInk.bookPage)
-            }
-            .overlay(Rectangle().strokeBorder(DetailInk.bookBorder, lineWidth: 1))
+            Rectangle().fill(DetailInk.bookPage)
+                .overlay(alignment: .topLeading) { DetailBookSpine().fill(DetailInk.bookSpine) }
+                .overlay(Rectangle().strokeBorder(DetailInk.bookBorder, lineWidth: 1))
             VStack(spacing: 0) {
                 Text("原").font(.detailSF(13, relativeTo: .body))
                 Text("作").font(.detailSF(13, relativeTo: .body))
-                Spacer(minLength: 4)
-                Rectangle().fill(DetailInk.bookInk).frame(width: 12, height: 1).padding(.bottom, 12)
             }
             .foregroundStyle(DetailInk.bookInk)
             .padding(.top, 14)
-            .padding(.leading, 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            Rectangle().fill(DetailInk.bookInk.opacity(0.65))
+                .frame(width: 12, height: 1)
+                .padding(.trailing, 7)
+                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
         .frame(width: 57, height: 77)
         .rotationEffect(.degrees(-4))
         .accessibilityHidden(true)
+    }
+}
+
+/// The 原作 book's spine band: the part of a 100° gradient's first 5 pt that falls inside the page,
+/// a wedge from the top-left corner (5.08 pt along the top edge, 28.8 pt down the left edge).
+struct DetailBookSpine: Shape {
+    func path(in rect: CGRect) -> Path {
+        let angle = 100.0 * Double.pi / 180
+        // CSS gradient direction (sin a, -cos a); the band holds points whose projection is ≤ 5.
+        let dx = sin(angle), dy = -cos(angle)
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX + min(rect.width, 5 / dx), y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + min(rect.height, 5 / dy)))
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -1319,7 +1505,7 @@ struct DetailSoundPanel: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(KuroLocale.text("The sound of it.", "So klingt es."))
-                    .font(.detailSF(17, .medium, relativeTo: .title3))
+                    .font(.detailSF(17, .semibold, relativeTo: .title3))
                     .tracking(-0.4)
                     .foregroundStyle(DetailInk.soundInk)
                     .accessibilityAddTraits(.isHeader)
@@ -1332,11 +1518,10 @@ struct DetailSoundPanel: View {
                 .accessibilityHidden(true)
             }
             .padding(.bottom, 8)
-            ForEach(Array(shown.enumerated()), id: \.offset) { index, song in
+            ForEach(Array(shown.enumerated()), id: \.offset) { _, song in
+                // The prototype's B:1px #ffffff14 under every song row, the last one included.
                 row(song)
-                    .overlay(alignment: .bottom) {
-                        if index < shown.count - 1 { Rectangle().fill(Color.white.opacity(0x14 / 255.0)).frame(height: 1) }
-                    }
+                    .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0x14 / 255.0)).frame(height: 1) }
             }
             if songs.count > Self.collapsed {
                 Button {
@@ -1361,9 +1546,12 @@ struct DetailSoundPanel: View {
         .padding(.top, 19)
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
-        .background(LinearGradient(colors: [material.base.color, material.deep.color], startPoint: .topLeading, endPoint: .bottomTrailing), in: shape)
+        .background {
+            // The shadow sits on the panel's shape, not on its rows and keys.
+            shape.fill(LinearGradient(colors: [material.base.color, material.deep.color], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .shadow(color: Color(hex: "14291C", opacity: 0x0B / 255.0), radius: 7, x: 0, y: 6)
+        }
         .overlay(shape.strokeBorder(material.base.color, lineWidth: 1))
-        .shadow(color: Color(hex: "14291C", opacity: 0x0B / 255.0), radius: 7, x: 0, y: 6)
         .padding(.top, 25)
     }
 
@@ -1409,6 +1597,7 @@ struct DetailSoundPanel: View {
                     .font(.detailSF(8, relativeTo: .caption2))
                     .tracking(0.2)
                     .foregroundStyle(DetailInk.soundKicker)
+                    .detailLineHeight(11.2, size: 8, relativeTo: .caption2)
                 if hidden {
                     Button {
                         revealed.insert(song)
@@ -1422,15 +1611,17 @@ struct DetailSoundPanel: View {
                     .buttonStyle(.plain)
                 } else {
                     Text(song.title)
-                        .font(.detailSF(13, .medium, relativeTo: .subheadline))
+                        .font(.detailSF(13, .semibold, relativeTo: .subheadline))
                         .foregroundStyle(DetailInk.soundInk)
                         .lineLimit(2)
+                        .detailLineHeight(16.25, size: 13, relativeTo: .subheadline)
                         .padding(.vertical, 4)
                     if let artist = song.artist?.detailNonEmpty {
                         Text(artist)
                             .font(.detailSF(10, relativeTo: .footnote))
                             .foregroundStyle(DetailInk.soundArtist)
                             .lineLimit(1)
+                            .detailLineHeight(14, size: 10, relativeTo: .footnote)
                     }
                 }
             }
@@ -1439,6 +1630,8 @@ struct DetailSoundPanel: View {
 
             if !hidden { listen(song) }
         }
+        // 78 pt rows as measured (padding 12/0 around a 54 pt line block).
+        .frame(minHeight: 54)
         .padding(.vertical, 12)
     }
 
@@ -1521,12 +1714,16 @@ struct DetailCharactersRail: View {
                                     .background(DetailInk.portrait)
                                     .clipShape(RoundedRectangle(cornerRadius: bookish ? 2 : 8, style: .continuous))
                                     .overlay(RoundedRectangle(cornerRadius: bookish ? 2 : 8, style: .continuous).strokeBorder(Color.black.opacity(0x11 / 255.0), lineWidth: 1))
+                                // The prototype's name box: 9 pt above two 15 pt lines (44 pt), kept for
+                                // one-line names so the rail ends at the same depth.
                                 Text(item.character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman))
                                     .font(.detailSF(10, relativeTo: .footnote))
+                                    .lineSpacing(15 - 12)
                                     .foregroundStyle(Color.kuroInk)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.leading)
-                                    .frame(width: cardWidth, alignment: .leading)
+                                    .frame(width: cardWidth, alignment: .topLeading)
+                                    .frame(minHeight: 35, alignment: .topLeading)
                                     .padding(.top, 9)
                             }
                             .contentShape(Rectangle())
@@ -1540,9 +1737,11 @@ struct DetailCharactersRail: View {
                 .padding(.horizontal, 1)
             }
             .scrollClipDisabled()
-            .padding(.top, 8)
+            .padding(.top, 13)
         }
-        .padding(.top, 25)
+        // 30 pt above the heading: the prototype's section margin (the card above it, when there is one,
+        // collapses its own 30 pt bottom margin into this one).
+        .padding(.top, 30)
         .sheet(item: $selected) { character in
             CharacterDetailSheet(character: character)
         }
@@ -1560,33 +1759,44 @@ struct DetailCreditsList: View {
     @State private var studio: Studio?
     @State private var author: Author?
 
+    private func open(_ target: DetailCreditRow.Target) {
+        switch target {
+        case .staff(let person): staff = person
+        case .studio(let company): studio = company
+        case .author(let person): author = person
+        case .none: break
+        }
+    }
+
+    /// 40.4 pt as measured (padding 12/0, 11/15.4); the row's 44 pt target reaches 2 pt past each rule.
+    private func creditLine(_ row: DetailCreditRow) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 15) {
+            Text(row.role)
+                .font(.detailSF(11, relativeTo: .footnote))
+                .foregroundStyle(DetailInk.creditRole)
+            Spacer(minLength: 8)
+            Text(row.name)
+                .font(.detailSF(11, .semibold, relativeTo: .footnote))
+                .foregroundStyle(Color.kuroInk)
+                .multilineTextAlignment(.trailing)
+        }
+        .detailLineHeight(15.4, size: 11, relativeTo: .footnote)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle().inset(by: -2))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             DetailSectionHeading(title: title).padding(.bottom, 13)
             ForEach(rows) { row in
-                Button {
-                    switch row.target {
-                    case .staff(let person): staff = person
-                    case .studio(let company): studio = company
-                    case .author(let person): author = person
-                    case .none: break
+                Group {
+                    if row.isInteractive {
+                        Button { open(row.target) } label: { creditLine(row) }
+                            .buttonStyle(.plain)
+                    } else {
+                        creditLine(row)
                     }
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 15) {
-                        Text(row.role)
-                            .font(.detailSF(11, relativeTo: .footnote))
-                            .foregroundStyle(DetailInk.creditRole)
-                        Spacer(minLength: 8)
-                        Text(row.name)
-                            .font(.detailSF(11, .medium, relativeTo: .footnote))
-                            .foregroundStyle(Color.kuroInk)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    .padding(.vertical, 12)
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
                 .overlay(alignment: .bottom) { Rectangle().fill(DetailInk.creditRule).frame(height: 1) }
                 .accessibilityElement(children: .combine)
             }

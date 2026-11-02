@@ -130,6 +130,9 @@ struct DetailMangaSnapshotTests {
             return
         }
         let host = UIHostingController(rootView: view.frame(width: width, height: height))
+        // A page sheet has no top inset: the window's status-bar inset would push the close control
+        // down (the reference pins it 12 pt from the sheet's top).
+        host.safeAreaRegions = []
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: height))
         window.rootViewController = host
         window.isHidden = false
@@ -284,6 +287,8 @@ struct DetailMangaSnapshotTests {
                                                url: "https://mangaplus.shueisha.co.jp/titles/100037", subtitle: nil, isVerified: false),
                              ProviderSheetItem(id: "viz", title: "VIZ", url: "https://www.viz.com/shonenjump/chapters/chainsaw-man",
                                                subtitle: nil, isVerified: false)]
+        // The adaptation's official site (its external links): "Official anime site ↗", as the reference.
+        content.adaptationSite = URL(string: "https://chainsawman.dog/")
         let friends = ["Mina", "Jules", "Noah"].enumerated().map { index, name in
             SocialActivityStore.FriendTitleActivity(user_id: "u\(index)", display_name: name, status: "CURRENT",
                                                     progress: 20 + index, rating: nil, updated_at: nil)

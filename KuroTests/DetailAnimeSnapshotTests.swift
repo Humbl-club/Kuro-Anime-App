@@ -131,6 +131,9 @@ struct DetailAnimeSnapshotTests {
             return
         }
         let host = UIHostingController(rootView: view.frame(width: width, height: height))
+        // A page sheet has no top inset: the window's status-bar inset would push the close control
+        // down (the reference pins it 12 pt from the sheet's top).
+        host.safeAreaRegions = []
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: height))
         window.rootViewController = host
         window.isHidden = false
