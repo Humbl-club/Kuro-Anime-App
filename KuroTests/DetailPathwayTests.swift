@@ -195,10 +195,9 @@ struct DetailPathwayTests {
         #expect(AnimeUnitsSection.isExpandable(description: "The barrier closes.", streamURL: nil))
     }
 
-    @Test("Loading and failed sheets show the drag indicator; the loaded page hides it")
+    @Test("The detail journey always shows the drag indicator (navigation contract N8)")
     func loaderChrome() {
-        #expect(DetailLoaderChrome.dragIndicator(loaded: false) == .visible)
-        #expect(DetailLoaderChrome.dragIndicator(loaded: true) == .hidden)
+        #expect(DetailLoaderChrome.dragIndicator == .visible)
     }
 
     @Test("Manga collapsed chapters: only the finished row follows Up next")

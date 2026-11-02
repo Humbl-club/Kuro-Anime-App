@@ -6,9 +6,8 @@ struct ProductionSection: View {
     let studios: [Studio]
     let staffItems: [(staff: Staff, role: String)]
 
-    @State private var selectedStudio: Studio?
-    @State private var selectedStaff: Staff?
     @State private var showAllCredits = false
+    @Environment(\.kuroRoutes) private var routes
 
     private var curatedCredits: [(staff: Staff, role: CreditRole, rawRole: String)] {
         var seen = Set<Int>()
@@ -37,13 +36,14 @@ struct ProductionSection: View {
 
                 // Studios as inline tappable text with interpuncts
                 if !studios.isEmpty {
-                    ProductionStudiosLine(studios: studios, selectedStudio: $selectedStudio)
+                    ProductionStudiosLine(studios: studios)
                 }
 
                 // Credits as editorial bylines (show top 2)
                 ForEach(curated.prefix(2), id: \.staff.id) { item in
                     Button {
-                        selectedStaff = item.staff
+                        // Pushed inside the journey (navigation contract), never a sheet.
+                        routes.openStaff(item.staff)
                     } label: {
                         HStack(spacing: 0) {
                             Text("\(creditPrefix(item.role)) ")
@@ -81,14 +81,11 @@ struct ProductionSection: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .sheet(item: $selectedStudio) { studio in
-                StudioDetailSheet(studio: studio).kuroLeavesJourney()
-            }
-            .sheet(item: $selectedStaff) { staff in
-                StaffDetailSheet(staff: staff).kuroLeavesJourney()
-            }
             .sheet(isPresented: $showAllCredits) {
+                // A legacy list sheet: its own presenter opens a tapped name as a journey over it.
                 AllCreditsSheet(staffItems: staffItems)
+                    .routePresenter()
+                    .kuroLeavesJourney()
             }
         }
     }
@@ -98,7 +95,7 @@ struct ProductionSection: View {
 
 private struct ProductionStudiosLine: View {
     let studios: [Studio]
-    @Binding var selectedStudio: Studio?
+    @Environment(\.kuroRoutes) private var routes
 
     var body: some View {
         FlowLayout(spacing: 0) {
@@ -110,7 +107,7 @@ private struct ProductionStudiosLine: View {
                             .foregroundColor(.kuroTextTertiary)
                     }
                     Button {
-                        selectedStudio = studio
+                        routes.openStudio(studio)
                     } label: {
                         Text((studio.name ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased())
                             .font(.kuroBody(weight: .light))
@@ -128,7 +125,7 @@ private struct ProductionStudiosLine: View {
 struct MangaProductionSection: View {
     let authorItems: [(author: Author, role: String)]
 
-    @State private var selectedAuthor: Author?
+    @Environment(\.kuroRoutes) private var routes
 
     var body: some View {
         if !authorItems.isEmpty {
@@ -142,7 +139,8 @@ struct MangaProductionSection: View {
 
                 ForEach(authorItems, id: \.author.id) { item in
                     Button {
-                        selectedAuthor = item.author
+                        // Pushed inside the journey (navigation contract), never a sheet.
+                        routes.openAuthor(item.author)
                     } label: {
                         HStack(spacing: 0) {
                             if !item.role.isEmpty {
@@ -165,9 +163,6 @@ struct MangaProductionSection: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .sheet(item: $selectedAuthor) { author in
-                AuthorDetailSheet(author: author).kuroLeavesJourney()
-            }
         }
     }
 }
@@ -177,7 +172,7 @@ struct MangaProductionSection: View {
 struct AllCreditsSheet: View {
     let staffItems: [(staff: Staff, role: String)]
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedStaff: Staff?
+    @Environment(\.kuroRoutes) private var routes
 
     private var grouped: [(role: String, staff: [Staff])] {
         var dict: [String: [Staff]] = [:]
@@ -203,7 +198,7 @@ struct AllCreditsSheet: View {
 
                             ForEach(group.staff, id: \.id) { person in
                                 Button {
-                                    selectedStaff = person
+                                    routes.openStaff(person)
                                 } label: {
                                     Text(person.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman))
                                         .font(.kuroBody())
@@ -225,9 +220,6 @@ struct AllCreditsSheet: View {
                     DetailSheetCloseButton { dismiss() }
                 }
             }
-        }
-        .sheet(item: $selectedStaff) { staff in
-            StaffDetailSheet(staff: staff).kuroLeavesJourney()
         }
     }
 }

@@ -4,8 +4,9 @@ import SwiftUI
 struct MediaDetailSheet: View {
     let kind: MediaKind
     let id: Int
-    /// The page has loaded: it brings its own close, so the grabber hides. While loading or failed the
-    /// grabber shows and the state carries a close control (never a full-height state with no way out).
+    /// The page has loaded (reported by the loaders; kept for callers that read it). The grabber shows in
+    /// every state (navigation contract N8) and every state carries the journey chrome (Back when pushed,
+    /// ✕ always), so a loading or failed push is never a page with no way back.
     @State private var loaded = false
 
     var body: some View {
@@ -22,7 +23,7 @@ struct MediaDetailSheet: View {
         }
         .accessibilityIdentifier("media_detail_sheet")
         #if os(iOS)
-        .presentationDragIndicator(DetailLoaderChrome.dragIndicator(loaded: loaded))
+        .presentationDragIndicator(DetailLoaderChrome.dragIndicator)
         #endif
     }
 }
@@ -45,10 +46,10 @@ struct AnimeDetailLoaderView: View {
                     self.failure = nil
                     retryCount += 1
                 }
-                .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
+                .kuroJourneyChrome(title: "", collapseProgress: 0)
             } else {
                 KuroStateView(.loading)
-                    .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
+                    .kuroJourneyChrome(title: "", collapseProgress: 0)
             }
         }
         .task(id: "\(animeId)-\(retryCount)") {
@@ -95,10 +96,10 @@ struct MangaDetailLoaderView: View {
                     self.failure = nil
                     retryCount += 1
                 }
-                .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
+                .kuroJourneyChrome(title: "", collapseProgress: 0)
             } else {
                 KuroStateView(.loading)
-                    .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
+                    .kuroJourneyChrome(title: "", collapseProgress: 0)
             }
         }
         .task(id: "\(mangaId)-\(retryCount)") {

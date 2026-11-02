@@ -23,6 +23,8 @@ import SwiftUI
 // Tracking writes go through `LibraryActions.apply` (`DetailAdvance`: a +1 on a Planned title also
 // makes it Watching), `LibraryActions.remove` (asked first, with Undo) and the shared tracking editor
 // route; the page acts only on the entry that is open.
+// Navigation (contract 2026-11-02, DetailNavigation.swift): a journey page with the shrinking header
+// (`.detailJourneyChrome`); every tap inside pushes through `\.kuroRoutes`; folds remember their state.
 
 /// Everything the page shows besides the catalogue row and the Library entry. Fixture renders pass a
 /// complete value; the live page fills it from the owners above.
@@ -44,26 +46,31 @@ struct AnimeDetailContent {
 
 /// A credit row of "Behind the frames." (only rows with a real name exist).
 struct DetailCreditRow: Identifiable {
-    enum Target { case staff(Staff), studio(Studio), author(Author), none }
+    /// `media`: the ladder's original work when it maps to a catalogue title (pushed like a source card).
+    enum Target { case staff(Staff), studio(Studio), author(Author), media(MediaKey), none }
     let role: String
     let name: String
     let target: Target
     var id: String { "\(role)|\(name)" }
 
-    /// Only a row with a record to open is a button (an "Original work" name from the ladder is text).
+    /// Only a row with a record to open is a button (an "Original work" name from the ladder that maps to
+    /// no title is text).
     var isInteractive: Bool {
         if case .none = target { return false }
         return true
     }
 
+    /// - Parameter sourceKey: the ladder's original work as a title (`DetailNavigation.ladderKey`): the
+    ///   ladder-sourced "Original work" row opens it (N9); nil keeps the row plain text.
     static func anime(staff: [(staff: Staff, role: String)], studios: [Studio], sourceAuthor: String?,
-                      german: Bool) -> [DetailCreditRow] {
+                      sourceKey: MediaKey? = nil, german: Bool) -> [DetailCreditRow] {
         var rows: [DetailCreditRow] = []
         let original = staff.first { CreditRole.from(raw: $0.role) == .originalCreator }
         if let original, let name = original.staff.nameFull, !name.isEmpty {
             rows.append(DetailCreditRow(role: german ? "Vorlage" : "Original work", name: name, target: .staff(original.staff)))
         } else if let sourceAuthor = sourceAuthor?.trimmingCharacters(in: .whitespacesAndNewlines), !sourceAuthor.isEmpty {
-            rows.append(DetailCreditRow(role: german ? "Vorlage" : "Original work", name: sourceAuthor, target: .none))
+            rows.append(DetailCreditRow(role: german ? "Vorlage" : "Original work", name: sourceAuthor,
+                                        target: sourceKey.map { .media($0) } ?? .none))
         }
         if let director = staff.first(where: { CreditRole.from(raw: $0.role) == .director }),
            let name = director.staff.nameFull, !name.isEmpty {
@@ -99,12 +106,17 @@ struct AnimeDetailPage: View {
     @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(OutboundLinkTelemetry.self) private var outboundLinks
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroFoldMemory) private var folds
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Optional: fixture hosts may not inject one (then the page counts as online).
     @Environment(NetworkMonitor.self) private var network: NetworkMonitor?
 
     @State private var content: AnimeDetailContent
+    /// The shrinking header's progress (read by the chrome only).
+    @State private var collapse = DetailCollapseState()
+    /// Foldable sections whose top has scrolled above the view (F2: a collapse scrolls them back).
+    @State private var foldsAbove: Set<DetailSection> = []
     @State private var releaseItems: [ReleaseScheduleItem]?
     @State private var releaseSongs: [ThemeSong]?
     @State private var roster: [SocialActivityStore.FriendTitleActivity] = []
@@ -175,7 +187,8 @@ struct AnimeDetailPage: View {
 
     private var credits: [DetailCreditRow] {
         DetailCreditRow.anime(staff: content.staff, studios: content.studios,
-                              sourceAuthor: content.source?.sourceAuthorName, german: german)
+                              sourceAuthor: content.source?.sourceAuthorName,
+                              sourceKey: content.source.flatMap(DetailNavigation.ladderKey), german: german)
     }
 
     /// `social_activity_v1`: the server kill switch for notes, reactions and the club roster.
@@ -220,6 +233,7 @@ struct AnimeDetailPage: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     hero
+                        .detailCollapseHero(collapse)
                     if isOffline {
                         KuroOfflineView(hasContent: true) { reloadToken += 1 }
                             .padding(.horizontal, 24)
@@ -229,6 +243,7 @@ struct AnimeDetailPage: View {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
+                                .detailFoldAnchor(section, above: $foldsAbove)
                                 // The seasons' selection dot sits on the rule above the progress card.
                                 .zIndex(section == .seasons ? 1 : 0)
                         }
@@ -252,11 +267,13 @@ struct AnimeDetailPage: View {
                     .kuroReadableWidth()
                 }
             }
+            .detailCollapseTracking(collapse)
         }
         // The hero reaches the sheet's top edge (no paper cap above the artwork).
         .ignoresSafeArea(edges: .top)
         .background(Color.kuroPaper.ignoresSafeArea())
-        .overlay(alignment: .topTrailing) { DetailCloseButton(material: material) }
+        // Back (pushed) and ✕ over the hero, then the compact bar (navigation contract N1-N3, H1-H4).
+        .detailJourneyChrome(title: pageTitle, material: material, collapse: collapse)
         .modifier(DetailToastOverlay(toast: $toast))
         .tint(Color.kuroInk)
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
@@ -277,8 +294,10 @@ struct AnimeDetailPage: View {
             await clubs.refreshMyClubsIfStale()
         }
         .detailReleases(kind: .anime, id: anime.id, schedule: $releaseItems, songs: $releaseSongs)
+        // Tool sheets (N7): they close back to this page; their own close never collapses the journey.
         .sheet(isPresented: $showVerdict) {
             QuickVerdictPickerSheet(media: anime, onToast: showToast)
+                .kuroLeavesJourney()
         }
         .confirmationDialog(DetailRemoval.confirmTitle(german: german),
                             isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
@@ -297,9 +316,18 @@ struct AnimeDetailPage: View {
                     openURL(url)
                 }
             }
+            .kuroLeavesJourney()
         }
-        // The page's own presentation context: season tiles, the source card and the editor open here.
-        .routePresenter()
+        // No page-local presenter: inside a journey every tap pushes and tools open from the journey's
+        // tool slot (navigation contract; `\.kuroRoutes` comes from the journey host).
+    }
+
+    private var pageTitle: String { content.bundle?.header.title ?? anime.displayTitle }
+
+    /// F2: after a fold closes, its section comes back into view when its top had scrolled away.
+    private func foldCollapsed(_ section: DetailSection, proxy: ScrollViewProxy) {
+        guard foldsAbove.contains(section) else { return }
+        withAnimation(KuroFold.animation(reduceMotion: reduceMotion)) { proxy.scrollTo(section, anchor: .top) }
     }
 
     // MARK: Sections
@@ -313,14 +341,16 @@ struct AnimeDetailPage: View {
         case .progress:
             // With unit rows (or an Up next) the units case draws progress inside the same block.
             if !sections.contains(.units) {
-                seasonContent(showsProgress: true, showsUnits: false, origin: origin)
+                seasonContent(showsProgress: true, showsUnits: false, origin: origin, proxy: proxy)
             }
         case .story:
             DetailStorySection(eyebrow: seasonNumber.map { DetailPageCopy.seasonEyebrow($0, german: german) },
                                hook: hook,
                                synopsis: anime.hasMeaningfulSynopsis ? anime.displayDescription : nil,
                                aboutTitle: DetailPageCopy.aboutTitle(isSeason: seasonNumber != nil, german: german),
-                               expectation: (anime.genreList ?? []).prefix(3).joined(separator: " · ").detailNonEmpty)
+                               expectation: (anime.genreList ?? []).prefix(3).joined(separator: " · ").detailNonEmpty,
+                               expanded: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.story),
+                               onCollapse: { foldCollapsed(.story, proxy: proxy) })
         case .clubPresence:
             DetailClubPresence(names: DetailBetweenUs.rosterNames(roster), count: clubPeople) {
                 // Reduce Motion: the jump is instant (prototype §6).
@@ -332,18 +362,22 @@ struct AnimeDetailPage: View {
         case .seasons:
             DetailSeasonsSection(numbered: content.numbered, extras: content.extras,
                                  numbersAreReal: content.chainIsProven, material: material) { id in
-                routes.openMedia(MediaRoute(kind: .anime, id: id))
+                routes.openPage(DetailNavigation.seasonPage(id: id))
             }
         case .units:
-            seasonContent(showsProgress: sections.contains(.progress), showsUnits: true, origin: origin)
+            seasonContent(showsProgress: sections.contains(.progress), showsUnits: true, origin: origin, proxy: proxy)
         case .source:
             if let source = content.source {
-                DetailSourceCard(item: source, coverage: content.bundle?.coverage, seasonNumber: seasonNumber) {
-                    routes.openMedia(MediaRoute(kind: source.mediaType.uppercased() == "MANGA" ? .manga : .anime, id: source.mediaId))
+                DetailSourceCard(item: source, coverage: content.bundle?.coverage, seasonNumber: seasonNumber,
+                                 showsCoverage: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.coverage),
+                                 onCollapse: { foldCollapsed(.source, proxy: proxy) }) {
+                    if let page = DetailNavigation.ladderPage(source) { routes.openPage(page) }
                 }
             }
         case .songs:
-            DetailSoundPanel(songs: songs, material: material)
+            DetailSoundPanel(songs: songs, material: material,
+                             showsAll: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.songs),
+                             onCollapse: { foldCollapsed(.songs, proxy: proxy) })
         case .characters:
             DetailCharactersRail(characters: content.characters)
         case .credits:
@@ -361,7 +395,8 @@ struct AnimeDetailPage: View {
     /// Progress (tracked) and units share the prototype's `season-content` block: the material `wash`
     /// fades down from its top edge.
     @ViewBuilder
-    private func seasonContent(showsProgress: Bool, showsUnits: Bool, origin: AccountActionScope.Ticket?) -> some View {
+    private func seasonContent(showsProgress: Bool, showsUnits: Bool, origin: AccountActionScope.Ticket?,
+                               proxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if showsProgress {
                 DetailProgressCard(label: DetailPageCopy.progressLabel(season: seasonNumber, german: german),
@@ -373,7 +408,9 @@ struct AnimeDetailPage: View {
                               isTracked: entry != nil, nextUnit: nextUnit, seasonNumber: seasonNumber,
                               nextRelease: upcoming.first,
                               material: material, coverURL: coverURL, savingNext: savingNext,
-                              confirmTrigger: confirmTrigger) { next in
+                              confirmTrigger: confirmTrigger,
+                              showsAll: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.units),
+                              onCollapse: { foldCollapsed(.units, proxy: proxy) }) { next in
                 advance(to: next, origin: origin)
             }
             .padding(.top, showsProgress ? 22 : 0)
@@ -665,11 +702,13 @@ struct DetailStorySection: View {
     var serifHook = false
     /// The `detail_copy` premise under the hook (manga prototype; SF 12/19.8).
     var premise: String? = nil
-    @State private var expanded = false
+    /// Open or closed, kept for the session per title (navigation contract F3, `DetailFold.story`).
+    @Binding var expanded: Bool
+    /// F2: the page scrolls the story back into view after it closes, when needed.
+    var onCollapse: () -> Void = {}
     /// Heights of the synopsis at five lines and in full (hidden probes), to know whether it is cut.
     @State private var limitedHeight: CGFloat = 0
     @State private var fullHeight: CGFloat = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Without a `detail_copy` hook the synopsis opens the section (spec §4), at most five lines.
     private var opensWithSynopsis: Bool { hook == nil }
@@ -704,23 +743,24 @@ struct DetailStorySection: View {
             }
             if let synopsis, DetailStoryDisclosure.showsToggle(hasHook: !opensWithSynopsis, truncated: truncated,
                                                                hasExpectation: expectation != nil) {
-                Button {
-                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { expanded.toggle() }
-                } label: {
+                // A real fold (F1-F3): prototype easing, VoiceOver's expanded/collapsed value, session memory.
+                KuroFoldButton(isExpanded: $expanded,
+                               expandLabel: DetailStoryDisclosure.label(hasHook: !opensWithSynopsis, expanded: false,
+                                                                        about: aboutTitle, german: KuroLocale.isGerman),
+                               collapseLabel: DetailStoryDisclosure.label(hasHook: !opensWithSynopsis, expanded: true,
+                                                                          about: aboutTitle, german: KuroLocale.isGerman),
+                               onCollapse: onCollapse) { title, open in
                     HStack {
-                        Text(DetailStoryDisclosure.label(hasHook: !opensWithSynopsis, expanded: expanded, about: aboutTitle,
-                                                         german: KuroLocale.isGerman))
+                        Text(title)
                             .font(.detailSF(10, relativeTo: .footnote))
                         Spacer()
-                        Text(expanded ? "−" : "+")
+                        Text(open ? "−" : "+")
                             .font(.detailSF(17, .light, relativeTo: .body))
+                            .accessibilityHidden(true)
                     }
                     .foregroundStyle(DetailInk.disclosure)
                     .frame(minHeight: 44)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(expanded ? .isSelected : [])
                 if expanded, !opensWithSynopsis {
                     synopsisText(synopsis).padding(.top, 13)
                 }
@@ -1039,11 +1079,14 @@ struct AnimeUnitsSection: View {
     let coverURL: URL?
     let savingNext: Bool
     let confirmTrigger: Int
+    /// "More episodes" open or closed, kept for the session per title (F3, `DetailFold.units`).
+    @Binding var showsAll: Bool
+    /// F2: the page scrolls the episodes back into view after they fold, when needed.
+    var onCollapse: () -> Void = {}
     let onAdvance: (Int) -> Void
 
     @Environment(CatalogStore.self) private var catalog
     @Environment(\.openURL) private var openURL
-    @State private var showsAll = false
     @State private var allEpisodes: [Episode] = []
     @State private var hasMore = true
     @State private var loadingMore = false
@@ -1088,26 +1131,21 @@ struct AnimeUnitsSection: View {
                 KuroSkeleton(kind: .row).padding(.vertical, 8)
             }
             if hasMoreToShow || showsAll {
-                Button {
-                    if showsAll {
-                        withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsAll = false }
-                    } else {
-                        showsAll = true
-                        Task { await loadAll() }
-                    }
-                } label: {
+                KuroFoldButton(isExpanded: $showsAll,
+                               expandLabel: KuroLocale.text("More episodes", "Mehr Folgen"),
+                               collapseLabel: KuroLocale.text("Fewer episodes", "Weniger Folgen"),
+                               onCollapse: onCollapse) { title, open in
                     HStack {
-                        Text(showsAll ? KuroLocale.text("Fewer episodes", "Weniger Folgen") : KuroLocale.text("More episodes", "Mehr Folgen"))
+                        Text(title)
                             .font(.detailSF(11, relativeTo: .footnote))
                         Spacer()
-                        Image(systemName: showsAll ? "arrow.up" : "arrow.down")
+                        Image(systemName: open ? "arrow.up" : "arrow.down")
                             .font(.detailSF(14, .light, relativeTo: .body))
+                            .accessibilityHidden(true)
                     }
                     .foregroundStyle(DetailInk.moreLink)
                     .frame(minHeight: 44)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
                 .padding(.top, 4)
             }
             if showsAll, hasMore, !allEpisodes.isEmpty, !loadingMore {
@@ -1115,6 +1153,12 @@ struct AnimeUnitsSection: View {
             }
         }
         .padding(.bottom, 8)
+        // Opened by the fold, or restored open from the session's memory (F3): load the full list.
+        .task(id: showsAll) {
+            guard DetailFold.loadsAllUnits(expanded: showsAll, loadedCount: allEpisodes.count,
+                                           hasMore: hasMore, loading: loadingMore) else { return }
+            await loadAll()
+        }
     }
 
     private func upNextRow(_ number: Int) -> some View {
@@ -1339,9 +1383,11 @@ struct DetailSourceCard: View {
     let item: MediaLadderItem
     let coverage: SeriesDetailBundle.Coverage?
     let seasonNumber: Int?
+    /// "Where this season meets the manga" open or closed (F3, `DetailFold.coverage`).
+    @Binding var showsCoverage: Bool
+    /// F2: the page scrolls the card back into view after the guide folds, when needed.
+    var onCollapse: () -> Void = {}
     let onOpen: () -> Void
-    @State private var showsCoverage = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var mapped: SeriesDetailBundle.Coverage? {
         guard let coverage, coverage.mappingState == "exact" || coverage.mappingState == "partial" else { return nil }
@@ -1395,20 +1441,19 @@ struct DetailSourceCard: View {
             .overlay(alignment: .bottom) { Rectangle().fill(DetailInk.sourceRule).frame(height: 1) }
 
             if let mapped {
-                Button {
-                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsCoverage.toggle() }
-                } label: {
+                let guideTitle = KuroLocale.text("Where this season meets the manga", "Wo diese Staffel im Manga steht")
+                KuroFoldButton(isExpanded: $showsCoverage, expandLabel: guideTitle, collapseLabel: guideTitle,
+                               onCollapse: onCollapse) { title, open in
                     HStack {
-                        Text(KuroLocale.text("Where this season meets the manga", "Wo diese Staffel im Manga steht"))
+                        Text(title)
                             .font(.detailSF(11, relativeTo: .footnote))
                         Spacer()
-                        Text(showsCoverage ? "−" : "+").font(.detailSF(17, .light, relativeTo: .body))
+                        Text(open ? "−" : "+").font(.detailSF(17, .light, relativeTo: .body))
+                            .accessibilityHidden(true)
                     }
                     .foregroundStyle(Color.kuroInk)
                     .frame(minHeight: 48)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
                 .padding(.horizontal, 4)
                 if showsCoverage {
                     VStack(alignment: .leading, spacing: 6) {
@@ -1492,10 +1537,12 @@ struct DetailBookSpine: Shape {
 struct DetailSoundPanel: View {
     let songs: [ThemeSong]
     let material: ArtworkMaterial
-    @State private var showsAll = false
+    /// "Show all N songs" open or closed (F3, `DetailFold.songs`).
+    @Binding var showsAll: Bool
+    /// F2: the page scrolls the panel back into view after it folds, when needed.
+    var onCollapse: () -> Void = {}
     @State private var revealed: Set<ThemeSong> = []
     @Environment(\.openURL) private var openURL
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let collapsed = 4
 
@@ -1524,17 +1571,15 @@ struct DetailSoundPanel: View {
                     .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0x14 / 255.0)).frame(height: 1) }
             }
             if songs.count > Self.collapsed {
-                Button {
-                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsAll.toggle() }
-                } label: {
-                    Text(showsAll ? KuroLocale.text("Show fewer", "Weniger zeigen")
-                                  : KuroLocale.text("Show all \(songs.count) songs", "Alle \(songs.count) Songs zeigen"))
+                KuroFoldButton(isExpanded: $showsAll,
+                               expandLabel: KuroLocale.text("Show all \(songs.count) songs", "Alle \(songs.count) Songs zeigen"),
+                               collapseLabel: KuroLocale.text("Show fewer", "Weniger zeigen"),
+                               onCollapse: onCollapse) { title, _ in
+                    Text(title)
                         .font(.detailSF(11, .medium, relativeTo: .footnote))
                         .foregroundStyle(DetailInk.soundInk)
                         .frame(minHeight: 44)
-                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
             }
             if songs.allSatisfy({ $0.source.lowercased() == "animethemes" }) {
                 Text(KuroLocale.text("via AnimeThemes", "über AnimeThemes"))
@@ -1664,7 +1709,7 @@ struct DetailCharactersRail: View {
     let characters: [(character: Character, role: String)]
     /// Manga: square-cut portraits (radius 2) at the prototype's 0.6 saturation.
     var bookish = false
-    @State private var selected: Character?
+    @Environment(\.kuroRoutes) private var routes
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// 67 pt cards (prototype); wider at accessibility sizes so names never break inside a word.
@@ -1697,7 +1742,8 @@ struct DetailCharactersRail: View {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(shown, id: \.character.id) { item in
                         Button {
-                            selected = item.character
+                            // Pushed inside the journey (navigation contract N9); Back returns here.
+                            routes.openPage(DetailNavigation.characterPage(item.character))
                         } label: {
                             VStack(alignment: .leading, spacing: 0) {
                                 Color.clear
@@ -1742,10 +1788,6 @@ struct DetailCharactersRail: View {
         // 30 pt above the heading: the prototype's section margin (the card above it, when there is one,
         // collapses its own 30 pt bottom margin into this one).
         .padding(.top, 30)
-        .sheet(item: $selected) { character in
-            // Legacy page-local sheet (navigation lanes migrate it to a push): not part of the journey.
-            CharacterDetailSheet(character: character).kuroLeavesJourney()
-        }
     }
 }
 
@@ -1756,17 +1798,13 @@ struct DetailCreditsList: View {
     let rows: [DetailCreditRow]
     /// Drawn under the rows (the manga page's "Read with the publisher").
     var footer: AnyView? = nil
-    @State private var staff: Staff?
-    @State private var studio: Studio?
-    @State private var author: Author?
+    @Environment(\.kuroRoutes) private var routes
 
+    /// A row with a target pushes its page inside the journey (staff, studio, author, or the ladder's
+    /// original work as a title; navigation contract N9).
     private func open(_ target: DetailCreditRow.Target) {
-        switch target {
-        case .staff(let person): staff = person
-        case .studio(let company): studio = company
-        case .author(let person): author = person
-        case .none: break
-        }
+        guard let page = DetailNavigation.creditPage(target) else { return }
+        routes.openPage(page)
     }
 
     /// 40.4 pt as measured (padding 12/0, 11/15.4); the row's 44 pt target reaches 2 pt past each rule.
@@ -1804,10 +1842,6 @@ struct DetailCreditsList: View {
             if let footer { footer }
         }
         .padding(.top, 30)
-        // Legacy page-local sheets (navigation lanes migrate them to pushes): not part of the journey.
-        .sheet(item: $staff) { StaffDetailSheet(staff: $0).kuroLeavesJourney() }
-        .sheet(item: $studio) { StudioDetailSheet(studio: $0).kuroLeavesJourney() }
-        .sheet(item: $author) { AuthorDetailSheet(author: $0).kuroLeavesJourney() }
     }
 }
 
