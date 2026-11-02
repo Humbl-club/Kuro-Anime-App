@@ -153,6 +153,8 @@ struct DetailSectionHeading: View {
             .font(.detailSF(size, .semibold, relativeTo: .title3))
             .tracking(tracking)
             .foregroundStyle(Color.kuroInk)
+            // 17/23.8 and 18/25.2 as measured.
+            .detailLineHeight(size * 1.4, size: size, relativeTo: .title3)
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -231,10 +233,12 @@ struct DetailHero<Mark: View>: View {
                 // Side by side while the title keeps at least 140 pt beside the mark; otherwise the mark
                 // goes under the title (the prototype's ≤360 single column, and long German marks).
                 ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .lastTextBaseline, spacing: 12) {
+                    // The prototype's grid centres the mark on the title's (last) line.
+                    HStack(alignment: .bottom, spacing: 12) {
                         titleBlock
                             .frame(minWidth: 140, idealWidth: 140, maxWidth: .infinity, alignment: .leading)
                         mark()
+                            .padding(.bottom, 8)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         titleBlock

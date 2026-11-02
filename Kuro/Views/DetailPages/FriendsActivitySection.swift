@@ -79,7 +79,8 @@ struct FriendsActivitySection: View {
         let origin = actionScope.capture(session: social.accountSession)
         let permission = social.friendScopeGeneration
         if hasClubs {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            // The prototype card spaces its rows itself (note padding 13/0/14, compose m 11).
+            VStack(alignment: .leading, spacing: prototypeStyle ? 0 : KuroDesignSpacing.md) {
                 if showsHeading {
                     EditorialLayout.divider()
 
@@ -102,6 +103,7 @@ struct FriendsActivitySection: View {
                     if !activity.friends_tracking.isEmpty {
                         if prototypeStyle {
                             rosterDisclosure(activity.friends_tracking)
+                                .padding(.bottom, 3)
                         } else {
                             friendTrackingPills(activity.friends_tracking)
                         }
@@ -273,7 +275,7 @@ struct FriendsActivitySection: View {
 
     @ViewBuilder
     private func commentsSection(_ comments: [SocialActivityStore.TitleComment]) -> some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+        VStack(alignment: .leading, spacing: prototypeStyle ? 0 : KuroDesignSpacing.sm) {
             ForEach(comments) { comment in
                 commentRow(comment)
             }
@@ -299,6 +301,8 @@ struct FriendsActivitySection: View {
                 Text(comment.display_name ?? String(comment.user_id.prefix(6)))
                     .font(prototypeStyle ? .kuroCustom(11, weight: .semibold, relativeTo: .footnote, maxSize: 24) : .kuroCaption(weight: .medium))
                     .foregroundColor(prototypeStyle ? .kuroInk : .kuroBlack65)
+                    // The byline's 15.4 pt line (prototype `.note-byline b`).
+                    .padding(.vertical, prototypeStyle ? 1.5 : 0)
 
                 // Prototype byline: the shared club's name (`.note-byline span`) when it is provable;
                 // otherwise the note's age. The age stays in the VoiceOver label either way.
@@ -368,6 +372,7 @@ struct FriendsActivitySection: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .padding(.top, 8)
                     .accessibilityHint(KuroLocale.text("Reveals a club member's spoiler", "Zeigt den Spoiler eines Clubmitglieds"))
                 } else {
                 Button(KuroLocale.text("Spoiler · Reveal", "Spoiler · Anzeigen")) { revealed.insert(comment.id) }
@@ -378,7 +383,8 @@ struct FriendsActivitySection: View {
                 Text(comment.text)
                     .font(prototypeStyle ? .kuroCustom(13, relativeTo: .callout, maxSize: 28) : .kuroBody(weight: .light))
                     .foregroundColor(prototypeStyle ? Color(hex: "405646") : .kuroBlack80).lineSpacing(prototypeStyle ? 5 : 4)
-                    .padding(.top, prototypeStyle ? 4 : 0)
+                    // The prototype's 8 pt margin plus the 13/20.8 line's half-leading.
+                    .padding(.top, prototypeStyle ? 7 : 0)
                 if revealed.contains(comment.id) {
                     Button(KuroLocale.text("Hide spoiler", "Spoiler ausblenden")) { revealed.remove(comment.id) }.frame(minHeight: 44)
                 }
@@ -433,7 +439,8 @@ struct FriendsActivitySection: View {
                 }
             }
         }
-        .padding(.top, prototypeStyle ? 13 : 6)
+        // 13/0/14 as measured, plus the SF ascent the CSS line box adds above the byline.
+        .padding(.top, prototypeStyle ? 15 : 6)
         .padding(.bottom, prototypeStyle ? 14 : 6)
         .overlay(alignment: .bottom) {
             if prototypeStyle { Rectangle().fill(Color(hex: "6F8671", opacity: Double(0x20) / 255)).frame(height: 1) }

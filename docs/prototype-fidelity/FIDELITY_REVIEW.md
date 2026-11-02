@@ -98,3 +98,58 @@ Home keeps "{title} ›" and "{name} shared a thought" until the helper exists. 
 
 - The Home manga findings list given to this pass was cut off mid-item at "Calendar day label date format". That item is fixed with the anime one (note C). Any findings after it were not received.
 - The SEC-2 fix text was cut off at "call it from the". It was implemented as the Profile "Clear cache" call.
+
+## Detail anime and manga (round 2)
+
+Pairs: `ref-detail-anime-390.png` / `native/detail/detail-anime-390.png`, `ref-detail-anime-top-390.png` / `detail-anime-top-390.png`, `ref-detail-manga-390.png` / `detail-manga-390.png`, `ref-detail-manga-top-390.png` / `detail-manga-top-390.png`. All detail renders were re-made under `-testLanguage en -testRegion GB`. Compare them unscaled: the reference sheet is 356 pt wide, and the native page fills the 390 pt window, so x offsets differ by the 17 pt sheet inset. The fixture host now drops the window's top inset (`safeAreaRegions = []`), because a page sheet has none. The `*-top-390` references show the sheet inside the app (header, 55 pt offset, 24 pt sheet radius). The native top renders are the page alone, without the system sheet chrome.
+
+### Detail anime
+
+| Finding | Status | What changed or why it stays |
+|---|---|---|
+| w550 headings and titles read as regular | **fixed** | Every w550 role in the detail now uses `.semibold`: section headings, "The sound of it.", song titles, Up next and row titles, the original-story title, credit names and the adaptation title. `.medium` stays only on w500 roles. Section headings also get their 23.8 / 25.2 line height (`detailLineHeight`). |
+| D2 synopsis with a dead "About this season +" | **fixed** | Synopsis-led (no `detail_copy` hook): the row appears only when the synopsis is cut at five lines or an expectation line waits behind it (`DetailStoryDisclosure`; two hidden probes measure the cut). It reads "More" / "Show less" ("Mehr" / "Weniger zeigen"). The fixture keeps the row because its genres make an expectation line. Leading with the synopsis is **justified**: hooks come only from `detail_copy`, and the series flags are off for live users. The hook-led state matches in `detail-anime-bundle-390.png`. |
+| Overflow "···" beside the status mark | **fixed** | Removed. The mark is a `Menu` with a primary action, as §50 describes: a tap opens List settings, and touch-and-hold (or VoiceOver's actions) opens the menu with Save/Remove, Verdict, Where to watch, Add to a club and Share. The hint says "Touch and hold for more actions." |
+| D1 band geometry and close position | **fixed** | The mark's 44 pt target no longer adds height to the band (`.frame(minHeight: 44).padding(.vertical, -15)`), so the heading block is 4/24/19 around the title. The mark is centred on the title line. The close sat 29 pt low only because of the fixture window's inset. It now sits 12 pt from the top. The artwork keeps the 150.6/354 ratio at the full 390 width. |
+| D6 Up next row height, key position and shadow | **fixed** | The summary is at least 58 pt with padding 7/9, so the row is 74. The key is centred (its one-sided 7 pt top padding is gone). The row shadow is on the row's shape, so it no longer doubles onto the key. |
+| D8 song rows and footer | **fixed** | Rows are 78 pt (padding 12/0 around a 54 pt block, with line heights 11.2 / 16.25 / 14). A `#ffffff14` rule sits under every row, the last included, so the attribution has its rule and the 13 pt margin. "via AnimeThemes" stays in place of the sample "Find on Spotify · track links not yet matched": **justified**, it is the real source (§8.13). |
+| D4 current tile ring, ribbon, "Current" | **fixed** | Added the 1 pt `#718478` inset ring and a 7 × 18 ribbon with a V notch in `base`. "Current" is `.medium`; the spec measures w400, and white 8 pt on the dark tile reads heavier. |
+| D4 selection dot cut in half | **fixed** | The tile row draws above the thread rule, and the seasons section draws above the progress card. The 3 pt `#f1f3ef` halo now cuts the rule as in the reference. |
+| D4 tile foot dash and stripes | **fixed** | The dash is 6 × 2. The light tile's ruling fades in toward the foot. |
+| D6 episode row rules | **fixed** | The rule sits under each row, so one closes the list before "More episodes". |
+| D7 title to author spacing | **fixed** | Title 17/23.8 with m 6/0/2, author 10/14. |
+| D10 credit rows | **fixed** | 40.4 pt rows (12/0 around a 15.4 line). The 44 pt touch target reaches 2 pt past each rule through its content shape. The role colour was already `#69766c`. |
+| D3 / D11 avatar tints | **fixed** | The three prototype fills `#d3ded3`, `#e2e3d7` and `#c8d4ce` cycle by index (`DetailAvatars.fillHex`). |
+| D11 byline and reactions | **fixed** | The byline names the club the author provably shares with the viewer: the viewer's only club, or a club whose cached roster lists the author (`DetailBetweenUs.clubName`). Otherwise it shows the note's age; it never guesses. The age stays in the VoiceOver label. The reactions are a live feature, so they **stay** (spec §50: nothing live is removed). They now sit as quiet 9 pt keys in an overlay on the byline's trailing edge, which adds no height, so the 13/0/14 note rhythm and the ~26 pt divider-to-byline gap return. |
+| D11 "Spoiler · Story" vs "Spoiler · Season 2" | **justified** | The stored scope is only none/story/ending (`title_comments` check). No season is recorded. |
+| "Hidden Inventory / Shibuya Incident" season title, "Preview" notes, sample footnote | **justified** | Arc names and the "Preview"/sample lines are prototype sample data (§7.2). The catalogue has no arc name. |
+| Song kickers "Opening · Hidden Inventory" | **justified** | AnimeThemes gives the sequence and episode range ("Opening 1 · Ep. 1–5"), not arc names. |
+| Close control ring | **justified** | The reference's grey ring around the close is the capture's focus outline. |
+
+### Detail manga
+
+| Finding | Status | What changed or why it stays |
+|---|---|---|
+| Typeface for every serif element | **fixed** | Georgia via a detail-local `Font.detailGeorgia` (Georgia / Georgia-Italic, Dynamic Type scaled and capped like `kuroCustom`) on the title, the hook, "Your bookmark", the italic chapter numbers, "Seen the anime?" and "Between us." (both media). The shared `kuroEditorial` token in `KuroDesignSystem.swift` still maps to New York; that file belongs to another lane. |
+| D1 title layout and band size | **fixed** | The band has padding 28/24/24 and a cover of at most 107.1 pt (35 % of the prototype's 306 pt), and the heading column is at most 176 pt. "Chainsaw / Man" therefore breaks onto two lines and the band is about 214. A long title still wraps to three lines; a word wider than the column shrinks to 0.8 before truncation. |
+| D1 overflow key | **fixed** | As on anime: the mark carries the menu. |
+| D3 avatar tints | **fixed** | As on anime. |
+| D6 extra "26 Chapter 26" row with ↗ | **fixed** | Collapsed and tracked: only the finished row follows Up next (`MangaChaptersSection.collapsedRows`). Chapter rows have no ↗ key. An unread row that opens the reading service says so in its VoiceOver hint. |
+| D7 links | **fixed** | The fixture sets the adaptation's official site, and the card shows "Official anime site ↗" as its one link. The 映 tile and the title open the anime in the app (the live route, kept without an extra link). "Explore the anime →" shows only when no site is known. |
+| D7 "I've watched the anime" row | **justified** | It needs the series bundle's season guide (series flags off for live users). Shown without coverage, it could only say "unknown". The bundle render (`detail-manga-bundle-390.png`) shows the rule, the 52 pt row and the full card. |
+| D7 映 glyph | **fixed** | Hiragino Mincho (`HiraMinProN-W3`). The system serif falls back to Gothic for CJK. |
+| Section heading weight | **fixed** | `.semibold`, tracking −0.4, 23.8 line. |
+| Characters to credits spacing | **fixed** | The name box keeps two 15 pt lines (44 with the 9 pt top), and sections take the prototype's 30 pt top margin, with the Seen-the-anime card's bottom margin collapsing into it. Names to "Behind the pages." is now 76 pt, as in the reference. |
+| D11 reaction keys, rhythm, spoiler, chevron, card corners | **fixed / justified** | The reactions stay as quiet overlay keys (see anime). The rhythm is about 27 pt from the divider to "Mina" and about 43 pt from "Jules" to the spoiler line. The chevron is 6 pt light. "Leave a thought" uses a 4 pt radius on the folio card. The spoiler label stays SF 10, the measured size (spec D11 `spoiler` 10/14); the reviewer's 11–12 is an estimate. |
+| "Read with the publisher · Chapters & availability at VIZ", "English publisher VIZ Media" | **justified** | The legal read links carry no publisher marker, and the catalogue has no publisher field. The row reads "Read legally" with the real service name. |
+| Top viewport | **fixed** | Follows from the band, hero and chapter fixes. The rest is the synopsis-led story (justified above). |
+
+### Pathway findings (detail files)
+
+| Finding | Status | What changed |
+|---|---|---|
+| BLOCKER: Up next +1 on a Planned title stayed Planned | **fixed** | `DetailAdvance` sends `LibraryEdit(status: .set(.current), progress: .set(n))` through `LibraryActions.apply` when the entry is Planned. Every other status stays progress-only, and an untracked title is created as Watching/Reading. Undo reverts the whole change: the count and the saved status, and a row the +1 created is removed. Pinned by `DetailPathwayTests.plannedAdvanceReachesBusyHome`: Planned → +1 → `HomeShelfPolicy.scene == .inProgress`, `showsNewAccount == false`, and Undo returns to Planned 0. |
+| MAJOR: "Saved · remove" removed in one tap | **fixed** | The item reads "Remove from list" ("Von der Liste entfernen"). It asks first unless the entry is a bare plan (`DetailRemoval.needsConfirmation`). The toast "Removed from your list." has Undo, which re-saves every field of the removed row. Pinned by `removalUndoRestoresTheRow`. |
+| Read failures shown as missing sections | **fixed (ladder) / open (others)** | A ladder answer without a coverage status is a failed read (`DetailReadState.ladderFailed`). The page then shows `KuroStateView(.failed, layout: .inline)` with Try again (`reloadToken`). Where to watch/read says "Still checking where to watch/read" while its read is out, instead of "no link". **Open:** the episode, chapter, credit and link reads in `CatalogStore` / `ProviderAvailabilityStore` answer a failure with `[]`, so the page cannot tell failure from none. Those owners need a throwing read. |
+| Loading/failed sheet without a close | **fixed** | The loader's loading and failed states carry a neutral `DetailCloseButton`, and the sheet shows its grabber until the page has loaded (`DetailLoaderChrome`). |
+| Credit rows without a target were buttons | **fixed** | Credit rows without a target are static text (`DetailCreditRow.isInteractive`). Episode rows are buttons only when they have details (`AnimeUnitsSection.isExpandable`). |

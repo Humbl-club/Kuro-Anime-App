@@ -662,11 +662,14 @@ struct MangaDetailHero<Mark: View>: View {
                 .font(.detailGeorgia(titleSize, relativeTo: .title1))
                 .tracking(-1)
                 .foregroundStyle(Color.kuroInk)
-                // Review focus 1: three lines at most, then truncate (it wraps; it never shrinks).
+                // Review focus 1: three lines at most; a word wider than the column shrinks a little
+                // before anything is cut (a two-line title such as "Chainsaw / Man" keeps its size).
                 .lineLimit(3)
+                .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 9)
-                .padding(.bottom, 15)
+                // m 9/0/15 around a 31.9 pt CSS line; Georgia's own line box sits a little higher.
+                .padding(.top, 11)
+                .padding(.bottom, 19)
                 .accessibilityAddTraits(.isHeader)
             mark()
         }
@@ -1108,7 +1111,8 @@ struct MangaAdaptationCard: View {
         .overlay(shape.strokeBorder(material.edge.color, lineWidth: 1))
         .background { shape.fill(MangaInk.guideShadow).offset(x: 3, y: 3) }
         .padding(.top, 27)
-        .padding(.bottom, 30)
+        // The card's 30 pt bottom margin collapses into the next section's own 30 pt top (CSS).
+        .padding(.bottom, 0)
     }
 
     /// The card's one link: the official site when known, else the in-app route.

@@ -734,7 +734,9 @@ struct DetailStorySection: View {
                         .padding(.top, 12)
                 }
             }
-            Spacer().frame(height: 18)
+            // The section's foot: the open expectation line's 18 pt margin; otherwise the hook block's
+            // 4 pt (anime) or the folio's 15 pt before the club row (manga), as measured.
+            Spacer().frame(height: expanded && expectation != nil ? 18 : (serifHook ? 15 : 4))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -830,6 +832,8 @@ struct DetailSeasonsSection: View {
                 .padding(.horizontal, 1)
             }
             .scrollClipDisabled()
+            // The dot and its halo sit over the rule (the rule is drawn first).
+            .zIndex(1)
             Rectangle().fill(DetailInk.thread).frame(height: 1)
         }
         .padding(.bottom, 0)
@@ -1692,9 +1696,11 @@ struct DetailCharactersRail: View {
                 .padding(.horizontal, 1)
             }
             .scrollClipDisabled()
-            .padding(.top, 8)
+            .padding(.top, 13)
         }
-        .padding(.top, 25)
+        // 30 pt above the heading: the prototype's section margin (the card above it, when there is one,
+        // collapses its own 30 pt bottom margin into this one).
+        .padding(.top, 30)
         .sheet(item: $selected) { character in
             CharacterDetailSheet(character: character)
         }
