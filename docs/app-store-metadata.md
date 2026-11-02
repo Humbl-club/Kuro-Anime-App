@@ -4,7 +4,7 @@
 
 ## Candidate metadata
 
-Name: **Kuro — Anime & Manga**. Subtitle: **Curated picks & private clubs**. Retain the existing category choices only after reviewing the actual installed product and current age-rating questionnaire.
+Name: **Kuro: Anime & Manga Tracker** (owner, 2026-11-02). Home-screen name: **Kuro** (bundle display name follows PRODUCT_NAME). Subtitle: **Curated picks & private clubs**. Retain the existing category choices only after reviewing the actual installed product and current age-rating questionnaire.
 
 Proposed promotional text:
 
