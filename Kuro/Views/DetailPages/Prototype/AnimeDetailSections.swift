@@ -878,8 +878,9 @@ struct DetailSeasonsSection: View {
                         .tracking(0.1)
                         .frame(maxWidth: .infinity)
                 } else {
-                    // The tile's ::after: a 6 pt foot dash.
-                    Rectangle().fill(DetailInk.tileInk).frame(width: 6, height: 2)
+                    // The tile's ::after foot dash, as rendered in `ref-detail-anime-390.png`: 12 × 1 and
+                    // composited to about `#d2d6d4` (tile ink at 40 % inside the tile's 0.72 opacity).
+                    Rectangle().fill(DetailInk.tileInk.opacity(0.4)).frame(width: 12, height: 1)
                 }
             }
             .foregroundStyle(current ? Color.white : DetailInk.tileInk)
@@ -1420,29 +1421,50 @@ struct DetailSourceCard: View {
     }
 
     /// The 原作 book: a page block with a spine, three offset page edges and a short rule.
+    /// Prototype `.bridge-book`: page `linear-gradient(100deg, #d6dbce 5px, #fafaf0 5px)` (the 5 pt
+    /// spine band runs at 100°, so it shows only as a wedge at the top-left corner), the glyph stack
+    /// centred at 14 pt from the top, and a 12 × 1 rule at the foot's trailing edge (measured in
+    /// `ref-detail-anime-390.png`: ~7 pt from the right, ~12 pt above the foot, `#516149` at ~65 %).
     private var book: some View {
         ZStack {
             Rectangle().fill(Color(hex: "EDEEDF")).offset(x: 6, y: 2)
             Rectangle().fill(Color(hex: "C7CEBD")).offset(x: 4, y: 1)
             Rectangle().fill(Color(hex: "F6F5E9")).offset(x: 3, y: 1)
-            HStack(spacing: 0) {
-                Rectangle().fill(DetailInk.bookSpine).frame(width: 5)
-                Rectangle().fill(DetailInk.bookPage)
-            }
-            .overlay(Rectangle().strokeBorder(DetailInk.bookBorder, lineWidth: 1))
+            Rectangle().fill(DetailInk.bookPage)
+                .overlay(alignment: .topLeading) { DetailBookSpine().fill(DetailInk.bookSpine) }
+                .overlay(Rectangle().strokeBorder(DetailInk.bookBorder, lineWidth: 1))
             VStack(spacing: 0) {
                 Text("原").font(.detailSF(13, relativeTo: .body))
                 Text("作").font(.detailSF(13, relativeTo: .body))
-                Spacer(minLength: 4)
-                Rectangle().fill(DetailInk.bookInk).frame(width: 12, height: 1).padding(.bottom, 12)
             }
             .foregroundStyle(DetailInk.bookInk)
             .padding(.top, 14)
-            .padding(.leading, 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            Rectangle().fill(DetailInk.bookInk.opacity(0.65))
+                .frame(width: 12, height: 1)
+                .padding(.trailing, 7)
+                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
         .frame(width: 57, height: 77)
         .rotationEffect(.degrees(-4))
         .accessibilityHidden(true)
+    }
+}
+
+/// The 原作 book's spine band: the part of a 100° gradient's first 5 pt that falls inside the page,
+/// a wedge from the top-left corner (5.08 pt along the top edge, 28.8 pt down the left edge).
+struct DetailBookSpine: Shape {
+    func path(in rect: CGRect) -> Path {
+        let angle = 100.0 * Double.pi / 180
+        // CSS gradient direction (sin a, -cos a); the band holds points whose projection is ≤ 5.
+        let dx = sin(angle), dy = -cos(angle)
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX + min(rect.width, 5 / dx), y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + min(rect.height, 5 / dy)))
+        path.closeSubpath()
+        return path
     }
 }
 

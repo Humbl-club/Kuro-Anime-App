@@ -342,18 +342,11 @@ struct FriendsActivitySection: View {
                     .accessibilityLabel(KuroLocale.text("Delete comment", "Kommentar löschen"))
                 }
             }
-            // Prototype card: the live reactions stay (same buttons, same writes) as quiet keys over the
-            // byline's trailing edge; an overlay adds no height, so the note keeps its 13/0/14 rhythm.
+            // Prototype card: the note carries no keys. The live reactions (same writes) sit behind
+            // touch-and-hold on the note and in its VoiceOver actions (`noteReactions`); a quiet tally
+            // shows only when the note has reactions, so nothing the server holds is hidden.
             .overlay(alignment: .trailing) {
-                if prototypeStyle && !comment.is_own {
-                    HStack(spacing: 0) {
-                        reactionButton(comment: comment, type: "up", icon: "hand.thumbsup", count: comment.up_count,
-                                       isActive: comment.my_reaction == "up", quiet: true)
-                        reactionButton(comment: comment, type: "down", icon: "hand.thumbsdown", count: comment.down_count,
-                                       isActive: comment.my_reaction == "down", quiet: true)
-                    }
-                    .padding(.trailing, -12)
-                }
+                if prototypeStyle && !comment.is_own { reactionTally(comment) }
             }
 
             if comment.spoiler_scope != nil && comment.spoiler_scope != "none" && !comment.is_own && !revealed.contains(comment.id) {
@@ -445,6 +438,39 @@ struct FriendsActivitySection: View {
         .overlay(alignment: .bottom) {
             if prototypeStyle { Rectangle().fill(Color(hex: "6F8671", opacity: Double(0x20) / 255)).frame(height: 1) }
         }
+        .modifier(NoteReactionsModifier(enabled: prototypeStyle && !comment.is_own,
+                                        actions: NoteReaction.allCases.map { reaction in
+                                            NoteReactionsModifier.Action(
+                                                title: NoteReaction.title(reaction, count: reaction.count(in: comment),
+                                                                          german: KuroLocale.isGerman),
+                                                systemImage: reaction.icon(active: comment.my_reaction == reaction.rawValue),
+                                                run: noteReactionRunner(comment: comment, type: reaction.rawValue))
+                                        }))
+    }
+
+    /// The quiet tally on a prototype note: shown only when the note has reactions (counts and the
+    /// viewer's own), never as a control. The reactions themselves sit behind touch-and-hold.
+    @ViewBuilder
+    private func reactionTally(_ comment: SocialActivityStore.TitleComment) -> some View {
+        if let tally = NoteReaction.tally(up: comment.up_count, down: comment.down_count, mine: comment.my_reaction) {
+            Text(tally)
+                .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 18))
+                .foregroundStyle(Color(hex: "6B7B6D"))
+                .accessibilityLabel(NoteReaction.tallyLabel(up: comment.up_count, down: comment.down_count,
+                                                            mine: comment.my_reaction, german: KuroLocale.isGerman))
+        }
+    }
+
+    /// The same write as `reactionButton`, captured for the note's menu and VoiceOver actions.
+    private func noteReactionRunner(comment: SocialActivityStore.TitleComment, type: String) -> () -> Void {
+        let origin = actionScope.capture(session: social.accountSession)
+        let permission = social.friendScopeGeneration
+        return {
+            KuroAccessibility.impactHaptic(.light)
+            launchAction(origin: origin, permission: permission) { ticket in
+                await toggleReaction(commentId: comment.id, type: type, origin: ticket, permission: permission)
+            }
+        }
     }
 
     @ViewBuilder
@@ -453,8 +479,7 @@ struct FriendsActivitySection: View {
         type: String,
         icon: String,
         count: Int,
-        isActive: Bool,
-        quiet: Bool = false
+        isActive: Bool
     ) -> some View {
         let origin = actionScope.capture(session: social.accountSession)
         let permission = social.friendScopeGeneration
@@ -466,13 +491,13 @@ struct FriendsActivitySection: View {
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: isActive ? "\(icon).fill" : icon)
-                    .font(.kuroCustom(quiet ? 9 : 10, weight: .regular, maxSize: 16))
+                    .font(.kuroCustom(10, weight: .regular, maxSize: 16))
                 if count > 0 {
                     Text("\(count)")
                         .font(.kuroMicro())
                 }
             }
-            .foregroundColor(isActive ? .kuroBlack80 : (quiet ? Color(hex: "6B7B6D").opacity(0.75) : .kuroInkQuiet))
+            .foregroundColor(isActive ? .kuroBlack80 : .kuroInkQuiet)
         }
         .buttonStyle(.plain)
         .frame(minWidth: 44, minHeight: 44)
@@ -737,5 +762,79 @@ struct FriendsActivitySection: View {
         if seconds < 3600 { return KuroLocale.text("\(Int(seconds / 60))m", "\(Int(seconds / 60)) Min.") }
         if seconds < 86400 { return KuroLocale.text("\(Int(seconds / 3600))h", "\(Int(seconds / 3600)) Std.") }
         return KuroLocale.text("\(Int(seconds / 86400))d", "\(Int(seconds / 86400)) T.")
+    }
+}
+
+
+/// A friend note's two reactions (prototype card): labels, icons and the quiet tally.
+enum NoteReaction: String, CaseIterable {
+    case up, down
+
+    func count(in comment: SocialActivityStore.TitleComment) -> Int {
+        self == .up ? comment.up_count : comment.down_count
+    }
+
+    func icon(active: Bool) -> String {
+        let base = self == .up ? "hand.thumbsup" : "hand.thumbsdown"
+        return active ? "\(base).fill" : base
+    }
+
+    /// The menu item and VoiceOver action title, with the count when there is one.
+    static func title(_ reaction: NoteReaction, count: Int, german: Bool) -> String {
+        let word = reaction == .up
+            ? (german ? "Gedanken mögen" : "Like thought")
+            : (german ? "Gedanken nicht mögen" : "Dislike thought")
+        return count > 0 ? "\(word) (\(count))" : word
+    }
+
+    /// "↑2 ↓1": nil when the note has no reactions (the card then matches the prototype exactly).
+    static func tally(up: Int, down: Int, mine: String?) -> String? {
+        var parts: [String] = []
+        if up > 0 || mine == "up" { parts.append("↑\(max(up, 1))") }
+        if down > 0 || mine == "down" { parts.append("↓\(max(down, 1))") }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    static func tallyLabel(up: Int, down: Int, mine: String?, german: Bool) -> String {
+        var parts: [String] = []
+        if up > 0 { parts.append(german ? "\(up) mögen das" : "\(up) liked") }
+        if down > 0 { parts.append(german ? "\(down) mögen das nicht" : "\(down) disliked") }
+        if mine == "up" { parts.append(german ? "du magst das" : "you liked it") }
+        if mine == "down" { parts.append(german ? "du magst das nicht" : "you disliked it") }
+        return parts.joined(separator: ", ")
+    }
+}
+
+/// Puts a note's reactions behind touch-and-hold (a context menu) and in its VoiceOver actions.
+private struct NoteReactionsModifier: ViewModifier {
+    struct Action {
+        let title: String
+        let systemImage: String
+        let run: () -> Void
+    }
+
+    let enabled: Bool
+    let actions: [Action]
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .contentShape(.contextMenuPreview, Rectangle())
+                .contextMenu {
+                    ForEach(actions.indices, id: \.self) { index in
+                        Button(action: actions[index].run) {
+                            Label(actions[index].title, systemImage: actions[index].systemImage)
+                        }
+                    }
+                }
+                .accessibilityActions {
+                    ForEach(actions.indices, id: \.self) { index in
+                        Button(actions[index].title, action: actions[index].run)
+                    }
+                }
+                .accessibilityHint(KuroLocale.text("Touch and hold to react.", "Gedrückt halten, um zu reagieren."))
+        } else {
+            content
+        }
     }
 }

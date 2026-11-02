@@ -706,7 +706,18 @@ struct MangaDetailHero<Mark: View>: View {
                     shape.fill(Color(hex: "BBB9AE")).offset(x: 5, y: 2)
                     shape.fill(Color(hex: "F8F7EF")).offset(x: 4, y: 2)
                 }
+                // One shadow for the whole stack: without the group SwiftUI shadows every sheet, so the
+                // upper sheets' shadows darkened the lower ones and the drop read four times as heavy.
+                .compositingGroup()
                 .shadow(color: Color(hex: "25281D", opacity: Double(0x18) / 255), radius: 12, x: 0, y: 16)
+            }
+            .background(alignment: .bottom) {
+                // The cover's ::after page edge (93 × 6, inset 7 at each side): only its lowest rule
+                // shows, 2 pt under the last sheet (measured `#bdbcb2` in `ref-detail-manga-390.png`).
+                Rectangle().fill(Color(hex: "BDBCB2"))
+                    .frame(height: 1)
+                    .padding(.horizontal, 7)
+                    .offset(y: 6)
             }
             .accessibilityHidden(true)
     }

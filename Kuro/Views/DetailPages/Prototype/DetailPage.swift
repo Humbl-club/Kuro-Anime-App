@@ -320,7 +320,34 @@ struct DetailStatusMark: View {
         DetailStatusCopy.actions(isTracked: isTracked).filter { $0 != .listSettings }
     }
 
+    /// The mark's minimum touch height.
+    static let targetHeight: CGFloat = 44
+
+    /// The visible mark: ring and status word, at its own 14 pt line.
+    private var markFace: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .strokeBorder(tone.ink, lineWidth: 1)
+                .frame(width: min(ring, 12), height: min(ring, 12))
+            Text(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
+                .font(.detailSF(10, relativeTo: .caption1))
+                .foregroundStyle(tone.ink)
+                .lineLimit(1)
+        }
+    }
+
+    /// The band lays out the mark at its own line height (an invisible copy of the face holds the
+    /// place), and the menu sits over it in an overlay at its own 44 pt frame. The overlay adds no
+    /// layout height, and the menu's frame (UIKit-backed or not) is the full 44 pt target, centred on
+    /// the mark, so the touch area never depends on negative padding.
     private var markMenu: some View {
+        markFace
+            .hidden()
+            .accessibilityHidden(true)
+            .overlay { markMenuControl.fixedSize() }
+    }
+
+    private var markMenuControl: some View {
         Menu {
             ForEach(menuActions, id: \.self) { action in
                 if handler(action) != nil {
@@ -335,24 +362,14 @@ struct DetailStatusMark: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) {
-                Circle()
-                    .strokeBorder(tone.ink, lineWidth: 1)
-                    .frame(width: min(ring, 12), height: min(ring, 12))
-                Text(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
-                    .font(.detailSF(10, relativeTo: .caption1))
-                    .foregroundStyle(tone.ink)
-                    .lineLimit(1)
-            }
-            // A 44 pt target that lays out at the mark's own 14 pt height (the band keeps its height).
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            markFace
+                .frame(minWidth: 44, minHeight: Self.targetHeight)
+                .contentShape(Rectangle())
         } primaryAction: {
             onListSettings()
         }
         .menuStyle(.button)
         .buttonStyle(KuroPressStyle())
-        .padding(.vertical, -15)
         .accessibilityLabel(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
         .accessibilityHint(isTracked
                            ? KuroLocale.text("Opens list settings. Touch and hold for more actions.",

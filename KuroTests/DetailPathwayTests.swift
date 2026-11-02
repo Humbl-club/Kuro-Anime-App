@@ -65,6 +65,62 @@ struct DetailPathwayTests {
         #expect(restored.progress == 0)
     }
 
+    @Test("Durable branch: Planned → +1 projects Watching/Reading and sends WATCHING/READING",
+          .timeLimit(.minutes(1)), arguments: [MediaKind.anime, MediaKind.manga])
+    func plannedAdvanceThroughProgressOutbox(kind: MediaKind) async throws {
+        let server = StubServer()
+        defer { server.shutDown() }
+        server.respond { request in
+            guard request.resource == "rpc/apply_progress_mutations_v1" else { return .emptyArray }
+            // Acknowledge every mutation the drain sends, as the server does.
+            let mutations = (request.jsonObject?["p_mutations"] as? [[String: Any]]) ?? []
+            let items = mutations.map { mutation -> String in
+                let id = mutation["mutation_id"] as? String ?? ""
+                let position = mutation["position"] as? Int ?? 0
+                return #"{"mutation_id":"\#(id)","outcome":"applied","server_revision":2,"position":\#(position)}"#
+            }
+            return .json(#"{"items":[\#(items.joined(separator: ","))]}"#)
+        }
+        let suite = "detail-pathways-durable-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        let outbox = try ProgressOutbox(path: FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(suite).sqlite").path)
+        var row = FakeLibraryBackend.entry(kind, 9, rowId: 9, status: .planning, progress: 0)
+        row.lifecycleId = UUID()
+        row.revision = 1
+        let backend = FakeLibraryBackend()
+        backend.setRows([row], for: LifecycleFixtures.userA)
+        let graph = AppComposition.testingGraph(
+            testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
+            client: StubSupabase.makeClient(server: server), libraryBackend: backend,
+            flags: FeatureFlags(userDefaults: defaults, launchArguments: ["--ff-on=series_foundation_v1"]),
+            progressOutbox: outbox)
+        _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        defer { Task { await graph.session.endSession() } }
+        try await graph.library.refresh()
+        #expect(graph.library.progressAvailable, "the durable branch needs the outbox and the series flag")
+
+        let key = MediaKey(kind: kind, id: 9)
+        let outcome = await DetailAdvance.advance(key, from: .planning, to: 1, actions: graph.libraryActions)
+        #expect(outcome.change != nil, "the +1 was not applied: \(String(describing: outcome.error))")
+        // The local projection: Watching/Reading at 1, so Home reaches its in-progress scene.
+        let projected = try #require(graph.library.entry(for: key))
+        #expect(projected.status == .current)
+        #expect(projected.progress == 1)
+        #expect(HomeShelfPolicy.scene(activeListTypes: [], libraryStatuses: [projected.status]) == .inProgress)
+        // The stored intent carries the status (`status: nil` before the round-2 fix).
+        let stored = try await outbox.latest(accountId: LifecycleFixtures.userA.lowercased(),
+                                             medium: kind.rawValue.lowercased(), mediaId: 9)
+        #expect(stored?.status == ListStatus.current.rawValue)
+        #expect(stored?.position == 1)
+        // The wire: HomeStore's sender maps it to the medium's server word.
+        let request = await server.waitForRequest { $0.resource == "rpc/apply_progress_mutations_v1" }
+        let mutation = try #require((request.jsonObject?["p_mutations"] as? [[String: Any]])?.first)
+        #expect(mutation["status"] as? String == (kind == .manga ? "READING" : "WATCHING"))
+        #expect(mutation["position"] as? Int == 1)
+        #expect(mutation["media_id"] as? Int == 9)
+    }
+
     @Test("Undo of a plain +1 moves only the count back")
     func undoOfPlainAdvanceIsProgressOnly() async throws {
         let graph = try await Self.graph(rows: [FakeLibraryBackend.entry(.anime, 6, rowId: 6, status: .current, progress: 4)])
@@ -176,6 +232,19 @@ struct DetailPathwayTests {
         let rails = [(name: "Film Night", memberIds: ["u7"]), (name: "Sunday Club", memberIds: ["u1", "u2"])]
         #expect(DetailBetweenUs.clubName(authorId: "u1", railClubs: rails, myClubNames: ["Film Night", "Sunday Club"]) == "Sunday Club")
         #expect(DetailBetweenUs.clubName(authorId: "u9", railClubs: rails, myClubNames: ["Film Night", "Sunday Club"]) == nil)
+    }
+
+    @Test("Note reactions: titles carry counts, the tally exists only when there are reactions")
+    func noteReactionCopy() {
+        #expect(NoteReaction.title(.up, count: 0, german: false) == "Like thought")
+        #expect(NoteReaction.title(.up, count: 3, german: false) == "Like thought (3)")
+        #expect(NoteReaction.title(.down, count: 1, german: true) == "Gedanken nicht mögen (1)")
+        #expect(NoteReaction.tally(up: 0, down: 0, mine: nil) == nil)
+        #expect(NoteReaction.tally(up: 2, down: 1, mine: nil) == "↑2 ↓1")
+        // The viewer's own reaction always shows, even before the count refreshes.
+        #expect(NoteReaction.tally(up: 0, down: 0, mine: "up") == "↑1")
+        #expect(NoteReaction.up.icon(active: true) == "hand.thumbsup.fill")
+        #expect(NoteReaction.down.icon(active: false) == "hand.thumbsdown")
     }
 
     @Test("Club avatars cycle the prototype's three fills")
