@@ -5,7 +5,9 @@ import SwiftUI
 // MARK: - Profile "Your lists" (rulebook §14.3, spec D9)
 // One row per main status: the word and its real count, then up to six equal covers (56 pt wide).
 // A row is one target: it opens Collection filtered to that status, in the medium that holds most of
-// that status (ties: the medium of its newest title). Counts come from the whole Library; covers from Collection's bounded preview read.
+// that status (ties: the medium of its newest title). Collection cannot render inside Profile's journey
+// (one shared feed in `CollectionStore`), so each row says "Opens Collection" and the journey collapses
+// like ✕ before the pager switches (navigation contract N11). Counts come from the whole Library; covers from Collection's bounded preview read.
 
 /// Pure rules of the preview (tested in `KuroTests/ProfileLaneTests.swift`).
 enum ProfileListsPolicy {
@@ -54,6 +56,9 @@ enum ProfileListsPolicy {
         german ? "Importiere deine Liste oder finde einen ersten Titel." : "Import your list, or find a first title."
     }
     static func importTitle(german: Bool) -> String { german ? "Importieren" : "Import" }
+
+    /// N11: a list row leaves Profile's journey for the Collection page, and says so.
+    static func opensCollection(german: Bool) -> String { german ? "Öffnet Sammlung" : "Opens Collection" }
     static func findTitle(german: Bool) -> String { german ? "Finden" : "Find" }
 
     /// The row word for both media together.
@@ -145,6 +150,11 @@ private struct ProfileListRow: View {
                         .foregroundStyle(Color.kuroInkSecondary)
                         .monospacedDigit()
                     Spacer(minLength: 0)
+                    // N11: the row leaves Profile for the Collection page; it says so before the tap.
+                    Text(ProfileListsPolicy.opensCollection(german: german))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkQuiet)
+                        .lineLimit(1)
                 }
                 if !covers.isEmpty {
                     // Up to six equal covers; a narrow width shows fewer instead of shrinking them.

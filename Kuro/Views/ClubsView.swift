@@ -166,6 +166,8 @@ struct ClubsView: View {
                     Button {
                         guard !suppressCardTaps else { return }
                         KuroAccessibility.impactHaptic(.light)
+                        // Navigation contract: the club opens as a journey (pager) or is pushed (Profile's
+                        // journey), never as a page-local sheet.
                         routes.openClub(club.id)
                     } label: {
                         ClubListCard(club: club, hasUnseen: hasUnseen)

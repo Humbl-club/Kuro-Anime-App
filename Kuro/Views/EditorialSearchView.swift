@@ -1,5 +1,6 @@
 // Search (rulebook §14.6, spec D2)
-// A sheet opened from the header magnifier. The scope is chosen by the caller (`initialScope`) and
+// A journey opened from the header magnifier (and pushed from Profile → Find): `ShellJourneyPages.search`
+// adds the chrome (✕ top-right, Back when pushed); result rows and the Browse entry push inside it. The scope is chosen by the caller (`initialScope`) and
 // can be changed with ink words; refinements are ink words with an underline mark. The empty query
 // shows this account's recent searches on this device and the way into the catalogue (Browse).
 // Results are picture-first index rows. No results: "No titles match '…'." Failures and offline are
@@ -207,7 +208,7 @@ struct EditorialSearchView: View {
         .onDisappear {
             searchTask?.cancel()
         }
-        // The search sheet's own presentation context: result rows open their routes here.
+        // Inside the Search journey this forwards (rows push); outside one it presents a journey.
         .routePresenter()
     }
 
