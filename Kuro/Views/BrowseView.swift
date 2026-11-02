@@ -290,7 +290,8 @@ struct BrowseView: View {
                 }
                 // Keep vertical scrolling enabled even if an ancestor disables scroll via environment.
                 .scrollDisabled(false)
-                .refreshable {
+                // H4: the pager page refreshes; as a journey's first page pull-down dismisses instead.
+                .kuroJourneyRefreshable {
                     reloadTask?.cancel()
                     await reload(mode: .pullToRefresh)
                 }

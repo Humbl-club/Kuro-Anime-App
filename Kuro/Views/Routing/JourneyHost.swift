@@ -149,6 +149,38 @@ extension View {
     }
 }
 
+// MARK: - Pull to refresh (H4)
+
+extension JourneyContext {
+    /// H4: pull-down at the top of a journey's FIRST page dismisses the sheet, so that page never
+    /// installs pull-to-refresh (it would take the gesture). Pushed pages (where pull-down never pops)
+    /// and pages outside a journey (the pager) keep it. Pure; tested in JourneyPolicyTests.
+    nonisolated static func allowsPullToRefresh(inJourney: Bool, isPushed: Bool) -> Bool {
+        !inJourney || isPushed
+    }
+}
+
+private struct KuroJourneyRefreshable: ViewModifier {
+    let action: @Sendable () async -> Void
+    @Environment(\.kuroJourney) private var journey
+
+    func body(content: Content) -> some View {
+        if JourneyContext.allowsPullToRefresh(inJourney: journey != nil, isPushed: journey?.isPushed ?? false) {
+            content.refreshable(action: action)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// `.refreshable` for a view that can be a journey's first page: refresh everywhere except there,
+    /// where pull-down must dismiss the journey (H4).
+    func kuroJourneyRefreshable(action: @escaping @Sendable () async -> Void) -> some View {
+        modifier(KuroJourneyRefreshable(action: action))
+    }
+}
+
 /// A `NavigationStack` only outside a journey: a page that used to wrap itself in a stack (entity
 /// pages, see-all sheets) uses this, so pushed inside a journey it never nests a second stack.
 struct KuroJourneyAwareStack<Content: View>: View {
@@ -193,6 +225,8 @@ struct JourneyHost: View {
                 }
         }
         .environment(\.kuroRoutes, navigator.routes)
+        // N8: every journey sheet shows its grabber (pages that set it themselves also say `.visible`).
+        .presentationDragIndicator(.visible)
         .sheet(item: $navigator.tool) { route in
             ToolDestinationView(route: route)
                 .kuroLeavesJourney()

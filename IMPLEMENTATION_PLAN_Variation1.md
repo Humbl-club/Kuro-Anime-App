@@ -1524,3 +1524,17 @@ Status: anime + manga detail pages migrated to journey pages locally on `kuro/na
 ### Change Log — 2 November 2026: Navigation lane "clubs"
 
 Status: implemented locally on `kuro/nav-clubs` (from foundation `b03c885`), NOT deployed, NOT pushed. Club detail is a journey page (chrome with back/settings/✕, shrinking paper bar, swipe-back restored; rail items and This-week entries push titles), creating a club opens it, Home season overview is a journey with ✕ + grabber, verdict sheets have a grabber + Cancel, create club/rail/poll + tracking editor + contact block swipe-down on unsaved input and confirm "Discard changes?", the import chooser keeps Stop reachable while busy. Gate offenders 16 → 14. Open: UI tests on the owned simulator (§5) for Club → rail item → detail → add to club → cancel.
+
+### Change Log — 2 November 2026: Navigation contract integrated
+
+Status: done locally on `kuro/prototype-fidelity`. Not pushed, not deployed.
+- **Lanes merged:** the detail, entity, clubs and shell lanes are merged; their worktrees are removed.
+- **Gate:** `check_navigation.sh` is BLOCKING with 0 offenders.
+- **Fixes:** H4 (no pull-to-refresh on a journey's first page) and N8 (grabber always shown; 700 ms dismissal wait).
+- **Offline UI chain tests:** `NavigationContractUITests` 8/8 on the owned simulator, through the `--kuro-nav-fixture` journey.
+- **Verification:** KuroTests 865/865; NavshellUITests 4/4 (live data); Release build OK; packages 96/96; run_all 11 PASS / 2 BLOCKED (expected) / 3 SKIP.
+- **Open:**
+  - Real-data UI chains (Discover card → detail → character → manga → author → work; Search → result → season → source) need network or richer fixtures.
+  - Voice actors need importer and schema work.
+  - The Concierge sheet teardown leaves some auxiliary tasks running.
+  - Owner visual check of the manga Back key over the folio cover.

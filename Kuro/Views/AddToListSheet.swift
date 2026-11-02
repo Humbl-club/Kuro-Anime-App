@@ -155,6 +155,7 @@ struct AddToListSheet: View {
                 }
                 .buttonStyle(KuroPressStyle())
                 .accessibilityLabel(german ? "Schließen" : "Close")
+                .accessibilityIdentifier("addToList.close")
                 .padding(.trailing, 12)
                 .padding(.top, 12)
             }

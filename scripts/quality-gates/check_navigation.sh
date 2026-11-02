@@ -12,8 +12,8 @@
 #      `for: JourneyPage.self`: every push goes through `JourneyPage`.
 # Comment lines (//, ///) are ignored, the same way check_branded_states.sh ignores them. The routing
 # files themselves (Kuro/Views/Routing/) are the allowed implementation.
-# run_all.sh registers this gate as REPORTED (WARN, `:0` in GATES) while the navigation lanes migrate
-# the remaining screens; it becomes blocking once the offenders reach 0.
+# run_all.sh registers this gate as BLOCKING (`:1` in GATES) since the navigation lane integration
+# (2026-11-02) brought the offenders to 0.
 # Extra .swift paths, if passed, are scanned too, so a scratch copy can prove the rule:
 #   check_navigation.sh path/to/scratch.swift
 set -uo pipefail

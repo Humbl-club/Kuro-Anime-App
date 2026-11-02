@@ -178,7 +178,8 @@ struct EditorialSearchView: View {
                 }
                 .scrollDisabled(false)
                 .scrollDismissesKeyboard(.interactively)
-                .refreshable {
+                // H4: Search is a journey's first page, where pull-down dismisses the sheet.
+                .kuroJourneyRefreshable {
                     guard showsSearchContent else { return }
                     await search.refreshSearch()
                 }

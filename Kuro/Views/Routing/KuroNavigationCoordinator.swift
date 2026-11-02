@@ -46,7 +46,9 @@ final class KuroNavigationCoordinator {
     @ObservationIgnored private var pending: (target: NavigationCollapsePolicy.Target, action: (() -> Void)?)?
     @ObservationIgnored private var collapseTask: Task<Void, Never>?
 
-    init(dismissalDelay: Duration = .milliseconds(450)) {
+    /// 700 ms (was 450): on iOS 26 a journey re-presented 450 ms after the previous one closed came up
+    /// without its grabber (N8; reproduced on the owned simulator with `--kuro-nav-fixture` + a deep link).
+    init(dismissalDelay: Duration = .milliseconds(700)) {
         self.dismissalDelay = dismissalDelay
     }
 

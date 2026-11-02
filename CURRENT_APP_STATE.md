@@ -149,7 +149,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 219 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 224 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -19770,3 +19770,48 @@ Clubs, Home season overview and the tool sheets of this lane follow the navigati
 - Home club room notes already open the title journey through root routes (verified, unchanged).
 - Gate `check_navigation.sh`: 16 → 14 offenders (both club lines gone). Tests: new `KuroTests/NavclubsTests.swift` (13 tests); NavclubsTests + RoutingTests + JourneyPolicyTests 34/34, full KuroTests 824/825 on a lane simulator (the one failure, `ImportsContractTests` "A's apply/Undo finishing after B signed in" (`.undo`/`.success` case), is a timing check in the imports harness this lane does not touch; the suite passed 3/3 when rerun alone); Debug build and Release generic (`CODE_SIGNING_ALLOWED=NO`) succeeded.
 - Inventory: 220 app Swift files (+1), 63 KuroTests files (+1).
+
+### Change Log — 2 November 2026: Navigation lanes integrated ("entity", "shell" recorded here), gate blocking, offline UI chain tests (local, not deployed)
+- Merged into `kuro/prototype-fidelity` with `--no-ff`: `kuro/nav-detail` (`7c393a6`), `kuro/nav-entity` (`cf078d2`), `kuro/nav-clubs` (`50b425e`), `kuro/nav-shell` (`55480b0`). Conflicts resolved:
+  - `CastSection.swift`: the entity version, which pushes the character directory as a `seeAll` journey page.
+  - `ClubsView.swift`: union of both sides. The clubs lane's created-club follow-up and `.kuroLeavesJourney()` on the create/join sheets are combined with the shell lane's `routes.openClub`.
+  - `ProfileView.swift`: the shell version. Profile → Your clubs is a pushed page, so the clubs lane's Clubs-sheet `.routePresenter()` is gone.
+  - The three docs' change logs: both entries kept.
+- Lane "entity" (`2044929`):
+  - Character, staff, studio and author pages are journey pages: `.kuroJourneyChrome` with a scroll-tied compact bar, works push, and Back never reloads.
+  - The staff page lists anime and manga works with an All/Anime/Manga filter, through the new `Catalog/EntityWorks.swift` and `CatalogStore.fetchMangaByStaff` / `fetchStaffWorks` with `staffMangaWorksCache`.
+  - The cast "See all" pushes the character directory.
+  - Voice actors are still not linked: no data exists for them; adding it needs an importer and schema change.
+- Lane "shell" (`c2ab56e`, `1701da7`, `2e9b7bb`):
+  - Profile, Search and Concierge are `ShellJourneyHost` journeys (`Views/ShellJourneys.swift`) registered as navigation layers. Their rows and results push.
+  - Discover "See all" is a journey page.
+  - `handleDeepLink` goes through the pure `ShellLinkPolicy` and the coordinator's collapse (N10). A link that arrives during onboarding is held until the cover is dismissed.
+  - Profile → Your lists says "Opens Collection" and closes Profile (N11).
+  - `ProfileView` no longer takes `onOpenConciergeImportReview`.
+- Integration fixes:
+  - **H4:** new `.kuroJourneyRefreshable` (pure `JourneyContext.allowsPullToRefresh`). A journey's first page has no pull-to-refresh, so pull-down dismisses it. This applies to `ClubDetailView`, `EditorialSearchView` and `BrowseView` (as a journey root); pushed pages and pager pages keep refresh.
+  - **N8:** `JourneyHost` always sets `.presentationDragIndicator(.visible)`.
+  - **N8:** `KuroNavigationCoordinator`'s dismissal wait went from 450 to 700 ms. A journey re-presented 450 ms after a collapse came up without its grabber on iOS 26; this was reproduced with `simctl openurl` and a pixel check.
+  - Accessibility identifiers: `journey.back` / `journey.close` on `KuroJourneyChromeKey`, and `addToList.close`.
+  - Account change: `ContentView.id(currentUserId)` rebuilds the root coordinator, so root journeys (including the Home season overview) close.
+- Gate `check_navigation.sh`: 0 offenders after the merges. It is now BLOCKING (`navigation:check_navigation.sh:1` in `run_all.sh`).
+- Offline UI tests:
+  - New DEBUG-only `Kuro/Views/Routing/NavigationFixture.swift`. `--kuro-nav-fixture` with `--kuro-fixture-host` opens a fixture journey once per process, built from real navigation parts plus the real `AnimeDetailPage` over preview content.
+  - New `KuroUITests/NavigationContractUITests.swift`, 8 tests on the owned simulator:
+    - Back pops one level with the position kept (±2 pt).
+    - Edge swipe-back pops; a half swipe stays.
+    - ✕ on level 5 (fixture → fixture → fixture → detail → character) lands on the pager.
+    - Swipe-down on level 3 collapses the journey.
+    - Pull-down at the top of the first page dismisses it.
+    - The tracking editor's ✕ returns to its detail.
+    - N5 pop-to-existing, and the top page is not pushed twice.
+    - A deep link collapses the journey, then opens the target.
+- Evidence: new `KuroTests/NavigationEvidenceTests.swift` writes renders to `docs/navigation-2026-11-02/` (see `INDEX.md` there, plus the UI shots in `ui/`).
+- Verification, all on the owned simulator `7FC4B58A` with `CODE_SIGNING_ALLOWED=NO`, unless noted:
+  - KuroTests: 865/865 in 143 suites (`-parallel-testing-enabled NO`).
+  - UI tests: NavigationContractUITests 8/8 and NavshellUITests 4/4. NavshellUITests reads live data; nothing else touched the network.
+  - Release build (generic iOS) succeeded.
+  - `swift test` in Packages/KuroModules: 96 tests (14 + 73 + 9) passed.
+  - `run_all.sh` with `SKIP_IOS_BUILD=1 SKIP_IOS_TEST=1 SKIP_RAILS_AUDIT=1`: 11 PASS (incl. navigation, docs-current-state, architecture, branded-states), local-db and live-services BLOCKED as expected, 3 SKIP.
+- Lane worktrees `/Users/max/Kuro-wt/nav-{detail,entity,clubs,shell}` were removed. No `Kuro-Lane-nav-*` simulators remained; the lanes created and deleted their own.
+- Inventory: 224 app Swift files, 67 KuroTests files, 5 KuroUITests files.

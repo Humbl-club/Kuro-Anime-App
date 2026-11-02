@@ -73,6 +73,18 @@ struct KuroRootView: View {
         }
         // Keeps every Kuro type role in step with the user's text size while the app runs.
         .kuroDynamicTypeScale()
+        #if DEBUG
+        .task {
+            // UI tests of the navigation contract (`--kuro-nav-fixture`, see NavigationFixture.swift):
+            // once the launch overlay is gone, open the fixture journey on the root presenter.
+            guard NavigationFixture.isActive, !NavigationFixture.didOpen else { return }
+            try? await Task.sleep(for: .milliseconds(1_200))
+            // Once per process, and never over a deep link that already used the coordinator.
+            guard !Task.isCancelled, !NavigationFixture.didOpen, navigation.collapseGeneration == 0 else { return }
+            NavigationFixture.didOpen = true
+            navigation.collapseThenOpen(NavigationFixture.level(1))
+        }
+        #endif
     }
 }
 

@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 219 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 224 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2063,3 +2063,26 @@ Anime and manga pages now behave like the rest of a journey. The picture at the 
 ### Change Log — 2 November 2026: Clubs and their sheets follow "always a way back"
 
 A club now opens as its own trail: tapping a title in one of its lists, or an entry in its weekly activity (which did nothing before), moves forward inside the club's sheet with a back arrow and the edge swipe, and the close button always closes the whole trail. The club's top bar keeps its settings button and turns into a slim title bar while scrolling. Creating a club now opens the new club. Home's season overview has a close button and grabber, and its seasons open inside it. Forms you can type into (new club, list, poll, the list editor and the contact form) no longer lose what you typed when swiped away: they ask "Discard changes?" first. The quick verdict sheets got a visible grabber and a Cancel button, and a running import can now be stopped from the import sheet. Nothing was deployed.
+
+### Change Log — 2 November 2026: All screens now follow "always a way back"
+
+The four pieces of navigation work are combined: title pages, character/staff/studio/author pages, clubs, and the header sheets (Profile, Search, Concierge, "See all").
+
+**How moving around works now:**
+- Everything you open from a page is one sheet with a trail of pages inside it.
+- The back arrow and the swipe from the left edge go back one step.
+- The close button, or swiping the sheet down, returns you to the page you started from, from any depth.
+- Small task sheets (like the list editor) close back to the page you were on.
+- A link from outside closes everything first.
+
+**Changes made while combining:**
+- A person's page now lists both their anime and their manga.
+- The first page of a sheet no longer uses pull-to-refresh, because pulling down there must close the sheet.
+- Every sheet shows its grab handle, including one opened right after another closed.
+
+**Testing:**
+- A new set of automatic tests drives these movements in the app on the test phone without any network: back, edge swipe, close from five pages deep, swipe-down, the list editor, no duplicate pages, and links from outside.
+- All tests passed.
+- The check for screens that break the rules now blocks any change that would break them again.
+
+Screenshots are in `docs/navigation-2026-11-02/`. Nothing was deployed.

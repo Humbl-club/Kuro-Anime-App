@@ -165,6 +165,8 @@ struct KuroJourneyChromeKey: View {
         }
         .buttonStyle(KuroPressStyle())
         .accessibilityLabel(kind.label)
+        // Stable handles for the navigation UI tests (KuroUITests/NavigationContractUITests).
+        .accessibilityIdentifier(kind == .back ? "journey.back" : "journey.close")
     }
 }
 

@@ -189,7 +189,8 @@ struct ClubDetailView: View {
             disclosureReloadTask?.cancel()
             disclosureReloadTask = actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
         }
-        .refreshable {
+        // H4: not on a journey's first page (pull-down dismisses the club there); pushed clubs refresh.
+        .kuroJourneyRefreshable {
             guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             await loadBundle(force: true, origin: origin)
         }

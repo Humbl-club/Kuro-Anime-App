@@ -162,6 +162,13 @@ struct JourneyPolicyTests {
         #expect(closed == 1 && dismissed == 1)
     }
 
+    @Test("H4: a journey's first page has no pull-to-refresh (pull-down dismisses); pushed and pager pages keep it")
+    func pullToRefreshRule() {
+        #expect(!JourneyContext.allowsPullToRefresh(inJourney: true, isPushed: false))
+        #expect(JourneyContext.allowsPullToRefresh(inJourney: true, isPushed: true))
+        #expect(JourneyContext.allowsPullToRefresh(inJourney: false, isPushed: false))
+    }
+
     // MARK: Tools (N7)
 
     @Test("N7: tools never become pages; a tool leaves the path unchanged and closes back to it")
