@@ -32,6 +32,7 @@ checklist items from `STAGE2_RECEIPT.md`:
 | 11:15:35 | New `IMPORT_SECRET` (64 hex chars, `openssl rand -hex 32`) set as an Edge Function secret through `supabase secrets set --env-file` (value never on a command line). |
 | 11:15:37 | One SQL `DO` block: read the old value from job 106 inside the database, then `cron.alter_job` on every job containing it, replacing `old + trailing char` and `old` with the new value. It asserted exactly 11 jobs: **101, 102, 103, 104, 106, 107, 108, 109, 110, 111, 112**. No other job carried the secret. |
 | 11:18:02 | `update import_state set last_page = 0 where media_type in ('ANIME','MANGA') and last_page = 500` (previous value 500 for both). |
+| 11:39 | New cron job **118** `kuro-import-cursor-depth-guard`, `50 * * * *`: `update public.import_state set last_page = 0 where media_type in ('ANIME','MANGA') and last_page >= 190`. See "Page-depth guard" below. |
 
 Verification of the rotation, as booleans only, per job: each of the 11 jobs contains the new value,
 its header value equals the new value exactly, and none has the trailing character. The secret
@@ -42,9 +43,13 @@ digest shown by `supabase secrets list` matches the sha256 of the new value.
 |---|---|---|
 | `bulk-import-anime` | job 101's own command, executed once from SQL | import_runs 42082 `success`, 50 anime; `import_state` ANIME `last_page` 0 → 2; 50 `anime.last_synced_at` rows moved (the latest had been 2026-06-07) |
 | `bulk-import-manga` | job 103's own command, executed once; then job 103 on its own schedule at 11:35 | import_runs 42083 and 42087 `success`, 50 manga each; MANGA `last_page` 0 → 2 → 4 |
+| `bulk-import-anime` heavy (job 102) | job 102's stored command, executed once | import_runs 42088 `success`: 10 anime, 356 episodes, 570 relationships; **42 item errors** |
+| `bulk-import-manga` heavy (job 104) | job 104's stored command, executed once | import_runs 42089 `success`: 10 manga, 428 relationships; **107 item errors** |
 | `mirror-images` | job 110's own command, executed once | mirror_runs 1354 `success` (staff 89) |
 | `manga-chapter-enrich` | scheduled job 112 at 11:30 | import_runs 42086 `success` |
 | `release-intake` | see section 3 | HTTP 200, import_runs 42084 / 42085 `success` |
+
+The heavy runs' item errors are per-item failures in secondary writes (the run still commits its page). This receipt did not investigate them; the Edge Function logs for 11:39 hold the messages.
 
 `net._http_response` shows `null` with a 5 s client timeout for most of these calls. That is pg_net's
 default timeout; the functions keep running and record their outcome in `import_runs` /
@@ -60,20 +65,20 @@ No launch agent or env file on this Mac held the old value.
 ### Exposure note
 - During this step one read-only query meant to redact the cron commands used a pattern that did
   not match the `'x-import-secret','<value>'` form. It printed the **old** value into the operator
-  session's output (not into any file). The value was rotated about two minutes later and is no
+  session's output (the session transcript, not any repository file). The value was rotated about two minutes later and is no
   longer accepted by any function.
 - The new value is stored in plain text inside `cron.job.command`, as the old one was. That is the
   existing pattern (pg_cron cannot send a JWT-only call). Moving it to Vault is a follow-up.
 
-### Open: the import will stall again at page 200
-`bulk-import-*` only wraps its cursor on an empty page. A GraphQL error is treated as an error
-with no cursor advance. With `perPage` 25, page 201 is past the 5,000-entry limit, so the
-popularity crawl will fail again once the cursor reaches page 200. Jobs 101 and 102 share the
-ANIME cursor at about 3 pages per hour, so that happens in roughly 2–3 days; the manga cursor
-follows a similar pace. Fixing it needs a code change (wrap or cap at
-`page * perPage > 5000`) and a deploy. Until then, the workaround is to repeat the
-`import_state` reset above. While it stalls, `import_runs` shows `error` with the page-depth
-message, so the failure is visible.
+### Page-depth guard (job 118)
+`bulk-import-*` only wraps its cursor on an empty page. A GraphQL error is an error with no cursor
+advance, and a failing run commits none of its pages. Jobs 101/103 (`perPage` 25, 2 pages per run)
+fail once they would fetch page 201 (entry 5,025), i.e. from a stored cursor of 199. Each medium's
+cursor moves at most +3 per hour (+1 from the heavy job at :00/:10, +2 from the light job at
+:05/:35). Job 118 runs at :50, after both, and resets any cursor at or above 190 to 0, so a stored
+cursor never exceeds 192 before the next guard tick. Effect: the legacy popularity crawl loops
+over the top 5,000 titles per medium (about every 2.7 days), which is all AniList allows for a
+paged query anyway. A code fix (wrap on `page * perPage > 5000`) would make job 118 unnecessary.
 
 Also: about 36 titles currently airing on AniList are not in the catalog yet (import was down
 since August). The popularity crawl will add them over the next days, and `release-intake` picks
@@ -102,6 +107,7 @@ pages + 1 stale-sweep request), well under 25 per minute. Manga mode uses MangaD
 MangaUpdates (1 request per 1.1 s), not AniList; 03:50 is clear of the 03:35 and 03:45 enrich runs.
 
 ### First runs
+- Job 116's stored command, executed once at 11:40: import_runs 42090 `success`, 85 events.
 - **Airing dry run** (200): 3 pages, 122 schedules, 83 rows, 36 AniList titles not in the catalog.
 - **Airing real run** (200, import_runs 42084 `success`): `release_events` now holds **83**
   `anime / anilist / confirmed / scheduled` rows; `anime.next_*` patched for 80 titles in the
@@ -118,10 +124,11 @@ The manga intake maps titles only through an active `manga_source_links` MangaDe
 200 most popular RELEASING manga (its candidate list), **only 1 has a link**; One Piece,
 Kagurabachi, The World After the Fall and Witch Watch have none. A dry run over the 40 most
 popular *linked* RELEASING titles found 388 release records, all from non-official groups, so 0
-rows (12 volume counts would have been raised). Until the MangaDex mapping covers Shueisha and
-WEBTOON titles, expect few or no manga release dates. Volume counts still move up for linked
-titles. Separately, the 120 s budget processed about 14 titles per run, so `limit` 40 is an upper
-bound, not a guarantee.
+rows (12 volume counts would have been raised). That dry run covered 15 of the 40 ids, because the
+default `limit` 15 also applies to explicit `mangaIds`. Until the MangaDex mapping covers Shueisha
+and WEBTOON titles, expect few or no manga release dates. Volume counts still move up for linked
+titles. The scheduled run uses `limit` 40 with a 120 s budget; if the budget runs out first the
+run stops cleanly (`stoppedEarly: budget`).
 
 ## 4. Anime songs (AnimeThemes)
 
@@ -172,15 +179,17 @@ step commits only this receipt). The launch agent runs the working-tree copies.
 | Release intake | `select cron.unschedule(116); select cron.unschedule(117);` Rows can be removed with `delete from release_events where source in ('anilist','mangaupdates','kuro_estimate')`; `anime.next_*` values are AniList's own data and can stay. |
 | `MU_OFFICIAL_GROUP_IDS` | `supabase secrets unset MU_OFFICIAL_GROUP_IDS --project-ref bkdifromsqxkndnllmdj` (manga intake then writes no release rows) or set the conservative `49204242348,45251742061`. |
 | Songs | `launchctl bootout gui/$(id -u)/com.kuro.series-enrichment` and delete the plist; rows: `delete from theme_links where source = 'animethemes'`. |
-| Import cursor | `update import_state set last_page = 500 where media_type in ('ANIME','MANGA')` restores the stuck state; there is no reason to. |
+| Import cursor | `select cron.unschedule(118);` removes the guard. `update import_state set last_page = 500 ...` would restore the stuck state; there is no reason to. |
 | IMPORT_SECRET | Not reversible to the old value (it is treated as exposed). To rotate again, repeat the section 1 pattern: new value in a 0600 env file, `supabase secrets set --env-file`, then one SQL block replacing the current value in jobs 101–104, 106–112, 116, 117. |
 
 ## Still open for the owner
-1. **Page-depth wrap** in `bulk-import-anime` / `bulk-import-manga` (code + deploy), or repeat
-   the cursor reset every few days.
+1. **Page-depth wrap** in `bulk-import-anime` / `bulk-import-manga` (code + deploy), then
+   unschedule job 118. Also look at the heavy runs' item errors (42 / 107 on the first runs).
 2. **MangaDex mapping coverage** for popular Shueisha/WEBTOON titles. Without it, manga release
    dates stay near empty.
-3. Commit the uncommitted worker fix, run/installer scripts and `.gitignore` line.
+3. Commit the uncommitted worker fix, run/installer scripts and `.gitignore` line. The launch
+   agent depends on the worker fix: without it, the first title with more than 60 theme rows
+   fails the whole pass, the cursor never advances, and every daily run fails on the same batch.
 4. Move the import secret and JWT out of `cron.job.command` into Vault.
 5. CLAUDE.md Rule 1/2 updates (`CURRENT_APP_STATE*.md`, implementation plan, MEMORY.md) were not
    part of this step.
