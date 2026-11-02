@@ -46,7 +46,7 @@ Open items for the lead / Task 10 (outside this lane)
 5. AX5 renders change the process-wide KuroTypeScale for the length of one render and restore it after.
    They run only with KURO_WRITE_SNAPSHOTS=1, so ordinary and full-suite runs never touch the scale.
 6. New-account premises: closed in round 2 by the per-title catalogue read (TasteCardDetails, at most four
-   cached reads per medium, done before the cards show so nothing reflows). A synopsis on the bundle rows
+   cached reads per medium; the page waits at most a second for them, later reads fill in). A synopsis on the bundle rows
    (backend) would save the reads (optional).
 7. The new-account latch clears when the Library leaves .loaded or the page is mounted again. The pager
    keeps the current page and its neighbours mounted, so it holds while the user stays near Taste.

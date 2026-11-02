@@ -83,9 +83,15 @@ struct HomeNewAccount: View {
         let tracked = Set(cards.map(\.key).filter { library.isTracked($0) })
         let chosen = FirstFavouritePicks.pick(from: cards, max: HomeNewAccountCopy.pickCount(medium), excluding: tracked)
         onLeadArt(medium, chosen.first?.media.imageURL)
-        let filled = await TasteCardDetails.hydrate(chosen, catalog: catalog)
-        guard !Task.isCancelled else { return }
-        picks[medium] = filled
+        // The premises, waiting at most `TasteCardDetails.waitLimit`; later reads fill in.
+        let completing = Task { [catalog] in await TasteCardDetails.hydrate(chosen, catalog: catalog) }
+        if await TasteCardDetails.finishes(completing, within: TasteCardDetails.waitLimit) {
+            picks[medium] = await completing.value
+        } else {
+            picks[medium] = chosen
+            let filled = await completing.value
+            if picks[medium]?.map(\.id) == filled.map(\.id) { picks[medium] = filled }
+        }
     }
 }
 

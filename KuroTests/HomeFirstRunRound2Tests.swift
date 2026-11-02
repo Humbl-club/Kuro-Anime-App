@@ -140,6 +140,20 @@ struct HomeFirstRunRound2Tests {
         #expect(kept.premise == "Own line.")
     }
 
+    @Test("A slow catalogue read never holds the cards: the wait ends at its limit, the read keeps going")
+    func catalogueWaitIsBounded() async {
+        let quick = Task { 1 }
+        #expect(await TasteCardDetails.finishes(quick, within: .seconds(1)))
+        let slow = Task { () -> Int in
+            try? await Task.sleep(for: .milliseconds(400))
+            return 2
+        }
+        let start = ContinuousClock.now
+        #expect(await !TasteCardDetails.finishes(slow, within: .milliseconds(50)))
+        #expect(ContinuousClock.now - start < .milliseconds(350))
+        #expect(await slow.value == 2, "The read itself is not cancelled; its result fills in later.")
+    }
+
     // MARK: New-account Taste
 
     @Test("New-account Taste shows the reference's two cards; a busy account keeps its four")

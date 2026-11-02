@@ -13,6 +13,7 @@ import SwiftUI
 // read from the catalogue (`TasteCardDetails`, `CatalogStore`'s cached detail read) for what its rail
 // row lacks: the premise (bundle rows carry no synopsis) and, for anime, the banner of the landscape
 // card (because-you rows carry none). A premise is shown only where the catalogue has a real synopsis.
+// The page waits at most a second for those reads before it shows the cards; later reads fill in.
 // The story cards (`TasteStoryList`) are shared with the new-account Home (`HomeNewAccount`).
 
 struct TastePicksView: View {
@@ -112,12 +113,31 @@ struct TastePicksView: View {
         let fetched = await bundle
         defer { isLoading = false }
         apply(because: becauseRows, bundle: fetched)
-        // Premises and the landscape banner before the cards show (no reflow under the reader).
-        async let anime = TasteCardDetails.hydrate(animePicks, catalog: catalog)
-        async let manga = TasteCardDetails.hydrate(mangaPicks, catalog: catalog)
-        let (animeFilled, mangaFilled) = await (anime, manga)
-        if animeFilled.map(\.id) == animePicks.map(\.id) { animePicks = animeFilled }
-        if mangaFilled.map(\.id) == mangaPicks.map(\.id) { mangaPicks = mangaFilled }
+        await completePicks()
+    }
+
+    /// The catalogue's premises and the landscape banner (`TasteCardDetails`). The medium on screen
+    /// waits up to `TasteCardDetails.waitLimit` so its cards usually show complete (no reflow); a slow
+    /// read never holds the page on its skeleton, and whatever lands later fills in. The other medium
+    /// fills in whenever its reads land.
+    private func completePicks() async {
+        let anime = animePicks, manga = mangaPicks
+        let animeTask = Task { await TasteCardDetails.hydrate(anime, catalog: catalog) }
+        let mangaTask = Task { await TasteCardDetails.hydrate(manga, catalog: catalog) }
+        let visible = medium == .anime ? animeTask : mangaTask
+        if await TasteCardDetails.finishes(visible, within: TasteCardDetails.waitLimit) {
+            fill(await visible.value, medium: medium)
+        }
+        Task { fill(await animeTask.value, medium: .anime) }
+        Task { fill(await mangaTask.value, medium: .manga) }
+    }
+
+    /// Completed cards replace the shown ones only while they are still the same picks.
+    private func fill(_ cards: [TasteCard], medium: MediaKind) {
+        switch medium {
+        case .anime: if cards.map(\.id) == animePicks.map(\.id) { animePicks = cards }
+        case .manga: if cards.map(\.id) == mangaPicks.map(\.id) { mangaPicks = cards }
+        }
     }
 
     /// Writes each medium's choice only when the reads it depends on loaded (rulebook §9: a failed
@@ -474,6 +494,37 @@ struct TasteCard: Identifiable {
 /// card as it is: no premise is ever invented.
 @MainActor
 enum TasteCardDetails {
+    /// How long a page waits for the reads before it shows the cards as they are.
+    static let waitLimit: Duration = .seconds(1)
+
+    /// Whether `task` finishes within `limit`. Returns at the limit at the latest; the task itself keeps
+    /// running either way (a task group would wait for it, since awaiting a task's value ignores
+    /// cancellation).
+    static func finishes<T>(_ task: Task<T, Never>, within limit: Duration) async -> Bool {
+        let race = FirstAnswer()
+        return await withCheckedContinuation { continuation in
+            race.continuation = continuation
+            let timer = Task { @MainActor in
+                try? await Task.sleep(for: limit)
+                race.answer(false)
+            }
+            Task { @MainActor in
+                _ = await task.value
+                timer.cancel()
+                race.answer(true)
+            }
+        }
+    }
+
+    /// Resumes its continuation once, with the first answer.
+    private final class FirstAnswer {
+        var continuation: CheckedContinuation<Bool, Never>?
+        func answer(_ value: Bool) {
+            continuation?.resume(returning: value)
+            continuation = nil
+        }
+    }
+
     static func hydrate(_ cards: [TasteCard], catalog: CatalogStore?) async -> [TasteCard] {
         guard let catalog, !cards.isEmpty else { return cards }
         return await withTaskGroup(of: (Int, TasteCard).self) { group in
