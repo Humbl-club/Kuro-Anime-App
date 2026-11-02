@@ -547,7 +547,7 @@ scripts/quality-gates/check_migrations.sh
 - **Team ID**: YLG68JL5Y7
 - **API Key**: Key ID `4Y9VLAQLQN` (since 2026-11-02; the old `7L84A7P9X7` file is not on this Mac; `fastlane/Fastfile` reads `KURO_ASC_KEY_ID`, default `4Y9VLAQLQN`), Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
 - **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_4Y9VLAQLQN.p8`
-- **Latest TestFlight build**: 21 (2026-11-02; build 20 + every build reads `feature_flag_overrides`). Next is 22. Build 21 predates the navigation-contract work.
+- **Latest TestFlight build**: 22 (2026-11-02; navigation contract + live-walkthrough fixes on top of 21). Next is 23.
 - **Signing**: Automatic, `-allowProvisioningUpdates`
 
 ---

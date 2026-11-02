@@ -2100,3 +2100,7 @@ Screenshots are in `docs/navigation-2026-11-02/`. Nothing was deployed.
 ### Change Log — 2 November 2026: The new Home is on for the owner's account
 
 The new Home can now be switched on per account. It is on for contact@lazy.space only, from TestFlight build 21 onward; everyone else still sees the current layout.
+
+### Change Log — 2 November 2026: Every screen walked through; build 22
+
+Every way through the app was walked on real data: title → director → their work → studio and back, swipe back from the edge, ✕ and swipe-down from deep inside, Search, Discover, Collection, Profile and each of its rows, a link from outside the app while Profile was open, and a manga → character → anime adaptation → author chain. Four problems turned up and were fixed: swiping between pages over a big Home card opened the title, Discover's daily pick showed a stray "<br>", Search hid its first result after switching between anime and manga, and manga still being published were labelled "airing". TestFlight build 22 contains all of it.
