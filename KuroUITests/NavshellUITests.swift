@@ -122,4 +122,31 @@ final class NavshellUITests: XCTestCase {
                       "✕ lands on the pager")
         shot("07-deep-link-closed")
     }
+
+    func testSeeAllAndProfileConciergeJourneys() throws {
+        // Discover "See all" opens as a journey's first page: ✕ only, ✕ returns to Discover.
+        let seeAll = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'See all'")).firstMatch
+        for _ in 0..<4 where !(seeAll.exists && seeAll.isHittable) { app.swipeUp() }
+        XCTAssertTrue(seeAll.waitForExistence(timeout: 15))
+        seeAll.tap()
+        XCTAssertTrue(button("Close").waitForExistence(timeout: 10))
+        XCTAssertFalse(button("Back").exists)
+        shot("08-see-all-journey")
+        button("Close").tap()
+        XCTAssertTrue(button("Close").waitForNonExistence(timeout: 5))
+
+        // Profile → Concierge pushes (Back + ✕, laid out under the compact bar).
+        app.swipeDown(); app.swipeDown()
+        openProfile()
+        XCTAssertTrue(button("Close").waitForExistence(timeout: 10))
+        let concierge = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Concierge'")).firstMatch
+        for _ in 0..<6 where !(concierge.exists && concierge.isHittable) { app.swipeUp() }
+        concierge.tap()
+        XCTAssertTrue(button("Back").waitForExistence(timeout: 5))
+        sleep(2)
+        shot("09-profile-concierge-pushed")
+        button("Back").tap()
+        XCTAssertTrue(button("Back").waitForNonExistence(timeout: 5))
+        button("Close").tap()
+    }
 }

@@ -162,6 +162,7 @@ struct ConciergeView: View {
                     )
                 }
             }
+            .environment(\.shellPageLifetime, nil)
         }
         .sheet(item: $importWorkflowJob) { job in
             let origin = workflow.capture(session: imports.accountSession)
@@ -169,6 +170,7 @@ struct ConciergeView: View {
                 guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
                 onImportNavigation?(destination)
             }
+            .environment(\.shellPageLifetime, nil)
         }
         .onAppear {
             workflow.activate(session: imports.accountSession)

@@ -178,8 +178,11 @@ struct ProfileView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        // Tool sheets close back to Profile (N7). Their content is not a Profile journey page: it
+        // never inherits Profile's page lifetime.
         .sheet(isPresented: $showContact) {
             ContactSheet()
+                .environment(\.shellPageLifetime, nil)
         }
         .sheet(isPresented: $showImportChooser) {
             ImportSourceChooser { destination in
@@ -187,6 +190,7 @@ struct ProfileView: View {
                 guard profileActionScope.capture(session: imports.accountSession) != nil else { return }
                 onImportNavigation?(destination)
             }
+            .environment(\.shellPageLifetime, nil)
         }
         .fileImporter(isPresented: $showMALImporter, allowedContentTypes: [.xml]) { result in
             profileImports?.receiveMALFile(result)
@@ -210,6 +214,7 @@ struct ProfileView: View {
             ) { response in
                 await profileImports?.receiveAniList(response)
             }
+            .environment(\.shellPageLifetime, nil)
         }
         .onChange(of: profileImports?.workflowJob) { _, job in
             guard let job, profileActionScope.capture(session: imports.accountSession) != nil else { return }
@@ -220,6 +225,7 @@ struct ProfileView: View {
                 guard profileActionScope.capture(session: imports.accountSession) != nil else { return }
                 onImportNavigation?(destination)
             }
+            .environment(\.shellPageLifetime, nil)
         }
     }
 
@@ -523,6 +529,7 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showServicePicker) {
                 StreamingServicePickerSheet()
+                    .environment(\.shellPageLifetime, nil)
             }
 
             if isSyncing {
