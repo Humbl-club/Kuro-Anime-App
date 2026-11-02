@@ -64,3 +64,17 @@ Cleanup: both test rows (`a57b0453-554c-4b67-800a-f4822f89521b`, `cf2216df-3304-
 6. Production legal-site deploy (`vercel deploy --prod`) is the owner's call once 1–4 are closed.
 
 Rollback (from the migration header): `select cron.unschedule('contact-messages-retention'); drop function if exists public.purge_contact_messages_v1(); drop table if exists public.contact_messages;`, then `delete from supabase_migrations.schema_migrations where version = '20261102100000';` and `supabase functions delete contact-submit --project-ref bkdifromsqxkndnllmdj`.
+
+## Follow-up hardening (2026-11-02 12:22 UTC)
+- Security review: `check_concierge_rate_limit` and `rate_limit_hit` are EXECUTE-able by `anon`, so the
+  guessable bucket names `contact:global`, `contact:global:notify` and `contact:user:<uuid>` could be
+  filled by anyone to block the form. `b3d307f`: every bucket name is now `contact:` +
+  HMAC(`CONTACT_IP_HASH_SECRET`, label), like the IP buckets. Offline tests 39/39, lint/check clean.
+- `CONTACT_IP_HASH_SECRET` set (random, 48 bytes, never printed); the service-role fallback is no longer used.
+- `contact-submit` redeployed with `--no-verify-jwt`. Smoke: valid web POST 200 (row deleted, table
+  count 0), invalid 400 with fields. The new global bucket row is hashed; the one literal
+  `contact:global` row is from the 12:20 smoke and expires with its window.
+- The "leftmost x-forwarded-for is spoofable" finding does not apply on Supabase hosting (live probe,
+  see STAGE4_DATA_ON.md "Client IP in Edge Functions"); the body-size finding was fixed in `c4bfb13`.
+- Still open: Resend secrets (`RESEND_API_KEY`, `CONTACT_NOTIFY_TO`, `CONTACT_NOTIFY_FROM`) — messages
+  are stored but nobody is e-mailed until they are set.
