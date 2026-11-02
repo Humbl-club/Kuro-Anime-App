@@ -82,7 +82,7 @@ Both pages keep their content, order, data sources and journeys. This is a visua
 | D2 | **Discover canvas follows the issue switch:** All and Anime use `kuroCanvasHome`, Manga uses `kuroCanvasHomeManga`. The crossfade uses `KuroMotion.medium` and is skipped under Reduce Motion or Low Power. | Same as Home and Taste (amendment 8). |
 | D3 | **Discover's selection moves up into `KuroMainView`,** the same way `tasteMedium` does, so `Section.canvas` can follow it. The header and page change in the same commit. | Seam rule, G§1. |
 | D4 | **The three-word switch is a new Discover-owned view, `DiscoverIssueSwitch`.** `KuroPosterMediumSwitch` is not generalized. | It hard-codes `.anime` / `.manga` (`HomePagePicture.swift:175-176`), and Home and Taste depend on it. |
-| D5 | **The Plan key is `TastePlanKey`, driven by one page `TastePlanController`** (`.tastePlanHost(plans)`). Cards map through `TasteCard(anime:)` / `TasteCard(manga:)`, plus a Discover-local `TasteCard` mapping for `DailyFeature`. `KuroAdvanceKey` is **not** used on Discover. | This is the existing plan grammar: plan and unplan with an Undo toast, and a tracked title opens the tracking editor. `KuroAdvanceKey` is the +1 key, and its tracked state is a disabled "Caught up" key. |
+| D5 | **The Plan key is `TastePlanKey`, driven by one page `TastePlanController`** (`.tastePlanHost(plans)`). Cards map through `TasteCard(anime:)` / `TasteCard(manga:)`. For `DailyFeature`, a Discover-file extension builds `Media(...)` (internal memberwise init, `Catalog/MediaDisplayModels.swift:32`) and calls the internal `TasteCard(media:bannerURL:premise:)`. The private `TasteCard.media(kind:…)` factory is not needed, and `TastePicksView.swift` is not edited. `KuroAdvanceKey` is **not** used on Discover. | This is the existing plan grammar: plan and unplan with an Undo toast, and a tracked title opens the tracking editor. `KuroAdvanceKey` is the +1 key, and its tracked state is a disabled "Caught up" key. |
 | D6 | **Fewer items per section; "See all" carries the rest.** New to you shows 1 feature + 3 covers. The index shows 5 rows. Trending is a rail of up to 10. | Rhythm (P2). The See all journeys already exist. **Owner choice:** see §11. |
 | D7 | **Clubs: one compact room per club on the list,** sorted by `last_activity_at` (newest first; nil last). | One club surface everywhere (P4). |
 | D8 | **"Rails" stays in English; German keeps "Listen".** The tab is "Rails · This week · Polls" / "Listen · Diese Woche · Umfragen". | The English word is used across the app: "Create a rail", "No rails yet.", "In your club rails", the add-to-club sheet. |
@@ -710,7 +710,9 @@ The Clubs lane must also run the Home suites that cover the room (`HomeLaneTests
 ### 12.4 Owned by nobody until integration
 - `CURRENT_APP_STATE.md`, `CURRENT_APP_STATE_PLAIN.md`, `IMPLEMENTATION_PLAN_Variation1.md`, `~/.claude/projects/-Users-max-Kuro-Anime-App/memory/MEMORY.md`, and the CLAUDE.md file map and counts.
   - The integrator updates these once, after both lanes.
-  - Lanes add new Swift files, which moves the counts the docs-current-state gate checks. Lanes should expect that gate to WARN until integration and must not "fix" it.
+  - Lanes add new Swift files, which moves the counts the docs-current-state gate checks. That gate is **blocking** in `run_all.sh` (`docs-current-state:…:1`), so `run_all.sh` will FAIL on a lane branch.
+    - Lanes run only the individual gates in §14. They don't run `run_all.sh`, and they don't edit docs to make the gate pass.
+    - The integrator updates the docs, then runs `run_all.sh`.
 - `KuroTests/RestyleSnapshotTests.swift`, `ScreenMapSnapshotTests.swift`, `NavigationEvidenceTests.swift`, `FirstRunSnapshotTests.swift` and their committed PNGs.
   - Lanes treat them as read-only and never run them with the write variable.
   - If a lane run rewrites a committed PNG outside `docs/discover-clubs-2026-11-03/`, revert it with `git checkout -- <file>`.
@@ -726,6 +728,13 @@ The Clubs lane must also run the Home suites that cover the room (`HomeLaneTests
   - Use it by UUID and delete it when done.
 - No backend, no flags, no production data, no push.
 - Commits end with the session attribution lines.
+- **Source compatibility with tests neither lane owns** (checked by grep on 2026-11-03):
+  - `RestyleSnapshotTests` calls `EditorialDiscoverView()`, `ClubsView()` and `ClubDetailView(clubId:)`. `ScreenMapSnapshotTests` calls `ClubsView()`. Those initializers keep compiling.
+    - The lifted Discover selection is an optional binding with a default, e.g. `init(issue: Binding<DiscoverMediaTypeFilter>? = nil)`, falling back to internal `@State` when nil.
+  - `RestyleLaneTests` uses `ClubsEmptyCopy.kicker/headline/line/create/join/footer/size(german:)`. `HomeAnimeLaneTests` and `HomeMangaLaneTests` use `HomeClubRoom.pick`, `.roomNotes`, `.Note` and `.spoilerLine`. These keep their signatures.
+  - Types a lane retires from its page may be deleted only if a grep over `Kuro/`, `KuroTests/` and `KuroUITests/` finds no other user. Otherwise they stay.
+  - If a behaviour change in a lane makes a test in a file it doesn't own fail, the lane stops and reports to the integrator. It doesn't edit that test.
+  - `KuroUITests/NavigationContractUITests.swift` looks up "Add to your list" (the tracking editor), which neither lane changes.
 - Code rules:
   - `@Observable` only
   - no force unwraps
