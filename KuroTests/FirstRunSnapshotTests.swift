@@ -28,6 +28,12 @@ struct FirstRunSnapshotTests {
         return repo.appendingPathComponent("docs/prototype-fidelity/native/firstrun")
     }()
 
+    /// A device-pixel scale for diagnosis (`TEST_RUNNER_KURO_RENDER_SCALE=3`): the renders then go to a
+    /// temporary folder and never replace the committed 1 px = 1 pt renders.
+    static let diagnosticScale: CGFloat? = ProcessInfo.processInfo.environment["KURO_RENDER_SCALE"]
+        .flatMap(Double.init).map { CGFloat($0) }
+    static let diagnosticDir = FileManager.default.temporaryDirectory.appendingPathComponent("kuro-render-scaled", isDirectory: true)
+
     // MARK: New-account Home
 
     @Test("New-account Home, anime and manga, at 320/390/430 (with and without starter picks)")
@@ -35,7 +41,10 @@ struct FirstRunSnapshotTests {
         await Self.seedArtwork()
         let (graph, defaults) = try await Self.signedInGraph("firstrun-home")
         for medium in [MediaKind.anime, .manga] {
-            let picks = Array(Self.cards(medium, premise: false, banner: true).prefix(HomeNewAccountCopy.pickCount(medium)))
+            // Bundle rows (anime banner, no synopsis), completed by the catalogue read as the page does.
+            let picks = await TasteCardDetails.hydrate(
+                Array(Self.cards(medium, premise: false, banner: true).prefix(HomeNewAccountCopy.pickCount(medium))),
+                catalog: graph.catalog)
             for width: CGFloat in [320, 390, 430] {
                 #expect(await render(Self.homeNewPage(medium: medium, picks: picks, width: width)
                                         .environment(graph.library)
@@ -98,6 +107,58 @@ struct FirstRunSnapshotTests {
         defaults.removePersistentDomain(forName: "firstrun-homeview")
     }
 
+    @Test("Pager composites: the app header over the new-account Home and over Taste, anime and manga, at 390")
+    func pagerComposites() async throws {
+        await Self.seedArtwork()
+        // The Series Home pager (Taste, Home, Discover, Collection, Clubs), as the references show it.
+        let (graph, defaults) = try await Self.signedInGraph(
+            "firstrun-pager", launchArguments: ["--ff-on=series_foundation_v1", "--ff-on=series_home_native_v1",
+                                                "--ff-on=taste_deck_v1"])
+        graph.flags.completeFoundationBootstrap(userId: LifecycleFixtures.userA)
+        func empty(_ medium: String) throws -> HomeBundle {
+            try JSONDecoder().decode(HomeBundle.self, from: Data("""
+            {"medium":"\(medium)","window_days":7,"home_revision":1,"active":[],"upcoming":[],"pending":[],
+             "schedule_state":"ok","next_cursor":null,"club":{"state":"ready","label":"Between us.","items":[]}}
+            """.utf8))
+        }
+        let materials = ArtworkMaterialStore(cacheDirectory: nil, loader: HomeAnimeLaneTests.fixtureLoader)
+        /// The pager's column: its canvas behind the header and the page (`Section.canvas`), the header
+        /// (`KuroHeaderNew`, ContentView's) on top, the page under it.
+        func pager<Page: View>(_ section: KuroMainView.Section, medium: MediaKind, @ViewBuilder page: () -> Page) -> some View {
+            VStack(spacing: 0) {
+                KuroHeaderNew(selection: .constant(section), showProfileSheet: .constant(false),
+                              showSearchSheet: .constant(false), tasteMedium: medium)
+                page()
+            }
+            .background(section.canvas(mangaHome: medium == .manga, mangaTaste: medium == .manga))
+            .environment(graph.identity)
+            .environment(graph.session)
+            .environment(graph.clubs)
+            .environment(graph.flags)
+            .environment(graph.home)
+        }
+        for medium in [MediaKind.anime, .manga] {
+            graph.home.seedForVisualQA(anime: try empty("anime"), manga: try empty("manga"), medium: medium.rawValue)
+            let canvas = TastePageContent.canvas(for: medium)
+            #expect(await render(pager(.home, medium: medium) {
+                HomeAnimeLaneTests.home(graph.graph, materials, canvas: canvas, newAccountLatch: true)
+            }, width: 390, height: 1_000, name: "pager-home-new-\(medium.rawValue)-390.png", settle: 1_400))
+            let busy = await Self.busy(medium, catalog: graph.catalog)
+            let new = await TasteCardDetails.hydrate(
+                Array(Self.cards(medium, premise: false, banner: true).prefix(TastePicksCopy.visibleCount(newAccount: true))),
+                catalog: graph.catalog)
+            for (state, cards, newAccount) in [("busy", busy, false), ("new", new, true)] {
+                #expect(await render(pager(.taste, medium: medium) {
+                    Self.tastePage(medium: medium, state: .cards(cards), newAccount: newAccount, width: 390)
+                        .environment(graph.library)
+                        .environment(graph.libraryActions)
+                }, width: 390, height: 844, name: "pager-taste-\(state)-\(medium.rawValue)-390.png", settle: 1_400))
+            }
+        }
+        await graph.session.endSession()
+        defaults.removePersistentDomain(forName: "firstrun-pager")
+    }
+
     @Test("New-account Home through its own loader (seeded Discover bundle)")
     func newAccountHomeLive() async throws {
         await Self.seedArtwork()
@@ -109,6 +170,7 @@ struct FirstRunSnapshotTests {
                 }
                 .background(TastePageContent.canvas(for: medium))
                 .environment(graph.discovery)
+                .environment(graph.catalog)
                 .environment(graph.library)
                 .environment(graph.libraryActions)
                 .environment(\.kuroRoutes, KuroRoutes.unhandled),
@@ -132,11 +194,15 @@ struct FirstRunSnapshotTests {
                 .environment(graph.libraryActions)
         }
         for medium in [MediaKind.anime, .manga] {
-            // Busy: personal picks in their real shape. Because-you rows carry a synopsis (the premise)
-            // and no banner, so every anime card is a portrait card unless the bundle lends a banner
-            // (the "banner-joined" render below). New: Discover bundle rows (anime banner, no synopsis).
-            let busy = Array(Self.cards(medium, premise: true, banner: false).prefix(2))
-            let new = Array(Self.cards(medium, premise: false, banner: true).prefix(2))
+            // Both through the page's own path: the rows as their reads return them, then the catalogue
+            // read (`TasteCardDetails`) for what the rows lack. Busy: because-you rows carry a synopsis
+            // and no banner; the catalogue lends the first anime pick its banner (the landscape card).
+            // New: Discover bundle rows carry the anime banner and no synopsis; the catalogue lends the
+            // premise. New-account Taste shows the reference's two cards (`visibleCount`).
+            let busy = await Self.busy(medium, catalog: graph.catalog)
+            let new = await TasteCardDetails.hydrate(
+                Array(Self.cards(medium, premise: false, banner: true).prefix(TastePicksCopy.visibleCount(newAccount: true))),
+                catalog: graph.catalog)
             #expect(await render(page(medium, .cards(busy), newAccount: false), width: 390, height: 844,
                                  name: "taste-busy-\(medium.rawValue)-390.png", settle: 1_400))
             #expect(await render(page(medium, .cards(new), newAccount: true), width: 390, height: 844,
@@ -151,20 +217,16 @@ struct FirstRunSnapshotTests {
                                     name: "taste-busy-\(medium.rawValue)-ax5-390.png"))
             }
         }
-        // A because-you pick the launch's bundle also holds: its banner makes the landscape card.
-        let joined = Array(Self.cards(.anime, premise: true, banner: true).prefix(2))
-        #expect(await render(page(.anime, .cards(joined), newAccount: false), width: 390, height: 844,
-                             name: "taste-busy-anime-banner-joined-390.png", settle: 1_400))
-
         // A real one-tap Plan through the page's controller: the planned key and the toast with Undo.
         let plans = TastePlanController(holdSeconds: 60)
-        let planned = Self.cards(.anime, premise: true, banner: false)[1]
+        let planned = await Self.busy(.anime, catalog: graph.catalog)[1]
         await plans.tap(planned, library: graph.library, actions: graph.libraryActions, routes: .unhandled,
                         german: false)?.value
         #expect(graph.library.entry(for: planned.key)?.status == .planning)
         #expect(plans.toast?.message == "Added to your list.")
         // The host reads the Library from the environment, so it sits inside the environment modifiers.
-        #expect(await render(Self.tastePage(medium: .anime, state: .cards(Self.busy(.anime)), newAccount: false, width: 390)
+        #expect(await render(Self.tastePage(medium: .anime, state: .cards(await Self.busy(.anime, catalog: graph.catalog)),
+                                            newAccount: false, width: 390)
                                 .tastePlanHost(plans)
                                 .environment(graph.library)
                                 .environment(graph.libraryActions),
@@ -178,6 +240,7 @@ struct FirstRunSnapshotTests {
         #expect(await render(
             TastePicksView(medium: .constant(.anime))
                 .environment(graph.discovery)
+                .environment(graph.catalog)
                 .environment(graph.library)
                 .environment(graph.libraryActions)
                 .environment(graph.artworkMaterials)
@@ -189,8 +252,9 @@ struct FirstRunSnapshotTests {
         defaults.removePersistentDomain(forName: "firstrun-taste")
     }
 
-    private static func busy(_ medium: MediaKind) -> [TasteCard] {
-        Array(cards(medium, premise: true, banner: false).prefix(2))
+    /// Two because-you rows completed by the catalogue (the busy references show two cards).
+    private static func busy(_ medium: MediaKind, catalog: CatalogStore) async -> [TasteCard] {
+        await TasteCardDetails.hydrate(Array(cards(medium, premise: true, banner: false).prefix(2)), catalog: catalog)
     }
 
     // MARK: Collection and Search
@@ -240,7 +304,8 @@ struct FirstRunSnapshotTests {
                                     german: Bool = false) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                TasteOpening(medium: .constant(medium), artURL: nil, metrics: TasteMetrics(pageWidth: width),
+                TasteOpening(medium: .constant(medium), artURL: picks.first?.media.imageURL,
+                             metrics: TasteMetrics(pageWidth: width),
                              kicker: german ? "DEINE SAMMLUNG" : "YOUR COLLECTION",
                              headline: german ? "Fang hier an." : "Begin here.")
                 HomeNewAccountContent(medium: medium, picks: picks, width: width, onImport: {}, onExploreTaste: {})
@@ -356,17 +421,40 @@ struct FirstRunSnapshotTests {
         return try JSONDecoder().decode(DiscoverBundle.self, from: JSONSerialization.data(withJSONObject: object))
     }
 
+    /// The catalogue's detail rows for the fixtures, in `CatalogStore`'s detail cache (no network): the
+    /// synopsis whose first sentence is the premise, and Your Name.'s banner. The other anime have no
+    /// banner, so they stay portrait cards.
+    private static func seedCatalog(_ catalog: CatalogStore) throws {
+        func row(_ fixture: Fixture, banner: String?) throws -> Data {
+            var object: [String: Any] = ["id": fixture.id, "is_adult": false, "genres": [fixture.genre],
+                                         "created_at": 0, "updated_at": 0, "title_english": fixture.title,
+                                         "format": fixture.format, "cover_image_large": artURL(fixture.cover),
+                                         "description": fixture.premise + " The rest of the catalogue synopsis."]
+            if let banner { object["banner_image"] = artURL(banner) }
+            return try JSONSerialization.data(withJSONObject: object)
+        }
+        for fixture in animeFixtures {
+            catalog.animeDetailCache[fixture.id] = try JSONDecoder().decode(Anime.self, from: row(fixture, banner: fixture.banner))
+        }
+        for fixture in mangaFixtures {
+            catalog.mangaDetailCache[fixture.id] = try JSONDecoder().decode(Manga.self, from: row(fixture, banner: nil))
+        }
+    }
+
     /// A signed-in graph whose Library loaded empty (a new account) and whose Discover bundle is cached.
-    private static func signedInGraph(_ suite: String) async throws -> (FixtureGraph, UserDefaults) {
+    private static func signedInGraph(_ suite: String, launchArguments: [String] = []) async throws -> (FixtureGraph, UserDefaults) {
         let defaults = try #require(UserDefaults(suiteName: suite))
         let backend = FakeLibraryBackend()
         let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
-                                                libraryBackend: backend)
+                                                libraryBackend: backend,
+                                                flags: launchArguments.isEmpty ? nil
+                                                    : FeatureFlags(userDefaults: defaults, launchArguments: launchArguments))
         _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "new@example.com")
         await graph.libraryActions.libraryRefreshTask?.value
         try? await graph.library.refresh()
         let key = DiscoveryStore.bundleKey(user: LifecycleFixtures.userA, limit: 30, hours: 24)
         graph.discovery.discoverBundleCache[key] = TimedCache(value: try bundle(), storedAt: Date())
+        try seedCatalog(graph.catalog)
         return (FixtureGraph(graph: graph, backend: backend), defaults)
     }
 
@@ -394,6 +482,7 @@ struct FirstRunSnapshotTests {
     private func render<V: View>(_ view: V, width: CGFloat, height: CGFloat, name: String, settle: Int = 500) async -> Bool {
         do {
             try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: Self.diagnosticDir, withIntermediateDirectories: true)
         } catch {
             note("\(name): could not create the output folder (\(error))")
             return false
@@ -411,11 +500,13 @@ struct FirstRunSnapshotTests {
         host.view.layoutIfNeeded()
         try? await Task.sleep(for: .milliseconds(settle))
         host.view.layoutIfNeeded()
-        let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height)).image { _ in
-            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
-        }
-        let url = Self.outDir.appendingPathComponent(name)
-        guard let data = image.pngData() else {
+        // 1 px = 1 pt, as the references and the Home renders, so the two compare pixel for pixel:
+        // drawn at the screen scale and block-averaged (`FixtureRaster`). `KURO_RENDER_SCALE=3`
+        // (diagnosis only) keeps the device pixels and writes to a temporary folder instead.
+        let data = FixtureRaster.png(of: host.view, size: CGSize(width: width, height: height),
+                                     diagnosticScale: Self.diagnosticScale)
+        let url = (Self.diagnosticScale == nil ? Self.outDir : Self.diagnosticDir).appendingPathComponent(name)
+        guard let data else {
             note("\(name): PNG encoding failed")
             return false
         }
@@ -434,6 +525,7 @@ struct FirstRunSnapshotTests {
         if let existing = try? String(contentsOf: url, encoding: .utf8), existing.contains(line) { return }
         do {
             try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: Self.diagnosticDir, withIntermediateDirectories: true)
             if let handle = try? FileHandle(forWritingTo: url) {
                 defer { try? handle.close() }
                 try handle.seekToEnd()

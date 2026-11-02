@@ -18,7 +18,10 @@ import SwiftUI
 //   pager to Taste.
 // - The picks read only `DiscoveryStore.ensureDiscoverBundle()` (the launch's one bundle read, shared
 //   with Discover and Taste; never a forced reload). A failed or empty read hides the picks row; the
-//   block above stands on its own.
+//   block above stands on its own. Each pick is then completed from the catalogue
+//   (`TasteCardDetails`: the premise under its title, as on Taste).
+// - The first pick's cover fills the selected medium word (`onLeadArt`), the same rule as Taste
+//   (amendment 16), so the switch reads the same on both pages.
 // - The mount condition is latched. The first one-tap Plan here adds the account's first title, so a
 //   live `allEntries.isEmpty` check would unmount this block under the user's finger. The pager
 //   (`ContentView`) decides "new account" once, when the Library first reports `.loaded` with no entries
@@ -32,14 +35,20 @@ struct HomeNewAccount: View {
     let medium: MediaKind
     let onImport: () -> Void
     let onExploreTaste: () -> Void
+    /// The first pick's cover per medium, for the selected medium word (nil: none yet).
+    let onLeadArt: (MediaKind, String?) -> Void
 
-    init(medium: MediaKind, onImport: @escaping () -> Void, onExploreTaste: @escaping () -> Void) {
+    init(medium: MediaKind, onImport: @escaping () -> Void, onExploreTaste: @escaping () -> Void,
+         onLeadArt: @escaping (MediaKind, String?) -> Void = { _, _ in }) {
         self.medium = medium
         self.onImport = onImport
         self.onExploreTaste = onExploreTaste
+        self.onLeadArt = onLeadArt
     }
 
     @Environment(DiscoveryStore.self) private var discovery
+    /// The picks' premises (`TasteCardDetails`); nil in fixtures without one.
+    @Environment(CatalogStore.self) private var catalog: CatalogStore?
     @Environment(LibraryStore.self) private var library
     /// The Home page's Plan controller, when HomeView installed one (`tastePlanHost`).
     @Environment(TastePlanController.self) private var hostPlans: TastePlanController?
@@ -63,13 +72,26 @@ struct HomeNewAccount: View {
     }
 
     private func loadPicks(for medium: MediaKind) async {
-        guard picks[medium] == nil else { return }
+        if let loaded = picks[medium] {
+            onLeadArt(medium, loaded.first?.media.imageURL)
+            return
+        }
         guard let bundle = await discovery.ensureDiscoverBundle() else { return }
         let cards: [TasteCard] = medium == .anime
             ? (bundle.anime.newToYou + bundle.anime.essentials).map(TasteCard.init(anime:))
             : (bundle.manga.newToYou + bundle.manga.essentials).map(TasteCard.init(manga:))
         let tracked = Set(cards.map(\.key).filter { library.isTracked($0) })
-        picks[medium] = FirstFavouritePicks.pick(from: cards, max: HomeNewAccountCopy.pickCount(medium), excluding: tracked)
+        let chosen = FirstFavouritePicks.pick(from: cards, max: HomeNewAccountCopy.pickCount(medium), excluding: tracked)
+        onLeadArt(medium, chosen.first?.media.imageURL)
+        // The premises, waiting at most `TasteCardDetails.waitLimit`; later reads fill in.
+        let completing = Task { [catalog] in await TasteCardDetails.hydrate(chosen, catalog: catalog) }
+        if await TasteCardDetails.finishes(completing, within: TasteCardDetails.waitLimit) {
+            picks[medium] = await completing.value
+        } else {
+            picks[medium] = chosen
+            let filled = await completing.value
+            if picks[medium]?.map(\.id) == filled.map(\.id) { picks[medium] = filled }
+        }
     }
 }
 
@@ -178,8 +200,8 @@ struct FirstRunInvitation<Actions: View>: View {
                 .foregroundStyle(Color.kuroInk)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                // The prototype's 33.6 pt line box.
-                .padding(.vertical, 2)
+                // The prototype's 33.6 pt line box (SF 24 sets 28.6).
+                .padding(.vertical, 2.5)
                 .accessibilityAddTraits(.isHeader)
             if let line {
                 Text(line)
@@ -189,10 +211,13 @@ struct FirstRunInvitation<Actions: View>: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: lineWidth)
-                    .padding(.top, 14)
+                    // 14 pt margin plus the 18.2 pt line box's leading above the first line (SF 13 sets
+                    // 15.5; measured, the glyphs land at the reference's y).
+                    .padding(.top, 16.35)
             }
             VStack(spacing: 10) { actions }
-                .padding(.top, 24)
+                // 24 pt margin plus the line box's leading below the last line.
+                .padding(.top, line == nil ? 24 : 24.35)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 25)

@@ -9,14 +9,19 @@ import SwiftUI
 // account), then story cards with a separate Plan key. Anime: the first title with a banner is the
 // wide landscape card, the rest are portrait cards (art beside the copy). Manga: a two-column grid
 // of framed covers. The page reads the launch's Discover bundle (one `discover_bundle` per launch,
-// shared with Discover) and the because-you rail; every card is a real title, and a premise is shown
-// only where the read carries a real synopsis (the bundle cards carry none).
+// shared with Discover) and the because-you rail; every card is a real title. Each shown pick is then
+// read from the catalogue (`TasteCardDetails`, `CatalogStore`'s cached detail read) for what its rail
+// row lacks: the premise (bundle rows carry no synopsis) and, for anime, the banner of the landscape
+// card (because-you rows carry none). A premise is shown only where the catalogue has a real synopsis.
+// The page waits at most a second for those reads before it shows the cards; later reads fill in.
 // The story cards (`TasteStoryList`) are shared with the new-account Home (`HomeNewAccount`).
 
 struct TastePicksView: View {
     @Environment(DiscoveryStore.self) private var discovery
     @Environment(LibraryStore.self) private var library
     @Environment(NetworkMonitor.self) private var networkMonitor
+    /// The picks' premise and banner (`TasteCardDetails`); nil in fixtures without one.
+    @Environment(CatalogStore.self) private var catalog: CatalogStore?
 
     /// The selected medium, owned by the pager (`ContentView`) so its canvas and the header follow it.
     @Binding var medium: MediaKind
@@ -89,7 +94,7 @@ struct TastePicksView: View {
         if isLoading { return .loading }
         if failed { return .unavailable(offline: !networkMonitor.isConnected) }
         if picks.isEmpty { return .empty }
-        return .cards(picks)
+        return .cards(Array(picks.prefix(TastePicksCopy.visibleCount(newAccount: startedAsNewAccount ?? false))))
     }
 
     /// The selected medium word shows the first pick's artwork clipped into its letters, as Home's
@@ -108,6 +113,31 @@ struct TastePicksView: View {
         let fetched = await bundle
         defer { isLoading = false }
         apply(because: becauseRows, bundle: fetched)
+        await completePicks()
+    }
+
+    /// The catalogue's premises and the landscape banner (`TasteCardDetails`). The medium on screen
+    /// waits up to `TasteCardDetails.waitLimit` so its cards usually show complete (no reflow); a slow
+    /// read never holds the page on its skeleton, and whatever lands later fills in. The other medium
+    /// fills in whenever its reads land.
+    private func completePicks() async {
+        let anime = animePicks, manga = mangaPicks
+        let animeTask = Task { await TasteCardDetails.hydrate(anime, catalog: catalog) }
+        let mangaTask = Task { await TasteCardDetails.hydrate(manga, catalog: catalog) }
+        let visible = medium == .anime ? animeTask : mangaTask
+        if await TasteCardDetails.finishes(visible, within: TasteCardDetails.waitLimit) {
+            fill(await visible.value, medium: medium)
+        }
+        Task { fill(await animeTask.value, medium: .anime) }
+        Task { fill(await mangaTask.value, medium: .manga) }
+    }
+
+    /// Completed cards replace the shown ones only while they are still the same picks.
+    private func fill(_ cards: [TasteCard], medium: MediaKind) {
+        switch medium {
+        case .anime: if cards.map(\.id) == animePicks.map(\.id) { animePicks = cards }
+        case .manga: if cards.map(\.id) == mangaPicks.map(\.id) { mangaPicks = cards }
+        }
     }
 
     /// Writes each medium's choice only when the reads it depends on loaded (rulebook §9: a failed
@@ -354,6 +384,13 @@ nonisolated enum TastePicksCopy {
         return personal != nil || chosen > 0
     }
 
+    /// How many cards the page shows: a new account sees the reference's two (anime one landscape and
+    /// one portrait card, manga one row of two leaves, PROTOTYPE_SPEC.md §8.10); a busy account up to
+    /// four.
+    static func visibleCount(newAccount: Bool) -> Int {
+        newAccount ? 2 : 4
+    }
+
     static func choose<Item>(personal: [Item], unseen: [Item], start: [Item], cap: Int, german: Bool) -> (items: [Item], note: String) {
         let source = source(personal: personal.count, unseen: unseen.count, start: start.count)
         let items: [Item]
@@ -421,6 +458,14 @@ struct TasteCard: Identifiable {
         self.init(media: card.toMedia(), bannerURL: nil, premise: card.synopsis)
     }
 
+    /// The card with what a catalogue read adds: `banner` when it has none, and the first sentence of
+    /// `synopsis` as the premise when it has none (never the catalogue's placeholder). Existing data
+    /// always stays.
+    func hydrated(banner: String?, synopsis: String?) -> TasteCard {
+        TasteCard(media: media, bannerURL: bannerURL ?? banner,
+                  premise: premise ?? synopsis.flatMap { TastePicksCopy.storySentence($0) })
+    }
+
     /// The same card with `banner` when it has none yet (the because-you rows carry no banner).
     func withBanner(_ banner: String?) -> TasteCard {
         guard bannerURL == nil, let banner else { return self }
@@ -440,6 +485,70 @@ struct TasteCard: Identifiable {
         Media(id: id, kind: kind, title: title, imageURL: imageURL, year: year, displayDescription: "",
               episodes: episodes, chapters: chapters, rating: rating, genres: genres, statusRaw: statusRaw,
               formatRaw: formatRaw, popularityValue: nil, trendingValue: nil, createdAtValue: nil)
+    }
+}
+
+/// The catalogue read that completes the shown picks (`CatalogStore.fetchAnimeById` / `fetchMangaById`,
+/// cached in memory and on disk, so a revisit costs nothing and the detail page opens warm). A card
+/// that already has its premise (and, for anime, its banner) is not read. A failed read keeps the
+/// card as it is: no premise is ever invented.
+@MainActor
+enum TasteCardDetails {
+    /// How long a page waits for the reads before it shows the cards as they are.
+    static let waitLimit: Duration = .seconds(1)
+
+    /// Whether `task` finishes within `limit`. Returns at the limit at the latest; the task itself keeps
+    /// running either way (a task group would wait for it, since awaiting a task's value ignores
+    /// cancellation).
+    static func finishes<T>(_ task: Task<T, Never>, within limit: Duration) async -> Bool {
+        let race = FirstAnswer()
+        return await withCheckedContinuation { continuation in
+            race.continuation = continuation
+            let timer = Task { @MainActor in
+                try? await Task.sleep(for: limit)
+                race.answer(false)
+            }
+            Task { @MainActor in
+                _ = await task.value
+                timer.cancel()
+                race.answer(true)
+            }
+        }
+    }
+
+    /// Resumes its continuation once, with the first answer.
+    private final class FirstAnswer {
+        var continuation: CheckedContinuation<Bool, Never>?
+        func answer(_ value: Bool) {
+            continuation?.resume(returning: value)
+            continuation = nil
+        }
+    }
+
+    static func hydrate(_ cards: [TasteCard], catalog: CatalogStore?) async -> [TasteCard] {
+        guard let catalog, !cards.isEmpty else { return cards }
+        return await withTaskGroup(of: (Int, TasteCard).self) { group in
+            for (index, card) in cards.enumerated() {
+                group.addTask { @MainActor in (index, await hydrate(card, catalog: catalog)) }
+            }
+            var filled = cards
+            for await (index, card) in group { filled[index] = card }
+            return filled
+        }
+    }
+
+    private static func hydrate(_ card: TasteCard, catalog: CatalogStore) async -> TasteCard {
+        switch card.media.kind {
+        case .anime:
+            guard card.premise == nil || card.bannerURL == nil else { return card }
+            guard let anime = (try? await catalog.fetchAnimeById(card.media.id)) ?? nil else { return card }
+            return card.hydrated(banner: anime.bannerImage,
+                                 synopsis: anime.hasMeaningfulSynopsis ? anime.displayDescription : nil)
+        case .manga:
+            guard card.premise == nil else { return card }
+            guard let manga = (try? await catalog.fetchMangaById(card.media.id)) ?? nil else { return card }
+            return card.hydrated(banner: nil, synopsis: manga.hasMeaningfulSynopsis ? manga.displayDescription : nil)
+        }
     }
 }
 
@@ -547,9 +656,12 @@ final class TastePlanController {
 
     @ObservationIgnored private var dismissTask: Task<Void, Never>?
     @ObservationIgnored private let holdSeconds: Double
+    @ObservationIgnored private let assistiveTechnologyRunning: @MainActor () -> Bool
 
-    init(holdSeconds: Double = 4) {
+    init(holdSeconds: Double = 4,
+         assistiveTechnologyRunning: @escaping @MainActor () -> Bool = KuroToastHold.assistiveTechnologyRunning) {
         self.holdSeconds = holdSeconds
+        self.assistiveTechnologyRunning = assistiveTechnologyRunning
     }
 
     /// Runs one Plan key tap. Returns the write's task (nil for the editor, a tap while the title's
@@ -623,10 +735,13 @@ final class TastePlanController {
         }
     }
 
-    private func show(_ message: String, undo: Undo?) {
+    /// Shows one result. With VoiceOver or Switch Control on it waits for × or the next result
+    /// (`KuroToastHold`); otherwise it leaves after the hold.
+    func show(_ message: String, undo: Undo?) {
         dismissTask?.cancel()
         let toast = Toast(message: message, undo: undo)
         self.toast = toast
+        guard !assistiveTechnologyRunning() else { dismissTask = nil; return }
         let hold = holdSeconds
         dismissTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(hold))
@@ -637,21 +752,38 @@ final class TastePlanController {
 }
 
 /// The prototype toast (§3.4): `#282f2bf5`, 12 pt white text, radius 18, padding 5/5/5/14, inset
-/// 13/13/12 from the page foot, then "Undo" and a dismiss ×.
+/// 13/13/12 from the page foot, then "Undo" and a dismiss ×. Shared by the Taste Plan keys and the
+/// Home +1 (`HomeProgressToasts`), so every result toast reads the same.
 struct TastePlanToastView: View {
-    let toast: TastePlanController.Toast
+    let message: String
+    let showsUndo: Bool
     let german: Bool
     let onUndo: () -> Void
     let onDismiss: () -> Void
 
+    init(message: String, showsUndo: Bool, german: Bool, onUndo: @escaping () -> Void,
+         onDismiss: @escaping () -> Void) {
+        self.message = message
+        self.showsUndo = showsUndo
+        self.german = german
+        self.onUndo = onUndo
+        self.onDismiss = onDismiss
+    }
+
+    init(toast: TastePlanController.Toast, german: Bool, onUndo: @escaping () -> Void,
+         onDismiss: @escaping () -> Void) {
+        self.init(message: toast.message, showsUndo: toast.undo != nil, german: german,
+                  onUndo: onUndo, onDismiss: onDismiss)
+    }
+
     var body: some View {
         HStack(spacing: 4) {
-            Text(toast.message)
+            Text(message)
                 .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 22))
                 .foregroundStyle(Color.white)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if toast.undo != nil {
+            if showsUndo {
                 Button(action: onUndo) {
                     Text(TastePlanCopy.undo(german: german))
                         .font(.kuroCustom(12, weight: .semibold, relativeTo: .footnote, maxSize: 22))
@@ -741,6 +873,27 @@ struct TasteMetrics {
     var mangaColumnSpacing: CGFloat { compact ? 14 : 17 }
     var portraitArtWidth: CGFloat { compact ? 90 : 103 }
     var portraitCopyLeading: CGFloat { compact ? 12 : 16 }
+    /// The manga leaf's frame height: 2 : 3 on the prototype's unsnapped column (`164.5px` at 390, so
+    /// 246.75), on whole points as the browser draws it (246), the same for both columns. Nil before
+    /// the page is measured.
+    var leafArtHeight: CGFloat? {
+        let column = (pageWidth - paperGutter * 2 - mangaColumnSpacing) / 2
+        return pageWidth > 0 && column > 0 ? (column * 1.5).rounded(.down) : nil
+    }
+}
+
+/// The leaf frame at `TasteMetrics.leafArtHeight`, or 2 : 3 of its width when there is none
+/// (accessibility sizes, where a leaf takes the full width).
+private struct TasteLeafArtSize: ViewModifier {
+    let height: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let height {
+            content.frame(maxWidth: .infinity).frame(height: height)
+        } else {
+            content.aspectRatio(2 / 3, contentMode: .fit)
+        }
+    }
 }
 
 // MARK: - Opening block
@@ -799,8 +952,14 @@ struct TasteOpening: View {
     }
 }
 
-/// The section heading ("Your next story."): SF 24 w550 −0.85 (manga w500 −0.65, at most 210 wide;
-/// SwiftUI has no w550, so both media use `.medium`, w500).
+/// The section heading ("Your next story."): SF 24/26.4 w550 −0.85 (manga w500 −0.65, at most 210 wide).
+/// SwiftUI has no w550: anime takes `.semibold` (the system's nearest heavier weight; the reference's
+/// glyphs measure wider than w500), manga keeps `.medium`.
+///
+/// Lines follow each other at the prototype's 1.1 pitch (26.4 at 24 pt, on whole points: 26) while
+/// every word keeps SF's own line box (FR-C). SwiftUI `Text` ignores a negative line spacing, and an
+/// exact line height clips the last line's descenders ("story." loses the foot of its y), so the
+/// words are laid out by `TasteHeadingLines`, which wraps them as the browser does.
 struct TasteSectionHeading: View {
     let title: String
     let medium: MediaKind
@@ -808,16 +967,75 @@ struct TasteSectionHeading: View {
     /// Nil: the section's own 32 pt top margin.
     var top: CGFloat? = nil
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var baseSize: CGFloat { metrics.compact ? 22 : 24 }
+    private var weight: Font.Weight { medium == .manga ? .medium : .semibold }
+    private var tracking: CGFloat { medium == .manga ? -0.65 : -0.85 }
+    private var size: CGFloat { min(KuroTypeScale.current.scaled(baseSize, relativeTo: .title2), 40) }
+
     var body: some View {
-        Text(title)
-            .font(.kuroCustom(metrics.compact ? 22 : 24, weight: .medium, relativeTo: .title2, maxSize: 40))
-            .tracking(medium == .manga ? -0.65 : -0.85)
-            .foregroundStyle(Color.kuroInk)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: medium == .manga ? 210 : .infinity, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-            .padding(.top, top ?? metrics.headingTop)
-            .padding(.bottom, 17)
+        _ = dynamicTypeSize
+        let font = UIFont.systemFont(ofSize: size, weight: weight == .medium ? .medium : .semibold)
+        let space = (" " as NSString).size(withAttributes: [.font: font]).width + tracking
+        return TasteHeadingLines(wordSpacing: space, pitch: (size * 1.1).rounded()) {
+            ForEach(Array(title.split(separator: " ").enumerated()), id: \.offset) { _, word in
+                Text(String(word))
+                    .font(.kuroCustom(baseSize, weight: weight, relativeTo: .title2, maxSize: 40))
+                    .tracking(tracking)
+                    .foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: medium == .manga ? 210 : .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isHeader)
+        .padding(.top, top ?? metrics.headingTop)
+        // 17 in CSS under a 26.4 line box; SF's last line box is 2.24 pt taller, and 16⅓ puts the
+        // cards on the reference's row under one line and under two (measured at 1 px = 1 pt).
+        .padding(.bottom, 17 - 2.0 / 3.0)
+    }
+}
+
+/// Words left to right, wrapping when the next one does not fit (the browser's greedy wrap), with
+/// each line `pitch` below the one before. The block is as tall as its last line's own box, so a
+/// single-line heading keeps SF's line box and nothing is clipped.
+struct TasteHeadingLines: Layout {
+    let wordSpacing: CGFloat
+    let pitch: CGFloat
+
+    private func positions(width: CGFloat, subviews: Subviews) -> (points: [CGPoint], proposals: [ProposedViewSize], size: CGSize) {
+        var points: [CGPoint] = [], proposals: [ProposedViewSize] = []
+        var x: CGFloat = 0, row = 0, lastHeight: CGFloat = 0, widest: CGFloat = 0
+        for subview in subviews {
+            let natural = subview.sizeThatFits(.unspecified)
+            let proposal = natural.width > width ? ProposedViewSize(width: width, height: nil) : ProposedViewSize(natural)
+            let size = natural.width > width ? subview.sizeThatFits(proposal) : natural
+            if x > 0 && x + size.width > width {
+                x = 0
+                row += 1
+            }
+            points.append(CGPoint(x: x, y: CGFloat(row) * pitch))
+            proposals.append(proposal)
+            x += size.width + wordSpacing
+            widest = max(widest, x - wordSpacing)
+            lastHeight = size.height
+        }
+        return (points, proposals, CGSize(width: widest, height: CGFloat(row) * pitch + lastHeight))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? .greatestFiniteMagnitude
+        return positions(width: width, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let laid = positions(width: bounds.width, subviews: subviews)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + laid.points[index].x, y: bounds.minY + laid.points[index].y),
+                          anchor: .topLeading, proposal: laid.proposals[index])
+        }
     }
 }
 
@@ -841,14 +1059,14 @@ struct TasteStoryList: View {
                 }
             }
         } else if medium == .manga {
-            Grid(horizontalSpacing: metrics.mangaColumnSpacing, verticalSpacing: 28) {
+            VStack(alignment: .leading, spacing: 28) {
                 ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { index in
-                    GridRow(alignment: .top) {
+                    TasteLeafRowLayout(spacing: metrics.mangaColumnSpacing) {
                         TasteLeafCard(card: cards[index], metrics: metrics)
                         if index + 1 < cards.count {
                             TasteLeafCard(card: cards[index + 1], metrics: metrics)
                         } else {
-                            Color.clear.gridCellUnsizedAxes([.vertical])
+                            Color.clear
                         }
                     }
                 }
@@ -868,10 +1086,46 @@ struct TasteStoryList: View {
     }
 }
 
+/// A row of two manga leaves on whole points, as the browser snaps the prototype's `164.5px 164.5px`
+/// grid (165 and 164 at 390): the first column takes the extra half point, so both frames' borders
+/// fall on the pixel grid instead of straddling it. Both leaves take the row's height, so their Plan
+/// keys stay level.
+struct TasteLeafRowLayout: Layout {
+    let spacing: CGFloat
+
+    func columns(_ total: CGFloat) -> (CGFloat, CGFloat) {
+        let lead = max(0, ((total - spacing) / 2).rounded(.up))
+        return (lead, max(0, total - spacing - lead))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let total = proposal.width ?? 346
+        let (lead, trail) = columns(total)
+        var height: CGFloat = 0
+        for (subview, width) in zip(subviews, [lead, trail]) {
+            height = max(height, subview.sizeThatFits(ProposedViewSize(width: width, height: nil)).height)
+        }
+        return CGSize(width: total, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let (lead, trail) = columns(bounds.width)
+        for (index, subview) in subviews.prefix(2).enumerated() {
+            let x = index == 0 ? bounds.minX : bounds.minX + lead + spacing
+            subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: index == 0 ? lead : trail, height: bounds.height))
+        }
+    }
+}
+
 /// Story-card text roles (PROTOTYPE_SPEC.md §4 "Taste").
 private enum TasteType {
-    static let kindInk = Color(hex: "626B63")
-    static let premiseInk = Color(hex: "575C59")
+    /// The kind kicker and the premise are a step darker than the prototype's `#626b63` / `#575c59`:
+    /// iOS draws the 8–12 pt strokes thinner than the browser the references were captured in (a 3x
+    /// device capture, block-averaged, carries about 20% less ink than the reference at the same
+    /// colour), so the slightly deeper ink keeps the line's weight (FIDELITY_REVIEW round 3).
+    static let kindInk = Color(hex: "5A635B")
+    static let premiseInk = Color(hex: "4F5451")
 
     static func kind(_ text: String, size: CGFloat, tracking: CGFloat) -> some View {
         Text(text)
@@ -881,9 +1135,11 @@ private enum TasteType {
             .lineLimit(1)
     }
 
+    /// Titles are w550 in every card: `.semibold`, the system's nearest weight that keeps the
+    /// reference's glyph width (w500 sets them about 2% narrow).
     static func title(_ text: String, size: CGFloat, tracking: CGFloat) -> some View {
         Text(KuroCardText.sanitizeTitleForCard(text))
-            .font(.kuroCustom(size, weight: .medium, relativeTo: .title2, maxSize: size * 1.6))
+            .font(.kuroCustom(size, weight: .semibold, relativeTo: .title2, maxSize: size * 1.6))
             .tracking(tracking)
             .foregroundStyle(Color.kuroInk)
             .lineLimit(3)
@@ -891,12 +1147,61 @@ private enum TasteType {
     }
 
     static func premise(_ text: String, size: CGFloat, lineSpacing: CGFloat) -> some View {
-        Text(text)
-            .font(.kuroCustom(size, relativeTo: .footnote, maxSize: size * 1.8))
-            .lineSpacing(lineSpacing)
-            .foregroundStyle(premiseInk)
-            .lineLimit(4)
+        TastePremiseText(text: text, baseSize: size, lineSpacing: lineSpacing, ink: UIColor(premiseInk), lineLimit: 4)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// A premise wrapped as the prototype's browser wraps it: each line takes every word that fits.
+/// iOS's standard line-break strategy pushes a word down to avoid a one-word last line ("… in each /
+/// other's lives."), which SwiftUI `Text` cannot turn off; a label with `lineBreakStrategy = []` sets
+/// "… in each other's / lives." on the same 29ch measure (FIDELITY_REVIEW FR-B). Same face, size,
+/// scaling (`KuroTypeScale`, footnote, at most 1.8 ×), line spacing and ink as the `Text` it replaces.
+struct TastePremiseText: UIViewRepresentable {
+    let text: String
+    let baseSize: CGFloat
+    let lineSpacing: CGFloat
+    let ink: UIColor
+    let lineLimit: Int
+
+    /// Re-sets the label when the text size changes.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.backgroundColor = .clear
+        label.lineBreakStrategy = []
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.setContentHuggingPriority(.required, for: .vertical)
+        return label
+    }
+
+    func updateUIView(_ label: UILabel, context: Context) {
+        _ = dynamicTypeSize
+        label.attributedText = Self.attributed(text, size: fontSize, lineSpacing: lineSpacing, ink: ink)
+        label.numberOfLines = lineLimit
+        label.lineBreakMode = .byTruncatingTail
+        label.lineBreakStrategy = []
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView label: UILabel, context: Context) -> CGSize? {
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? 10_000
+        label.preferredMaxLayoutWidth = width
+        let fit = label.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? ceil(fit.width), height: ceil(fit.height))
+    }
+
+    private var fontSize: CGFloat {
+        min(KuroTypeScale.current.scaled(baseSize, relativeTo: .footnote), baseSize * 1.8)
+    }
+
+    static func attributed(_ text: String, size: CGFloat, lineSpacing: CGFloat, ink: UIColor) -> NSAttributedString {
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = lineSpacing
+        style.lineBreakMode = .byWordWrapping
+        style.lineBreakStrategy = []
+        return NSAttributedString(string: text, attributes: [.font: UIFont.systemFont(ofSize: size), .foregroundColor: ink,
+                                                             .paragraphStyle: style])
     }
 }
 
@@ -904,9 +1209,11 @@ private enum TasteType {
 private struct TasteArt: View {
     let url: String?
     var fill: Bool = false
+    /// The well behind a contained cover: `#f0f0ed` on the anime cards, white inside the manga leaf.
+    var well: Color = Color(hex: "F0F0ED")
 
     var body: some View {
-        Color(hex: "F0F0ED")
+        well
             .overlay {
                 KuroCachedAsyncImage(url: url.flatMap(URL.init(string:)), maxPixelSize: 520) { phase in
                     switch phase {
@@ -1066,12 +1373,18 @@ private struct TastePortraitCard: View {
 }
 
 /// The white story-card face and its soft drop (`0 4px 14px -11px #14222540`), behind the content so
-/// the text never carries the shadow.
+/// the text never carries the shadow. The −11 spread is a shadow cast by a shape 11 pt smaller on
+/// every side (blur 14, so radius 7), so the drop shows under the card only, never at its sides.
 private struct TasteCardFace: View {
     var body: some View {
-        RoundedRectangle(cornerRadius: 19, style: .continuous)
-            .fill(Color.white)
-            .shadow(color: Color(hex: "142225").opacity(0.14), radius: 4, y: 4)
+        ZStack {
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .fill(Color.white)
+                .padding(11)
+                .shadow(color: Color(hex: "142225", opacity: Double(0x40) / 255), radius: 7, y: 4)
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .fill(Color.white)
+        }
     }
 }
 
@@ -1080,30 +1393,45 @@ private struct TasteLeafCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @Environment(\.tasteGerman) private var germanOverride
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             TasteOpenButton(card: card) {
                 VStack(alignment: .leading, spacing: 0) {
-                    TasteArt(url: card.media.imageURL)
-                        .padding(9)
-                        .aspectRatio(2 / 3, contentMode: .fit)
+                    // `.story-art`: white, a 1 pt #d9dbd3 border, then 9 pt padding (the border is drawn
+                    // inside the frame, so the cover sits 10 pt in), the cover contained on white.
+                    TasteArt(url: card.media.imageURL, well: .white)
+                        .padding(10)
+                        .modifier(TasteLeafArtSize(height: dynamicTypeSize.isAccessibilitySize ? nil : metrics.leafArtHeight))
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 2, style: .continuous)
                             .strokeBorder(Color(hex: "D9DBD3"), lineWidth: 1))
                         .background(alignment: .topLeading) {
-                            // The leaf behind the cover (`2px 2px 0 #e1e3da`).
-                            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                .fill(Color(hex: "E1E3DA"))
-                                .offset(x: 2, y: 2)
+                            // The leaf behind the cover (`#fafbf6 2px 2px 0 -1px, #e1e3da 2px 2px 0 0`):
+                            // a 1 pt light line against the border, then the 1 pt #e1e3da edge.
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                    .fill(Color(hex: "E1E3DA"))
+                                    .offset(x: 2, y: 2)
+                                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                    .fill(Color(hex: "FAFBF6"))
+                                    .padding(1)
+                                    .offset(x: 2, y: 2)
+                            }
                         }
                     VStack(alignment: .leading, spacing: 0) {
                         if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
                                                          german: germanOverride ?? KuroLocale.isGerman) {
                             TasteType.kind(kind, size: 9, tracking: 0.2)
                         }
+                        // SF's own line boxes are shorter than the prototype's (kind 10.7 against 12.6,
+                        // premise lines 13.1 against 15.95): the copy starts 14 pt under the frame (13 in
+                        // CSS) and the key sits 14 pt under the copy (12), so the kicker, title, premise
+                        // and key land on the reference's rows (measured).
                         TasteType.title(card.media.title, size: metrics.compact ? 18 : 20, tracking: -0.5)
                             .padding(.top, 7)
                         if let premise = card.premise {
@@ -1112,8 +1440,8 @@ private struct TasteLeafCard: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 13)
-                    .padding(.bottom, 12)
+                    .padding(.top, 14)
+                    .padding(.bottom, 14)
                 }
             }
             Spacer(minLength: 0)
@@ -1286,7 +1614,8 @@ struct TasteFooter: View {
                 .accessibilityHidden(true)
         }
         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 18))
-        .foregroundStyle(Color.kuroMuted)
+        // A step deeper than `kuroMuted` (#696c6b), for the same reason as `TasteType.premiseInk`.
+        .foregroundStyle(Color(hex: "606362"))
         .padding(.horizontal, 22)
         .padding(.top, 20)
         .padding(.bottom, 28)

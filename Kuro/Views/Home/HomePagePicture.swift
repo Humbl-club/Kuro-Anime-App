@@ -1,5 +1,6 @@
 import KuroCore
 import SwiftUI
+import UIKit
 
 /// The one Home field: mountain when the shelf is empty (or nothing is in progress), the first
 /// in-progress title's art when it is not.
@@ -57,17 +58,10 @@ struct HomePagePicture: View {
     }
 }
 
-/// The selected medium word's fill (LANE_AMENDMENTS 7, PROTOTYPE_SPEC.md §4 / §8.9): the lead title's
-/// artwork clipped into the letters, under the prototype's scrim `linear-gradient(#15221c15, #15221c38)`.
-///
-/// Contrast floor: no colour channel of the fill is lighter than `HomeMediumWordInk.floor`, which is
-/// darker than the unselected word (`#6e786f`), so pale art never erases the selected word's strokes
-/// and the selection never reads lighter than the other word. Darker art passes through untouched (a
-/// per-channel darken toward ink, not a wash). The prototype paints the artwork's cover in the word
-/// (`assets/anime1.jpg` for the anime lead), so both media use the cover.
-///
-/// Without a title in progress the word takes the prototype's own fill `#253a2a` (`.solid`); the empty
-/// shelf keeps its mountain (`.mountain`, the invitation's picture).
+/// The selected medium word's fill (LANE_AMENDMENTS 7, PROTOTYPE_SPEC.md §4 / §8.9) for Home's lead
+/// title: `KuroArtWordFill` over its cover. Without a title in progress the word takes the prototype's
+/// own fill `#253a2a` (`.solid`); the invitation (an empty medium beside an occupied one) keeps its
+/// mountain (`.mountain`, the page picture behind it).
 struct HomePagePictureFill: View {
     enum Fallback { case solid, mountain }
 
@@ -84,23 +78,44 @@ struct HomePagePictureFill: View {
     }
 }
 
-/// The medium word's artwork fill for one artwork (Home's lead title, Taste's first pick): the cover
-/// under the prototype's scrim, darkened per channel to `HomeMediumWordInk.floor` so it never reads
-/// lighter than the unselected word. `raw` nil: the prototype's solid `#253a2a`, or the mountain.
+/// The medium word's artwork fill for one artwork (Home's lead title, the first story-card pick on Taste
+/// and on the new-account Home): the artwork as it is, under the prototype's scrim
+/// `linear-gradient(#15221c15, #15221c38)` on its `#253a2a` fallback.
+///
+/// Contrast floor (adaptive): when the band of the art the word shows is lighter on average than
+/// `HomeMediumWordInk.targetLuma`, the whole fill is darkened by one uniform factor
+/// (`HomeMediumWordInk.artMultiplier`) until it is not, so the selected word never reads lighter than
+/// the unselected `#6e786f`. A uniform factor keeps the art's hue and range (the prototype's art stays
+/// recognisable); art already dark enough is left as it is. `raw` nil: the solid `#253a2a`, or the
+/// mountain.
 struct KuroArtWordFill: View {
     let raw: String?
     var fallback: HomePagePictureFill.Fallback = .solid
 
+    @Environment(\.displayScale) private var displayScale
+    @State private var art: UIImage?
+    @State private var multiplier: Double = 1
+
     var body: some View {
         if let raw {
             ZStack {
-                HomeMediumWordInk.floor.color
-                remote(raw).blendMode(.darken)
+                HomeInk.switchUnlit
+                if let art {
+                    Image(uiImage: art)
+                        .resizable()
+                        .scaledToFill()
+                    // Non-linear (sRGB) compositing: black at 1 − k scales every encoded channel by k.
+                    Color.black.opacity(1 - multiplier)
+                    // Highlights only: no channel lighter than the ceiling, so a white sky or page in
+                    // the band never erases a stroke; darker and saturated art passes through.
+                    HomeMediumWordInk.highlightCeiling.color.blendMode(.darken)
+                }
                 LinearGradient(colors: [HomeMediumWordInk.scrimTop, HomeMediumWordInk.scrimBottom],
                                startPoint: .top, endPoint: .bottom)
             }
             // Blend inside the fill only, never against what sits behind the word.
             .compositingGroup()
+            .task(id: raw) { await load(raw) }
         } else if fallback == .mountain {
             Image("KuroZenMountains")
                 .resizable()
@@ -112,19 +127,19 @@ struct KuroArtWordFill: View {
         }
     }
 
-    @ViewBuilder
-    private func remote(_ raw: String) -> some View {
-        if let url = URL(string: raw), !raw.isEmpty {
-            KuroCachedAsyncImage(url: url, maxPixelSize: 800) { phase in
-                if case .success(let image) = phase {
-                    image.resizable().scaledToFill()
-                } else {
-                    HomeInk.switchUnlit
-                }
-            }
-        } else {
-            HomeInk.switchUnlit
+    /// The artwork from the shared pipeline (the same 800 pt bucket the other covers use), and the
+    /// factor its word band needs.
+    private func load(_ raw: String) async {
+        guard let url = URL(string: raw), !raw.isEmpty else {
+            art = nil
+            multiplier = 1
+            return
         }
+        let image = await ImagePipeline.shared.image(url: url, maxPixelSize: 800 * max(1, Int(displayScale)))
+        guard !Task.isCancelled else { return }
+        multiplier = HomeMediumWordInk.artMultiplier(
+            meanLuma: image?.cgImage.flatMap { HomeMediumWordInk.meanLuma(of: $0, wordAspect: HomeMediumWordInk.wordAspect) })
+        art = image
     }
 }
 
@@ -169,6 +184,9 @@ struct KuroPosterMediumSwitch<Fill: View>: View {
     private func word(_ value: MediaKind, title: String, stacked: Bool) -> some View {
         let selected = selection == value
         let size = KuroMediumSwitch.wordSize(for: .large, containerWidth: contentWidth)
+        // The prototype's narrow phones (≤ 360) set the 30 pt word 4 pt lower in the same row, so the
+        // words sit 19 pt above the rule there (17 at 36 pt).
+        let wordTop: CGFloat = size < 36 ? 8 : 4
         let lettering = Text(title)
             .kuroMediumWordStyle(size: size)
             .lineLimit(1)
@@ -186,16 +204,19 @@ struct KuroPosterMediumSwitch<Fill: View>: View {
                             fill.mask(lettering)
                         }
                     }
-                    .padding(.top, 4)
+                    .padding(.top, wordTop)
                 Spacer(minLength: 4)
                 // A fixed rule that fades in place on the hairline: it never travels between the words.
+                // Its bottom row is the hairline's row (`ref-home-new-anime-390.png` rows 133–134 over
+                // hairline row 134), so the two overlap into one 2 pt stroke.
                 Rectangle()
                     .fill(HomeInk.switchMark)
                     .frame(width: 28, height: 2)
                     .opacity(selected ? 1 : 0)
             }
-            .frame(maxWidth: .infinity, minHeight: stacked ? 52 : 56, alignment: .leading)
-            .padding(.bottom, 1)
+            // 58 pt from the top of the row to the hairline's foot (the 57 pt control plus the 1 pt the
+            // rule shares with the hairline).
+            .frame(maxWidth: .infinity, minHeight: stacked ? 53 : 58, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())
@@ -205,14 +226,64 @@ struct KuroPosterMediumSwitch<Fill: View>: View {
     }
 }
 
-/// The medium word's inks (pure values, pinned by `HomeAnimeLaneTests`).
+/// The medium word's inks and its adaptive contrast floor (pure values, pinned by
+/// `HomeAnimeLaneTests` and `HomeFirstRunRound2Tests`).
 enum HomeMediumWordInk {
-    /// The unselected word, `#6e786f`.
-    static let unselected = KuroRGB(0x6E / 255, 0x78 / 255, 0x6F / 255)
-    /// The art fill's ceiling: every channel of the selected word is at most this light. Darker than
-    /// `unselected`, so the selected word is always at least as legible on the canvas.
-    static let floor = KuroRGB(0x64 / 255, 0x6D / 255, 0x65 / 255)
+    /// The unselected word, `#6e786f` (sRGB luma about 0.455).
+    nonisolated static let unselected = KuroRGB(0x6E / 255, 0x78 / 255, 0x6F / 255)
+    /// The lightest mean sRGB luma (Rec. 601, 0…1) the word's art band may have before the scrim.
+    /// The prototype's selected word reads about 92 / 255 against the unselected word's 128 (letter
+    /// pixels in `ref-home-new-anime-390.png`), a gap of about 36 levels: at 0.33 a pale cover (the
+    /// Your Name sky, a white manga page) lands there too, so the selected word stays the dark, heavy
+    /// word of the pair. Art already darker passes through untouched.
+    nonisolated static let targetLuma: Double = 0.33
+    /// The lightest any channel of the art may be (`#8e938c`, luma about 0.57): a white sky or page in
+    /// the band never reads lighter than the unselected word's lighter strokes, so no letter shows a
+    /// pale patch, while saturated mid-tones keep their hue.
+    nonisolated static let highlightCeiling = KuroRGB(0x8E / 255, 0x93 / 255, 0x8C / 255)
+    /// The selected word's box is about three times as wide as it is tall (107 × 36 at 390).
+    nonisolated static let wordAspect: Double = 3
     /// The prototype's scrim over the artwork: `#15221c15` → `#15221c38`.
     static let scrimTop = Color(hex: "15221C", opacity: Double(0x15) / 255)
     static let scrimBottom = Color(hex: "15221C", opacity: Double(0x38) / 255)
+
+    /// The uniform factor for art whose word band has mean luma `meanLuma`: 1 for art at or below the
+    /// target (or unknown), else the factor that brings the mean to the target.
+    nonisolated static func artMultiplier(meanLuma: Double?) -> Double {
+        guard let meanLuma, meanLuma > targetLuma else { return 1 }
+        return targetLuma / meanLuma
+    }
+
+    /// Mean sRGB luma (0…1) of the centred band of `image` that a word `wordAspect` times as wide as it
+    /// is tall shows (`scaledToFill`). Nil when the image cannot be read.
+    nonisolated static func meanLuma(of image: CGImage, wordAspect: Double) -> Double? {
+        let width = Double(image.width), height = Double(image.height)
+        guard width > 0, height > 0, wordAspect > 0 else { return nil }
+        let band: CGRect
+        if width / height < wordAspect {
+            let bandHeight = width / wordAspect
+            band = CGRect(x: 0, y: (height - bandHeight) / 2, width: width, height: bandHeight)
+        } else {
+            let bandWidth = height * wordAspect
+            band = CGRect(x: (width - bandWidth) / 2, y: 0, width: bandWidth, height: height)
+        }
+        guard let cropped = image.cropping(to: band.integral) else { return nil }
+        let sampleWidth = 24, sampleHeight = 8
+        var pixels = [UInt8](repeating: 0, count: sampleWidth * sampleHeight * 4)
+        let drawn: Bool = pixels.withUnsafeMutableBytes { raw in
+            guard let context = CGContext(data: raw.baseAddress, width: sampleWidth, height: sampleHeight,
+                                          bitsPerComponent: 8, bytesPerRow: sampleWidth * 4,
+                                          space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.interpolationQuality = .medium
+            context.draw(cropped, in: CGRect(x: 0, y: 0, width: sampleWidth, height: sampleHeight))
+            return true
+        }
+        guard drawn else { return nil }
+        var total = 0.0
+        for index in stride(from: 0, to: pixels.count, by: 4) {
+            total += 0.299 * Double(pixels[index]) + 0.587 * Double(pixels[index + 1]) + 0.114 * Double(pixels[index + 2])
+        }
+        return total / Double(sampleWidth * sampleHeight) / 255
+    }
 }
