@@ -2,7 +2,7 @@
 // and volume placeholders, authors, tags, characters, staff and source-owned
 // relations. Anime mapping stays in bulk-import-anime; the row shapes differ.
 
-import { preserveExistingColumns } from "../bulk-import-anime/mapping.ts";
+import { characterAge, preserveExistingColumns } from "../bulk-import-anime/mapping.ts";
 
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
 
@@ -165,7 +165,7 @@ export async function processMangaItem(
       const edge = manga.staff.edges[i];
       const { data: au, error: e } = await supabase
         .from('authors')
-        .upsert({ anilist_id: person.id, name_full: person.name?.full, name_native: person.name?.native, image_large: person.image?.large, description: person.description, primary_occupations: person.primaryOccupations }, { onConflict: 'anilist_id' })
+        .upsert({ anilist_id: person.id, name_full: person.name?.full, name_native: person.name?.native, image_large: person.image?.large, description: person.description }, { onConflict: 'anilist_id' })
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'authors upsert error:') || !au) continue;
@@ -197,7 +197,7 @@ export async function processMangaItem(
       const edge = manga.characters.edges[i];
       const { data: ch, error: e } = await supabase
         .from('characters')
-        .upsert({ anilist_id: char.id, name_full: char.name?.full, name_native: char.name?.native, image_large: char.image?.large, description: char.description, gender: char.gender, age: char.age }, { onConflict: 'anilist_id' })
+        .upsert({ anilist_id: char.id, name_full: char.name?.full, name_native: char.name?.native, image_large: char.image?.large, description: char.description, gender: char.gender, age: characterAge(char.age) }, { onConflict: 'anilist_id' })
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'characters upsert error:') || !ch) continue;

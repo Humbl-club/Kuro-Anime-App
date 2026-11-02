@@ -561,3 +561,14 @@ Deno.test("AniList page depth: a cursor at the limit wraps to page 1 without a r
   assert.equal(cursor(db), 0);
   assert.equal(db.lockHeld.size, 0);
 });
+
+import { characterAge } from "../bulk-import-anime/mapping.ts";
+
+Deno.test("character age: only a plain whole number is stored (AniList ages are free text)", () => {
+  assert.equal(characterAge("17"), 17);
+  assert.equal(characterAge(" 30 "), 30);
+  assert.equal(characterAge(16), 16);
+  for (const raw of ["17-18", "16+", "15 (Past) 18 (Present)", "", null, undefined, "abc", 1.5, -3, "99999999999"]) {
+    assert.equal(characterAge(raw), null, `"${raw}" is not a plain age`);
+  }
+});

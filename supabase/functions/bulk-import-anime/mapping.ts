@@ -14,6 +14,14 @@ function noteOptionalFailure(results: { errors: number }, error: unknown, label:
 }
 
 // Storage-mirrored image URLs (written by mirror-images) are never replaced by the AniList URL.
+// AniList character ages are free text ("17", "17-18", "16+", "15 (Past) 18 (Present)");
+// characters.age is an integer, so only a plain whole number is stored.
+export function characterAge(raw: unknown): number | null {
+  const text = typeof raw === 'number' ? String(raw) : typeof raw === 'string' ? raw.trim() : '';
+  if (!/^\d{1,5}$/.test(text)) return null;
+  return Number(text);
+}
+
 export function isMirroredImageUrl(value: unknown): boolean {
   return typeof value === 'string' && value.includes('/storage/v1/');
 }
@@ -234,7 +242,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
       const edge = anime.characters.edges[i];
       const { data: ch, error: e } = await supabase
         .from('characters')
-        .upsert({ anilist_id: char.id, name_full: char.name?.full, name_native: char.name?.native, image_large: char.image?.large, description: char.description, gender: char.gender, age: char.age }, { onConflict: 'anilist_id' })
+        .upsert({ anilist_id: char.id, name_full: char.name?.full, name_native: char.name?.native, image_large: char.image?.large, description: char.description, gender: char.gender, age: characterAge(char.age) }, { onConflict: 'anilist_id' })
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'characters upsert error:') || !ch) continue;
