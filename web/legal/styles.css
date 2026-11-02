@@ -81,3 +81,36 @@ footer.site a { color: var(--ink-2); }
   .draft, nav.site, .langswitch { display: none; }
   body { background: #fff; }
 }
+/* Contact form (kontakt.html). No inline styles: the CSP allows only this stylesheet. */
+.h1-en { color: var(--ink-3); font-weight: 400; }
+form.contact { margin: 24px 0 0; display: grid; gap: 18px; }
+form.contact .field { display: grid; gap: 6px; }
+form.contact label { font-weight: 600; font-size: 15px; }
+form.contact .optional, form.contact label span[lang="en"] { font-weight: 400; color: var(--ink-2); }
+form.contact input[type="email"], form.contact input[type="text"], form.contact select, form.contact textarea {
+  font: 16px/1.5 var(--sans); color: var(--ink); background: #fff;
+  border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; min-height: 44px; width: 100%;
+}
+form.contact textarea { resize: vertical; min-height: 180px; }
+form.contact input:focus-visible, form.contact select:focus-visible, form.contact textarea:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 1px; border-color: var(--ink);
+}
+form.contact [aria-invalid="true"] { border-color: var(--ink); border-width: 2px; }
+form.contact .field-check { grid-template-columns: 24px 1fr; align-items: start; gap: 10px; }
+form.contact .field-check input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--ink); }
+form.contact .field-check label { font-weight: 400; font-size: 15px; }
+form.contact .field-hint { margin: 0; color: var(--ink-3); font-size: 13px; }
+form.contact .field-error { margin: 0; font-size: 14px; font-weight: 600; }
+form.contact .field-error::before { content: "! "; }
+.hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+.submit {
+  justify-self: start; min-height: 48px; min-width: 200px; padding: 0 28px;
+  font: 600 16px/1 var(--sans); color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 999px; cursor: pointer;
+}
+.submit:disabled { opacity: 0.45; cursor: progress; }
+.submit:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+/* Reserved height: status messages never move the page. */
+.form-status { min-height: 6.5em; margin: 0; font-size: 15px; color: var(--ink-2); }
+.form-status.is-success { color: var(--ink); font-weight: 600; }
+.form-status.is-error { color: var(--ink); }
