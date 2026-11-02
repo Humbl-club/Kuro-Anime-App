@@ -149,16 +149,54 @@ enum AuthorRoleFilter: String, CaseIterable, EntityOptionTitled {
     }
 }
 
-// MARK: - Character Detail Sheet
+// MARK: - Journey pages (navigation contract, docs/superpowers/specs/2026-11-02-navigation-contract-design.md)
+//
+// Character, staff, studio and author pages are JOURNEY PAGES (`JourneyPage.character/.staff/.studio/
+// .author`, built by `JourneyPageView` in JourneyHost.swift). Open them with
+// `routes.openCharacter/openStaff/openStudio/openAuthor(...)`; never build them inside a `.sheet`.
+//   - No NavigationStack of their own inside a journey (`KuroJourneyAwareStack` adds one only while a
+//     legacy sheet still presents them outside a journey) and no Close button of their own: back (when
+//     pushed), ✕ (closes the whole journey, N3) and the shrinking header (H1–H3) come from
+//     `.kuroJourneyChrome`, which also keeps edge swipe-back working (N2).
+//   - Every work card pushes its title inside the journey (`KuroCompactCard` → `routes.openMedia`; N5
+//     pops back when the title is already in the stack).
+//   - The page keeps what it loaded while it stays in the stack (Back never reloads it).
+//   - `.routePresenter()` forwards to the journey; outside one (a legacy sheet) it opens a new journey.
+
+/// Where the shrinking header starts and how far it runs, per hero shape.
+enum EntityPageCollapse {
+    /// Circle-portrait hero (character, staff, author): the bar fades in while the name, below the
+    /// 120 pt portrait, passes under it.
+    static let portraitStart: CGFloat = 140
+    /// Name-only hero (studio): the bar fades in while the display-size name passes under it.
+    static let nameOnlyStart: CGFloat = 24
+    /// The fade's length in points of scroll.
+    static let distance: CGFloat = 60
+}
+
+private extension View {
+    /// The journey page frame every entity page shares: content below the 52 pt chrome, scroll-tied
+    /// shrinking header, the chrome itself.
+    func entityJourneyPage(title: String, collapse: Binding<CGFloat>, start: CGFloat) -> some View {
+        self
+            .kuroCollapseTracking(collapse, start: start, distance: EntityPageCollapse.distance)
+            .background(Color.kuroBackground)
+            .kuroJourneyChrome(title: title, collapseProgress: collapse.wrappedValue)
+    }
+}
+
+// MARK: - Character page
 
 struct CharacterDetailSheet: View {
     let character: Character
-    @Environment(\.dismiss) private var dismiss
     @Environment(CatalogStore.self) private var catalog
     @State private var works: [Media] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
     @State private var mediaFilter: CharacterMediaFilter = .all
+    @State private var collapse: CGFloat = 0
+
+    private var name: String { character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
 
     private var availableMediaFilters: [CharacterMediaFilter] {
         var filters: [CharacterMediaFilter] = [.all]
@@ -168,14 +206,7 @@ struct CharacterDetailSheet: View {
     }
 
     private var filteredWorks: [Media] {
-        switch mediaFilter {
-        case .all:
-            return works
-        case .anime:
-            return works.filter { $0.kind == .anime }
-        case .manga:
-            return works.filter { $0.kind == .manga }
-        }
+        works.filter { EntityWorks.matches($0.kind, filter: mediaFilter) }
     }
 
     private var sortedWorks: [Media] {
@@ -196,14 +227,13 @@ struct CharacterDetailSheet: View {
     }
 
     var body: some View {
-        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
         KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     EntityHeroSection(
                         imageURL: character.imageLarge,
                         isCircle: true,
-                        name: character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman),
+                        name: name,
                         nameNative: character.nameNative,
                         metadataLines: characterMetadata
                     )
@@ -230,22 +260,18 @@ struct CharacterDetailSheet: View {
                     )
                 }
                 .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.vertical, KuroSpacing.lg)
+                .padding(.top, KuroJourneyChrome.barHeight)
+                .padding(.bottom, KuroSpacing.lg)
             }
-            .background(Color.kuroBackground)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    DetailSheetCloseButton { dismiss() }
-                }
-            }
+            .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.portraitStart)
         }
         .task {
+            // Back to this page keeps what it loaded (no "Loading…" flash, no second read).
+            guard isLoading else { return }
             works = await catalog.fetchMediaByCharacter(characterId: character.id)
             isLoading = false
         }
-        // This entity sheet's own presentation context: its work cards open their routes here.
+        // Forwards to the journey (pushes); outside one, the work cards open a new journey here.
         .routePresenter()
     }
 
@@ -266,25 +292,37 @@ struct CharacterDetailSheet: View {
     }
 }
 
-// MARK: - Staff Detail Sheet
+// MARK: - Staff page
 
 struct StaffDetailSheet: View {
     let staff: Staff
-    @Environment(\.dismiss) private var dismiss
     @Environment(CatalogStore.self) private var catalog
     @State private var works: [(media: Media, role: String)] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
     @State private var roleFilter: StaffRoleFilter = .all
+    @State private var mediaFilter: CharacterMediaFilter = .all
+    @State private var collapse: CGFloat = 0
+
+    private var name: String { staff.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
+
+    /// All / Anime / Manga, only when the filmography spans both (`EntityWorks.mediumFilters`).
+    private var availableMediaFilters: [CharacterMediaFilter] {
+        EntityWorks.mediumFilters(for: works.map(\.media.kind))
+    }
 
     private var availableRoleFilters: [StaffRoleFilter] {
-        let categories = Set(works.compactMap { StaffRoleFilter.from(role: $0.role) })
+        let categories = Set(mediumFilteredWorks.compactMap { StaffRoleFilter.from(role: $0.role) })
         return [.all] + StaffRoleFilter.allCases.filter { $0 != .all && categories.contains($0) }
     }
 
+    private var mediumFilteredWorks: [(media: Media, role: String)] {
+        works.filter { EntityWorks.matches($0.media.kind, filter: mediaFilter) }
+    }
+
     private var filteredWorks: [(media: Media, role: String)] {
-        guard roleFilter != .all else { return works }
-        return works.filter { StaffRoleFilter.from(role: $0.role) == roleFilter }
+        guard roleFilter != .all else { return mediumFilteredWorks }
+        return mediumFilteredWorks.filter { StaffRoleFilter.from(role: $0.role) == roleFilter }
     }
 
     private var sortedWorks: [(media: Media, role: String)] {
@@ -304,21 +342,40 @@ struct StaffDetailSheet: View {
         }
     }
 
+    private var railSubtitle: String {
+        if roleFilter != .all { return KuroLocale.text("Filtered by role", "Nach Rolle gefiltert") }
+        switch mediaFilter {
+        case .all: return KuroLocale.text("All credited anime and manga work", "Alle Anime und Manga mit Nennung")
+        case .anime: return KuroLocale.text("Credited anime work", "Anime mit Nennung")
+        case .manga: return KuroLocale.text("Credited manga work", "Manga mit Nennung")
+        }
+    }
+
     var body: some View {
-        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
         KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     EntityHeroSection(
                         imageURL: staff.imageLarge,
                         isCircle: true,
-                        name: staff.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman),
+                        name: name,
                         nameNative: staff.nameNative,
                         metadataLines: [],
                         occupations: staff.primaryOccupations
                     )
 
-                    EntitySectionLead(text: KuroLocale.text("Filter this filmography by craft, rating, year or era.", "Filmografie nach Bereich, Wertung, Jahr oder Epoche filtern."))
+                    EntitySectionLead(text: KuroLocale.text("Filter this filmography by medium, craft, rating, year or era.", "Filmografie nach Medium, Bereich, Wertung, Jahr oder Epoche filtern."))
+
+                    if !availableMediaFilters.isEmpty {
+                        EntityFilterBar(
+                            options: availableMediaFilters,
+                            selected: mediaFilter
+                        ) { option in
+                            mediaFilter = option
+                            // A role the new medium does not have would leave the rail empty.
+                            if !availableRoleFilters.contains(roleFilter) { roleFilter = .all }
+                        }
+                    }
 
                     if availableRoleFilters.count > 1 {
                         EntityFilterBar(
@@ -331,45 +388,40 @@ struct StaffDetailSheet: View {
 
                     EntityWorksRail(
                         title: KuroLocale.text("Filmography", "Filmografie"),
-                        subtitle: roleFilter == .all
-                            ? KuroLocale.text("All credited anime work", "Alle Anime mit Nennung")
-                            : KuroLocale.text("Filtered by role", "Nach Rolle gefiltert"),
+                        subtitle: railSubtitle,
                         items: sortedWorks.map { (media: $0.media, role: $0.role as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
                     )
                 }
                 .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.vertical, KuroSpacing.lg)
+                .padding(.top, KuroJourneyChrome.barHeight)
+                .padding(.bottom, KuroSpacing.lg)
             }
-            .background(Color.kuroBackground)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    DetailSheetCloseButton { dismiss() }
-                }
-            }
+            .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.portraitStart)
         }
         .task {
-            works = await catalog.fetchAnimeByStaff(staffId: staff.id)
+            guard isLoading else { return }
+            // Anime (`anime_staff`) and manga (`manga_staff`): an "Original work" credit reaches the manga.
+            works = await catalog.fetchStaffWorks(staffId: staff.id)
             isLoading = false
         }
-        // This entity sheet's own presentation context: its work cards open their routes here.
         .routePresenter()
     }
 }
 
-// MARK: - Author Detail Sheet
+// MARK: - Author page
 
 struct AuthorDetailSheet: View {
     let author: Author
-    @Environment(\.dismiss) private var dismiss
     @Environment(CatalogStore.self) private var catalog
     @State private var works: [(media: Media, role: String)] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
     @State private var roleFilter: AuthorRoleFilter = .all
+    @State private var collapse: CGFloat = 0
+
+    private var name: String { author.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
 
     private var availableRoleFilters: [AuthorRoleFilter] {
         let categories = Set(works.compactMap { AuthorRoleFilter.from(role: $0.role) })
@@ -399,14 +451,13 @@ struct AuthorDetailSheet: View {
     }
 
     var body: some View {
-        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
         KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     EntityHeroSection(
                         imageURL: author.imageLarge,
                         isCircle: true,
-                        name: author.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman),
+                        name: name,
                         nameNative: author.nameNative,
                         metadataLines: []
                     )
@@ -433,35 +484,31 @@ struct AuthorDetailSheet: View {
                     )
                 }
                 .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.vertical, KuroSpacing.lg)
+                .padding(.top, KuroJourneyChrome.barHeight)
+                .padding(.bottom, KuroSpacing.lg)
             }
-            .background(Color.kuroBackground)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    DetailSheetCloseButton { dismiss() }
-                }
-            }
+            .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.portraitStart)
         }
         .task {
+            guard isLoading else { return }
             works = await catalog.fetchMangaByAuthor(authorId: author.id)
             isLoading = false
         }
-        // This entity sheet's own presentation context: its work cards open their routes here.
         .routePresenter()
     }
 }
 
-// MARK: - Studio Detail Sheet
+// MARK: - Studio page
 
 struct StudioDetailSheet: View {
     let studio: Studio
-    @Environment(\.dismiss) private var dismiss
     @Environment(CatalogStore.self) private var catalog
     @State private var works: [Media] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
+    @State private var collapse: CGFloat = 0
+
+    private var name: String { studio.name ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
 
     private var sortedWorks: [Media] {
         switch sortMode {
@@ -481,15 +528,15 @@ struct StudioDetailSheet: View {
     }
 
     var body: some View {
-        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
         KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     VStack(spacing: KuroSpacing.sm) {
-                        Text((studio.name ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased())
+                        Text(name.uppercased())
                             .font(.kuroDisplay())
                             .foregroundColor(.kuroBlack80)
                             .multilineTextAlignment(.center)
+                            .accessibilityAddTraits(.isHeader)
 
                         if studio.isAnimationStudio == true {
                             Text(KuroLocale.text("ANIMATION STUDIO", "ANIMATIONSSTUDIO"))
@@ -517,22 +564,16 @@ struct StudioDetailSheet: View {
                     )
                 }
                 .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.vertical, KuroSpacing.lg)
+                .padding(.top, KuroJourneyChrome.barHeight)
+                .padding(.bottom, KuroSpacing.lg)
             }
-            .background(Color.kuroBackground)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    DetailSheetCloseButton { dismiss() }
-                }
-            }
+            .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.nameOnlyStart)
         }
         .task {
+            guard isLoading else { return }
             works = await catalog.fetchAnimeByStudio(studioId: studio.id)
             isLoading = false
         }
-        // This entity sheet's own presentation context: its work cards open their routes here.
         .routePresenter()
     }
 }
