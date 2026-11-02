@@ -37,6 +37,8 @@ Every placeholder is shown on the pages as a yellow `[BRACKETED]` mark. None of 
 | `[prüfen und je Empfänger festlegen: DPF-Zertifizierung …]` | datenschutz §7 | For each of Groq, Supabase Inc. and Vercel: DPF certification (check dataprivacyframework.gov) and/or signed SCCs |
 | `[prüfen: Anteil direkt geladener Bilder …]` | datenschutz §4.10 | Whether all cover images are mirrored to Supabase Storage. If they are, the AniList-CDN sentence can be removed. |
 | `[vor Veröffentlichung gegen die produktive Konfiguration prüfen]` | datenschutz §8 | Retention periods are migration defaults (`concierge_housekeeping`, `purge_outbound_link_events`). Confirm them against the live `concierge_config`. |
+| `[prüfen: Ausführungsregion der Edge Functions …]` | datenschutz §3 | Supabase Edge Functions run near the caller by default; no `x-region` pinning was found in the app. Either pin them to eu-central-1 or keep the wording. |
+| `[prüfen: kürzere Frist festlegen]` | datenschutz §8 | `discover_rail_impressions` (titles shown in Discover) has no time-based purge, only deletion with the account. Decide on a retention period. |
 | `[rechtlich prüfen: Einordnung unter § 25 Abs. 2 Nr. 2 TDDDG …]` | datenschutz §5 | The offline analytics-event queue on the device: decide whether it is "strictly necessary" or needs consent |
 | `[KÜNDIGUNGSFRIST …]` | nutzungsbedingungen §12 | Ordinary notice period for termination by the provider |
 | `[rechtlich prüfen: Haftungsmaßstab …]` | nutzungsbedingungen §11 | Liability clause for a free service (§§ 521, 599 BGB analog; § 307, § 309 Nr. 7 BGB) |

@@ -78,7 +78,7 @@ Telefon: <mark class="ph">[TELEFON]</mark>
 </ul>
 
 <h2 id="de-3">3. Hosting und Speicherort</h2>
-<p>Das Backend von Kuro (Datenbank, Anmeldung, Dateispeicher und Server-Funktionen) betreiben wir bei <strong>Supabase, Inc.</strong> (<mark class="ph">[ANSCHRIFT SUPABASE laut Auftragsverarbeitungsvertrag]</mark>) als Auftragsverarbeiter (Art. 28 DSGVO). Unser Projekt ist in der Region <strong>eu-central-1 (Frankfurt am Main)</strong> gehostet; Supabase nutzt dafür Infrastruktur von Amazon Web Services. Zu möglichen Zugriffen aus Drittländern siehe <a href="#de-7">Abschnitt 7</a>.</p>
+<p>Das Backend von Kuro (Datenbank, Anmeldung, Dateispeicher und Server-Funktionen) betreiben wir bei <strong>Supabase, Inc.</strong> (<mark class="ph">[ANSCHRIFT SUPABASE laut Auftragsverarbeitungsvertrag]</mark>) als Auftragsverarbeiter (Art. 28 DSGVO). Unsere Datenbank, die Anmeldung und der Dateispeicher liegen in der Region <strong>eu-central-1 (Frankfurt am Main)</strong>; Supabase nutzt dafür Infrastruktur von Amazon Web Services. Server-Funktionen (Edge Functions) werden von Supabase standardmäßig in einem Rechenzentrum nahe dem Nutzer ausgeführt, für Nutzer in Europa in der Regel in der EU. <mark class="ph">[prüfen: Ausführungsregion der Edge Functions; ggf. auf eu-central-1 festlegen]</mark> Zu möglichen Zugriffen aus Drittländern siehe <a href="#de-7">Abschnitt 7</a>.</p>
 
 <h2 id="de-4">4. Verarbeitungen im Einzelnen</h2>
 
@@ -111,7 +111,7 @@ Telefon: <mark class="ph">[TELEFON]</mark>
 <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Erbringung der von Ihnen angefragten Funktion); für den Zwischenspeicher und Feedback zur Verbesserung der Treffer Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an schnellen, treffenden Empfehlungen).</p>
 
 <h3 id="de-4-5">4.5 Persönliche Empfehlungen und Geschmacksprofil</h3>
-<p>Aus Ihrer Sammlung, Ihren Bewertungen und Ihren Reaktionen im Bereich „Taste“ (z. B. „mag ich / mag ich nicht“) berechnen wir ein Geschmacksprofil, um Ihnen passendere Titel zu zeigen und bereits gesehene Titel seltener vorzuschlagen.</p>
+<p>Aus Ihrer Sammlung, Ihren Bewertungen und Ihren Reaktionen im Bereich „Taste“ (z. B. „mag ich / mag ich nicht“) berechnen wir ein Geschmacksprofil, um Ihnen passendere Titel zu zeigen. Außerdem speichern wir, welche Titel Ihnen im Bereich „Entdecken“ (z. B. „Neu für dich“) bereits angezeigt wurden, damit Sie dort abwechselnd neue Titel sehen.</p>
 <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO, da personalisierte Entdeckung ein Kernbestandteil von Kuro ist. Es finden keine automatisierten Entscheidungen mit rechtlicher oder ähnlich erheblicher Wirkung statt (Art. 22 DSGVO).</p>
 
 <h3 id="de-4-6">4.6 Private Clubs und Aktivität unter Freunden</h3>
@@ -120,7 +120,7 @@ Telefon: <mark class="ph">[TELEFON]</mark>
 <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO. Aggregierte Club-Nutzungsdaten werten wir zur Verbesserung der Funktion aus (Art. 6 Abs. 1 lit. f DSGVO).</p>
 
 <h3 id="de-4-7">4.7 Erinnerungen an Veröffentlichungen</h3>
-<p>Erinnerungen an neue Folgen oder Kapitel plant Kuro als lokale Mitteilungen auf Ihrem Gerät, nachdem Sie dies in den iOS-Einstellungen erlaubt haben. Wir verwenden keine Push-Token und senden keine Mitteilungen über einen Server. Veröffentlichungstermine stammen aus unserem Katalog (siehe <a href="/#quellen">Datenquellen</a>).</p>
+<p>Erinnerungen an neue Folgen oder Kapitel plant Kuro als lokale Mitteilungen auf Ihrem Gerät, nachdem Sie dies in den iOS-Einstellungen erlaubt haben. Wir verwenden keine Push-Token und senden keine Mitteilungen über einen Server. Veröffentlichungstermine stammen aus unserem Katalog (siehe <a href="/#quellen">Datenquellen</a>). Welche Titel Sie verfolgen, wissen wir bereits aus Ihrer Sammlung (Art. 6 Abs. 1 lit. b DSGVO); die Planung der Mitteilungen selbst findet nur auf Ihrem Gerät statt. Sie können Mitteilungen jederzeit in den iOS-Einstellungen abschalten.</p>
 
 <h3 id="de-4-8">4.8 Nutzungsstatistik (eigene Auswertung)</h3>
 <p><strong>Daten:</strong> Ihre Nutzerkennung, der Name eines Ereignisses (z. B. Concierge-Anfrage gestellt, Ergebnis angezeigt), der App-Bereich, das Ergebnis, die Dauer in Millisekunden, die Sprache und der Regionscode Ihres Geräts (z. B. „DE“) sowie Zeitpunkte; außerdem, wenn Sie einen Link zu einem externen Anbieter (z. B. Streaming- oder Lese-Dienst) antippen, welcher Titel und welcher Anbieter das war. Der Inhalt Ihrer Notizen oder Kommentare ist nicht Teil dieser Ereignisse. Ohne Verbindung werden Ereignisse kurz auf dem Gerät zwischengespeichert; bei Abmeldung oder Kontowechsel werden zwischengespeicherte Ereignisse des bisherigen Kontos verworfen.</p>
@@ -164,7 +164,7 @@ Telefon: <mark class="ph">[TELEFON]</mark>
 <table>
 <thead><tr><th>Empfänger</th><th>Zweck</th><th>Rolle / Ort</th></tr></thead>
 <tbody>
-<tr><td>Supabase, Inc. (mit Unterauftragsverarbeitern, u. a. Amazon Web Services)</td><td>Datenbank, Anmeldung, Server-Funktionen, Speicher, Passwort-E-Mails</td><td>Auftragsverarbeiter; Hosting in Frankfurt (EU)</td></tr>
+<tr><td>Supabase, Inc. (mit Unterauftragsverarbeitern, u. a. Amazon Web Services)</td><td>Datenbank, Anmeldung, Server-Funktionen, Speicher, Passwort-E-Mails</td><td>Auftragsverarbeiter; Datenbank in Frankfurt (EU), Server-Funktionen nutzernah (siehe 3)</td></tr>
 <tr><td>Groq, Inc.</td><td>Optionale Begleittexte zu Empfehlungen; ggf. Klärung mehrdeutiger Importzeilen</td><td>Auftragsverarbeiter; USA</td></tr>
 <tr><td>Vercel Inc.</td><td>Hosting dieser Website</td><td>Auftragsverarbeiter; USA / globales Netz</td></tr>
 <tr><td>Apple Inc. / Apple Distribution International Ltd.</td><td>Mit Apple anmelden, App Store, TestFlight</td><td>Eigener Verantwortlicher; Irland / USA</td></tr>
@@ -189,6 +189,9 @@ Telefon: <mark class="ph">[TELEFON]</mark>
 <tr><td>Konto, Sammlung, Notizen, Clubs, Kommentare, Geschmacksprofil</td><td>bis zur Löschung durch Sie bzw. bis zur Löschung des Kontos</td></tr>
 <tr><td>Abgeschlossene Importvorgänge</td><td>30 Tage nach Abschluss</td></tr>
 <tr><td>Concierge-Anfragen (Verlauf)</td><td>60 Tage</td></tr>
+<tr><td>Zwischenspeicher erkannter Concierge-Anfragen</td><td>30 Tage</td></tr>
+<tr><td>Zähler der KI-Nutzung pro Tag (Kontingent)</td><td>90 Tage</td></tr>
+<tr><td>Bereits angezeigte Titel in „Entdecken“</td><td>bis zur Löschung des Kontos <mark class="ph">[prüfen: kürzere Frist festlegen]</mark></td></tr>
 <tr><td>Rückmeldungen zur Texterkennung</td><td>14 Tage</td></tr>
 <tr><td>Nutzungsereignisse, Antippen externer Links, Club-Nutzungsdaten</td><td>90 Tage</td></tr>
 <tr><td>Rückmeldungen zu Suchtreffern</td><td>180 Tage</td></tr>
@@ -198,7 +201,7 @@ Telefon: <mark class="ph">[TELEFON]</mark>
 </table>
 </div>
 <p class="note">Die Fristen entsprechen der aktuellen Konfiguration unseres Backends. <mark class="ph">[vor Veröffentlichung gegen die produktive Konfiguration prüfen]</mark></p>
-<p><strong>Konto löschen:</strong> Sie können Ihr Konto jederzeit in der App unter <em>Profil → Konto löschen</em> löschen. Dabei löschen wir Ihr Konto und alle damit verknüpften Daten (Sammlung, Notizen, Importe, Concierge-Daten, Kommentare, Reaktionen, Stimmen, Nutzungsereignisse). Clubs, deren Eigentümer Sie sind, werden an ein anderes Mitglied übertragen oder, wenn keines mehr vorhanden ist, gelöscht. Inhalte, die Sie in Clubs eingebracht haben (z. B. hinzugefügte Titel oder erstellte Umfragen), bleiben für die übrigen Mitglieder erhalten, sind aber nicht mehr Ihnen zugeordnet. Haben Sie sich mit Apple angemeldet, widerrufen wir dabei auch die Verknüpfung mit Ihrer Apple-ID. Ein technischer Löschvermerk (ohne Inhalte) bleibt bis zu sieben Tage bestehen, damit nach der Löschung keine Daten mehr nachgeschrieben werden können. Auf Ihrem Gerät gespeicherte Daten entfernen Sie, indem Sie die App löschen.</p>
+<p><strong>Konto löschen:</strong> Sie können Ihr Konto jederzeit in der App unter <em>Profil → Konto löschen</em> löschen. Dabei löschen wir Ihr Konto und alle damit verknüpften Daten (Sammlung, Notizen, Importe, Concierge-Daten, Kommentare, Reaktionen, Stimmen, Nutzungsereignisse). Clubs, deren Eigentümer Sie sind, werden an ein anderes Mitglied übertragen oder, wenn keines mehr vorhanden ist, gelöscht. Inhalte, die Sie in Clubs eingebracht haben (z. B. hinzugefügte Titel oder erstellte Umfragen), bleiben für die übrigen Mitglieder erhalten, sind aber nicht mehr Ihnen zugeordnet. Haben Sie sich mit Apple angemeldet, versuchen wir dabei auch, die Verknüpfung mit Ihrer Apple-ID bei Apple zu widerrufen; Sie können sie zusätzlich in den Einstellungen Ihrer Apple-ID entfernen. Ein technischer Löschvermerk (ohne Inhalte) bleibt bis zu sieben Tage bestehen, damit nach der Löschung keine Daten mehr nachgeschrieben werden können. Auf Ihrem Gerät gespeicherte Daten entfernen Sie, indem Sie die App löschen.</p>
 
 <h2 id="de-9">9. Ihre Rechte</h2>
 <p>Sie haben nach der DSGVO das Recht auf</p>
@@ -218,7 +221,7 @@ Telefon: <mark class="ph">[TELEFON]</mark>
 <p><strong>Soweit wir Daten auf Grundlage berechtigter Interessen verarbeiten (Art. 6 Abs. 1 lit. f DSGVO, insbesondere die Nutzungsstatistik in Abschnitt 4.8), können Sie dieser Verarbeitung jederzeit aus Gründen, die sich aus Ihrer besonderen Situation ergeben, widersprechen.</strong> Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die Ihre Interessen überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Wir nutzen Ihre Daten nicht für Direktwerbung. Ein formloser Widerspruch an <mark class="ph">[E-MAIL]</mark> genügt.</p>
 </div>
 
-<p><strong>Widerruf einer Einwilligung:</strong> Soweit eine Verarbeitung auf Ihrer Einwilligung beruht (Art. 6 Abs. 1 lit. a DSGVO, z. B. iOS-Berechtigung für Mitteilungen oder die freiwillige Kontoverbindung mit MyAnimeList), können Sie diese jederzeit mit Wirkung für die Zukunft widerrufen – etwa in den iOS-Einstellungen, durch Trennen der Verbindung in der App oder per E-Mail. Die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung bleibt unberührt.</p>
+<p><strong>Einwilligung und Widerruf:</strong> Derzeit stützen wir keine Verarbeitung auf eine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Freiwillige Funktionen wie die Verbindung mit MyAnimeList oder Erinnerungen können Sie jederzeit in der App bzw. in den iOS-Einstellungen beenden. Sollten wir künftig um Ihre Einwilligung bitten, können Sie diese jederzeit mit Wirkung für die Zukunft widerrufen; die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung bleibt unberührt.</p>
 <p><strong>Beschwerde:</strong> Sie können sich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), insbesondere in dem EU-Mitgliedstaat Ihres Aufenthaltsorts, Ihres Arbeitsplatzes oder des mutmaßlichen Verstoßes. Für uns zuständig ist: <mark class="ph">[ZUSTÄNDIGE AUFSICHTSBEHÖRDE]</mark>.</p>
 
 <h2 id="de-10">10. Pflicht zur Bereitstellung, Profiling</h2>
@@ -283,7 +286,7 @@ Phone: <mark class="ph">[TELEFON]</mark>
 </ul>
 
 <h2 id="en-3">3. Hosting and location</h2>
-<p>Kuro’s backend (database, sign-in, file storage and server functions) runs on <strong>Supabase, Inc.</strong> (<mark class="ph">[ANSCHRIFT SUPABASE laut Auftragsverarbeitungsvertrag]</mark>) as our processor (Art. 28 GDPR). Our project is hosted in the region <strong>eu-central-1 (Frankfurt am Main)</strong> on Amazon Web Services infrastructure. For possible access from third countries see <a href="#en-7">section 7</a>.</p>
+<p>Kuro’s backend (database, sign-in, file storage and server functions) runs on <strong>Supabase, Inc.</strong> (<mark class="ph">[ANSCHRIFT SUPABASE laut Auftragsverarbeitungsvertrag]</mark>) as our processor (Art. 28 GDPR). Our database, sign-in and file storage are located in the region <strong>eu-central-1 (Frankfurt am Main)</strong> on Amazon Web Services infrastructure. Server functions (Edge Functions) are by default run by Supabase in a data centre close to the user, for users in Europe usually in the EU. <mark class="ph">[prüfen: Ausführungsregion der Edge Functions; ggf. auf eu-central-1 festlegen]</mark> For possible access from third countries see <a href="#en-7">section 7</a>.</p>
 
 <h2 id="en-4">4. Processing in detail</h2>
 
@@ -316,7 +319,7 @@ Phone: <mark class="ph">[TELEFON]</mark>
 <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR (providing the feature you request); for the cache and feedback used to improve results, Art. 6(1)(f) GDPR (legitimate interest in fast, relevant recommendations).</p>
 
 <h3 id="en-4-5">4.5 Personal recommendations and taste profile</h3>
-<p>From your collection, your ratings and your reactions in “Taste” (e.g. like / dislike) we calculate a taste profile to show you better-matching titles and to suggest titles you have already seen less often.</p>
+<p>From your collection, your ratings and your reactions in “Taste” (e.g. like / dislike) we calculate a taste profile to show you better-matching titles. We also store which titles you have already been shown in Discover (e.g. “New to you”) so that you see fresh titles there.</p>
 <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR, as personalised discovery is a core part of Kuro. There is no automated decision-making with legal or similarly significant effects (Art. 22 GDPR).</p>
 
 <h3 id="en-4-6">4.6 Private clubs and friend activity</h3>
@@ -325,7 +328,7 @@ Phone: <mark class="ph">[TELEFON]</mark>
 <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR. We analyse aggregated club usage to improve the feature (Art. 6(1)(f) GDPR).</p>
 
 <h3 id="en-4-7">4.7 Release reminders</h3>
-<p>Reminders for new episodes or chapters are scheduled as local notifications on your device after you allow them in iOS settings. We use no push tokens and send no notifications from a server. Release dates come from our catalogue (see <a href="/#sources">data sources</a>).</p>
+<p>Reminders for new episodes or chapters are scheduled as local notifications on your device after you allow them in iOS settings. We use no push tokens and send no notifications from a server. Release dates come from our catalogue (see <a href="/#sources">data sources</a>). We already know which titles you follow from your collection (Art. 6(1)(b) GDPR); the notifications themselves are scheduled only on your device. You can turn them off at any time in iOS settings.</p>
 
 <h3 id="en-4-8">4.8 Usage statistics (first-party)</h3>
 <p><strong>Data:</strong> your user ID, the name of an event (e.g. Concierge request made, result shown), the app area, the outcome, the duration in milliseconds, your device’s language and region code (e.g. “DE”) and timestamps; also, when you tap a link to an external provider (e.g. a streaming or reading service), which title and which provider. The content of your notes or comments is not part of these events. Offline, events are briefly queued on the device; on sign-out or account switch, queued events of the previous account are discarded.</p>
@@ -369,7 +372,7 @@ Phone: <mark class="ph">[TELEFON]</mark>
 <table>
 <thead><tr><th>Recipient</th><th>Purpose</th><th>Role / location</th></tr></thead>
 <tbody>
-<tr><td>Supabase, Inc. (with sub-processors including Amazon Web Services)</td><td>Database, sign-in, server functions, storage, password emails</td><td>Processor; hosting in Frankfurt (EU)</td></tr>
+<tr><td>Supabase, Inc. (with sub-processors including Amazon Web Services)</td><td>Database, sign-in, server functions, storage, password emails</td><td>Processor; database in Frankfurt (EU), server functions close to the user (see 3)</td></tr>
 <tr><td>Groq, Inc.</td><td>Optional recommendation blurbs; clarifying ambiguous import lines where enabled</td><td>Processor; USA</td></tr>
 <tr><td>Vercel Inc.</td><td>Hosting this website</td><td>Processor; USA / global network</td></tr>
 <tr><td>Apple Inc. / Apple Distribution International Ltd.</td><td>Sign in with Apple, App Store, TestFlight</td><td>Separate controller; Ireland / USA</td></tr>
@@ -394,6 +397,9 @@ Phone: <mark class="ph">[TELEFON]</mark>
 <tr><td>Account, collection, notes, clubs, comments, taste profile</td><td>until you delete them or delete your account</td></tr>
 <tr><td>Completed import sessions</td><td>30 days after completion</td></tr>
 <tr><td>Concierge request history</td><td>60 days</td></tr>
+<tr><td>Cache of recognised Concierge requests</td><td>30 days</td></tr>
+<tr><td>Daily AI usage counters (quota)</td><td>90 days</td></tr>
+<tr><td>Titles already shown in Discover</td><td>until account deletion <mark class="ph">[prüfen: kürzere Frist festlegen]</mark></td></tr>
 <tr><td>Text-recognition feedback</td><td>14 days</td></tr>
 <tr><td>Usage events, external link taps, club usage data</td><td>90 days</td></tr>
 <tr><td>Search-result feedback</td><td>180 days</td></tr>
@@ -403,7 +409,7 @@ Phone: <mark class="ph">[TELEFON]</mark>
 </table>
 </div>
 <p class="note">These periods reflect the current configuration of our backend. <mark class="ph">[vor Veröffentlichung gegen die produktive Konfiguration prüfen]</mark></p>
-<p><strong>Deleting your account:</strong> you can delete your account at any time in the app under <em>Profile → Delete account</em>. We then delete your account and all data linked to it (collection, notes, imports, Concierge data, comments, reactions, votes, usage events). Clubs you own are transferred to another member or, if none remains, deleted. Content you contributed to clubs (e.g. titles added or polls created) remains available to the other members but is no longer attributed to you. If you signed in with Apple, we also revoke the link to your Apple ID. A technical deletion marker (without content) remains for up to seven days so that no data can be written after the deletion. Data stored on your device is removed by deleting the app.</p>
+<p><strong>Deleting your account:</strong> you can delete your account at any time in the app under <em>Profile → Delete account</em>. We then delete your account and all data linked to it (collection, notes, imports, Concierge data, comments, reactions, votes, usage events). Clubs you own are transferred to another member or, if none remains, deleted. Content you contributed to clubs (e.g. titles added or polls created) remains available to the other members but is no longer attributed to you. If you signed in with Apple, we also try to revoke the link to your Apple ID with Apple; you can additionally remove it in your Apple ID settings. A technical deletion marker (without content) remains for up to seven days so that no data can be written after the deletion. Data stored on your device is removed by deleting the app.</p>
 
 <h2 id="en-9">9. Your rights</h2>
 <p>Under the GDPR you have the right to</p>
@@ -423,7 +429,7 @@ Phone: <mark class="ph">[TELEFON]</mark>
 <p><strong>Where we process data on the basis of legitimate interests (Art. 6(1)(f) GDPR, in particular the usage statistics in section 4.8), you may object to this processing at any time on grounds relating to your particular situation.</strong> We will then stop processing unless we can demonstrate compelling legitimate grounds that override your interests, or the processing serves the establishment, exercise or defence of legal claims. We do not use your data for direct marketing. An informal objection to <mark class="ph">[E-MAIL]</mark> is enough.</p>
 </div>
 
-<p><strong>Withdrawing consent:</strong> where processing is based on your consent (Art. 6(1)(a) GDPR, e.g. the iOS permission for notifications or the optional MyAnimeList connection), you can withdraw it at any time with effect for the future – in iOS settings, by disconnecting in the app or by email. This does not affect the lawfulness of processing before the withdrawal.</p>
+<p><strong>Consent and withdrawal:</strong> we currently do not base any processing on consent (Art. 6(1)(a) GDPR). You can end optional features such as the MyAnimeList connection or reminders at any time in the app or in iOS settings. If we ask for your consent in future, you can withdraw it at any time with effect for the future; this does not affect the lawfulness of processing before the withdrawal.</p>
 <p><strong>Complaints:</strong> you may lodge a complaint with a data protection supervisory authority (Art. 77 GDPR), in particular in the EU member state of your habitual residence, place of work or the alleged infringement. The authority responsible for us is: <mark class="ph">[ZUSTÄNDIGE AUFSICHTSBEHÖRDE]</mark>.</p>
 
 <h2 id="en-10">10. Obligation to provide data, profiling</h2>
