@@ -202,3 +202,27 @@ struct NavshellTests {
         #expect(OnboardingStep.allCases == [.medium, .list, .clubs])
     }
 }
+
+@Suite("Pager tap gate: a swipe that starts on a card never opens it (N9)")
+@MainActor
+struct PagerTapGateTests {
+    @Test("While the pager is mid-swipe every open and tool is dropped; afterwards they pass")
+    func gatedRoutes() {
+        var shown: [String] = []
+        let base = KuroRoutes { shown.append($0.id) }
+        let gate = KuroPagerTapGate()
+        let routes = base.gated(by: gate)
+
+        gate.isSuppressed = true
+        routes.openMedia(MediaRoute(kind: .anime, id: 117))
+        routes.openClub("c1")
+        routes.openBrowse()
+        routes.presentAddToClub(MediaKey(kind: .manga, id: 2))
+        #expect(shown.isEmpty)
+
+        gate.isSuppressed = false
+        routes.openMedia(MediaRoute(kind: .anime, id: 117))
+        routes.openClub("c1")
+        #expect(shown == ["media:anime:117", "club:c1"])
+    }
+}

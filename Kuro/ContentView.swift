@@ -183,6 +183,8 @@ struct KuroMainView: View {
     /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
     @State private var rootSize: CGSize = .zero
     @State private var suppressCardTaps = false
+    /// The same suppression, read by the pages' routes at tap time (`KuroPagerTapGate`).
+    @State private var pagerTapGate = KuroPagerTapGate()
     @State private var tapSuppressionResetTask: Task<Void, Never>? = nil
     @State private var didTrackSuppressionThisGesture = false
     @State private var didApplyStartArgument = false
@@ -284,6 +286,7 @@ struct KuroMainView: View {
             try? await Task.sleep(nanoseconds: delayNs)
             guard !Task.isCancelled else { return }
             suppressCardTaps = false
+            pagerTapGate.isSuppressed = false
         }
     }
 
@@ -333,6 +336,7 @@ struct KuroMainView: View {
 	                        mountedSections: $mountedSections,
 	                        order: swipeOrder,
                             suppressCardTaps: suppressCardTaps,
+                            tapGate: pagerTapGate,
                             pendingConciergePrompt: pendingConciergePrompt,
                             pendingJoinCode: $pendingJoinCode,
                             onOpenImport: { showProfileSheet = true },
@@ -443,6 +447,7 @@ struct KuroMainView: View {
                         if !suppressCardTaps {
                             suppressCardTaps = true
                         }
+                        pagerTapGate.isSuppressed = true
                         if !didTrackSuppressionThisGesture {
                             didTrackSuppressionThisGesture = true
                             interactionTelemetry.trackInteractionEvent(
@@ -498,6 +503,7 @@ struct KuroMainView: View {
 
                         guard shouldManageSuppression else {
                             suppressCardTaps = false
+                            pagerTapGate.isSuppressed = false
                             return
                         }
                         let delayNs: UInt64 = abs(predictedDx) > 220 ? 280_000_000 : 120_000_000
@@ -741,6 +747,8 @@ private struct KuroSectionPager: View {
     @Binding var mountedSections: Set<Section>
     let order: [Section]
     let suppressCardTaps: Bool
+    /// Drops page opens while the pager is mid-swipe (navigation contract N9).
+    let tapGate: KuroPagerTapGate
     var pendingConciergePrompt: String?
     @Binding var pendingJoinCode: String?
     var onOpenImport: () -> Void
@@ -780,6 +788,7 @@ private struct KuroSectionPager: View {
                 }
             }
             .environment(\.kuroSuppressCardTaps, suppressCardTaps)
+            .modifier(KuroPagerTapGateModifier(gate: tapGate))
             .offset(x: (-CGFloat(selectionIndex) * width))
             .clipped()
             // Animate only when the selection changes (header-driven paging).

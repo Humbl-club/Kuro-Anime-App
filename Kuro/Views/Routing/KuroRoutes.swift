@@ -222,6 +222,39 @@ struct KuroRoutes {
     }
 }
 
+/// Whether the root pager is mid-swipe (`swipe_tap_guard_v1`), read at the moment a route fires: a
+/// horizontal swipe that starts on a card turns the page and never opens the card (navigation
+/// contract N9). The pager writes it synchronously from its drag gesture.
+final class KuroPagerTapGate {
+    var isSuppressed = false
+}
+
+extension KuroRoutes {
+    /// These routes with every open and tool dropped while `gate` is suppressed.
+    func gated(by gate: KuroPagerTapGate) -> KuroRoutes {
+        let base = self
+        var routes = self
+        routes.openMedia = { if !gate.isSuppressed { base.openMedia($0) } }
+        routes.openClub = { if !gate.isSuppressed { base.openClub($0) } }
+        routes.presentTrackingEditor = { if !gate.isSuppressed { base.presentTrackingEditor($0) } }
+        routes.presentAddToClub = { if !gate.isSuppressed { base.presentAddToClub($0) } }
+        routes.openBrowse = { if !gate.isSuppressed { base.openBrowse() } }
+        routes.openPage = { if !gate.isSuppressed { base.openPage($0) } }
+        return routes
+    }
+}
+
+/// Wraps the inherited routes once (the gate is a stable reference, so the wrapped value is rebuilt
+/// only when the routes above change).
+struct KuroPagerTapGateModifier: ViewModifier {
+    let gate: KuroPagerTapGate
+    @Environment(\.kuroRoutes) private var routes
+
+    func body(content: Content) -> some View {
+        content.environment(\.kuroRoutes, routes.gated(by: gate))
+    }
+}
+
 private struct KuroRoutesKey: EnvironmentKey {
     static let defaultValue: KuroRoutes = .unhandled
 }
