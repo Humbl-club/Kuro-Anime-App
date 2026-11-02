@@ -118,10 +118,9 @@ final class FeatureFlags {
                 lastFetchDate = Date()
                 saveToCache()
                 // The off-main library writer reads the fence: follow the server in every build,
-                // whether or not the overrides lookup below runs (Release skips it).
+                // whether or not the overrides lookup below succeeds.
                 publishRevisionFence()
-                // Tester cohort overrides (spec D14): read only in DEBUG builds, because the
-                // `feature_flag_overrides` table is prepared, not deployed live. A successful lookup
+                // Tester cohort overrides (spec D14), live since 2026-11-02. A successful lookup
                 // (rows or none) replaces the cohort; ANY failure keeps the cached cohort and never
                 // resets the bootstrap, so a missing table (PGRST205/404) cannot flip Home off.
                 if Self.readsAccountOverrides, let userId, let accountSession, let account,
@@ -196,15 +195,9 @@ final class FeatureFlags {
         #endif
     }
 
-    /// Whether this build reads `feature_flag_overrides` (spec D14: DEBUG only; the table is
-    /// prepared, not deployed live).
-    nonisolated static var readsAccountOverrides: Bool {
-        #if DEBUG
-        return true
-        #else
-        return false
-        #endif
-    }
+    /// Whether this build reads `feature_flag_overrides` (spec D14). Every build since the table went
+    /// live on 2026-11-02 (owner cohort for the series Home); a failed lookup keeps the cached cohort.
+    nonisolated static var readsAccountOverrides: Bool { true }
 
     /// What a failed overrides lookup does (spec D14). Only cancellation stops the refresh; every
     /// server or transport failure keeps the overrides already held (or, when none are, the bounded

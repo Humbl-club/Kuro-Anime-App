@@ -23,11 +23,8 @@ struct FlagOverrideToleranceTests {
         #expect(FeatureFlags.overridesFailure(for: URLError(.cancelled)) == .cancelled)
         #expect(FeatureFlags.overridesFailure(for: URLError(.timedOut)) == .keepCachedCohort)
         #expect(FeatureFlags.overridesFailure(for: DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "x"))) == .keepCachedCohort)
-        #if DEBUG
+        // The overrides table is live (2026-11-02): every build reads the account cohort.
         #expect(FeatureFlags.readsAccountOverrides)
-        #else
-        #expect(!FeatureFlags.readsAccountOverrides)
-        #endif
     }
 
     @Test("The revision fence follows a server flip without the overrides lookup (the Release path)")
