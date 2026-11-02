@@ -149,7 +149,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 214 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 219 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -19732,3 +19732,17 @@ Owner-authorized production work on project `bkdifromsqxkndnllmdj` (records: `do
 - **App:** icon M (brushed KURO on ink), App Store name "Kuro: Anime & Manga Tracker", home-screen name "Kuro". Build number 20 (`50880a3`; root `Info.plist` `CFBundleVersion` now `$(CURRENT_PROJECT_VERSION)` instead of a hardcoded 17), uploaded 13:37 CET and registered as build 20; `fastlane/Fastfile` uses API key `4Y9VLAQLQN` (`KURO_ASC_KEY_ID`). Verification before upload: 795/795 KuroTests on the owned simulator, gates PASS (local-db and live-services BLOCKED as usual).
 - **Not done:** `20261101030000_auth_hardening` (after release), series flags still 0%, legal site still preview-only, `concierge-parse` local changes not deployed.
 - Inventory unchanged by this pass: 214 app Swift files, 61 KuroTests files.
+
+### Change Log — 2 November 2026: Navigation contract foundation (local, not deployed)
+
+Shared foundation for the navigation contract (`docs/superpowers/specs/2026-11-02-navigation-contract-design.md`, CLAUDE.md Rule 5); the screen migrations follow in lanes.
+- New `Kuro/Views/Routing/KuroJourney.swift`: `JourneyPage` (media, club, character, staff, studio, author, browse, seeAll/seasonOverview/profileList/custom over `AnyJourneyPage`; equality = kind-prefixed id), pure `JourneyPolicy` (push, N5 pop-to-existing / same-top no-op, pop, tool classification) and `NavigationCollapsePolicy` (N10 order: cover first, then sheets/tool/journey, then open; same top keeps the journey).
+- New `JourneyHost.swift`: one `NavigationStack(path:)` per journey sheet, `JourneyNavigator` (path + one tool slot, N7), `\.kuroJourney` `JourneyContext` (`isPushed`, `pop`, `close`), `.kuroLeavesJourney()`, `KuroJourneyAwareStack`.
+- New `KuroJourneyChrome.swift`: `.kuroJourneyChrome(title:collapseProgress:material:)` (back when pushed, ✕, compact paper bar with hairline; Reduce Motion snaps), `.kuroCollapseTracking`, pure `KuroCollapse`, `KuroInteractivePopEnabler` (pop gesture delegate allows the edge swipe when the stack has >1 page and no transition runs; public UIKit only).
+- New `KuroNavigationCoordinator.swift`: the app root presenter `.kuroRootNavigation(_:)` (KuroRootView, replaces its `.routePresenter()`), `\.kuroNavigation`, `collapseThenOpen` / `collapseThen` / `collapseAll`, `.kuroNavigationLayer(_:kind:isPresented:)` registration.
+- New `Kuro/Views/Shared/KuroFold.swift`: `KuroFoldMemory` (session-only, held by KuroRootView, `\.kuroFoldMemory`), `KuroFoldButton` (settle easing, Reduce Motion instant, Expanded/Collapsed value).
+- `KuroRoutes.swift`: additive `AppRoute.page`, `RouteDestination.journeyPage`, `RoutePolicy.journeyPage(for:)`, `KuroRoutes.openPage` + `openCharacter/openStaff/openStudio/openAuthor`; presenters now open pages as journeys and tools as tool sheets; `.routePresenter()` inside a journey forwards (pushes) unless a legacy sheet covers the journey; new NESTING RULE in the file header.
+- `DetailCloseButton` / `DetailSheetCloseButton` close the whole journey inside one (N3); the four entity sheets use `KuroJourneyAwareStack` (no nested stack when pushed).
+- Gate `scripts/quality-gates/check_navigation.sh` registered WARN (`:0`) in `run_all.sh`; 16 offenders left for the lanes (legacy `.sheet` page builds in detail/credits/cast/adaptation/ClubsView, ClubDetailView hidden bar).
+- Verification: Debug build (owned simulator) and Release (generic iOS) with `CODE_SIGNING_ALLOWED=NO` succeeded; KuroTests 812/812 pass (new `JourneyPolicyTests`, 16 tests).
+- Inventory: 219 app Swift files (+5), 62 KuroTests files (+1).

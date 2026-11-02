@@ -263,7 +263,7 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 214 Swift files in `Kuro/`
+### iOS app — 219 Swift files in `Kuro/`
 
 Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 61 in `KuroTests/` and 3 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
@@ -340,6 +340,7 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - `ProfileFreshnessCard.swift` — profile-level provider refresh observability card
 - `AuthView.swift` — Authentication
 - Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift` (load table in each file header), `DetailSharedComponents.swift` (shared chrome), `ProviderLinkViews.swift` (provider sheet), `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`, `CastSection.swift`, `CreditsSection.swift`, `EntityDetailSheets.swift`, `AdaptationPathSection.swift` — see `docs/modules/detail-pages.md`
+- Navigation contract foundation (2026-11-02, Rule 5): `Views/Routing/KuroJourney.swift` (`JourneyPage`, `AnyJourneyPage`/`JourneyPageContent` extension point, pure `JourneyPolicy` N5 dedupe, pure `NavigationCollapsePolicy` N10), `JourneyHost.swift` (`JourneyHost`, `JourneyNavigator`, `\.kuroJourney` `JourneyContext`, `.kuroLeavesJourney()`, `KuroJourneyAwareStack`), `KuroJourneyChrome.swift` (`.kuroJourneyChrome(title:collapseProgress:material:)`, `.kuroCollapseTracking`, `KuroCollapse`, `KuroInteractivePopEnabler`), `KuroNavigationCoordinator.swift` (root presenter `.kuroRootNavigation(_:)`, `\.kuroNavigation`, `.kuroNavigationLayer`), `Views/Shared/KuroFold.swift` (`KuroFoldMemory` `\.kuroFoldMemory`, `KuroFoldButton`); gate `scripts/quality-gates/check_navigation.sh` (WARN). Tests: `KuroTests/JourneyPolicyTests.swift`
 - Routing: `Views/Routing/KuroRoutes.swift` — typed navigation outputs `EnvironmentValues.kuroRoutes` (`openMedia`, `openClub`, `presentTrackingEditor`, `presentAddToClub`), `.routePresenter()` (one route slot per presentation context), pure `RoutePolicy`. Cross-feature detail/editor/club/add-to-club sheets are opened through routes, not constructed by the caller
 - Shared cards: `Views/SharedCards/` — `CompactAnimeCard.swift`, `GridAnimeCard.swift`, `AddToClubRailSheet.swift` (connected components, kept in the app by recorded decision)
 - UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `QuickVerdictActionCard.swift`, `GenreHubView.swift` (unreferenced by grep), `CountdownTimer.swift` (`EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `PosterView.swift` and the Concierge `ComposerDock`/`ActionFooter`/`IntentDeck` were deleted as dead code on 2026-10-05)

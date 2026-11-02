@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 214 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 219 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2051,3 +2051,7 @@ A review of the contact form found weak spots, now fixed on the local branch. Sp
 ### Change Log — 2 November 2026: Going live — data flowing, contact form working, new test build
 
 The catalogue import had silently stopped in the summer because a password was sent with a typo; that is fixed and the importer now stops cleanly at AniList's 5,000-title page limit instead of failing every hour. About 150 small errors per big import run (odd character ages like "17-18", a column the authors table doesn't have) are fixed too. Next-episode times now flow in hourly, theme songs are filled in, and the first official manga chapter dates arrived (with an honest "estimated" next chapter only when the schedule is regular). The contact form is live on the website and in the app; messages are saved, and e-mail alerts start once the owner adds a Resend key. Its spam limits were tightened so nobody can block the form for others. The app has the new brushed-ink icon and goes to TestFlight as build 20.
+
+### Change Log — 2 November 2026: Groundwork for "always a way back"
+
+The app got the shared building blocks for the new navigation rules. Anything opened from a page now opens as one sheet that can hold a whole trail of pages: tapping inside it moves forward within that sheet instead of piling sheets on top of each other, opening something already in the trail jumps back to it, and the close button closes the whole trail at once. There is now one shared top bar with a back arrow and a close button that shrinks into a slim title bar while scrolling, a fix that keeps the swipe-from-the-edge back gesture working, a shared "Read more / Show less" control that remembers what you opened until the app restarts, and one place that closes everything before a link from outside opens its target. Most screens still need to be moved onto these blocks; that work follows next. A new check lists the screens that still break the rules. Nothing was deployed.

@@ -20,6 +20,7 @@ declare -a GATES=(
   "swift-packages:test_packages.sh:1"                # Packages/KuroModules swift test (host, no network)
   "architecture:check_architecture.sh:1"             # retired facade, flags injection, SDK imports, tracking-table/writer boundaries (rg)
   "branded-states:check_branded_states.sh:1"         # no stray ProgressView( in Kuro/ (prototype-fidelity Task 3; blocking since Task 10)
+  "navigation:check_navigation.sh:0"                 # navigation contract (2026-11-02): pages in journeys, chrome on hidden bars, JourneyPage pushes; WARN until the lanes reach 0
   "ios-build:build_ios.sh:1"
   "ios-test:test_ios_unit.sh:1"
 )

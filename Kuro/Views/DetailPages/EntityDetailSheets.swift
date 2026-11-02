@@ -196,7 +196,8 @@ struct CharacterDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
+        KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     EntityHeroSection(
@@ -304,7 +305,8 @@ struct StaffDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
+        KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     EntityHeroSection(
@@ -397,7 +399,8 @@ struct AuthorDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
+        KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     EntityHeroSection(
@@ -478,7 +481,8 @@ struct StudioDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        // A journey page: the journey owns the stack (no nested NavigationStack when pushed).
+        KuroJourneyAwareStack {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     VStack(spacing: KuroSpacing.sm) {

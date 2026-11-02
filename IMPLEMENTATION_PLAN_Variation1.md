@@ -1512,3 +1512,7 @@ Status: fixed locally on `kuro/prototype-fidelity`, NOT deployed. `contact-submi
 ### Change Log — 2 November 2026: Go-live
 
 Status: LIVE on `bkdifromsqxkndnllmdj`. Release schedule + songs RPCs and intake (jobs 116/117), AnimeThemes backfill, catalogue import restored (secret rotation, page-depth stop, item-error fixes), contact form (migration + `contact-submit`, secret-keyed buckets). TestFlight build 20 (prototype redesign, icon M, Contact sheet). Open: Resend e-mail alert, `20261101030000_auth_hardening` after release, series flag rollout, legal site production deploy + domain, App Store submission. Records: `docs/go-live/2026-11-02/`.
+
+### Change Log — 2 November 2026: Navigation contract foundation
+
+Status: foundation implemented locally on `kuro/prototype-fidelity`, NOT deployed. Journeys (`JourneyHost`, `JourneyPage`, `JourneyPolicy`), chrome + shrinking header, edge swipe-back fix, fold memory, root collapse coordinator (N10) and the WARN gate `check_navigation.sh` exist; screen migrations (detail, club, person pages, Search/Profile/see-all/season sheets, ContentView deep-link wiring) are open for the navigation lanes.

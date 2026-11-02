@@ -447,9 +447,11 @@ struct DetailCloseButton: View {
     var fill: Color? = nil
     var ink: Color = .white
     @Environment(\.dismiss) private var dismiss
+    /// Inside a journey ✕ closes the whole journey (navigation contract N3), never just one level.
+    @Environment(\.kuroJourney) private var journey
 
     var body: some View {
-        Button(action: dismiss.callAsFunction) {
+        Button(action: { if let journey { journey.close() } else { dismiss() } }) {
             Image(systemName: "xmark")
                 .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
                 .foregroundStyle(ink)

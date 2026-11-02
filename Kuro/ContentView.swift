@@ -34,12 +34,18 @@ struct KuroRootView: View {
     @State private var showLaunchOverlay = true
     @State private var launchOpacity: Double = 1
     @State private var launchDismissTask: Task<Void, Never>? = nil
+    /// The app root's presenter + deep-link collapse (navigation contract N10; UI state only).
+    @State private var navigation = KuroNavigationCoordinator()
+    /// The session's open/closed sections (navigation contract F3; UI state only).
+    @State private var foldMemory = KuroFoldMemory()
 
     var body: some View {
         ZStack {
             KuroMainView(pendingDeepLink: $pendingDeepLink)
-                // The app root's presentation context; KuroMainView's deep links read its routes.
-                .routePresenter()
+                // The app root's presentation context: pages open as journeys over the pager, and
+                // `\.kuroNavigation` gives KuroMainView's deep links their collapse.
+                .kuroRootNavigation(navigation)
+                .environment(\.kuroFoldMemory, foldMemory)
 
             if showLaunchOverlay {
                 KuroLaunchView()

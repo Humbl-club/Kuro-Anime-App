@@ -130,9 +130,12 @@ private extension String {
 /// ink, with a 44 pt target.
 struct DetailSheetCloseButton: View {
     let action: () -> Void
+    /// Inside a journey "Close" closes the whole journey (navigation contract N3) instead of `action`
+    /// (call sites pass `dismiss`, which only pops a pushed page).
+    @Environment(\.kuroJourney) private var journey
 
     var body: some View {
-        Button(action: action) {
+        Button(action: { if let journey { journey.close() } else { action() } }) {
             Text(KuroLocale.text("Close", "Schließen"))
                 .font(.kuroMeta(weight: .medium))
                 .foregroundStyle(Color.kuroInk)

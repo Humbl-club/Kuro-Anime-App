@@ -1,39 +1,42 @@
 import KuroCore
 import SwiftUI
 
-// MARK: - Typed navigation outputs (E5 route migration)
+// MARK: - Typed navigation outputs (E5 route migration; journeys since 2026-11-02)
 //
 // A feature view does not construct a sibling feature's detail or sheet. It emits a typed route to
 // the nearest presenter through the environment:
 //
 //     @Environment(\.kuroRoutes) private var routes
-//     routes.openMedia(MediaRoute(media.libraryKey))
+//     routes.openMedia(MediaRoute(media.libraryKey))      // or openClub / openCharacter / openPage(...)
+//     routes.presentTrackingEditor(TrackingEditorRequest(media: media))   // a tool
 //
-// `.routePresenter()` owns the presentation: one route slot and one `.sheet(item:)` per presentation
-// context, which builds `MediaDetailSheet` / `AnimeDetailView` / `MangaDetailView` (Catalog),
-// `ClubDetailView` (Clubs), `AddToListSheet` (tracking editor) and `AddToClubRailSheet` (Clubs).
-// The mapping and the identity rule are pure (`RoutePolicy`, unit-tested in RoutingTests).
+// Routes are of two kinds (navigation contract, docs/superpowers/specs/2026-11-02-navigation-contract-
+// design.md): PAGES (a title, a club, a person, a studio, the catalogue, a lane page: `JourneyPage`,
+// KuroJourney.swift) and TOOLS (tracking editor, add to club). The pure mapping is `RoutePolicy`
+// (unit-tested in RoutingTests) and `JourneyPolicy` (JourneyPolicyTests).
 //
-// NESTING RULE. SwiftUI presents a sheet only from the topmost presentation context. Before the
-// migration every leaf presented from its own position, i.e. on top of whatever context it sat in.
-// To keep that, EVERY presentation context that contains a routed leaf installs its own presenter;
-// the environment then resolves a leaf to the presenter of its own context. A leaf inside a sheet
-// WITHOUT its own presenter would resolve to the presenter of the context below, which is already
-// presenting that sheet, and nothing would appear (no diagnostic can see this: the default below
-// only catches a missing root presenter). Presenters installed today:
+// NESTING RULE (journeys, 2026-11-02). There is ONE way to show a page: inside a journey.
 //
-//   app root ............ KuroRootView (ContentView.swift), around KuroMainView (deep links read it)
-//   search sheet ........ EditorialSearchView
-//   concierge sheets .... the two sheet sites (ContentView, ProfileView), around ConciergeView
-//                         (the pager page uses the app root presenter)
-//   "see all" sheets .... FullSectionView, FullMangaSectionView
-//   club detail ......... ClubDetailView (deep link and ClubsView's own sheet)
-//   media detail ........ AnimeDetailView, MangaDetailView (loader, Concierge and in-detail paths)
-//   entity sheets ....... CharacterDetailSheet, StaffDetailSheet, StudioDetailSheet, AuthorDetailSheet
-//   browse sheet ........ BrowseRouteSheet (this file), around BrowseView (spec D2)
+//   - Outside a journey (a pager page, the app root, a page-level sheet that is not a journey yet), the
+//     nearest `.routePresenter()` opens a page as a NEW journey sheet (`JourneyHost` with that page as
+//     its root) and a tool as a tool sheet. The app root's presenter is `.kuroRootNavigation(_:)`
+//     (KuroRootView), which also owns deep-link collapse (`KuroNavigationCoordinator`, N10).
+//   - Inside a journey, `\.kuroRoutes` PUSHES pages onto the journey's stack (N5 dedupe: an open page
+//     is popped to, the top is never pushed again) and presents tools from the host's single tool slot
+//     over the current page (N7). `.routePresenter()` inside a journey is a FORWARDER: existing call
+//     sites keep compiling and simply hand their routes to the journey. Only while something covers the
+//     journey (a legacy page-local `.sheet` that has not been migrated yet) does it present its own
+//     journey sheet on top, exactly as before, so a tap is never swallowed under a sheet.
+//   - Never build a detail/club/person view inside `.sheet(...)`; never wrap a page in its own
+//     `NavigationStack` (use `KuroJourneyAwareStack`, which adds a stack only outside a journey).
+//   - A page-local sheet that shows routed content of its own and should NOT push into the journey
+//     behind it applies `.kuroLeavesJourney()` to its content (the host's tool sheets already do).
+//   - Pages draw their back chevron and ✕ with `.kuroJourneyChrome(title:collapseProgress:material:)`
+//     (KuroJourneyChrome.swift), which also keeps edge swipe-back working (N2).
 //
-// Adding a sheet whose content shows a routed leaf (any card below, a search row, a rail item, the
-// detail action bar) means adding `.routePresenter()` at that sheet's root.
+// Presenters installed today: the app root (`.kuroRootNavigation`), and the `.routePresenter()` sites
+// listed by `grep -rn "routePresenter()" Kuro` (Search, Concierge, Profile import, see-all sheets, club
+// detail, the detail pages, entity pages, Home's season overview). Inside a journey they forward.
 
 /// A catalog title to open in its detail sheet.
 struct MediaRoute {
@@ -82,6 +85,8 @@ enum AppRoute: Identifiable {
     /// The full catalogue with filters (`BrowseView`) as a sheet. The series-home pager has no
     /// Browse page, so Discover and Search open it through this route (spec D2).
     case browse
+    /// Any journey page (characters, staff, studios, authors, lane pages): `KuroRoutes.openPage`.
+    case page(JourneyPage)
 
     /// Kind-prefixed identity: `anime 7` and `manga 7` are different routes, and a title's detail,
     /// tracking editor and add-to-club sheet are three different routes.
@@ -97,6 +102,8 @@ enum AppRoute: Identifiable {
             return "addToClub:\(key.kind.rawValue):\(key.id)"
         case .browse:
             return "browse"
+        case .page(let page):
+            return page.id
         }
     }
 }
@@ -115,8 +122,10 @@ enum RouteDestination {
     case trackingEditor(any MediaDisplayable)
     /// `AddToClubRailSheet(mediaId:mediaType:)`; the sheet takes the upper-case type ("ANIME"/"MANGA").
     case addToClub(mediaId: Int, mediaType: String)
-    /// `BrowseRouteSheet`: `BrowseView` in its own navigation stack, presenter and close control.
+    /// `BrowseView` as a journey page (`JourneyBrowsePage`, JourneyHost.swift) with the journey's close.
     case browse
+    /// A journey page that is not a title, club or the catalogue (built by `JourneyHost`).
+    case journeyPage(JourneyPage)
 }
 
 /// The routing rules (pure).
@@ -150,29 +159,60 @@ enum RoutePolicy {
             return .addToClub(mediaId: key.id, mediaType: key.kind.rawValue.uppercased())
         case .browse:
             return .browse
+        case .page(let page):
+            switch page {
+            case .media(let media): return destination(for: .media(media))
+            case .club(let id): return .club(id: id)
+            case .browse: return .browse
+            default: return .journeyPage(page)
+            }
+        }
+    }
+
+    /// The journey page a route opens, or nil for a tool (tracking editor, add to club: presented over
+    /// the current page, never pushed).
+    static func journeyPage(for route: AppRoute) -> JourneyPage? {
+        switch route {
+        case .media(let media): return .media(media)
+        case .club(let id): return .club(id: id)
+        case .browse: return .browse
+        case .page(let page): return page
+        case .trackingEditor, .addToClub: return nil
         }
     }
 }
 
 // MARK: - Environment
 
-/// The routes of the nearest presenter (`.routePresenter()`).
+/// The routes of the nearest presenter (`.routePresenter()`, `.kuroRootNavigation(_:)` or a journey).
 struct KuroRoutes {
     var openMedia: (MediaRoute) -> Void
     var openClub: (String) -> Void
     var presentTrackingEditor: (TrackingEditorRequest) -> Void
     var presentAddToClub: (MediaKey) -> Void
-    /// Opens the full catalogue (`BrowseView`) as a sheet (spec D2: Discover and Search entries).
+    /// Opens the full catalogue (`BrowseView`) (spec D2: Discover and Search entries).
     var openBrowse: () -> Void
+    /// Opens any journey page (pushed inside a journey; a new journey outside one).
+    var openPage: (JourneyPage) -> Void
 
     /// One entry point the routes share.
-    fileprivate init(_ show: @escaping (AppRoute) -> Void) {
+    init(_ show: @escaping (AppRoute) -> Void) {
         openMedia = { show(.media($0)) }
         openClub = { show(.club(id: $0)) }
         presentTrackingEditor = { show(.trackingEditor($0)) }
         presentAddToClub = { show(.addToClub($0)) }
         openBrowse = { show(.browse) }
+        openPage = { show(.page($0)) }
     }
+
+    /// A character's page (appearances).
+    func openCharacter(_ character: Character) { openPage(.character(character)) }
+    /// A staff member's page (filmography).
+    func openStaff(_ staff: Staff) { openPage(.staff(staff)) }
+    /// A studio's page (productions).
+    func openStudio(_ studio: Studio) { openPage(.studio(studio)) }
+    /// An author's page (works).
+    func openAuthor(_ author: Author) { openPage(.author(author)) }
 
     /// No presenter above the caller (only previews): nothing is presented.
     static let unhandled = KuroRoutes { route in
@@ -196,91 +236,102 @@ extension EnvironmentValues {
 
 // MARK: - Presenter
 
-/// One presentation context's route slot. The routes value is built once per slot, so the
-/// environment value a presenter injects never changes and the leaves reading it are not
-/// invalidated when a route is presented or dismissed.
+/// What a presenter shows: a journey (a page as the root of a new journey sheet) or a tool.
+enum SlotPresentation: Identifiable {
+    case journey(JourneyNavigator)
+    case tool(AppRoute)
+
+    var id: String {
+        switch self {
+        case .journey(let navigator): return "journey:\(navigator.root.id)"
+        case .tool(let route): return "tool:\(route.id)"
+        }
+    }
+}
+
+/// One presentation context's slot. The routes value is built once per slot, so the environment value
+/// a presenter injects never changes and the leaves reading it are not invalidated when a route is
+/// presented or dismissed.
 @Observable
-private final class RouteSlot {
-    var route: AppRoute?
+final class PresentationSlot {
+    var presented: SlotPresentation?
+    /// The journey this presenter sits in (nil outside one): its routes forward there while the
+    /// journey is not covered by a sheet (nesting rule).
+    @ObservationIgnored var journey: JourneyContext?
 
     @ObservationIgnored
     private(set) lazy var routes = KuroRoutes { [weak self] requested in
         guard let self else { return }
-        if let next = RoutePolicy.update(current: self.route, requested: requested) {
-            self.route = next
+        if let journey = self.journey, !journey.isCovered() {
+            journey.open(requested)
+        } else {
+            self.show(requested)
+        }
+    }
+
+    /// Presents a route here: a page as a new journey, a tool as a tool sheet. The same page or tool
+    /// again (double tap) changes nothing; a different one replaces what is shown.
+    func show(_ requested: AppRoute) {
+        if let page = RoutePolicy.journeyPage(for: requested) {
+            if case .journey(let open) = presented, open.top == page { return }
+            presented = .journey(JourneyNavigator(root: page))
+        } else {
+            if case .tool(let open) = presented, RoutePolicy.update(current: open, requested: requested) == nil { return }
+            presented = .tool(requested)
         }
     }
 }
 
 private struct RoutePresenter: ViewModifier {
-    @State private var slot = RouteSlot()
+    @State private var slot = PresentationSlot()
+    @Environment(\.kuroJourney) private var journey
 
     func body(content: Content) -> some View {
         @Bindable var slot = slot
+        let _ = { slot.journey = journey }()
         content
             .environment(\.kuroRoutes, slot.routes)
-            .sheet(item: $slot.route) { route in
-                RouteDestinationView(route: route)
+            .sheet(item: $slot.presented) { presentation in
+                SlotPresentationView(presentation: presentation)
             }
     }
 }
 
-private struct RouteDestinationView: View {
-    let route: AppRoute
+/// What a slot's sheet shows.
+struct SlotPresentationView: View {
+    let presentation: SlotPresentation
 
     var body: some View {
-        switch RoutePolicy.destination(for: route) {
-        case .mediaLoader(let key):
-            MediaDetailSheet(kind: key.kind, id: key.id)
-        case .animeDetail(let anime):
-            AnimeDetailView(anime: anime)
-        case .mangaDetail(let manga):
-            MangaDetailView(manga: manga)
-        case .club(let clubId):
-            NavigationStack {
-                ClubDetailView(clubId: clubId)
-                    .id(clubId)
-            }
-        case .trackingEditor(let media):
-            AddToListSheet(media: media)
-        case .addToClub(let mediaId, let mediaType):
-            AddToClubRailSheet(mediaId: mediaId, mediaType: mediaType)
-        case .browse:
-            BrowseRouteSheet()
+        switch presentation {
+        case .journey(let navigator):
+            JourneyHost(navigator: navigator)
+        case .tool(let route):
+            ToolDestinationView(route: route)
+                .kuroLeavesJourney()
         }
     }
 }
 
-/// The catalogue sheet: `BrowseView` with its own presentation context (its cards open details on
-/// top of this sheet, per the nesting rule) and one accessible close control.
-private struct BrowseRouteSheet: View {
-    @Environment(\.dismiss) private var dismiss
+/// A tool's sheet content (N7).
+struct ToolDestinationView: View {
+    let route: AppRoute
 
     var body: some View {
-        NavigationStack {
-            BrowseView()
-                .routePresenter()
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.kuroBody(weight: .regular))
-                                .foregroundStyle(Color.kuroInk)
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
-                    }
-                }
+        switch RoutePolicy.destination(for: route) {
+        case .trackingEditor(let media):
+            AddToListSheet(media: media)
+        case .addToClub(let mediaId, let mediaType):
+            AddToClubRailSheet(mediaId: mediaId, mediaType: mediaType)
+        case .mediaLoader, .animeDetail, .mangaDetail, .club, .browse, .journeyPage:
+            // Pages never reach a tool slot (`RoutePolicy.journeyPage(for:)` sends them to a journey).
+            EmptyView()
         }
     }
 }
 
 extension View {
-    /// Installs the route presenter for this presentation context (see the nesting rule above).
+    /// Installs the route presenter for this presentation context (see the nesting rule above). Inside
+    /// a journey it forwards to the journey.
     func routePresenter() -> some View {
         modifier(RoutePresenter())
     }
