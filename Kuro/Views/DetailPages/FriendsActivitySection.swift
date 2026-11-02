@@ -25,6 +25,11 @@ struct FriendsActivitySection: View {
     var onRoster: (([SocialActivityStore.FriendTitleActivity]) -> Void)? = nil
     /// Fixture renders only (KuroTests): shown instead of reading the activity.
     var preview: SocialActivityStore.FriendActivityResponse? = nil
+    /// Prototype card: the club a note's author provably shares with the viewer (the byline's club
+    /// name); nil leaves the note's age in its place.
+    var clubName: (String) -> String? = { _ in nil }
+    /// Manga's folio card: the squarer "Leave a thought" card (radius 4).
+    var bookish = false
 
     @Environment(ClubsStore.self) private var clubs
     @Environment(SocialActivityStore.self) private var social
@@ -195,7 +200,7 @@ struct FriendsActivitySection: View {
                         .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 20))
                         .foregroundStyle(Color(hex: "61725D"))
                     Image(systemName: "chevron.down")
-                        .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 16))
+                        .font(.kuroCustom(6, weight: .light, relativeTo: .caption2, maxSize: 14))
                         .rotationEffect(.degrees(showsRoster ? 180 : 0))
                         .foregroundStyle(Color(hex: "61725D"))
                 }
@@ -295,19 +300,16 @@ struct FriendsActivitySection: View {
                     .font(prototypeStyle ? .kuroCustom(11, weight: .semibold, relativeTo: .footnote, maxSize: 24) : .kuroCaption(weight: .medium))
                     .foregroundColor(prototypeStyle ? .kuroInk : .kuroBlack65)
 
-                Text(relativeTime(comment.created_at))
+                // Prototype byline: the shared club's name (`.note-byline span`) when it is provable;
+                // otherwise the note's age. The age stays in the VoiceOver label either way.
+                Text(prototypeStyle ? (clubName(comment.user_id) ?? relativeTime(comment.created_at)) : relativeTime(comment.created_at))
                     .font(prototypeStyle ? .kuroCustom(8, relativeTo: .caption2, maxSize: 18) : .kuroMicro())
                     .foregroundColor(prototypeStyle ? Color(hex: "6B7B6D") : .kuroInkQuiet)
+                    .accessibilityLabel(prototypeStyle
+                                        ? [clubName(comment.user_id), relativeTime(comment.created_at)].compactMap { $0 }.joined(separator: ", ")
+                                        : relativeTime(comment.created_at))
 
                 Spacer(minLength: 0)
-
-                // The prototype card keeps the reactions on the byline row (same buttons, same writes).
-                if prototypeStyle && !comment.is_own {
-                    reactionButton(comment: comment, type: "up", icon: "hand.thumbsup", count: comment.up_count,
-                                   isActive: comment.my_reaction == "up")
-                    reactionButton(comment: comment, type: "down", icon: "hand.thumbsdown", count: comment.down_count,
-                                   isActive: comment.my_reaction == "down")
-                }
 
                 if comment.is_own {
                     Button {
@@ -334,6 +336,19 @@ struct FriendsActivitySection: View {
                     .buttonStyle(.plain)
                     .frame(minWidth: 44, minHeight: 44)
                     .accessibilityLabel(KuroLocale.text("Delete comment", "Kommentar löschen"))
+                }
+            }
+            // Prototype card: the live reactions stay (same buttons, same writes) as quiet keys over the
+            // byline's trailing edge; an overlay adds no height, so the note keeps its 13/0/14 rhythm.
+            .overlay(alignment: .trailing) {
+                if prototypeStyle && !comment.is_own {
+                    HStack(spacing: 0) {
+                        reactionButton(comment: comment, type: "up", icon: "hand.thumbsup", count: comment.up_count,
+                                       isActive: comment.my_reaction == "up", quiet: true)
+                        reactionButton(comment: comment, type: "down", icon: "hand.thumbsdown", count: comment.down_count,
+                                       isActive: comment.my_reaction == "down", quiet: true)
+                    }
+                    .padding(.trailing, -12)
                 }
             }
 
@@ -363,6 +378,7 @@ struct FriendsActivitySection: View {
                 Text(comment.text)
                     .font(prototypeStyle ? .kuroCustom(13, relativeTo: .callout, maxSize: 28) : .kuroBody(weight: .light))
                     .foregroundColor(prototypeStyle ? Color(hex: "405646") : .kuroBlack80).lineSpacing(prototypeStyle ? 5 : 4)
+                    .padding(.top, prototypeStyle ? 4 : 0)
                 if revealed.contains(comment.id) {
                     Button(KuroLocale.text("Hide spoiler", "Spoiler ausblenden")) { revealed.remove(comment.id) }.frame(minHeight: 44)
                 }
@@ -430,7 +446,8 @@ struct FriendsActivitySection: View {
         type: String,
         icon: String,
         count: Int,
-        isActive: Bool
+        isActive: Bool,
+        quiet: Bool = false
     ) -> some View {
         let origin = actionScope.capture(session: social.accountSession)
         let permission = social.friendScopeGeneration
@@ -442,13 +459,13 @@ struct FriendsActivitySection: View {
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: isActive ? "\(icon).fill" : icon)
-                    .font(.kuroCustom(10, weight: .regular, maxSize: 16))
+                    .font(.kuroCustom(quiet ? 9 : 10, weight: .regular, maxSize: 16))
                 if count > 0 {
                     Text("\(count)")
                         .font(.kuroMicro())
                 }
             }
-            .foregroundColor(isActive ? .kuroBlack80 : .kuroInkQuiet)
+            .foregroundColor(isActive ? .kuroBlack80 : (quiet ? Color(hex: "6B7B6D").opacity(0.75) : .kuroInkQuiet))
         }
         .buttonStyle(.plain)
         .frame(minWidth: 44, minHeight: 44)
@@ -536,7 +553,7 @@ struct FriendsActivitySection: View {
 
     /// "Leave a thought · Shared with your clubs" (prototype `.circle-compose`), opening the field.
     private var leaveThoughtCard: some View {
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: bookish ? 4 : 12, style: .continuous)
         return Button {
             withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { composing = true }
         } label: {

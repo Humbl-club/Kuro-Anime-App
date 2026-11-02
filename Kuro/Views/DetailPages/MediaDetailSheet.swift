@@ -4,6 +4,9 @@ import SwiftUI
 struct MediaDetailSheet: View {
     let kind: MediaKind
     let id: Int
+    /// The page has loaded: it brings its own close, so the grabber hides. While loading or failed the
+    /// grabber shows and the state carries a close control (never a full-height state with no way out).
+    @State private var loaded = false
 
     var body: some View {
         ZStack {
@@ -12,20 +15,21 @@ struct MediaDetailSheet: View {
 
             switch kind {
             case .anime:
-                AnimeDetailLoaderView(animeId: id)
+                AnimeDetailLoaderView(animeId: id, loaded: $loaded)
             case .manga:
-                MangaDetailLoaderView(mangaId: id)
+                MangaDetailLoaderView(mangaId: id, loaded: $loaded)
             }
         }
         .accessibilityIdentifier("media_detail_sheet")
         #if os(iOS)
-        .presentationDragIndicator(.hidden)
+        .presentationDragIndicator(DetailLoaderChrome.dragIndicator(loaded: loaded))
         #endif
     }
 }
 
 struct AnimeDetailLoaderView: View {
     let animeId: Int
+    var loaded: Binding<Bool> = .constant(false)
     @Environment(CatalogStore.self) private var catalog
     @State private var anime: Anime? = nil
     @State private var failure: DetailLoadFailure? = nil
@@ -35,13 +39,16 @@ struct AnimeDetailLoaderView: View {
         Group {
             if let anime {
                 AnimeDetailView(anime: anime)
+                    .onAppear { loaded.wrappedValue = true }
             } else if let failure {
                 KuroStateView(failure.kind, title: failure.title) {
                     self.failure = nil
                     retryCount += 1
                 }
+                .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
             } else {
                 KuroStateView(.loading)
+                    .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
             }
         }
         .task(id: "\(animeId)-\(retryCount)") {
@@ -72,6 +79,7 @@ struct AnimeDetailLoaderView: View {
 
 struct MangaDetailLoaderView: View {
     let mangaId: Int
+    var loaded: Binding<Bool> = .constant(false)
     @Environment(CatalogStore.self) private var catalog
     @State private var manga: Manga? = nil
     @State private var failure: DetailLoadFailure? = nil
@@ -81,13 +89,16 @@ struct MangaDetailLoaderView: View {
         Group {
             if let manga {
                 MangaDetailView(manga: manga)
+                    .onAppear { loaded.wrappedValue = true }
             } else if let failure {
                 KuroStateView(failure.kind, title: failure.title) {
                     self.failure = nil
                     retryCount += 1
                 }
+                .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
             } else {
                 KuroStateView(.loading)
+                    .overlay(alignment: .topTrailing) { DetailCloseButton(material: nil, ink: Color.kuroInk) }
             }
         }
         .task(id: "\(mangaId)-\(retryCount)") {

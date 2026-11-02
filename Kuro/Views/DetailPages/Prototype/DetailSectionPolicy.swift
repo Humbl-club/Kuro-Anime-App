@@ -1,6 +1,7 @@
 import Foundation
 import KuroCore
 import KuroLibrary
+import SwiftUI
 
 // MARK: - Detail section policy (prototype fidelity, Task 6; spec §5.2, PROTOTYPE_SPEC.md §4 D1-D11)
 // Pure rules for the one detail page: which sections exist for a title, how the franchise ladder
@@ -313,8 +314,9 @@ enum DetailStatusCopy {
             return isTracked ? (german ? "Listeneinstellungen" : "List settings")
                              : (german ? "Zur Liste hinzufügen" : "Add to your list")
         case .favourite:
-            // The live heart: saves to Planned, or removes a saved title (the legacy dock's toggle).
-            return isTracked ? (german ? "Gemerkt · entfernen" : "Saved · remove")
+            // The live heart: saves to Planned, or removes a saved title. Removing asks first when the
+            // entry holds anything (`DetailRemoval`) and its toast offers Undo.
+            return isTracked ? (german ? "Von der Liste entfernen" : "Remove from list")
                              : (german ? "Merken" : "Save")
         case .verdict: return german ? "Urteil" : "Verdict"
         case .providers:
@@ -382,4 +384,93 @@ enum DetailPageCopy {
         default: return german ? "Zum Manga" : "Explore the manga"
         }
     }
+}
+
+// MARK: - Up next +1 (round-2 pathway blocker)
+
+/// The detail's +1 write. A Planned title that gets its first unit becomes Watching/Reading in the same
+/// edit, so Home reaches its in-progress scene (`HomeShelfPolicy`) without a trip to List settings. Every
+/// other status keeps its own value (a progress-only edit, the live `markProgress` path); an untracked
+/// title is created as Watching/Reading by `createIfMissing: .current`.
+enum DetailAdvance {
+    static func edit(status: ListStatus?, to progress: Int) -> LibraryEdit {
+        let value = max(0, progress)
+        guard status == .planning else { return LibraryEdit(progress: .set(value)) }
+        return LibraryEdit(status: .set(.current), progress: .set(value))
+    }
+
+    /// Sends the +1 through `LibraryActions.apply`, the one view-facing writer (no new write path).
+    @MainActor
+    static func advance(_ key: MediaKey, from status: ListStatus?, to progress: Int,
+                        actions: LibraryActions) async -> LibraryOutcome {
+        await actions.apply(edit(status: status, to: progress), to: key, createIfMissing: .current)
+    }
+
+    /// The compensating edit for an applied +1: the count and, when the +1 promoted the title, its
+    /// saved status. nil when nothing differs (or the change created the row: Undo removes it).
+    static func undoEdit(_ change: LibraryChange) -> LibraryEdit? {
+        guard let previous = change.previous, let current = change.current else { return nil }
+        var edit = LibraryEdit()
+        var touched = false
+        if current.status != previous.status { edit.status = .set(previous.status); touched = true }
+        if current.progress != previous.progress { edit.progress = .set(previous.progress); touched = true }
+        return touched ? edit : nil
+    }
+}
+
+// MARK: - Remove from list (round-2 pathway)
+
+enum DetailRemoval {
+    /// Removing drops progress, notes, score and verdict: ask first unless the entry is a bare plan.
+    static func needsConfirmation(_ entry: LibraryEntry) -> Bool {
+        entry.status != .planning || entry.progress > 0 || entry.rating != nil
+            || entry.notes?.detailNonEmpty != nil || entry.verdict != nil
+    }
+
+    static func confirmTitle(german: Bool) -> String { german ? "Von deiner Liste entfernen?" : "Remove from your list?" }
+    static func confirmAction(german: Bool) -> String { german ? "Entfernen" : "Remove" }
+    static func confirmMessage(kind: MediaKind, german: Bool) -> String {
+        german ? "Fortschritt, Wertung, Notizen und Urteil zu diesem Titel werden mit entfernt. Direkt danach kannst du es rückgängig machen."
+               : "Your progress, score, notes and verdict for this title go with it. You can undo right after."
+    }
+
+    /// The Undo after a removal: every field of the removed row, re-saved (the store's own restore rule).
+    static func restoreEdit(_ entry: LibraryEntry) -> LibraryEdit {
+        LibraryEdit(status: .set(entry.status),
+                    progress: .set(entry.progress),
+                    rating: entry.rating.map { .set($0) } ?? .clear,
+                    notes: entry.notes.map { .set($0) } ?? .clear,
+                    verdict: entry.verdict.map { .set($0) } ?? .clear)
+    }
+}
+
+// MARK: - Read failures (round-2 pathway)
+
+enum DetailReadState {
+    /// The owners answer a failed ladder read with `.empty`. A real answer always carries a coverage
+    /// status (`get_media_ladder` yields at least `minimal`), so its absence means the read failed and
+    /// the page shows a branded failed state with Try again instead of a page that looks complete.
+    static func ladderFailed(_ ladder: MediaLadderResponse) -> Bool { ladder.coverageStatus == nil }
+}
+
+// MARK: - Story disclosure
+
+enum DetailStoryDisclosure {
+    /// Hook-led: the synopsis sits behind the disclosure. Synopsis-led: the row exists only when the
+    /// text is cut or an expectation line waits behind it (never a "+" that reveals nothing).
+    static func showsToggle(hasHook: Bool, truncated: Bool, hasExpectation: Bool) -> Bool {
+        hasHook || truncated || hasExpectation
+    }
+
+    static func label(hasHook: Bool, expanded: Bool, about: String, german: Bool) -> String {
+        if hasHook { return about }
+        return expanded ? (german ? "Weniger zeigen" : "Show less") : (german ? "Mehr" : "More")
+    }
+}
+
+// MARK: - Loader chrome
+
+enum DetailLoaderChrome {
+    /// The sheet's grabber shows until the page has loaded (the loaded page has its own close).
+    static func dragIndicator(loaded: Bool) -> Visibility { loaded ? .hidden : .visible }
 }
