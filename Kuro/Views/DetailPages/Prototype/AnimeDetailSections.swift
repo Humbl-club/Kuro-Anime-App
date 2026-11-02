@@ -880,7 +880,7 @@ struct DetailSeasonsSection: View {
                 } else {
                     // The tile's ::after foot dash, as rendered in `ref-detail-anime-390.png`: 12 × 1 and
                     // composited to about `#d2d6d4` (tile ink at 40 % inside the tile's 0.72 opacity).
-                    Rectangle().fill(DetailInk.tileInk.opacity(0.4)).frame(width: 12, height: 1)
+                    DetailSnappedRule(width: 12, color: DetailInk.tileInk.opacity(0.4))
                 }
             }
             .foregroundStyle(current ? Color.white : DetailInk.tileInk)
@@ -922,6 +922,25 @@ struct DetailSeasonsSection: View {
         .accessibilityValue(current ? KuroLocale.text("Current", "Aktuell") : "")
         .accessibilityHint(current ? "" : KuroLocale.text("Opens this entry without changing your progress",
                                                            "Öffnet diesen Eintrag, ohne deinen Fortschritt zu ändern"))
+    }
+}
+
+/// A 1 pt rule moved onto a whole point, so it draws as one crisp row instead of two half-tone rows
+/// when its line falls on a half point (the season tiles sit on one). Whole points are pixel-aligned
+/// at every screen scale; the offset does not change layout, so the reader never loops.
+struct DetailSnappedRule: View {
+    let width: CGFloat
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let y = proxy.frame(in: .global).minY
+            Rectangle().fill(color)
+                .frame(width: width, height: 1)
+                .offset(y: y.rounded() - y)
+        }
+        .frame(width: width, height: 1)
+        .accessibilityHidden(true)
     }
 }
 

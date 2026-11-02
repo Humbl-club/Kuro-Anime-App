@@ -303,6 +303,10 @@ struct FriendsActivitySection: View {
                     .foregroundColor(prototypeStyle ? .kuroInk : .kuroBlack65)
                     // The byline's 15.4 pt line (prototype `.note-byline b`).
                     .padding(.vertical, prototypeStyle ? 1.5 : 0)
+                    // The reactions' VoiceOver actions sit on the author's name, one element that is
+                    // always there (on the note's container they would repeat on every child).
+                    .modifier(NoteReactionsModifier(enabled: prototypeStyle && !comment.is_own, part: .accessibility,
+                                                    actions: noteReactionActions(comment)))
 
                 // Prototype byline: the shared club's name (`.note-byline span`) when it is provable;
                 // otherwise the note's age. The age stays in the VoiceOver label either way.
@@ -438,14 +442,18 @@ struct FriendsActivitySection: View {
         .overlay(alignment: .bottom) {
             if prototypeStyle { Rectangle().fill(Color(hex: "6F8671", opacity: Double(0x20) / 255)).frame(height: 1) }
         }
-        .modifier(NoteReactionsModifier(enabled: prototypeStyle && !comment.is_own,
-                                        actions: NoteReaction.allCases.map { reaction in
-                                            NoteReactionsModifier.Action(
-                                                title: NoteReaction.title(reaction, count: reaction.count(in: comment),
-                                                                          german: KuroLocale.isGerman),
-                                                systemImage: reaction.icon(active: comment.my_reaction == reaction.rawValue),
-                                                run: noteReactionRunner(comment: comment, type: reaction.rawValue))
-                                        }))
+        .modifier(NoteReactionsModifier(enabled: prototypeStyle && !comment.is_own, part: .menu,
+                                        actions: noteReactionActions(comment)))
+    }
+
+    /// The note's two reactions as menu items / VoiceOver actions.
+    private func noteReactionActions(_ comment: SocialActivityStore.TitleComment) -> [NoteReactionsModifier.Action] {
+        NoteReaction.allCases.map { reaction in
+            NoteReactionsModifier.Action(
+                title: NoteReaction.title(reaction, count: reaction.count(in: comment), german: KuroLocale.isGerman),
+                systemImage: reaction.icon(active: comment.my_reaction == reaction.rawValue),
+                run: noteReactionRunner(comment: comment, type: reaction.rawValue))
+        }
     }
 
     /// The quiet tally on a prototype note: shown only when the note has reactions (counts and the
@@ -805,7 +813,8 @@ enum NoteReaction: String, CaseIterable {
     }
 }
 
-/// Puts a note's reactions behind touch-and-hold (a context menu) and in its VoiceOver actions.
+/// Puts a note's reactions behind touch-and-hold (`.menu`, a context menu on the whole note) and in
+/// VoiceOver actions (`.accessibility`, on one element of the note).
 private struct NoteReactionsModifier: ViewModifier {
     struct Action {
         let title: String
@@ -813,11 +822,17 @@ private struct NoteReactionsModifier: ViewModifier {
         let run: () -> Void
     }
 
+    enum Part { case menu, accessibility }
+
     let enabled: Bool
+    let part: Part
     let actions: [Action]
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        if enabled {
+        if !enabled {
+            content
+        } else if part == .menu {
             content
                 .contentShape(.contextMenuPreview, Rectangle())
                 .contextMenu {
@@ -827,14 +842,14 @@ private struct NoteReactionsModifier: ViewModifier {
                         }
                     }
                 }
+        } else {
+            content
                 .accessibilityActions {
                     ForEach(actions.indices, id: \.self) { index in
                         Button(actions[index].title, action: actions[index].run)
                     }
                 }
                 .accessibilityHint(KuroLocale.text("Touch and hold to react.", "Gedrückt halten, um zu reagieren."))
-        } else {
-            content
         }
     }
 }
