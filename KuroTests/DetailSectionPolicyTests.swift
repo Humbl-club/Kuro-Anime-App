@@ -237,12 +237,18 @@ struct DetailSectionPolicyTests {
         #expect(bare.handler(.verdict) != nil)
     }
 
-    @Test("Only shown characters count: a cast of background roles adds no heading")
-    func backgroundOnlyCastHidesCharacters() {
+    @Test("Cast rail (details-songs D8): background roles show only when nothing else exists")
+    func backgroundOnlyCastStillShows() {
         let extra = Character(id: 1, anilistId: nil, nameFull: "Passer-by", nameNative: nil, imageLarge: nil,
                               description: nil, gender: nil, age: nil)
-        #expect(DetailCharactersRail.shown([(character: extra, role: "BACKGROUND")]).isEmpty)
-        #expect(DetailCharactersRail.shown([(character: extra, role: "MAIN")]).count == 1)
+        let lead = Character(id: 2, anilistId: nil, nameFull: "Lead", nameNative: nil, imageLarge: nil,
+                             description: nil, gender: nil, age: nil)
+        // "Always populated when data exists": a cast of background roles fills the rail.
+        #expect(DetailCastRail.shown(DetailCastRail.members([(character: extra, role: "BACKGROUND")])).count == 1)
+        // With a main role, the background one is dropped.
+        let mixed = DetailCastRail.shown(DetailCastRail.members([(character: extra, role: "BACKGROUND"),
+                                                                 (character: lead, role: "MAIN")]))
+        #expect(mixed.map(\.id) == [2])
     }
 
     @Test("Detail load parts: the story shows while reads are pending; the rest after")

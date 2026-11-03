@@ -7,9 +7,11 @@ import SwiftUI
 // | Read                                   | Owner                       | Feeds                                      |
 // | -------------------------------------- | --------------------------- | ------------------------------------------ |
 // | `fetchMediaLadder` (+ cached chain walk) | CatalogStore              | seasons, the original story                |
-// | studios / staff / characters (credits_cast_v1) | CatalogStore        | characters, "Behind the frames."           |
+// | studios / staff (credits_cast_v1)      | CatalogStore                | "Behind the frames."                       |
+// | `fetchCast` (credits_cast_v1; anime_cast_v1 when live) | CatalogStore | "The characters." with voice chips     |
 // | `fetchEpisodesNext` / `fetchEpisodesPage` | CatalogStore             | Up next, episode rows, "More episodes"     |
-// | `mediaSchedule` / `themes`             | ReleasesStore (`.detailReleases`) | next airing line, "The sound of it."  |
+// | `mediaSchedule` / `themes`             | ReleasesStore (`.detailReleases`) | hero next row + bell, timeline, songs |
+// | `fetchSimilar` (media_similar_v1, else the live RPC) | RecommendationsReader | "More like this." (Plan keys) |
 // | `detailBundle` (series flags on only)  | HomeStore                   | `detail_copy` hook, manga coverage, songs  |
 // | `resolveWatchLinks`                    | ProviderAvailabilityStore   | Where to watch                             |
 // | friend activity (`FriendsActivitySection`) | SocialActivityStore     | club presence, "Between us." (social_activity_v1) |
@@ -35,6 +37,8 @@ struct AnimeDetailContent {
     var chainIsProven = false
     var source: MediaLadderItem? = nil
     var characters: [(character: Character, role: String)] = []
+    /// The cast with voice actors (details-songs §6.7); when empty, `characters` fill the rail.
+    var cast: [CastMember] = []
     var staff: [(staff: Staff, role: String)] = []
     var studios: [Studio] = []
     var episodes: [Episode] = []
@@ -42,6 +46,10 @@ struct AnimeDetailContent {
     var schedule: [ReleaseScheduleItem] = []
     var bundle: SeriesDetailBundle? = nil
     var friendsPreview: SocialActivityStore.FriendActivityResponse? = nil
+    /// "More like this." cards (renders; the live page reads `RecommendationsReader`).
+    var similar: [SimilarTitle] = []
+    /// Renders: the bell's state without the release store (nil: the store's answer).
+    var reminderOn: Bool? = nil
 }
 
 /// A credit row of "Behind the frames." (only rows with a real name exist).
@@ -105,6 +113,8 @@ struct AnimeDetailPage: View {
     @Environment(SocialActivityStore.self) private var social
     @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(OutboundLinkTelemetry.self) private var outboundLinks
+    /// Optional: fixture hosts may not inject one (then "More like this." stays hidden).
+    @Environment(RecommendationsReader.self) private var recommendations: RecommendationsReader?
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.kuroFoldMemory) private var folds
     @Environment(\.openURL) private var openURL
@@ -138,14 +148,24 @@ struct AnimeDetailPage: View {
     @State private var ladderFailed = false
     /// The entry a confirmed "Remove from list" will remove.
     @State private var pendingRemoval: LibraryEntry?
+    /// "More like this." for one account and title (`DetailMoreLikeThisRule.stateKey`): dropped when
+    /// the account changes, never shown to another account.
+    @State private var similar: [SimilarTitle] = []
+    @State private var similarKey: String?
+    /// The page's Plan controller for the "More like this." keys (one toast with Undo).
+    @State private var plans = TastePlanController()
+    /// The episodes source holds a row past this season's total (the wrong-season stills probe).
+    @State private var sourceExceedsTotal = false
 
     private var german: Bool { KuroLocale.isGerman }
     private var entry: LibraryEntry? { library.entry(for: anime.libraryKey) }
+    private var accountId: String? { libraryActions.accountSession.current?.userId }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { anime.episodeCount.flatMap { $0 > 0 ? $0 : nil } }
     /// The schedule's upcoming rows (the catalogue's own next airing until the schedule answers).
     private var upcoming: [ReleaseScheduleItem] {
         DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil)
+                                          ?? (content.schedule.isEmpty ? nil : content.schedule)
                                           ?? DetailNextReleaseSection.seed(for: anime))
     }
 
@@ -185,6 +205,33 @@ struct AnimeDetailPage: View {
         content.chainIsProven ? LadderSeasons.currentNumber(content.numbered) : nil
     }
 
+    /// The cast rail's members: the voiced cast, else the plain characters (fixtures, the fallback).
+    private var castMembers: [CastMember] {
+        content.cast.isEmpty ? DetailCastRail.members(content.characters) : content.cast
+    }
+
+    /// The page's own ladder titles, which "More like this." never repeats.
+    private var ownLadder: Set<MediaKey> {
+        var keys = Set((content.numbered + content.extras).map { MediaKey(kind: .anime, id: $0.entry.mediaId) })
+        keys.insert(anime.libraryKey)
+        if let source = content.source, let key = DetailNavigation.ladderKey(source) { keys.insert(key) }
+        return keys
+    }
+
+    private var shownSimilar: [SimilarTitle] {
+        let items = preview != nil && !content.similar.isEmpty ? content.similar
+            : (similarKey == DetailMoreLikeThisRule.stateKey(account: accountId, kind: .anime, id: anime.id) ? similar : [])
+        return DetailMoreLikeThisRule.filtered(items, key: \.key, excluding: ownLadder)
+    }
+
+    /// The hero's facts: year · format · episodes · main studio · score (details-songs §6.2).
+    private var facts: [DetailFacts.Part] {
+        let studio = (content.studios.first(where: { $0.isAnimationStudio == true }) ?? content.studios.first)?.name
+        return DetailFacts.anime(year: DetailFacts.animeYear(seasonYear: anime.seasonYear, startDateYear: anime.startDateYear),
+                                 format: anime.format, episodes: total, studio: studio,
+                                 averageScore: anime.averageScore, german: german, locale: KuroLocale.locale)
+    }
+
     private var credits: [DetailCreditRow] {
         DetailCreditRow.anime(staff: content.staff, studios: content.studios,
                               sourceAuthor: content.source?.sourceAuthorName,
@@ -214,11 +261,13 @@ struct AnimeDetailPage: View {
                     hasSource: content.source != nil,
                     songCount: songs.count,
                     // The rail's own filter (no background roles): never an empty "The characters.".
-                    characterCount: DetailCharactersRail.shown(content.characters).count,
+                    characterCount: DetailCastRail.shown(castMembers).count,
                     creditCount: credits.count,
                     hasClubs: !clubs.myClubs.isEmpty,
                     socialEnabled: socialEnabled,
-                    clubRailCount: clubRails.count)
+                    clubRailCount: clubRails.count,
+                    similarCount: shownSimilar.count,
+                    hasNextRelease: !upcoming.isEmpty)
     }
 
     private var isOffline: Bool { network?.isConnected == false }
@@ -232,7 +281,7 @@ struct AnimeDetailPage: View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    hero
+                    hero(sections: sections, proxy: proxy)
                         .detailCollapseHero(collapse)
                     if isOffline {
                         KuroOfflineView(hasContent: true) { reloadToken += 1 }
@@ -244,6 +293,8 @@ struct AnimeDetailPage: View {
                         ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
                                 .detailFoldAnchor(section, above: $foldsAbove)
+                                // The hero's season tab scrolls here (details-songs §6.2).
+                                .id(section)
                                 // The seasons' selection dot sits on the rule above the progress card.
                                 .zIndex(section == .seasons ? 1 : 0)
                         }
@@ -275,6 +326,8 @@ struct AnimeDetailPage: View {
         // Back (pushed) and ✕ over the hero, then the compact bar (navigation contract N1-N3, H1-H4).
         .detailJourneyChrome(title: pageTitle, material: material, collapse: collapse)
         .modifier(DetailToastOverlay(toast: $toast))
+        // "More like this." Plan keys: one controller, its toast with Undo at the page's foot.
+        .tastePlanHost(plans)
         .tint(Color.kuroInk)
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear {
@@ -288,6 +341,10 @@ struct AnimeDetailPage: View {
         .task(id: "\(anime.id)-\(flags.isCreditsCastV1Enabled)-\(reloadKey)") { await loadCredits() }
         .task(id: "\(anime.id)-episodes-\(progress)-\(reloadKey)") { await loadEpisodes() }
         .task(id: "\(anime.id)-links-\(progress)-\(reloadKey)") { await loadWatchLinks() }
+        // Not a primary read: it never holds the skeleton, and it is keyed by the account.
+        .task(id: DetailMoreLikeThisRule.stateKey(account: accountId, kind: .anime, id: anime.id) + "-\(reloadKey)") {
+            await loadSimilar()
+        }
         // A cold open (deep link) before the Clubs page ran: warm the clubs so "Between us." can show.
         .task(id: anime.id) {
             guard preview == nil, clubs.myClubs.isEmpty else { return }
@@ -382,9 +439,11 @@ struct AnimeDetailPage: View {
                              showsAll: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.songs),
                              onCollapse: { foldCollapsed(.songs, proxy: proxy) })
         case .characters:
-            DetailCharactersRail(characters: content.characters)
+            DetailCastRail(members: castMembers)
         case .credits:
             DetailCreditsList(title: KuroLocale.text("Behind the frames.", "Hinter den Bildern."), rows: credits)
+        case .moreLikeThis:
+            DetailMoreLikeThis(items: shownSimilar)
         case .betweenUs:
             DetailBetweenUs(mediaType: "ANIME", mediaId: anime.id, coverURL: coverURL,
                             socialEnabled: socialEnabled, clubRails: clubRails,
@@ -409,10 +468,12 @@ struct AnimeDetailPage: View {
             if showsUnits {
             AnimeUnitsSection(anime: anime, episodes: content.episodes, progress: progress, total: total,
                               isTracked: entry != nil, nextUnit: nextUnit, seasonNumber: seasonNumber,
-                              nextRelease: upcoming.first,
+                              upcoming: upcoming,
                               material: material, coverURL: coverURL, savingNext: savingNext,
                               confirmTrigger: confirmTrigger,
                               showsAll: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.units),
+                              showsWatched: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.watched),
+                              sourceExceedsTotal: sourceExceedsTotal,
                               onCollapse: { foldCollapsed(.units, proxy: proxy) }) { next in
                 advance(to: next, origin: origin)
             }
@@ -427,9 +488,29 @@ struct AnimeDetailPage: View {
         }
     }
 
-    private var hero: some View {
-        DetailHero(artworkURL: heroURL, kicker: DetailPageCopy.kindKicker(.anime, german: german),
-                   title: content.bundle?.header.title ?? anime.displayTitle, material: material) {
+    /// The hero as Home's scene card (details-songs §6.2): the facts line and the next-release row with
+    /// the bell under the title, and the season tab on the art for a proven chain of two or more seasons.
+    private func hero(sections: [DetailSection], proxy: ScrollViewProxy) -> some View {
+        let next = upcoming.first
+        let showsNext = DetailNextRelease.showsRow(status: anime.status, upcoming: next)
+        let tab = DetailSeasonTabRule.tab(chainIsProven: content.chainIsProven, numbered: content.numbered)
+        return DetailHero(artworkURL: heroURL, kicker: DetailPageCopy.kindKicker(.anime, german: german),
+                   title: content.bundle?.header.title ?? anime.displayTitle, material: material,
+                   facts: facts,
+                   nextRow: showsNext ? next.map { item in
+                       AnyView(DetailNextReleaseRow(item: item,
+                                                    showsBell: DetailReminderRule.showsBell(item, status: entry?.status),
+                                                    previewBellOn: content.reminderOn,
+                                                    onBell: bellChanged))
+                   } : nil,
+                   seasonTab: tab.map { tab in
+                       AnyView(DetailSeasonTab(number: tab.number, total: tab.of) {
+                           guard sections.contains(.seasons) else { return }
+                           withAnimation(KuroMotion.detail(KuroMotion.medium, reduceMotion: reduceMotion)) {
+                               proxy.scrollTo(DetailSection.seasons, anchor: .top)
+                           }
+                       })
+                   }) {
             DetailStatusMark(entry: entry, kind: .anime,
                              onListSettings: { routes.presentTrackingEditor(TrackingEditorRequest(media: anime)) },
                              onFavourite: toggleSaved,
@@ -441,6 +522,11 @@ struct AnimeDetailPage: View {
     }
 
     // MARK: Actions
+
+    /// The bell's result as the page toast (§11.4).
+    private func bellChanged(_ change: DetailReminderRule.Change) {
+        showToast(DetailReminderToast.state(change, openURL: openURL))
+    }
 
     private func advance(to next: Int, origin: AccountActionScope.Ticket?) {
         guard !savingNext, actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
@@ -656,24 +742,50 @@ struct AnimeDetailPage: View {
             content.studios = []
             content.staff = []
             content.characters = []
+            content.cast = []
             return
         }
         async let studios = catalog.fetchStudiosForAnime(animeId: anime.id)
         async let staff = catalog.fetchStaffForAnime(animeId: anime.id)
-        async let cast = catalog.fetchCharactersForAnime(animeId: anime.id)
+        // The cast with Japanese voice actors (anime_cast_v1 when live; until then the characters
+        // without voices, from the same table the old rail read).
+        async let cast = catalog.fetchCast(forAnime: anime.id)
         let (loadedStudios, loadedStaff, loadedCast) = await (studios, staff, cast)
         guard !Task.isCancelled, creditsGeneration == generation, flags.isCreditsCastV1Enabled else { return }
         content.studios = loadedStudios
         content.staff = loadedStaff
-        content.characters = loadedCast
+        content.cast = loadedCast
+        content.characters = []
+    }
+
+    /// "More like this." once per account and title; an empty answer hides the section.
+    private func loadSimilar() async {
+        guard preview == nil, let recommendations else { return }
+        let key = DetailMoreLikeThisRule.stateKey(account: accountId, kind: .anime, id: anime.id)
+        if similarKey != key { similar = []; similarKey = nil }
+        let items = await recommendations.fetchSimilar(kind: .anime, id: anime.id, limit: 12)
+        guard !Task.isCancelled, key == DetailMoreLikeThisRule.stateKey(account: accountId, kind: .anime, id: anime.id) else { return }
+        similar = items
+        similarKey = key
     }
 
     private func loadEpisodes() async {
         guard preview == nil else { return }
         defer { pending.remove(.units) }
-        let loaded = await catalog.fetchEpisodesNext(animeId: anime.id, fromNumber: max(1, progress), limit: 10)
+        // From the episode before the last watched one: the timeline draws the last two watched rows.
+        async let rows = catalog.fetchEpisodesNext(animeId: anime.id, fromNumber: max(1, progress - 1), limit: 10)
+        // One row past the season's total means the list belongs to another season (JJK S2 carries
+        // Season 1's 24 episodes): its stills, titles and dates are not shown. Settled with the rows.
+        async let probe = probeBeyondTotal()
+        let (loaded, exceeds) = await (rows, probe)
         guard !Task.isCancelled else { return }
         content.episodes = loaded
+        sourceExceedsTotal = exceeds
+    }
+
+    private func probeBeyondTotal() async -> Bool {
+        guard let total else { return false }
+        return !(await catalog.fetchEpisodesPage(animeId: anime.id, offset: total, limit: 1)).isEmpty
     }
 
     private func loadWatchLinks() async {
@@ -1068,258 +1180,7 @@ struct DetailProgressCard: View {
 }
 
 // MARK: - D6 Episodes
-
-struct AnimeUnitsSection: View {
-    let anime: Anime
-    let episodes: [Episode]
-    let progress: Int
-    let total: Int?
-    let isTracked: Bool
-    let nextUnit: Int?
-    let seasonNumber: Int?
-    let nextRelease: ReleaseScheduleItem?
-    let material: ArtworkMaterial
-    let coverURL: URL?
-    let savingNext: Bool
-    let confirmTrigger: Int
-    /// "More episodes" open or closed, kept for the session per title (F3, `DetailFold.units`).
-    @Binding var showsAll: Bool
-    /// F2: the page scrolls the episodes back into view after they fold, when needed.
-    var onCollapse: () -> Void = {}
-    let onAdvance: (Int) -> Void
-
-    @Environment(CatalogStore.self) private var catalog
-    @Environment(\.openURL) private var openURL
-    @State private var allEpisodes: [Episode] = []
-    @State private var hasMore = true
-    @State private var loadingMore = false
-    @State private var openEpisode: Int?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var upNext: Int? { isTracked ? nextUnit : nil }
-
-    /// Collapsed: the last finished episode and the one after Up next (tracked), or the first three.
-    private var shownRows: [Episode] {
-        if showsAll { return allEpisodes.isEmpty ? episodes : allEpisodes }
-        guard isTracked else { return Array(episodes.prefix(3)) }
-        let finished = episodes.last { $0.number <= progress }
-        let later = episodes.first { $0.number > progress + 1 }
-        return [finished, later].compactMap { $0 }
-    }
-
-    private var hasMoreToShow: Bool {
-        if showsAll { return false }
-        if let total { return total > shownRows.count + (upNext == nil ? 0 : 1) }
-        return episodes.count > shownRows.count
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if let seasonNumber {
-                DetailEyebrow(text: DetailPageCopy.seasonEyebrow(seasonNumber, german: KuroLocale.isGerman), tracking: 1.2)
-                    .padding(.bottom, 14)
-            }
-            DetailSectionHeading(title: KuroLocale.text("Episodes", "Folgen"))
-            if let nextRelease {
-                KuroReleaseLine(nextRelease, font: .detailSF(10, relativeTo: .footnote), color: DetailInk.progressCaption)
-                    .padding(.top, 4)
-            }
-            if let upNext {
-                upNextRow(upNext).padding(.top, 6)
-            }
-            ForEach(shownRows, id: \.id) { episode in
-                row(episode)
-            }
-            if loadingMore {
-                KuroSkeleton(kind: .row).padding(.vertical, 8)
-            }
-            if hasMoreToShow || showsAll {
-                KuroFoldButton(isExpanded: $showsAll,
-                               expandLabel: KuroLocale.text("More episodes", "Mehr Folgen"),
-                               collapseLabel: KuroLocale.text("Fewer episodes", "Weniger Folgen"),
-                               onCollapse: onCollapse) { title, open in
-                    HStack {
-                        Text(title)
-                            .font(.detailSF(11, relativeTo: .footnote))
-                        Spacer()
-                        Image(systemName: open ? "arrow.up" : "arrow.down")
-                            .font(.detailSF(14, .light, relativeTo: .body))
-                            .accessibilityHidden(true)
-                    }
-                    .foregroundStyle(DetailInk.moreLink)
-                    .frame(minHeight: 44)
-                }
-                .padding(.top, 4)
-            }
-            if showsAll, hasMore, !allEpisodes.isEmpty, !loadingMore {
-                Color.clear.frame(height: 1).onAppear { Task { await loadAll() } }
-            }
-        }
-        .padding(.bottom, 8)
-        // Opened by the fold, or restored open from the session's memory (F3): load the full list.
-        .task(id: showsAll) {
-            guard DetailFold.loadsAllUnits(expanded: showsAll, loadedCount: allEpisodes.count,
-                                           hasMore: hasMore, loading: loadingMore) else { return }
-            await loadAll()
-        }
-    }
-
-    private func upNextRow(_ number: Int) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-        let episode = episodes.first { $0.number == number }
-        let thumb = episode?.thumbnail.flatMap(AnimeDetailPage.webURL) ?? coverURL
-        return HStack(spacing: 12) {
-            Color.clear
-                .frame(width: 32, height: 44)
-                .overlay {
-                    if let thumb {
-                        KuroCachedAsyncImage(url: thumb, maxPixelSize: 160) { phase in
-                            if case .success(let image) = phase { image.resizable().scaledToFill() } else { Color.clear }
-                        }
-                    }
-                }
-                .background(material.edge.color)
-                .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(KuroLocale.text("UP NEXT", "ALS NÄCHSTES"))
-                    .font(.detailSF(7, .semibold, relativeTo: .caption2))
-                    .tracking(1.4)
-                    .foregroundStyle(DetailInk.upNextKicker)
-                Text(DetailPageCopy.episode(number, german: KuroLocale.isGerman))
-                    .font(.detailSF(12, .semibold, relativeTo: .subheadline))
-                    .foregroundStyle(Color.kuroInk)
-                if let title = episode.flatMap({ $0.title ?? $0.titleRomaji })?.detailNonEmpty {
-                    Text(title)
-                        .font(.detailSF(9, relativeTo: .caption2))
-                        .foregroundStyle(DetailInk.progressCaption)
-                        .lineLimit(1)
-                }
-            }
-            Spacer(minLength: 8)
-            DetailUpNextKey(material: material, pending: savingNext, confirmTrigger: confirmTrigger,
-                            accessibilityText: KuroAdvanceCopy.label(medium: .anime, nextUnit: number, title: anime.displayTitle,
-                                                                     current: progress, total: total, german: KuroLocale.isGerman)) {
-                onAdvance(number)
-            }
-        }
-        // The prototype's 58 pt summary (padding 7/9 → 74): the key sits centred, 14 pt from each edge.
-        .frame(minHeight: 58)
-        .padding(.vertical, 7)
-        .padding(.horizontal, 9)
-        .background {
-            // The shadow belongs to the row's shape only (on the container it would shadow every child).
-            shape.fill(material.wash.color)
-                .shadow(color: Color(hex: "344D38", opacity: 0x05 / 255.0), radius: 4, x: 0, y: 3)
-        }
-        .overlay(shape.strokeBorder(material.edge.color, lineWidth: 1))
-        .overlay(alignment: .top) {
-            shape.stroke(Color.white, lineWidth: 1).mask(alignment: .top) { Rectangle().frame(height: 1) }
-        }
-        .padding(.horizontal, -9)
-    }
-
-    private func row(_ episode: Episode) -> some View {
-        let finished = isTracked && episode.number <= progress
-        let description = episode.description?.trimmingCharacters(in: .whitespacesAndNewlines).detailNonEmpty
-        let streamURL = ProviderAvailabilityStore.validatedOutboundURL(episode.streamUrl)
-        let expandable = Self.isExpandable(description: description, streamURL: streamURL)
-        let isOpen = openEpisode == episode.number
-        let ink = finished ? DetailInk.finished : Color.kuroInk
-        let line = HStack(spacing: 12) {
-            Text(String(format: "%02d", episode.number))
-                .font(.detailSF(18, .light, relativeTo: .title3))
-                .tracking(-1)
-                .monospacedDigit()
-                .foregroundStyle(DetailInk.finished)
-                .frame(minWidth: 26, alignment: .leading)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(episode.title?.detailNonEmpty ?? DetailPageCopy.episode(episode.number, german: KuroLocale.isGerman))
-                    .font(.detailSF(12, .semibold, relativeTo: .subheadline))
-                    .foregroundStyle(ink)
-                    .lineLimit(2)
-                if let state = stateLine(finished: finished, expandable: expandable, episode: episode) {
-                    Text(state)
-                        .font(.detailSF(9, relativeTo: .caption2))
-                        .foregroundStyle(DetailInk.finishedState)
-                }
-            }
-            Spacer(minLength: 8)
-            if finished {
-                Image(systemName: "checkmark")
-                    .font(.detailSF(11, relativeTo: .footnote))
-                    .foregroundStyle(DetailInk.finished)
-            } else if expandable {
-                Image(systemName: "chevron.down")
-                    .font(.detailSF(9, relativeTo: .caption2))
-                    .rotationEffect(.degrees(isOpen ? 180 : 0))
-                    .foregroundStyle(DetailInk.finished)
-            }
-        }
-        // 57 pt as measured; at large type the padding keeps text off the row rules.
-        .padding(.vertical, 10)
-        .frame(minHeight: 57)
-        .contentShape(Rectangle())
-        return VStack(alignment: .leading, spacing: 0) {
-            // Only a row with details to show is a button (no dead press feedback, no button trait).
-            if expandable {
-                Button {
-                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { openEpisode = isOpen ? nil : episode.number }
-                } label: { line }
-                .buttonStyle(.plain)
-                .accessibilityHint(KuroLocale.text("Shows the episode's details", "Zeigt Details zur Folge"))
-            } else {
-                line.accessibilityElement(children: .combine)
-            }
-            if isOpen {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let description {
-                        Text(description)
-                            .font(.detailSF(12, relativeTo: .footnote))
-                            .foregroundStyle(DetailInk.synopsis)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    if let streamURL {
-                        Button {
-                            openURL(streamURL)
-                        } label: {
-                            Text(KuroLocale.text("Watch ↗", "Ansehen ↗"))
-                                .font(.detailSF(11, .medium, relativeTo: .footnote))
-                                .foregroundStyle(Color.kuroInk)
-                                .frame(minHeight: 44)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.leading, 38)
-                .padding(.bottom, 10)
-            }
-        }
-        // The prototype's B:1px under every unit row (the last one closes before "More episodes").
-        .overlay(alignment: .bottom) { Rectangle().fill(DetailInk.rowRule).frame(height: 1) }
-    }
-
-    /// An episode row opens only when it has something to show.
-    static func isExpandable(description: String?, streamURL: URL?) -> Bool {
-        description?.detailNonEmpty != nil || streamURL != nil
-    }
-
-    private func stateLine(finished: Bool, expandable: Bool, episode: Episode) -> String? {
-        if finished { return KuroLocale.text("Completed", "Gesehen") }
-        if expandable { return KuroLocale.text("Tap for details", "Für Details tippen") }
-        return nil
-    }
-
-    private func loadAll() async {
-        guard !loadingMore, hasMore else { return }
-        loadingMore = true
-        defer { loadingMore = false }
-        let page = await catalog.fetchEpisodesPage(animeId: anime.id, offset: allEpisodes.count, limit: 50)
-        guard !Task.isCancelled else { return }
-        allEpisodes += page.filter { item in !allEpisodes.contains(where: { $0.id == item.id }) }
-        hasMore = page.count == 50
-    }
-}
+// `AnimeUnitsSection` (the episode timeline) lives in Views/DetailPages/Detail/DetailEpisodeTimeline.swift.
 
 /// The detail's Up next key (prototype `.unit-complete`): 44 × 44, radius 12, `base → deep`, white +.
 struct DetailUpNextKey: View {
@@ -1487,31 +1348,29 @@ struct DetailSourceCard: View {
         }
     }
 
-    /// The 原作 book: a page block with a spine, three offset page edges and a short rule.
-    /// Prototype `.bridge-book`: page `linear-gradient(100deg, #d6dbce 5px, #fafaf0 5px)` (the 5 pt
-    /// spine band runs at 100°, so it shows only as a wedge at the top-left corner), the glyph stack
-    /// centred at 14 pt from the top, and a 12 × 1 rule at the foot's trailing edge (measured in
-    /// `ref-detail-anime-390.png`: ~7 pt from the right, ~12 pt above the foot, `#516149` at ~65 %).
+    /// The original work as a book: its real cover (the ladder's `coverImage`) on a page block with the
+    /// prototype's offset page edges, or the paper branded tile when the ladder has no cover
+    /// (details-songs §6.5, §5.2: no glyph placeholder).
     private var book: some View {
-        ZStack {
+        let kind = DetailFacts.mangaFormatWord(item.format, german: KuroLocale.isGerman) ?? "Manga"
+        let tile = DetailBrandedTile(kind: kind, title: item.title, cornerRadius: 0)
+        return ZStack {
             Rectangle().fill(Color(hex: "EDEEDF")).offset(x: 6, y: 2)
             Rectangle().fill(Color(hex: "C7CEBD")).offset(x: 4, y: 1)
             Rectangle().fill(Color(hex: "F6F5E9")).offset(x: 3, y: 1)
-            Rectangle().fill(DetailInk.bookPage)
-                .overlay(alignment: .topLeading) { DetailBookSpine().fill(DetailInk.bookSpine) }
+            Color.clear
+                .overlay {
+                    if let url = item.coverImage.flatMap(AnimeDetailPage.webURL) {
+                        KuroCachedAsyncImage(url: url, maxPixelSize: 240) { phase in
+                            if case .success(let image) = phase { image.resizable().scaledToFill() } else { tile }
+                        }
+                    } else {
+                        tile
+                    }
+                }
+                .clipped()
+                .overlay(alignment: .topLeading) { DetailBookSpine().fill(DetailInk.bookSpine.opacity(0.55)) }
                 .overlay(Rectangle().strokeBorder(DetailInk.bookBorder, lineWidth: 1))
-            VStack(spacing: 0) {
-                Text("原").font(.detailSF(13, relativeTo: .body))
-                Text("作").font(.detailSF(13, relativeTo: .body))
-            }
-            .foregroundStyle(DetailInk.bookInk)
-            .padding(.top, 14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            Rectangle().fill(DetailInk.bookInk.opacity(0.65))
-                .frame(width: 12, height: 1)
-                .padding(.trailing, 7)
-                .padding(.bottom, 12)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
         .frame(width: 57, height: 77)
         .rotationEffect(.degrees(-4))
@@ -1519,7 +1378,7 @@ struct DetailSourceCard: View {
     }
 }
 
-/// The 原作 book's spine band: the part of a 100° gradient's first 5 pt that falls inside the page,
+/// The book's spine band: the part of a 100° gradient's first 5 pt that falls inside the page,
 /// a wedge from the top-left corner (5.08 pt along the top edge, 28.8 pt down the left edge).
 struct DetailBookSpine: Shape {
     func path(in rect: CGRect) -> Path {
@@ -1707,92 +1566,7 @@ struct DetailSoundPanel: View {
 }
 
 // MARK: - D9 The characters.
-
-struct DetailCharactersRail: View {
-    let characters: [(character: Character, role: String)]
-    /// Manga: square-cut portraits (radius 2) at the prototype's 0.6 saturation.
-    var bookish = false
-    @Environment(\.kuroRoutes) private var routes
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    /// 67 pt cards (prototype); wider at accessibility sizes so names never break inside a word.
-    private var cardWidth: CGFloat { dynamicTypeSize.isAccessibilitySize ? 124 : 67 }
-
-    private var shown: [(character: Character, role: String)] { Self.shown(characters) }
-
-    /// The rail's cards: background roles dropped, main then supporting, at most 12. The page's section
-    /// input counts this same list, so a cast of only background roles shows no heading.
-    static func shown(_ characters: [(character: Character, role: String)]) -> [(character: Character, role: String)] {
-        let rank: (String) -> Int = { role in
-            switch role.uppercased() { case "MAIN": return 0; case "SUPPORTING": return 1; default: return 2 }
-        }
-        return characters
-            .filter { $0.role.lowercased() != "background" }
-            .enumerated()
-            .sorted { lhs, rhs in
-                let l = rank(lhs.element.role), r = rank(rhs.element.role)
-                return l == r ? lhs.offset < rhs.offset : l < r
-            }
-            .prefix(12)
-            .map(\.element)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            DetailSectionHeading(title: KuroLocale.text("The characters.", "Die Figuren."),
-                                 note: KuroLocale.text("Tap to meet", "Zum Kennenlernen tippen"))
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
-                    ForEach(shown, id: \.character.id) { item in
-                        Button {
-                            // Pushed inside the journey (navigation contract N9); Back returns here.
-                            routes.openPage(DetailNavigation.characterPage(item.character))
-                        } label: {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Color.clear
-                                    .frame(width: cardWidth, height: cardWidth * 84 / 67)
-                                    .overlay {
-                                        if let url = item.character.imageLarge.flatMap(AnimeDetailPage.webURL) {
-                                            KuroCachedAsyncImage(url: url, maxPixelSize: 240) { phase in
-                                                if case .success(let image) = phase {
-                                                    image.resizable().scaledToFill().saturation(bookish ? 0.6 : 1)
-                                                } else { Color.clear }
-                                            }
-                                        }
-                                    }
-                                    .background(DetailInk.portrait)
-                                    .clipShape(RoundedRectangle(cornerRadius: bookish ? 2 : 8, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: bookish ? 2 : 8, style: .continuous).strokeBorder(Color.black.opacity(0x11 / 255.0), lineWidth: 1))
-                                // The prototype's name box: 9 pt above two 15 pt lines (44 pt), kept for
-                                // one-line names so the rail ends at the same depth.
-                                Text(item.character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman))
-                                    .font(.detailSF(10, relativeTo: .footnote))
-                                    .lineSpacing(15 - 12)
-                                    .foregroundStyle(Color.kuroInk)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(width: cardWidth, alignment: .topLeading)
-                                    .frame(minHeight: 35, alignment: .topLeading)
-                                    .padding(.top, 9)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(KuroPressStyle())
-                        .accessibilityLabel(item.character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman))
-                    }
-                }
-                .padding(.top, 5)
-                .padding(.bottom, 7)
-                .padding(.horizontal, 1)
-            }
-            .scrollClipDisabled()
-            .padding(.top, 13)
-        }
-        // 30 pt above the heading: the prototype's section margin (the card above it, when there is one,
-        // collapses its own 30 pt bottom margin into this one).
-        .padding(.top, 30)
-    }
-}
+// `DetailCastRail` (one rail, voice chips, edge peek) lives in Views/DetailPages/Detail/DetailRails.swift.
 
 // MARK: - D10 Behind the frames.
 

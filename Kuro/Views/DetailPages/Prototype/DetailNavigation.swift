@@ -48,6 +48,16 @@ enum DetailNavigation {
         .character(character)
     }
 
+    /// A "More like this." card (details-songs §6.8): another title, pushed in the journey.
+    static func similarPage(_ key: MediaKey) -> JourneyPage {
+        .media(MediaRoute(key))
+    }
+
+    /// A cast card's voice chip (details-songs §6.7): the voice actor's staff page.
+    static func voicePage(_ staff: Staff) -> JourneyPage {
+        .staff(staff)
+    }
+
     /// A club card under "In your club rails" (N9: it opens the club).
     static func clubPage(_ activity: ClubMediaActivity) -> JourneyPage {
         .club(id: activity.club.id)
@@ -78,6 +88,8 @@ enum DetailFold {
     static let songs = "songs"
     static let coverage = "coverage"
     static let adaptationGuide = "adaptationGuide"
+    /// The timeline's watched run ("✓ Episodes 1–4 · watched", details-songs §6.4.1).
+    static let watched = "watched"
 
     /// F2: after a collapse the page scrolls the section back into view only when its top has gone above
     /// the visible area (otherwise the user still sees the control and nothing moves).
