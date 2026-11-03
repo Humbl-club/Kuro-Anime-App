@@ -59,7 +59,7 @@ Consequence (open item for the owner): when Kuro is not running, a widget +1 is 
 
 Rules (`ReleaseNotificationPlanner`, all pinned by `PlatformLaneTests`):
 
-- Only titles the account is **watching / reading** (`current`, `repeating`) and has not muted with the detail bell.
+- Only titles the account is **watching / reading** (`current`, `repeating`) and has not muted with the detail bell. The existing airing reminders (`airing-<id>-start` / `-1h`) follow the same rule now: a planned or paused anime is not armed (and loses pending ones), also at import publication.
 - Only **confirmed** and **announced** rows; **an estimate never notifies**.
 - Precision **instant**: at the release moment, body may show the time (`"Ep. 8 · Today, 21:30"` / `"F. 8 · Heute, 21:30"`).
 - Precision **day**: **09:00 local** on the release day, day wording, no time (`"Ch. 68 · Today"` / `"Kap. 68 · Heute"`). The day is read exactly as `ReleaseCopy.calendarDay` reads it, so a day stored at 00:00 UTC is never a day early west of UTC.
@@ -81,6 +81,8 @@ Re-planning: on every schedule change (`publishSchedule`), on every non-progress
 - signed out → snapshot, thumbnails and every queued +1 removed, timelines reloaded;
 - another account → the same, except that account's own queued requests stay;
 - the same account restored at launch → files kept, so a tap made while Kuro was not running is applied once the Library loads;
+- a failed launch restore (offline, expired token) in which no account ended → files kept (the writer remembers in memory which account it last served; none before and none after means nobody signed out);
+- a failed restore after which the SDK holds no session any more → snapshot, thumbnails and queue removed (`AccountScopedState.removeDataWithoutOwner`, called by the session funnel next to the airing-reminder removal);
 - account deletion (`removeDeletedAccountData`) → that account's snapshot and requests removed.
 
 Unsigned builds (`CODE_SIGNING_ALLOWED=NO`) may have no App Group container; the writer then does nothing. Test and fixture hosts never use the App Group (tests pass their own directory).

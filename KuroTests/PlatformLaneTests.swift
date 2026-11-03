@@ -244,6 +244,26 @@ struct WidgetAccountScopeTests {
         await relaunch.tearDown()
     }
 
+    @Test("a failed offline launch restore keeps the owner's snapshot and queued +1; a restore after which the SDK holds no session removes them")
+    func failedRestore() async throws {
+        let first = try PlatformHarness()
+        await first.signIn()
+        try await seedSnapshot(first, PlatformHarness.userA)
+        _ = first.queue.enqueue(WidgetAdvanceRequest(id: UUID(), account: first.hash(PlatformHarness.userA), medium: .anime,
+                                                     mediaId: 1, targetUnit: 4, lifecycleId: nil, total: nil, createdAt: Date()))
+        // Relaunch offline: the restore fails, the SDK still holds A's session.
+        let offline = try PlatformHarness(directory: first.directory, suiteName: first.suite)
+        await offline.service.session.endSessionAfterFailedRestore(storedSessionUserId: PlatformHarness.userA)
+        #expect(offline.store.read()?.account == offline.hash(PlatformHarness.userA), "a failed offline restore wiped the widget")
+        #expect(offline.queue.all().count == 1, "a tap made while Kuro was closed was lost")
+        // Relaunch again: the SDK dropped the session, nobody owns the files.
+        let revoked = try PlatformHarness(directory: first.directory, suiteName: first.suite)
+        await revoked.service.session.endSessionAfterFailedRestore(storedSessionUserId: nil)
+        #expect(revoked.store.read() == nil)
+        #expect(revoked.queue.all().isEmpty)
+        await revoked.tearDown()
+    }
+
     @Test("account deletion removes that account's snapshot and requests")
     func deletionClears() async throws {
         let h = try PlatformHarness()

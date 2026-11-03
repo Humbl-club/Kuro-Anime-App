@@ -268,7 +268,8 @@ final class ReleasesStore: AccountScopedState {
             try await _fetchUpcomingForUserImpl(days: lastUpcomingDays, context: context)
         }
         guard accountSession.isCurrent(context) else { throw CancellationError() }
-        let eligible = Set(entries.filter { $0.key.kind == .anime && $0.status != .completed && $0.status != .dropped }.map { $0.key.id })
+        // Episode reminders only for watched anime (item 10), never for planned / paused ones.
+        let eligible = Set(entries.filter { $0.key.kind == .anime && ($0.status == .current || $0.status == .repeating) }.map { $0.key.id })
         let current = Set(upcomingAirings.map(\.anime_id)).intersection(eligible)
         for id in previous.subtracting(current) { reminders.cancelAiringNotifications(animeId: id) }
         // iOS has a finite pending-notification budget; refresh a bounded visible schedule.
@@ -350,9 +351,13 @@ final class ReleasesStore: AccountScopedState {
         }
         let context = change.account
         let refreshUpcoming = change.kind == .added || change.previous?.status != change.current?.status
+        // Episode reminders only for what the account is watching (item 10): a planned or paused anime
+        // keeps its schedule rows but loses its reminders.
+        let watching = change.current?.status == .current || change.current?.status == .repeating
+        if !watching { reminders.cancelAiringNotifications(animeId: animeId) }
         libraryChangeTask = Task { [weak self] in
             guard let self else { return }
-            await self.reminders.scheduleAiringNotifications(animeId: animeId, context: context)
+            if watching { await self.reminders.scheduleAiringNotifications(animeId: animeId, context: context) }
             if refreshUpcoming { await self.fetchUpcomingForUser(days: 7) }
         }
     }

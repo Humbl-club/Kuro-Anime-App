@@ -26,8 +26,9 @@ import WidgetKit
 // funnel after `accountSession` already names the next account): signed out → the snapshot, its
 // thumbnails and every queued +1 are removed; another account → the same, except that account's own
 // queued requests stay; the SAME account restored at launch → the files stay (a widget tap made while
-// the app was not running is still applied after the Library loads). Deletion removes that account's
-// files as well.
+// the app was not running is still applied after the Library loads); a failed offline launch restore
+// (no account ended) → the files stay; a failed restore after which the SDK holds no session
+// (`removeDataWithoutOwner`) → everything is removed. Deletion removes that account's files as well.
 //
 // No App Group (an unsigned `CODE_SIGNING_ALLOWED=NO` build has no entitlement): `store` / `queue`
 // are nil and the owner does nothing.
@@ -76,6 +77,9 @@ final class WidgetSnapshotWriter: AccountScopedState {
     /// `UserDefaults` key of the per-install salt behind `WidgetAccountHash` (app defaults only).
     nonisolated static let saltKey = "com.kuro.widgets.accountSalt"
 
+    /// The account the writer last served (in memory). Both it and the next account nil means no
+    /// account ended (an offline launch whose restore failed): the files stay for their owner.
+    @ObservationIgnored private var boundAccount: WidgetAccountHash?
     /// When the last snapshot was written (nil: none for this account yet). Diagnostic only.
     private(set) var lastWrittenAt: Date?
     /// How many queued +1 requests the last drain applied. Diagnostic only.
@@ -157,6 +161,11 @@ final class WidgetSnapshotWriter: AccountScopedState {
         lastWrittenAt = nil
         lastDrainApplied = 0
         let next = currentAccountHash
+        let previous = boundAccount
+        boundAccount = next
+        // No account ended and none started (a failed offline restore): a +1 tapped while Kuro was
+        // closed stays queued for the account that owns it.
+        if previous == nil && next == nil { return }
         guard store != nil || queue != nil else { return }
         let written = store?.read()?.account
         if next == nil || written != next {
@@ -164,6 +173,14 @@ final class WidgetSnapshotWriter: AccountScopedState {
             if written != nil { reloader.reloadTimelines(ofKinds: KuroAppGroup.WidgetKind.all) }
         }
         queue?.retainOnly(account: next)
+    }
+
+    /// The SDK holds no session after a failed restore: nobody owns the files any more.
+    func removeDataWithoutOwner() {
+        guard store?.read() != nil || queue?.all().isEmpty == false else { return }
+        store?.clear()
+        queue?.retainOnly(account: nil)
+        reloader.reloadTimelines(ofKinds: KuroAppGroup.WidgetKind.all)
     }
 
     func removeDeletedAccountData(userId: String) async throws {
