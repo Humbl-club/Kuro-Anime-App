@@ -31,7 +31,7 @@ struct EntityWorkRail: View {
             }
             .padding(.horizontal, EntityPageLayout.gutter)
         }
-        .scrollClipDisabled()
+        // Clipped at the page column (the readable column on iPad): the rail bleeds to its edge, no further.
         .kuroSwipeExclusionZone()
     }
 }
@@ -133,7 +133,7 @@ struct EntityCharacterRail: View {
             }
             .padding(.horizontal, EntityPageLayout.gutter)
         }
-        .scrollClipDisabled()
+        // Clipped at the page column (the readable column on iPad): the rail bleeds to its edge, no further.
         .kuroSwipeExclusionZone()
     }
 }

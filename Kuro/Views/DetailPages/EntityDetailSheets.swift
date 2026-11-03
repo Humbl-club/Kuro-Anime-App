@@ -285,10 +285,19 @@ struct CharacterDetailSheet: View {
         (works.first { $0.kind == .anime } ?? works.first).map { KuroCardText.sanitizeTitleForCard($0.title) }
     }
 
+    /// The appearances read stops at `entityWorksRowLimit` per medium: then the count is a floor.
+    private var worksAreFloor: Bool {
+        let limit = CatalogColumns.entityWorksRowLimit
+        return EntityPageLayout.isFloor(works.filter { $0.kind == .anime }.count, limit: limit)
+            || EntityPageLayout.isFloor(works.filter { $0.kind == .manga }.count, limit: limit)
+    }
+
     private var facts: [String] {
         let german = KuroLocale.isGerman
         var facts: [String] = []
-        if !isLoading, !works.isEmpty { facts.append(EntityPageCopy.appearances(works.count, german: german)) }
+        if !isLoading, !works.isEmpty {
+            facts.append(EntityPageCopy.appearances(works.count, german: german, floor: worksAreFloor))
+        }
         if let gender = EntityPageCopy.gender(character.gender, german: german) { facts.append(gender) }
         if let age = EntityPageCopy.age(character.age, german: german) { facts.append(age) }
         return facts
@@ -313,7 +322,9 @@ struct CharacterDetailSheet: View {
                     if !voices.isEmpty {
                         VStack(spacing: 8) {
                             ForEach(Array(voices.prefix(3))) { voice in
-                                EntityVoiceCard(staff: voice.staff, roleCount: voiceRoleCounts[voice.staff.id])
+                                EntityVoiceCard(staff: voice.staff, roleCount: voiceRoleCounts[voice.staff.id],
+                                                roleCountIsFloor: EntityPageLayout.isFloor(voiceRoleCounts[voice.staff.id] ?? 0,
+                                                                                           limit: EntityPageLayout.voiceRoleLimit))
                             }
                         }
                         .entityGutter()
@@ -343,7 +354,7 @@ struct CharacterDetailSheet: View {
             voices = await credits
             isLoading = false
             for voice in voices.prefix(3) {
-                let roles = await catalog.fetchVoiceRoles(forStaff: voice.staff.id)
+                let roles = await catalog.fetchVoiceRoles(forStaff: voice.staff.id, limit: EntityPageLayout.voiceRoleLimit)
                 if !roles.isEmpty { voiceRoleCounts[voice.staff.id] = roles.count }
             }
         }
@@ -358,7 +369,7 @@ struct CharacterDetailSheet: View {
             EntityLoadingRows()
         } else if !works.isEmpty {
             EntityHeading(title: EntityPageCopy.appearsIn(german: german),
-                          note: EntityPageCopy.titles(works.count, german: german))
+                          note: EntityPageCopy.titles(works.count, german: german, floor: worksAreFloor))
             EntityRefineSortRow(filters: availableMediaFilters, filter: $mediaFilter, sort: $sortMode)
                 .entityGutter()
             EntityWorkRail(works: shownWorks.enumerated().map {
@@ -421,6 +432,16 @@ struct StaffDetailSheet: View {
         return voiceRoles.filter { library.entry(for: $0.anime.key) != nil && seen.insert($0.character.id).inserted }
     }
 
+    /// The voice-role read stops at its limit: then "100+ roles", never a false total.
+    private var rolesAreFloor: Bool { EntityPageLayout.isFloor(voiceRoles.count, limit: EntityPageLayout.voiceRoleLimit) }
+
+    /// The filmography read stops at `entityWorksRowLimit` per medium.
+    private var worksAreFloor: Bool {
+        let limit = CatalogColumns.entityWorksRowLimit
+        return EntityPageLayout.isFloor(works.filter { $0.media.kind == .anime }.count, limit: limit)
+            || EntityPageLayout.isFloor(works.filter { $0.media.kind == .manga }.count, limit: limit)
+    }
+
     private var eyebrow: String? {
         voiceRoles.isEmpty ? EntityPageCopy.occupationEyebrow(staff.primaryOccupations)
             : EntityPageCopy.voiceEyebrow(german: KuroLocale.isGerman)
@@ -430,10 +451,10 @@ struct StaffDetailSheet: View {
         let german = KuroLocale.isGerman
         if !voiceRoles.isEmpty {
             let inList = Set(voiceRoles.filter { library.entry(for: $0.anime.key) != nil }.map(\.anime.id)).count
-            return [EntityPageCopy.rolesFacts(roles: voiceRoles.count, inList: inList, german: german)]
+            return [EntityPageCopy.rolesFacts(roles: voiceRoles.count, inList: inList, german: german, floor: rolesAreFloor)]
         }
         let titles = Set(works.map(\.media.stableKey)).count
-        return titles > 0 ? [EntityPageCopy.titlesInKuro(titles, german: german)] : []
+        return titles > 0 ? [EntityPageCopy.titlesInKuro(titles, german: german, floor: worksAreFloor)] : []
     }
 
     var body: some View {
@@ -462,7 +483,8 @@ struct StaffDetailSheet: View {
                         .entityGutter()
                         if voiceRoles.count > Self.foldedRoles {
                             EntityListFold(isExpanded: $showsAllRoles,
-                                           expand: EntityPageCopy.allRoles(voiceRoles.count, german: german),
+                                           expand: EntityPageCopy.allRoles(voiceRoles.count, german: german,
+                                                                           floor: rolesAreFloor),
                                            collapse: EntityPageCopy.fewerRoles(german: german))
                         }
                     }
@@ -483,7 +505,7 @@ struct StaffDetailSheet: View {
             guard isLoading else { return }
             // Anime (`anime_staff`) and manga (`manga_staff`): an "Original work" credit reaches the manga.
             async let filmography = catalog.fetchStaffWorks(staffId: staff.id)
-            async let roles = catalog.fetchVoiceRoles(forStaff: staff.id)
+            async let roles = catalog.fetchVoiceRoles(forStaff: staff.id, limit: EntityPageLayout.voiceRoleLimit)
             works = await filmography
             voiceRoles = await roles
             isLoading = false
@@ -499,7 +521,7 @@ struct StaffDetailSheet: View {
         } else if !works.isEmpty {
             let shown = shownWorks
             EntityHeading(title: EntityPageCopy.worksHeading(german: german),
-                          note: EntityPageCopy.titles(shown.count, german: german))
+                          note: EntityPageCopy.titles(shown.count, german: german, floor: worksAreFloor))
             let refines = availableMediaFilters.count > 1 || availableRoleFilters.count > 1
             // One row when the words fit (refine left, sort right); otherwise the refine words scroll on
             // their own row and the sort words sit under them.
@@ -534,7 +556,7 @@ struct StaffDetailSheet: View {
             .entityGutter()
             if shown.count > Self.foldedWorks {
                 EntityListFold(isExpanded: $showsAllWorks,
-                               expand: EntityPageCopy.allWorks(shown.count, german: german),
+                               expand: EntityPageCopy.allWorks(shown.count, german: german, floor: worksAreFloor),
                                collapse: EntityPageCopy.fewerRoles(german: german))
             }
         }
@@ -594,12 +616,13 @@ struct AuthorDetailSheet: View {
     var body: some View {
         let german = KuroLocale.isGerman
         let titles = Set(works.map(\.media.stableKey)).count
+        let floor = EntityPageLayout.isFloor(works.count, limit: CatalogColumns.entityWorksRowLimit)
         KuroJourneyAwareStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     EntityPageHero(imageURL: author.imageLarge, name: name, native: author.nameNative,
                                    eyebrow: EntityPageCopy.author(german: german),
-                                   facts: titles > 0 ? [EntityPageCopy.titlesInKuro(titles, german: german)] : [])
+                                   facts: titles > 0 ? [EntityPageCopy.titlesInKuro(titles, german: german, floor: floor)] : [])
                         .entityGutter()
 
                     if let text = EntityPageCopy.description(author.description) {
@@ -614,7 +637,7 @@ struct AuthorDetailSheet: View {
                     } else if !works.isEmpty {
                         let shown = shownWorks
                         EntityHeading(title: EntityPageCopy.worksHeading(german: german),
-                                      note: EntityPageCopy.titles(shown.count, german: german))
+                                      note: EntityPageCopy.titles(shown.count, german: german, floor: floor))
                         EntityRefineSortRow(filters: availableRoleFilters, filter: $roleFilter, sort: $sortMode)
                             .entityGutter()
                         VStack(alignment: .leading, spacing: 0) {
@@ -626,7 +649,7 @@ struct AuthorDetailSheet: View {
                         .entityGutter()
                         if shown.count > Self.foldedWorks {
                             EntityListFold(isExpanded: $showsAllWorks,
-                                           expand: EntityPageCopy.allWorks(shown.count, german: german),
+                                           expand: EntityPageCopy.allWorks(shown.count, german: german, floor: floor),
                                            collapse: EntityPageCopy.fewerRoles(german: german))
                         }
                     }
@@ -667,13 +690,14 @@ struct StudioDetailSheet: View {
 
     var body: some View {
         let german = KuroLocale.isGerman
+        let floor = EntityPageLayout.isFloor(works.count, limit: CatalogColumns.entityWorksRowLimit)
         KuroJourneyAwareStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     EntityStudioHero(name: name,
                                      facts: isLoading || works.isEmpty ? nil
                                         : EntityPageCopy.studioFacts(titles: works.count, animation: studio.isAnimationStudio == true,
-                                                                     german: german),
+                                                                     german: german, floor: floor),
                                      column: column)
                         .entityGutter()
                         .padding(.top, 8)
@@ -690,7 +714,7 @@ struct StudioDetailSheet: View {
                     } else if !works.isEmpty {
                         let loved = Array(EntityWorks.sorted(works, mode: sortMode) { $0 }.prefix(Self.railCap))
                         EntityHeading(title: EntityPageCopy.mostLoved(german: german),
-                                      note: EntityPageCopy.titles(works.count, german: german))
+                                      note: EntityPageCopy.titles(works.count, german: german, floor: floor))
                         EntitySortRow(sort: $sortMode)
                             .entityGutter()
                         EntityWorkRail(works: loved.enumerated().map {

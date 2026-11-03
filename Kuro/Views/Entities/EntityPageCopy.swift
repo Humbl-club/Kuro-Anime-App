@@ -15,9 +15,14 @@ enum EntityPageCopy {
         return "\(word) · \(title)".uppercased()
     }
 
-    static func appearances(_ count: Int, german: Bool) -> String {
-        if german { return count == 1 ? "1 Auftritt in Kuro" : "\(count) Auftritte in Kuro" }
-        return count == 1 ? "1 appearance in Kuro" : "\(count) appearances in Kuro"
+    /// A count as shown: "{n}+" when the reader stopped at its limit (the real number is larger: a capped
+    /// read is never shown as a total, spec §5.4).
+    static func number(_ count: Int, floor: Bool) -> String { floor ? "\(count)+" : "\(count)" }
+
+    static func appearances(_ count: Int, german: Bool, floor: Bool = false) -> String {
+        let n = number(count, floor: floor)
+        if german { return count == 1 && !floor ? "1 Auftritt in Kuro" : "\(n) Auftritte in Kuro" }
+        return count == 1 && !floor ? "1 appearance in Kuro" : "\(n) appearances in Kuro"
     }
 
     static func gender(_ raw: String?, german: Bool) -> String? {
@@ -38,21 +43,23 @@ enum EntityPageCopy {
     static func japaneseVoice(german: Bool) -> String { german ? "JAPANISCHE STIMME" : "JAPANESE VOICE" }
 
     /// "Voice actor · 4 roles in Kuro"; the count part is left out while it loads (nil).
-    static func voiceActorLine(roles: Int?, german: Bool) -> String {
+    static func voiceActorLine(roles: Int?, german: Bool, floor: Bool = false) -> String {
         let word = german ? "Sprecher·in" : "Voice actor"
         guard let roles, roles > 0 else { return word }
-        return "\(word) · \(self.roles(roles, german: german))"
+        return "\(word) · \(self.roles(roles, german: german, floor: floor))"
     }
 
-    static func roles(_ count: Int, german: Bool) -> String {
-        if german { return count == 1 ? "1 Rolle in Kuro" : "\(count) Rollen in Kuro" }
-        return count == 1 ? "1 role in Kuro" : "\(count) roles in Kuro"
+    static func roles(_ count: Int, german: Bool, floor: Bool = false) -> String {
+        let n = number(count, floor: floor)
+        if german { return count == 1 && !floor ? "1 Rolle in Kuro" : "\(n) Rollen in Kuro" }
+        return count == 1 && !floor ? "1 role in Kuro" : "\(n) roles in Kuro"
     }
 
     static func appearsIn(german: Bool) -> String { german ? "Kommt vor in." : "Appears in." }
 
-    static func titles(_ count: Int, german: Bool) -> String {
-        german ? "\(count) Titel" : (count == 1 ? "1 title" : "\(count) titles")
+    static func titles(_ count: Int, german: Bool, floor: Bool = false) -> String {
+        let n = number(count, floor: floor)
+        return german ? "\(n) Titel" : (count == 1 && !floor ? "1 title" : "\(n) titles")
     }
 
     static func inYourList(title: String, detail: String?, german: Bool) -> String {
@@ -80,30 +87,38 @@ enum EntityPageCopy {
     }
 
     /// "4 roles in Kuro · 1 in your list" (the list part only when it is not zero).
-    static func rolesFacts(roles: Int, inList: Int, german: Bool) -> String {
-        let lead = self.roles(roles, german: german)
+    static func rolesFacts(roles: Int, inList: Int, german: Bool, floor: Bool = false) -> String {
+        let lead = self.roles(roles, german: german, floor: floor)
         guard inList > 0 else { return lead }
         return "\(lead) · \(inList) \(german ? "in deiner Liste" : "in your list")"
     }
 
-    static func titlesInKuro(_ count: Int, german: Bool) -> String {
-        german ? "\(count) Titel in Kuro" : (count == 1 ? "1 title in Kuro" : "\(count) titles in Kuro")
+    static func titlesInKuro(_ count: Int, german: Bool, floor: Bool = false) -> String {
+        let n = number(count, floor: floor)
+        return german ? "\(n) Titel in Kuro" : (count == 1 && !floor ? "1 title in Kuro" : "\(n) titles in Kuro")
     }
 
     static func rolesHeading(german: Bool) -> String { german ? "Rollen." : "Roles." }
-    static func allRoles(_ count: Int, german: Bool) -> String { german ? "Alle \(count) Rollen" : "All \(count) roles" }
+    /// The roles fold: "All {n} roles", or "Show {n} roles" when the read stopped at its limit (not all).
+    static func allRoles(_ count: Int, german: Bool, floor: Bool = false) -> String {
+        if floor { return german ? "\(count) Rollen zeigen" : "Show \(count) roles" }
+        return german ? "Alle \(count) Rollen" : "All \(count) roles"
+    }
     static func fewerRoles(german: Bool) -> String { german ? "Weniger zeigen" : "Show fewer" }
     static func charactersYouKnow(german: Bool) -> String { german ? "Figuren, die du kennst." : "Characters you know." }
     static func worksHeading(german: Bool) -> String { german ? "Werke." : "Works." }
-    static func allWorks(_ count: Int, german: Bool) -> String { german ? "Alle \(count) Werke" : "All \(count) works" }
+    static func allWorks(_ count: Int, german: Bool, floor: Bool = false) -> String {
+        if floor { return german ? "\(count) Werke zeigen" : "Show \(count) works" }
+        return german ? "Alle \(count) Werke" : "All \(count) works"
+    }
     static func author(german: Bool) -> String { german ? "AUTOR·IN" : "AUTHOR" }
     static func readMore(german: Bool) -> String { german ? "Mehr lesen" : "Read more" }
     static func readLess(german: Bool) -> String { german ? "Weniger anzeigen" : "Show less" }
 
     // MARK: Studio
 
-    static func studioFacts(titles: Int, animation: Bool, german: Bool) -> String {
-        let count = titlesInKuro(titles, german: german)
+    static func studioFacts(titles: Int, animation: Bool, german: Bool, floor: Bool = false) -> String {
+        let count = titlesInKuro(titles, german: german, floor: floor)
         guard animation else { return count }
         return "\(german ? "Animationsstudio" : "Animation studio") · \(count)"
     }

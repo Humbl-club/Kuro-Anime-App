@@ -14,7 +14,8 @@ import SwiftUI
 //   - spoilers stay veiled until tapped, or until the viewer's progress reached the song's first episode;
 //     NSFW songs are never revealed automatically.
 // The signature is fixed (§8.1) so the integrator swaps it in for `DetailSoundPanel`.
-// Any host that renders this view must inject `SongPreviewPlayer` and `NetworkMonitor`.
+// Both environment owners are optional, so the view drops into any host: without `SongPreviewPlayer` there
+// is no ▶ (a matched row offers "Apple Music ↗"), and without `NetworkMonitor` the device counts as online.
 
 struct DetailSongShelf: View {
     let songs: [ThemeSong]
@@ -41,8 +42,8 @@ struct DetailSongShelf: View {
     /// Rows shown before "Show all" (spec §8.5).
     nonisolated static let collapsedRows = 6
 
-    @Environment(SongPreviewPlayer.self) private var player
-    @Environment(NetworkMonitor.self) private var network
+    @Environment(SongPreviewPlayer.self) private var player: SongPreviewPlayer?
+    @Environment(NetworkMonitor.self) private var network: NetworkMonitor?
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -87,8 +88,8 @@ struct DetailSongShelf: View {
         }
         .overlay(shape.strokeBorder(material.base.color, lineWidth: 1))
         .padding(.top, 25)
-        .onChange(of: player.phase) { _, phase in
-            if case .playing = phase {
+        .onChange(of: player?.phase) { _, phase in
+            if case .playing = phase ?? .idle {
                 if playingSince == nil { playingSince = Date() }
             } else {
                 playingSince = nil
@@ -146,9 +147,9 @@ struct DetailSongShelf: View {
     private func rowView(_ row: SongShelfRow, singlePart: Bool) -> some View {
         let veiled = SongShelfGrouping.isVeiled(row, revealed: revealed.contains(row.id), progress: progress)
         let matched = row.matched
-        let failed = matched.map { player.didFail($0) } ?? false
-        let action = SongShelfGrouping.action(for: row, veiled: veiled, previewFailed: failed)
-        let active = matched.map { player.isPlaying($0) || player.isLoading($0) } ?? false
+        let failed = matched.flatMap { song in player.map { $0.didFail(song) } } ?? false
+        let action = SongShelfGrouping.action(for: row, veiled: veiled, previewFailed: failed, canPlay: player != nil)
+        let active = matched.flatMap { song in player.map { $0.isPlaying(song) || $0.isLoading(song) } } ?? false
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 art(row, veiled: veiled)
@@ -268,10 +269,10 @@ struct DetailSongShelf: View {
         case .none:
             EmptyView()
         case .preview(let song):
-            let offline = !network.isConnected && !active
+            let offline = !isConnected && !active
             Button {
                 KuroAccessibility.impactHaptic(.light)
-                player.toggle(song)
+                player?.toggle(song)
             } label: {
                 SongPreviewKeyFace(playing: active)
                     .frame(width: 44, height: 44)
@@ -324,7 +325,7 @@ struct DetailSongShelf: View {
 
     /// The open row: the scrub with elapsed / 0:30, "Open in Apple Music ↗" and "Spotify ↗" (a search).
     private func playingLine(row: SongShelfRow, song: ThemeSong) -> some View {
-        let playing = player.isPlaying(song)
+        let playing = player?.isPlaying(song) ?? false
         return VStack(alignment: .leading, spacing: 4) {
             Group {
                 if playing, let since = playingSince {
@@ -394,8 +395,9 @@ struct DetailSongShelf: View {
         let showsAttribution = rows.contains { row in
             row.matched != nil && !SongShelfGrouping.isVeiled(row, revealed: revealed.contains(row.id), progress: progress)
         }
-        let offlineNote = !network.isConnected && rows.contains { row in
-            if case .preview = SongShelfGrouping.action(for: row, veiled: false, previewFailed: false) { return true }
+        let offlineNote = !isConnected && rows.contains { row in
+            if case .preview = SongShelfGrouping.action(for: row, veiled: false, previewFailed: false,
+                                                       canPlay: player != nil) { return true }
             return false
         }
         return VStack(alignment: .leading, spacing: 6) {
@@ -437,9 +439,12 @@ struct DetailSongShelf: View {
 
     /// Stops the preview when it is one of this panel's songs (leaving the page must not stop another).
     private func stopOwnPreview() {
-        guard let active = player.activeSongID else { return }
+        guard let player, let active = player.activeSongID else { return }
         if songs.contains(where: { $0.id == active }) { player.stop() }
     }
+
+    /// Without a `NetworkMonitor` in the environment the device counts as online.
+    private var isConnected: Bool { network?.isConnected ?? true }
 }
 
 /// A part's container label ("Episodes 1 to 5"), only when the shelf shows part headings.

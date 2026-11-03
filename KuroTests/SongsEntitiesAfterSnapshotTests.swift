@@ -99,7 +99,8 @@ struct SongsEntitiesAfterSnapshotTests {
         world.graph.catalog.seedFixtureVoiceActors(characterId: gojo.id, credits: [
             VoiceActorCredit(staff: Self.nakamura, language: "JAPANESE", animeIds: [401]),
         ])
-        world.graph.catalog.seedFixtureVoiceRoles(staffId: Self.nakamura.id, roles: Self.nakamuraRoles)
+        world.graph.catalog.seedFixtureVoiceRoles(staffId: Self.nakamura.id, roles: Self.nakamuraRoles,
+                                                 limit: EntityPageLayout.voiceRoleLimit)
         for (width, suffix) in [(CGFloat(390), "390"), (320, "320"), (834, "ipad")] {
             await capture(Self.journey(.character(gojo), graph: world.graph, ipad: suffix == "ipad"),
                           width: width, height: 1_400, name: "entity-character-\(suffix)", settle: 2_200)
@@ -130,12 +131,14 @@ struct SongsEntitiesAfterSnapshotTests {
         await Self.seedArtwork()
         let world = try Self.world()
         await Self.signIn(world)
-        world.graph.catalog.seedFixtureVoiceRoles(staffId: Self.nakamura.id, roles: Self.nakamuraRoles)
+        world.graph.catalog.seedFixtureVoiceRoles(staffId: Self.nakamura.id, roles: Self.nakamuraRoles,
+                                                 limit: EntityPageLayout.voiceRoleLimit)
         await capture(Self.journey(.staff(Self.nakamura), graph: world.graph), width: 390, height: 1_900,
                       name: "entity-staff-voice-390", settle: 2_200)
         let director = Staff(id: 5_001, anilistId: 5_001, nameFull: "Sunghoo Park", nameNative: "朴性厚", imageLarge: nil,
                              description: "Director and storyboard artist.", primaryOccupations: ["Director", "Storyboard"])
-        world.graph.catalog.seedFixtureVoiceRoles(staffId: director.id, roles: [])
+        world.graph.catalog.seedFixtureVoiceRoles(staffId: director.id, roles: [],
+                                                 limit: EntityPageLayout.voiceRoleLimit)
         await capture(Self.journey(.staff(director), graph: world.graph), width: 390, height: 1_400,
                       name: "entity-staff-director-390", settle: 2_200)
         await world.tearDown()

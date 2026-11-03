@@ -9,6 +9,8 @@ struct EntityVoiceCard: View {
     let staff: Staff
     /// nil while the person's roles load (the count part is left out).
     let roleCount: Int?
+    /// The roles read stopped at its limit: "100+ roles".
+    var roleCountIsFloor: Bool = false
 
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
@@ -16,7 +18,7 @@ struct EntityVoiceCard: View {
     var body: some View {
         let german = KuroLocale.isGerman
         let name = staff.nameFull ?? DetailCopy.unknown(german: german)
-        let line = EntityPageCopy.voiceActorLine(roles: roleCount, german: german)
+        let line = EntityPageCopy.voiceActorLine(roles: roleCount, german: german, floor: roleCountIsFloor)
         Button {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)

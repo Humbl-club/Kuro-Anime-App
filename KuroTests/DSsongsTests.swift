@@ -257,6 +257,14 @@ struct SongShelfTests {
         #expect(SongShelfGrouping.action(for: unmatched, veiled: false, previewFailed: false) == .listen)
     }
 
+    @Test("No player installed: a matched row offers Apple Music instead of ▶")
+    func noPlayer() throws {
+        let row = try #require(SongShelfGrouping.collapse([Self.song(.opening, 1, "A", apple: Self.apple(31))]).first)
+        if case .appleMusic = SongShelfGrouping.action(for: row, veiled: false, previewFailed: false, canPlay: false) {} else {
+            Issue.record("without a player the row links to Apple Music")
+        }
+    }
+
     @Test("A later version's match plays when the first version has none")
     func matchedVersion() throws {
         let row = try #require(SongShelfGrouping.collapse([
@@ -403,6 +411,25 @@ struct EntityPagesTests {
         #expect(EntityPageCopy.rolesFacts(roles: 2, inList: 1, german: true) == "2 Rollen in Kuro · 1 in deiner Liste")
         #expect(EntityPageCopy.japaneseVoice(german: true) == "JAPANISCHE STIMME")
         #expect(EntityPageCopy.voiceEyebrow(german: false) == "VOICE · JAPANESE")
+    }
+
+    @Test("A capped read is a floor, never a total (spec §5.4)")
+    func floors() {
+        #expect(EntityPageLayout.voiceRoleLimit == 100)
+        #expect(EntityPageLayout.isFloor(100, limit: 100))
+        #expect(!EntityPageLayout.isFloor(99, limit: 100))
+        #expect(!EntityPageLayout.isFloor(0, limit: 0))
+        #expect(EntityPageCopy.roles(100, german: false, floor: true) == "100+ roles in Kuro")
+        #expect(EntityPageCopy.voiceActorLine(roles: 100, german: true, floor: true) == "Sprecher·in · 100+ Rollen in Kuro")
+        #expect(EntityPageCopy.rolesFacts(roles: 100, inList: 2, german: false, floor: true) == "100+ roles in Kuro · 2 in your list")
+        #expect(EntityPageCopy.allRoles(100, german: false, floor: true) == "Show 100 roles")
+        #expect(EntityPageCopy.allRoles(24, german: false) == "All 24 roles")
+        #expect(EntityPageCopy.allWorks(500, german: true, floor: true) == "500 Werke zeigen")
+        #expect(EntityPageCopy.appearances(500, german: false, floor: true) == "500+ appearances in Kuro")
+        #expect(EntityPageCopy.titlesInKuro(1, german: false, floor: false) == "1 title in Kuro")
+        #expect(EntityPageCopy.titles(500, german: true, floor: true) == "500+ Titel")
+        #expect(EntityPageCopy.studioFacts(titles: 500, animation: true, german: false, floor: true)
+                == "Animation studio · 500+ titles in Kuro")
     }
 
     @Test("Studio and work lines")

@@ -28,6 +28,7 @@ struct EntityPageHero: View {
                         .tracking(1.05)
                         .foregroundStyle(HomeInk.kicker)
                         .lineLimit(2)
+                        .accessibilitySortPriority(0)
                 }
                 Text(name)
                     .font(.detailSF(27, .semibold, relativeTo: .title1))
@@ -35,10 +36,12 @@ struct EntityPageHero: View {
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
+                    .accessibilitySortPriority(3)
                 if let native = native?.trimmingCharacters(in: .whitespacesAndNewlines), !native.isEmpty {
                     Text(native)
                         .font(.detailSF(13, relativeTo: .subheadline))
                         .foregroundStyle(Color.kuroMuted)
+                        .accessibilitySortPriority(2)
                 }
                 if !facts.isEmpty {
                     Text(facts.joined(separator: " · "))
@@ -46,10 +49,13 @@ struct EntityPageHero: View {
                         .foregroundStyle(Color.kuroMuted)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 4)
+                        .accessibilitySortPriority(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            // VoiceOver (spec §9.5): the name (a header) first, then the native name and the facts; the
+            // eyebrow, which repeats the page's kind, last.
+            .accessibilityElement(children: .contain)
         }
     }
 }

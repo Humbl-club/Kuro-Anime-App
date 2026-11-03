@@ -265,10 +265,11 @@ nonisolated enum SongShelfGrouping {
         case listen
     }
 
-    static func action(for row: SongShelfRow, veiled: Bool, previewFailed: Bool) -> Action {
+    /// `canPlay` is false when no preview player is installed (a host without one shows the Apple Music link).
+    static func action(for row: SongShelfRow, veiled: Bool, previewFailed: Bool, canPlay: Bool = true) -> Action {
         guard !veiled else { return .none }
         if let matched = row.matched, let apple = matched.apple {
-            if !previewFailed, SongPreviewPlayer.canPreview(matched) { return .preview(matched) }
+            if canPlay, !previewFailed, SongPreviewPlayer.canPreview(matched) { return .preview(matched) }
             if let music = ProviderAvailabilityStore.validatedOutboundURL(apple.musicURL.absoluteString),
                AppleSongMatch.musicHosts.contains(music.host()?.lowercased() ?? "") {
                 return .appleMusic(music)
