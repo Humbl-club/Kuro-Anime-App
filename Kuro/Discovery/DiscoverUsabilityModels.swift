@@ -508,11 +508,10 @@ nonisolated struct DiscoverFranchiseRow: Decodable, Sendable {
 
 // MARK: Franchise identity (R2)
 
-/// One way two titles can be "the same series". Two titles are the same franchise when they share
-/// ANY key: the server component (`media_franchise_components`, same medium) or the title stem
-/// (the device rule, so dedupe works before the prepared reader is deployed and for titles whose
-/// relations the catalogue lacks). Keys carry the medium: an anime and its manga are never merged
-/// (R11 labels them instead).
+/// One way two titles can be "the same series": the server component (`media_franchise_components`,
+/// same medium) when read, else the title stem (the device rule, so dedupe works before the
+/// prepared reader is deployed). Two titles are the same franchise when they share a key. Keys
+/// carry the medium: an anime and its manga are never merged (R11 labels them instead).
 nonisolated enum DiscoverFranchiseKey: Hashable, Sendable {
     case component(MediaKind, Int)
     case stem(MediaKind, String)

@@ -44,20 +44,19 @@ extension DiscoveryStore {
 
     // MARK: Franchise identity (R2)
 
-    /// Every franchise key of a title: its server component (when read) and its title stem.
+    /// The franchise key of a title: its server component when read (the catalogue's relations are
+    /// the truth: two Gundam series without a relation stay two franchises), otherwise its title
+    /// stem (before `loadFranchiseIds` answered, or while the reader is not deployed), otherwise
+    /// the title itself. `loadFranchiseIds` answers every requested key (singletons label as
+    /// themselves), so after one load a page's titles all compare by component.
     func franchiseKeys(for key: MediaKey, title: String, serverFranchiseId: Int? = nil) -> Set<DiscoverFranchiseKey> {
-        var keys: Set<DiscoverFranchiseKey> = []
         if let component = serverFranchiseId ?? franchiseIds[key] {
-            keys.insert(.component(key.kind, component))
+            return [.component(key.kind, component)]
         }
         if let stem = DiscoverFranchiseStem.stem(title) {
-            keys.insert(.stem(key.kind, stem))
+            return [.stem(key.kind, stem)]
         }
-        if keys.isEmpty {
-            // No component and no usable stem: the title is its own franchise.
-            keys.insert(.component(key.kind, key.id))
-        }
-        return keys
+        return [.component(key.kind, key.id)]
     }
 
     /// Franchise keys of a journey card (its row's component wins over the session map).
@@ -385,6 +384,9 @@ extension DiscoveryStore {
 
     nonisolated static func mediumWord(_ medium: MediaKind) -> String { medium == .manga ? "MANGA" : "ANIME" }
 
+    /// Rows each server page re-reads from the previous one (at most 8, a third of the page).
+    nonisolated static func pageOverlap(limit: Int) -> Int { min(8, max(0, limit / 3)) }
+
     nonisolated static func isOffsetCursor(_ cursor: DiscoverPageCursor) -> Bool {
         if case .offset = cursor { return true }
         return false
@@ -395,12 +397,17 @@ extension DiscoveryStore {
         return nil
     }
 
-    /// A server page: rows in rank order; a full page continues after its last rank.
+    /// A server page: rows in rank order; a full page continues `pageOverlap(limit:)` rows before
+    /// its last rank. The server filters on mutable per-account state (answered and owned titles)
+    /// BEFORE the offset, so every title hidden or planned during a journey shifts the pool by one;
+    /// the overlap re-reads the boundary and `DiscoverPageAccumulator` drops the repeats, so no title
+    /// is skipped for up to that many changes per page.
     static func serverPage(_ rows: [DiscoverPageRow], offset: Int, limit: Int) -> DiscoverPage {
         let ordered = rows.sorted { $0.rank < $1.rank }
         let items = ordered.compactMap(\.item)
         let last = ordered.last?.rank ?? offset
-        let next: DiscoverPageCursor? = rows.count < limit || last >= 440 ? nil : .offset(last)
+        let next: DiscoverPageCursor? = rows.count < limit || last >= 440
+            ? nil : .offset(max(offset + 1, last - pageOverlap(limit: limit)))
         return DiscoverPage(items: items, next: next, reason: ordered.lazy.compactMap(\.reason).first, origin: .server)
     }
 }

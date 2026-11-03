@@ -221,6 +221,39 @@ struct DiscoverUsabilityRuleTests {
         #expect(DiscoverSectionKey.currentSeason.isServerPaged(for: .anime))
     }
 
+    @Test("Server paging overlaps the boundary: a title hidden or planned mid-journey shifts the pool, the overlap re-reads it and the accumulator drops the repeats")
+    func pagingOverlap() {
+        #expect(DiscoveryStore.pageOverlap(limit: 24) == 8)
+        #expect(DiscoveryStore.pageOverlap(limit: 3) == 1)
+        #expect(DiscoveryStore.pageOverlap(limit: 2) == 0)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        func rows(firstId: Int, firstRank: Int, count: Int) -> [DiscoverPageRow] {
+            (try? decoder.decode([DiscoverPageRow].self, from: Data(DiscoverUsabilityFixtures.pageRowsJSON(
+                kind: .anime, count: count, firstId: firstId, firstRank: firstRank).utf8))) ?? []
+        }
+        // Page 1: ranks 1-3 = ids 100-102. Next asks offset 2 (overlap 1), not 3.
+        let first = DiscoveryStore.serverPage(rows(firstId: 100, firstRank: 1, count: 3), offset: 0, limit: 3)
+        #expect(first.next == .offset(2))
+        var journey = DiscoverPageAccumulator(policy: .mark)
+        journey.append(first, franchiseKeys: { [.component(.anime, $0.key.id)] }, isHidden: { _ in false }, ownedStatus: { _ in nil })
+        // The person hides 101: the server pool shrinks, 102 is now rank 2 and 103 rank 3. Offset 2
+        // answers 103...; without the overlap (offset 3) 103 would never be shown.
+        journey.remove(MediaKey(kind: .anime, id: 101))
+        let second = DiscoveryStore.serverPage(rows(firstId: 103, firstRank: 3, count: 3), offset: 2, limit: 3)
+        journey.append(second, franchiseKeys: { [.component(.anime, $0.key.id)] },
+                       isHidden: { $0.id == 101 }, ownedStatus: { _ in nil })
+        #expect(journey.items.map(\.item.key.id) == [100, 102, 103, 104, 105])
+        // Without a shift the overlap row is a repeat and is dropped.
+        var steady = DiscoverPageAccumulator(policy: .mark)
+        steady.append(first, franchiseKeys: { [.component(.anime, $0.key.id)] }, isHidden: { _ in false }, ownedStatus: { _ in nil })
+        steady.append(DiscoveryStore.serverPage(rows(firstId: 102, firstRank: 3, count: 3), offset: 2, limit: 3),
+                      franchiseKeys: { [.component(.anime, $0.key.id)] }, isHidden: { _ in false }, ownedStatus: { _ in nil })
+        #expect(steady.items.map(\.item.key.id) == [100, 101, 102, 103, 104])
+        // A page too small for an overlap still advances.
+        #expect(DiscoveryStore.serverPage(rows(firstId: 1, firstRank: 1, count: 1), offset: 0, limit: 1).next == .offset(1))
+    }
+
     @Test("Fixture rows decode into pages (both media, reason, list status)")
     func fixtures() {
         let page = DiscoverUsabilityFixtures.page(kind: .anime, count: 4, reason: (id: 5, title: "Frieren"))
@@ -444,7 +477,7 @@ struct DiscoverReadersTests {
         await discovery.loadFranchiseIds(for: [MediaKey(kind: .anime, id: 1)])
         #expect(harness.requests(to: "rpc/media_franchise_ids_v1").count == 1)
         #expect(discovery.franchiseKeys(for: MediaKey(kind: .anime, id: 2), title: "Attack on Titan Season 2")
-                    .contains(.component(.anime, 1)))
+                    == [.component(.anime, 1)], "a read component is the truth (no stem key)")
         await harness.tearDown()
 
         let undeployed = try PublicDataHarness { request in
@@ -474,7 +507,7 @@ struct DiscoverReadersTests {
         #expect(page.items.map(\.key.id) == [991_000, 991_001, 991_002])
         #expect(page.items[1].serverListStatus == .current)
         #expect(page.items[0].franchiseId == 991_000)
-        #expect(page.next == .offset(27))
+        #expect(page.next == .offset(26), "one row of overlap (a third of a 3-row page)")
         let body = try #require(harness.requests(to: "rpc/discover_section_page_v1").first?.canonicalBody)
         #expect(body == #"{"p_format":"TV","p_length":"short","p_limit":3,"p_media_type":"ANIME","p_offset":24,"p_section":"trending","p_sort":"newest","p_status":"finished"}"#)
 
