@@ -243,8 +243,11 @@ struct WidgetAfterSnapshotTests {
         let outer = CGSize(width: size.width + 32, height: size.height + 32)
         let host = UIHostingController(rootView: card.frame(width: outer.width, height: outer.height))
         host.safeAreaRegions = []
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
+            Issue.record("\(name): the test host has no window scene to render in")
+            return
+        }
+        let window = UIWindow(windowScene: scene)
         window.frame = CGRect(origin: .zero, size: outer)
         window.rootViewController = host
         window.isHidden = false
