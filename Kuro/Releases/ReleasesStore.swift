@@ -136,11 +136,29 @@ final class ReleasesStore: AccountScopedState {
     /// In-flight theme reads.
     let themeLoads = AccountScopedLoads<String, [ThemeSong]>()
 
+    // MARK: Release notification state (ReleasesStore+Notifications.swift)
+
+    /// Whether the current account gets release notifications (the Profile toggle reads this).
+    var releaseNotificationsEnabled = false
+    /// The device permission as last read (never prompts; `refreshReleaseNotificationState`).
+    var notificationPermission: NotificationPermission = .notDetermined
+    /// Titles whose notifications the account muted (detail bell off).
+    var mutedReleaseNotificationKeys: Set<MediaKey> = []
+    /// The Library projection (watching / reading statuses decide what notifies). Wired by composition.
+    @ObservationIgnored weak var library: LibraryStore?
+    /// The pending debounced re-plan.
+    @ObservationIgnored var releaseNotificationTask: Task<Void, Never>? = nil
+    /// Whether the last commit for this account left release notifications pending (an empty plan
+    /// then still needs one commit to remove them).
+    @ObservationIgnored var hasCommittedReleaseNotifications = false
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {
         libraryChangeTask?.cancel()
         libraryChangeTask = nil
+        releaseNotificationTask?.cancel()
+        releaseNotificationTask = nil
         scheduleRefreshTask?.cancel()
         scheduleRefreshTask = nil
         upcomingLoads.cancelAll()
@@ -160,6 +178,14 @@ final class ReleasesStore: AccountScopedState {
         scheduleCoverageByMedium = [:]
         scheduleCache = [:]
         themesCache = [:]
+        releaseNotificationsEnabled = false
+        notificationPermission = .notDetermined
+        mutedReleaseNotificationKeys = []
+        hasCommittedReleaseNotifications = false
+    }
+
+    func removeDeletedAccountData(userId: String) async throws {
+        reminders.removeReleaseNotificationPreferences(userId: userId)
     }
 
     // MARK: - Upcoming Airings (user-scoped)
@@ -278,6 +304,9 @@ final class ReleasesStore: AccountScopedState {
     /// outlives its account never re-arms the timer stopped by `cancelAccountWork`.
     func startCountdownUpdates(for context: AccountContext) {
         guard accountSession.isCurrent(context) else { return }
+        // The account's notification state (and plan) once it is current (no prompt).
+        releaseNotificationTask?.cancel()
+        releaseNotificationTask = Task { [weak self] in await self?.refreshReleaseNotifications() }
         countdownTimer?.invalidate()
         // Avoid passing an actor-isolated closure to Timer (Swift 6 strict concurrency warning).
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
@@ -305,8 +334,10 @@ final class ReleasesStore: AccountScopedState {
     /// projection did not hold, loses its reminders, countdown and upcoming rows.
     func libraryDidChange(_ change: LibraryChange) {
         guard accountSession.isCurrent(change.account), !change.isProgressOnly else { return }
-        // Membership or status changed: the account's schedule is re-read on its next load.
+        // Membership or status changed: the account's schedule is re-read on its next load, and what
+        // notifies (watching / reading only) is re-planned.
         scheduleMembershipDidChange(change)
+        scheduleReleaseNotificationsSoon()
         guard change.key.kind == .anime else { return }
         let animeId = change.key.id
         guard change.current != nil else {

@@ -2,6 +2,7 @@ import Foundation
 import KuroCore
 import KuroLibrary
 import KuroSupabase
+import KuroWidgetSupport
 
 #if canImport(Supabase)
 import Supabase
@@ -82,6 +83,10 @@ final class AppComposition {
     /// The owners that shed public caches on a memory warning (the ONE registration list:
     /// `memoryPressureOwners(publicData:assistant:)`).
     var memoryPressure: MemoryPressureRelief { graph.memoryPressure }
+    /// The Home Screen widget snapshot writer and +1 inbox (App Group).
+    var widgets: WidgetSnapshotWriter { graph.widgets }
+    /// A tapped release notification's title link, routed by `KuroApp`.
+    var notificationLinks: NotificationLinkInbox { graph.notificationLinks }
 
     private init() {
         // The client is chosen BEFORE it is built: a test host or `--kuro-fixture-host` run gets the
@@ -101,10 +106,14 @@ final class AppComposition {
         #endif
         let flags = FeatureFlags()
         let malRegistration: MALNativeRegistration?
+        // The App Group's widget files (nil without the entitlement, and never for a fixture or test host).
+        let widgetDirectory: URL?
         #if DEBUG
         malRegistration = FixtureHost.isActive() ? nil : AppConfig.malNativeRegistration
+        widgetDirectory = FixtureHost.isActive() ? nil : KuroAppGroup.widgetDirectory()
         #else
         malRegistration = AppConfig.malNativeRegistration
+        widgetDirectory = KuroAppGroup.widgetDirectory()
         #endif
         let graph = Self.makeGraph(
             client: client,
@@ -118,10 +127,15 @@ final class AppComposition {
             clubRefreshDebounce: ClubRealtimeCoordinator.defaultRefreshDebounce,
             userListChannels: SupabaseUserListChannelFactory(client: client),
             libraryRealtimeDebounce: LibraryRealtime.defaultRefreshDebounce,
-            malRegistration: malRegistration
+            malRegistration: malRegistration,
+            widgetDirectory: widgetDirectory
         )
         self.graph = graph
         foregroundSignalDrain = graph.taste.installForegroundDrain()
+        if widgetDirectory != nil {
+            graph.widgets.startObserving()
+            graph.widgets.installAdvancePing()
+        }
         #if DEBUG
         // The unit-test host never restores a session at launch (tests drive the funnel themselves).
         if !FixtureHost.isTestHost() { graph.session.startLaunchRestore() }
@@ -173,7 +187,10 @@ final class AppComposition {
         libraryRealtimeDebounce: Duration,
         malRegistration: MALNativeRegistration? = nil,
         progressOutbox: ProgressOutbox? = nil,
-        malCredentials: any MALCredentialStore = KeychainMALCredentialStore()
+        malCredentials: any MALCredentialStore = KeychainMALCredentialStore(),
+        widgetDirectory: URL? = nil,
+        widgetReloader: any WidgetTimelineReloading = LiveWidgetTimelineReloader(),
+        widgetThumbnails: any WidgetThumbnailFetching = LiveWidgetThumbnailFetcher()
     ) -> AppGraph {
         let accountSession = AccountSessionCoordinator()
         let shell = makeShell(
@@ -230,6 +247,19 @@ final class AppComposition {
         wiring.sinks.home.store = home
         libraryActions.home = home
         libraryActions.releases = personalData.releases
+        personalData.releases.library = wiring.store
+        let widgets = WidgetSnapshotWriter(
+            accountSession: accountSession,
+            library: wiring.store,
+            libraryActions: libraryActions,
+            releases: personalData.releases,
+            catalog: publicData.catalog,
+            userDefaults: userDefaults,
+            store: widgetDirectory.map(WidgetSnapshotStore.init(directory:)),
+            queue: widgetDirectory.map(WidgetAdvanceQueue.init(directory:)),
+            reloader: widgetReloader,
+            thumbnails: widgetThumbnails
+        )
         clubs.home = home
         collection.home = home
         collection.library = wiring.store
@@ -270,6 +300,7 @@ final class AppComposition {
                 clubs: clubs,
                 assistant: assistant,
                 support: support,
+                widgets: widgets,
                 shell: shell
             )
         )
@@ -304,7 +335,9 @@ final class AppComposition {
             interactionTelemetry: shell.interactionTelemetry,
             outboundLinks: shell.outboundLinks,
             artworkMaterials: shell.artworkMaterials,
-            memoryPressure: MemoryPressureRelief(owners: memoryPressureOwners(publicData: publicData, assistant: assistant))
+            memoryPressure: MemoryPressureRelief(owners: memoryPressureOwners(publicData: publicData, assistant: assistant)),
+            widgets: widgets,
+            notificationLinks: NotificationLinkInbox()
         )
     }
 
@@ -327,7 +360,10 @@ final class AppComposition {
         libraryRealtimeDebounce: Duration = LibraryRealtime.defaultRefreshDebounce,
         flags: FeatureFlags? = nil,
         interactionTelemetry: InteractionTelemetry? = nil,
-        progressOutbox: ProgressOutbox? = nil
+        progressOutbox: ProgressOutbox? = nil,
+        widgetDirectory: URL? = nil,
+        widgetReloader: any WidgetTimelineReloading = LiveWidgetTimelineReloader(),
+        widgetThumbnails: (any WidgetThumbnailFetching)? = nil
     ) -> AppGraph {
         makeGraph(
             client: client,
@@ -343,7 +379,11 @@ final class AppComposition {
             libraryRealtimeDebounce: libraryRealtimeDebounce,
             progressOutbox: progressOutbox,
             // A test graph never touches the device Keychain, and graphs never share MAL credentials.
-            malCredentials: InMemoryMALCredentialStore()
+            malCredentials: InMemoryMALCredentialStore(),
+            // Widget files only in a directory the test owns (never the App Group); no network images.
+            widgetDirectory: widgetDirectory,
+            widgetReloader: widgetReloader,
+            widgetThumbnails: widgetThumbnails ?? NoWidgetThumbnails()
         )
     }
 
@@ -352,8 +392,9 @@ final class AppComposition {
     /// account's Library refreshes are cancelled before anything else; the funnel rebinds/resets the
     /// store itself before this list runs), the Collection pages, the public-data owners (Discovery),
     /// the personal-data owners (Releases, Social, ProviderAvailability), Clubs, the assistant owners
-    /// (Imports, Concierge, Taste), Support (the contact draft) and the interaction telemetry LAST (the
-    /// ending account's queued events are dropped before the funnel sets the new user id).
+    /// (Imports, Concierge, Taste), Support (the contact draft), the Home Screen widget files (`widgets`:
+    /// snapshot + queued +1 of another account) and the interaction telemetry LAST (the ending
+    /// account's queued events are dropped before the funnel sets the new user id).
     static func makeAccountScopedStates(
         libraryActions: LibraryActions,
         home: HomeStore,
@@ -363,10 +404,11 @@ final class AppComposition {
         clubs: ClubsStore,
         assistant: AssistantOwners,
         support: SupportStore,
+        widgets: WidgetSnapshotWriter,
         shell: ShellOwners
     ) -> [any AccountScopedState] {
         [libraryActions, home, collection] + publicData.accountScopedStates
-            + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates + [support]
+            + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates + [support, widgets]
             + [shell.interactionTelemetry]
     }
 
@@ -605,6 +647,15 @@ struct AppGraph {
     let outboundLinks: OutboundLinkTelemetry
     let artworkMaterials: ArtworkMaterialStore
     let memoryPressure: MemoryPressureRelief
+    /// Home Screen widgets: the App Group snapshot writer and the +1 inbox (account-scoped).
+    let widgets: WidgetSnapshotWriter
+    /// A tapped release notification's title link (routed by `KuroApp`).
+    let notificationLinks: NotificationLinkInbox
+}
+
+/// Test graphs never fetch artwork for widget thumbnails.
+nonisolated struct NoWidgetThumbnails: WidgetThumbnailFetching {
+    func thumbnailJPEG(from url: URL) async -> Data? { nil }
 }
 
 /// The app-shell owners built by `AppComposition.makeShell` (E6c2): injected into the environment and

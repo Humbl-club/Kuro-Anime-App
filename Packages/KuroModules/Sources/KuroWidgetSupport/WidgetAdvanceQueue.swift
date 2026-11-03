@@ -144,6 +144,15 @@ public struct WidgetAdvanceQueue: Sendable {
         }
     }
 
+    /// Removes every request of `account` (account deletion).
+    public func remove(account: WidgetAccountHash) {
+        _ = mutate { entries in
+            let before = entries.count
+            entries.removeAll { $0.account == account }
+            return entries.count != before
+        }
+    }
+
     // MARK: File access
 
     func read() -> [WidgetAdvanceRequest] {
