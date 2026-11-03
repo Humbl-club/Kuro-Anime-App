@@ -113,7 +113,7 @@
 
 | Question | Answer | Source |
 |---|---|---|
-| Do Discover reads hide passed or "known" titles? | **No.** `discover_bundle` never reads `taste_signal_events`; it excludes only `user_lists`. `fetch_because_you_rail` does exclude deck signals. | `20260326221000_discover_new_to_you_rotation.sql` (0 references); `20260731100000_discover_p1.sql:331, 359` |
+| Do Discover reads hide passed or "known" titles? | **No.** `discover_bundle` never reads `taste_signal_events`; it excludes only `user_lists`. `fetch_because_you_rail` does exclude deck signals. | latest `discover_bundle`: `20260326234000_exclude_ancillary_anime_from_default_surfaces.sql` (0 references); latest `fetch_because_you_rail`: `20260731150000_realm_graph_v1.sql:977, 1005` (latest definitions by sorted filename) |
 | Which signal teaches "fewer like this"? | `skip` (−0.45). `pass` is 0.00 and is excluded from the recompute. `known` is +0.25. `retract` deletes the row. | `20260731090000_taste_deck_pass_memory.sql:180-240, 880-930` |
 | Is there a franchise key on the client? | **No.** `media_franchise_components` (same-type components) has no client grants. `SeriesGrouping` is a continuity decision function, not a key. Card models have no franchise field. | `20260804140000_franchise_components_and_blend_dedupe.sql:71-84`; `Packages/KuroModules/Sources/KuroLibrary/SeriesGrouping.swift`; `Catalog/MediaDisplayModels.swift:168` |
 | Can moods be built from existing data? | **Yes.** `short_one_season_*`, `cozy_comfort_*` and `dark_serious_*` curated rails, read through `curated_rail_cards` (limit ≤ 120, no offset, excludes the caller's list). | `20260205231000_curated_rails.sql:62-189`; `20260207020000_curated_rails_more_vibes_seed.sql` |

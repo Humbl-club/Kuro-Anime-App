@@ -127,7 +127,7 @@ The rule text is quoted verbatim from the approved plan. Notes give the reading 
 | D1 | **Base: Tactile.** Grafts are listed in JUDGING.md. | Highest weighted score. It is the only direction that meets R3 on every card. |
 | D2 | **Signals.** Not interested → `TasteStore.submitSignal(mediaType:mediaId:action: .skip)`. Seen it → `.known`. Undo → `.retract`. `.pass` is **not** used. | `pass` is stored at strength 0.00 and excluded from the recompute (`20260731090000_taste_deck_pass_memory.sql`), so it teaches nothing. `skip` is −0.45, the deck's own "NOT FOR ME" (`TasteDeckView.swift:450`). `known` is +0.25. `retract` deletes the user's signal row for that title. **Accepted:** if the title had an earlier love, skip replaces it (one signal per user and title), and Undo removes the signal rather than restoring the love. Discover titles are unseen titles, so this case is rare. |
 | D3 | **Personal title wording.** The page keeps "Because you loved {X}." (the existing route title). "Because you finished X" is used only where it is true: the "Like {title}" mood journey (D9). | Nothing stores a "finished" seed for `fetch_because_you_rail`; `reason_title` is the top positive seed. |
-| D4 | **Hidden memory.** `DiscoverHiddenTitles` (data lane) keeps a per-account, on-device list that hides a title instantly and across launches. A prepared RPC hydrates it from the server's `deck_skip` / `deck_known` rows, so other devices agree. Prepared server exclusions keep sections full once they are deployed (§10). Until deployment, the client hides and the sections simply get shorter. | The server hides nothing today: `discover_bundle` never reads `taste_signal_events`. |
+| D4 | **Hidden memory.** `DiscoverHiddenTitles` (data lane) keeps a per-account, on-device list that hides a title instantly and across launches. A prepared RPC hydrates it from the server's `deck_skip` / `deck_known` rows, so other devices agree. Prepared server exclusions keep sections full once they are deployed (§10). Until deployment, the client hides and the sections simply get shorter. | The server hides nothing on the main sections today: `discover_bundle` (latest `20260326234000`) never reads `taste_signal_events`. Only `fetch_because_you_rail` excludes deck signals. |
 | D5 | **Claim order for dedupe.** The cover story first, then Essentials (the fixed canon), then the remaining sections in page order. A section that loses a title to an earlier claim shows its next unclaimed item. Claims are computed **once per page build** (first load, pull to refresh, issue change, a new visit). A hide only removes the title and refills from **the same section's** reserve. Claims never move between sections mid-visit (R8). | Essentials is a canon list with a progress hook, so it must not lose titles to New to you. Stable claims mean a hide never re-lays out other sections. |
 | D6 | **Two-beat feedback.** Beat 1 (0 ms): the haptic and the visual state change. Beat 2, after the durable result: `.kuroConfirmStamp` + `.sensoryFeedback(.success)` + toast. On failure: `.kuroRestore` + `.sensoryFeedback(.warning)` + "Not saved. Your list is unchanged." Hides finish beat 2 at once, because the local hide is the durable result and the signal goes through the outbox. | Home grammar rule 8: the stamp plays only after a durable save. |
 | D7 | **Section cap.** The candidates, in order, are given below. At most **6** are shown. While there are more than 6, drop from the end in this order: Classics, then Manga new to you, then Hidden gem, then Tonight's shelf. Every dropped section, and the D17 fold sections, appear as **More lists** links in the end block. No content becomes unreachable. | R7. Deterministic and testable. Both realm flags are at 0% live, so the live All page is the six base sections. |
@@ -287,13 +287,13 @@ Measured target: the All page at 390 is ≤ 2,300 pt in the after render, end bl
 1. **Heading:** the 24 pt title + the purpose line + "{n} titles" (`kuroMuted`).
 2. **Sort row** (`DiscoverRefineRow` grammar, with the label "Sort" / "Sortieren" for VoiceOver):
    - **Bounded lists** (Essentials, Classics, New to you, Because you…, Manga new to you, This season, Airing today, Tonight's shelf): "{Own order}" · Popular · Newest · Top rated, all local.
-     - The own-order word is "Our order" / "Unsere Reihenfolge" for curated lists, "For you" / "Für dich" for personal lists, and "Airing" / "Läuft" for This season and Airing today.
+     - The own-order word is "Our order" / "Unsere Reihenfolge" for curated lists, "For you" / "Für dich" for personal lists, and "Next to air" / "Als Nächstes" for This season and Airing today, so it doesn't clash with the "Airing" chip.
      - "Newest" sorts by release year, newest first.
    - **Catalogue lists** (Trending, Top rated, Just added and their manga twins): Trending · Popular · Top rated · Just added. Each maps to `DiscoveryStore.BrowseSort` (`trending`, `popular`, `topRated`, `newlyAdded`). The section's own sort is selected first.
 3. **Chips** (a wrapping `FlowLayout`, 6 × 8 gaps; each chip is at least 44 pt tall in hit area, 30 pt drawn). Groups are separated by a 1 pt `kuroHairline`:
    - Format (anime): TV · Film
    - Length (anime): Up to 13 episodes · Over 50 episodes
-   - Status: Finished · Airing (anime) / Ongoing (manga, "Läuft")
+   - Status: Finished · Airing (anime, "Läuft") / Ongoing (manga, "Erscheint noch")
    - Hide my list
 4. **Chip faces:**
    - Selected: an ink fill `kuroInk`, white 12 pt medium text, and a leading ✓.
@@ -381,7 +381,7 @@ The end block (`DiscoverIssueEnd`), from top to bottom:
 - It appears once the contents block has scrolled under the header. It is a 38 pt band on the canvas with a bottom 0.5 pt `kuroHairline`, sitting directly under the header.
 - It holds one line of short words, scrolling horizontally if needed:
   - EN: New · Season · Essentials · Manga · Trending · Classics
-  - DE: Neu · Season · Kanon · Manga · Beliebt · Klassiker (§8)
+  - DE: Neu · Season · Kanon · Manga · Im Trend · Klassiker (§8)
 - **States:**
   - The current section is ink, with the 28 × 2 `HomeInk.switchMark` under it, fading in place with no travel.
   - Passed sections are ink.
@@ -473,7 +473,7 @@ The branded-state gate stays at 0 offenders, so no `ProgressView(` is used anywh
 | Where | English | Deutsch | |
 |---|---|---|---|
 | Moods eyebrow | IN THE MOOD FOR | LUST AUF | NEW |
-| Mood: short | Something short · Up to 13 eps, or a film (manga: Short and complete) | Etwas Kurzes · Bis 13 Folgen oder ein Film (Manga: Kurz und abgeschlossen) | NEW |
+| Mood: short | Something short · Short and complete | Etwas Kurzes · Kurz und abgeschlossen | NEW. The curated rail doesn't guarantee an episode count, so the subtitle states none. |
 | Mood: cozy | Cozy · Slow, warm, gentle | Gemütlich · Ruhig, warm, sanft | NEW |
 | Mood: intense | Intense · Dark and gripping | Intensiv · Düster und packend | NEW |
 | Mood: like | Like {title} · Because you finished it | Wie {Titel} · Weil du es beendet hast | NEW |
@@ -481,7 +481,7 @@ The branded-state gate stays at 0 offenders, so no `ProgressView(` is used anywh
 | Mood eyebrow (like) | BECAUSE YOU FINISHED {TITLE} | WEIL DU {TITEL} BEENDET HAST | NEW |
 | Mood journey | Start here · That's all {n}. · Nothing {mood} left that you haven't seen. | Fang hier an · Das sind alle {n}. · Nichts {Stimmung} mehr, das du noch nicht kennst. | NEW |
 | Contents | IN THIS ISSUE · {n} SECTIONS · TAP TO JUMP · {n} new · Jump to {section}, {n} titles | IN DIESER AUSGABE · {n} RUBRIKEN · TIPPEN ZUM SPRINGEN · {n} neu · Zu {Rubrik} springen, {n} Titel | NEW |
-| Pinned words | New · Season · Essentials · Manga · Trending · Classics · (Shelf · Gem when flagged) | Neu · Season · Kanon · Manga · Beliebt · Klassiker · (Regal · Juwel) | NEW. EN says "Essentials" to match the section name. DE says "Kanon" to match the shipped German summary "Der Kanon, in unserer Reihenfolge". |
+| Pinned words | New · Season · Essentials · Manga · Trending · Classics · (Shelf · Gem when flagged) | Neu · Season · Kanon · Manga · Im Trend · Klassiker · (Regal · Juwel) | NEW. EN says "Essentials" to match the section name. DE says "Kanon" to match the shipped German summary "Der Kanon, in unserer Reihenfolge". DE uses "Im Trend" so it doesn't clash with the sort word "Am beliebtesten". |
 | Purpose: New to you | Series you haven't seen. A new set each morning. | Serien, die du noch nicht kennst. Jeden Morgen neu. | NEW |
 | Purpose: Because you | Picked from what you loved most. | Ausgewählt nach dem, was du am meisten mochtest. | NEW (title EXISTING) |
 | Purpose: This season | Airing now. {n} new episodes out today. / What's airing this season. | Läuft gerade. Heute {n} neue Folgen. / Was diese Season läuft. | NEW |
@@ -502,7 +502,7 @@ The branded-state gate stays at 0 offenders, so no `ProgressView(` is used anywh
 | VoiceOver hide | Hidden. Undo available. | Ausgeblendet. Rückgängig möglich. | NEW |
 | End | You're caught up for today. · {s} sections, {t} titles. · You planned {p}, hid {h} and marked {k} as seen. · A new issue tomorrow morning. · SOMETHING SPECIFIC · Search → · MORE LISTS | Für heute bist du durch. · {s} Rubriken, {t} Titel. · {p} vorgemerkt, {h} ausgeblendet, {k} als gesehen markiert. · Morgen früh kommt eine neue Ausgabe. · ETWAS BESTIMMTES · Suchen → · WEITERE LISTEN | NEW (Browse row EXISTING) |
 | Header | Discover. Scroll to top | Entdecken. Nach oben | NEW |
-| See all | Sort · Our order · For you · Airing · Popular · Newest · Top rated · Trending · Just added · TV · Film · Up to 13 episodes · Over 50 episodes · Finished · Airing · Ongoing · Hide my list · {n} match · Clear filters · That's all {n}. · Loading more · Nothing matches these filters. · Couldn't load more. Try again → | Sortieren · Unsere Reihenfolge · Für dich · Läuft · Beliebt · Neueste · Bestbewertet · Gerade beliebt · Neu hinzugefügt · TV · Film · Bis 13 Folgen · Über 50 Folgen · Fertig erschienen · Läuft · Läuft · Meine Liste ausblenden · {n} Treffer · Filter löschen · Das sind alle {n}. · Lädt weitere · Nichts passt zu diesen Filtern. · Weitere konnten nicht geladen werden. Erneut versuchen → | "Gerade beliebt", "Neu hinzugefügt" EXISTING |
+| See all | Sort · Our order · For you · Next to air · Popular · Newest · Top rated · Trending · Just added · TV · Film · Up to 13 episodes · Over 50 episodes · Finished · Airing · Ongoing · Hide my list · {n} match · Clear filters · That's all {n}. · Loading more · Nothing matches these filters. · Couldn't load more. Try again → | Sortieren · Unsere Reihenfolge · Für dich · Als Nächstes · Am beliebtesten · Neueste · Bestbewertet · Gerade beliebt · Neu hinzugefügt · TV · Film · Bis 13 Folgen · Über 50 Folgen · Fertig erschienen · Läuft · Erscheint noch · Meine Liste ausblenden · {n} Treffer · Filter löschen · Das sind alle {n}. · Lädt weitere · Nichts passt zu diesen Filtern. · Weitere konnten nicht geladen werden. Erneut versuchen → | "Gerade beliebt", "Neu hinzugefügt" EXISTING |
 
 **Dates:**
 - Weekdays use the device locale through `KuroLocale` (`de_DE` / `en_GB`) and `Europe/Berlin`.
@@ -529,7 +529,7 @@ The branded-state gate stays at 0 offenders, so no `ProgressView(` is used anywh
 | NEW markers | `DiscoverVisitMemory` (on-device) | new, data lane |
 | Progress hook | Essentials list ∩ `LibraryStore` + hidden `.seen` | exists + new |
 | Telemetry | `InteractionTelemetry` | exists |
-| Tracking editor preset | `TrackingEditorRequest.initialStatus` (additive) | new, lane B |
+| Tracking editor preset | `TrackingEditorRequest.initialStatus` (additive `var`) | new, lane B |
 
 Each RPC listed as "prepared" is called with the **silent-fallback** pattern of `ReleasesStore`. A missing function (PostgREST `PGRST202` / 404) marks it unavailable for the session, and the client carries on without it.
 
@@ -553,11 +553,17 @@ Each RPC listed as "prepared" is called with the **silent-fallback** pattern of 
    - The key is `lower(p_media_type) || ':' || coalesce(c.component_label, m.id)::text`, from `media_franchise_components`. Titles with no row label as themselves, which is the table's own convention.
    - It caps `p_ids` at 400.
    - It is `STABLE` and returns catalogue data only.
-3. **Exclusions.** Recreate these functions byte-identical to their latest definitions, except that their candidate filters gain `and not exists (select 1 from taste_signal_events e where e.user_id = auth.uid() and e.media_type = … and e.media_id = … and e.event_type in ('deck_skip', 'deck_known'))`:
-   - the New-to-you pools in `discover_bundle` (latest: `20260326221000_discover_new_to_you_rotation.sql`)
-   - `fetch_personalized_new_to_you` (`20260731012000`)
-   - `curated_rail_cards` (`20260205231000`), only when `p_exclude_seen` is true
-   Each change carries a header comment citing its source file and the exact diff.
+3. **Exclusions.** Recreate these functions byte-identical to their **latest** definitions, except that their candidate filters gain `and not exists (select 1 from taste_signal_events e where e.user_id = auth.uid() and e.media_type = … and e.media_id = … and e.event_type in ('deck_skip', 'deck_known'))`:
+   - the New-to-you pools in `discover_bundle`: latest `20260326234000_exclude_ancillary_anime_from_default_surfaces.sql`. Keep its ancillary-format exclusion.
+   - `fetch_personalized_new_to_you`: latest `20260731070000_taste_math_v2_hotfix.sql`
+   - `curated_rail_cards`: latest and only `20260205231000_curated_rails.sql`, and only when `p_exclude_seen` is true
+   - Not `fetch_because_you_rail`. Its latest definition (`20260731150000_realm_graph_v1.sql:977, 1005`) already excludes `deck_love` / `deck_known` / `deck_skip` / `deck_pass`.
+
+   **Before editing,** re-verify which definition is latest, and re-check `supabase/prepared-migrations/` for a newer one:
+   ```
+   grep -ilE "function (public\.)?<fn>\s*\(" supabase/migrations/*.sql | sort | tail -1
+   ```
+   The citations above were checked on 2026-11-04 at 56d7239. Recreating from an older file silently reverts later fixes, which is a blocking review finding. Each change carries a header comment citing its source file and the exact diff.
 
 **Local DB tests:**
 - File: `supabase/tests/rls/discover_feedback_v1_test.sql`, run by `scripts/db/run_local_db_tests.sh --only discover_feedback_v1`.
@@ -824,7 +830,7 @@ Each lane works in its own worktree on its own branch off `kuro/discover-usabili
 | `Kuro/Views/Discover/SeeAll/` (new) | `DiscoverSeeAllPage.swift`, `DiscoverSeeAllChips.swift`, `DiscoverSeeAllCopy.swift` |
 | `Kuro/Views/Discover/Mood/` (new) | `DiscoverMoodPage.swift`, `DiscoverMoodRoute` |
 | `Kuro/Views/TastePicksView.swift` | **Additive only:** `TastePlanController.lastResult` (key, outcome, token), and `TastePlanKey(…, stampsOnConfirm: Bool = false)`, which plays `.kuroConfirmStamp` / `.kuroRestore` plus success/warning feedback on its key's result. Defaults keep Taste and Home pixel-identical: `HomeCompositionSnapshotTests` and the Taste suites must stay green without the write variable. Lane A passes `stampsOnConfirm: true` on Discover. |
-| `Kuro/Views/Routing/KuroRoutes.swift` | **Additive only:** `TrackingEditorRequest.initialStatus: ListStatus? = nil` (memberwise default keeps every call site compiling). No other change. |
+| `Kuro/Views/Routing/KuroRoutes.swift` | **Additive only:** `var initialStatus: ListStatus? = nil` on `TrackingEditorRequest`. It must be a `var`, because a defaulted `let` is left out of the memberwise init. The default keeps every call site compiling. Add `import KuroLibrary` if `ListStatus` isn't visible there. No other change. |
 | `Kuro/Views/AddToListSheet.swift`, `Kuro/Views/TrackingDraft.swift` | When there is no entry and `initialStatus` is set, the draft starts at that status. The baseline stays `.planning`, so the N7 discard guard applies. |
 | `Kuro/Views/Routing/JourneyHost.swift` | **Additive only:** the `journey_close` event (§5.12) |
 | `KuroTests/DiscoverFeedbackTests.swift`, `DiscoverSeeAllTests.swift`, `DiscoverMoodPageTests.swift`, `DiscoverJourneySnapshotTests.swift` (new) | Toast slot rule, undo once / same account, chip → Browse parameter mapping, local sort order, the "That's all" end, mood empty state. Renders go only into `docs/discover-usability-2026-11-04/after/` (preview, Not-interested toast, Seen-it toast, See all with chips, mood journey). |
