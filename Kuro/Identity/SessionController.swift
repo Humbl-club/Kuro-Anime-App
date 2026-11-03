@@ -915,6 +915,7 @@ final class SessionController {
     func endSessionAfterFailedRestore(storedSessionUserId: String?) async {
         await endSession()
         if storedSessionUserId == nil {
+            for owner in accountScopedStates { owner.removeDataWithoutOwner() }
             await reminders.removePendingAiringNotifications()
         }
     }

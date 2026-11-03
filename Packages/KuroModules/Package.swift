@@ -22,6 +22,7 @@ let package = Package(
         .library(name: "KuroCore", targets: ["KuroCore"]),
         .library(name: "KuroLibrary", targets: ["KuroLibrary"]),
         .library(name: "KuroSupabase", targets: ["KuroSupabase"]),
+        .library(name: "KuroWidgetSupport", targets: ["KuroWidgetSupport"]),
     ],
     targets: [
         // Foundation-only identity and account-scoping contracts.
@@ -35,6 +36,10 @@ let package = Package(
         ),
         // List-table adapter. No SDK import: the app binds `LibraryRowTransport` to supabase-swift.
         .target(name: "KuroSupabase", dependencies: ["KuroCore", "KuroLibrary"], swiftSettings: isolationPolicy),
+        // App Group contract shared by the app and the KuroWidgets extension: the widget snapshot, the
+        // +1 hand-off queue and the opaque account tag. Foundation + CryptoKit only (the extension links
+        // it; it must never pull in the tracking store or the SDK).
+        .target(name: "KuroWidgetSupport", dependencies: ["KuroCore"], swiftSettings: isolationPolicy),
         .testTarget(name: "KuroCoreTests", dependencies: ["KuroCore"], swiftSettings: isolationPolicy),
         .testTarget(name: "KuroLibraryTests", dependencies: ["KuroCore", "KuroLibrary"], swiftSettings: isolationPolicy),
         .testTarget(
@@ -42,6 +47,7 @@ let package = Package(
             dependencies: ["KuroCore", "KuroLibrary", "KuroSupabase"],
             swiftSettings: isolationPolicy
         ),
+        .testTarget(name: "KuroWidgetSupportTests", dependencies: ["KuroCore", "KuroWidgetSupport"], swiftSettings: isolationPolicy),
     ],
     swiftLanguageModes: [.v5]
 )
