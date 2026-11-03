@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 272 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 276 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2162,3 +2162,8 @@ A review found real problems and they are fixed on the same local branch: the ep
 ### Change Log — 3 November 2026: New title pages, songs with previews, cast, and stats (build 24)
 
 Build 24 has the new title pages (facts, next episode with a bell, episode timeline, "More like this"), songs with artwork and 30-second Apple Music previews, characters with their Japanese voice actors, Profile numbers, the restyled import screens and edge peeks on sideways rows. The data behind voice actors and song previews is being filled in now and appears title by title. The Home Screen widget is finished but waits for one setting only the owner can make in Apple's developer account.
+
+
+### Change Log — 4 November 2026: Discover remembers "Not interested" and "Seen it" (data side, prepared)
+
+The data side of the Discover usability pass is ready on a local branch; nothing is switched on or sent to the live backend. Saying "Not interested" or "Seen it" on a Discover card now hides the title at once, teaches the Taste profile (the same signal the Taste deck uses), is remembered on the phone even offline and after a restart, and can be undone (an earlier "calls to me" from the deck is restored, never erased). The page can now tell when two titles are the same series and show it only once. Three prepared server readers (not yet applied) add a real "See all" with sorting and filters, mood journeys ("Something short", "Cozy", "Intense", "Like the last thing you loved"), and series identity; until they are applied the app quietly uses what already exists.
