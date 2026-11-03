@@ -70,11 +70,30 @@ nonisolated struct ClubRoomMetrics: Equatable, Sendable {
 /// The dark room: `#252b28` under a radial `#444a46` glow from the top-left, a hairline border, the
 /// inset top highlight, and the prototype's tight drop (`0 10px 20px -14px #10171066`): the negative
 /// spread keeps it to a thin shade under the bottom edge, never a halo on the sides or top.
+/// `topCornerRadius` (the club page's full-bleed hero: square top, rounded foot) draws the same room on
+/// an uneven shape; without it the room is the plain rounded rectangle Home has always drawn.
 struct ClubRoomBackground: View {
     var cornerRadius: CGFloat = 24
+    var topCornerRadius: CGFloat? = nil
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        if let topCornerRadius {
+            ClubRoomSurface(shape: UnevenRoundedRectangle(topLeadingRadius: topCornerRadius,
+                                                          bottomLeadingRadius: cornerRadius,
+                                                          bottomTrailingRadius: cornerRadius,
+                                                          topTrailingRadius: topCornerRadius,
+                                                          style: .continuous))
+        } else {
+            ClubRoomSurface(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+}
+
+/// The room's layers on any insettable shape (one recipe for the rounded room and the hero's foot).
+private struct ClubRoomSurface<S: InsettableShape>: View {
+    let shape: S
+
+    var body: some View {
         shape
             .fill(ClubRoomPalette.room)
             .overlay(
@@ -95,5 +114,51 @@ struct ClubRoomBackground: View {
                     .offset(y: 10)
                     .blur(radius: 10)
             )
+    }
+}
+
+// MARK: - Seal
+
+/// The club seal: the prototype's 36 pt ring (30 on small phones) around its 28 pt knot (two
+/// nested squares and four ticks, stroke #d2dacd at 0.9 on a 40 pt grid), turned −12°. The turn
+/// does not change layout, as a CSS transform does not. One seal for every club surface (Home's
+/// room, the Clubs list and empty page, the club page and the create sheets; spec D15).
+struct ClubSeal: View {
+    let ring: CGFloat
+
+    /// Measured on Home's room: 36 pt (G§14.2).
+    static let regularRing: CGFloat = 36
+    /// Measured on Home's room at 320: 30 pt.
+    static let compactRing: CGFloat = 30
+
+    static func ring(compact: Bool) -> CGFloat { compact ? compactRing : regularRing }
+
+    var body: some View {
+        ZStack {
+            Circle().strokeBorder(ClubRoomPalette.seal, lineWidth: 1)
+            ClubKnot()
+                .stroke(ClubRoomPalette.sealKnot, lineWidth: 0.9 * 28 / 40)
+                .frame(width: 28, height: 28)
+        }
+        .frame(width: ring, height: ring)
+        .rotationEffect(.degrees(-12))
+    }
+}
+
+/// `M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10` on a 40 × 40 grid.
+struct ClubKnot: Shape {
+    func path(in rect: CGRect) -> Path {
+        let unit = min(rect.width, rect.height) / 40
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + x * unit, y: rect.minY + y * unit)
+        }
+        var path = Path()
+        path.addRect(CGRect(origin: point(9, 9), size: CGSize(width: 22 * unit, height: 22 * unit)))
+        path.addRect(CGRect(origin: point(14, 14), size: CGSize(width: 12 * unit, height: 12 * unit)))
+        for (from, to) in [((4, 20), (14, 20)), ((26, 20), (36, 20)), ((20, 4), (20, 14)), ((20, 26), (20, 36))] {
+            path.move(to: point(CGFloat(from.0), CGFloat(from.1)))
+            path.addLine(to: point(CGFloat(to.0), CGFloat(to.1)))
+        }
+        return path
     }
 }

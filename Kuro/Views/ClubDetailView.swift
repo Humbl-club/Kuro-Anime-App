@@ -1,9 +1,11 @@
 // MARK: - CLUB DETAIL VIEW
-// Three-tab detail view for a club: RAILS, ACTIVE, POLLS (the tab cases and raw values are fixed;
-// labels are localized at display).
-// The club's identity surface is the prototype's club room (`ClubRoomPalette.room`) with real rail artwork, the
-// audience line, member initials and one spoiler-hidden member note; tab content sits on the white
-// page. Loading, offline, failed and membership states are distinct (`ClubDetailIssue`).
+// Three-tab detail view for a club: Rails · This week · Polls (the tab cases and raw values are fixed;
+// labels are localized at display; the `.active` case reads "This week").
+// Discover + Clubs redesign (spec §7.3): the hero is the club room (the same room as Home's and the
+// Clubs list) with a rounded foot, the "You" ring and the one member note; under it, on Home's warm
+// paper, the labelled keys (`ClubRoomRules.keys`: Add a title / Start a rail / Invite / Ask) and the
+// tabs in Home's switch grammar, pinned under the compact bar once the room has scrolled away.
+// Loading, offline, failed and membership states are distinct (`ClubDetailIssue`).
 // Uses @Observable owners via @Environment, KuroDesignSystem tokens throughout.
 
 import KuroCore
@@ -25,7 +27,10 @@ struct ClubDetailView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(FeatureFlags.self) private var flags
     @Environment(InteractionTelemetry.self) private var interactionTelemetry
+    /// The viewer's user id ("You" in the hero, the tiles, This week and polls; D13).
+    @Environment(IdentityStore.self) private var identity
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     enum Tab: String, CaseIterable {
         case rails = "RAILS"
@@ -40,20 +45,33 @@ struct ClubDetailView: View {
         var title: String {
             switch self {
             case .rails: return KuroLocale.text("Rails", "Listen")
-            case .active: return KuroLocale.text("Active", "Aktivität")
+            case .active: return KuroLocale.text("This week", "Diese Woche")
             case .polls: return KuroLocale.text("Polls", "Umfragen")
             }
         }
     }
 
     @State private var actionScope = AccountActionScope()
-    @State private var selectedTab: Tab = .rails
+    @State private var selectedTab: Tab
+
+    /// `initialTab` opens the page on another tab (fixture renders); the app always starts on Rails.
+    init(clubId: String, initialTab: Tab = .rails) {
+        self.clubId = clubId
+        _selectedTab = State(initialValue: initialTab)
+    }
     @State private var bundle: ClubBundle? = nil
     @State private var loadingBundle: ClubBundleLoading? = nil
     @State private var loadPhase: ClubDetailLoadPhase = .idle
     @State private var showSettings = false
     @State private var showCreateRail = false
     @State private var showCreatePoll = false
+    /// The invite tool (owners and admins; D9).
+    @State private var showInvite = false
+    /// "Add to which rail?" (several eligible rails; D10), and the rail it handed back.
+    @State private var showRailChooser = false
+    @State private var chosenRailId: String? = nil
+    /// The tab bar's top in the page's space: once it meets the compact bar, a pinned copy shows (H1).
+    @State private var tabBarTop: CGFloat = .greatestFiniteMagnitude
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var disclosureReloadTask: Task<Void, Never>?
@@ -95,7 +113,8 @@ struct ClubDetailView: View {
     var body: some View {
         let origin = actionScope.capture(session: clubs.accountSession)
         return ZStack {
-            Color.kuroCanvasPage.ignoresSafeArea()
+            // One canvas with the header and Home (spec G1).
+            Color.kuroCanvasHome.ignoresSafeArea()
 
             if let bundle {
                 journalContent(bundle)
@@ -230,6 +249,26 @@ struct ClubDetailView: View {
             .kuroLeavesJourney()
         }
         .kuroNavigationLayer("club.createPoll", isPresented: $showCreatePoll)
+        .sheet(isPresented: $showInvite) {
+            if let bundle, let code = bundle.club.invite_code {
+                ClubInviteSheet(clubName: bundle.club.name, code: code)
+                    .kuroLeavesJourney()
+            }
+        }
+        .kuroNavigationLayer("club.invite", isPresented: $showInvite)
+        .sheet(isPresented: $showRailChooser, onDismiss: {
+            // The chooser has closed: open the add-item tool for the rail it handed back.
+            if let chosenRailId { addToRailId = chosenRailId }
+            chosenRailId = nil
+        }) {
+            if let bundle {
+                ClubRailChooserSheet(rails: ClubRoomRules.addableRails(bundle)) { railId in
+                    chosenRailId = railId
+                }
+                .kuroLeavesJourney()
+            }
+        }
+        .kuroNavigationLayer("club.railChooser", isPresented: $showRailChooser)
         .sheet(isPresented: Binding(
             get: { addToRailId != nil },
             set: { if !$0 { addToRailId = nil } }
@@ -258,102 +297,138 @@ struct ClubDetailView: View {
         let origin = actionScope.capture(session: clubs.accountSession)
         GeometryReader { geometry in
             let safeTop = max(geometry.safeAreaInsets.top, KuroDesignSpacing.lg)
+            let width = geometry.size.width
+            let gutter = ClubRoomLayout.gutter(containerWidth: width)
+            let compact = ClubRoomLayout.isCompact(columnWidth: min(width, KuroReadableWidth.maxWidth) - gutter * 2)
+            let viewerId = identity.currentUserId
+            let keys = ClubRoomRules.keys(role: bundle.my_role, rails: bundle.rails,
+                                          hasInviteCode: bundle.club.invite_code != nil)
+            let counts = tabCounts(bundle, viewerId: viewerId)
+            let pinned = tabBarTop <= KuroJourneyChrome.barHeight
 
             ZStack(alignment: .top) {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        JournalHeroSection(bundle: bundle, topInset: safeTop + 60)
-                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { heroHeight = $0 }
-
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 0) {
-                            JournalTabBar(selectedTab: $selectedTab)
+                            JournalHeroSection(bundle: bundle, viewerId: viewerId,
+                                               topInset: safeTop + KuroJourneyChrome.barHeight + 4, compact: compact)
+                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { heroHeight = $0 }
 
-                            if let issue = loadPhase.refreshIssue {
-                                ClubDetailRefreshNotice(
-                                    issue: issue,
-                                    onRetry: {
-                                        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
+                            VStack(spacing: 0) {
+                                if !keys.isEmpty {
+                                    ClubKeyRow(keys: keys, compact: compact, isConnected: networkMonitor.isConnected) { key in
+                                        perform(key, bundle: bundle)
                                     }
-                                )
-                                .padding(.horizontal, KuroDesignSpacing.padding)
-                                .padding(.top, KuroDesignSpacing.md)
-                            }
+                                    .padding(.horizontal, compact ? 12 : 18)
+                                    .padding(.top, 14)
+                                    .padding(.bottom, 4)
+                                }
 
-                            switch selectedTab {
-                            case .rails:
-                                JournalRailsContent(
-                                    bundle: bundle,
-                                    containerWidth: min(geometry.size.width, KuroReadableWidth.maxWidth),
-                                    showSharedAvailability: showSharedAvailability,
-                                    sharedProviders: sharedProviders,
-                                    isAvailableOnSharedServices: isAvailableOnSharedServices,
-                                    onToggleShared: {
-                                        KuroAccessibility.impactHaptic(.light)
-                                        withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
-                                            showSharedAvailability.toggle()
+                                JournalTabBar(selectedTab: $selectedTab, counts: counts, gutter: gutter)
+                                    .padding(.top, 10)
+                                    .onGeometryChange(for: CGFloat.self) {
+                                        $0.frame(in: .named(Self.pageSpace)).minY
+                                    } action: { tabBarTop = $0 }
+
+                                if let issue = loadPhase.refreshIssue {
+                                    ClubDetailRefreshNotice(
+                                        issue: issue,
+                                        onRetry: {
+                                            actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
                                         }
-                                    },
-                                    onCreateRail: { showCreateRail = true },
-                                    onAddToRail: { railId in addToRailId = railId },
-                                    onError: { message in showToast(.error, title: message, subtitle: nil) },
-                                    canAddToRail: canAddToRail,
-                                    userStreamingServicesEmpty: availability.userStreamingServices.isEmpty,
-                                    isConnected: networkMonitor.isConnected
-                                )
-                            case .active:
-                                JournalActivityContent(
-                                    bundle: bundle
-                                )
-                            case .polls:
-                                JournalPollsContent(
-                                    bundle: bundle,
-                                    clubsInteractionV2Enabled: clubsInteractionV2Enabled,
-                                    voteInFlightPollIds: voteInFlightPollIds,
-                                    optimisticVoteByPollId: optimisticVoteByPollId,
-                                    optimisticVoteCountsByPollId: optimisticVoteCountsByPollId,
-                                    onVote: { poll, optionId in
-                                        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
-                                            if clubsInteractionV2Enabled {
-                                                await voteOnPoll(poll: poll, optionId: optionId, origin: ticket)
-                                            } else {
-                                                do {
-                                                    try await clubs.castVote(pollId: poll.id, optionId: optionId)
-                                                    guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
-                                                    KuroAccessibility.impactHaptic(.light)
-                                                    await loadBundle(force: true, origin: origin)
-                                                } catch {
-                                                    guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
-                                                    showToast(.error,
-                                                              title: KuroLocale.text("Vote not saved", "Stimme nicht gespeichert"),
-                                                              subtitle: KuroLocale.text("Try again.", "Versuch es noch einmal."))
-                                                    KuroAccessibility.errorHaptic()
-                                                }
+                                    )
+                                    .padding(.horizontal, gutter)
+                                    .padding(.top, KuroDesignSpacing.md)
+                                }
+
+                                switch selectedTab {
+                                case .rails:
+                                    JournalRailsContent(
+                                        bundle: bundle,
+                                        containerWidth: min(width, KuroReadableWidth.maxWidth),
+                                        showSharedAvailability: showSharedAvailability,
+                                        sharedProviders: sharedProviders,
+                                        isAvailableOnSharedServices: isAvailableOnSharedServices,
+                                        onToggleShared: {
+                                            KuroAccessibility.impactHaptic(.light)
+                                            withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
+                                                showSharedAvailability.toggle()
+                                            }
+                                        },
+                                        onCreateRail: { showCreateRail = true },
+                                        onAddToRail: { railId in addToRailId = railId },
+                                        onError: { message in showToast(.error, title: message, subtitle: nil) },
+                                        canAddToRail: ClubRoomRules.canAddToRail,
+                                        userStreamingServicesEmpty: availability.userStreamingServices.isEmpty,
+                                        isConnected: networkMonitor.isConnected,
+                                        viewerId: viewerId,
+                                        gutter: gutter,
+                                        compact: compact,
+                                        onScrollToNote: {
+                                            // The first note lives in the hero card (D11): scroll up to it.
+                                            withAnimation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil) {
+                                                proxy.scrollTo(JournalHeroSection.noteAnchor, anchor: .center)
                                             }
                                         }
-                                    },
-                                    onCreatePoll: { showCreatePoll = true },
-                                    isConnected: networkMonitor.isConnected
-                                )
+                                    )
+                                case .active:
+                                    JournalActivityContent(bundle: bundle, viewerId: viewerId, now: Date(),
+                                                           gutter: gutter, compact: compact)
+                                case .polls:
+                                    JournalPollsContent(
+                                        bundle: bundle,
+                                        clubsInteractionV2Enabled: clubsInteractionV2Enabled,
+                                        voteInFlightPollIds: voteInFlightPollIds,
+                                        optimisticVoteByPollId: optimisticVoteByPollId,
+                                        optimisticVoteCountsByPollId: optimisticVoteCountsByPollId,
+                                        onVote: { poll, optionId in
+                                            actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
+                                                if clubsInteractionV2Enabled {
+                                                    await voteOnPoll(poll: poll, optionId: optionId, origin: ticket)
+                                                } else {
+                                                    do {
+                                                        try await clubs.castVote(pollId: poll.id, optionId: optionId)
+                                                        guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                                                        KuroAccessibility.impactHaptic(.light)
+                                                        await loadBundle(force: true, origin: origin)
+                                                    } catch {
+                                                        guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                                                        showToast(.error,
+                                                                  title: KuroLocale.text("Vote not saved", "Stimme nicht gespeichert"),
+                                                                  subtitle: KuroLocale.text("Try again.", "Versuch es noch einmal."))
+                                                        KuroAccessibility.errorHaptic()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onCreatePoll: { showCreatePoll = true },
+                                        isConnected: networkMonitor.isConnected,
+                                        viewerId: viewerId,
+                                        gutter: gutter
+                                    )
+                                }
                             }
+                            .kuroReadableWidth()
                         }
-                        .kuroReadableWidth()
                     }
+                    // H1/H3: the compact bar follows the scroll offset (no jump).
+                    .kuroCollapseTracking($collapse,
+                                          start: ClubChromeRules.collapseStart(heroHeight: heroHeight),
+                                          distance: ClubChromeRules.collapseDistance)
+                    .ignoresSafeArea(edges: .top)
                 }
-                // H1/H3: the compact bar follows the scroll offset (no jump).
-                .kuroCollapseTracking($collapse,
-                                      start: ClubChromeRules.collapseStart(heroHeight: heroHeight),
-                                      distance: ClubChromeRules.collapseDistance)
-                .safeAreaInset(edge: .bottom) {
-                    JournalBottomBar(
-                        role: bundle.my_role,
-                        isConnected: networkMonitor.isConnected,
-                        onAdd: { addToRailId = bundle.rails.first?.id },
-                        onInvite: { showSettings = true },
-                        onPoll: { showCreatePoll = true }
-                    )
-                    .padding(.bottom, KuroDesignSpacing.sm)
+
+                // The tabs pinned under the compact bar once the room has scrolled away (H1): a copy
+                // drawn on the canvas, bound to the same selection; VoiceOver keeps the in-flow tabs.
+                if pinned {
+                    JournalTabBar(selectedTab: $selectedTab, counts: counts, gutter: gutter)
+                        .kuroReadableWidth()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.kuroCanvasHome)
+                        .padding(.top, KuroJourneyChrome.barHeight)
+                        .accessibilityHidden(true)
+                        .transition(.opacity)
                 }
-                .ignoresSafeArea(edges: .top)
 
                 // The journey chrome: back (pushed), settings, ✕ and the shrinking compact bar.
                 JournalStatusBar(
@@ -362,6 +437,31 @@ struct ClubDetailView: View {
                     onSettings: { showSettings = true }
                 )
             }
+            .coordinateSpace(.named(Self.pageSpace))
+        }
+    }
+
+    /// The page's coordinate space (the tab bar's pin point is measured in it).
+    private static let pageSpace = "club.page"
+
+    /// The counts after the tab words: rails, this week's updates, open polls (zero omitted by the bar).
+    private func tabCounts(_ bundle: ClubBundle, viewerId: String?) -> [Tab: Int] {
+        let week = ClubWeekRules.partition(ClubWeekRules.entries(in: bundle, viewerId: viewerId), now: Date())
+        return [.rails: bundle.rails.count, .active: week.thisWeekCount, .polls: bundle.polls.filter { !$0.is_closed }.count]
+    }
+
+    /// A labelled key (D9, D10): each opens a real tool and never dead-taps.
+    private func perform(_ key: ClubRoomRules.Key, bundle: ClubBundle) {
+        switch key {
+        case .addTitle:
+            switch ClubRoomRules.addTarget(rails: bundle.rails, role: bundle.my_role) {
+            case .rail(let railId): addToRailId = railId
+            case .chooser: showRailChooser = true
+            case .none: break
+            }
+        case .startRail: showCreateRail = true
+        case .invite: if bundle.club.invite_code != nil { showInvite = true }
+        case .ask: showCreatePoll = true
         }
     }
 
@@ -527,11 +627,6 @@ struct ClubDetailView: View {
         }
     }
 
-    private func canAddToRail(_ rail: ClubRail, role: String) -> Bool {
-        if !rail.is_locked { return true }
-        return ["owner", "admin"].contains(role)
-    }
-
     /// A club request answered with a membership loss.
     private func handleMembershipLoss() {
         // A loaded bundle means the user was a member and lost access;
@@ -591,80 +686,94 @@ struct ClubDetailView: View {
         showSettings = false
         showCreateRail = false
         showCreatePoll = false
+        showInvite = false
+        showRailChooser = false
+        chosenRailId = nil
         addToRailId = nil
     }
 }
 
 // MARK: - Initial state (no bundle yet)
 
-/// Before the club is shown: the room with what the cheap loading snapshot already knows (name,
-/// counts, artwork), then one honest state: loading, offline, failed (with Retry) or a membership
-/// notice (no Retry). Back (when pushed) and ✕ are always reachable (the chrome over this state).
+/// Before the club is shown (spec §7.5): the hero room drawn with what the cheap loading snapshot
+/// already knows (name, counts) or with skeleton blocks (seal, name bar, member row), then two tile
+/// skeletons while loading, or one honest state: offline, failed (with Retry) or a membership notice
+/// (no Retry, nothing of the club on screen). Back (when pushed) and ✕ are always reachable (the chrome
+/// over this state).
 private struct ClubDetailInitialState: View {
     let phase: ClubDetailView.ClubDetailLoadPhase
     let loadingBundle: ClubBundleLoading?
     let isConnected: Bool
     let onRetry: () -> Void
 
-    private var coverURLs: [URL] {
-        (loadingBundle?.rails ?? [])
-            .flatMap(\.items)
-            .compactMap { $0.cover_image_medium.flatMap(URL.init(string:)) }
-            .prefix(4)
-            .map { $0 }
-    }
+    private var skeletonBlock: Color { ClubRoomPalette.text.opacity(KuroSkeleton.blockInkOpacity) }
+    private var skeletonDeep: Color { ClubRoomPalette.text.opacity(KuroSkeleton.deepBlockInkOpacity) }
 
     var body: some View {
         let german = KuroLocale.isGerman
+        GeometryReader { geometry in
+        // The room runs under the top safe area, as the loaded hero does.
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+                VStack(alignment: .leading, spacing: 0) {
                     // Room for the journey chrome (back / ✕), drawn over this state by `ClubDetailView`.
                     Color.clear
-                        .frame(height: 44)
+                        .frame(height: geometry.safeAreaInsets.top + KuroJourneyChrome.barHeight)
                         .accessibilityHidden(true)
 
                     if let issue = phase.initialIssue, issue.isMembership {
                         // A membership notice keeps nothing of the club on screen.
                         EmptyView()
                     } else {
-                        ClubArtStrip(urls: coverURLs,
-                                     monogram: String((loadingBundle?.club.name ?? "").prefix(1)),
-                                     maxPixelSize: 360)
-                            .clipShape(RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous))
-
+                        HStack(spacing: 10) {
+                            ClubSeal(ring: ClubSeal.regularRing)
+                                .accessibilityHidden(true)
+                            if loadingBundle == nil {
+                                Capsule().fill(skeletonBlock).frame(width: 120, height: 7)
+                            }
+                            Spacer(minLength: 0)
+                        }
                         if let loadingBundle {
                             Text(loadingBundle.club.name)
-                                .font(.kuroEditorial(size: 30)).tracking(-0.6)
-                                .foregroundStyle(Color.kuroRoomText)
+                                .font(.kuroEditorial(size: 30)).tracking(-0.9)
+                                .foregroundStyle(ClubRoomPalette.text)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
+                                .padding(.top, 14)
                             Text(ClubRoomCopy.summary(memberCount: loadingBundle.member_count,
                                                       railCount: loadingBundle.rail_count ?? 0,
                                                       openPolls: 0,
                                                       german: german))
-                                .font(.kuroMeta())
-                                .foregroundStyle(Color.kuroRoomTextSecondary)
+                                .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                                .foregroundStyle(ClubRoomPalette.rowSecondary)
+                                .padding(.top, 13)
                         } else {
-                            RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
-                                .fill(Color.kuroWhite15)
-                                .frame(height: 30)
-                                .frame(maxWidth: 220)
+                            Capsule().fill(skeletonDeep).frame(width: 200, height: 24)
+                                .padding(.top, 16)
                                 .accessibilityHidden(true)
+                            HStack(spacing: 8) {
+                                Circle().fill(skeletonBlock).frame(width: 24, height: 24)
+                                Capsule().fill(skeletonBlock).frame(width: 140, height: 9)
+                            }
+                            .padding(.top, 14)
+                            .accessibilityHidden(true)
                         }
                     }
                 }
-                .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.top, KuroDesignSpacing.md)
-                .padding(.bottom, KuroDesignSpacing.lg)
+                .padding(.horizontal, 18)
+                .padding(.top, 4)
+                .padding(.bottom, 18)
                 .kuroReadableWidth()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(ClubRoomPalette.room)
+                .background(ClubRoomBackground(cornerRadius: 24, topCornerRadius: 0))
 
                 stateView(german: german)
                     .frame(minHeight: 280)
+                    .padding(.horizontal, 20)
                     .kuroReadableWidth()
             }
+        }
+        .ignoresSafeArea(edges: .top)
         }
     }
 
@@ -687,10 +796,34 @@ private struct ClubDetailInitialState: View {
                               message: issue.message(german: german, hasContent: false))
             }
         } else {
-            KuroStateView(.loading,
-                          title: loadingBundle.map { KuroLocale.text("Opening \($0.club.name).", "\($0.club.name) wird geöffnet.") }
-                              ?? KuroLocale.text("Opening the club.", "Der Club wird geöffnet."),
-                          message: isConnected ? nil : KuroLocale.text("Waiting for a connection.", "Warte auf eine Verbindung."))
+            // Two tile skeletons in the rails' grammar, then the branded scrub line.
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(0..<2, id: \.self) { _ in
+                        HStack(alignment: .top, spacing: 9) {
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(Color.kuroInk.opacity(KuroSkeleton.blockInkOpacity))
+                                .frame(width: 44, height: 66)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Capsule().fill(Color.kuroInk.opacity(KuroSkeleton.deepBlockInkOpacity)).frame(height: 10)
+                                Capsule().fill(Color.kuroInk.opacity(KuroSkeleton.blockInkOpacity)).frame(width: 56, height: 8)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(loadingBundle.map { KuroLocale.text("Opening \($0.club.name).", "\($0.club.name) wird geöffnet.") }
+                    ?? KuroLocale.text("Opening the club.", "Der Club wird geöffnet."))
+                KuroScrubLine().frame(maxWidth: 96)
+                if !isConnected {
+                    Text(KuroLocale.text("Waiting for a connection.", "Warte auf eine Verbindung."))
+                        .font(.kuroCustom(11, relativeTo: .footnote, maxSize: 24))
+                        .foregroundStyle(Color.kuroMuted)
+                }
+            }
+            .padding(.top, 24)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 }
