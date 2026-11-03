@@ -1,4 +1,5 @@
 import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Entity Sort Mode
@@ -158,16 +159,23 @@ enum AuthorRoleFilter: String, CaseIterable, EntityOptionTitled {
 //     legacy sheet still presents them outside a journey) and no Close button of their own: back (when
 //     pushed), ✕ (closes the whole journey, N3) and the shrinking header (H1–H3) come from
 //     `.kuroJourneyChrome`, which also keeps edge swipe-back working (N2).
-//   - Every work card pushes its title inside the journey (`KuroCompactCard` → `routes.openMedia`; N5
-//     pops back when the title is already in the stack).
+//   - Every work, character and voice tap pushes inside the journey (`routes.openMedia` / `openCharacter`
+//     / `openStaff`; N5 pops back when the page is already in the stack, so character → voice actor →
+//     the same character is bounded).
 //   - The page keeps what it loaded while it stays in the stack (Back never reloads it).
 //   - `.routePresenter()` forwards to the journey; outside one (a legacy sheet) it opens a new journey.
+//
+// Home's grammar (details-songs spec §9, 2026-11-03): `kuroPaper`, the 24 pt detail gutter at every width,
+// the readable column on iPad, the portrait hero (or the studio's cover line), `DetailSectionHeading`s,
+// refine and sort WORDS (no black pills), quiet rows and edge-peek rails (`EntityRailPeek`). Blocks without
+// data are left out. The works and voice readers answer [] on failure, so a failed read hides its block
+// rather than showing an invented "none" (spec §17.6).
 
 /// Where the shrinking header starts and how far it runs, per hero shape.
 enum EntityPageCollapse {
-    /// Circle-portrait hero (character, staff, author): the bar fades in while the name, below the
-    /// 120 pt portrait, passes under it.
-    static let portraitStart: CGFloat = 140
+    /// Portrait hero (character, staff, author): the name sits beside the portrait at the top, so the bar
+    /// fades in as soon as the name passes under it.
+    static let portraitStart: CGFloat = 20
     /// Name-only hero (studio): the bar fades in while the display-size name passes under it.
     static let nameOnlyStart: CGFloat = 24
     /// The fade's length in points of scroll.
@@ -175,13 +183,74 @@ enum EntityPageCollapse {
 }
 
 private extension View {
-    /// The journey page frame every entity page shares: content below the 52 pt chrome, scroll-tied
-    /// shrinking header, the chrome itself.
+    /// The journey page frame every entity page shares: paper, scroll-tied shrinking header, the chrome.
     func entityJourneyPage(title: String, collapse: Binding<CGFloat>, start: CGFloat) -> some View {
         self
             .kuroCollapseTracking(collapse, start: start, distance: EntityPageCollapse.distance)
-            .background(Color.kuroBackground)
+            .background(Color.kuroPaper)
             .kuroJourneyChrome(title: title, collapseProgress: collapse.wrappedValue)
+    }
+
+    /// The page column: measured (rails take their card width from it), the readable column on iPad,
+    /// content below the 52 pt chrome.
+    func entityColumn(_ column: Binding<CGFloat>) -> some View {
+        self
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { column.wrappedValue = $0 }
+            .kuroReadableWidth()
+            .padding(.top, KuroJourneyChrome.barHeight + 8)
+            .padding(.bottom, 40)
+    }
+
+    /// The 24 pt detail gutter (rails are never inside it).
+    func entityGutter() -> some View { padding(.horizontal, EntityPageLayout.gutter) }
+}
+
+/// A section's heading (the detail page's `DetailSectionHeading`).
+private struct EntityHeading: View {
+    let title: String
+    var note: String? = nil
+
+    var body: some View {
+        DetailSectionHeading(title: title, note: note)
+            .entityGutter()
+            .padding(.top, 30)
+            .padding(.bottom, 4)
+    }
+}
+
+/// Three quiet skeleton rows while a list loads.
+private struct EntityLoadingRows: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(0..<3, id: \.self) { _ in KuroSkeleton(kind: .row) }
+        }
+        .entityGutter()
+        .padding(.top, 8)
+    }
+}
+
+/// The fold under a long list ("All 24 roles" / "Show fewer").
+private struct EntityListFold: View {
+    @Binding var isExpanded: Bool
+    let expand: String
+    let collapse: String
+
+    var body: some View {
+        KuroFoldButton(isExpanded: $isExpanded, expandLabel: expand, collapseLabel: collapse) { title, _ in
+            HStack {
+                Text(title)
+                    .font(.detailSF(11, .medium, relativeTo: .footnote))
+                    .foregroundStyle(Color.kuroInk)
+                Spacer(minLength: 8)
+                Text("→")
+                    .font(.detailSF(11, .medium, relativeTo: .footnote))
+                    .foregroundStyle(Color.kuroInk)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
+        }
+        .entityGutter()
     }
 }
 
@@ -190,105 +259,125 @@ private extension View {
 struct CharacterDetailSheet: View {
     let character: Character
     @Environment(CatalogStore.self) private var catalog
+    @Environment(LibraryStore.self) private var library
+    @Environment(\.kuroFoldMemory) private var folds
     @State private var works: [Media] = []
     @State private var isLoading = true
+    @State private var voices: [VoiceActorCredit] = []
+    @State private var voiceRoleCounts: [Int: Int] = [:]
     @State private var sortMode: EntitySortMode = .rating
     @State private var mediaFilter: CharacterMediaFilter = .all
     @State private var collapse: CGFloat = 0
+    @State private var column: CGFloat = 0
 
     private var name: String { character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
+    private var foldPage: String { "character:\(character.id)" }
 
-    private var availableMediaFilters: [CharacterMediaFilter] {
-        var filters: [CharacterMediaFilter] = [.all]
-        if works.contains(where: { $0.kind == .anime }) { filters.append(.anime) }
-        if works.contains(where: { $0.kind == .manga }) { filters.append(.manga) }
-        return filters
+    /// All / Anime / Manga, only when the appearances span both (`EntityWorks.mediumFilters`).
+    private var availableMediaFilters: [CharacterMediaFilter] { EntityWorks.mediumFilters(for: works.map(\.kind)) }
+
+    private var shownWorks: [Media] {
+        EntityWorks.sorted(works.filter { EntityWorks.matches($0.kind, filter: mediaFilter) }, mode: sortMode) { $0 }
     }
 
-    private var filteredWorks: [Media] {
-        works.filter { EntityWorks.matches($0.kind, filter: mediaFilter) }
+    /// The title the eyebrow names: the character's best-known anime, else their best-known work.
+    private var leadTitle: String? {
+        (works.first { $0.kind == .anime } ?? works.first).map { KuroCardText.sanitizeTitleForCard($0.title) }
     }
 
-    private var sortedWorks: [Media] {
-        switch sortMode {
-        case .rating:
-            return filteredWorks.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
-        case .year:
-            let yearVal: (Media) -> Int = { Int($0.year) ?? 0 }
-            return filteredWorks.sorted { yearVal($0) > yearVal($1) }
-        case .era:
-            return filteredWorks.sorted {
-                let lhsEra = EntityEraBucket.from(yearString: $0.year).rawValue
-                let rhsEra = EntityEraBucket.from(yearString: $1.year).rawValue
-                if lhsEra != rhsEra { return lhsEra > rhsEra }
-                return (Int($0.year) ?? 0) > (Int($1.year) ?? 0)
-            }
+    /// The appearances read stops at `entityWorksRowLimit` per medium: then the count is a floor.
+    private var worksAreFloor: Bool {
+        let limit = CatalogColumns.entityWorksRowLimit
+        return EntityPageLayout.isFloor(works.filter { $0.kind == .anime }.count, limit: limit)
+            || EntityPageLayout.isFloor(works.filter { $0.kind == .manga }.count, limit: limit)
+    }
+
+    private var facts: [String] {
+        let german = KuroLocale.isGerman
+        var facts: [String] = []
+        if !isLoading, !works.isEmpty {
+            facts.append(EntityPageCopy.appearances(works.count, german: german, floor: worksAreFloor))
         }
+        if let gender = EntityPageCopy.gender(character.gender, german: german) { facts.append(gender) }
+        if let age = EntityPageCopy.age(character.age, german: german) { facts.append(age) }
+        return facts
     }
 
     var body: some View {
+        let german = KuroLocale.isGerman
         KuroJourneyAwareStack {
             ScrollView {
-                VStack(spacing: KuroSpacing.lg) {
-                    EntityHeroSection(
-                        imageURL: character.imageLarge,
-                        isCircle: true,
-                        name: name,
-                        nameNative: character.nameNative,
-                        metadataLines: characterMetadata
-                    )
+                VStack(alignment: .leading, spacing: 0) {
+                    EntityPageHero(imageURL: character.imageLarge, name: name, native: character.nameNative,
+                                   eyebrow: EntityPageCopy.characterEyebrow(title: leadTitle, german: german),
+                                   facts: facts)
+                        .entityGutter()
 
-                    EntitySectionLead(text: KuroLocale.text("Browse appearances by medium, rating, year or era.", "Auftritte nach Medium, Wertung, Jahr oder Epoche durchsehen."))
-
-                    if availableMediaFilters.count > 1 {
-                        EntityFilterBar(
-                            options: availableMediaFilters,
-                            selected: mediaFilter
-                        ) { option in
-                            mediaFilter = option
-                        }
+                    if let text = EntityPageCopy.description(character.description) {
+                        EntityDescription(text: text, isExpanded: folds.binding(page: foldPage, section: "about"))
+                            .entityGutter()
+                            .padding(.top, 20)
                     }
 
-                    EntityWorksRail(
-                        title: KuroLocale.text("Appears in", "Auftritte"),
-                        subtitle: mediaFilter == .all
-                            ? KuroLocale.text("Across anime and manga", "In Anime und Manga")
-                            : KuroLocale.text("Filtered by medium", "Nach Medium gefiltert"),
-                        items: sortedWorks.map { (media: $0, role: nil as String?) },
-                        isLoading: isLoading,
-                        sortMode: $sortMode
-                    )
+                    if !voices.isEmpty {
+                        VStack(spacing: 8) {
+                            ForEach(Array(voices.prefix(3))) { voice in
+                                EntityVoiceCard(staff: voice.staff, roleCount: voiceRoleCounts[voice.staff.id],
+                                                roleCountIsFloor: EntityPageLayout.isFloor(voiceRoleCounts[voice.staff.id] ?? 0,
+                                                                                           limit: EntityPageLayout.voiceRoleLimit))
+                            }
+                        }
+                        .entityGutter()
+                        .padding(.top, 20)
+                    }
+
+                    appearsIn(german: german)
+
+                    if let tracked = shownWorks.lazy.compactMap({ media in
+                        library.entry(for: media.libraryKey).map { (media: media, entry: $0) }
+                    }).first {
+                        EntityInListLine(media: tracked.media, entry: tracked.entry)
+                            .entityGutter()
+                            .padding(.top, 20)
+                    }
                 }
-                .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.top, KuroJourneyChrome.barHeight)
-                .padding(.bottom, KuroSpacing.lg)
+                .entityColumn($column)
             }
             .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.portraitStart)
         }
         .task {
-            // Back to this page keeps what it loaded (no "Loading…" flash, no second read).
+            // Back to this page keeps what it loaded (no skeleton flash, no second read).
             guard isLoading else { return }
-            works = await catalog.fetchMediaByCharacter(characterId: character.id)
+            async let appearances = catalog.fetchMediaByCharacter(characterId: character.id)
+            async let credits = catalog.fetchVoiceActors(forCharacter: character.id)
+            works = await appearances
+            voices = await credits
             isLoading = false
+            for voice in voices.prefix(3) {
+                let roles = await catalog.fetchVoiceRoles(forStaff: voice.staff.id, limit: EntityPageLayout.voiceRoleLimit)
+                if !roles.isEmpty { voiceRoleCounts[voice.staff.id] = roles.count }
+            }
         }
-        // Forwards to the journey (pushes); outside one, the work cards open a new journey here.
+        // Forwards to the journey (pushes); outside one, the work tiles open a new journey here.
         .routePresenter()
     }
 
-    private var characterMetadata: [String] {
-        var lines: [String] = []
-        if let gender = character.gender, !gender.isEmpty {
-            switch gender.lowercased() {
-            case "male": lines.append(KuroLocale.text("MALE", "MÄNNLICH"))
-            case "female": lines.append(KuroLocale.text("FEMALE", "WEIBLICH"))
-            case "non-binary": lines.append(KuroLocale.text("NON-BINARY", "NICHTBINÄR"))
-            default: lines.append(gender.uppercased())
-            }
+    @ViewBuilder
+    private func appearsIn(german: Bool) -> some View {
+        if isLoading {
+            EntityHeading(title: EntityPageCopy.appearsIn(german: german))
+            EntityLoadingRows()
+        } else if !works.isEmpty {
+            EntityHeading(title: EntityPageCopy.appearsIn(german: german),
+                          note: EntityPageCopy.titles(works.count, german: german, floor: worksAreFloor))
+            EntityRefineSortRow(filters: availableMediaFilters, filter: $mediaFilter, sort: $sortMode)
+                .entityGutter()
+            EntityWorkRail(works: shownWorks.enumerated().map {
+                EntityWorkItem(media: $0.element, role: nil,
+                               id: EntityWorkIdentity.make(media: $0.element, role: nil, index: $0.offset))
+            }, column: column)
+            .padding(.top, 8)
         }
-        if let age = character.age, !age.isEmpty {
-            lines.append(KuroLocale.text("AGE \(age)", "ALTER \(age)"))
-        }
-        return lines
     }
 }
 
@@ -297,14 +386,25 @@ struct CharacterDetailSheet: View {
 struct StaffDetailSheet: View {
     let staff: Staff
     @Environment(CatalogStore.self) private var catalog
+    @Environment(LibraryStore.self) private var library
+    @Environment(\.kuroFoldMemory) private var folds
     @State private var works: [(media: Media, role: String)] = []
+    @State private var voiceRoles: [VoiceRole] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
     @State private var roleFilter: StaffRoleFilter = .all
     @State private var mediaFilter: CharacterMediaFilter = .all
     @State private var collapse: CGFloat = 0
+    @State private var column: CGFloat = 0
+    @State private var showsAllRoles = false
+    @State private var showsAllWorks = false
+
+    /// Roles and works shown before the fold.
+    static let foldedRoles = 8
+    static let foldedWorks = 10
 
     private var name: String { staff.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
+    private var foldPage: String { "staff:\(staff.id)" }
 
     /// All / Anime / Manga, only when the filmography spans both (`EntityWorks.mediumFilters`).
     private var availableMediaFilters: [CharacterMediaFilter] {
@@ -320,93 +420,168 @@ struct StaffDetailSheet: View {
         works.filter { EntityWorks.matches($0.media.kind, filter: mediaFilter) }
     }
 
-    private var filteredWorks: [(media: Media, role: String)] {
-        guard roleFilter != .all else { return mediumFilteredWorks }
-        return mediumFilteredWorks.filter { StaffRoleFilter.from(role: $0.role) == roleFilter }
+    private var shownWorks: [(media: Media, role: String)] {
+        let filtered = roleFilter == .all ? mediumFilteredWorks
+            : mediumFilteredWorks.filter { StaffRoleFilter.from(role: $0.role) == roleFilter }
+        return EntityWorks.sorted(filtered, mode: sortMode) { $0.media }
     }
 
-    private var sortedWorks: [(media: Media, role: String)] {
-        switch sortMode {
-        case .rating:
-            return filteredWorks.sorted { ($0.media.rating ?? 0) > ($1.media.rating ?? 0) }
-        case .year:
-            let yearVal: ((media: Media, role: String)) -> Int = { Int($0.media.year) ?? 0 }
-            return filteredWorks.sorted { yearVal($0) > yearVal($1) }
-        case .era:
-            return filteredWorks.sorted {
-                let lhsEra = EntityEraBucket.from(yearString: $0.media.year).rawValue
-                let rhsEra = EntityEraBucket.from(yearString: $1.media.year).rawValue
-                if lhsEra != rhsEra { return lhsEra > rhsEra }
-                return (Int($0.media.year) ?? 0) > (Int($1.media.year) ?? 0)
-            }
-        }
+    /// Roles whose anime is on the viewer's lists, one per character.
+    private var knownRoles: [VoiceRole] {
+        var seen = Set<Int>()
+        return voiceRoles.filter { library.entry(for: $0.anime.key) != nil && seen.insert($0.character.id).inserted }
     }
 
-    private var railSubtitle: String {
-        if roleFilter != .all { return KuroLocale.text("Filtered by role", "Nach Rolle gefiltert") }
-        switch mediaFilter {
-        case .all: return KuroLocale.text("All credited anime and manga work", "Alle Anime und Manga mit Nennung")
-        case .anime: return KuroLocale.text("Credited anime work", "Anime mit Nennung")
-        case .manga: return KuroLocale.text("Credited manga work", "Manga mit Nennung")
+    /// The voice-role read stops at its limit: then "100+ roles", never a false total.
+    private var rolesAreFloor: Bool { EntityPageLayout.isFloor(voiceRoles.count, limit: EntityPageLayout.voiceRoleLimit) }
+
+    /// The filmography read stops at `entityWorksRowLimit` per medium.
+    private var worksAreFloor: Bool {
+        let limit = CatalogColumns.entityWorksRowLimit
+        return EntityPageLayout.isFloor(works.filter { $0.media.kind == .anime }.count, limit: limit)
+            || EntityPageLayout.isFloor(works.filter { $0.media.kind == .manga }.count, limit: limit)
+    }
+
+    private var eyebrow: String? {
+        voiceRoles.isEmpty ? EntityPageCopy.occupationEyebrow(staff.primaryOccupations)
+            : EntityPageCopy.voiceEyebrow(german: KuroLocale.isGerman)
+    }
+
+    private var facts: [String] {
+        let german = KuroLocale.isGerman
+        if !voiceRoles.isEmpty {
+            let inList = Set(voiceRoles.filter { library.entry(for: $0.anime.key) != nil }.map(\.anime.id)).count
+            return [EntityPageCopy.rolesFacts(roles: voiceRoles.count, inList: inList, german: german, floor: rolesAreFloor)]
         }
+        let titles = Set(works.map(\.media.stableKey)).count
+        return titles > 0 ? [EntityPageCopy.titlesInKuro(titles, german: german, floor: worksAreFloor)] : []
     }
 
     var body: some View {
+        let german = KuroLocale.isGerman
         KuroJourneyAwareStack {
             ScrollView {
-                VStack(spacing: KuroSpacing.lg) {
-                    EntityHeroSection(
-                        imageURL: staff.imageLarge,
-                        isCircle: true,
-                        name: name,
-                        nameNative: staff.nameNative,
-                        metadataLines: [],
-                        occupations: staff.primaryOccupations
-                    )
+                VStack(alignment: .leading, spacing: 0) {
+                    EntityPageHero(imageURL: staff.imageLarge, name: name, native: staff.nameNative,
+                                   eyebrow: eyebrow, facts: facts)
+                        .entityGutter()
 
-                    EntitySectionLead(text: KuroLocale.text("Filter this filmography by medium, craft, rating, year or era.", "Filmografie nach Medium, Bereich, Wertung, Jahr oder Epoche filtern."))
+                    if let text = EntityPageCopy.description(staff.description) {
+                        EntityDescription(text: text, isExpanded: folds.binding(page: foldPage, section: "about"))
+                            .entityGutter()
+                            .padding(.top, 20)
+                    }
 
-                    if !availableMediaFilters.isEmpty {
-                        EntityFilterBar(
-                            options: availableMediaFilters,
-                            selected: mediaFilter
-                        ) { option in
-                            mediaFilter = option
-                            // A role the new medium does not have would leave the rail empty.
-                            if !availableRoleFilters.contains(roleFilter) { roleFilter = .all }
+                    if !voiceRoles.isEmpty {
+                        EntityHeading(title: EntityPageCopy.rolesHeading(german: german),
+                                      note: EntityPageCopy.popular(german: german))
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(showsAllRoles ? voiceRoles : Array(voiceRoles.prefix(Self.foldedRoles))) { role in
+                                EntityRoleRow(role: role)
+                            }
+                        }
+                        .entityGutter()
+                        if voiceRoles.count > Self.foldedRoles {
+                            EntityListFold(isExpanded: $showsAllRoles,
+                                           expand: EntityPageCopy.allRoles(voiceRoles.count, german: german,
+                                                                           floor: rolesAreFloor),
+                                           collapse: EntityPageCopy.fewerRoles(german: german))
                         }
                     }
 
-                    if availableRoleFilters.count > 1 {
-                        EntityFilterBar(
-                            options: availableRoleFilters,
-                            selected: roleFilter
-                        ) { option in
-                            roleFilter = option
-                        }
+                    if !knownRoles.isEmpty {
+                        EntityHeading(title: EntityPageCopy.charactersYouKnow(german: german))
+                        EntityCharacterRail(roles: knownRoles, column: column)
+                            .padding(.top, 8)
                     }
 
-                    EntityWorksRail(
-                        title: KuroLocale.text("Filmography", "Filmografie"),
-                        subtitle: railSubtitle,
-                        items: sortedWorks.map { (media: $0.media, role: $0.role as String?) },
-                        isLoading: isLoading,
-                        sortMode: $sortMode
-                    )
+                    worksBlock(german: german)
                 }
-                .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.top, KuroJourneyChrome.barHeight)
-                .padding(.bottom, KuroSpacing.lg)
+                .entityColumn($column)
             }
             .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.portraitStart)
         }
         .task {
             guard isLoading else { return }
             // Anime (`anime_staff`) and manga (`manga_staff`): an "Original work" credit reaches the manga.
-            works = await catalog.fetchStaffWorks(staffId: staff.id)
+            async let filmography = catalog.fetchStaffWorks(staffId: staff.id)
+            async let roles = catalog.fetchVoiceRoles(forStaff: staff.id, limit: EntityPageLayout.voiceRoleLimit)
+            works = await filmography
+            voiceRoles = await roles
             isLoading = false
         }
         .routePresenter()
+    }
+
+    @ViewBuilder
+    private func worksBlock(german: Bool) -> some View {
+        if isLoading {
+            EntityHeading(title: EntityPageCopy.worksHeading(german: german))
+            EntityLoadingRows()
+        } else if !works.isEmpty {
+            let shown = shownWorks
+            EntityHeading(title: EntityPageCopy.worksHeading(german: german),
+                          note: EntityPageCopy.titles(shown.count, german: german, floor: worksAreFloor))
+            let refines = availableMediaFilters.count > 1 || availableRoleFilters.count > 1
+            // One row when the words fit (refine left, sort right); otherwise the refine words scroll on
+            // their own row and the sort words sit under them.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 16) {
+                    if refines { staffRefineWords(german: german) }
+                    Spacer(minLength: 8)
+                    EntityWords(options: EntitySortMode.allCases, selection: $sortMode,
+                                groupLabel: EntityPageCopy.sortLabel(german: german))
+                }
+                .entityGutter()
+                VStack(alignment: .leading, spacing: 0) {
+                    if refines {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            staffRefineWords(german: german)
+                                .padding(.horizontal, EntityPageLayout.gutter)
+                        }
+                        .scrollClipDisabled()
+                        .kuroSwipeExclusionZone()
+                    }
+                    EntitySortRow(sort: $sortMode)
+                        .entityGutter()
+                }
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array((showsAllWorks ? shown : Array(shown.prefix(Self.foldedWorks))).enumerated()),
+                        id: \.offset) { index, work in
+                    EntityWorkRow(media: work.media, role: work.role)
+                        .id(EntityWorkIdentity.make(media: work.media, role: work.role, index: index))
+                }
+            }
+            .entityGutter()
+            if shown.count > Self.foldedWorks {
+                EntityListFold(isExpanded: $showsAllWorks,
+                               expand: EntityPageCopy.allWorks(shown.count, german: german, floor: worksAreFloor),
+                               collapse: EntityPageCopy.fewerRoles(german: german))
+            }
+        }
+    }
+}
+
+extension StaffDetailSheet {
+    /// All / Anime / Manga (when the filmography spans both), then the shipped craft words.
+    @ViewBuilder
+    fileprivate func staffRefineWords(german: Bool) -> some View {
+        HStack(spacing: 24) {
+            if availableMediaFilters.count > 1 {
+                EntityWords(options: availableMediaFilters, selection: Binding(
+                    get: { mediaFilter },
+                    set: { option in
+                        mediaFilter = option
+                        // A role the new medium does not have would leave the list empty.
+                        if !availableRoleFilters.contains(roleFilter) { roleFilter = .all }
+                    }), groupLabel: EntityPageCopy.refineLabel(german: german))
+            }
+            if availableRoleFilters.count > 1 {
+                EntityWords(options: availableRoleFilters, selection: $roleFilter,
+                            groupLabel: EntityPageCopy.refineLabel(german: german))
+            }
+        }
     }
 }
 
@@ -415,11 +590,16 @@ struct StaffDetailSheet: View {
 struct AuthorDetailSheet: View {
     let author: Author
     @Environment(CatalogStore.self) private var catalog
+    @Environment(\.kuroFoldMemory) private var folds
     @State private var works: [(media: Media, role: String)] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
     @State private var roleFilter: AuthorRoleFilter = .all
     @State private var collapse: CGFloat = 0
+    @State private var column: CGFloat = 0
+    @State private var showsAllWorks = false
+
+    static let foldedWorks = 10
 
     private var name: String { author.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
 
@@ -428,64 +608,53 @@ struct AuthorDetailSheet: View {
         return [.all] + AuthorRoleFilter.allCases.filter { $0 != .all && categories.contains($0) }
     }
 
-    private var filteredWorks: [(media: Media, role: String)] {
-        guard roleFilter != .all else { return works }
-        return works.filter { AuthorRoleFilter.from(role: $0.role) == roleFilter }
-    }
-
-    private var sortedWorks: [(media: Media, role: String)] {
-        switch sortMode {
-        case .rating:
-            return filteredWorks.sorted { ($0.media.rating ?? 0) > ($1.media.rating ?? 0) }
-        case .year:
-            let yearVal: ((media: Media, role: String)) -> Int = { Int($0.media.year) ?? 0 }
-            return filteredWorks.sorted { yearVal($0) > yearVal($1) }
-        case .era:
-            return filteredWorks.sorted {
-                let lhsEra = EntityEraBucket.from(yearString: $0.media.year).rawValue
-                let rhsEra = EntityEraBucket.from(yearString: $1.media.year).rawValue
-                if lhsEra != rhsEra { return lhsEra > rhsEra }
-                return (Int($0.media.year) ?? 0) > (Int($1.media.year) ?? 0)
-            }
-        }
+    private var shownWorks: [(media: Media, role: String)] {
+        let filtered = roleFilter == .all ? works : works.filter { AuthorRoleFilter.from(role: $0.role) == roleFilter }
+        return EntityWorks.sorted(filtered, mode: sortMode) { $0.media }
     }
 
     var body: some View {
+        let german = KuroLocale.isGerman
+        let titles = Set(works.map(\.media.stableKey)).count
+        let floor = EntityPageLayout.isFloor(works.count, limit: CatalogColumns.entityWorksRowLimit)
         KuroJourneyAwareStack {
             ScrollView {
-                VStack(spacing: KuroSpacing.lg) {
-                    EntityHeroSection(
-                        imageURL: author.imageLarge,
-                        isCircle: true,
-                        name: name,
-                        nameNative: author.nameNative,
-                        metadataLines: []
-                    )
+                VStack(alignment: .leading, spacing: 0) {
+                    EntityPageHero(imageURL: author.imageLarge, name: name, native: author.nameNative,
+                                   eyebrow: EntityPageCopy.author(german: german),
+                                   facts: titles > 0 ? [EntityPageCopy.titlesInKuro(titles, german: german, floor: floor)] : [])
+                        .entityGutter()
 
-                    EntitySectionLead(text: KuroLocale.text("Browse works by role, rating, year or era.", "Werke nach Rolle, Wertung, Jahr oder Epoche durchsehen."))
-
-                    if availableRoleFilters.count > 1 {
-                        EntityFilterBar(
-                            options: availableRoleFilters,
-                            selected: roleFilter
-                        ) { option in
-                            roleFilter = option
-                        }
+                    if let text = EntityPageCopy.description(author.description) {
+                        EntityDescription(text: text, isExpanded: folds.binding(page: "author:\(author.id)", section: "about"))
+                            .entityGutter()
+                            .padding(.top, 20)
                     }
 
-                    EntityWorksRail(
-                        title: KuroLocale.text("Works", "Werke"),
-                        subtitle: roleFilter == .all
-                            ? KuroLocale.text("Story, art and complete works", "Geschichte, Zeichnungen und ganze Werke")
-                            : KuroLocale.text("Filtered by author role", "Nach Autorenrolle gefiltert"),
-                        items: sortedWorks.map { (media: $0.media, role: $0.role as String?) },
-                        isLoading: isLoading,
-                        sortMode: $sortMode
-                    )
+                    if isLoading {
+                        EntityHeading(title: EntityPageCopy.worksHeading(german: german))
+                        EntityLoadingRows()
+                    } else if !works.isEmpty {
+                        let shown = shownWorks
+                        EntityHeading(title: EntityPageCopy.worksHeading(german: german),
+                                      note: EntityPageCopy.titles(shown.count, german: german, floor: floor))
+                        EntityRefineSortRow(filters: availableRoleFilters, filter: $roleFilter, sort: $sortMode)
+                            .entityGutter()
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array((showsAllWorks ? shown : Array(shown.prefix(Self.foldedWorks))).enumerated()),
+                                    id: \.offset) { _, work in
+                                EntityWorkRow(media: work.media, role: work.role)
+                            }
+                        }
+                        .entityGutter()
+                        if shown.count > Self.foldedWorks {
+                            EntityListFold(isExpanded: $showsAllWorks,
+                                           expand: EntityPageCopy.allWorks(shown.count, german: german, floor: floor),
+                                           collapse: EntityPageCopy.fewerRoles(german: german))
+                        }
+                    }
                 }
-                .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.top, KuroJourneyChrome.barHeight)
-                .padding(.bottom, KuroSpacing.lg)
+                .entityColumn($column)
             }
             .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.portraitStart)
         }
@@ -503,69 +672,70 @@ struct AuthorDetailSheet: View {
 struct StudioDetailSheet: View {
     let studio: Studio
     @Environment(CatalogStore.self) private var catalog
+    @Environment(LibraryStore.self) private var library
     @State private var works: [Media] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
     @State private var collapse: CGFloat = 0
+    @State private var column: CGFloat = 0
+
+    /// "Most loved." shows the studio's best-rated works; "By year." indexes all of them.
+    static let railCap = 12
 
     private var name: String { studio.name ?? DetailCopy.unknown(german: KuroLocale.isGerman) }
 
-    private var sortedWorks: [Media] {
-        switch sortMode {
-        case .rating:
-            return works.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
-        case .year:
-            let yearVal: (Media) -> Int = { Int($0.year) ?? 0 }
-            return works.sorted { yearVal($0) > yearVal($1) }
-        case .era:
-            return works.sorted {
-                let lhsEra = EntityEraBucket.from(yearString: $0.year).rawValue
-                let rhsEra = EntityEraBucket.from(yearString: $1.year).rawValue
-                if lhsEra != rhsEra { return lhsEra > rhsEra }
-                return (Int($0.year) ?? 0) > (Int($1.year) ?? 0)
-            }
-        }
+    private var tracked: [(media: Media, entry: LibraryEntry)] {
+        works.compactMap { media in library.entry(for: media.libraryKey).map { (media: media, entry: $0) } }
     }
 
     var body: some View {
+        let german = KuroLocale.isGerman
+        let floor = EntityPageLayout.isFloor(works.count, limit: CatalogColumns.entityWorksRowLimit)
         KuroJourneyAwareStack {
             ScrollView {
-                VStack(spacing: KuroSpacing.lg) {
-                    VStack(spacing: KuroSpacing.sm) {
-                        Text(name.uppercased())
-                            .font(.kuroDisplay())
-                            .foregroundColor(.kuroBlack80)
-                            .multilineTextAlignment(.center)
-                            .accessibilityAddTraits(.isHeader)
+                VStack(alignment: .leading, spacing: 0) {
+                    EntityStudioHero(name: name,
+                                     facts: isLoading || works.isEmpty ? nil
+                                        : EntityPageCopy.studioFacts(titles: works.count, animation: studio.isAnimationStudio == true,
+                                                                     german: german, floor: floor),
+                                     column: column)
+                        .entityGutter()
+                        .padding(.top, 8)
 
-                        if studio.isAnimationStudio == true {
-                            Text(KuroLocale.text("ANIMATION STUDIO", "ANIMATIONSSTUDIO"))
-                                .font(.kuroMicro(weight: .medium))
-                                .tracking(1.4)
-                                .foregroundColor(.kuroTextSecondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule().fill(Color.kuroBlack06)
-                                )
+                    if !tracked.isEmpty {
+                        EntityTrackedGlance(works: tracked)
+                            .entityGutter()
+                            .padding(.top, 20)
+                    }
+
+                    if isLoading {
+                        EntityHeading(title: EntityPageCopy.mostLoved(german: german))
+                        EntityLoadingRows()
+                    } else if !works.isEmpty {
+                        let loved = Array(EntityWorks.sorted(works, mode: sortMode) { $0 }.prefix(Self.railCap))
+                        EntityHeading(title: EntityPageCopy.mostLoved(german: german),
+                                      note: EntityPageCopy.titles(works.count, german: german, floor: floor))
+                        EntitySortRow(sort: $sortMode)
+                            .entityGutter()
+                        EntityWorkRail(works: loved.enumerated().map {
+                            EntityWorkItem(media: $0.element, role: nil,
+                                           id: EntityWorkIdentity.make(media: $0.element, role: nil, index: $0.offset))
+                        }, column: column)
+                        .padding(.top, 8)
+
+                        let years = EntityWorks.byYear(works)
+                        if !years.isEmpty {
+                            EntityHeading(title: EntityPageCopy.byYear(german: german))
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(years) { group in
+                                    EntityYearRow(group: group, studioName: name)
+                                }
+                            }
+                            .entityGutter()
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, KuroSpacing.lg)
-
-                    EntitySectionLead(text: KuroLocale.text("The studio's work by rating, year or era.", "Die Werke des Studios nach Wertung, Jahr oder Epoche."))
-
-                    EntityWorksRail(
-                        title: KuroLocale.text("Productions", "Produktionen"),
-                        subtitle: KuroLocale.text("Best-known productions", "Bekannteste Produktionen"),
-                        items: sortedWorks.map { (media: $0, role: nil as String?) },
-                        isLoading: isLoading,
-                        sortMode: $sortMode
-                    )
                 }
-                .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.top, KuroJourneyChrome.barHeight)
-                .padding(.bottom, KuroSpacing.lg)
+                .entityColumn($column)
             }
             .entityJourneyPage(title: name, collapse: $collapse, start: EntityPageCollapse.nameOnlyStart)
         }
@@ -578,179 +748,7 @@ struct StudioDetailSheet: View {
     }
 }
 
-// MARK: - Shared Entity Hero Section
-
-struct EntityHeroSection: View {
-    let imageURL: String?
-    var isCircle: Bool = true
-    let name: String
-    let nameNative: String?
-    var metadataLines: [String] = []
-    var occupations: [String]? = nil
-
-    var body: some View {
-        VStack(spacing: KuroSpacing.md) {
-            if let urlStr = imageURL, let url = URL(string: urlStr) {
-                KuroCachedAsyncImage(url: url, maxPixelSize: 120) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    default:
-                        heroPlaceholder
-                    }
-                }
-                .frame(width: 120, height: 120)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.kuroBlack08, lineWidth: 0.5))
-            } else {
-                heroPlaceholder
-                    .frame(width: 120, height: 120)
-                    .clipShape(Circle())
-            }
-
-            VStack(spacing: 4) {
-                Text(name)
-                    .font(.kuroHeadline())
-                    .foregroundColor(.kuroBlack80)
-                    .multilineTextAlignment(.center)
-
-                if let native = nameNative, !native.isEmpty {
-                    Text(native)
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroTextTertiary)
-                }
-
-                if !metadataLines.isEmpty {
-                    Text(metadataLines.joined(separator: " · "))
-                        .font(.kuroMicro(weight: .light))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroTextSecondary)
-                }
-
-                if let occupations, !occupations.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(occupations.prefix(3), id: \.self) { occ in
-                            Text(occ.uppercased())
-                                .font(.kuroMicro(weight: .medium))
-                                .tracking(0.8)
-                                .foregroundColor(.kuroTextSecondary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule().fill(Color.kuroBlack06)
-                                )
-                        }
-                    }
-                    .padding(.top, 4)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, KuroSpacing.lg)
-    }
-
-    private var heroPlaceholder: some View {
-        Circle()
-            .fill(Color.kuroBlack06)
-            .overlay(
-                Image(systemName: "person.fill")
-                    .font(.kuroCustom(36, weight: .light, maxSize: 58))
-                    .foregroundColor(.kuroBlack20)
-            )
-    }
-}
-
-// MARK: - Shared Entity Works Rail
-
-struct EntityWorksRail: View {
-    let title: String
-    var subtitle: String? = nil
-    let items: [(media: Media, role: String?)]
-    let isLoading: Bool
-    @Binding var sortMode: EntitySortMode
-
-    private var cardWidth: CGFloat { 110 }
-    private var identifiedItems: [(id: String, media: Media, role: String?)] {
-        items.enumerated().map { index, item in
-            (
-                id: EntityWorkIdentity.make(media: item.media, role: item.role, index: index),
-                media: item.media,
-                role: item.role
-            )
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: KuroSpacing.md) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(.kuroCaption(weight: .semibold))
-                        .tracking(1.6)
-                        .textCase(.uppercase)
-                        .foregroundColor(.kuroBlack80)
-                        .accessibilityAddTraits(.isHeader)
-
-                    if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.kuroMicro(weight: .regular))
-                            .tracking(0.8)
-                            .foregroundColor(.kuroTextTertiary)
-                    }
-                }
-
-                Spacer()
-
-                HStack(spacing: 0) {
-                    ForEach(EntitySortMode.allCases, id: \.self) { mode in
-                        Button {
-                            sortMode = mode
-                        } label: {
-                            Text(mode.title)
-                                .font(.kuroMicro(weight: sortMode == mode ? .semibold : .regular))
-                                .tracking(1.0)
-                                .textCase(.uppercase)
-                                .foregroundColor(sortMode == mode ? .kuroBlack80 : .kuroTextTertiary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(sortMode == mode ? .isSelected : [])
-                    }
-                }
-                .background(
-                    Capsule().fill(Color.kuroBlack04)
-                )
-            }
-
-            if isLoading {
-                HStack(spacing: 8) {
-                    KuroBusyMark(width: 24)
-                    Text(KuroLocale.text("Loading…", "Wird geladen …"))
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroTextTertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, KuroSpacing.lg)
-            } else if items.isEmpty {
-                Text(KuroLocale.text("No works found", "Keine Werke gefunden"))
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroInkQuiet)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, KuroSpacing.lg)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(identifiedItems, id: \.id) { item in
-                            EntityWorkCard(media: item.media, role: item.role, width: cardWidth)
-                        }
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
+// MARK: - Shared lead line (kept for the legacy cast directory, `CastSection.swift`)
 
 struct EntitySectionLead: View {
     let text: String
@@ -764,56 +762,3 @@ struct EntitySectionLead: View {
     }
 }
 
-struct EntityFilterBar<Option: Hashable & EntityOptionTitled>: View {
-    let options: [Option]
-    let selected: Option
-    let onSelect: (Option) -> Void
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(options, id: \.self) { option in
-                    Button {
-                        onSelect(option)
-                    } label: {
-                        Text(option.title)
-                            .font(.kuroMicro(weight: selected == option ? .semibold : .regular))
-                            .tracking(0.9)
-                            .textCase(.uppercase)
-                            .foregroundColor(selected == option ? .white : .kuroBlack80)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(
-                                Capsule()
-                                    .fill(selected == option ? Color.black : Color.kuroBlack04)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Entity Work Card (wraps KuroCompactCard + optional role subtitle)
-
-struct EntityWorkCard: View {
-    let media: Media
-    let role: String?
-    var width: CGFloat = 110
-
-    var body: some View {
-        VStack(spacing: 4) {
-            KuroCompactCard(media: media, width: width)
-
-            if let role, !role.isEmpty {
-                Text(role.uppercased())
-                    .font(.kuroCustom(8, weight: .regular, maxSize: 13))
-                    .tracking(0.8)
-                    .foregroundColor(.kuroTextTertiary)
-                    .lineLimit(1)
-                    .frame(width: width)
-            }
-        }
-    }
-}
