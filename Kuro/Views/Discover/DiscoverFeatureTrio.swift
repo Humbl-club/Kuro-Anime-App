@@ -36,12 +36,14 @@ struct DiscoverFeatureTrio: View {
                 DiscoverCoverStory(story: DiscoverStory(card: first, eyebrow: title), kind: .feature, column: column)
             }
             if !trio.isEmpty {
+                // No trailing Spacer: the stack's 14 pt spacing would apply before it too, making the
+                // row 14 pt wider than the column and shifting the whole issue off centre.
                 HStack(alignment: .top, spacing: DiscoverIssueLayout.trioSpacing) {
                     ForEach(trio) { card in
                         DiscoverCoverTile(card: card, width: coverWidth, height: (coverWidth * 1.5).rounded())
                     }
-                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 14)
             }
             if DiscoverIssueLayout.offersSeeAll(total: cards.count, shown: shown) {

@@ -294,37 +294,37 @@ struct EditorialDiscoverView: View {
 
     /// The lead: today's pick for this issue, else (once it has resolved) the season / trending lead on
     /// All and Anime, or the first essential (or trending) manga on Manga, exactly as before.
+    private var leadSource: DiscoverIssueSections.Lead {
+        DiscoverIssueSections.lead(issue: selectedMediaType, dailyFeatureKind: vm.dailyFeature?.kind,
+                                   dailyFeatureResolved: vm.dailyFeatureResolved, hasFeatured: vm.featured != nil,
+                                   hasEssentialsManga: !vm.essentialsManga.isEmpty,
+                                   hasTrendingManga: !vm.trendingManga.isEmpty)
+    }
+
     private var leadStory: DiscoverStory? {
-        if let feature = vm.dailyFeature, matchesIssue(feature.kind) {
+        switch leadSource {
+        case .dailyFeature:
+            guard let feature = vm.dailyFeature else { return nil }
             return DiscoverStory(feature: feature, eyebrow: DiscoverOneThingCard.defaultEyebrow)
-        }
-        if showsLeadSkeleton { return nil }
-        if let featured = vm.featured, showsAnime {
+        case .season:
+            guard let featured = vm.featured else { return nil }
             return DiscoverStory(card: TasteCard(anime: featured),
                                  eyebrow: vm.currentSeason.isEmpty
                                     ? KuroLocale.text("Trending now", "Gerade beliebt")
                                     : KuroLocale.text("This season", "Diese Season"))
-        }
-        if selectedMediaType == .manga, let manga = vm.essentialsManga.first ?? vm.trendingManga.first {
+        case .manga:
+            guard let manga = vm.essentialsManga.first ?? vm.trendingManga.first else { return nil }
             return DiscoverStory(card: TasteCard(manga: manga),
                                  eyebrow: vm.essentialsManga.isEmpty
                                     ? KuroLocale.text("Trending now", "Gerade beliebt")
                                     : KuroLocale.text("Essential reading", "Lesenswert"))
+        case .skeleton, .none:
+            return nil
         }
-        return nil
     }
 
     /// Today's pick is still resolving (not on Manga, where the lead never waits for it).
-    private var showsLeadSkeleton: Bool {
-        if let feature = vm.dailyFeature, matchesIssue(feature.kind) { return false }
-        return !vm.dailyFeatureResolved && selectedMediaType != .manga
-    }
-
-    private func matchesIssue(_ kind: MediaKind) -> Bool {
-        selectedMediaType == .all
-            || (selectedMediaType == .anime && kind == .anime)
-            || (selectedMediaType == .manga && kind == .manga)
-    }
+    private var showsLeadSkeleton: Bool { leadSource == .skeleton }
 
     // MARK: Airing today
 
@@ -349,51 +349,28 @@ struct EditorialDiscoverView: View {
     // MARK: Sections
 
     /// The sections drawn on this issue, in the curated order (the contents line and the page read the
-    /// same list, so they never disagree). Flag gates are the page's own.
-    enum PageSection: Hashable {
-        case newToYou, becauseYou, tonightShelf, essentials, hiddenGem, mangaNewToYou, trending, essentialsManga
+    /// same list, so they never disagree). The selection and its flag gates are `DiscoverIssueSections`.
+    typealias PageSection = DiscoverIssueSections.Section
+
+    private var sectionInputs: DiscoverIssueSections.Inputs {
+        DiscoverIssueSections.Inputs(
+            issue: selectedMediaType, realmRails: flags.discoverRealmRailsV1Enabled,
+            newToYou: !vm.newToYou.isEmpty, becauseYou: !vm.becauseYou.isEmpty, tonightShelf: !vm.tonightShelf.isEmpty,
+            essentials: !vm.essentials.isEmpty, hiddenGemKind: vm.hiddenGem?.kind, mangaNewToYou: !vm.newToYouManga.isEmpty,
+            trending: !vm.trending.isEmpty, essentialsManga: !vm.essentialsManga.isEmpty,
+            classics: !vm.classics.isEmpty, currentSeason: !vm.currentSeason.isEmpty, topRated: !vm.topRated.isEmpty,
+            newlyAdded: !vm.newlyAdded.isEmpty, classicsManga: !vm.classicsManga.isEmpty,
+            trendingManga: !vm.trendingManga.isEmpty, topRatedManga: !vm.topRatedManga.isEmpty,
+            newlyAddedManga: !vm.newlyAddedManga.isEmpty)
     }
 
-    private var mainSections: [PageSection] {
-        var sections: [PageSection] = []
-        if selectedMediaType == .manga {
-            // Manga new to you takes New to you's place on the Manga issue (§6.1 row 6).
-            if !vm.newToYouManga.isEmpty { sections.append(.mangaNewToYou) }
-        } else if !vm.becauseYou.isEmpty && selectedMediaType == .all {
-            // Because-You replaces NEW TO YOU when the taste rail has enough signal (mixed anime +
-            // manga feed: All only).
-            sections.append(.becauseYou)
-        } else if showsAnime, !vm.newToYou.isEmpty {
-            sections.append(.newToYou)
-        }
-        // Stage 4: The Shelf (tonight's realm), flag-gated.
-        if flags.discoverRealmRailsV1Enabled, showsAnime, !vm.tonightShelf.isEmpty { sections.append(.tonightShelf) }
-        if showsAnime, !vm.essentials.isEmpty { sections.append(.essentials) }
-        // Stage 4: Hidden Gem (the cover-story grammar), flag-gated.
-        if flags.discoverRealmRailsV1Enabled, let gem = vm.hiddenGem, matchesIssue(gem.kind) { sections.append(.hiddenGem) }
-        if selectedMediaType == .all, !vm.newToYouManga.isEmpty { sections.append(.mangaNewToYou) }
-        if showsAnime, !vm.trending.isEmpty { sections.append(.trending) }
-        if showsManga, !vm.essentialsManga.isEmpty { sections.append(.essentialsManga) }
-        return sections
-    }
+    private var mainSections: [PageSection] { DiscoverIssueSections.main(sectionInputs) }
 
     /// The folded sections, in their curated order.
-    private var foldSections: [EditorialDiscoverRoute] {
-        var routes: [EditorialDiscoverRoute] = []
-        if showsAnime {
-            if !vm.classics.isEmpty { routes.append(.animeClassics) }
-            if !vm.currentSeason.isEmpty { routes.append(.animeCurrentSeason) }
-            if !vm.topRated.isEmpty { routes.append(.animeTopRated) }
-            if !vm.newlyAdded.isEmpty { routes.append(.animeNewlyAdded) }
-        }
-        if showsManga {
-            if !vm.classicsManga.isEmpty { routes.append(.mangaClassics) }
-            if !vm.trendingManga.isEmpty { routes.append(.mangaTrending) }
-            if !vm.topRatedManga.isEmpty { routes.append(.mangaTopRated) }
-            if !vm.newlyAddedManga.isEmpty { routes.append(.mangaNewlyAdded) }
-        }
-        return routes
-    }
+    private var foldSections: [EditorialDiscoverRoute] { DiscoverIssueSections.fold(sectionInputs) }
+
+    /// Index rows before "See all": three on All, five on Anime and Manga.
+    private var indexRowLimit: Int { DiscoverIssueLayout.indexRows(onAll: selectedMediaType == .all) }
 
     private var tonightShelfName: String {
         vm.tonightShelfTitle ?? KuroLocale.text("Tonight's shelf", "Das Regal für heute Abend")
@@ -451,6 +428,7 @@ struct EditorialDiscoverView: View {
             DiscoverIndexSection(anchor: anchor(.animeEssentials), title: headline(.animeEssentials),
                                  summary: DiscoverIssueCopy.canonSummary(german: german),
                                  cards: vm.essentials.map { TasteCard(anime: $0) }, column: column,
+                                 rowLimit: indexRowLimit,
                                  onSeeAll: { openSeeAll(.animeEssentials) })
                 .padding(.horizontal, gutter)
         case .hiddenGem:
@@ -475,6 +453,7 @@ struct EditorialDiscoverView: View {
             DiscoverIndexSection(anchor: anchor(.mangaEssentials), title: headline(.mangaEssentials),
                                  summary: DiscoverIssueCopy.canonSummary(german: german),
                                  cards: vm.essentialsManga.map { TasteCard(manga: $0) }, column: column,
+                                 rowLimit: indexRowLimit,
                                  onSeeAll: { openSeeAll(.mangaEssentials) })
                 .padding(.horizontal, gutter)
         }
@@ -485,6 +464,7 @@ struct EditorialDiscoverView: View {
         DiscoverIndexSection(anchor: anchor(route), title: headline(route), summary: nil,
                              cards: foldCards(route), column: column,
                              refinement: route == .animeTopRated ? $topRatedFilter : nil,
+                             rowLimit: indexRowLimit,
                              onSeeAll: { openSeeAll(route) })
     }
 
@@ -988,5 +968,98 @@ nonisolated enum DiscoverPageRules {
         if isLoading { return .loading }
         if failed { return isConnected ? .failed(hasContent: false) : .offline(hasContent: false) }
         return .empty
+    }
+}
+
+// MARK: - Issue sections (pure)
+
+/// Which lead and sections the Discover issue draws, in the curated order and behind the page's flag
+/// gates (pure; DCdiscoverTests pins All / Anime / Manga with the flags on and off).
+enum DiscoverIssueSections {
+    typealias Issue = EditorialDiscoverView.DiscoverMediaTypeFilter
+
+    enum Section: Hashable {
+        case newToYou, becauseYou, tonightShelf, essentials, hiddenGem, mangaNewToYou, trending, essentialsManga
+    }
+
+    /// Where the lead story comes from.
+    enum Lead: Equatable {
+        /// Today's pick (it matches the issue).
+        case dailyFeature
+        /// Today's pick is still resolving (never on Manga).
+        case skeleton
+        /// The season / trending lead (All and Anime).
+        case season
+        /// The first essential (else trending) manga (Manga).
+        case manga
+        case none
+    }
+
+    /// Which rails hold content (and the Hidden gem's medium), as the page read them.
+    struct Inputs {
+        var issue: Issue
+        var realmRails: Bool
+        var newToYou = false, becauseYou = false, tonightShelf = false, essentials = false
+        var hiddenGemKind: MediaKind? = nil
+        var mangaNewToYou = false, trending = false, essentialsManga = false
+        var classics = false, currentSeason = false, topRated = false, newlyAdded = false
+        var classicsManga = false, trendingManga = false, topRatedManga = false, newlyAddedManga = false
+    }
+
+    static func showsAnime(_ issue: Issue) -> Bool { issue != .manga }
+    static func showsManga(_ issue: Issue) -> Bool { issue != .anime }
+
+    static func matches(_ issue: Issue, kind: MediaKind) -> Bool {
+        issue == .all || (issue == .anime && kind == .anime) || (issue == .manga && kind == .manga)
+    }
+
+    static func lead(issue: Issue, dailyFeatureKind: MediaKind?, dailyFeatureResolved: Bool, hasFeatured: Bool,
+                     hasEssentialsManga: Bool, hasTrendingManga: Bool) -> Lead {
+        if let kind = dailyFeatureKind, matches(issue, kind: kind) { return .dailyFeature }
+        if !dailyFeatureResolved && issue != .manga { return .skeleton }
+        if hasFeatured, showsAnime(issue) { return .season }
+        if issue == .manga, hasEssentialsManga || hasTrendingManga { return .manga }
+        return .none
+    }
+
+    static func main(_ input: Inputs) -> [Section] {
+        let anime = showsAnime(input.issue)
+        var sections: [Section] = []
+        if input.issue == .manga {
+            // Manga new to you takes New to you's place on the Manga issue (§6.1 row 6).
+            if input.mangaNewToYou { sections.append(.mangaNewToYou) }
+        } else if input.becauseYou && input.issue == .all {
+            // Because-You replaces NEW TO YOU when the taste rail has enough signal (mixed anime +
+            // manga feed: All only).
+            sections.append(.becauseYou)
+        } else if anime, input.newToYou {
+            sections.append(.newToYou)
+        }
+        // Stage 4: The Shelf (tonight's realm), flag-gated.
+        if input.realmRails, anime, input.tonightShelf { sections.append(.tonightShelf) }
+        if anime, input.essentials { sections.append(.essentials) }
+        // Stage 4: Hidden Gem (the cover-story grammar), flag-gated.
+        if input.realmRails, let kind = input.hiddenGemKind, matches(input.issue, kind: kind) { sections.append(.hiddenGem) }
+        if input.issue == .all, input.mangaNewToYou { sections.append(.mangaNewToYou) }
+        if anime, input.trending { sections.append(.trending) }
+        if showsManga(input.issue), input.essentialsManga { sections.append(.essentialsManga) }
+        return sections
+    }
+
+    static func fold(_ input: Inputs) -> [EditorialDiscoverRoute] {
+        var routes: [EditorialDiscoverRoute] = []
+        if showsAnime(input.issue) {
+            if input.classics { routes.append(.animeClassics) }
+            if input.currentSeason { routes.append(.animeCurrentSeason) }
+            if input.topRated { routes.append(.animeTopRated) }
+            if input.newlyAdded { routes.append(.animeNewlyAdded) }
+        }
+        if showsManga(input.issue) {
+            if input.classicsManga { routes.append(.mangaClassics) }
+            if input.trendingManga { routes.append(.mangaTrending) }
+            if input.topRatedManga { routes.append(.mangaTopRated) }
+            if input.newlyAddedManga { routes.append(.mangaNewlyAdded) }
+        }
+        return routes
     }
 }

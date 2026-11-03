@@ -71,6 +71,8 @@ struct DCDiscoverLayoutTests {
     @Test("Index: five rows, 76 pt tall, the key at least 96 (84 compact); the rail 106 × 150, ten at most")
     func indexAndRail() {
         #expect(DiscoverIssueLayout.indexRows == 5)
+        #expect(DiscoverIssueLayout.indexRows(onAll: true) == 3, "All carries both media: three rows, See all for the rest")
+        #expect(DiscoverIssueLayout.indexRows(onAll: false) == 5)
         #expect(DiscoverIssueLayout.indexRowMinHeight == 76)
         #expect(DiscoverIssueLayout.indexKeyWidth(compact: false) == 96)
         #expect(DiscoverIssueLayout.indexKeyWidth(compact: true) == 84)
@@ -143,17 +145,17 @@ struct DCDiscoverCopyTests {
             DiscoverIssueCopy.AiringEntry(title: "Frieren", slot: earlier),
             DiscoverIssueCopy.AiringEntry(title: "Mushishi", slot: nil)
         ]
-        #expect(DiscoverIssueCopy.glanceCaption(entries, now: now, german: false, timeZone: berlin) == "Next: Dandadan at 18:00")
+        #expect(DiscoverIssueCopy.glanceCaption(entries, now: now, german: false, timeZone: berlin) == "Next: Dandadan\u{00A0}at\u{00A0}18:00")
         let withEpisode = [entries[0], entries[2]]
         #expect(DiscoverIssueCopy.glanceCaption(withEpisode, now: now, german: false, timeZone: berlin)
-                == "Next: Mob Psycho 100 · Ep. 7 at 21:30")
+                == "Next: Mob Psycho 100 · Ep.\u{00A0}7\u{00A0}at\u{00A0}21:30")
         #expect(DiscoverIssueCopy.glanceCaption(withEpisode, now: now, german: true, timeZone: berlin)
-                == "Als Nächstes: Mob Psycho 100 · Folge 7 um 21:30")
+                == "Als Nächstes: Mob Psycho 100 · Folge\u{00A0}7\u{00A0}um\u{00A0}21:30")
         let lateNight = try date("2026-11-03T22:00:00Z")
         #expect(DiscoverIssueCopy.glanceCaption(withEpisode, now: lateNight, german: false, timeZone: berlin)
-                == "Last: Mob Psycho 100 · Ep. 7")
+                == "Last: Mob Psycho 100 · Ep.\u{00A0}7")
         #expect(DiscoverIssueCopy.glanceCaption(withEpisode, now: lateNight, german: true, timeZone: berlin)
-                == "Zuletzt: Mob Psycho 100 · Folge 7")
+                == "Zuletzt: Mob Psycho 100 · Folge\u{00A0}7")
         let untimed = [DiscoverIssueCopy.AiringEntry(title: "A", slot: nil), DiscoverIssueCopy.AiringEntry(title: "B", slot: nil),
                        DiscoverIssueCopy.AiringEntry(title: "C", slot: nil)]
         #expect(DiscoverIssueCopy.glanceCaption(untimed, now: now, german: false, timeZone: berlin) == "A · B")
@@ -276,5 +278,78 @@ struct DCDiscoverPageTests {
         #expect(story.artRaw == "https://x.invalid/c.jpg")
         #expect(story.argument == "Every stroke has weight.")
         #expect(story.facts(length: false, german: false) == "1998 · Manga")
+    }
+}
+
+@Suite("Discover lane (DC): sections and Plan key")
+@MainActor
+struct DCDiscoverSectionTests {
+    typealias Sections = DiscoverIssueSections
+
+    /// Every rail holds content; the Hidden gem is anime.
+    private func full(_ issue: Sections.Issue, realm: Bool, becauseYou: Bool = false) -> Sections.Inputs {
+        Sections.Inputs(issue: issue, realmRails: realm, newToYou: true, becauseYou: becauseYou, tonightShelf: true,
+                        essentials: true, hiddenGemKind: .anime, mangaNewToYou: true, trending: true, essentialsManga: true,
+                        classics: true, currentSeason: true, topRated: true, newlyAdded: true, classicsManga: true,
+                        trendingManga: true, topRatedManga: true, newlyAddedManga: true)
+    }
+
+    @Test("All: the curated order; Because-You replaces New to you; realm rails only behind their flag")
+    func allIssue() {
+        #expect(Sections.main(full(.all, realm: false)) == [.newToYou, .essentials, .mangaNewToYou, .trending, .essentialsManga])
+        #expect(Sections.main(full(.all, realm: false, becauseYou: true))
+                == [.becauseYou, .essentials, .mangaNewToYou, .trending, .essentialsManga])
+        #expect(Sections.main(full(.all, realm: true))
+                == [.newToYou, .tonightShelf, .essentials, .hiddenGem, .mangaNewToYou, .trending, .essentialsManga])
+        #expect(Sections.fold(full(.all, realm: false)) == [.animeClassics, .animeCurrentSeason, .animeTopRated, .animeNewlyAdded,
+                                                            .mangaClassics, .mangaTrending, .mangaTopRated, .mangaNewlyAdded])
+    }
+
+    @Test("Anime: no manga sections, Because-You never replaces New to you; the gem must match the issue")
+    func animeIssue() {
+        #expect(Sections.main(full(.anime, realm: false, becauseYou: true)) == [.newToYou, .essentials, .trending])
+        #expect(Sections.main(full(.anime, realm: true)) == [.newToYou, .tonightShelf, .essentials, .hiddenGem, .trending])
+        var mangaGem = full(.anime, realm: true)
+        mangaGem.hiddenGemKind = .manga
+        #expect(!Sections.main(mangaGem).contains(.hiddenGem))
+        #expect(Sections.fold(full(.anime, realm: true)) == [.animeClassics, .animeCurrentSeason, .animeTopRated, .animeNewlyAdded])
+    }
+
+    @Test("Manga: Manga new to you leads; no anime sections and no realm rails for an anime gem")
+    func mangaIssue() {
+        #expect(Sections.main(full(.manga, realm: true, becauseYou: true)) == [.mangaNewToYou, .essentialsManga])
+        var mangaGem = full(.manga, realm: true)
+        mangaGem.hiddenGemKind = .manga
+        #expect(Sections.main(mangaGem) == [.mangaNewToYou, .hiddenGem, .essentialsManga])
+        #expect(Sections.fold(full(.manga, realm: false)) == [.mangaClassics, .mangaTrending, .mangaTopRated, .mangaNewlyAdded])
+    }
+
+    @Test("Empty rails are skipped, whatever the issue")
+    func emptyRails() {
+        let none = Sections.Inputs(issue: .all, realmRails: true)
+        #expect(Sections.main(none).isEmpty)
+        #expect(Sections.fold(none).isEmpty)
+    }
+
+    @Test("Lead: today's pick when it matches, the skeleton while it resolves (never on Manga), then the fallbacks")
+    func lead() {
+        #expect(Sections.lead(issue: .all, dailyFeatureKind: .manga, dailyFeatureResolved: true, hasFeatured: true,
+                              hasEssentialsManga: true, hasTrendingManga: true) == .dailyFeature)
+        #expect(Sections.lead(issue: .anime, dailyFeatureKind: .manga, dailyFeatureResolved: true, hasFeatured: true,
+                              hasEssentialsManga: true, hasTrendingManga: true) == .season)
+        #expect(Sections.lead(issue: .all, dailyFeatureKind: nil, dailyFeatureResolved: false, hasFeatured: true,
+                              hasEssentialsManga: true, hasTrendingManga: true) == .skeleton)
+        #expect(Sections.lead(issue: .manga, dailyFeatureKind: nil, dailyFeatureResolved: false, hasFeatured: true,
+                              hasEssentialsManga: false, hasTrendingManga: true) == .manga)
+        #expect(Sections.lead(issue: .manga, dailyFeatureKind: .anime, dailyFeatureResolved: true, hasFeatured: true,
+                              hasEssentialsManga: false, hasTrendingManga: false) == .none)
+        #expect(Sections.lead(issue: .anime, dailyFeatureKind: nil, dailyFeatureResolved: true, hasFeatured: false,
+                              hasEssentialsManga: true, hasTrendingManga: true) == .none)
+    }
+
+    @Test("The Plan key honours the pager's tap suppression (a swipe that starts on it never plans)")
+    func planKeyGate() {
+        #expect(TastePlanKey.acceptsTap(suppressCardTaps: false))
+        #expect(!TastePlanKey.acceptsTap(suppressCardTaps: true))
     }
 }

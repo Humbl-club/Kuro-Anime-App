@@ -70,8 +70,9 @@ struct ClubDetailView: View {
     /// "Add to which rail?" (several eligible rails; D10), and the rail it handed back.
     @State private var showRailChooser = false
     @State private var chosenRailId: String? = nil
-    /// The tab bar's top in the page's space: once it meets the compact bar, a pinned copy shows (H1).
-    @State private var tabBarTop: CGFloat = .greatestFiniteMagnitude
+    /// The tab bar has met the compact bar, so a pinned copy shows (H1). A Bool, not the offset: the
+    /// page body re-evaluates only when the pin flips, not on every scroll frame.
+    @State private var tabsPinned = false
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var disclosureReloadTask: Task<Void, Never>?
@@ -304,7 +305,7 @@ struct ClubDetailView: View {
             let keys = ClubRoomRules.keys(role: bundle.my_role, rails: bundle.rails,
                                           hasInviteCode: bundle.club.invite_code != nil)
             let counts = tabCounts(bundle, viewerId: viewerId)
-            let pinned = tabBarTop <= KuroJourneyChrome.barHeight
+            let pinned = tabsPinned
 
             ZStack(alignment: .top) {
                 ScrollViewReader { proxy in
@@ -326,9 +327,9 @@ struct ClubDetailView: View {
 
                                 JournalTabBar(selectedTab: $selectedTab, counts: counts, gutter: gutter)
                                     .padding(.top, 10)
-                                    .onGeometryChange(for: CGFloat.self) {
-                                        $0.frame(in: .named(Self.pageSpace)).minY
-                                    } action: { tabBarTop = $0 }
+                                    .onGeometryChange(for: Bool.self) {
+                                        $0.frame(in: .named(Self.pageSpace)).minY <= KuroJourneyChrome.barHeight
+                                    } action: { tabsPinned = $0 }
 
                                 if let issue = loadPhase.refreshIssue {
                                     ClubDetailRefreshNotice(

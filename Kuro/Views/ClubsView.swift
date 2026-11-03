@@ -39,6 +39,8 @@ struct ClubsView: View {
     @State private var toastDismissTask: Task<Void, Never>? = nil
     /// The page's measured width (gutter and compact sizes; never the screen).
     @State private var containerWidth: CGFloat = 0
+    /// The page's measured height: the failed / offline states sit where Discover's do (× 0.8).
+    @State private var containerHeight: CGFloat = 0
 
     init(pendingJoinCode: Binding<String?> = .constant(nil)) {
         _pendingJoinCode = pendingJoinCode
@@ -90,7 +92,10 @@ struct ClubsView: View {
                 .zIndex(100)
             }
         }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+            containerWidth = size.width
+            containerHeight = size.height
+        }
         .task(id: origin) {
             guard let loadOrigin = actionScope.capture(session: clubs.accountSession) else { return }
             // Revisits inside the staleness window reuse what is on screen.
@@ -140,6 +145,10 @@ struct ClubsView: View {
 
     // MARK: - Content
 
+    /// Discover's rule for a full-page state (its measured height × 0.8), so the failed and offline
+    /// states sit at the same height on neighbouring pager pages; 360 before the first measure.
+    private var stateMinHeight: CGFloat { containerHeight > 0 ? containerHeight * 0.8 : 360 }
+
     @ViewBuilder
     private func content(origin: AccountActionScope.Ticket?) -> some View {
         // One switch on the branded state (`ClubsListState.brandedState`, tested in RestyleLaneTests).
@@ -155,11 +164,11 @@ struct ClubsView: View {
             KuroStateView(.offline(hasCachedContent: false),
                           message: KuroLocale.text("Connect to see your clubs.", "Verbinde dich, um deine Clubs zu sehen."),
                           retry: { retry(origin: origin) })
-                .frame(minHeight: 360)
+                .frame(minHeight: stateMinHeight)
         case .failed(hasContent: false):
             KuroErrorView(headline: KuroLocale.text("Couldn't load your clubs.", "Deine Clubs konnten nicht geladen werden."),
                           retry: { retry(origin: origin) })
-                .frame(minHeight: 360)
+                .frame(minHeight: stateMinHeight)
         case .offline(hasContent: true):
             clubList(notice: .offline, origin: origin)
         case .failed(hasContent: true):

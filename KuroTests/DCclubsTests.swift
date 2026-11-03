@@ -229,9 +229,9 @@ struct DCclubsTests {
          {"id":"b","label":"Dub","media_type":null,"media_id":null,"sort_order":1,"vote_count":1}]
         """.utf8))
         #expect(ClubPollCopy.closedSummary(askerName: "Mina", isViewer: false, question: "Sub or dub?", options: options, german: false)
-                == "Mina asked: Sub or dub? · Sub won, 4 to 1")
+                == "Mina asked: Sub or dub? · Sub\u{00A0}won,\u{00A0}4\u{00A0}to\u{00A0}1")
         #expect(ClubPollCopy.closedSummary(askerName: "Mina", isViewer: false, question: "Sub or dub?", options: options, german: true)
-                == "Mina fragte: Sub or dub? · Sub gewann, 4 zu 1")
+                == "Mina fragte: Sub or dub? · Sub\u{00A0}gewann,\u{00A0}4\u{00A0}zu\u{00A0}1")
         let tied = try JSONDecoder().decode([ClubPollOption].self, from: Data("""
         [{"id":"a","label":"A","media_type":null,"media_id":null,"sort_order":0,"vote_count":2},
          {"id":"b","label":"B","media_type":null,"media_id":null,"sort_order":1,"vote_count":2}]

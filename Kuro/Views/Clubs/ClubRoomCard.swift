@@ -74,7 +74,7 @@ struct ClubRoomCard: View {
     }
 
     private var name: some View {
-        Text(nameText)
+        nameText
             .font(.kuroEditorial(size: compact ? 19 : 22))
             .tracking(-0.6)
             .foregroundStyle(ClubRoomPalette.text)
@@ -83,15 +83,17 @@ struct ClubRoomCard: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// The name, then (unread) a small monochrome dot after its last word.
-    private var nameText: AttributedString {
-        var text = AttributedString(club.name)
-        guard hasUnseen else { return text }
-        var dot = AttributedString("\u{2009}\u{25CF}")
-        dot.font = .kuroCustom(7, relativeTo: .caption2, maxSize: 12)
-        dot.baselineOffset = 5
-        text.append(dot)
-        return text
+    /// The name, then (unread) a 6 pt monochrome dot a word space after its last word, centred on the
+    /// lowercase height; as part of the text it stays on the name's last line when the name wraps
+    /// (spec §7.1). The card's VoiceOver label says "new activity" instead (`ClubsListCardRules`).
+    private var nameText: Text {
+        let name = Text(club.name)
+        guard hasUnseen else { return name }
+        let dot = Text(Image(systemName: "circle.fill"))
+            .font(.system(size: 6))
+            .baselineOffset(compact ? 3 : 4)
+        // A no-break space: a word's width from the name, and the dot never wraps onto a line alone.
+        return Text("\(name)\u{00A0}\(dot)")
     }
 
     private var fan: some View {

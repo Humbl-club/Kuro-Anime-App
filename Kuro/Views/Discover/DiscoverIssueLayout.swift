@@ -101,6 +101,11 @@ nonisolated enum DiscoverIssueLayout {
 
     /// Rows an index (Essentials, the folded sections) shows before "See all".
     static let indexRows = 5
+    /// On the All issue, which carries both media, an index shows three rows (integration review,
+    /// rhythm §6.1: the page ran ~3,000 pt against the ~1,900 target). Every title stays one
+    /// "See all" away; the Anime and Manga issues keep five. Owner decision recorded in REPORT.md.
+    static let allIssueIndexRows = 3
+    static func indexRows(onAll: Bool) -> Int { onAll ? allIssueIndexRows : indexRows }
     /// The quiet-row recipe with its minimum height raised to 76.
     static let indexRowMinHeight: CGFloat = 76
     /// The index row's Plan key: at least 96 pt wide (84 compact), growing only for its label.

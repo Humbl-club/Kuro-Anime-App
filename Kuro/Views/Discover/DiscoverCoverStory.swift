@@ -183,7 +183,8 @@ struct DiscoverCoverStory: View {
                     Text(line)
                         .font(.kuroCustom(kind == .feature ? 10 : 11, relativeTo: .caption1, maxSize: 22))
                         .foregroundStyle(kind == .feature ? HomeInk.footFact : HomeInk.footSecondary)
-                        .lineLimit(kind == .feature ? 1 : 3)
+                        // Four lines, so the pick's argument is never cut mid-word beside the key.
+                        .lineLimit(kind == .feature ? 1 : 4)
                 }
             }
             .multilineTextAlignment(.leading)

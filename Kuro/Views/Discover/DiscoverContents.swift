@@ -4,8 +4,9 @@ import SwiftUI
 // A 1 pt `kuroHairline` rule, the eyebrow "IN THIS ISSUE" (9 pt, tracking 1.05, `HomeInk.kicker`), then
 // the sections drawn below as a wrapping line: each a 12 pt medium name with its real count in 10 pt
 // `kuroMuted`, at most five, then "+n more". A name scrolls to its section; "+n more" opens the fold
-// (when there is one) and scrolls there. Each entry is a 22 pt line whose hit area reaches 44 pt (the
-// rows overlap by the extra, so the line stays as tight as drawn). Then the Browse link row, offered
+// (when there is one) and scrolls there. Each entry is a 22 pt line whose hit area reaches 44 pt: 3 pt
+// above the text and 19 below, so a target never reaches up over the line above (the next line, drawn
+// later, wins its own text), and the lines stay as tight as drawn. Then the Browse link row, offered
 // only where Browse is not a pager page (`DiscoverBrowseEntry`), in Home's invitation link-row grammar.
 
 struct DiscoverContentsLine: View {
@@ -41,7 +42,8 @@ struct DiscoverContentsLine: View {
                         }
                     }
                     // The first and last rows' extra hit area sits inside the block.
-                    .padding(.vertical, -11)
+                    .padding(.top, -3)
+                    .padding(.bottom, -19)
                 }
                 .overlay(alignment: .top) {
                     Rectangle().fill(Color.kuroHairline).frame(height: 1).accessibilityHidden(true)
@@ -71,8 +73,9 @@ struct DiscoverContentsLine: View {
             }
             .lineLimit(1)
             .frame(minHeight: 22)
-            // The 22 pt line becomes a 44 pt target.
-            .padding(.vertical, 11)
+            // The 22 pt line becomes a 44 pt target that reaches down, never up into the line above.
+            .padding(.top, 3)
+            .padding(.bottom, 19)
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())

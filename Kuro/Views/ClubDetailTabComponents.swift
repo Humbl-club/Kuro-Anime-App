@@ -35,7 +35,9 @@ struct JournalTabBar: View {
         .kuroTrailingOverflowFade()
         .background(Color.kuroCanvasHome)
         .overlay(alignment: .bottom) {
+            // Inset to the gutter like Home's switch rule; the pinned background stays full width.
             Rectangle().fill(HomeInk.switchHairline).frame(height: 1)
+                .padding(.horizontal, gutter)
         }
     }
 
@@ -536,20 +538,18 @@ struct JournalRailTile: View {
                         noteOpen.toggle()
                     }
                 } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(ClubRoomCopy.noteInline(author: note?.author, german: german))
-                            .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Image(systemName: noteOpen ? "chevron.up" : "chevron.down")
-                            .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 14))
-                            .accessibilityHidden(true)
-                    }
-                    .foregroundStyle(ClubRoomPalette.quietInk)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(ClubRoomPalette.quiet, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(ClubRoomPalette.quietBorder, lineWidth: 1))
+                    // The same 10 pt text link as "{name}'s note ↑" (spec §7.3.1 line 3), the chevron
+                    // after it; no fill or border, so both note links read as one kind of thing.
+                    // The chevron is part of the text, so it ends the last line when a narrow tile wraps.
+                    let chevron = Text(Image(systemName: noteOpen ? "chevron.up" : "chevron.down"))
+                        .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 14))
+                    let words = Text(ClubRoomCopy.noteInline(author: note?.author, german: german))
+                        .underline(color: Color.kuroInk.opacity(0.25))
+                    Text("\(words)\u{00A0}\(chevron)")
+                        .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(Color.kuroInk)
                     .frame(minHeight: 44, alignment: .leading)
                     .contentShape(Rectangle())
                 }

@@ -269,6 +269,9 @@ struct ClubHeroNoteCard: View {
     private var german: Bool { KuroLocale.isGerman }
     private var narrow: Bool { dynamicTypeSize.isAccessibilitySize }
 
+    /// How far the title link's hit area reaches below its text: 8 + one 10 pt line + 23 ≥ 44 pt.
+    private static let linkTargetReach: CGFloat = 23
+
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         HStack(alignment: .top, spacing: compact ? 11 : 13) {
@@ -322,8 +325,12 @@ struct ClubHeroNoteCard: View {
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
                             .padding(.top, 8)
-                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            // A 44 pt target without drawing it: the hit area reaches down into the
+                            // card's bottom padding, so the card's bottom inset matches its top.
+                            .padding(.bottom, Self.linkTargetReach)
                             .contentShape(Rectangle())
+                            .padding(.bottom, -Self.linkTargetReach)
                     }
                     .buttonStyle(HomeContactStyle())
                     .accessibilityHint(KuroLocale.text("Opens this title", "Öffnet diesen Titel"))

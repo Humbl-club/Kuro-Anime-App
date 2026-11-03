@@ -636,13 +636,22 @@ nonisolated enum ClubActivityProse {
 /// ISO-8601 timestamps as the club RPCs send them (with or without fractional seconds); nil when
 /// unreadable. A nonisolated twin of `ClubsStore.parseISO8601` for the pure rules below.
 nonisolated enum ClubDates {
+    /// Built once: the club page parses these on every body pass and in the list's sort comparator.
+    /// `ISO8601DateFormatter` is thread-safe for parsing once configured.
+    private static let fractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let basic: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
     static func parse(_ raw: String) -> Date? {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: raw) { return date }
-        let basic = ISO8601DateFormatter()
-        basic.formatOptions = [.withInternetDateTime]
-        return basic.date(from: raw)
+        fractional.date(from: raw) ?? basic.date(from: raw)
     }
 }
 
@@ -746,11 +755,9 @@ nonisolated enum ClubRoomRules {
 nonisolated enum ClubWeekRules {
     static let window: TimeInterval = 7 * 24 * 60 * 60
 
-    /// The club time zone does not exist; days are Berlin days (spec D12).
-    static var berlin: Calendar {
-        KuroLocale.calendar(locale: Locale(identifier: "de_DE"),
-                            timeZone: TimeZone(identifier: "Europe/Berlin") ?? .autoupdatingCurrent)
-    }
+    /// The club time zone does not exist; days are Berlin days (spec D12). Built once (a value).
+    static let berlin: Calendar = KuroLocale.calendar(locale: Locale(identifier: "de_DE"),
+                                                      timeZone: TimeZone(identifier: "Europe/Berlin") ?? .autoupdatingCurrent)
 
     struct Entry: Equatable, Identifiable, Sendable {
         let id: String
@@ -853,12 +860,26 @@ nonisolated enum ClubWeekRules {
 nonisolated enum ClubWeekCopy {
     static func formatLocale(german: Bool) -> Locale { Locale(identifier: german ? "de_DE" : "en_GB") }
 
+    /// Formatters are built once per template, language and time zone (the language can change while
+    /// the app runs, so it is part of the key). `NSCache` is thread-safe; a configured `DateFormatter`
+    /// is safe to use from any thread.
+    private static let formatters = NSCache<NSString, DateFormatter>()
+
+    private static func cached(_ key: String, make: () -> DateFormatter) -> DateFormatter {
+        if let formatter = formatters.object(forKey: key as NSString) { return formatter }
+        let formatter = make()
+        formatters.setObject(formatter, forKey: key as NSString)
+        return formatter
+    }
+
     private static func formatter(_ template: String, german: Bool, calendar: Calendar) -> DateFormatter {
-        let f = DateFormatter()
-        f.locale = formatLocale(german: german)
-        f.timeZone = calendar.timeZone
-        f.setLocalizedDateFormatFromTemplate(template)
-        return f
+        cached("\(template)|\(german ? "de" : "en")|\(calendar.timeZone.identifier)") {
+            let f = DateFormatter()
+            f.locale = formatLocale(german: german)
+            f.timeZone = calendar.timeZone
+            f.setLocalizedDateFormatFromTemplate(template)
+            return f
+        }
     }
 
     /// "Mon 3 Nov" / "Mo. 3. Nov." (no commas).
@@ -889,11 +910,13 @@ nonisolated enum ClubWeekCopy {
 
     /// 24 h "HH:mm" in Berlin.
     static func time(_ date: Date, calendar: Calendar = ClubWeekRules.berlin) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.timeZone = calendar.timeZone
-        f.dateFormat = "HH:mm"
-        return f.string(from: date)
+        cached("HH:mm|fixed|\(calendar.timeZone.identifier)") {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_GB")
+            f.timeZone = calendar.timeZone
+            f.dateFormat = "HH:mm"
+            return f
+        }.string(from: date)
     }
 
     static func updates(_ count: Int, german: Bool) -> String {
@@ -1050,8 +1073,9 @@ nonisolated enum ClubPollCopy {
         guard let top = ranked.first, top.vote_count > 0 else { return prefix + question }
         let second = ranked.dropFirst().first?.vote_count ?? 0
         if second == top.vote_count { return prefix + question + " · " + (german ? "Unentschieden" : "Tied") }
-        let outcome = german ? "\(top.label) gewann, \(top.vote_count) zu \(second)"
-                             : "\(top.label) won, \(top.vote_count) to \(second)"
+        // Non-breaking spaces keep the result ("Sunday won, 4 to 1") on one line.
+        let outcome = german ? "\(top.label)\u{00A0}gewann,\u{00A0}\(top.vote_count)\u{00A0}zu\u{00A0}\(second)"
+                             : "\(top.label)\u{00A0}won,\u{00A0}\(top.vote_count)\u{00A0}to\u{00A0}\(second)"
         return prefix + question + " · " + outcome
     }
 }

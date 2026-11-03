@@ -2116,3 +2116,13 @@ Discover and Clubs were redesigned to feel like the same app as the new Home: th
 - The Clubs list shows each club as a dark "room" with its covers, members and latest activity. A club's own page opens on the same room, with clear buttons (Add a title, Start a rail, Invite, Ask).
 - All automatic tests passed. Nothing was deployed or pushed, and no data or settings were changed.
 - Still for the owner to decide: the All page of Discover is longer than planned, and poll results still appear only after you vote.
+
+### Change Log — 3 November 2026: Discover and Clubs, review fixes
+
+A review pass on the new Discover and Clubs pages found small problems; they are fixed:
+- Discover sat a few points left of centre, so swiping Home → Discover → Clubs made the content jump sideways. It now lines up exactly with Home, and a test guards it.
+- Discover's All page is shorter: each numbered list shows 3 titles there (5 on Anime and Manga), with "See all" for the rest. It is still longer than planned; the owner decides whether to shorten it more.
+- Swiping between pages over a "Plan to watch" key can no longer add or remove a title by accident.
+- Small fixes: times and poll results no longer break across lines, today's pick's pitch is never cut off, the Clubs unread mark is a proper dot, note links look alike, and error screens sit at the same height on both pages.
+- The club page does much less work while scrolling.
+- All automatic tests passed. Nothing was deployed or pushed.

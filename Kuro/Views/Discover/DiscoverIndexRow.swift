@@ -3,7 +3,8 @@ import KuroLibrary
 import SwiftUI
 
 // MARK: - Numbered index (Discover + Clubs redesign §6.2 items 7 and 13)
-// Essential anime / Essential manga, and every folded section: the page section heading, five rows,
+// Essential anime / Essential manga, and every folded section: the page section heading, five rows
+// (three on the All issue),
 // then "See all {n} ›". A row is Home's quiet row with its minimum height raised to 76: the curated
 // number ("01", 13 pt medium mono, `kuroMuted`, a 22 pt column), the 40 × 60 cover (radius 2), the
 // title (15 pt medium −0.2, two lines) over "{year} · {format} · {n} eps", then the leaf `TastePlanKey`
@@ -18,6 +19,8 @@ struct DiscoverIndexSection: View {
     let column: CGFloat
     /// The section's local refinement (Top rated), drawn between the heading and the rows.
     var refinement: Binding<DiscoverRailFilter>? = nil
+    /// Rows shown before "See all" (`DiscoverIssueLayout.indexRows(onAll:)`).
+    var rowLimit: Int = DiscoverIssueLayout.indexRows
     let onSeeAll: () -> Void
 
     var body: some View {
@@ -25,7 +28,7 @@ struct DiscoverIndexSection: View {
         let filtered = refinement.map { filter in
             cards.filter { filter.wrappedValue.includes(episodes: $0.media.episodes, statusRaw: $0.media.statusRaw) }
         } ?? cards
-        let rows = Array(filtered.prefix(DiscoverIssueLayout.indexRows))
+        let rows = Array(filtered.prefix(rowLimit))
         VStack(alignment: .leading, spacing: 0) {
             DiscoverPageHeading(title: title, summary: summary, compact: compact)
                 .padding(.bottom, refinement == nil ? DiscoverIssueLayout.headingToContent - 6 : 2)
@@ -42,9 +45,11 @@ struct DiscoverIndexSection: View {
                     DiscoverIndexRow(position: index + 1, card: card, compact: compact)
                 }
             }
-            if DiscoverIssueLayout.offersSeeAll(total: filtered.count, shown: rows.count) {
-                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(filtered.count, german: KuroLocale.isGerman),
-                                   spoken: DiscoverIssueCopy.seeAllSpoken(filtered.count, section: title, german: KuroLocale.isGerman),
+            // "See all" opens the whole section (the refinement is local), so it counts the whole
+            // section, as the rail does.
+            if DiscoverIssueLayout.offersSeeAll(total: cards.count, shown: rows.count) {
+                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(cards.count, german: KuroLocale.isGerman),
+                                   spoken: DiscoverIssueCopy.seeAllSpoken(cards.count, section: title, german: KuroLocale.isGerman),
                                    action: onSeeAll)
                     .padding(.top, 4)
             }

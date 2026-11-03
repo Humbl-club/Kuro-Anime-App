@@ -218,6 +218,35 @@ struct DiscoverAfterSnapshotTests {
         await harness.tearDown()
     }
 
+    // MARK: Column fit
+
+    @Test("Every section fits its column at 288, 350 and the iPad 640 (the trio row once ran 14 pt wide and shifted the issue)")
+    func columnFit() async throws {
+        let harness = try DCDiscoverHarness(responder: { _ in .emptyArray })
+        await harness.signIn()
+        let cards = Self.animeCards().map { TasteCard(anime: $0) }
+        let first = try #require(cards.first)
+        for (column, regular) in [(CGFloat(350), false), (CGFloat(288), false), (CGFloat(640), true)] {
+            let sections: [(String, AnyView)] = [
+                ("trio", AnyView(DiscoverFeatureTrio(anchor: "t", title: "New to you.", summary: "Rotates daily",
+                                                     cards: cards, column: column, onSeeAll: {}))),
+                ("index", AnyView(DiscoverIndexSection(anchor: "i", title: "Essential anime.", summary: nil,
+                                                       cards: cards, column: column, onSeeAll: {}))),
+                ("lead", AnyView(DiscoverCoverStory(story: DiscoverStory(card: first, eyebrow: "Today's pick"),
+                                                    kind: .lead, column: column))),
+                ("feature", AnyView(DiscoverCoverStory(story: DiscoverStory(card: first, eyebrow: "New to you."),
+                                                       kind: .feature, column: column)))
+            ]
+            for (name, section) in sections {
+                let view = section.environment(\.horizontalSizeClass, regular ? .regular : .compact)
+                let host = UIHostingController(rootView: Self.inject(view, graph: harness.graph, monitor: NetworkMonitor()))
+                let size = host.sizeThatFits(in: CGSize(width: column, height: 10_000))
+                #expect(size.width <= column + 0.5, "\(name) at \(Int(column)) pt is \(size.width) pt wide")
+            }
+        }
+        await harness.tearDown()
+    }
+
     // MARK: Hosting
 
     /// The page as the pager shows it: the issue held outside (as `KuroMainView` does) and the canvas

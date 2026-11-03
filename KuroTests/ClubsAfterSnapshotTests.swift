@@ -78,7 +78,9 @@ struct ClubsAfterSnapshotTests {
         await harness.clubs.fetchMyClubs()
         for (width, height, suffix) in [(CGFloat(390), CGFloat(844), "top-390"), (390, 1_500, "full-390"),
                                         (320, 1_500, "full-320"), (834, 1_200, "ipad")] {
-            let window = Self.window(Self.inject(ClubsView(), graph: harness.service, monitor: NetworkMonitor()),
+            // The iPad capture is a regular-width container, so the 680 readable column applies.
+            let window = Self.window(Self.inject(ClubsView().environment(\.horizontalSizeClass, suffix == "ipad" ? .regular : .compact),
+                                                 graph: harness.service, monitor: NetworkMonitor()),
                                      width: width, height: height)
             try? await Task.sleep(for: .milliseconds(1_500))
             await capture(window, name: "clubs-list-\(suffix).png")
@@ -172,8 +174,9 @@ struct ClubsAfterSnapshotTests {
         _ = await harness.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
 
         for (width, suffix) in [(CGFloat(390), "390"), (320, "320"), (834, "ipad")] {
-            let window = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))),
-                                                 graph: harness.service, monitor: NetworkMonitor(), routes: false),
+            let host = JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1")))
+                .environment(\.horizontalSizeClass, suffix == "ipad" ? .regular : .compact)
+            let window = Self.window(Self.inject(host, graph: harness.service, monitor: NetworkMonitor(), routes: false),
                                      width: width, height: 844)
             try? await Task.sleep(for: .milliseconds(2_200))
             await capture(window, name: "club-detail-top-\(suffix).png")

@@ -139,15 +139,16 @@ nonisolated enum DiscoverIssueCopy {
         let timed = entries.compactMap { entry in entry.slot.map { (entry.title, $0) } }
         if let next = timed.filter({ $0.1.airingAt > now }).min(by: { $0.1.airingAt < $1.1.airingAt }) {
             let time = clock(next.1.airingAt, timeZone: timeZone)
+            // Non-breaking spaces keep "Ep. 7 at 21:30" one unit, so the time never wraps alone.
             if let episode = next.1.episode, episode > 0 {
-                return german ? "Als Nächstes: \(next.0) · Folge \(episode) um \(time)"
-                              : "Next: \(next.0) · Ep. \(episode) at \(time)"
+                return german ? "Als Nächstes: \(next.0) · Folge\u{00A0}\(episode)\u{00A0}um\u{00A0}\(time)"
+                              : "Next: \(next.0) · Ep.\u{00A0}\(episode)\u{00A0}at\u{00A0}\(time)"
             }
-            return german ? "Als Nächstes: \(next.0) um \(time)" : "Next: \(next.0) at \(time)"
+            return german ? "Als Nächstes: \(next.0)\u{00A0}um\u{00A0}\(time)" : "Next: \(next.0)\u{00A0}at\u{00A0}\(time)"
         }
         if let last = timed.max(by: { $0.1.airingAt < $1.1.airingAt }) {
             if let episode = last.1.episode, episode > 0 {
-                return german ? "Zuletzt: \(last.0) · Folge \(episode)" : "Last: \(last.0) · Ep. \(episode)"
+                return german ? "Zuletzt: \(last.0) · Folge\u{00A0}\(episode)" : "Last: \(last.0) · Ep.\u{00A0}\(episode)"
             }
             return german ? "Zuletzt: \(last.0)" : "Last: \(last.0)"
         }
