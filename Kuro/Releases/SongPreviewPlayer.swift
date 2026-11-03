@@ -177,10 +177,13 @@ final class SongPreviewPlayer: AccountScopedState {
 
     // MARK: Lifecycle
 
+    /// `UIApplication.didEnterBackgroundNotification` by name, so this owner needs no UIKit import
+    /// (KuroTests asserts the two are equal).
+    nonisolated static let didEnterBackground = Notification.Name("UIApplicationDidEnterBackgroundNotification")
+
     private func observeLifecycle() {
-        // Names as strings so this owner needs no UIKit import (UIApplication.didEnterBackgroundNotification).
         let names: [Notification.Name] = [
-            Notification.Name("UIApplicationDidEnterBackgroundNotification"),
+            Self.didEnterBackground,
             AVAudioSession.interruptionNotification,
         ]
         for name in names {
@@ -287,3 +290,29 @@ final class SystemSongPreviewAudioSession: SongPreviewAudioSession {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
+
+#if DEBUG
+// MARK: - Fixtures (UI renders and tests; never shipped)
+
+extension ThemeSong {
+    /// Demon Slayer-like songs: OP1/ED1 with verified Apple matches (artwork + preview), an insert
+    /// song without a match (search link only), and a spoiler ED2 v2 with a match.
+    static var fixturesWithApple: [ThemeSong] {
+        func apple(_ id: Int) -> AppleSongMatch? {
+            AppleSongMatch(trackId: id,
+                           artwork: "https://is1-ssl.mzstatic.com/image/thumb/Music/fixture\(id)/600x600bb.jpg",
+                           preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview/fixture\(id).m4a",
+                           music: "https://music.apple.com/jp/album/fixture/\(id + 1)?i=\(id)", confidence: 0.97)
+        }
+        return [
+            ThemeSong(kind: .opening, sequence: 1, title: "Gurenge", artist: "LiSA", episodes: "1-19", apple: apple(1_488_408_568)),
+            ThemeSong(kind: .ending, sequence: 1, title: "from the edge", artist: "FictionJunction feat. LiSA", episodes: "1-25",
+                      apple: apple(1_488_408_600)),
+            ThemeSong(kind: .insert, sequence: 1, title: "Kamado Tanjiro no Uta", artist: "Go Shiina feat. Nami Nakagawa"),
+            ThemeSong(kind: .ending, sequence: 2, title: "Shirogane", artist: "LiSA", episodes: "26", version: 2,
+                      isSpoiler: true, apple: apple(1_550_000_001)),
+        ]
+    }
+}
+#endif
+

@@ -156,4 +156,30 @@ extension CatalogStore {
         trimTimedCache(&cache, maxEntries: 100)
     }
 }
+
+#if DEBUG
+// MARK: - Fixtures (UI renders and tests; never shipped)
+
+extension CatalogStore {
+    /// Seeds an anime's cast (default: `CatalogVoiceFixtures.cast()`), so an offline render needs no request.
+    func seedFixtureCast(animeId: Int, members: [CastMember]? = nil,
+                         language: String = CatalogVoiceContract.defaultLanguage, limit: Int = 25) {
+        animeCastCache["\(animeId)|\(language.uppercased())|\(limit)"] =
+            TimedCache(value: members ?? CatalogVoiceFixtures.cast(animeId: animeId), storedAt: Date())
+    }
+
+    /// Seeds a character's voice actors (default: `CatalogVoiceFixtures.voiceActors()`).
+    func seedFixtureVoiceActors(characterId: Int, credits: [VoiceActorCredit]? = nil,
+                                language: String = CatalogVoiceContract.defaultLanguage) {
+        characterVoiceActorsCache["\(characterId)|\(language.uppercased())"] =
+            TimedCache(value: credits ?? CatalogVoiceFixtures.voiceActors(characterId: characterId), storedAt: Date())
+    }
+
+    /// Seeds a person's voice roles (default: `CatalogVoiceFixtures.voiceRoles()`).
+    func seedFixtureVoiceRoles(staffId: Int, roles: [VoiceRole]? = nil, limit: Int = 50) {
+        staffVoiceRolesCache["\(staffId)|\(limit)"] =
+            TimedCache(value: roles ?? CatalogVoiceFixtures.voiceRoles(staffId: staffId), storedAt: Date())
+    }
+}
+#endif
 #endif

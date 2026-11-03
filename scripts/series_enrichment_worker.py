@@ -440,7 +440,7 @@ def apple_match_for(title, artist, fetch=fetch_itunes, pacer=None):
 def apple_candidates_path(limit, now=None):
     cutoff = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((now or time.time()) - APPLE_RECHECK_DAYS*86400))
     return ('theme_links?select=id,song_title,artist&match_state=neq.unmatched&song_title=not.is.null'
-            f'&or=(apple_checked_at.is.null,apple_checked_at.lt.{cutoff})'
+            f'&or=(apple_checked_at.is.null,apple_checked_at.lt.%22{cutoff}%22)'
             f'&order=apple_checked_at.asc.nullsfirst,id.asc&limit={max(1, min(APPLE_MAX_ROWS_PER_RUN, limit))}')
 
 def run_apple_pass(client, rows, fetch=fetch_itunes, pacer=None, dry_run=False):

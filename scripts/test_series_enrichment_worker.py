@@ -377,7 +377,7 @@ class ApplePassContracts(unittest.TestCase):
             worker.main()
         path = worker.apple_candidates_path(5000, now=86400*40)
         self.assertIn('limit=200', path)
-        self.assertIn('or=(apple_checked_at.is.null,apple_checked_at.lt.1970-01-11T00:00:00Z)', path)
+        self.assertIn('or=(apple_checked_at.is.null,apple_checked_at.lt.%221970-01-11T00:00:00Z%22)', path, 'value quoted inside the logic tree')
         self.assertTrue(path.startswith('theme_links?select=id,song_title,artist&match_state=neq.unmatched'))
 
 

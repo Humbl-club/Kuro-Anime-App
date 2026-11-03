@@ -12,6 +12,7 @@ import AVFoundation
 import Foundation
 import KuroCore
 import Testing
+import UIKit
 @testable import Kuro
 
 private enum DataLaneJSON {
@@ -439,7 +440,8 @@ struct SongPreviewPlayerTests {
         let center = NotificationCenter()
         let (player, _, _) = makePlayer(center: center)
         player.play(Self.song("A"))
-        center.post(name: Notification.Name("UIApplicationDidEnterBackgroundNotification"), object: nil)
+        #expect(SongPreviewPlayer.didEnterBackground == UIApplication.didEnterBackgroundNotification)
+        center.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
         #expect(player.phase == .idle)
         player.play(Self.song("A"))
         center.post(name: AVAudioSession.interruptionNotification, object: nil)
@@ -463,3 +465,36 @@ struct SongPreviewPlayerTests {
         #expect(ids.contains(ObjectIdentifier(graph.recommendations)))
     }
 }
+
+// MARK: - Fixtures for UI lanes
+
+@MainActor
+@Suite("Details data: fixtures for offline renders", .timeLimit(.minutes(1)))
+struct DetailsDataFixtureTests {
+    @Test("Seeded cast / voice actors / voice roles / similar answers are served with zero requests")
+    func seedersServeWithoutRequests() async throws {
+        let harness = try PublicDataHarness { _ in DataLaneJSON.pgrst202 }
+        let catalog = harness.service.catalog
+        catalog.seedFixtureCast(animeId: 990_042)
+        catalog.seedFixtureVoiceActors(characterId: 1)
+        catalog.seedFixtureVoiceRoles(staffId: 95_672)
+        harness.service.recommendations.seedFixtureSimilar(kind: .anime, id: 990_042, items: SimilarTitleFixtures.anime(count: 4))
+        #expect(await catalog.fetchCast(forAnime: 990_042).count == 4)
+        #expect(await catalog.fetchVoiceActors(forCharacter: 1).first?.staff.nameFull == "Yuuki Kaji")
+        #expect(await catalog.fetchVoiceRoles(forStaff: 95_672).count == 2)
+        #expect(await harness.service.recommendations.fetchSimilar(kind: .anime, id: 990_042).map(\.rank) == [1, 2, 3, 4])
+        #expect(harness.server.requests.isEmpty, "\(harness.server.requests)")
+        await harness.tearDown()
+    }
+
+    @Test("Card and song fixtures decode: anime/manga cards, songs with and without Apple matches")
+    func fixturesAreComplete() {
+        #expect(SimilarTitleFixtures.anime(count: 6).count == 6)
+        #expect(SimilarTitleFixtures.manga(count: 3).compactMap(\.manga?.chapters).count == 3)
+        let songs = ThemeSong.fixturesWithApple
+        #expect(songs.filter { SongPreviewPlayer.canPreview($0) }.count == 3)
+        #expect(songs.contains { $0.apple == nil })
+        #expect(songs.contains { $0.isSpoiler && $0.version == 2 })
+    }
+}
+

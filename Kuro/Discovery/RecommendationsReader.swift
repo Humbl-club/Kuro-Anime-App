@@ -100,7 +100,7 @@ final class RecommendationsReader: AccountScopedState {
     func fetchSimilar(kind: MediaKind, id: Int, limit: Int = 12) async -> [SimilarTitle] {
         let context = accountSession?.current
         let bounded = max(1, min(30, limit))
-        let key = "\(context?.userId.lowercased() ?? "anon")|\(kind.rawValue)|\(id)|\(bounded)"
+        let key = Self.similarKey(user: context?.userId, kind: kind, id: id, limit: bounded)
         if let cached = similarCache[key], Date().timeIntervalSince(cached.storedAt) < Self.similarTTL {
             return cached.value
         }
@@ -110,6 +110,11 @@ final class RecommendationsReader: AccountScopedState {
         }
         guard let items, accountSession?.isCurrent(context) ?? true else { return [] }
         return items
+    }
+
+    /// The cache / in-flight key of one account's similar answer ("anon" when signed out).
+    nonisolated static func similarKey(user: String?, kind: MediaKind, id: Int, limit: Int) -> String {
+        "\(user?.lowercased() ?? "anon")|\(kind.rawValue)|\(id)|\(max(1, min(30, limit)))"
     }
 
     private func loadSimilar(kind: MediaKind, id: Int, limit: Int, context: AccountContext?,
@@ -296,4 +301,43 @@ final class RecommendationsReader: AccountScopedState {
         }
     }
 }
+
+#if DEBUG
+// MARK: - Fixtures (UI renders and tests; never shipped)
+
+extension RecommendationsReader {
+    /// Seeds the current account's "More like this" answer, so an offline render shows `items`
+    /// without a request (the cache key format stays private to this owner).
+    func seedFixtureSimilar(kind: MediaKind, id: Int, items: [SimilarTitle], limit: Int = 12) {
+        let key = Self.similarKey(user: accountSession?.current?.userId, kind: kind, id: id, limit: limit)
+        similarCache[key] = TimedCache(value: items, storedAt: Date())
+    }
+}
+
+enum SimilarTitleFixtures {
+    /// `count` anime cards (TV, 12-24 episodes, scores, covers on s4.anilist.co).
+    static func anime(count: Int = 6, firstId: Int = 990_500) -> [SimilarTitle] {
+        let titles = ["Frieren", "Mushishi", "Odd Taxi", "Ping Pong", "Mononoke", "Haikyu!!", "Monster", "Paprika"]
+        let rows = (0..<max(0, count)).map { i in
+            #"{"id":\#(firstId + i),"title_english":"\#(titles[i % titles.count])","title_romaji":"\#(titles[i % titles.count])","cover_image_large":"https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/fixture\#(i).jpg","format":"TV","status":"FINISHED","episodes":\#(12 + (i % 2) * 12),"season_year":\#(2010 + i),"start_date_year":\#(2010 + i),"average_score":\#(78 + i),"genres":["Drama"],"is_adult":false,"created_at":1767225600,"updated_at":1767225600}"#
+        }
+        return RecommendationsReader.similarTitles(anime: decode(rows), limit: max(0, count))
+    }
+
+    /// `count` manga cards.
+    static func manga(count: Int = 6, firstId: Int = 990_600) -> [SimilarTitle] {
+        let titles = ["Vagabond", "Yotsuba&!", "Blame!", "Nana", "Dorohedoro", "Pluto"]
+        let rows = (0..<max(0, count)).map { i in
+            #"{"id":\#(firstId + i),"title_english":"\#(titles[i % titles.count])","cover_image_large":"https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/fixture\#(i).jpg","format":"MANGA","status":"FINISHED","chapters":\#(40 + i * 10),"volumes":\#(5 + i),"start_date_year":\#(1998 + i),"average_score":\#(80 + i),"genres":["Seinen"],"is_adult":false,"created_at":1767225600,"updated_at":1767225600}"#
+        }
+        return RecommendationsReader.similarTitles(manga: decode(rows), limit: max(0, count))
+    }
+
+    private static func decode<T: Decodable>(_ rows: [String]) -> [T] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        return (try? decoder.decode([T].self, from: Data(("[" + rows.joined(separator: ",") + "]").utf8))) ?? []
+    }
+}
+#endif
 #endif
