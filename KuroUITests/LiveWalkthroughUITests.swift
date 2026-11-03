@@ -528,7 +528,7 @@ final class LiveWalkthroughUITests: XCTestCase {
         } else { shot("w16-02-no-studio"); XCTFail("walk: no studio row on Cowboy Bebop") }
         closeJourneyIfOpen(); sleep(1)
         openLink("kuro://manga/5")
-        if let author = findScrolling("Kentarou Miura") ?? findScrolling("Kentaro Miura") {
+        if let author = findScrolling("Story & art") ?? findScrolling("Kentarou Miura") {
             author.tap(); sleep(4); shot("w16-05-author-top")
             app.swipeUp(velocity: .slow); sleep(2); shot("w16-06-author-scrolled")
         } else { shot("w16-05-no-author"); XCTFail("walk: no author row on Berserk") }

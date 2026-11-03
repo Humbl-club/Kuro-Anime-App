@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 250 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 272 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2146,3 +2146,12 @@ Preparation for the owner's 13 detail/songs items; nothing is live yet and nothi
 Kuro now has a Home Screen widget extension. It shows the next episodes and chapters of what you follow, and what you are watching or reading with a "+1" button. The widget never saves anything itself: a +1 is put in a small shared inbox, shows on the widget straight away, and Kuro saves it the normal way (with the same "already caught up" check) the next time it is open. Nothing about your account is stored for the widget except an anonymous tag, and everything is removed when you sign out or switch accounts.
 
 Kuro can also remind you about new episodes and chapters of titles you are watching or reading. It only uses dates the source has confirmed or announced, never guesses; exact times notify at that time, dates without a time notify at 9:00 that morning. Kuro only asks for notification permission when you switch this on yourself (Profile, or the bell on a title); it no longer asks on its own. Tapping a reminder opens the title. The Profile switch and the widget's final look are built by other lanes. All automatic tests for this part passed; nothing was deployed or pushed.
+
+### Change Log — 3 November 2026: Richer detail pages, songs, widgets and reminders put together (not released)
+
+All thirteen of the owner's items now live together on one branch (`kuro/details-songs-platform`, local only). Detail pages show the year, format, studio and score, when the next episode is due (with "expected" for guesses), a timeline of episodes with pictures and ticks for what you've watched, the cast, and "More like this". Songs are grouped by part, show the artist, and can play Apple's 30-second preview once the song matches are loaded. Character, staff, studio and author pages look like Home. Profile shows your numbers and your year. The import screens look like Home but say exactly the same words. Sideways rows now show a slice of the next card.
+
+Reminders were tightened to the lead's rule: Kuro only reminds you at an exact time that was confirmed or announced — never for a guess and never for a day without a time. Reminders start off; you turn them on in Profile, or for one title with the bell on its page (the bell never turns on all the others). The old English-only "airs now / in 1 hour" reminders are gone and removed from the device once.
+
+Everything was tested: 1,068 app tests, 15 navigation UI tests, the widget build and a Release build pass, and a read-only look at the live app shows the "not loaded yet" states (no voice actors, no Apple song matches yet) behaving gracefully. Nothing was uploaded, deployed or switched on. Still open: checking VoiceOver and the widget on a real phone, and the Discover "All" page is about 100 points longer than aimed for.
+

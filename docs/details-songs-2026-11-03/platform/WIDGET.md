@@ -57,20 +57,17 @@ Consequence (open item for the owner): when Kuro is not running, a widget +1 is 
 
 ## 4. Release notifications (item 10 core)
 
-Rules (`ReleaseNotificationPlanner`, all pinned by `PlatformLaneTests`):
+Rules (`ReleaseNotificationPlanner`, all pinned by `PlatformLaneTests`). **Integration (3 Nov) aligned the lane's first version with spec D14 / §11:**
 
-- Only titles the account is **watching / reading** (`current`, `repeating`) and has not muted with the detail bell. The existing airing reminders (`airing-<id>-start` / `-1h`) follow the same rule now: a planned or paused anime is not armed (and loses pending ones), also at import publication.
-- Only **confirmed** and **announced** rows; **an estimate never notifies**.
-- Precision **instant**: at the release moment, body may show the time (`"Ep. 8 · Today, 21:30"` / `"F. 8 · Heute, 21:30"`).
-- Precision **day**: **09:00 local** on the release day, day wording, no time (`"Ch. 68 · Today"` / `"Kap. 68 · Heute"`). The day is read exactly as `ReleaseCopy.calendarDay` reads it, so a day stored at 00:00 UTC is never a day early west of UTC.
-- Month / quarter / year windows and undated rows: no notification.
-- Nothing closer than 60 s, soonest first, **at most 64 pending per app**: the commit budgets 64 minus the device reminders it does not own (e.g. the airing path's "in 1 hour" requests).
-- Copy is `ReleaseCopy` rendered at the fire moment (EN/DE via `KuroLocale`). Ids are stable per unit (`release-<medium>-<id>-<unit>-<n>`); an AniList-confirmed anime episode uses the airing reminder's own id `airing-<id>-start`, so the two paths never notify twice.
+- **What notifies** (`isEligible`): only a row with an exact, non-estimate time (`showsTime`) whose basis is **confirmed** or **announced**, more than 60 s ahead and not past. **An estimate never notifies, and neither does an announced day** (the lane's "09:00 local on the day" rule was removed, owner choice §18.3); month / quarter / year windows and undated rows never.
+- **When:** one notification at the release moment. The legacy airing reminders ("… airs now" / "In 1 hour: …", English only) are retired: nothing arms them any more, and pending `airing-*` requests are removed once per device (`ReminderScheduler.retireLegacyAiringRemindersOnce`).
+- **Which titles:** with the Profile toggle on, every watching / reading title (`current`, `repeating`) that is not muted; plus any title turned on with the detail bell (a per-title override, on even while the toggle is off). Per title its next two eligible rows, soonest first, **at most 48 in total**.
+- **Copy** (spec §11.3, EN/DE, `ReleaseReminderCopy`): "Episode {n} just aired." / "Folge {n} wurde gerade ausgestrahlt.", "Chapter {n} is out." / "Kapitel {n} ist erschienen.", "Volume {n} is out." / "Band {n} ist erschienen.", and the no-number forms. Ids are stable per unit (`release-<medium>-<id>-<unitKind>-<unit>`); none uses the retired `airing-` prefix.
 - Payload `kuro_link` = `kuro://anime/<id>` / `kuro://manga/<id>`. A tap goes through `KuroNotificationDelegate` (installed by `KuroAppDelegate` before launch finishes) → `NotificationLinkInbox` → `KuroApp` sets `pendingDeepLink` exactly like `onOpenURL`, so the navigation contract's N10 collapse rules apply. Any other scheme/host/path/query is ignored (`ReleaseNotificationLink.validatedURL`).
 
 Permission: **asked only from an explicit user action**. `ReleasesStore.setReleaseNotificationsEnabled(true)` (Profile toggle) and `setReleaseNotification(true, for:)` (detail bell) are the only callers of the prompting request. Every automatic path reads the permission without prompting (`PendingNotificationCenter.currentPermission()`); the existing airing reminders were changed to that as well (they used to prompt on the first tracked anime). An account that turns notifications off gets no automatic reminders at all.
 
-Preference per account (app `UserDefaults`, keyed like the existing owner marker): unset → follows the system permission (an account that already allowed notifications keeps its reminders after this update; nobody is opted in without having allowed them); `true` / `false` → the user's choice. Muted titles are a per-account set. Deletion removes both.
+Preference per account (app `UserDefaults`, keyed like the existing owner marker): **default off** (spec D14): unset or `false` → only bell-allowed titles notify; `true` → the toggle is on. Allowed (bell on) and muted (bell off) titles are per-account sets. Turning the toggle off keeps bell-allowed titles; when nothing is on any more, everything pending is removed. Deletion removes all three.
 
 Re-planning: on every schedule change (`publishSchedule`), on every non-progress Library change, on foreground (`refreshReleaseNotifications`), at bootstrap (`startCountdownUpdates`), and on toggle / bell. An account that chose "on" gets its schedule read even if no screen loaded it. Clearing: the session funnel's reminder removal now removes `release-*` with `airing-*` on sign-out and account switch (same F05 chain and owner marker), and `ReleasesStore.clearPrivateState` resets the observable state.
 
@@ -139,5 +136,5 @@ See the lane's final report for the exact commands. Unit: `PlatformLaneTests` (2
 
 - Widget +1 reaches the server only when Kuro next runs (section 3); owner decision if that must change.
 - VoiceOver order and the widget on a real device / Home Screen are not device-checked in this lane (no signed build); the placeholder views give every row one element and the +1 a label and value.
-- Legacy airing reminder text ("… airs now" / "In 1 hour: …") is still English-only; the release notifications that replace it for AniList episodes use `ReleaseCopy` (EN/DE).
+- (Resolved at integration) the English-only legacy airing reminders are retired and removed once; release notifications use `ReleaseReminderCopy` (EN/DE).
 - The snapshot is written only while the app runs; a release that passes is dropped by the widget's own timeline (`expiresAt`), but the next unit appears only after the app refreshes the schedule.

@@ -1,5 +1,7 @@
 # Concierge "Modes Router" Plan (Variation 1)
 
+> **Details, songs & platform — INTEGRATED 3 November on LOCAL BRANCH `kuro/details-songs-platform`, NOT pushed, NOTHING applied/deployed/flagged.** All 13 owner items (detail hero/timeline/cast/More like this, branded tiles, songs with Apple previews, entity pages, Home Screen widgets, release notifications per D14, Profile numbers, import restyle, edge peek). KuroTests 1,068/1,068, nav UI 15/15, Release build OK. Report + gallery: `docs/details-songs-2026-11-03/index.html` (Report section). Next for the lead: review, apply the three prepared migrations + deploy `bulk-import-anime` + backfill (BACKFILL.md), device check (VoiceOver, widget, bell), TestFlight 24.
+>
 > **Details/songs DATA lane, 3 November — LOCAL BRANCH `kuro/details-songs-platform-data`, PREPARED, NOT DEPLOYED.** Voice actors (`character_voice_actors` + three read RPCs; opt-in `includeVoiceActors` in `bulk-import-anime`), "More like this" card reader `media_similar_v1`, Apple song matches (`theme_links.apple_*`, `media_themes_v1` trailing columns, `--apple` worker pass), client readers with silent fallback, `SongPreviewPlayer`, characters-rail decode fix, privacy policy draft. Apply/deploy/backfill steps: `docs/details-songs-2026-11-03/data/BACKFILL.md`.
 
 > **Prototype fidelity, 2 November — COMPLETE ON LOCAL BRANCH `kuro/prototype-fidelity`, NOT DEPLOYED.** Home, detail, first run, Taste and restyled screens follow the approved prototype; 784/784 tests; visual acceptance is the owner's.
@@ -1572,3 +1574,24 @@ Status: integrated locally on `kuro/discover-clubs-redesign` (lanes Discover + C
 ## Platform lane: Home Screen widget + release notifications core (2026-11-03)
 
 Status: implemented locally on `kuro/details-songs-platform-platform` (from `kuro/discover-clubs-redesign`), NOT pushed, NOT deployed, no backend change. App Group `group.com.Kuro.app`, widget extension `KuroWidgets` (`com.Kuro.app.widgets`), package target `KuroWidgetSupport`, app owner `Kuro/Widgets/WidgetSnapshotWriter` (+ `WidgetIntentInbox`), `LibraryActions.advanceQueuedProgress`, release notification planner / commit / toggle API / tap routing in `Kuro/Releases/`. Design + security + TestFlight steps: `docs/details-songs-2026-11-03/platform/WIDGET.md`. Open: widget visuals (widget UI lane), Profile toggle + detail bell UI (profile / detail lanes), App Group + extension App ID registration at archive time, owner decision on server save while Kuro is closed.
+
+## Details, songs & platform integration (2026-11-03)
+
+Status: integrated locally on `kuro/details-songs-platform` (lanes data, platform, detail, songs, widget, profile merged `--no-ff`; lane worktrees/branches removed). Not pushed, not deployed, no backend / flag / data change. Spec `docs/superpowers/specs/2026-11-03-details-songs-platform-design.md`; report + gallery `docs/details-songs-2026-11-03/index.html`.
+
+| Item | Status |
+|---|---|
+| 1 More like this | Done (client); `media_similar_v1` prepared, live fallback `recommend_ids_similar_to_seeds` |
+| 2 Richer hero, next row, season tab | Done |
+| 3 Episode timeline | Done |
+| 4 Characters + voice actors | Client done; voice data prepared (migration + opt-in import), not backfilled |
+| 5 Branded tile instead of 映/原作 | Done (`KuroBrandedTile`) |
+| 6 Entity pages in Home's grammar | Done |
+| 7 Apple previews | Client done; Apple columns + `--apple` worker prepared, never run against live iTunes |
+| 8 Songs organisation | Done |
+| 9 Home Screen widget | Done (extension + views + queue); device check open |
+| 10 Notifications | Done per D14 (instants only, default off, bell override, legacy airing reminders retired); device check open |
+| 11 Profile stats | Done |
+| 12 Import restyle | Done (strings byte-identical) |
+| 13 Edge peek, Discover All, VoiceOver | Peek done (`KuroRailPeek`); Discover All 2,102 pt (aim ~2,000) open; VoiceOver correct by construction, device check open |
+
