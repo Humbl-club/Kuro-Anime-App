@@ -10,7 +10,7 @@ import SwiftUI
 
 /// The prototype's sections, in page order (spec §5.2 table).
 enum DetailSection: String, CaseIterable, Equatable, Sendable {
-    case hero, story, clubPresence, seasons, progress, units, source, songs, characters, credits, betweenUs
+    case hero, story, clubPresence, seasons, progress, units, source, songs, characters, credits, moreLikeThis, betweenUs
 }
 
 /// What the page knows about a title, as counts and flags (no view state).
@@ -42,6 +42,10 @@ struct DetailInput: Equatable, Sendable {
     /// The viewer's clubs that hold this title in a rail (`ClubsStore.clubActivityForMedia`). Shown in
     /// "Between us." whatever the social flag says, as the legacy club section was.
     var clubRailCount = 0
+    /// "More like this." cards after the page's own ladder titles are dropped (details-songs §6.8).
+    var similarCount = 0
+    /// An upcoming release row exists (the hero's next row, the manga glance; details-songs §6.2, §7.3).
+    var hasNextRelease = false
 }
 
 enum DetailSectionPolicy {
@@ -62,6 +66,8 @@ enum DetailSectionPolicy {
             case .songs: return input.songCount > 0
             case .characters: return input.characterCount > 0
             case .credits: return input.creditCount > 0
+            // A recommendation rail, not a primary read: hidden when the engine has nothing.
+            case .moreLikeThis: return input.similarCount > 0
             // Notes need the social flag; the club-rail presence keeps the card for rail members.
             case .betweenUs: return input.hasClubs && (input.socialEnabled || input.clubRailCount > 0)
             }

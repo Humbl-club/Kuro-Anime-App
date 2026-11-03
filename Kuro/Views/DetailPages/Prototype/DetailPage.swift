@@ -93,11 +93,6 @@ extension Font {
         let scaled = min(KuroTypeScale.current.scaled(size, relativeTo: textStyle), size * 1.75)
         return .custom(italic ? "Georgia-Italic" : "Georgia", fixedSize: scaled)
     }
-
-    /// Hiragino Mincho for the prototype's serif CJK marks (映): the system serif falls back to Gothic.
-    static func detailMincho(_ size: CGFloat) -> Font {
-        .custom("HiraMinProN-W3", fixedSize: min(KuroTypeScale.current.scaled(size, relativeTo: .title2), size * 1.75))
-    }
 }
 
 extension View {
@@ -171,23 +166,49 @@ struct DetailSectionHeading: View {
 // MARK: - Hero
 
 /// D1: the wide artwork fading into `deep`, then the band with kind kicker, title and status mark.
+/// Details-songs §6.2 (additive): the band is Home's scene foot, with two optional fact rows under the
+/// title (the facts line, then the next-release row with its bell) and Home's season tab on the art's
+/// bottom-left edge. VoiceOver reads the hero in order: title, mark, facts, next row, bell, tab.
 struct DetailHero<Mark: View>: View {
     let artworkURL: URL?
     let kicker: String
     let title: String
     let material: ArtworkMaterial
+    var facts: [DetailFacts.Part] = []
+    var nextRow: AnyView? = nil
+    var seasonTab: AnyView? = nil
     @ViewBuilder let mark: () -> Mark
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    init(artworkURL: URL?, kicker: String, title: String, material: ArtworkMaterial,
+         facts: [DetailFacts.Part] = [], nextRow: AnyView? = nil, seasonTab: AnyView? = nil,
+         @ViewBuilder mark: @escaping () -> Mark) {
+        self.artworkURL = artworkURL
+        self.kicker = kicker
+        self.title = title
+        self.material = material
+        self.facts = facts
+        self.nextRow = nextRow
+        self.seasonTab = seasonTab
+        self.mark = mark
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             artwork
+                .overlay(alignment: .bottomLeading) {
+                    if let seasonTab {
+                        // Read after the bell (§6.11): the tab is visually first but secondary.
+                        seasonTab.accessibilitySortPriority(-1)
+                    }
+                }
             heading
         }
         .background(
             LinearGradient(colors: [material.base.color, material.deep.color],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
         )
+        .accessibilityElement(children: .contain)
     }
 
     private var artwork: some View {
@@ -222,6 +243,24 @@ struct DetailHero<Mark: View>: View {
     }
 
     private var heading: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            titleRow
+            if !facts.isEmpty {
+                DetailFactsLine(parts: facts)
+                    .padding(.top, 10)
+            }
+            if let nextRow {
+                nextRow.padding(.top, facts.isEmpty ? 10 : 12)
+            }
+        }
+        .padding(.top, 4)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 19)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(material.deep.color)
+    }
+
+    private var titleRow: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         return Group {
             if stacked {
@@ -247,11 +286,6 @@ struct DetailHero<Mark: View>: View {
                 }
             }
         }
-        .padding(.top, 4)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 19)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(material.deep.color)
     }
 
     private var titleBlock: some View {

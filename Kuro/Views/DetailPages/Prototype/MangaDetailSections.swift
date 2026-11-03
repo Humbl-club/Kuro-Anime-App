@@ -12,7 +12,8 @@ import SwiftUI
 // | `resolveReadLinks`                           | ProviderAvailabilityStore   | Where to read, "Read legally", chapter rows  |
 // | `fetchExternalLinks` (the adaptation's)      | CatalogStore                | "Official anime site ↗"                      |
 // | `clubActivityForMedia` (cached bundles)      | ClubsStore                  | club rails holding this title ("Between us.") |
-// | `mediaSchedule`                              | ReleasesStore (`.detailReleases`) | the next release line under Chapters   |
+// | `mediaSchedule`                              | ReleasesStore (`.detailReleases`) | the next-chapter glance (+ bell)       |
+// | `fetchSimilar` (media_similar_v1, else the live RPC) | RecommendationsReader | "More like this." (Plan keys)     |
 // | `detailBundle` (series flags on only)        | HomeStore                   | `detail_copy` hook/premise, watched guide    |
 // | friend activity (`FriendsActivitySection`)   | SocialActivityStore         | club presence, "Between us." (social_activity_v1) |
 // Loading: the hero and story draw at once; the other sections wait behind `KuroSkeleton(.detailSection)`
@@ -45,6 +46,10 @@ struct MangaDetailContent {
     var adaptationSite: URL? = nil
     var bundle: SeriesDetailBundle? = nil
     var friendsPreview: SocialActivityStore.FriendActivityResponse? = nil
+    /// "More like this." cards (renders; the live page reads `RecommendationsReader`).
+    var similar: [SimilarTitle] = []
+    /// Renders: the bell's state without the release store (nil: the store's answer).
+    var reminderOn: Bool? = nil
 }
 
 /// The manga sheet's measured colours.
@@ -85,6 +90,8 @@ struct MangaDetailPage: View {
     @Environment(ClubsStore.self) private var clubs
     @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(OutboundLinkTelemetry.self) private var outboundLinks
+    /// Optional: fixture hosts may not inject one (then "More like this." stays hidden).
+    @Environment(RecommendationsReader.self) private var recommendations: RecommendationsReader?
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.kuroFoldMemory) private var folds
     @Environment(\.openURL) private var openURL
@@ -117,9 +124,36 @@ struct MangaDetailPage: View {
     @State private var ladderFailed = false
     /// The entry a confirmed "Remove from list" will remove.
     @State private var pendingRemoval: LibraryEntry?
+    /// "More like this." for one account and title (dropped when the account changes).
+    @State private var similar: [SimilarTitle] = []
+    @State private var similarKey: String?
+    /// The page's Plan controller for the "More like this." keys.
+    @State private var plans = TastePlanController()
 
     private var german: Bool { KuroLocale.isGerman }
     private var entry: LibraryEntry? { library.entry(for: manga.libraryKey) }
+    private var accountId: String? { libraryActions.accountSession.current?.userId }
+    private var castMembers: [CastMember] { DetailCastRail.members(content.characters) }
+
+    /// The page's own ladder titles ("Seen the anime?"), which "More like this." never repeats.
+    private var ownLadder: Set<MediaKey> {
+        var keys: Set<MediaKey> = [manga.libraryKey]
+        if let adaptation = content.adaptation, let key = DetailNavigation.ladderKey(adaptation) { keys.insert(key) }
+        return keys
+    }
+
+    private var shownSimilar: [SimilarTitle] {
+        let items = preview != nil && !content.similar.isEmpty ? content.similar
+            : (similarKey == DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id) ? similar : [])
+        return DetailMoreLikeThisRule.filtered(items, key: \.key, excluding: ownLadder)
+    }
+
+    /// Year · format · status · volumes · chapters (finished) · score (details-songs §7.2).
+    private var facts: [DetailFacts.Part] {
+        DetailFacts.manga(year: manga.startDateYear, format: manga.format, status: manga.status,
+                          volumes: manga.volumeCount, chapters: manga.chapterCount,
+                          averageScore: manga.averageScore, german: german, locale: KuroLocale.locale)
+    }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { MangaDetailSections.bookmarkTotal(chapterCount: manga.chapterCount) }
     private var upcoming: [ReleaseScheduleItem] { DetailNextReleaseSection.upcoming(releaseItems ?? []) }
@@ -155,14 +189,21 @@ struct MangaDetailPage: View {
     private var reloadKey: String { "\(reloadToken)-\(network?.reconnectionGeneration ?? 0)" }
 
     private var input: DetailInput {
-        MangaDetailSections.input(hasSynopsis: manga.hasMeaningfulSynopsis, hasHook: hook != nil,
-                                  clubPeople: clubPeople, isTracked: entry != nil, chapters: content.chapters,
-                                  nextChapter: nextChapter, hasAdaptation: content.adaptation != nil,
-                                  characterCount: DetailCharactersRail.shown(content.characters).count,
-                                  creditRows: credits.count,
-                                  hasPublisherLink: publisher != nil, hasClubs: !clubs.myClubs.isEmpty,
-                                  socialEnabled: socialEnabled, clubRailCount: clubRails.count)
+        var input = MangaDetailSections.input(hasSynopsis: manga.hasMeaningfulSynopsis, hasHook: hook != nil,
+                                              clubPeople: clubPeople, isTracked: entry != nil, chapters: content.chapters,
+                                              nextChapter: nextChapter, hasAdaptation: content.adaptation != nil,
+                                              characterCount: DetailCastRail.shown(castMembers).count,
+                                              creditRows: credits.count,
+                                              hasPublisherLink: publisher != nil, hasClubs: !clubs.myClubs.isEmpty,
+                                              socialEnabled: socialEnabled, clubRailCount: clubRails.count)
+        input.similarCount = shownSimilar.count
+        input.hasNextRelease = !upcoming.isEmpty
+        return input
     }
+
+    /// The publisher row moves under "More like this." when that rail shows (details-songs §7.1:
+    /// … credits → More like this → publisher → Between us).
+    private var publisherAfterSimilar: Bool { !shownSimilar.isEmpty }
 
     var body: some View {
         let sections = DetailSectionPolicy.sections(for: input)
@@ -179,6 +220,14 @@ struct MangaDetailPage: View {
                             .kuroReadableWidth()
                     }
                     VStack(alignment: .leading, spacing: 0) {
+                        // The next chapter or volume (details-songs §7.3): Home's glance card above the story.
+                        if let next = upcoming.first {
+                            DetailMangaNextGlance(item: next,
+                                                  showsBell: DetailReminderRule.showsBell(next, status: entry?.status),
+                                                  previewBellOn: content.reminderOn,
+                                                  onBell: { showToast(DetailReminderToast.state($0, openURL: openURL)) })
+                                .padding(.bottom, 20)
+                        }
                         ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
                                 .detailFoldAnchor(section, above: $foldsAbove)
@@ -218,6 +267,8 @@ struct MangaDetailPage: View {
         // The band is light paper: the neutral paper key (nil material) keeps the ink glyphs legible.
         .detailJourneyChrome(title: pageTitle, material: nil, collapse: collapse)
         .modifier(DetailToastOverlay(toast: $toast))
+        // "More like this." Plan keys: one controller, its toast with Undo at the page's foot.
+        .tastePlanHost(plans)
         .tint(Color.kuroInk)
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear {
@@ -231,6 +282,10 @@ struct MangaDetailPage: View {
         .task(id: "\(manga.id)-\(flags.isCreditsCastV1Enabled)-\(reloadKey)") { await loadCredits() }
         .task(id: "\(manga.id)-chapters-\(progress)-\(reloadKey)") { await loadChapters() }
         .task(id: "\(manga.id)-links-\(reloadKey)") { await loadReadLinks() }
+        // Not a primary read: it never holds the skeleton, and it is keyed by the account.
+        .task(id: DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id) + "-\(reloadKey)") {
+            await loadSimilar()
+        }
         // A cold open (deep link) before the Clubs page ran: warm the clubs so "Between us." can show.
         .task(id: manga.id) {
             guard preview == nil, clubs.myClubs.isEmpty else { return }
@@ -283,6 +338,16 @@ struct MangaDetailPage: View {
         switch section {
         case .hero, .seasons, .songs:
             EmptyView()
+        case .moreLikeThis:
+            VStack(alignment: .leading, spacing: 0) {
+                DetailMoreLikeThis(items: shownSimilar)
+                if publisherAfterSimilar, let link = publisher {
+                    MangaPublisherRow(caption: MangaDetailSections.publisherCaption(link, count: content.readLinks.count,
+                                                                                    german: german),
+                                      action: openProviders)
+                        .padding(.top, 28)
+                }
+            }
         case .story:
             DetailStorySection(eyebrow: MangaDetailCopy.seriesOverview(german: german),
                                hook: hook,
@@ -317,10 +382,12 @@ struct MangaDetailPage: View {
         case .units:
             MangaChaptersSection(manga: manga, chapters: content.chapters, progress: progress, total: total,
                                  isTracked: entry != nil, nextChapter: nextChapter,
-                                 nextRelease: DetailNextReleaseSection.upcoming(releaseItems ?? []).first,
+                                 // The next release is the glance above the story (details-songs §7.3), not repeated here.
+                                 nextRelease: nil,
                                  material: material, coverURL: coverURL, savingNext: savingNext,
                                  confirmTrigger: confirmTrigger,
                                  showsAll: folds.binding(page: DetailFold.page(manga.libraryKey), section: DetailFold.units),
+                                 showsRead: folds.binding(page: DetailFold.page(manga.libraryKey), section: DetailFold.watched),
                                  onCollapse: { foldCollapsed(.units, proxy: proxy) },
                                  readLinkTitle: readLink?.title,
                                  onReadChapter: readLink == nil ? nil : { openChapter($0) }) { next in
@@ -340,8 +407,14 @@ struct MangaDetailPage: View {
                 }
             }
         case .characters:
-            DetailCharactersRail(characters: content.characters, bookish: true)
+            DetailCastRail(members: castMembers, bookish: true)
         case .credits:
+            if publisherAfterSimilar {
+                // The publisher row sits under "More like this."; without author rows nothing is left here.
+                if !credits.isEmpty {
+                    DetailCreditsList(title: KuroLocale.text("Behind the pages.", "Hinter den Seiten."), rows: credits)
+                }
+            } else {
             DetailCreditsList(title: KuroLocale.text("Behind the pages.", "Hinter den Seiten."), rows: credits,
                               footer: publisher.map { link in
                                   AnyView(MangaPublisherRow(caption: MangaDetailSections.publisherCaption(link, count: content.readLinks.count,
@@ -349,6 +422,7 @@ struct MangaDetailPage: View {
                                                             action: openProviders)
                                       .padding(.top, credits.isEmpty ? 0 : 28))
                               })
+            }
         case .betweenUs:
             DetailBetweenUs(mediaType: "MANGA", mediaId: manga.id, coverURL: coverURL,
                             socialEnabled: socialEnabled, clubRails: clubRails,
@@ -360,7 +434,8 @@ struct MangaDetailPage: View {
     }
 
     private var hero: some View {
-        MangaDetailHero(coverURL: coverURL, title: content.bundle?.header.title ?? manga.displayTitle, material: material) {
+        MangaDetailHero(coverURL: coverURL, title: content.bundle?.header.title ?? manga.displayTitle, material: material,
+                        facts: facts) {
             DetailStatusMark(entry: entry, kind: .manga,
                              onListSettings: { routes.presentTrackingEditor(TrackingEditorRequest(media: manga)) },
                              onFavourite: toggleSaved,
@@ -615,6 +690,17 @@ struct MangaDetailPage: View {
         content.chapters = loaded
     }
 
+    /// "More like this." once per account and title; an empty answer hides the section.
+    private func loadSimilar() async {
+        guard preview == nil, let recommendations else { return }
+        let key = DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id)
+        if similarKey != key { similar = []; similarKey = nil }
+        let items = await recommendations.fetchSimilar(kind: .manga, id: manga.id, limit: 12)
+        guard !Task.isCancelled, key == DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id) else { return }
+        similar = items
+        similarKey = key
+    }
+
     private func loadReadLinks() async {
         guard preview == nil else { return }
         defer { pending.remove(.links) }
@@ -633,7 +719,18 @@ struct MangaDetailHero<Mark: View>: View {
     let coverURL: URL?
     let title: String
     let material: ArtworkMaterial
+    /// Details-songs §7.2: year · format · status · volumes · chapters · score, under the title.
+    var facts: [DetailFacts.Part] = []
     @ViewBuilder let mark: () -> Mark
+
+    init(coverURL: URL?, title: String, material: ArtworkMaterial, facts: [DetailFacts.Part] = [],
+         @ViewBuilder mark: @escaping () -> Mark) {
+        self.coverURL = coverURL
+        self.title = title
+        self.material = material
+        self.facts = facts
+        self.mark = mark
+    }
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -702,8 +799,12 @@ struct MangaDetailHero<Mark: View>: View {
                 .fixedSize(horizontal: false, vertical: true)
                 // m 9/0/15 around a 31.9 pt CSS line; Georgia's own line box sits a little higher.
                 .padding(.top, 11)
-                .padding(.bottom, 19)
+                .padding(.bottom, facts.isEmpty ? 19 : 8)
                 .accessibilityAddTraits(.isHeader)
+            if !facts.isEmpty {
+                DetailFactsLine(parts: facts, tone: .paper)
+                    .padding(.bottom, 14)
+            }
             mark()
         }
     }
@@ -869,6 +970,8 @@ struct MangaChaptersSection: View {
     let confirmTrigger: Int
     /// "More chapters" open or closed, kept for the session per title (F3, `DetailFold.units`).
     @Binding var showsAll: Bool
+    /// The read run ("Chapters 1–k · read") open or closed (F3, `DetailFold.watched`; details-songs §7.4).
+    var showsRead: Binding<Bool> = .constant(false)
     /// F2: the page scrolls the chapters back into view after they fold, when needed.
     var onCollapse: () -> Void = {}
     /// The reading service a chapter row opens; nil leaves the rows inert.
@@ -880,6 +983,14 @@ struct MangaChaptersSection: View {
     @State private var allChapters: [MangaChapter] = []
     @State private var hasMore = true
     @State private var loadingMore = false
+    @State private var runChapters: [MangaChapter] = []
+    @State private var loadingRun = false
+
+    /// Read runs of three or more: the chapters before the last read one fold into one line.
+    private var run: ClosedRange<Int>? {
+        guard real, !showsAll, isTracked, progress >= 3 else { return nil }
+        return 1...(progress - 1)
+    }
 
     private var upNext: Int? { isTracked ? nextChapter : nil }
     private var real: Bool { MangaDetailSections.chaptersAreReal(chapters) }
@@ -915,10 +1026,35 @@ struct MangaChaptersSection: View {
             if let upNext {
                 upNextRow(upNext, german: german).padding(.top, 12)
             }
+            if let run {
+                let words = DetailTimeline.runLine(run, manga: true, german: german)
+                KuroFoldButton(isExpanded: showsRead, expandLabel: words, collapseLabel: words) { _, open in
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark")
+                            .font(.detailSF(11, relativeTo: .footnote))
+                            .foregroundStyle(DetailInk.finished)
+                            .accessibilityHidden(true)
+                        Text(words)
+                            .font(.detailSF(11, relativeTo: .footnote))
+                            .foregroundStyle(DetailInk.finished)
+                        Spacer(minLength: 8)
+                        Text(open ? DetailTimeline.hide(german: german) : DetailTimeline.show(german: german))
+                            .font(.detailSF(11, .medium, relativeTo: .footnote))
+                            .foregroundStyle(DetailInk.moreLink)
+                    }
+                    .frame(minHeight: 44)
+                }
+                .overlay(alignment: .bottom) { Rectangle().fill(DetailInk.rowRule).frame(height: 1) }
+                if showsRead.wrappedValue {
+                    ForEach(runChapters.filter { run.contains($0.number) }, id: \.id) { chapter in
+                        row(chapter, german: german)
+                    }
+                }
+            }
             ForEach(shownRows, id: \.id) { chapter in
                 row(chapter, german: german)
             }
-            if loadingMore {
+            if loadingMore || loadingRun {
                 KuroSkeleton(kind: .row).padding(.vertical, 8)
             }
             if hasMoreToShow || showsAll {
@@ -950,6 +1086,25 @@ struct MangaChaptersSection: View {
                                                  hasMore: hasMore, loading: loadingMore) else { return }
             await loadAll()
         }
+        .task(id: showsRead.wrappedValue) {
+            guard showsRead.wrappedValue, runChapters.isEmpty, let run else { return }
+            await loadRun(through: run.upperBound)
+        }
+    }
+
+    /// The read run's chapters (chapter 1 to `last`), at most four pages; placeholders are never drawn.
+    private func loadRun(through last: Int) async {
+        guard !loadingRun else { return }
+        loadingRun = true
+        defer { loadingRun = false }
+        var loaded: [MangaChapter] = []
+        for _ in 0..<4 {
+            let page = await catalog.fetchChaptersPage(mangaId: manga.id, offset: loaded.count, limit: 50)
+            guard !Task.isCancelled else { return }
+            loaded += page
+            if page.count < 50 || (loaded.map(\.number).max() ?? 0) >= last { break }
+        }
+        runChapters = loaded.filter { !MangaDetailSections.isPlaceholder($0) }
     }
 
     private func upNextRow(_ number: Int, german: Bool) -> some View {
@@ -1076,7 +1231,7 @@ struct MangaChaptersSection: View {
 // MARK: - D7 Seen the anime?
 
 /// "From screen to page · Seen the anime?": the ladder's anime adaptation. Its one link is the
-/// prototype's "Official anime site ↗" when the adaptation's external links have one; the 映 tile and
+/// prototype's "Official anime site ↗" when the adaptation's external links have one; the cover and
 /// title open the anime in the app (the live route, kept without an extra link). Without a site the
 /// link reads "Explore the anime →" (the in-app route), so the card always leads somewhere.
 /// "I've watched the anime" opens the bundle's season guide and only exists when the bundle has one
@@ -1114,14 +1269,12 @@ struct MangaAdaptationCard: View {
             let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
                                  : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
             layout {
-                // The 映 tile and the title open the anime in the app (the live route, no extra link).
+                // The anime's cover (or the branded tile) and the title open the anime in the app.
                 Button { onOpen(item.mediaId) } label: {
-                    Text("映")
-                        .font(.detailMincho(25))
-                        .foregroundStyle(material.base.color)
+                    cover
                         .frame(width: 62, height: 76)
-                        .background(MangaInk.symbolFill)
-                        .overlay(Rectangle().strokeBorder(material.edge.color, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 3, style: .continuous).strokeBorder(material.edge.color, lineWidth: 1))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(KuroPressStyle())
@@ -1162,6 +1315,22 @@ struct MangaAdaptationCard: View {
         .padding(.top, 27)
         // The card's 30 pt bottom margin collapses into the next section's own 30 pt top (CSS).
         .padding(.bottom, 0)
+    }
+
+    /// The adaptation's real cover (the ladder's `coverImage`), else the paper branded tile with its
+    /// kind ("Anime · TV") and title (details-songs §7.5; no glyph placeholder).
+    @ViewBuilder
+    private var cover: some View {
+        let german = KuroLocale.isGerman
+        let kind = ["Anime", DetailFacts.animeFormatWord(item.format, german: german)].compactMap { $0 }.joined(separator: " · ")
+        let tile = DetailBrandedTile(kind: kind, title: item.title, cornerRadius: 3)
+        if let url = item.coverImage.flatMap(AnimeDetailPage.webURL) {
+            KuroCachedAsyncImage(url: url, maxPixelSize: 240) { phase in
+                if case .success(let image) = phase { image.resizable().scaledToFill() } else { tile }
+            }
+        } else {
+            tile
+        }
     }
 
     /// The card's one link: the official site when known, else the in-app route.
