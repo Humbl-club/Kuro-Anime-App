@@ -149,7 +149,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 247 app Swift files in `/Kuro`; 33 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 250 app Swift files in `/Kuro`; 33 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -19893,6 +19893,7 @@ Branch `kuro/details-songs-platform-data` (worktree), local only; nothing applie
 - **Catalog readers:** `CatalogStore+Voices.swift`: `fetchCast(forAnime:language:limit:)`, `fetchVoiceActors(forCharacter:language:)`, `fetchVoiceRoles(forStaff:limit:)`; models in `CatalogVoiceModels.swift` (`CastMember`, `VoiceActorCredit`, `VoiceRole`, DEBUG `CatalogVoiceFixtures`). Not deployed → the cast falls back to `anime_characters` (no voice actors), person readers answer empty (cached, retried after 30 min).
 - **Legal:** `web/legal/datenschutz.html` (DE + EN) 4.7 reminders (explicit opt-in, estimates never notify, cleared on sign-out), new 4.16 Apple Music previews/artwork and 4.17 widget, §5/§6/§7 entries; two new review placeholders in `web/legal/PLACEHOLDERS.md`. Not deployed.
 - **Tests:** local DB `84_character_voice_actors_v1` (25), `85_media_similar_v1` (13), `86_theme_links_apple_v1` (29) pass, `98` still passes; deno `bulk-import-anime` 29 pass (+6), `bulk-import-manga` 17; python worker 29 pass (+14); Swift Testing `KuroTests/DetailsSongsDataTests.swift` 21 pass. New app Swift files: 3 (243 in `Kuro/`).
+
 ### Change Log — 3 November 2026: Platform lane — Home Screen widget target, +1 hand-off, release notifications core (local, not deployed)
 
 Branch `kuro/details-songs-platform-platform` (from `kuro/discover-clubs-redesign`), local only; no backend / flag / data change. Owner items 9 + 10 (core). Design and security reasoning: `docs/details-songs-2026-11-03/platform/WIDGET.md`.
