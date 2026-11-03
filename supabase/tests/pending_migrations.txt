@@ -33,3 +33,9 @@
 
 # 2026-11-02 contact form (prepared only; owner approval required to deploy).
 20261102100000_contact_messages.sql
+
+# 2026-11-03 details/songs pass, DATA lane (prepared only; owner approval required to deploy).
+# 20261103100200 needs 20261101000000 (media_themes_v1) applied first.
+20261103100000_character_voice_actors_v1.sql
+20261103100100_media_similar_v1.sql
+20261103100200_theme_links_apple_v1.sql
