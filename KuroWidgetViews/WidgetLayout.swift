@@ -156,10 +156,12 @@ nonisolated enum WidgetLayout {
 
     /// "Next · Ep. 8 · Fri 6 Nov, 21:30" for a Now Watching row whose title has an upcoming release in
     /// the snapshot; nil otherwise.
+    /// `prefixed: false` (the medium family) drops "Up next ·": the row already implies it, and the
+    /// date is the line's key information, so it must survive the one-line width.
     static func nextReleaseLine(for item: WidgetNowWatchingItem, in snapshot: WidgetSnapshot?, at date: Date,
-                                german: Bool) -> String? {
+                                german: Bool, prefixed: Bool = true) -> String? {
         guard let release = snapshot?.releases(at: date)
             .first(where: { $0.medium == item.medium && $0.mediaId == item.mediaId }) else { return nil }
-        return "\(WidgetCopy.nextPrefix(german)) · \(release.line)"
+        return prefixed ? "\(WidgetCopy.nextPrefix(german)) · \(release.line)" : release.line
     }
 }

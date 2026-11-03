@@ -118,6 +118,11 @@ nonisolated struct SongShelfPart: Identifiable, Equatable, Sendable {
 }
 
 nonisolated enum SongShelfGrouping {
+    /// Whether any song names its artist (the shelf drops the per-row "Artist not listed" otherwise).
+    static func anyArtist(_ songs: [ThemeSong]) -> Bool {
+        songs.contains { !($0.artist?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) }
+    }
+
     // MARK: Versions
 
     /// The collapse key's title: lower case, no diacritics or width variants, no TV-size marker, only

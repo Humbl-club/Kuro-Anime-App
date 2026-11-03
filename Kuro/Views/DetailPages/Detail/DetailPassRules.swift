@@ -325,6 +325,25 @@ nonisolated enum DetailTimeline {
         Array(Set(loaded)).sorted().filter { $0 != upNext }
     }
 
+    /// D5: the schedule rows the timeline draws after Up next (at most `limit`, numbers above Up next
+    /// or, without Up next, above the progress). Their numbers are drawn from the schedule, never from the
+    /// catalogue's air date, so the timeline and the hero always say the same day for the same episode;
+    /// schedule rows past the limit leave their catalogue rows alone (every number is drawn exactly once).
+    static func scheduledRows(_ upcoming: [ReleaseScheduleItem], after: Int, drawn: Set<Int>,
+                              limit: Int = 3) -> [ReleaseScheduleItem] {
+        futureRows(upcoming.filter { item in item.wholeUnitNumber.map { $0 > after } ?? true }, drawn: drawn, limit: limit)
+    }
+
+    /// The numbers `scheduledRows` draws.
+    static func scheduledNumbers(_ rows: [ReleaseScheduleItem]) -> Set<Int> {
+        Set(rows.compactMap(\.wholeUnitNumber))
+    }
+
+    /// The plain rows without the numbers the schedule draws (D5).
+    static func excludingScheduled(_ rows: [Int], scheduled: Set<Int>) -> [Int] {
+        rows.filter { !scheduled.contains($0) }
+    }
+
     /// Future rows from the schedule (at most three), never repeating a number already drawn.
     static func futureRows(_ upcoming: [ReleaseScheduleItem], drawn: Set<Int>, limit: Int = 3) -> [ReleaseScheduleItem] {
         Array(upcoming.filter { item in
@@ -334,6 +353,39 @@ nonisolated enum DetailTimeline {
         }.prefix(limit))
     }
 
+    /// One row after Up next: a catalogue row or a schedule row.
+    enum LaterRow: Identifiable {
+        case plain(Int)
+        case future(ReleaseScheduleItem)
+
+        var id: String {
+            switch self {
+            case .plain(let number): "plain-\(number)"
+            case .future(let item): "future-\(item.id)"
+            }
+        }
+
+        var number: Int? {
+            switch self {
+            case .plain(let number): number
+            case .future(let item): item.wholeUnitNumber
+            }
+        }
+    }
+
+    /// The rows after Up next in number order; a schedule row without a whole number goes last.
+    static func laterSequence(plain: [Int], future: [ReleaseScheduleItem]) -> [LaterRow] {
+        let rows = plain.map(LaterRow.plain) + future.map(LaterRow.future)
+        return rows.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.number, rhs.element.number) {
+            case let (left?, right?): left == right ? lhs.offset < rhs.offset : left < right
+            case (.some, nil): true
+            case (nil, .some): false
+            case (nil, nil): lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+    }
+
     /// A row is watched when its number is within the Library's progress.
     static func isWatched(_ number: Int, progress: Int, isTracked: Bool) -> Bool {
         isTracked && number >= 1 && number <= progress
@@ -341,12 +393,22 @@ nonisolated enum DetailTimeline {
 
     /// "Episode 7" / "Folge 7" / "Ep. 7" titles say nothing new: they are left out.
     static func isGenericTitle(_ title: String?) -> Bool {
-        guard let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return true }
+        guard let trimmed = withoutNumberPrefix(title), !trimmed.isEmpty else { return true }
         return trimmed.range(of: #"^(Episode|Folge|Ep\.?)\s*\d+$"#, options: [.regularExpression, .caseInsensitive]) != nil
     }
 
+    /// AniList's streaming titles read "Episode 2 - Stray Dog Strut": the leading number is already the
+    /// row's small line, so it is cut ("Episode 7" is never written twice, §6.4.1).
+    static func withoutNumberPrefix(_ title: String?) -> String? {
+        guard let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
+        guard let range = trimmed.range(of: #"^(Episode|Folge|Ep\.?)\s*\d+\s*[-–—:·]\s*"#,
+                                        options: [.regularExpression, .caseInsensitive]) else { return trimmed }
+        let rest = trimmed[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+        return rest
+    }
+
     static func shownTitle(_ title: String?) -> String? {
-        isGenericTitle(title) ? nil : title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        isGenericTitle(title) ? nil : withoutNumberPrefix(title)
     }
 
     /// The heading's note: "6 of 23 watched" (tracked, known total), else "23 episodes".

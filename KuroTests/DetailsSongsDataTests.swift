@@ -361,10 +361,27 @@ struct SongPreviewPlayerTests {
                                         music: "https://music.apple.com/x?i=1", confidence: 0.9))
     }
 
-    private func makePlayer(center: NotificationCenter = NotificationCenter()) -> (SongPreviewPlayer, FakePreviewEngine, FakeAudioSession) {
+    private func makePlayer(center: NotificationCenter = NotificationCenter(),
+                            timeout: Duration = SongPreviewPlayer.defaultLoadTimeout) -> (SongPreviewPlayer, FakePreviewEngine, FakeAudioSession) {
         let engine = FakePreviewEngine()
         let session = FakeAudioSession()
-        return (SongPreviewPlayer(engine: engine, audioSession: session, notificationCenter: center), engine, session)
+        return (SongPreviewPlayer(engine: engine, audioSession: session, notificationCenter: center, loadTimeout: timeout),
+                engine, session)
+    }
+
+    @Test("A stream that never starts fails after the load timeout; a started one is not touched")
+    func loadTimeout() async throws {
+        let (player, engine, session) = makePlayer(timeout: .milliseconds(50))
+        let a = Self.song("A"), b = Self.song("B")
+        player.play(a)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(player.didFail(a), "a stalled load stayed loading")
+        #expect(session.deactivations == 1)
+        player.play(b)
+        engine.handlers.last?(.started)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(player.isPlaying(b), "the timeout stopped a song that had started")
+        #expect(SongPreviewPlayer.defaultLoadTimeout == .seconds(10))
     }
 
     @Test("▶ loads, starts, then the end of the preview returns to idle and releases the session")

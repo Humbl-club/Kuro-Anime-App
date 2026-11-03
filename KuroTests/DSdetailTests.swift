@@ -229,6 +229,56 @@ struct DSdetailTests {
         #expect(!DetailTimeline.isWatched(1, progress: 6, isTracked: false))
     }
 
+    @Test("Timeline D5: a scheduled number is drawn from the schedule, rows stay in number order")
+    func timelineScheduledPrecedence() {
+        let friday = Date().addingTimeInterval(3 * 86_400)
+        let nextFriday = friday.addingTimeInterval(7 * 86_400)
+        let eight = Self.item(8, at: friday, basis: .confirmed)
+        let nine = Self.item(9, at: nextFriday, basis: .estimated)
+        // Tracked at 6, Up next 7, catalogue rows 5–14: 8 and 9 are scheduled, so the plain "later"
+        // pick skips them and the hero's Ep. 8 and the timeline's Ep. 8 are the same schedule row.
+        let scheduled = DetailTimeline.scheduledRows([eight, nine], after: 7, drawn: [7])
+        #expect(scheduled == [eight, nine])
+        let numbers = DetailTimeline.scheduledNumbers(scheduled)
+        let loaded = Array(5...14).filter { !numbers.contains($0) }
+        let plain = DetailTimeline.excludingScheduled(
+            DetailTimeline.collapsedRows(progress: 6, isTracked: true, upNext: 7, loaded: loaded), scheduled: numbers)
+        #expect(plain == [5, 6, 10])
+        let later = DetailTimeline.laterSequence(plain: plain.filter { $0 > 7 }, future: scheduled)
+        #expect(later.compactMap(\.number) == [8, 9, 10])
+        let dates = later.compactMap { row -> Date? in
+            if case .future(let item) = row { return item.releaseAt } else { return nil }
+        }
+        #expect(dates == dates.sorted())
+    }
+
+    @Test("Timeline D5, expanded: five scheduled numbers, every loaded number drawn exactly once")
+    func timelineScheduledExpanded() {
+        let start = Date().addingTimeInterval(86_400)
+        let upcoming = (8...12).map { Self.item(Double($0), at: start.addingTimeInterval(Double($0) * 604_800), basis: .confirmed) }
+        let scheduled = DetailTimeline.scheduledRows(upcoming, after: 7, drawn: [7])
+        // Only three schedule rows are drawn (8, 9, 10); the catalogue keeps 11 and 12.
+        #expect(DetailTimeline.scheduledNumbers(scheduled) == [8, 9, 10])
+        let loaded = Array(1...12)
+        let plain = DetailTimeline.excludingScheduled(DetailTimeline.expandedRows(loaded: loaded, upNext: 7),
+                                                      scheduled: DetailTimeline.scheduledNumbers(scheduled))
+        let later = DetailTimeline.laterSequence(plain: plain.filter { $0 > 7 }, future: scheduled)
+        let drawn = plain.filter { $0 < 7 } + [7] + later.compactMap(\.number)
+        #expect(drawn == loaded, "every loaded number exactly once, in order: \(drawn)")
+    }
+
+    @Test("Timeline copy: AniList 'Episode N - Title' keeps only the title")
+    func timelinePrefixedTitles() {
+        #expect(DetailTimeline.shownTitle("Episode 2 - Stray Dog Strut") == "Stray Dog Strut")
+        #expect(DetailTimeline.shownTitle("Episode 1 – Asteroid Blues") == "Asteroid Blues")
+        #expect(DetailTimeline.shownTitle("Folge 3: Die Reise") == "Die Reise")
+        #expect(DetailTimeline.shownTitle("Ep. 4 · Jupiter Jazz") == "Jupiter Jazz")
+        #expect(DetailTimeline.shownTitle("Episode 5 -") == nil)
+        #expect(DetailTimeline.shownTitle("Episode 12") == nil)
+        #expect(DetailTimeline.shownTitle("Episode Zero") == "Episode Zero")
+        #expect(DetailTimeline.isGenericTitle("Episode 7 - Episode 7"))
+    }
+
     @Test("Timeline copy: generic titles omitted, notes, runs and spoken rows EN/DE")
     func timelineCopy() {
         #expect(DetailTimeline.isGenericTitle("Episode 7"))

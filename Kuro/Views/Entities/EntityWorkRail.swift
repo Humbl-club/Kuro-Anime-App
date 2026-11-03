@@ -210,6 +210,9 @@ struct EntityRoleRow: View {
 struct EntityWorkRow: View {
     let media: Media
     let role: String?
+    /// The leading year numeral reads as a chronological index, so it is drawn only under the Year sort;
+    /// under Rating or Era the year moves into the meta line ("Manga · Art · 1989").
+    var yearColumn = true
 
     @Environment(LibraryStore.self) private var library
     @Environment(\.kuroRoutes) private var routes
@@ -219,7 +222,8 @@ struct EntityWorkRow: View {
         let german = KuroLocale.isGerman
         let title = KuroCardText.sanitizeTitleForCard(media.title)
         let year = EntityPageCopy.knownYear(media.year)
-        let line = EntityPageCopy.workLine(formatRaw: media.formatRaw, kind: media.kind, role: role, german: german)
+        let baseLine = EntityPageCopy.workLine(formatRaw: media.formatRaw, kind: media.kind, role: role, german: german)
+        let line = yearColumn ? baseLine : ([baseLine] + [year.map(String.init)].compactMap { $0 }).joined(separator: " · ")
         let status = library.entry(for: media.libraryKey).flatMap {
             DetailCopy.listStatus($0.status.rawValue, medium: media.kind, german: german, perspective: .own)
         }
@@ -229,10 +233,12 @@ struct EntityWorkRow: View {
             routes.openMedia(MediaRoute(media.libraryKey))
         } label: {
             HStack(spacing: 16) {
-                Text(year.map(String.init) ?? "")
-                    .font(.detailSF(13, relativeTo: .footnote).monospacedDigit())
-                    .foregroundStyle(Color.kuroMuted)
-                    .frame(width: 38, alignment: .leading)
+                if yearColumn {
+                    Text(year.map(String.init) ?? "")
+                        .font(.detailSF(13, relativeTo: .footnote).monospacedDigit())
+                        .foregroundStyle(Color.kuroMuted)
+                        .frame(width: 38, alignment: .leading)
+                }
                 EntityCover(imageURL: media.imageURL,
                             kind: EntityCover.kindWord(kind: media.kind, formatRaw: media.formatRaw, german: german),
                             title: title, width: 40, height: 60, cornerRadius: 2)
@@ -260,13 +266,14 @@ struct EntityWorkRow: View {
         .buttonStyle(HomeContactStyle())
         .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([title, year.map(String.init), line, status].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityLabel([title, yearColumn ? year.map(String.init) : nil, line, status].compactMap { $0 }.joined(separator: ", "))
         .accessibilityAddTraits(.isButton)
     }
 }
 
-/// A studio's "By year." index row: the year, then the titles. Up to three titles are separate buttons;
-/// a busier year is one button that pushes that year's works.
+/// A studio's "By year." index row: the year, then the titles. Up to three titles are separate full-width
+/// rows (each wraps to two lines inside the column and keeps its "›"); a busier year is one button that
+/// pushes that year's works, its "· N more" count kept outside the truncated titles so it always shows.
 struct EntityYearRow: View {
     let group: EntityYearGroup
     let studioName: String
@@ -283,19 +290,26 @@ struct EntityYearRow: View {
                 .frame(width: 38, alignment: .leading)
                 .accessibilityHidden(!group.isInline)
             if group.isInline {
-                FlowLayout(spacing: 6) {
-                    ForEach(Array(group.works.enumerated()), id: \.offset) { index, media in
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(group.works.enumerated()), id: \.offset) { _, media in
                         let title = KuroCardText.sanitizeTitleForCard(media.title)
                         Button {
                             guard !suppressCardTaps else { return }
                             KuroAccessibility.impactHaptic(.light)
                             routes.openMedia(MediaRoute(media.libraryKey))
                         } label: {
-                            Text(index < group.works.count - 1 ? "\(title) ·" : title)
-                                .font(.detailSF(13, .medium, relativeTo: .footnote))
-                                .foregroundStyle(Color.kuroInk)
-                                .frame(minHeight: 44)
-                                .contentShape(Rectangle())
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(title)
+                                    .font(.detailSF(13, .medium, relativeTo: .footnote))
+                                    .foregroundStyle(Color.kuroInk)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                chevron
+                            }
+                            .padding(.vertical, 6)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(HomeContactStyle())
                         .accessibilityLabel("\(title), \(group.year)")
@@ -305,31 +319,42 @@ struct EntityYearRow: View {
             } else {
                 let titles = group.works.prefix(EntityYearGroup.inlineTitles).map { KuroCardText.sanitizeTitleForCard($0.title) }
                 let more = group.works.count - titles.count
-                let text = (titles + [EntityPageCopy.moreInYear(more, german: german)]).joined(separator: " · ")
+                let moreText = EntityPageCopy.moreInYear(more, german: german)
+                let text = titles.joined(separator: " · ")
                 Button {
                     guard !suppressCardTaps else { return }
                     KuroAccessibility.impactHaptic(.light)
                     routes.openPage(EntityYearPage.page(studioName: studioName, group: group))
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(text)
                             .font(.detailSF(13, .medium, relativeTo: .footnote))
                             .foregroundStyle(Color.kuroInk)
                             .lineLimit(2)
+                            .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("›")
-                            .font(.detailSF(15, relativeTo: .body))
+                        Text(moreText)
+                            .font(.detailSF(11, relativeTo: .caption1))
                             .foregroundStyle(Color.kuroMuted)
-                            .accessibilityHidden(true)
+                            .fixedSize()
+                        chevron
                     }
+                    .padding(.vertical, 6)
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(HomeContactStyle())
-                .accessibilityLabel("\(group.year): \(text)")
+                .accessibilityLabel("\(group.year): \(text) · \(moreText)")
             }
         }
         .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
+    }
+
+    private var chevron: some View {
+        Text("›")
+            .font(.detailSF(15, relativeTo: .body))
+            .foregroundStyle(Color.kuroMuted)
+            .accessibilityHidden(true)
     }
 }
 

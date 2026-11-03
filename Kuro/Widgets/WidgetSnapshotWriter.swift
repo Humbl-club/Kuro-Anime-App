@@ -239,7 +239,7 @@ final class WidgetSnapshotWriter: AccountScopedState {
         let schedule = releases.scheduleItems(for: nil, now: copy.now)
         await loadMetadata(for: tracked, releases: schedule)
         guard accountSession.isCurrent(context) else { return false }
-        let names = await ensureThumbnails(tracked: tracked, releases: schedule, copy: copy, store: store)
+        let names = await ensureThumbnails(tracked: tracked, releases: schedule, copy: copy, store: store, context: context)
         guard accountSession.isCurrent(context), !Task.isCancelled else { return false }
         let snapshot = WidgetSnapshotBuilder.build(account: account, now: copy.now, copy: copy, releases: schedule,
                                                    tracked: tracked, metadata: metadataCache, thumbnails: names)
@@ -293,7 +293,8 @@ final class WidgetSnapshotWriter: AccountScopedState {
 
     /// Thumbnail file names for the rows the snapshot will show; missing files are fetched (bounded).
     private func ensureThumbnails(tracked: [WidgetTrackedTitle], releases: [ReleaseScheduleItem],
-                                  copy: ReleaseCopy, store: WidgetSnapshotStore) async -> [MediaKey: String] {
+                                  copy: ReleaseCopy, store: WidgetSnapshotStore,
+                                  context: AccountContext) async -> [MediaKey: String] {
         var names: [MediaKey: String] = [:]
         var fetched = 0
         for (key, url) in WidgetSnapshotBuilder.artworkNeeded(tracked: tracked, releases: releases,
@@ -305,7 +306,11 @@ final class WidgetSnapshotWriter: AccountScopedState {
             }
             guard fetched < Self.thumbnailsPerWrite, !Task.isCancelled else { continue }
             fetched += 1
-            if let data = await thumbnails.thumbnailJPEG(from: url), store.writeThumbnail(data, named: name) {
+            guard let data = await thumbnails.thumbnailJPEG(from: url) else { continue }
+            // The account may have ended during the fetch (sign-out cleared thumbs/): never write an
+            // ended account's artwork back into the App Group.
+            guard accountSession.isCurrent(context), !Task.isCancelled else { return names }
+            if store.writeThumbnail(data, named: name) {
                 names[key] = name
             }
         }
@@ -313,6 +318,36 @@ final class WidgetSnapshotWriter: AccountScopedState {
     }
 
     // MARK: Inbox support (WidgetIntentInbox.swift)
+
+    /// The app's own unit count for `key` (its catalogue facts, read when the cache lacks them); the
+    /// queue's echoed total is never trusted alone.
+    func ownUnitCap(for key: MediaKey) async -> Int? {
+        if let cached = metadataCache[key] { return cached.total.flatMap { $0 > 0 ? $0 : nil } }
+        switch key.kind {
+        case .anime:
+            guard let row = await catalog.fetchAnimeByIdsPreservingOrder([key.id])?.first else { return nil }
+            metadataCache[key] = WidgetTitleMetadata(
+                title: row.displayTitle, total: row.episodeCount,
+                artworkURL: (row.coverImageMedium ?? row.coverImageLarge).flatMap(WidgetSnapshotBuilder.httpsURL))
+            return row.episodeCount.flatMap { $0 > 0 ? $0 : nil }
+        case .manga:
+            guard let row = await catalog.fetchMangaByIdsPreservingOrder([key.id])?.first else { return nil }
+            metadataCache[key] = WidgetTitleMetadata(
+                title: row.displayTitle, total: row.chapterCount,
+                artworkURL: (row.coverImageMedium ?? row.coverImageLarge).flatMap(WidgetSnapshotBuilder.httpsURL))
+            return row.chapterCount.flatMap { $0 > 0 ? $0 : nil }
+        }
+    }
+
+    /// The cap a queued +1 uses: the app's own count, the smaller one when the queue also carries one.
+    nonisolated static func queuedAdvanceCap(own: Int?, queued: Int?) -> Int? {
+        switch (own, queued.flatMap { $0 > 0 ? $0 : nil }) {
+        case let (own?, queued?): min(own, queued)
+        case let (own?, nil): own
+        case let (nil, queued?): queued
+        case (nil, nil): nil
+        }
+    }
 
     var libraryLoadState: LibraryStore.LoadState { library.loadState }
 

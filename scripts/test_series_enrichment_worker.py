@@ -364,6 +364,52 @@ class ApplePassContracts(unittest.TestCase):
         self.assertIsNone(by_id['d']['apple_track_id'])
         self.assertEqual(summary['written'], {'matched': 1, 'cleared': 2, 'stale': 0})
 
+    def test_live_takes_sequels_and_suffixes_are_not_matches(self):
+        # Review 2026-11-03: these passed the old 0.9 fuzzy ratio.
+        for theme, apple in (('Kimi no Shiranai Monogatari', 'Kimi no Shiranai Monogatari (Live)'),
+                             ('Kimi no Shiranai Monogatari', 'Kimi no Shiranai Monogatari - Live at Budokan'),
+                             ('Gurenge', 'Gurenge (ライブ)'),
+                             ('COLORS', 'COLORS 2'), ('Brave Heart', 'Brave Heart 2'),
+                             ('Unravel', 'Unravel (2023 Remaster)'), ('Again', 'Again (Ver. 2)')):
+            self.assertIsNone(worker.best_itunes_match(theme, 'Artist', [itunes(40, apple, 'Artist')]), apple)
+        # A live theme still matches its own live recording; "Alive" is not a live take.
+        self.assertIsNotNone(worker.best_itunes_match('Song (Live)', 'Artist', [itunes(41, 'Song (Live)', 'Artist')]))
+        self.assertIsNotNone(worker.best_itunes_match('Alive', 'Artist', [itunes(42, 'Alive', 'Artist')]))
+
+    def test_long_vowel_folds_only_for_romanised_japanese(self):
+        self.assertEqual(worker.title_score('Shout', 'Shot'), 0.0)
+        self.assertEqual(worker.title_score('Good', 'God'), 0.0)
+        self.assertIsNone(worker.best_itunes_match('Shout', 'Artist', [itunes(43, 'Shot', 'Artist')]))
+        self.assertEqual(worker.title_score('Shinzou wo Sasageyo!', 'Shinzō o Sasageyo'), 1.0)
+        self.assertEqual(worker.title_score('Kimi wo Nosete', 'Kimi o Nosete'), 1.0)
+        self.assertTrue(worker.is_romaji('Gurenge'))
+        self.assertTrue(worker.is_romaji('Gakkou Gurashi'))
+        self.assertFalse(worker.is_romaji('Shout'))
+        self.assertFalse(worker.is_romaji('紅蓮華'))
+
+    def test_persistent_rate_limit_stops_the_pass(self):
+        writes, fetched = [], []
+        class Client:
+            def call(self, name, payload):
+                writes.append(payload); return {'matched': 1, 'cleared': 0, 'stale': 0}
+        def fetch(term, country, pacer=None):
+            fetched.append(term)
+            if term.startswith('Gurenge'):
+                return [itunes(50, 'Gurenge', 'LiSA')]
+            raise worker.AppleRateLimited('iTunes Search rate limit persisted')
+        rows = [{'id': 'a', 'song_title': 'Gurenge', 'artist': 'LiSA'},
+                {'id': 'b', 'song_title': 'Two', 'artist': 'X'}, {'id': 'c', 'song_title': 'Three', 'artist': 'Y'}]
+        summary = worker.run_apple_pass(Client(), rows, fetch=fetch)
+        self.assertTrue(summary['rate_limited'])
+        self.assertEqual(len(fetched), 2, 'the pass kept requesting after a persistent refusal')
+        self.assertEqual([r['theme_id'] for r in writes[0]['p_rows']], ['a'], 'the matched row is still written')
+        waits = []
+        def refusing(url, max_bytes, hosts):
+            raise urllib.error.HTTPError(url, 429, 'Too Many', {'Retry-After': '1'}, None)
+        with self.assertRaises(worker.AppleRateLimited):
+            worker.fetch_itunes('x', 'JP', getter=refusing, pause=waits.append)
+        self.assertEqual(waits, [1.0, 1.0])
+
     def test_dry_run_never_writes(self):
         class Client:
             def call(self, *a):

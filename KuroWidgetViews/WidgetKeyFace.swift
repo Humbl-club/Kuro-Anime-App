@@ -5,7 +5,7 @@ import SwiftUI
 // The raised `.ink` face of `KuroAdvanceKey` (34 pt, radius 7, `kuroKeyDarkTop → kuroKeyDarkBottom`,
 // 1 pt #20282326 border, inset white highlight, 0 1 2 drop), with a white "+1" in 12 semibold, inside
 // a 44 pt target. It is not material: the snapshot carries no artwork material. A queued +1 dims the
-// face to 60 %. There is no confirm stamp or animation in a widget (spec D13).
+// face to 60 % and draws its glyph in ink so it stays legible. There is no confirm stamp or animation in a widget (spec D13).
 // The face is only the label: the extension wraps it in `Button(intent: AdvanceProgressIntent(item:))`
 // (never a URL); tests and the app host render it bare.
 
@@ -30,11 +30,12 @@ struct WidgetKeyFace: View {
                 .overlay(shape.strokeBorder(WidgetPalette.keyBorder, lineWidth: 1))
                 .shadow(color: WidgetPalette.keyDrop, radius: 1, x: 0, y: 1)
                 .frame(width: 34, height: 34)
+                // Queued: only the face fades, so the glyph keeps its contrast (≥ 3 : 1).
+                .opacity(queued ? 0.6 : 1)
             Text("+1")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(WidgetPalette.keyInk)
+                .foregroundStyle(queued ? WidgetPalette.ink : WidgetPalette.keyInk)
         }
-        .opacity(queued ? 0.6 : 1)
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
     }

@@ -37,22 +37,22 @@ struct FinishesAfterSnapshotTests {
         try? await harness.graph.library.refresh()
         Self.markPreviewsFresh(harness.graph)
 
-        let top = Self.window(Self.inject(Self.profilePage(), graph: harness.graph), width: 390, height: 1_150)
+        let top = try Self.window(Self.inject(Self.profilePage(), graph: harness.graph), width: 390, height: 1_150)
         try? await Task.sleep(for: .milliseconds(2_400))
         await capture(top, name: "profile-numbers-390")
         Self.close(top)
 
-        let se = Self.window(Self.inject(Self.profilePage(), graph: harness.graph), width: 320, height: 1_200)
+        let se = try Self.window(Self.inject(Self.profilePage(), graph: harness.graph), width: 320, height: 1_200)
         try? await Task.sleep(for: .milliseconds(2_000))
         await capture(se, name: "profile-numbers-320")
         Self.close(se)
 
-        let pad = Self.window(Self.inject(Self.profilePage(), graph: harness.graph, regular: true), width: 820, height: 1_180)
+        let pad = try Self.window(Self.inject(Self.profilePage(), graph: harness.graph, regular: true), width: 820, height: 1_180)
         try? await Task.sleep(for: .milliseconds(2_000))
         await capture(pad, name: "profile-numbers-ipad")
         Self.close(pad)
 
-        let full = Self.window(Self.inject(Self.profilePage(), graph: harness.graph), width: 390, height: 3_200)
+        let full = try Self.window(Self.inject(Self.profilePage(), graph: harness.graph), width: 390, height: 3_200)
         try? await Task.sleep(for: .milliseconds(2_200))
         let height = Self.inkHeight(in: full)
         await capture(full, name: "profile-full-390", height: height)
@@ -64,7 +64,7 @@ struct FinishesAfterSnapshotTests {
         await empty.signIn()
         try? await empty.graph.library.refresh()
         Self.markPreviewsFresh(empty.graph)
-        let emptyWindow = Self.window(Self.inject(Self.profilePage(), graph: empty.graph), width: 390, height: 900)
+        let emptyWindow = try Self.window(Self.inject(Self.profilePage(), graph: empty.graph), width: 390, height: 900)
         try? await Task.sleep(for: .milliseconds(1_800))
         await capture(emptyWindow, name: "profile-numbers-empty-390")
         Self.close(emptyWindow)
@@ -77,7 +77,7 @@ struct FinishesAfterSnapshotTests {
         await failing.signIn()
         try? await failing.graph.library.refresh()
         Self.markPreviewsFresh(failing.graph)
-        let failedWindow = Self.window(Self.inject(Self.profilePage(), graph: failing.graph), width: 390, height: 900)
+        let failedWindow = try Self.window(Self.inject(Self.profilePage(), graph: failing.graph), width: 390, height: 900)
         try? await Task.sleep(for: .milliseconds(2_400))
         await capture(failedWindow, name: "profile-numbers-failed-390")
         Self.close(failedWindow)
@@ -97,26 +97,26 @@ struct FinishesAfterSnapshotTests {
                                                (CGFloat(820), CGFloat(1_180), "import-anilist-ipad", true)] {
             let sheet = ConciergeAniListImportSheet(imports: graph.imports, isGermanLocale: KuroLocale.isGerman,
                                                     usesStructuredImport: true) { _ in }
-            let window = Self.window(Self.inject(sheet.frame(maxWidth: regular ? 680 : .infinity), graph: graph, regular: regular),
+            let window = try Self.window(Self.inject(sheet.frame(maxWidth: regular ? 680 : .infinity), graph: graph, regular: regular),
                                      width: width, height: height)
             try? await Task.sleep(for: .milliseconds(1_200))
             await capture(window, name: name)
             Self.close(window)
         }
 
-        let chooser = Self.window(Self.inject(ImportSourceChooser(onNavigate: { _ in }), graph: graph), width: 390, height: 844)
+        let chooser = try Self.window(Self.inject(ImportSourceChooser(onNavigate: { _ in }), graph: graph), width: 390, height: 844)
         try? await Task.sleep(for: .milliseconds(1_200))
         await capture(chooser, name: "import-chooser-390")
         Self.close(chooser)
 
-        let history = Self.window(Self.inject(ImportWorkflowSheet(imports: graph.imports, job: nil) { _ in }, graph: graph),
+        let history = try Self.window(Self.inject(ImportWorkflowSheet(imports: graph.imports, job: nil) { _ in }, graph: graph),
                                   width: 390, height: 844)
         try? await Task.sleep(for: .milliseconds(1_400))
         await capture(history, name: "import-review-history-390")
         Self.close(history)
 
         if let item = Self.reviewItem() {
-            let picker = Self.window(Self.inject(ImportCatalogMatchPicker(imports: graph.imports, item: item) { _ in }, graph: graph),
+            let picker = try Self.window(Self.inject(ImportCatalogMatchPicker(imports: graph.imports, item: item) { _ in }, graph: graph),
                                      width: 390, height: 844)
             try? await Task.sleep(for: .milliseconds(1_600))
             await capture(picker, name: "import-match-picker-390")
@@ -136,12 +136,12 @@ struct FinishesAfterSnapshotTests {
         await harness.signIn()
         let graph = harness.graph
 
-        let top = Self.window(Self.discoverPage(graph: graph), width: 390, height: 844)
+        let top = try Self.window(Self.discoverPage(graph: graph), width: 390, height: 844)
         try? await Task.sleep(for: .milliseconds(2_200))
         await capture(top, name: "discover-all-top-390")
         Self.close(top)
 
-        let tall = Self.window(Self.discoverPage(graph: graph), width: 390, height: 4_400)
+        let tall = try Self.window(Self.discoverPage(graph: graph), width: 390, height: 4_400)
         try? await Task.sleep(for: .milliseconds(2_400))
         let height = Self.inkHeight(in: tall)
         Self.measure("discover-all-full-390", height)
@@ -152,14 +152,14 @@ struct FinishesAfterSnapshotTests {
         await capture(tall, name: "discover-all-full-390", height: height)
         Self.close(tall)
 
-        let se = Self.window(Self.discoverPage(graph: graph), width: 320, height: 4_400)
+        let se = try Self.window(Self.discoverPage(graph: graph), width: 320, height: 4_400)
         try? await Task.sleep(for: .milliseconds(2_200))
         let seHeight = Self.inkHeight(in: se)
         Self.measure("discover-all-full-320", seHeight)
         await capture(se, name: "discover-all-full-320", height: seHeight)
         Self.close(se)
 
-        let pad = Self.window(AnyView(Self.discoverPage(graph: graph).environment(\.horizontalSizeClass, .regular)),
+        let pad = try Self.window(AnyView(Self.discoverPage(graph: graph).environment(\.horizontalSizeClass, .regular)),
                               width: 820, height: 1_180)
         try? await Task.sleep(for: .milliseconds(2_200))
         await capture(pad, name: "discover-all-top-ipad")
@@ -167,7 +167,7 @@ struct FinishesAfterSnapshotTests {
 
         let folds = KuroFoldMemory()
         folds.setExpanded(true, page: DiscoverIssueCopy.foldPage, section: DiscoverIssueCopy.foldSection)
-        let fold = Self.window(AnyView(Self.discoverPage(graph: graph).environment(\.kuroFoldMemory, folds)),
+        let fold = try Self.window(AnyView(Self.discoverPage(graph: graph).environment(\.kuroFoldMemory, folds)),
                                width: 390, height: 9_500)
         try? await Task.sleep(for: .milliseconds(2_600))
         let foldHeight = Self.inkHeight(in: fold)
@@ -226,11 +226,12 @@ struct FinishesAfterSnapshotTests {
         return regular ? AnyView(base.environment(\.horizontalSizeClass, .regular)) : AnyView(base)
     }
 
-    private static func window(_ view: AnyView, width: CGFloat, height: CGFloat) -> UIWindow {
+    private static func window(_ view: AnyView, width: CGFloat, height: CGFloat) throws -> UIWindow {
         let host = UIHostingController(rootView: view.frame(width: width, height: height))
         host.safeAreaRegions = []
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first,
+                                 "The render test host has no window scene")
+        let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: width, height: height)
         window.rootViewController = host
         window.isHidden = false

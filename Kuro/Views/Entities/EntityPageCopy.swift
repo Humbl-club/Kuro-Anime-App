@@ -193,8 +193,35 @@ enum EntityPageCopy {
 
     /// AniList description as plain text: HTML removed (`TextNormalization`), spoiler blocks (`~!…!~`)
     /// dropped and `__bold__` markers removed. nil when nothing remains.
-    static func description(_ raw: String?) -> String? {
-        guard var text = TextNormalization.sanitizeMediaDescription(raw) else { return nil }
+    /// AniList character descriptions open with metadata lines ("__Height:__ 190 cm"). They are lifted
+    /// out of the prose (so the 4-line fold shows the story) and offered to the hero's facts line: at most
+    /// two short ones, never age or gender (the hero has its own words for those).
+    static func leadingFacts(_ raw: String?) -> (facts: [String], body: String?) {
+        guard let text = TextNormalization.sanitizeMediaDescription(raw) else { return ([], nil) }
+        var lines = text.components(separatedBy: "\n")
+        var facts: [String] = []
+        let pattern = #"^\s*__([^_\n]{1,32}?):?__:?\s*(.+?)\s*$"#
+        while let first = lines.first {
+            let trimmed = first.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { lines.removeFirst(); continue }
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
+                  let keyRange = Range(match.range(at: 1), in: trimmed),
+                  let valueRange = Range(match.range(at: 2), in: trimmed) else { break }
+            let key = trimmed[keyRange].trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ":", with: "")
+            let value = trimmed[valueRange].replacingOccurrences(of: "__", with: "").trimmingCharacters(in: .whitespaces)
+            lines.removeFirst()
+            let skipped = ["age", "initial age", "gender", "alter", "geschlecht"]
+            guard !skipped.contains(key.lowercased()), !value.isEmpty, value.count <= 24, facts.count < 2 else { continue }
+            facts.append("\(key): \(value)")
+        }
+        return (facts, lines.joined(separator: "\n"))
+    }
+
+    /// `liftingFacts`: character pages move the leading metadata lines to the hero (`leadingFacts`);
+    /// staff and author bios keep their text as written.
+    static func description(_ raw: String?, liftingFacts: Bool = false) -> String? {
+        guard var text = TextNormalization.sanitizeMediaDescription(liftingFacts ? leadingFacts(raw).body : raw) else { return nil }
         text = text.replacingOccurrences(of: #"(?s)~!.*?!~"#, with: "", options: [.regularExpression])
         text = text.replacingOccurrences(of: "__", with: "")
         text = text.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)

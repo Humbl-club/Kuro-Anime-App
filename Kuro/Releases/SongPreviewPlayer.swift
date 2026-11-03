@@ -12,13 +12,15 @@ import Observation
 // leaving the screen, the app entering the background, an audio interruption (call, Siri), the
 // headphones being unplugged, and every account transition (`AccountScopedState`).
 //
-// Audio session decision (documented, one constant): category `.soloAmbient`.
-//   - It honours the Ring/Silent switch: with the phone on silent a preview is not heard. A preview
-//     is a short sample inside a browsing page, not media playback the user started in a player, so
-//     it behaves like the app's other sounds instead of overriding silent mode (`.playback` would).
+// Audio session (spec §8.6): category `.playback`, mode `.default`.
+//   - A preview is an explicit ▶ action, so it is heard even with the Ring/Silent switch on silent
+//     (with `.soloAmbient` a silent phone showed a running 0:30 scrub with no sound and no hint why).
 //   - It is not mixable: other audio (the user's music) pauses while a preview plays, and is told it
 //     may resume (`.notifyOthersOnDeactivation`) when the preview stops.
-//   - It never plays in the background (and the app declares no background audio mode).
+//   - It never plays in the background: the app declares no background audio mode, and entering the
+//     background stops the preview.
+//   - A load that is not ready within `loadTimeout` (10 s, a stalled or captive network) fails, so
+//     the row falls back to "Preview unavailable" and Apple Music.
 //   The session is activated only when ▶ is tapped, never at launch.
 
 /// What the audio engine reports about the item it was asked to play.
@@ -69,13 +71,20 @@ final class SongPreviewPlayer: AccountScopedState {
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
     @ObservationIgnored private let notificationCenter: NotificationCenter
+    /// How long ▶ may stay loading before it fails (spec §8.6: 10 s).
+    @ObservationIgnored private let loadTimeout: Duration
+    @ObservationIgnored private var timeoutTask: Task<Void, Never>?
+
+    nonisolated static let defaultLoadTimeout: Duration = .seconds(10)
 
     init(engine: (any SongPreviewEngine)? = nil,
          audioSession: (any SongPreviewAudioSession)? = nil,
-         notificationCenter: NotificationCenter = .default) {
+         notificationCenter: NotificationCenter = .default,
+         loadTimeout: Duration = SongPreviewPlayer.defaultLoadTimeout) {
         self.engine = engine ?? AVSongPreviewEngine()
         self.audioSession = audioSession ?? SystemSongPreviewAudioSession()
         self.notificationCenter = notificationCenter
+        self.loadTimeout = loadTimeout
         observeLifecycle()
     }
 
@@ -125,11 +134,20 @@ final class SongPreviewPlayer: AccountScopedState {
         engine.play(url) { [weak self] event in
             self?.handle(event, songID: song.id, token: token)
         }
+        timeoutTask?.cancel()
+        let timeout = loadTimeout
+        timeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: timeout)
+            guard !Task.isCancelled, let self, self.phase == .loading(songID: song.id) else { return }
+            self.handle(.failed, songID: song.id, token: token)
+        }
         return true
     }
 
     /// Stops whatever is playing.
     func stop() {
+        timeoutTask?.cancel()
+        timeoutTask = nil
         generation += 1
         let wasActive = activeSongID != nil
         engine.stop()
@@ -152,6 +170,10 @@ final class SongPreviewPlayer: AccountScopedState {
 
     private func handle(_ event: SongPreviewEvent, songID: String, token: Int) {
         guard token == generation else { return }
+        if event != .started || phase == .loading(songID: songID) {
+            timeoutTask?.cancel()
+            timeoutTask = nil
+        }
         switch event {
         case .started:
             if phase == .loading(songID: songID) { phase = .playing(songID: songID) }
@@ -277,12 +299,12 @@ final class AVSongPreviewEngine: SongPreviewEngine {
     }
 }
 
-/// The real audio session: `.soloAmbient` (see the decision at the top of this file).
+/// The real audio session: `.playback`, mode `.default` (see the decision at the top of this file).
 @MainActor
 final class SystemSongPreviewAudioSession: SongPreviewAudioSession {
     func activateForPreview() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.soloAmbient, mode: .default)
+        try session.setCategory(.playback, mode: .default)
         try session.setActive(true)
     }
 

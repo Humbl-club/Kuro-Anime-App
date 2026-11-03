@@ -85,17 +85,25 @@ struct AnimeUnitsSection: View {
         showsAll ? nil : DetailTimeline.watchedRun(progress: progress, isTracked: isTracked)
     }
 
-    private var plainRows: [Int] {
-        showsAll ? DetailTimeline.expandedRows(loaded: loadedNumbers, upNext: upNext)
-                 : DetailTimeline.collapsedRows(progress: progress, isTracked: isTracked, upNext: upNext, loaded: loadedNumbers)
-    }
-
-    private var futureRows: [ReleaseScheduleItem] {
-        var drawn = Set(plainRows)
+    /// The schedule rows drawn after Up next (D5): the catalogue's own air date never overrides the
+    /// release read model for these numbers.
+    private var scheduledRows: [ReleaseScheduleItem] {
+        var drawn = Set<Int>()
         if let upNext { drawn.insert(upNext) }
         if let run { drawn.formUnion(run) }
-        return DetailTimeline.futureRows(upcoming.filter { $0.unitKind == .episode }, drawn: drawn)
+        return DetailTimeline.scheduledRows(upcoming.filter { $0.unitKind == .episode }, after: upNext ?? progress, drawn: drawn)
     }
+
+    private var scheduledNumbers: Set<Int> { DetailTimeline.scheduledNumbers(scheduledRows) }
+
+    private var plainRows: [Int] {
+        let rows = showsAll ? DetailTimeline.expandedRows(loaded: loadedNumbers, upNext: upNext)
+                            : DetailTimeline.collapsedRows(progress: progress, isTracked: isTracked, upNext: upNext,
+                                                           loaded: loadedNumbers.filter { !scheduledNumbers.contains($0) })
+        return DetailTimeline.excludingScheduled(rows, scheduled: scheduledNumbers)
+    }
+
+    private var futureRows: [ReleaseScheduleItem] { scheduledRows }
 
     private var hasMoreToShow: Bool {
         if showsAll { return false }
@@ -133,8 +141,13 @@ struct AnimeUnitsSection: View {
                 }
                 ForEach(before, id: \.self) { number in row(number) }
                 if let upNext { upNextRow(upNext) }
-                ForEach(after, id: \.self) { number in row(number) }
-                ForEach(futureRows) { item in futureRow(item) }
+                // Plain rows and schedule rows after Up next in number order (D5: never out of order).
+                ForEach(DetailTimeline.laterSequence(plain: after, future: futureRows)) { entry in
+                    switch entry {
+                    case .plain(let number): row(number)
+                    case .future(let item): futureRow(item)
+                    }
+                }
             }
             .background(alignment: .leading) {
                 Rectangle().fill(Color(hex: "CFD6CF")).frame(width: 1).padding(.leading, 7)
@@ -315,6 +328,8 @@ struct AnimeUnitsSection: View {
                                 .frame(minHeight: 44)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(KuroLocale.text("Watch episode \(number)", "Folge \(number) ansehen"))
+                        .accessibilityHint(KuroLocale.text("Opens outside Kuro", "Öffnet außerhalb von Kuro"))
                     }
                 }
                 .padding(.leading, 27)

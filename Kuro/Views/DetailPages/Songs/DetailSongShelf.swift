@@ -4,7 +4,8 @@ import SwiftUI
 // The prototype D8 panel (`material.base → deep`, radius 16, padding 19/16/12, the existing heading) as a
 // short player list:
 //   - parts by episode span (`SongShelfGrouping`; no invented arc names), versions collapsed into tags,
-//     the artist on every row ("Artist not listed" when the source has none);
+//     the artist on every row ("Artist not listed" when the source has none for that row; when no row
+//     of the shelf has one, a single footer note "Artists not listed by the source." instead);
 //   - a verified Apple match shows Apple's artwork (never fetched while the row is veiled) and ▶, which
 //     streams Apple's 30-second preview through the injected `SongPreviewPlayer` (data lane, one preview
 //     at a time; it stops on background, interruption, unplugged headphones and account change, and this
@@ -238,7 +239,7 @@ struct DetailSongShelf: View {
                     .font(.detailSF(10, relativeTo: .footnote))
                     .foregroundStyle(DetailInk.soundArtist)
                     .lineLimit(1)
-            } else {
+            } else if shelfHasArtists {
                 Text(SongShelfCopy.artistNotListed(german: german))
                     .font(.detailSF(10, relativeTo: .footnote))
                     .italic()
@@ -401,6 +402,12 @@ struct DetailSongShelf: View {
             return false
         }
         return VStack(alignment: .leading, spacing: 6) {
+            if !shelfHasArtists, !songs.isEmpty {
+                Text(SongShelfCopy.artistsNotListed(german: german))
+                    .font(.detailSF(9, relativeTo: .caption2))
+                    .italic()
+                    .foregroundStyle(DetailInk.soundNote)
+            }
             if offlineNote {
                 Text(SongShelfCopy.youreOffline(german: german))
                     .font(.detailSF(9, relativeTo: .caption2))
@@ -442,6 +449,9 @@ struct DetailSongShelf: View {
         guard let player, let active = player.activeSongID else { return }
         if songs.contains(where: { $0.id == active }) { player.stop() }
     }
+
+    /// Whether any song on the shelf names its artist (otherwise one footer note says so for all).
+    private var shelfHasArtists: Bool { SongShelfGrouping.anyArtist(songs) }
 
     /// Without a `NetworkMonitor` in the environment the device counts as online.
     private var isConnected: Bool { network?.isConnected ?? true }

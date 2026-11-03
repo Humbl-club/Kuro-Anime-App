@@ -47,8 +47,11 @@ extension WidgetSnapshotWriter {
                 report.dropped += 1
                 continue
             }
+            // The caught-up guard uses the app's own count, never only the total echoed by the App Group.
+            let own = await ownUnitCap(for: request.key)
+            guard accountSession.isCurrent(context), !Task.isCancelled else { break }
             let outcome = await advanceQueuedProgress(request.key, to: request.targetUnit, lifecycleId: lifecycle,
-                                                      cap: request.total)
+                                                      cap: Self.queuedAdvanceCap(own: own, queued: request.total))
             switch outcome {
             case .applied:
                 processed.insert(request.id)

@@ -740,6 +740,8 @@ struct MangaDetailHero<Mark: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
+            // iPad: the band's cover and heading sit in the body's readable column (the band stays full-bleed).
+            .kuroReadableWidth()
             .background {
                 ZStack {
                     LinearGradient(colors: [material.wash.color, MangaInk.bandEnd],
@@ -777,16 +779,19 @@ struct MangaDetailHero<Mark: View>: View {
         HStack(alignment: .center, spacing: gap) {
             // 35 % of the prototype's 306 pt content width (107 pt), smaller on narrower phones.
             book.containerRelativeFrame(.horizontal) { width, _ in min(107.1, max(0, width - inset * 2) * 0.35) }
-            heading(titleSize: titleSize)
-                .frame(minWidth: min(titleWidth, 125), maxWidth: titleWidth, alignment: .leading)
-            Spacer(minLength: 0)
+            // Only the title keeps the measured column (so "Chainsaw / Man" breaks as in the reference);
+            // the facts line and the mark use the full width beside the cover, so they do not wrap early.
+            heading(titleSize: titleSize, titleWidth: titleWidth)
+                // idealWidth keeps ViewThatFits' measurement at the reference column (a one-line facts
+                // ideal of about 250 pt must not push the 390 row out to the small-phone variant).
+                .frame(minWidth: min(titleWidth, 125), idealWidth: titleWidth, maxWidth: .infinity, alignment: .leading)
         }
         .padding(.top, 28)
         .padding(.horizontal, inset)
         .padding(.bottom, 24)
     }
 
-    private func heading(titleSize: CGFloat) -> some View {
+    private func heading(titleSize: CGFloat, titleWidth: CGFloat? = nil) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(DetailPageCopy.kindKicker(.manga, german: KuroLocale.isGerman).uppercased())
                 .font(.detailSF(8, relativeTo: .caption2))
@@ -801,6 +806,7 @@ struct MangaDetailHero<Mark: View>: View {
                 .lineLimit(3)
                 .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: titleWidth ?? .infinity, alignment: .leading)
                 // m 9/0/15 around a 31.9 pt CSS line; Georgia's own line box sits a little higher.
                 .padding(.top, 11)
                 .padding(.bottom, facts.isEmpty ? 19 : 8)

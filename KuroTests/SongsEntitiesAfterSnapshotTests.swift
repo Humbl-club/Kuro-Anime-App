@@ -291,8 +291,11 @@ struct SongsEntitiesAfterSnapshotTests {
         }
         let host = UIHostingController(rootView: view.frame(width: width, height: height))
         host.safeAreaRegions = []
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
+            Issue.record("The render test host has no window scene")
+            return
+        }
+        let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: width, height: height)
         window.rootViewController = host
         window.isHidden = false
@@ -480,6 +483,9 @@ struct SongsEntitiesAfterSnapshotTests {
         (423, .anime, "Hell's Paradise", nil, 2023, 80, "TV"),
         (424, .anime, "Zombieland Saga", "anime1.jpg", 2023, 76, "TV"),
         (402, .anime, "Jujutsu Kaisen 0", nil, 2021, 84, "MOVIE"),
+        // Long titles (review 2026-11-03): an inline year must wrap inside the column, never run off it.
+        (425, .anime, "Attack on Titan: The Final Season Part 2 (Kanketsu-hen Special)", nil, 2022, 87, "SPECIAL"),
+        (426, .anime, "Dorohedoro: Ma no Omake, the Six Bonus Episodes", nil, 2020, 74, "ONA"),
     ]
 
     static func media(_ work: (Int, MediaKind, String, String?, Int, Int, String)) -> Media {

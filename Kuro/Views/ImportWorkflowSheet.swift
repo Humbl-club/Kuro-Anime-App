@@ -444,7 +444,14 @@ struct ImportWorkflowSheet: View {
                 .disabled(model.busy)
                 .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
             }
-            if model.jobs.isEmpty, model.manifests.isEmpty, !model.busy {
+            if model.jobs.isEmpty, model.manifests.isEmpty, !model.busy, model.failure != nil {
+                // A history read that failed is not "no imports" (§5.4). The failure card above already
+                // says what went wrong; this adds only the retry, never a second message.
+                KuroOutlineButton(KuroStateCopy.retryTitle(german: german)) {
+                    Task { await model.load() }
+                }
+                .frame(maxWidth: 280, alignment: .leading)
+            } else if model.jobs.isEmpty, model.manifests.isEmpty, !model.busy {
                 KuroStateView(.empty, title: german ? "Keine letzten Importe." : "No recent imports.",
                               message: german ? "Wähle AniList oder MAL in deinem Profil." : "Choose AniList or MAL in Profile.",
                               layout: .inline)

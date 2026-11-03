@@ -28,8 +28,9 @@ final class RecordingWidgetReloader: WidgetTimelineReloading {
 
 @MainActor
 struct PlatformHarness {
-    static let userA = LifecycleFixtures.userA
-    static let userB = LifecycleFixtures.userB
+    // Literals (the same ids as `LifecycleFixtures`): nonisolated, so default arguments may name them.
+    nonisolated static let userA = "6F1C4C3E-0A7B-4D7E-9C55-3D2A1B0C9E8A"
+    nonisolated static let userB = "0B9E8D7C-6A5B-4C3D-8E2F-1A0B9C8D7E6F"
 
     let backend: FakeLibraryBackend
     let notifications: FakeNotificationCenter
@@ -569,6 +570,21 @@ struct ReleaseNotificationDeviceTests {
         #expect(await releases.setReleaseNotification(false, for: key) == .disabled)
         #expect(!releases.releaseNotificationsOn(for: key))
         #expect(h.notifications.pending.isEmpty, "the muted title's notification stayed pending")
+        await h.tearDown()
+    }
+
+    @Test("a bell turned on goes quiet when the title is paused: the plan is empty, nothing stays pending")
+    func bellFollowsStatus() async throws {
+        let h = try await followedHarness(permission: .authorized)
+        let releases = h.service.releases
+        let key = MediaKey(kind: .manga, id: 2)
+        #expect(await releases.setReleaseNotification(true, for: key) == .enabled)
+        #expect(h.notifications.pending == ["release-manga-2-chapter-68"])
+        #expect(await h.service.libraryActions.apply(LibraryEdit(status: .set(.paused)), to: key, createIfMissing: nil).error == nil)
+        #expect(h.service.library.entry(for: key)?.status == .paused)
+        #expect(releases.plannedReleaseNotifications().isEmpty, "a paused title still notifies through its bell")
+        _ = await releases.syncReleaseNotificationsNow()
+        #expect(h.notifications.pending.isEmpty)
         await h.tearDown()
     }
 

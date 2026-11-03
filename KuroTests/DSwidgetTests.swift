@@ -99,6 +99,39 @@ struct WidgetContentTests {
         #expect(WidgetLayout.releases(snap, at: utc(2026, 11, 4, 21), family: .systemLarge).isEmpty)
     }
 
+    @Test("a queued +1 caps at the app's own count; the queue's echoed total only narrows it")
+    func queuedAdvanceCap() {
+        #expect(WidgetSnapshotWriter.queuedAdvanceCap(own: 12, queued: 24) == 12)
+        #expect(WidgetSnapshotWriter.queuedAdvanceCap(own: 24, queued: 12) == 12)
+        #expect(WidgetSnapshotWriter.queuedAdvanceCap(own: 12, queued: nil) == 12)
+        #expect(WidgetSnapshotWriter.queuedAdvanceCap(own: nil, queued: 12) == 12)
+        #expect(WidgetSnapshotWriter.queuedAdvanceCap(own: nil, queued: 0) == nil)
+        #expect(WidgetSnapshotWriter.queuedAdvanceCap(own: nil, queued: nil) == nil)
+    }
+
+    @Test("stored day words are absolute: a snapshot written the day before never says Tomorrow / Morgen")
+    func snapshotDaysAreAbsolute() {
+        for german in [false, true] {
+            let tomorrowEvening = WidgetSnapshotBuilder.releaseItem(
+                scheduled(1, at: utc(2026, 11, 4, 20, 30), basis: .confirmed, precision: .instant),
+                copy: copy(german), metadata: nil, thumbnail: nil)
+            let todayDay = WidgetSnapshotBuilder.releaseItem(
+                scheduled(2, kind: .manga, unit: 68, at: utc(2026, 11, 3), basis: .announced, precision: .day,
+                          source: "mangaupdates", title: "Kagurabachi"),
+                copy: copy(german), metadata: nil, thumbnail: nil)
+            for item in [tomorrowEvening, todayDay] {
+                let words = [item.datePhrase ?? "", item.line, item.accessibilityLine].joined(separator: " ").lowercased()
+                for relative in ["tomorrow", "today", "morgen", "heute"] {
+                    #expect(!words.contains(relative), "\(relative) in \(words)")
+                }
+            }
+            #expect(tomorrowEvening.line.contains("4"), "the absolute day: \(tomorrowEvening.line)")
+        }
+        // The app's own copy still says it (only the stored text is absolute).
+        let live = copy().line(scheduled(1, at: utc(2026, 11, 4, 20, 30), basis: .confirmed, precision: .instant))
+        #expect(live.lowercased().contains("tomorrow"))
+    }
+
     @Test("an estimate never counts down; a confirmed instant does; an announced day and a window never do")
     func countdownOnlyForAllowedTimes() {
         let confirmed = WidgetSnapshotBuilder.releaseItem(

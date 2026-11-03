@@ -79,8 +79,10 @@ nonisolated enum WidgetSnapshotBuilder {
             .map { $0 }
     }
 
-    static func releaseItem(_ item: ReleaseScheduleItem, copy: ReleaseCopy, metadata: WidgetTitleMetadata?,
+    static func releaseItem(_ item: ReleaseScheduleItem, copy appCopy: ReleaseCopy, metadata: WidgetTitleMetadata?,
                             thumbnail: String?) -> WidgetReleaseItem {
+        // The snapshot is read on later days while the app is closed: its day words are absolute only.
+        let copy = appCopy.withoutRelativeDays()
         let title = item.title.isEmpty ? (metadata?.title ?? "") : item.title
         return WidgetReleaseItem(
             id: item.id, medium: item.medium, mediaId: item.mediaId, title: title,

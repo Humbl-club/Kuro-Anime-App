@@ -300,6 +300,7 @@ struct CharacterDetailSheet: View {
         }
         if let gender = EntityPageCopy.gender(character.gender, german: german) { facts.append(gender) }
         if let age = EntityPageCopy.age(character.age, german: german) { facts.append(age) }
+        facts.append(contentsOf: EntityPageCopy.leadingFacts(character.description).facts)
         return facts
     }
 
@@ -313,7 +314,7 @@ struct CharacterDetailSheet: View {
                                    facts: facts)
                         .entityGutter()
 
-                    if let text = EntityPageCopy.description(character.description) {
+                    if let text = EntityPageCopy.description(character.description, liftingFacts: true) {
                         EntityDescription(text: text, isExpanded: folds.binding(page: foldPage, section: "about"))
                             .entityGutter()
                             .padding(.top, 20)
@@ -549,7 +550,7 @@ struct StaffDetailSheet: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array((showsAllWorks ? shown : Array(shown.prefix(Self.foldedWorks))).enumerated()),
                         id: \.offset) { index, work in
-                    EntityWorkRow(media: work.media, role: work.role)
+                    EntityWorkRow(media: work.media, role: work.role, yearColumn: sortMode == .year)
                         .id(EntityWorkIdentity.make(media: work.media, role: work.role, index: index))
                 }
             }
@@ -643,7 +644,7 @@ struct AuthorDetailSheet: View {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(Array((showsAllWorks ? shown : Array(shown.prefix(Self.foldedWorks))).enumerated()),
                                     id: \.offset) { _, work in
-                                EntityWorkRow(media: work.media, role: work.role)
+                                EntityWorkRow(media: work.media, role: work.role, yearColumn: sortMode == .year)
                             }
                         }
                         .entityGutter()

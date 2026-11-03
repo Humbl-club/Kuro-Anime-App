@@ -20,10 +20,13 @@ titles without themes write nothing. AnimeThemes commercial use needs owner endo
 Apple mode (--apple, 2026-11-03): for theme_links rows not checked in the last 30 days, the iTunes
 Search API (https://itunes.apple.com/search?term=...&entity=song&limit=10, storefront JP first,
 then US) at most 20 requests/minute (one every 3 s, Retry-After honoured, User-Agent Kuro-Intake).
-Strict matching: the normalised title AND artist must both match (NFKC, case, macrons and
-Hepburn long vowels folded, "wo"/"o"; artist sets split on feat./&/,/x; family-name order
-tolerated); karaoke/instrumental/off-vocal/remix/cover variants are rejected; confidence >= 0.8 or
-no match. A row without an artist is recorded as checked with no match (it cannot be verified)
+Strict matching: the normalised title AND artist must both match (NFKC, case, macrons; the
+Hepburn long-vowel and "wo"/"o" folds only when both titles are romanised Japanese, so "Shout" never
+equals "Shot"; titles must be EQUAL after normalisation, no fuzzy ratio, so "COLORS" never matches
+"COLORS 2"; artist sets split on feat./&/,/x; family-name order tolerated);
+karaoke/instrumental/off-vocal/remix/cover/live variants are rejected; confidence >= 0.8 or no
+match. A storefront that keeps answering 403/429 after its retries stops the whole pass (the rest
+is retried on the next run) instead of waiting out every remaining row. A row without an artist is recorded as checked with no match (it cannot be verified)
 without any request. Results go through upsert_theme_apple_matches_v1 (prepared migration
 20261103100200); --dry-run prints the proposed matches and writes nothing. Not scheduled.
 """
@@ -39,7 +42,6 @@ import re
 import tempfile
 import time
 import unicodedata
-from difflib import SequenceMatcher
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -275,7 +277,6 @@ APPLE_COUNTRIES = ('JP', 'US')
 APPLE_MIN_INTERVAL = 3.0  # <= 20 requests/minute
 APPLE_USER_AGENT = 'Kuro-Intake/1.0'
 APPLE_MIN_CONFIDENCE = 0.8
-APPLE_TITLE_MIN_RATIO = 0.9
 APPLE_RECHECK_DAYS = 30
 APPLE_MAX_ROWS_PER_RUN = 200
 APPLE_ARTWORK_RE = re.compile(r'^https://[a-z0-9-]+\.mzstatic\.com/\S+$')
@@ -285,6 +286,9 @@ APPLE_MUSIC_RE = re.compile(r'^https://(music|itunes)\.apple\.com/\S+$')
 APPLE_VARIANT_WORDS = ('instrumental', 'karaoke', 'off vocal', 'offvocal', 'off-vocal', 'remix', 'cover',
                        'acoustic', 'piano ver', 'music box', 'orgel', 'inst.', 'backing track', '8-bit', 'lofi', 'lo-fi')
 # Size/edit tags that keep the same recording (stripped before comparing; the full version wins ties).
+# Live takes are other recordings ("Kimi no Shiranai Monogatari (Live)"); matched as a word so "Alive"
+# or "Deliver" are untouched.
+APPLE_LIVE_RE = re.compile(r'(\blive\b|ライブ)', re.IGNORECASE)
 APPLE_SIZE_TAG_RE = re.compile(
     r'[\(\[\-~～－]\s*(tv\s*size|tv\s*ver(sion|\.)?|tv\s*edit|anime\s*(ver(sion|\.)?|edit|size)|short\s*ver(sion|\.)?|op\s*ver(sion|\.)?|ed\s*ver(sion|\.)?)\s*[\)\]\-~～－]?',
     re.IGNORECASE)
@@ -293,20 +297,40 @@ APPLE_SIZE_TAG_RE = re.compile(
 ARTIST_SPLIT_RE = re.compile(r'\s*(?:,|&|＆|/|、|×|\bfeat\.?(?=\s)|\bft\.?(?=\s)|\bfeaturing\b|(?<=\s)(?:x|vs\.?)(?=\s))\s*',
                              re.IGNORECASE)
 
-def _fold(text):
-    """NFKC, case-folded, macrons stripped, Hepburn long vowels and the particle wo folded."""
+class AppleRateLimited(ValueError):
+    """The storefront kept refusing (403/429) after its retries: the pass stops."""
+
+def _plain(text):
+    """NFKC, case-folded, macrons stripped (no romanisation folds)."""
     t = unicodedata.normalize('NFKC', text or '').casefold()
     t = ''.join(c for c in unicodedata.normalize('NFKD', t) if not unicodedata.combining(c))
-    t = unicodedata.normalize('NFKC', t)
+    return unicodedata.normalize('NFKC', t)
+
+# One Hepburn syllable (optional consonant / digraph, optional y, a vowel), a syllabic n, or the first
+# half of a doubled consonant (gakkou). A word is romanised Japanese when it is only these.
+ROMAJI_WORD_RE = re.compile(r'^(?:(?:sh|ch|ts|[kgsztdnhbpmrjfvwy])?y?[aiueo]|n|([kstpgcdbm])(?=\1))+$')
+
+def is_romaji(text):
+    words = re.findall(r'[^\W\d_]+', _plain(APPLE_SIZE_TAG_RE.sub(' ', unicodedata.normalize('NFKC', text or ''))))
+    return bool(words) and all(w.isascii() and ROMAJI_WORD_RE.match(w) for w in words)
+
+def _fold(text):
+    """NFKC, case-folded, macrons stripped, Hepburn long vowels and the particle wo folded."""
+    t = _plain(text)
     t = re.sub(r'\bwo\b', 'o', t)
     for long_vowel, short in (('ou', 'o'), ('oo', 'o'), ('uu', 'u'), ('aa', 'a'), ('ii', 'i'), ('ee', 'e')):
         t = t.replace(long_vowel, short)
     return t
 
 def normalise_title(text):
-    """Comparable title: size/edit tags removed, folded, punctuation and spaces dropped."""
+    """Comparable romanised title: size/edit tags removed, folded, punctuation and spaces dropped."""
     t = APPLE_SIZE_TAG_RE.sub(' ', unicodedata.normalize('NFKC', text or ''))
     return re.sub(r'[\W_]+', '', _fold(t))
+
+def plain_title(text):
+    """Comparable title without romanisation folds (size/edit tags, case, macrons, punctuation)."""
+    t = APPLE_SIZE_TAG_RE.sub(' ', unicodedata.normalize('NFKC', text or ''))
+    return re.sub(r'[\W_]+', '', _plain(t))
 
 def artist_names(text):
     names = []
@@ -335,16 +359,21 @@ def artist_score(theme_artist, apple_artist):
     return 0.0
 
 def title_score(theme_title, apple_title):
-    a, b = normalise_title(theme_title), normalise_title(apple_title)
+    """1.0 when equal after normalisation (D12), else 0. The romanisation folds apply only when both
+    titles are romanised Japanese; there is no fuzzy ratio (a sequel or a live take is another song)."""
+    a, b = plain_title(theme_title), plain_title(apple_title)
     if not a or not b:
         return 0.0
     if a == b:
         return 1.0
-    ratio = SequenceMatcher(None, a, b).ratio()
-    return round(ratio, 3) if ratio >= APPLE_TITLE_MIN_RATIO else 0.0
+    if is_romaji(theme_title) and is_romaji(apple_title) and normalise_title(theme_title) == normalise_title(apple_title):
+        return 1.0
+    return 0.0
 
 def _is_variant(theme_title, apple_title):
     mine, theirs = (theme_title or '').casefold(), (apple_title or '').casefold()
+    if APPLE_LIVE_RE.search(theirs) and not APPLE_LIVE_RE.search(mine):
+        return True
     return any(word in theirs and word not in mine for word in APPLE_VARIANT_WORDS)
 
 def _https(value, pattern):
@@ -415,12 +444,14 @@ def fetch_itunes(term, country, getter=bounded_get_json, pacer=None, pause=time.
                 retry = error.headers.get('Retry-After') if error.headers else None
                 pause(min(65.0, float(retry)) if retry and re.fullmatch(r'\d+(\.\d+)?', retry) else 60.0)
                 continue
+            if error.code in (403, 429):
+                raise AppleRateLimited('iTunes Search rate limit persisted') from error
             raise
         results = document.get('results') if isinstance(document, dict) else None
         if not isinstance(results, list):
             raise ValueError('unrecognized iTunes Search response')
         return results
-    raise ValueError('iTunes Search rate limit persisted')
+    raise AppleRateLimited('iTunes Search rate limit persisted')
 
 def apple_match_for(title, artist, fetch=fetch_itunes, pacer=None):
     """(match or None, requests made). JP storefront first, then US; no artist = no request, no match."""
@@ -446,6 +477,7 @@ def apple_candidates_path(limit, now=None):
 def run_apple_pass(client, rows, fetch=fetch_itunes, pacer=None, dry_run=False):
     """rows: [{'id': theme uuid, 'song_title': str, 'artist': str|None}]. Returns a summary (no secrets)."""
     summary = {'checked': 0, 'requests': 0, 'matched': 0, 'no_match': 0, 'unverifiable': 0, 'errors': 0,
+               'rate_limited': False,
                'written': {'matched': 0, 'cleared': 0, 'stale': 0}, 'dry_run': dry_run, 'samples': []}
     pending = []
     def flush():
@@ -463,6 +495,12 @@ def run_apple_pass(client, rows, fetch=fetch_itunes, pacer=None, dry_run=False):
         summary['checked'] += 1
         try:
             match, requests = apple_match_for(title, artist, fetch=fetch, pacer=pacer)
+        except AppleRateLimited:
+            # Apple keeps refusing: stop here (what was matched is still written); the rest waits for
+            # the next run instead of 3 attempts and minutes of waiting per remaining row.
+            summary['errors'] += 1
+            summary['rate_limited'] = True
+            break
         except Exception:
             # Transient provider failure: write nothing for this row (it is retried next run).
             summary['errors'] += 1

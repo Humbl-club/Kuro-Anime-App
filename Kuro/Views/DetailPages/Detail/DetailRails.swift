@@ -87,7 +87,8 @@ struct DetailCastRail: View {
                     Text(name)
                         .font(.detailSF(12, .medium, relativeTo: .footnote))
                         .foregroundStyle(Color.kuroInk)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
+                        // Two lines reserved, so the key / voice rows share one baseline across the rail.
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2, reservesSpace: !dynamicTypeSize.isAccessibilitySize)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 8)
@@ -203,7 +204,8 @@ struct DetailMoreLikeThis: View {
                     Text(display.title)
                         .font(.detailSF(12, .medium, relativeTo: .footnote))
                         .foregroundStyle(Color.kuroInk)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
+                        // Two lines reserved, so the key / voice rows share one baseline across the rail.
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2, reservesSpace: !dynamicTypeSize.isAccessibilitySize)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 8)

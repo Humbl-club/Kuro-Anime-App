@@ -29,18 +29,26 @@ titles people open most first and matches how our catalogue was filled.
 
 ## 2. Voice actors: how many per run, AniList limits
 
-Per run (payload below): 4 pages x 10 titles = **40 titles, 4 AniList requests**. One run every
-**2 minutes** = about 2 requests/minute on average.
+> **Corrected 2026-11-03 (integration review).** An earlier version of this runbook said 4 pages
+> per run and "+4 per run". That was wrong: with `runToEnd: false` the handler stops after
+> `pagesPerBatch` pages (`handler.ts`: `if (!runToEnd && processedPages >= pagesPerBatch) break
+> outer;`), `maxPagesPerRun` only applies to `runToEnd: true`, and `scheduleSafe: true` forces
+> `runToEnd` off and caps `pagesPerBatch` at 2. Following the old text would have skipped 3 of every
+> 4 pages while every run reported success. Use the procedure below.
+
+Per run (payload below): **2 pages x 10 titles = 20 titles, 2 AniList requests** (`pagesPerBatch`
+2 is the most `scheduleSafe` allows). One run every **2 minutes** = about 1 request/minute on
+average.
 
 - AniList: the shared limiter spaces requests at 25/minute per isolate
   (`DEFAULT_ANILIST_PER_MINUTE`, `_shared/anilist_client.ts`); AniList's degraded limit is
-  30/minute **across all callers**, and the hourly scheduled tracks share it. 2/minute leaves the
+  30/minute **across all callers**, and the hourly scheduled tracks share it. 1/minute leaves the
   scheduled tracks their room. A 429 honours `Retry-After`; a budget stop commits only fully
   persisted pages.
 - Query cost: the voice-actor fragment makes each page heavier (10 characters, their JAPANESE
-  voice actors). Run ONE page first (`maxPagesPerRun: 1`). A complexity rejection is a GraphQL
-  error: the run fails without writing that page. If that happens, use `perPage: 5` and double the
-  page numbers.
+  voice actors). Run ONE page first (`"pagesPerBatch": 1` for the very first run only). A complexity
+  rejection is a GraphQL error: the run fails without writing that page. If that happens, use
+  `perPage: 5` and double the page numbers.
 - Writes per title: the anime row (only changed columns; mirrored images and an unchanged
   description are kept), studios/tags/characters/staff upserts, and per character a replace of at
   most 3 `character_voice_actors` rows (<= 10 characters, so <= 30 rows and <= 30 staff upserts).
@@ -50,17 +58,19 @@ Per run (payload below): 4 pages x 10 titles = **40 titles, 4 AniList requests**
 - `useCursor: false` + an explicit `startPage`: the run neither reads nor writes `import_state` /
   `import_track_state`, so the scheduled cursors do not move. It takes the import lock; when a
   scheduled run holds it, the backfill run answers `locked` and writes nothing (retry the same page).
+- `IMPORT_HEAVY_ENABLED=false` makes a run answer `{"success": true, "skipped": true}` and import
+  nothing. The filter below prints `skipped` and `reason`, and the loop stops on it.
 
-Totals: wave A = 25 runs (about 50 minutes); wave B = 100 runs (about 3.5 hours).
+Totals: wave A = 100 pages / 2 = **50 runs** (about 1 h 40 min at one run every 2 minutes);
+wave B = 400 pages / 2 = **200 runs** (about 6 h 40 min).
 
-### Payload (one run; change only `startPage`, +4 per run)
+### Payload (one run)
 
 ```json
 {
   "useCursor": false,
   "startPage": 1,
-  "pagesPerBatch": 1,
-  "maxPagesPerRun": 4,
+  "pagesPerBatch": 2,
   "perPage": 10,
   "runToEnd": false,
   "lightweight": false,
@@ -73,15 +83,19 @@ Totals: wave A = 25 runs (about 50 minutes); wave B = 100 runs (about 3.5 hours)
 }
 ```
 
+**`startPage` of the next run = `nextStartPage` of the previous response.** Never add a fixed step.
+
 ```bash
 # IMPORT_SECRET from the secret store, never echoed. One run:
 curl -sS -X POST "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/bulk-import-anime" \
   -H "x-import-secret: ${IMPORT_SECRET:?}" -H "Content-Type: application/json" \
-  -d @payload.json | jq '{success, results, stoppedEarly, nextStartPage}'
+  -d @payload.json | jq '{success, skipped, reason, results, stoppedEarly, nextStartPage}'
 ```
 
-Stop the wave when a run reports `results.errors > 0`, `success: false`, a GraphQL complexity
-error, or repeated 429s; fix, then resume at the same `startPage`.
+Stop the wave (and fix, then resume at the same `startPage`) when a run reports any of:
+`skipped: true`, `success: false`, `results.errors > 0`, a GraphQL complexity error, repeated
+429s, `locked` (retry the same page later), or a `nextStartPage` that is not `startPage + 2`
+(`startPage + 1` for the one-page first run). The wave ends at its last page (100 for A, 500 for B).
 
 ### Verify (read-only)
 
@@ -96,6 +110,42 @@ from public.anime_cast_v1((select id from public.anime where anilist_id = 16498)
 Rollback: `truncate public.character_voice_actors;` (service role). Nothing else references it;
 staff rows added for voice actors are ordinary catalogue rows.
 
+## 3a. Song artists first (before the Apple pass)
+
+The live walk (W15, Cowboy Bebop) showed every song as "Artist not listed": those `theme_links`
+rows have no `artist`. D12 makes no Apple request for a song without an artist, so these songs can
+never gain artwork or a preview until the artist is filled. The AnimeThemes theme pass already reads
+`song.performances.artist.name.main` and `upsert_theme_links_v1` updates `artist` on an existing row
+(`on conflict ... artist = excluded.artist`), so the fix is a re-run of the theme pass for the titles
+whose songs have no artist. The app no longer repeats "Artist not listed" on every row when none of a
+title's songs has one (one footer note instead).
+
+1. Measure coverage (read-only, lead):
+
+```sql
+select count(*) as themes,
+       count(*) filter (where nullif(btrim(artist), '') is null) as without_artist,
+       round(100.0 * count(*) filter (where nullif(btrim(artist), '') is not null) / nullif(count(*), 0), 1) as artist_pct,
+       count(distinct anime_id) filter (where nullif(btrim(artist), '') is null) as titles_with_a_gap
+from public.theme_links;
+```
+
+2. Re-run the theme pass for those titles (AnimeThemes <= 90 requests/minute, 25 AniList ids per
+   request; owner endorsement D11 applies as before):
+
+```sql
+-- the AniList ids to pass to --anilist-ids, 25 at a time (read-only):
+select distinct a.anilist_id from public.theme_links t join public.anime a on a.id = t.anime_id
+where nullif(btrim(t.artist), '') is null and a.anilist_id is not null order by 1;
+```
+
+```bash
+python3 scripts/series_enrichment_worker.py --apply --allow-hosted --themes --anilist-ids 1,5,30,...
+```
+
+3. Measure again. Rows AnimeThemes itself has no performer for stay without an artist (and without
+   an Apple match); that remaining share is the number to report next to the backfill.
+
 ## 3. Apple song matches (`scripts/series_enrichment_worker.py --apple`)
 
 Needs `theme_links` rows (the AnimeThemes backfill ran at go-live on 2026-11-02) and the two theme
@@ -107,7 +157,10 @@ migrations above.
 - Per run: `--limit` rows (max 200) of `theme_links` never checked or checked more than 30 days
   ago, oldest first. 200 rows = at most 400 requests = at most 20 minutes.
 - Matching is strict (title AND artist, confidence >= 0.8, variants such as karaoke/instrumental/
-  off vocal/cover/remix rejected). A row without an artist is recorded as checked with no match,
+  off vocal/cover/remix/live rejected; titles must be equal after normalisation, no fuzzy ratio, so
+  "COLORS 2" never stands in for "COLORS"; the Hepburn long-vowel folds apply only to romanised
+  Japanese titles, so "Shout" never equals "Shot"). A storefront that keeps refusing (403/429 after
+  its retries) stops the pass with `rate_limited: true`; wait an hour before the next run. A row without an artist is recorded as checked with no match,
   without a request. Writes go through `upsert_theme_apple_matches_v1`; a row whose title/artist
   changed after it was read is skipped (stale).
 

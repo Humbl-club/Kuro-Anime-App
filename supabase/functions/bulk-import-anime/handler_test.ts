@@ -822,3 +822,60 @@ Deno.test("voiceActorsOfEdge / voiceActorStaffRow: pure rules", () => {
   assert.deepEqual(voiceActorsOfEdge({ voiceActors: [] }, { id: 1 }), [], "AniList lists none");
   assert.deepEqual(voiceActorStaffRow({ id: 9, name: { full: " ", native: "名" }, image: { large: "http://insecure" } }), { anilist_id: 9, name_native: "名" });
 });
+
+// The voice-actor backfill runbook (docs/details-songs-2026-11-03/data/BACKFILL.md §2): its exact
+// payload imports TWO pages per run and answers nextStartPage = startPage + 2, so the next run's
+// startPage is always the previous nextStartPage (never a fixed step that skips pages).
+Deno.test("backfill runbook payload: 2 pages per run, nextStartPage = startPage + 2, no cursor written", async () => {
+  for (const startPage of [1, 3, 101]) {
+    const db = new Db();
+    const pages: number[] = [];
+    const res = await run({
+      useCursor: false,
+      startPage,
+      pagesPerBatch: 2,
+      perPage: 10,
+      runToEnd: false,
+      lightweight: false,
+      includeRelations: true,
+      includeEpisodes: false,
+      includeVoiceActors: true,
+      forceRefresh: true,
+      scheduleSafe: true,
+      delayMs: 0,
+    }, {
+      supabase: db,
+      heavyImportsEnabled: true,
+      fetchPage(page) {
+        pages.push(page);
+        return Promise.resolve([media(9000 + page)]);
+      },
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.success, true);
+    assert.deepEqual(pages, [startPage, startPage + 1], `pages for startPage ${startPage}`);
+    assert.equal(body.nextStartPage, startPage + 2);
+    assert.equal(cursor(db), undefined, "the scheduled cursor moved");
+  }
+});
+
+Deno.test("backfill runbook: scheduleSafe caps pagesPerBatch at 2 (a larger value never skips pages silently)", async () => {
+  const db = new Db();
+  const pages: number[] = [];
+  const res = await run({
+    useCursor: false, startPage: 7, pagesPerBatch: 4, maxPagesPerRun: 4, perPage: 10, runToEnd: false,
+    lightweight: false, includeRelations: true, includeEpisodes: false, includeVoiceActors: true,
+    forceRefresh: true, scheduleSafe: true, delayMs: 0,
+  }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page) {
+      pages.push(page);
+      return Promise.resolve([media(9100 + page)]);
+    },
+  });
+  const body = await res.json();
+  assert.deepEqual(pages, [7, 8]);
+  assert.equal(body.nextStartPage, 9);
+});

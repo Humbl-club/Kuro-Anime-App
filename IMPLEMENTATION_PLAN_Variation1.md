@@ -1595,3 +1595,4 @@ Status: integrated locally on `kuro/details-songs-platform` (lanes data, platfor
 | 12 Import restyle | Done (strings byte-identical) |
 | 13 Edge peek, Discover All, VoiceOver | Peek done (`KuroRailPeek`); Discover All 2,102 pt (aim ~2,000) open; VoiceOver correct by construction, device check open |
 
+Review fixes (2026-11-03 evening, same branch, local only): timeline schedule precedence (D5), studio year rows, character metadata lines, iPad hero column, preview `.playback` + 10 s timeout, widget absolute days + own +1 cap, bell overrides follow status, Library-load-safe notification plan, readable disabled ink button, corrected voice-actor backfill runbook + artist §3a, stricter Apple worker. Open for the lead: Discover All 2,102 pt (acceptance 2,000), backend apply/backfill order in `docs/details-songs-2026-11-03/data/BACKFILL.md` (artists §3a before the Apple pass), device checks.

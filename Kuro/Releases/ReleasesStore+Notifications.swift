@@ -146,15 +146,36 @@ extension ReleasesStore {
         }
     }
 
-    /// The current plan for the account (pure inputs; tests read it).
+    /// The current plan for the account (pure inputs; tests read it). Only titles the account still
+    /// watches or reads notify: a bell turned on for a title later paused, planned, finished or removed
+    /// goes quiet with it (its bell is hidden then, so nothing else could turn it off).
     func plannedReleaseNotifications(now: Date = Date()) -> [PlannedReleaseNotification] {
-        let watching = releaseNotificationsEnabled
-            ? Set((library?.allEntries ?? []).filter { $0.status == .current || $0.status == .repeating }.map(\.key))
-            : []
-        let following = watching.union(allowedReleaseNotificationKeys)
+        let followed = Set((library?.allEntries ?? []).filter { $0.status == .current || $0.status == .repeating }.map(\.key))
+        let watching = releaseNotificationsEnabled ? followed : []
+        let following = watching.union(allowedReleaseNotificationKeys.intersection(followed))
         return ReleaseNotificationPlanner.plan(
             items: scheduleItems(for: nil, now: now), following: following, muted: mutedReleaseNotificationKeys,
             now: now, german: KuroLocale.isGerman, locale: KuroLocale.locale, timeZone: KuroLocale.timeZone)
+    }
+
+    /// Re-plans once when the Library reaches `.loaded` (one observation at a time).
+    private func observeLibraryLoadForReleaseNotifications(_ library: LibraryStore) {
+        guard !awaitsLibraryLoadForReleaseNotifications else { return }
+        awaitsLibraryLoadForReleaseNotifications = true
+        withObservationTracking {
+            _ = library.loadState
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, self.awaitsLibraryLoadForReleaseNotifications else { return }
+                self.awaitsLibraryLoadForReleaseNotifications = false
+                guard let library = self.library else { return }
+                if library.loadState == .loaded {
+                    self.scheduleReleaseNotificationsSoon()
+                } else {
+                    self.observeLibraryLoadForReleaseNotifications(library)
+                }
+            }
+        }
     }
 
     /// Commits the current plan now (no-op when off or signed out).
@@ -168,6 +189,12 @@ extension ReleasesStore {
                 await reminders.removeAllReleaseNotifications().value
             }
             return .notAuthorized
+        }
+        // Until the Library holds the account's rows, "watching" is unknown: keep what is pending and
+        // re-plan once it loads (never remove every watched title's notification at launch).
+        if let library, library.loadState != .loaded {
+            observeLibraryLoadForReleaseNotifications(library)
+            return .obsolete
         }
         let plan = plannedReleaseNotifications(now: now)
         // Nothing to add and nothing of ours committed for this account: no device round trip.

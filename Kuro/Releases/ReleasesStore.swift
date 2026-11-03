@@ -154,6 +154,8 @@ final class ReleasesStore: AccountScopedState {
     /// Whether the last commit for this account left release notifications pending (an empty plan
     /// then still needs one commit to remove them).
     @ObservationIgnored var hasCommittedReleaseNotifications = false
+    /// A plan was skipped because the Library had not loaded yet; its load re-plans once.
+    @ObservationIgnored var awaitsLibraryLoadForReleaseNotifications = false
 
     // MARK: AccountScopedState
 
@@ -162,6 +164,7 @@ final class ReleasesStore: AccountScopedState {
         libraryChangeTask = nil
         releaseNotificationTask?.cancel()
         releaseNotificationTask = nil
+        awaitsLibraryLoadForReleaseNotifications = false
         scheduleRefreshTask?.cancel()
         scheduleRefreshTask = nil
         upcomingLoads.cancelAll()

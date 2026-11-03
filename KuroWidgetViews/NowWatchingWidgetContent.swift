@@ -78,7 +78,7 @@ struct NowWatchingWidgetContent<Key: View>: View {
                         WidgetLinked(url: item.deepLink) {
                             NowWatchingRow(item: item, german: german,
                                            nextLine: WidgetLayout.nextReleaseLine(for: item, in: snapshot, at: date,
-                                                                                  german: german))
+                                                                                  german: german, prefixed: roomy))
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(WidgetLayout.rowLabel(item, german: german))
@@ -196,11 +196,13 @@ struct NowWatchingRow: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(WidgetPalette.title)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                 if let nextLine {
                     Text(nextLine)
                         .font(.system(size: 9, weight: .regular))
                         .foregroundStyle(WidgetPalette.muted)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

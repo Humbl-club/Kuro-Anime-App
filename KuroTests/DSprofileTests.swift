@@ -80,6 +80,9 @@ struct DSprofileTests {
     func dataSources() {
         #expect(DataSourcesCopy.appleMusic(german: false).contains("Apple sees your IP address"))
         #expect(DataSourcesCopy.appleMusic(german: true).contains("sieht Apple deine IP-Adresse"))
+        // The artwork loads when the songs are shown (as the privacy policy §4.16 says), not only on ▶.
+        #expect(DataSourcesCopy.appleMusic(german: false).contains("artwork loads from Apple when the songs are shown"))
+        #expect(DataSourcesCopy.appleMusic(german: true).contains("sobald die Songs angezeigt werden"))
         #expect(DataSourcesCopy.onDevice(german: false) == "Widgets and release reminders stay on this device.")
         #expect(DataSourcesCopy.onDevice(german: true) == "Widgets und Erinnerungen an Neuerscheinungen bleiben auf diesem Gerät.")
     }

@@ -191,7 +191,7 @@ Rules:
 - Sentence case would change a copy literal. It is recorded as an owner choice (§18), not applied.
 
 **D17. Discover All.**
-- **Measured baseline.** The committed render `docs/discover-clubs-2026-11-03/after/discover-all-full-390.jpg` ends its content at about **1,641 pt** with the fold closed. The aim of about 2,000 pt or less already holds.
+- **Measured baseline (CORRECTED 2026-11-03 integration review).** The committed render `docs/discover-clubs-2026-11-03/after/discover-all-full-390.jpg` ends its content at about 1,641 px of a 2,702 px canvas, but that render is vertically squashed to about 61 % (2:3 covers measure about 106 × 92 px; the hero card is 170 pt tall there and 278 pt in an undistorted render). The real pre-change length was therefore about **2,700 pt**, not 1,641 pt, and "the aim of about 2,000 pt or less already holds" was false. The undistorted after render (this pass) is **2,102 pt**: a real reduction of about 600 pt, but about 100 pt over the 2,000 pt acceptance and about 600 pt over the 1,500 pt target. The next layout step (for example Trending or Manga new to you into the fold, or no Airing-today strip on All) is a lead decision, recorded open in §17.
 - **The lead decision is applied anyway:**
   - On All, "Manga new to you" becomes **one rail**.
   - On All, "Essential manga" moves **into the fold** as its first section.
@@ -944,7 +944,7 @@ The canvas is #FFFEF8 (`WidgetPalette.canvas`). Content margins are the system's
 **Which titles are on:** a title's effective state is `override[key] ?? (mode == .followed && status ∈ {.current, .repeating})`.
 
 **What gets scheduled:**
-- For every title that is on: its next two eligible rows.
+- For every title that is on: its next two eligible rows. **As built:** the account schedule (`user_release_schedule_v1`, and its `user_airing_next` fallback) returns one row per title, so the planner (`perTitle = 2`) schedules only the **next** release per title; the following one is planned when the app runs again. Two rows per title need an RPC that returns two units per title (open, §17).
 - Soonest first, capped at 48 pending requests in total.
 - Each one triggers at `releaseAt` (`UNCalendarNotificationTrigger`, device time zone).
 
@@ -1132,7 +1132,7 @@ A new section **"Your numbers."** / **"Deine Zahlen."** sits after Identity and 
 
 **Unchanged:** the Anime and Manga issues, the section order and the flag gating (`DiscoverLaneTests`).
 
-**Render:** `discover-all-full-390.jpg` is cropped to the content height. Report the measured height against the 1,641 pt baseline. Target 1,500 pt or less; acceptance 2,000 pt or less.
+**Render:** `discover-all-full-390.jpg` is cropped to the content height. Report the measured height against the corrected baseline of about 2,700 pt (D17; the 1,641 pt figure came from a squashed render). Target 1,500 pt or less; acceptance 2,000 pt or less. Measured after this pass: 2,102 pt (acceptance missed by about 100 pt, open).
 
 ### 14.3 VoiceOver order (correct by construction; device check OPEN)
 
@@ -1183,10 +1183,10 @@ Every string goes through `KuroLocale.text(en, de)` or the owning lane's copy en
 | Notifications | §11.3 | §11.3 | NEW |
 | Profile | Your numbers. / Counted on this device / Episodes · Chapters / across {n} anime / across {n} manga / time strings and caveat §12.2 / Top genres / by titles on your lists / YEAR / {n} titles this year / {n} titles saved or changed / {k} of them now completed / Most time: {title} / honest note §12.3 / Your numbers appear once you save a title. / Release reminders + subtitle §12.3 / Open Settings | Deine Zahlen. / Auf diesem Gerät gezählt / Folgen · Kapitel / aus {n} Anime / aus {n} Manga / §12.2 / Top-Genres / nach Titeln auf deinen Listen / JAHR / {n} Titel dieses Jahr / {n} Titel gespeichert oder geändert / {k} davon abgeschlossen / Meiste Zeit: {title} / §12.3 / Deine Zahlen erscheinen, sobald du einen Titel speicherst. / Erinnerungen an Neuerscheinungen + §12.3 / Einstellungen öffnen | NEW |
 | Import | every visible string | (as shipped) | EXISTING, byte-identical; the kicker "IMPORT · ANILIST" / "IMPORT · ANILIST" is NEW |
-| Data sources (About) | "Apple Music: song artwork and 30-second previews from Apple's iTunes catalogue. A preview streams from Apple only when you tap ▶, so Apple sees your IP address then." / "Widgets and release reminders stay on this device." | „Apple Music: Song-Cover und 30-Sekunden-Vorschauen aus Apples iTunes-Katalog. Eine Vorschau wird erst gestreamt, wenn du auf ▶ tippst; dabei sieht Apple deine IP-Adresse.“ / „Widgets und Erinnerungen an Neuerscheinungen bleiben auf diesem Gerät.“ | NEW |
+| Data sources (About) | "Apple Music: song artwork and 30-second previews from Apple's iTunes catalogue. The artwork loads from Apple when the songs are shown, and a preview streams from Apple only when you tap ▶; both times Apple sees your IP address." / "Widgets and release reminders stay on this device." | „Apple Music: Song-Cover und 30-Sekunden-Vorschauen aus Apples iTunes-Katalog. Die Cover lädt dein Gerät von Apple, sobald die Songs angezeigt werden, und eine Vorschau wird erst gestreamt, wenn du auf ▶ tippst; beide Male sieht Apple deine IP-Adresse.“ / „Widgets und Erinnerungen an Neuerscheinungen bleiben auf diesem Gerät.“ | NEW |
 
 **Dates and numbers:**
-- Dates are always worded by `ReleaseCopy` (en_GB / de_DE patterns, device time zone; the default is Europe/Berlin).
+- Dates are always worded by `ReleaseCopy`: German readers get `de_DE` and Europe/Berlin; English readers get the **device** locale and time zone (`KuroLocale`), so an English device in Germany (`en_US@rg=de`, as the render simulator is) reads "Score 8,6" and "Fri, Nov 6, 15:25". en_GB is an example, not a pinned locale. Text stored for later (the widget snapshot) never uses "today"/"tomorrow" (`ReleaseCopy.withoutRelativeDays()`).
 - Numbers use `KuroLocale`'s locale: "1,284" / "1.284", "8.6" / "8,6".
 
 ---
@@ -1340,6 +1340,15 @@ final class ReleaseReminders: AccountScopedState {
 **Not built tonight**
 11. **"All characters" directory page:** not built tonight. The rail shows up to 25 characters.
 
+**Recorded at integration (2026-11-03 review)**
+12. **Discover All is 2,102 pt** against the 2,000 pt acceptance (D17, corrected baseline about 2,700 pt). The next cut is a lead layout decision.
+13. **Song preview: stop, not pause.** The built player has no paused phase; ▶ / ■ stops and a second tap restarts at 0:00. The ■ glyph and "Stop preview" / "Hörprobe stoppen" are what ships (§8.3 and §15 asked for ❚❚ and "Pause preview").
+14. **Song preview player is composition-owned** (`Kuro/Releases/SongPreviewPlayer.swift`, built once by `AppComposition`, `AccountScopedState`, injected with `.environment`), not the page-scoped `@State` of §8.6, so one preview at a time holds across pages and every account transition stops it. Audio session `.playback` / `.default` as §8.6 says (an interim `.soloAmbient` was corrected at integration), and a 10 s load timeout fails a stalled stream.
+15. **Next release per title only** (§11.2 as built): two rows per title need a schedule read that returns two units per title.
+16. **Manga read run keeps one row** (§7.4): the prototype's manga reference (ref-detail-manga-390.png) shows only the last read chapter under Up next, so the manga run folds `1…(progress − 1)` while the anime run folds `1…(progress − 2)`. Recorded as the prototype exception.
+17. **Song artists missing live** (W15 Cowboy Bebop: all four songs). The app now shows one footer note instead of a per-row "Artist not listed" when no song on a shelf names its artist; the data fix is the theme pass re-run in `docs/details-songs-2026-11-03/data/BACKFILL.md` §3a, before the Apple pass (an artistless song gets no Apple request, D12).
+18. **Evidence gaps:** no render of the import review rows / match-picker candidates with a fixture job, the bell toasts and the denied / Settings / failed states (§11.4), or club presence with "Between us." after "More like this." (the after detail fixtures have no club data). The Profile reminders Toggle renders as a knobless capsule in the snapshot (an `ImageRenderer` artefact; the live walk shows a real switch).
+
 ---
 
 ## 18. Owner choices (decided by the lead; the owner said "don't ask")
@@ -1352,7 +1361,7 @@ final class ReleaseReminders: AccountScopedState {
 6. **No mini-player.** One preview at a time, page-scoped (D11).
 7. **Import primary button stays upper case** (copy rule, D16). Sentence case ("Read complete list for review") is a one-line copy change if the owner wants it.
 8. **"Your year" counts titles saved or changed,** with the honest note (D15).
-9. **Discover All:** Manga new to you as a rail, and Essential manga into the fold, although the 2,000 pt aim already held (D17).
+9. **Discover All:** Manga new to you as a rail, and Essential manga into the fold (D17). The premise "the 2,000 pt aim already held" was wrong (squashed baseline render); after this change All is 2,102 pt, about 600 pt shorter than before and about 100 pt over the aim (§17 item 12).
 10. **Entity pages use `kuroPaper`,** the same paper as the detail page they are pushed from.
 
 ---

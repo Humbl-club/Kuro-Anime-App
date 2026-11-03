@@ -32,6 +32,10 @@ nonisolated enum SongShelfCopy {
     static func otherSongs(german: Bool) -> String { german ? "Weitere Songs" : "Other songs" }
     static func tvSize(german: Bool) -> String { german ? "TV-Version" : "TV size" }
     static func artistNotListed(german: Bool) -> String { german ? "Künstler nicht angegeben" : "Artist not listed" }
+    /// The one footer note when no song on the shelf names its artist.
+    static func artistsNotListed(german: Bool) -> String {
+        german ? "Künstler sind in der Quelle nicht angegeben." : "Artists not listed by the source."
+    }
     static func playLabel(_ title: String, german: Bool) -> String {
         german ? "Vorschau von \(title) abspielen" : "Play preview of \(title)"
     }

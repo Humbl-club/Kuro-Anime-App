@@ -115,8 +115,8 @@ private struct DataSourceRow: View {
 nonisolated enum DataSourcesCopy {
     static func appleMusic(german: Bool) -> String {
         german
-            ? "Apple Music: Song-Cover und 30-Sekunden-Vorschauen aus Apples iTunes-Katalog. Eine Vorschau wird erst gestreamt, wenn du auf ▶ tippst; dabei sieht Apple deine IP-Adresse."
-            : "Apple Music: song artwork and 30-second previews from Apple's iTunes catalogue. A preview streams from Apple only when you tap ▶, so Apple sees your IP address then."
+            ? "Apple Music: Song-Cover und 30-Sekunden-Vorschauen aus Apples iTunes-Katalog. Die Cover lädt dein Gerät von Apple, sobald die Songs angezeigt werden, und eine Vorschau wird erst gestreamt, wenn du auf ▶ tippst; beide Male sieht Apple deine IP-Adresse."
+            : "Apple Music: song artwork and 30-second previews from Apple's iTunes catalogue. The artwork loads from Apple when the songs are shown, and a preview streams from Apple only when you tap ▶; both times Apple sees your IP address."
     }
 
     static func onDevice(german: Bool) -> String {

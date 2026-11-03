@@ -464,11 +464,29 @@ struct EntityPagesTests {
         #expect(EntityPageCopy.inYourList(title: "X", detail: nil, german: true) == "In deiner Liste: X")
     }
 
+    @Test("Artists: one footer note when no song names its artist, the per-row word otherwise")
+    func artistCoverage() {
+        let bare = [ThemeSong(kind: .opening, sequence: 1, title: "Tank!", artist: nil),
+                    ThemeSong(kind: .ending, sequence: 1, title: "The Real Folk Blues", artist: "  ")]
+        #expect(!SongShelfGrouping.anyArtist(bare))
+        #expect(SongShelfGrouping.anyArtist(bare + [ThemeSong(kind: .insert, sequence: 1, title: "X", artist: "Seatbelts")]))
+        #expect(SongShelfCopy.artistsNotListed(german: false) == "Artists not listed by the source.")
+        #expect(SongShelfCopy.artistsNotListed(german: true) == "Künstler sind in der Quelle nicht angegeben.")
+    }
+
     @Test("Description: HTML, spoiler blocks and bold markers removed; empty becomes nil")
     func description() {
         let raw = "__Height:__ 190cm<br><br>A teacher. ~!He is the\nstrongest.!~ Kind.<i>!</i>"
-        let cleaned = EntityPageCopy.description(raw) ?? ""
-        #expect(cleaned.hasPrefix("Height: 190cm"))
+        let cleaned = EntityPageCopy.description(raw, liftingFacts: true) ?? ""
+        // Leading AniList metadata lines leave the prose and go to the hero's facts line (§9.1);
+        // a staff or author bio keeps them as written.
+        #expect(cleaned.hasPrefix("A teacher."))
+        #expect((EntityPageCopy.description(raw) ?? "").hasPrefix("Height: 190cm"))
+        #expect(EntityPageCopy.leadingFacts(raw).facts == ["Height: 190cm"])
+        let many = "__Initial Age:__ 28<br>__Height:__ 190 cm<br>__Birthday:__ December 7<br>__Affiliation:__ Tokyo Jujutsu High<br><br>Prose."
+        #expect(EntityPageCopy.leadingFacts(many).facts == ["Height: 190 cm", "Birthday: December 7"])
+        #expect(EntityPageCopy.description(many, liftingFacts: true) == "Prose.")
+        #expect(EntityPageCopy.leadingFacts("No metadata here.").facts.isEmpty)
         #expect(cleaned.contains("A teacher."))
         #expect(cleaned.contains("Kind."))
         #expect(!cleaned.contains("strongest"))

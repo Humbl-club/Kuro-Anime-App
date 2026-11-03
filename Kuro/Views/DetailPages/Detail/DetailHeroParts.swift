@@ -53,11 +53,14 @@ struct DetailFactsLine: View {
             let accent = tone == .onMaterial ? Color.white.opacity(0.95) : Color.kuroInk
             parts.enumerated().reduce(Text(verbatim: "")) { line, item in
                 let (index, part) = item
-                let separator = index == 0 ? Text(verbatim: "") : Text(verbatim: " · ").foregroundStyle(base)
+                // The dot stays with the part before it and a part never splits ("Score 8.5" is one
+                // unit), so a wrap never leaves a dangling " ·" or half a part on a line.
+                let separator = index == 0 ? Text(verbatim: "") : Text(verbatim: "\u{00A0}· ").foregroundStyle(base)
+                let words = part.text.replacingOccurrences(of: " ", with: "\u{00A0}")
                 let piece = part.isScore
-                    ? Text(part.text).fontWeight(.medium).foregroundStyle(accent)
-                    : Text(part.text).foregroundStyle(base)
-                return line + separator + piece
+                    ? Text(verbatim: words).fontWeight(.medium).foregroundStyle(accent)
+                    : Text(verbatim: words).foregroundStyle(base)
+                return Text("\(line)\(separator)\(piece)")
             }
             .font(.detailSF(Self.size(width: width), relativeTo: .caption1))
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
