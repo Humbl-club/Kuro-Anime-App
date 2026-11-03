@@ -41,6 +41,11 @@ struct DetailFactsLine: View {
     let parts: [DetailFacts.Part]
     var tone: DetailCertaintyMark.Tone = .onMaterial
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The line's measured width: 9 pt in a compact column (a 320 pt phone), 10 pt otherwise (§6.10).
+    @State private var width: CGFloat = 0
+
+    /// A 320 pt phone's hero column (320 − 2 × 24); the page column there is ≤ 328.
+    nonisolated static func size(width: CGFloat) -> CGFloat { width > 0 && width <= 280 ? 9 : 10 }
 
     var body: some View {
         if !parts.isEmpty {
@@ -54,10 +59,13 @@ struct DetailFactsLine: View {
                     : Text(part.text).foregroundStyle(base)
                 return line + separator + piece
             }
-            .font(.detailSF(10, relativeTo: .caption1))
+            .font(.detailSF(Self.size(width: width), relativeTo: .caption1))
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { value in
+                if abs(width - value) > 0.5 { width = value }
+            }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(DetailFacts.spoken(parts))
         }

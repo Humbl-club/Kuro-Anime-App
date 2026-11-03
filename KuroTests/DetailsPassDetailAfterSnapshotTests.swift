@@ -53,7 +53,8 @@ struct DetailsPassDetailAfterSnapshotTests {
         await render(page, width: 390, height: 844, name: "detail-anime-top-390")
         await render(page, width: 390, height: 844, name: "detail-anime-full-390", fullPage: true)
         await render(page, width: 320, height: 700, name: "detail-anime-top-320")
-        await render(page, width: Self.iPadWidth, height: 1_112, name: "detail-anime-top-ipad")
+        await render(page.environment(\.horizontalSizeClass, .regular), width: Self.iPadWidth, height: 1_112,
+                     name: "detail-anime-top-ipad")
         await renderAX5(page, width: 390, name: "detail-anime-top-ax5-390")
 
         // The timeline's watched run open (F1-F3 fold memory).
@@ -117,7 +118,8 @@ struct DetailsPassDetailAfterSnapshotTests {
         await render(page, width: 390, height: 844, name: "detail-manga-top-390")
         await render(page, width: 390, height: 844, name: "detail-manga-full-390", fullPage: true)
         await render(page, width: 320, height: 700, name: "detail-manga-top-320")
-        await render(page, width: Self.iPadWidth, height: 1_112, name: "detail-manga-top-ipad")
+        await render(page.environment(\.horizontalSizeClass, .regular), width: Self.iPadWidth, height: 1_112,
+                     name: "detail-manga-top-ipad")
         let german = await withGerman {
             await render(page, width: 390, height: 844, name: "detail-manga-de-390", fullPage: true)
         }

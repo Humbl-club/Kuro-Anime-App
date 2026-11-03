@@ -154,6 +154,8 @@ struct AnimeDetailPage: View {
     @State private var similarKey: String?
     /// The page's Plan controller for the "More like this." keys (one toast with Undo).
     @State private var plans = TastePlanController()
+    /// The episodes source holds a row past this season's total (the wrong-season stills probe).
+    @State private var sourceExceedsTotal = false
 
     private var german: Bool { KuroLocale.isGerman }
     private var entry: LibraryEntry? { library.entry(for: anime.libraryKey) }
@@ -471,6 +473,7 @@ struct AnimeDetailPage: View {
                               confirmTrigger: confirmTrigger,
                               showsAll: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.units),
                               showsWatched: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.watched),
+                              sourceExceedsTotal: sourceExceedsTotal,
                               onCollapse: { foldCollapsed(.units, proxy: proxy) }) { next in
                 advance(to: next, origin: origin)
             }
@@ -770,9 +773,19 @@ struct AnimeDetailPage: View {
         guard preview == nil else { return }
         defer { pending.remove(.units) }
         // From the episode before the last watched one: the timeline draws the last two watched rows.
-        let loaded = await catalog.fetchEpisodesNext(animeId: anime.id, fromNumber: max(1, progress - 1), limit: 10)
+        async let rows = catalog.fetchEpisodesNext(animeId: anime.id, fromNumber: max(1, progress - 1), limit: 10)
+        // One row past the season's total means the list belongs to another season (JJK S2 carries
+        // Season 1's 24 episodes): its stills, titles and dates are not shown. Settled with the rows.
+        async let probe = probeBeyondTotal()
+        let (loaded, exceeds) = await (rows, probe)
         guard !Task.isCancelled else { return }
         content.episodes = loaded
+        sourceExceedsTotal = exceeds
+    }
+
+    private func probeBeyondTotal() async -> Bool {
+        guard let total else { return false }
+        return !(await catalog.fetchEpisodesPage(animeId: anime.id, offset: total, limit: 1)).isEmpty
     }
 
     private func loadWatchLinks() async {

@@ -30,6 +30,8 @@ struct AnimeUnitsSection: View {
     @Binding var showsAll: Bool
     /// The watched run open or closed (F3, `DetailFold.watched`).
     @Binding var showsWatched: Bool
+    /// The page's probe found a row past the season's total (`EpisodeStillPolicy` rule 1).
+    var sourceExceedsTotal = false
     /// F2: the page scrolls the episodes back into view after they fold, when needed.
     var onCollapse: () -> Void = {}
     let onAdvance: (Int) -> Void
@@ -59,7 +61,8 @@ struct AnimeUnitsSection: View {
 
     private var verdict: EpisodeStillPolicy.Verdict {
         // The ladder carries no episode counts, so the earlier seasons' total is unknown here (open).
-        EpisodeStillPolicy.verdict(numbers: sourceRows.map(\.number), total: total, priorEpisodes: nil)
+        EpisodeStillPolicy.verdict(numbers: sourceRows.map(\.number), total: total, priorEpisodes: nil,
+                                   sourceExceedsTotal: sourceExceedsTotal)
     }
 
     /// Trusted source rows by this season's number; empty when the guard rejects the list.
@@ -117,7 +120,15 @@ struct AnimeUnitsSection: View {
                 if let run {
                     runLine(run)
                     if showsWatched {
-                        ForEach(Array(run), id: \.self) { number in row(number) }
+                        let rows = DetailTimeline.runRows(run)
+                        if let earlier = rows.earlier {
+                            Text(DetailTimeline.runLine(earlier, german: german))
+                                .font(.detailSF(10, relativeTo: .caption1))
+                                .foregroundStyle(Color.kuroMuted)
+                                .padding(.leading, 27)
+                                .frame(minHeight: 32, alignment: .leading)
+                        }
+                        ForEach(rows.shown, id: \.self) { number in row(number) }
                     }
                 }
                 ForEach(before, id: \.self) { number in row(number) }

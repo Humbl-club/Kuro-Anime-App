@@ -279,6 +279,14 @@ nonisolated enum EpisodeStillPolicy {
         // 4. Anything else.
         return reject
     }
+
+    /// The page loads about ten rows at a time, so a source with more rows than the season is found by
+    /// one probe past the total (`fetchEpisodesPage(offset: total, limit: 1)`): rule 1 without the
+    /// whole list. A failed probe answers empty, so the guard then falls back to the numbers alone.
+    static func verdict(numbers: [Int], total: Int?, priorEpisodes: Int?, sourceExceedsTotal: Bool) -> Verdict {
+        if sourceExceedsTotal, let total, total > 0 { return Verdict(showsSourceRows: false, offset: 0) }
+        return verdict(numbers: numbers, total: total, priorEpisodes: priorEpisodes)
+    }
 }
 
 // MARK: Timeline (§6.4)
@@ -288,6 +296,16 @@ nonisolated enum DetailTimeline {
     static func watchedRun(progress: Int, isTracked: Bool) -> ClosedRange<Int>? {
         guard isTracked, progress >= 3 else { return nil }
         return 1...(progress - 2)
+    }
+
+    /// The open watched run draws at most `cap` rows (the latest ones); the earlier ones stay one quiet
+    /// line, so a long series never builds a thousand rows inside the page.
+    static let runCap = 50
+
+    static func runRows(_ run: ClosedRange<Int>, cap: Int = runCap) -> (earlier: ClosedRange<Int>?, shown: [Int]) {
+        guard run.count > cap else { return (nil, Array(run)) }
+        let first = run.upperBound - cap + 1
+        return (run.lowerBound...(first - 1), Array(first...run.upperBound))
     }
 
     /// The plain rows of the collapsed timeline (Up next is drawn as its own card, the watched run as

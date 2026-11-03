@@ -179,6 +179,29 @@ struct DSdetailTests {
         #expect(EpisodeStillPolicy.verdict(numbers: [1, 2, 3], total: nil, priorEpisodes: nil).showsSourceRows)
         #expect(!EpisodeStillPolicy.verdict(numbers: [13, 14], total: nil, priorEpisodes: nil).showsSourceRows)
         #expect(EpisodeStillPolicy.verdict(numbers: [], total: 12, priorEpisodes: nil).showsSourceRows)
+        // The live page loads ~10 rows: rows 5–14 look clean, the probe past the total rejects them.
+        #expect(EpisodeStillPolicy.verdict(numbers: Array(5...14), total: 23, priorEpisodes: nil).showsSourceRows)
+        #expect(!EpisodeStillPolicy.verdict(numbers: Array(5...14), total: 23, priorEpisodes: nil,
+                                            sourceExceedsTotal: true).showsSourceRows)
+        #expect(EpisodeStillPolicy.verdict(numbers: Array(5...14), total: 23, priorEpisodes: nil,
+                                           sourceExceedsTotal: false).showsSourceRows)
+    }
+
+    @Test("Timeline: an open watched run draws at most 50 rows, the earlier ones as one line")
+    func runCap() {
+        let short = DetailTimeline.runRows(1...4)
+        #expect(short.earlier == nil && short.shown == [1, 2, 3, 4])
+        let long = DetailTimeline.runRows(1...1_098)
+        #expect(long.shown.count == 50)
+        #expect(long.shown.first == 1_049 && long.shown.last == 1_098)
+        #expect(long.earlier == 1...1_048)
+    }
+
+    @Test("Facts line: 9 pt in a 320 pt phone's hero column, 10 pt otherwise")
+    func factsSize() {
+        #expect(DetailFactsLine.size(width: 272) == 9)
+        #expect(DetailFactsLine.size(width: 342) == 10)
+        #expect(DetailFactsLine.size(width: 0) == 10)
     }
 
     // MARK: §6.4 Timeline
