@@ -9,6 +9,7 @@ import io
 import json
 import unittest
 import urllib.error
+import urllib.parse
 from unittest.mock import patch
 import series_enrichment_worker as worker
 
@@ -218,6 +219,166 @@ class ThemePassContracts(unittest.TestCase):
              patch.object(worker,'RPC',return_value=Client()):
             worker.main()
         self.assertEqual(paths,['anime?select=id,anilist_id&anilist_id=in.(16498,21)'])
+
+
+def itunes(track_id, name, artist, preview=True, view=None, art=True, kind='song'):
+    """An iTunes Search result in the documented shape (fields trimmed)."""
+    row = {'wrapperType': 'track', 'kind': kind, 'trackId': track_id, 'trackName': name, 'artistName': artist,
+           'trackViewUrl': view or f'https://music.apple.com/us/album/x/{track_id + 1}?i={track_id}&uo=4'}
+    if preview:
+        row['previewUrl'] = f'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview/{track_id}.m4a'
+    if art:
+        row['artworkUrl100'] = f'https://is1-ssl.mzstatic.com/image/thumb/Music/{track_id}/100x100bb.jpg'
+    return row
+
+
+class ApplePassContracts(unittest.TestCase):
+    def test_normalisation_is_romanisation_aware(self):
+        self.assertEqual(worker.normalise_title('Kimi wo Nosete'), worker.normalise_title('Kimi o Nosete'))
+        self.assertEqual(worker.normalise_title('Shinzou wo Sasageyo!'), worker.normalise_title('Shinzō o Sasageyo'))
+        self.assertEqual(worker.normalise_title('Gurenge (TV Size)'), worker.normalise_title('Gurenge'))
+        self.assertEqual(worker.normalise_title('ＧＵＲＥＮＧＥ'), worker.normalise_title('gurenge'))
+        self.assertEqual(worker.artist_score('Youko Hikasa', 'Yoko Hikasa'), 1.0)
+        self.assertEqual(worker.artist_score('Youko Hikasa', 'Hikasa Yoko'), 1.0, 'family-name order')
+        self.assertEqual(worker.artist_score('FictionJunction feat. LiSA', 'FictionJunction & LiSA'), 1.0)
+        self.assertEqual(worker.artist_score('Aimer', 'Aimer & chelmico'), 0.9, 'Apple credits a guest')
+        self.assertEqual(worker.artist_score('Aimer & chelmico', 'Aimer'), 0.0, 'a credited artist is missing')
+        self.assertEqual(worker.artist_score('LiSA', 'Lisa Ono'), 0.0)
+        self.assertEqual(worker.artist_names('X JAPAN'), ['x japan'])
+        self.assertEqual(worker.artist_names('Kenshi Yonezu x Daoko'), ['kenshi yonezu', 'daoko'])
+        self.assertEqual(worker.artist_names('Ling tosite sigure'), ['ling tosite sigure'])
+
+    def test_exact_match_is_confident_and_carries_apple_urls_only(self):
+        match = worker.best_itunes_match('Gurenge', 'LiSA', [itunes(1488408568, 'Gurenge', 'LiSA')])
+        self.assertEqual(match['apple_track_id'], 1488408568)
+        self.assertEqual(match['confidence'], 1.0)
+        self.assertTrue(match['apple_artwork_url'].endswith('/600x600bb.jpg'))
+        self.assertTrue(match['apple_preview_url'].startswith('https://audio-ssl.itunes.apple.com/'))
+        self.assertTrue(match['apple_music_url'].startswith('https://music.apple.com/'))
+
+    def test_same_title_by_another_artist_is_not_a_match(self):
+        self.assertIsNone(worker.best_itunes_match('Gurenge', 'LiSA', [itunes(1, 'Gurenge', 'Some Cover Singer')]))
+
+    def test_karaoke_instrumental_off_vocal_and_covers_are_rejected(self):
+        for name in ('Gurenge (Instrumental)', 'Gurenge (Karaoke)', 'Gurenge -Off Vocal-', 'Gurenge (Piano Ver.)',
+                     'Gurenge (Cover)', 'Gurenge (Remix)'):
+            self.assertIsNone(worker.best_itunes_match('Gurenge', 'LiSA', [itunes(2, name, 'LiSA')]), name)
+        # ...unless the theme itself is that variant.
+        self.assertIsNotNone(worker.best_itunes_match('Theme (Acoustic)', 'Band', [itunes(3, 'Theme (Acoustic)', 'Band')]))
+
+    def test_full_version_wins_over_tv_size_and_tv_size_alone_still_matches(self):
+        both = [itunes(10, 'Gurenge (TV Size)', 'LiSA'), itunes(11, 'Gurenge', 'LiSA')]
+        self.assertEqual(worker.best_itunes_match('Gurenge', 'LiSA', both)['apple_track_id'], 11)
+        only_tv = worker.best_itunes_match('Gurenge', 'LiSA', [itunes(10, 'Gurenge (TV Size)', 'LiSA')])
+        self.assertEqual((only_tv['apple_track_id'], only_tv['confidence']), (10, 0.98))
+
+    def test_native_script_title_does_not_match_a_romaji_theme(self):
+        self.assertIsNone(worker.best_itunes_match('Gurenge', 'LiSA', [itunes(4, '紅蓮華', 'LiSA')]))
+
+    def test_near_titles_below_threshold_and_bad_urls(self):
+        self.assertIsNone(worker.best_itunes_match('Unravel', 'TK from Ling tosite sigure', [itunes(5, 'Unlimited', 'TK from Ling tosite sigure')]))
+        self.assertIsNone(worker.best_itunes_match('Gurenge', 'LiSA', [itunes(6, 'Gurenge', 'LiSA', view='https://evil.invalid/x')]),
+                          'no Apple Music link, no match')
+        self.assertIsNone(worker.best_itunes_match('Gurenge', 'LiSA', [itunes(6, 'Gurenge', 'LiSA', kind='music-video')]))
+        odd = itunes(7, 'Gurenge', 'LiSA')
+        odd['previewUrl'] = 'http://audio-ssl.itunes.apple.com/a.m4a'
+        odd['artworkUrl100'] = 'https://cdn.invalid/a.jpg'
+        match = worker.best_itunes_match('Gurenge', 'LiSA', [odd])
+        self.assertIsNone(match['apple_preview_url'])
+        self.assertIsNone(match['apple_artwork_url'])
+
+    def test_request_shape_host_user_agent_and_storefront_order(self):
+        seen = []
+        def getter(url, max_bytes, hosts):
+            seen.append(url)
+            self.assertEqual(hosts, {'itunes.apple.com'})
+            return {'resultCount': 0, 'results': []}
+        def fetch(term, country, pacer=None):
+            return worker.fetch_itunes(term, country, getter=getter, pacer=pacer)
+        match, requests = worker.apple_match_for('Gurenge', 'LiSA', fetch=fetch)
+        self.assertIsNone(match)
+        self.assertEqual(requests, 2)
+        self.assertEqual([urllib.parse.parse_qs(urllib.parse.urlsplit(u).query)['country'][0] for u in seen], ['JP', 'US'])
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(seen[0]).query)
+        self.assertEqual((query['term'][0], query['entity'][0], query['limit'][0]), ('Gurenge LiSA', 'song', '10'))
+        self.assertTrue(seen[0].startswith('https://itunes.apple.com/search?'))
+        self.assertTrue(worker.APPLE_USER_AGENT.startswith('Kuro-Intake'))
+
+    def test_us_storefront_is_tried_when_jp_has_no_confident_match(self):
+        answers = {'JP': [itunes(20, '日笠陽子の歌', '日笠陽子')], 'US': [itunes(21, 'Utsukushiki Zankoku na Sekai', 'Yoko Hikasa')]}
+        match, requests = worker.apple_match_for('Utsukushiki Zankoku na Sekai', 'Youko Hikasa',
+                                                 fetch=lambda term, country, pacer=None: answers[country])
+        self.assertEqual((match['apple_track_id'], requests), (21, 2))
+        jp_hit, jp_requests = worker.apple_match_for('Gurenge', 'LiSA',
+                                                     fetch=lambda term, country, pacer=None: [itunes(22, 'Gurenge', 'LiSA')])
+        self.assertEqual((jp_hit['apple_track_id'], jp_requests), (22, 1), 'a JP hit stops the search')
+
+    def test_no_artist_makes_no_request_and_is_recorded_unverifiable(self):
+        def fetch(*a, **k):
+            raise AssertionError('no request without an artist')
+        self.assertEqual(worker.apple_match_for('Kamado Tanjiro no Uta', None, fetch=fetch), (None, 0))
+
+    def test_rate_limit_waits_retry_after_and_pacer_keeps_20_per_minute(self):
+        waits, calls = [], []
+        def getter(url, max_bytes, hosts):
+            calls.append(url)
+            if len(calls) == 1:
+                raise urllib.error.HTTPError(url, 403, 'Forbidden', {'Retry-After': '12'}, None)
+            return {'results': []}
+        self.assertEqual(worker.fetch_itunes('x', 'JP', getter=getter, pause=waits.append), [])
+        self.assertEqual(waits, [12.0])
+        with self.assertRaises(ValueError):
+            worker.fetch_itunes('x', 'JP', getter=lambda *a: {'unexpected': True})
+        now = [0.0]; sleeps = []
+        pacer = worker.Pacer(worker.APPLE_MIN_INTERVAL, clock=lambda: now[0], pause=lambda d: (sleeps.append(d), now.__setitem__(0, now[0] + d)))
+        for _ in range(21):
+            pacer.wait()
+        self.assertGreaterEqual(now[0], 60.0, '21 requests take at least a minute')
+        self.assertEqual(worker.APPLE_MIN_INTERVAL, 3.0)
+
+    def test_pass_writes_matches_and_no_matches_and_skips_failures(self):
+        writes = []
+        class Client:
+            def call(self, name, payload):
+                writes.append((name, payload)); return {'matched': 1, 'cleared': 2, 'stale': 0}
+        answers = {'Gurenge': [itunes(30, 'Gurenge', 'LiSA')], 'Nothing': [], 'Boom': None}
+        def fetch(term, country, pacer=None):
+            key = term.split(' ')[0]
+            if answers[key] is None:
+                raise urllib.error.URLError('offline')
+            return answers[key]
+        rows = [{'id': 'a', 'song_title': 'Gurenge', 'artist': 'LiSA'}, {'id': 'b', 'song_title': 'Nothing', 'artist': 'X'},
+                {'id': 'c', 'song_title': 'Boom', 'artist': 'Y'}, {'id': 'd', 'song_title': 'Lonely', 'artist': None},
+                {'id': None, 'song_title': 'bad row'}]
+        summary = worker.run_apple_pass(Client(), rows, fetch=fetch)
+        self.assertEqual((summary['checked'], summary['matched'], summary['no_match'], summary['unverifiable'], summary['errors']),
+                         (4, 1, 1, 1, 1))
+        self.assertEqual(len(writes), 1)
+        name, payload = writes[0]
+        self.assertEqual(name, 'upsert_theme_apple_matches_v1')
+        by_id = {r['theme_id']: r for r in payload['p_rows']}
+        self.assertEqual(sorted(by_id), ['a', 'b', 'd'], 'the failed row is not written')
+        self.assertEqual(by_id['a']['apple_track_id'], 30)
+        self.assertEqual((by_id['a']['expected_title'], by_id['a']['expected_artist']), ('Gurenge', 'LiSA'))
+        self.assertIsNone(by_id['b']['apple_track_id'])
+        self.assertIsNone(by_id['d']['apple_track_id'])
+        self.assertEqual(summary['written'], {'matched': 1, 'cleared': 2, 'stale': 0})
+
+    def test_dry_run_never_writes(self):
+        class Client:
+            def call(self, *a):
+                raise AssertionError('dry run wrote')
+        summary = worker.run_apple_pass(Client(), [{'id': 'a', 'song_title': 'Gurenge', 'artist': 'LiSA'}],
+                                        fetch=lambda term, country, pacer=None: [itunes(31, 'Gurenge', 'LiSA')], dry_run=True)
+        self.assertEqual((summary['matched'], summary['dry_run'], summary['samples'][0]['apple_track_id']), (1, True, 31))
+
+    def test_apple_mode_requires_apply_and_reads_bounded_candidates(self):
+        with patch('sys.argv', ['worker', '--apple']), patch.object(worker, 'RPC', side_effect=AssertionError('RPC constructed')):
+            worker.main()
+        path = worker.apple_candidates_path(5000, now=86400*40)
+        self.assertIn('limit=200', path)
+        self.assertIn('or=(apple_checked_at.is.null,apple_checked_at.lt.1970-01-11T00:00:00Z)', path)
+        self.assertTrue(path.startswith('theme_links?select=id,song_title,artist&match_state=neq.unmatched'))
 
 
 if __name__=='__main__':unittest.main()
