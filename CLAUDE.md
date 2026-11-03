@@ -265,9 +265,9 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 224 Swift files in `Kuro/`
+### iOS app — 240 Swift files in `Kuro/`
 
-Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 67 in `KuroTests/` and 5 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
+Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 71 in `KuroTests/` and 6 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + `AppComposition` owners injected with `.environment(...)`, `.onOpenURL` deep link handler
@@ -324,15 +324,15 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - `ConciergeResponseStage.swift` — response stage rendering
 
 **Views (remaining):**
-- `EditorialDiscoverView.swift` — Discover page
+- `EditorialDiscoverView.swift` — Discover page (since 2026-11-03 the "daily issue" in Home's grammar; its parts live in `Views/Discover/`, see below)
 - `EditorialDiscoverRouting.swift` — Discover page navigation/detail routing
 - `BrowseView.swift` — Browse page shell/state (full-page, not a sheet)
 - `BrowseComponents.swift` — browse controls, filters sheet, grid, hero card, skeletons
 - `EditorialCollectionView.swift` — Collection page shell/state
 - `EditorialCollectionComponents.swift` — collection filters, grid/list cards, empty/loading states, batch bar
-- `ClubsView.swift` — Clubs list page (enriched cards, unread dots)
+- `ClubsView.swift` — Clubs list page (since 2026-11-03: Home's opening row, one dark club room per club (`Views/Clubs/ClubRoomCard`), invitation link rows, Home's footer; monochrome unread dot)
 - `ClubDetailView.swift` — Club detail shell/state (3-tab: Rails/This Week/Polls)
-- `ClubDetailShellComponents.swift` — club detail hero, status bar, tab bar, bottom bar
+- `ClubDetailShellComponents.swift` — club detail room hero, labelled key row (`ClubKeyRow`: Add a title / Start a rail / Invite / Ask, visibility from `ClubRoomRules.keys`), Home-switch tabs
 - `ClubDetailTabComponents.swift` — club detail tab content (rails, activity, polls)
 - `ClubDetailSheets.swift` — club settings sheet, add-item sheet, rail search
 - `ClubCreateSheets.swift` — Create/join club sheets
@@ -347,6 +347,8 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - Shared cards: `Views/SharedCards/` — `CompactAnimeCard.swift`, `GridAnimeCard.swift`, `AddToClubRailSheet.swift` (connected components, kept in the app by recorded decision)
 - UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `QuickVerdictActionCard.swift`, `GenreHubView.swift` (unreferenced by grep), `CountdownTimer.swift` (`EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `PosterView.swift` and the Concierge `ComposerDock`/`ActionFooter`/`IntentDeck` were deleted as dead code on 2026-10-05)
 - Shared components (`Views/Shared/`, 2026-11-01): `KuroMediumSwitch` (heavy sans uppercase, selected word filled with the title's `material:`), `KuroAdvanceKey` (44 pt +1; prototype raised faces `.light` / `.dark` (manga leaf) / `.ink` (dark gradient, keys without artwork, e.g. Folio) / `.material(ArtworkMaterial)`, `confirmTrigger` plays confirm/restore), `KuroMotionEffects.swift` (`.kuroConfirmStamp(trigger:)`, `.kuroRestore(trigger:)`, `.kuroCountRoll(value:pageTurn:)`, `.kuroPressSettle(trigger:)`, `KuroMotionAllowance`, `KuroMotion.playsMotion(reduceMotion:lowPower:)`, `KuroMotion.playsMotionNow(reduceMotion:)` for one-off animation sites), `KuroBrandedStates.swift` (the branded state family: `KuroBrandedState.resolve`, `KuroLoadingView(scope:label:)` (a label shows as a muted caption), `KuroBusyMark` (a working control's short scrub line), `KuroScrubLine(tint:track:)`, `KuroSkeleton(kind:)`, `KuroErrorView`, `KuroOfflineView(hasContent:retry:)`, `KuroEmptyView`, `KuroOutlineButton`; the only file in `Kuro/` allowed to use `ProgressView(`), `KuroReleaseLine`, `KuroStateView` (loading/empty/offline/failed/denied, `hasCachedContent`; a thin wrapper over the branded family), `KuroSectionHeader`, `KuroInkButton`/`KuroPressStyle`, `.kuroReadableWidth()`, `KuroThemeSongRow` (Listen → Apple Music / Spotify search URLs, nothing stored). Use these instead of re-inventing controls; `KuroDiscardGuard.swift` (2026-11-02, N7: `.kuroDiscardGuard(isDirty:isBusy:isConfirming:onDiscard:)` blocks swipe-down on unsaved input and asks "Discard changes?" on Cancel).
+- Discover (`Views/Discover/`, 11 files, 2026-11-03 Discover + Clubs redesign, spec `docs/superpowers/specs/2026-11-03-discover-clubs-redesign-design.md`): `DiscoverIssueSwitch` (All · Anime · Manga, selected word filled with the lead's artwork; the issue choice is owned by `KuroMainView`, so the header canvas follows it), `DiscoverPageHeading` (Home's opening row, stacks via `ViewThatFits`), `DiscoverCoverStory` (lead on the title's `ArtworkMaterial`, `TastePlanKey`), `DiscoverGlanceCard` (Airing today), `DiscoverContents` ("In this issue" + Browse row), `DiscoverFeatureTrio`, `DiscoverIndexRow` (numbered index with leaf Plan keys), `DiscoverRefineRow` (local rail refinement), `DiscoverIssueSkeleton` (loading + offline band), `DiscoverIssueLayout`, `DiscoverIssueCopy` (EN/DE). The fold remembers open/closed per app run via `KuroFoldMemory` (page `discover`, section `more`); `kuro_discover_show_more` is no longer read. Discover and Clubs paint `kuroCanvasHome` (Manga issue: `kuroCanvasHomeManga`) via `KuroMainView.Section.canvas`.
+- Clubs (`Views/Clubs/`, 5 files, 2026-11-03): `ClubRoomLayout` (`ClubPageHeading`, `ClubSubHeading`, `ClubOfflineBand`, `ClubLinkRow`, `ClubMemberFills`), `ClubRoomCard` (list room + `ClubRoomSkeleton`), `ClubWeekCard` (This Week summary), `ClubInviteSheet`, `ClubRailChooserSheet`. Pure rules in `ClubViewLifecycle.swift` (`ClubRoomRules`, `ClubsListCardRules`, now `nonisolated`); one seal via `ClubSeal.ring(compact:)` (36/30, `ClubRoomStyle.swift`). Tests: `KuroTests/DCclubsTests.swift`, `DCdiscoverTests.swift`; fixture renders `ClubsAfterSnapshotTests`, `DiscoverAfterSnapshotTests` → `docs/discover-clubs-2026-11-03/after/` (write only with `TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1`).
 - Lists (`Views/Lists/`, 2026-11-01): the "Folio" list experience used by Collection in both flag worlds (status word strip, Shelf/Index density, sort words, medium switch, +1 with caught-up guard + Undo via `CollectionStore.advanceFromList`/`undoListAdvance`, batch bar incl. Dropped) and `ProfileListsPreview` (Profile "Your lists").
 - About (`Views/About/`, 2026-11-01): `DataSourcesView` (Data sources & credits: AniList, MangaDex, MangaUpdates, AnimeThemes), `KuroLegalLinks` (Terms URL still nil until the owner confirms it; `kuro.app` did not resolve on 2026-11-02), `ContactSheet` (2026-11-02: Profile → About → Contact us, over `SupportStore`).
 - Shared: `AddToListSheet.swift` — editorial "spread" list sheet (full-bleed poster hero, capsule status pills, serif score + dots, pull-quote notes, pinned save dock); its save rule is `TrackingDraft.swift` (the one `LibraryEdit` a save sends)

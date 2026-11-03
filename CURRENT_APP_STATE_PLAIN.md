@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 224 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 240 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2108,3 +2108,11 @@ Every way through the app was walked on real data: title → director → their 
 ### Change Log — 2 November 2026: Everyone gets the new Home
 
 The new Home is now switched on for every account, not just the owner's. Apps pick it up the next time they load their settings. It can be switched off again instantly if needed.
+
+### Change Log — 3 November 2026: Discover and Clubs now look like Home
+
+Discover and Clubs were redesigned to feel like the same app as the new Home: the same warm background, type, cards, keys and loading/offline screens.
+- Discover reads like a daily issue: a heading with today's date, an All · Anime · Manga switch, one big cover story, what airs today, a short table of contents, a few curated sections (new to you, essentials, trending) and the rest folded away. It is still hand-picked; the small filters only change one section.
+- The Clubs list shows each club as a dark "room" with its covers, members and latest activity. A club's own page opens on the same room, with clear buttons (Add a title, Start a rail, Invite, Ask).
+- All automatic tests passed. Nothing was deployed or pushed, and no data or settings were changed.
+- Still for the owner to decide: the All page of Discover is longer than planned, and poll results still appear only after you vote.

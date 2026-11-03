@@ -1557,3 +1557,11 @@ Status: done locally on `kuro/prototype-fidelity`. Not pushed, not deployed.
   - VoiceOver order and escape are unverified on a device.
   - The gate does not yet require `.kuroNavigationLayer` on new page-level sheets.
   - The spec §5 close/cancel check is still not implemented.
+
+### Change Log — 3 November 2026: Discover + Clubs redesign
+
+Status: integrated locally on `kuro/discover-clubs-redesign` (lanes Discover + Clubs merged `--no-ff`). Not pushed, not deployed, no backend / flag / data change. Spec `docs/superpowers/specs/2026-11-03-discover-clubs-redesign-design.md`; gallery `docs/discover-clubs-2026-11-03/index.html`.
+- Discover: the "daily issue" in Home's grammar (`Kuro/Views/Discover/`, 11 files); editorial-first kept (rail chips stay local refinements).
+- Clubs: rooms on the list, the room hero, labelled keys, This Week card (`Kuro/Views/Clubs/`, 5 files); Home's club room aligned.
+- **Verification:** KuroTests 913/913; NavigationContractUITests + NavshellUITests 15/15; Release OK; package tests PASS; gates 10/10 executed PASS (local-db, live-services BLOCKED by environment).
+- **Open (owner):** Discover All page length (~3,006 pt vs 2,100 target); poll percentages before voting; `ClubRoomMetrics.seal` single source; VoiceOver activation on a device; regenerate composed evidence elsewhere when approved.

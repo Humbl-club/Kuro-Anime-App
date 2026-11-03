@@ -237,7 +237,7 @@ final class LiveWalkthroughUITests: XCTestCase {
     func testW3Discover() throws {
         continueAfterFailure = true
         swipePager(times: 1); shot("w3-00-discover")
-        guard let seeAll = firstHittable(app.buttons.matching(NSPredicate(format: "label == 'See all'"))) else {
+        guard let seeAll = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'See all'"))) else {
             XCTFail("walk: no See all"); return
         }
         seeAll.tap(); sleep(3); shot("w3-01-see-all")
@@ -412,5 +412,64 @@ final class LiveWalkthroughUITests: XCTestCase {
             shot("w12-02-saved")
             soft(app.staticTexts["Cowboy Bebop"].firstMatch.exists && close.exists, "Save closes the tool back to the detail (N7)")
         }
+    }
+
+    // MARK: W13 / W14 Discover + Clubs redesign (2026-11-03) — read-only looks
+    // Never taps a Plan key, a +1 key, Start a club, Join or any other control that writes data:
+    // only the issue words, "See all" and the journey's ✕.
+
+    /// The on-screen element with this exact label (pages off screen in the pager are skipped).
+    private func onScreen(_ label: String, timeout: TimeInterval = 8) -> XCUIElement? {
+        let width = app.frame.width
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            for e in app.buttons.matching(NSPredicate(format: "label == %@", label)).allElementsBoundByIndex
+            where e.exists && e.isHittable && e.frame.minX >= 0 && e.frame.maxX <= width + 1 { return e }
+            usleep(300_000)
+        } while Date() < deadline
+        return nil
+    }
+
+    private func scrollShots(_ prefix: String, count: Int) {
+        for index in 1...count {
+            app.swipeUp(velocity: .slow); sleep(2)
+            shot("\(prefix)-scrolled-\(index)")
+        }
+        for _ in 0..<(count * 2) { app.swipeDown(velocity: .fast) }
+        sleep(1)
+    }
+
+    func testW13Discover() throws {
+        continueAfterFailure = true
+        swipePager(times: 1); sleep(4); shot("w13-00-discover-all-top")
+        soft(app.staticTexts["DISCOVER"].firstMatch.exists || app.staticTexts["Discover"].firstMatch.exists, "on Discover")
+        scrollShots("w13-01-discover-all", count: 5)
+        for (index, word) in ["Anime", "Manga"].enumerated() {
+            guard let issue = onScreen(word) else { XCTFail("walk: no \(word) issue word"); continue }
+            issue.tap(); sleep(4)
+            let name = "w13-0\(index + 2)-discover-\(word.lowercased())"
+            shot("\(name)-top")
+            scrollShots(name, count: 3)
+        }
+        if let all = onScreen("All") { all.tap(); sleep(3); shot("w13-04-discover-all-again") }
+        var seeAll = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'See all'")), timeout: 4)
+        var swipes = 0
+        while seeAll == nil, swipes < 8 {
+            app.swipeUp(velocity: .slow); swipes += 1; sleep(1)
+            seeAll = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'See all'")), timeout: 2)
+        }
+        guard let seeAll else { XCTFail("walk: no See all on Discover"); return }
+        seeAll.tap(); sleep(4); shot("w13-05-see-all-top")
+        soft(close.exists, "See all is a journey with ✕")
+        app.swipeUp(velocity: .slow); sleep(2); shot("w13-06-see-all-scrolled")
+        closeJourneyIfOpen(); sleep(1); shot("w13-07-closed")
+        soft(pagerProfile.isHittable, "back on the pager")
+    }
+
+    func testW14Clubs() throws {
+        continueAfterFailure = true
+        swipePager(times: 3); sleep(4); shot("w14-00-clubs-list-top")
+        scrollShots("w14-01-clubs-list", count: 3)
+        soft(!close.exists, "looking at the Clubs list opens nothing")
     }
 }
