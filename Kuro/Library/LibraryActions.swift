@@ -281,6 +281,64 @@ final class LibraryActions: AccountScopedState {
         }
     }
 
+    // MARK: Queued +1 (Home Screen widget hand-off)
+
+    /// What `advanceQueuedProgress` did with one queued +1.
+    enum QueuedAdvanceOutcome: Equatable, Sendable {
+        /// Written along the same path as an in-app +1.
+        case applied
+        /// Nothing to do: the title already shows the target (or moved elsewhere since the tap), or the
+        /// tap was made on an earlier lifecycle of the row. Drop the request.
+        case stale
+        /// The caught-up guard refused it (at its total) or the next unit needs a choice. Drop it.
+        case refused
+        /// No account, or the Library has not loaded this account's rows yet. Keep it for later.
+        case notReady
+        /// The title is not tracked any more. Drop it.
+        case untracked
+        /// The write failed; `retryable` keeps the request for the next drain.
+        case failed(retryable: Bool)
+    }
+
+    /// One +1 handed over by the Home Screen widget (`WidgetIntentInbox`), applied exactly like the
+    /// Collection lists' +1 (`CollectionStore.advanceFromList`): the durable progress outbox with the
+    /// unit cap when it accepts writes (its own caught-up guard and revision fence apply at admission),
+    /// otherwise one absolute progress edit from the displayed position, never past `cap`. The request
+    /// is honoured only while the title still shows `target - 1` on the same lifecycle, so a replayed,
+    /// stale or forged request can never do more than the +1 the user could make in the app now.
+    /// No banner, no Undo receipt (Home's and Collection's Undo paths stay untouched).
+    func advanceQueuedProgress(_ key: MediaKey, to target: Int, lifecycleId: UUID?, cap: Int?) async -> QueuedAdvanceOutcome {
+        guard let context = accountSession.current else { return .notReady }
+        guard let entry = library.entry(for: key) else {
+            return library.loadState == .loaded ? .untracked : .notReady
+        }
+        if let lifecycleId, entry.lifecycleId != lifecycleId { return .stale }
+        let current = library.displayedProgress(for: key, server: entry.progress, lifecycleId: entry.lifecycleId)
+        guard current == target - 1 else { return .stale }
+        if let cap, cap > 0, current >= cap { return .refused }
+        let outcome: LibraryOutcome
+        if library.progressAvailable, entry.lifecycleId != nil, entry.revision != nil {
+            outcome = await library.advanceProgress(for: key, cap: cap)
+            if case .failed(.invalidValue) = outcome { return .refused }
+        } else {
+            outcome = await library.apply(LibraryEdit(progress: .set(current + 1)), to: key, createIfMissing: nil)
+        }
+        guard accountSession.isCurrent(context) else { return .notReady }
+        switch outcome {
+        case .applied: return .applied
+        case .failed(let error):
+            #if DEBUG
+            print("⚠️ Queued +1 failed: \(error)")
+            #endif
+            switch error {
+            case .retryable, .unavailable: return .failed(retryable: true)
+            case .notAuthenticated: return .notReady
+            case .notFound: return .untracked
+            case .conflict, .invalidValue: return .failed(retryable: false)
+            }
+        }
+    }
+
     // MARK: Outcome-returning primitives (E8)
     // The views' explicit Library edits (mark progress, batch status change, concierge quick-save, the
     // detail pages' save toggle, QuickVerdict, AddToListSheet) branch on the typed outcome: `change.kind`

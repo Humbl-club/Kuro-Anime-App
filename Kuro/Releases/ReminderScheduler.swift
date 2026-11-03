@@ -28,6 +28,11 @@ protocol PendingNotificationCenter {
     /// Schedules a one-shot local notification; a pending request with the same id is replaced.
     /// `false` when the system refused the request.
     func schedule(id: String, title: String, body: String, at date: Date) async -> Bool
+    /// The permission in effect now, WITHOUT ever showing the prompt (automatic scheduling paths use
+    /// this; only an explicit user action calls `requestAuthorizationIfNeeded`).
+    func currentPermission() async -> NotificationPermission
+    /// `schedule(id:title:body:at:)` with a payload (`userInfo`, e.g. the tap's `kuro://` link).
+    func schedule(id: String, title: String, body: String, at date: Date, userInfo: [String: String]) async -> Bool
 }
 
 /// Production `PendingNotificationCenter` backed by `UNUserNotificationCenter.current()`.
@@ -63,11 +68,25 @@ struct LiveNotificationCenter: PendingNotificationCenter {
         }
     }
 
+    func currentPermission() async -> NotificationPermission {
+        switch await UNUserNotificationCenter.current().notificationSettings().authorizationStatus {
+        case .authorized, .provisional, .ephemeral: return .authorized
+        case .denied: return .denied
+        case .notDetermined: return .notDetermined
+        @unknown default: return .denied
+        }
+    }
+
     func schedule(id: String, title: String, body: String, at date: Date) async -> Bool {
+        await schedule(id: id, title: title, body: body, at: date, userInfo: [:])
+    }
+
+    func schedule(id: String, title: String, body: String, at date: Date, userInfo: [String: String]) async -> Bool {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
+        content.userInfo = userInfo
 
         let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
@@ -156,7 +175,7 @@ final class ReminderScheduler {
     private var operationTail: Task<Void, Never>?
 
     /// Runs `operation` after every reminder operation issued before it (the ownership chain).
-    private func serialized<T: Sendable>(_ operation: @escaping @MainActor () async -> T) -> Task<T, Never> {
+    func serialized<T: Sendable>(_ operation: @escaping @MainActor () async -> T) -> Task<T, Never> {
         let previous = operationTail
         let task = Task { @MainActor () -> T in
             await previous?.value
@@ -203,8 +222,11 @@ final class ReminderScheduler {
         guard let context, accountSession.isCurrent(context), !Task.isCancelled else { return .obsolete }
         let animeId = airing.anime_id, airAt = airing.next_airing_at
         guard airAt > Date() else { return .notUpcoming }
-        // Re-read on every schedule; asks only while undecided (F19).
-        guard await notificationCenter.requestAuthorizationIfNeeded() == .authorized else { return .notAuthorized }
+        // Re-read on every schedule (F19). Never prompts: the permission is asked for only from an
+        // explicit user action (`ReleasesStore.setReleaseNotificationsEnabled`), and an account that
+        // turned release notifications off gets no automatic reminders either.
+        guard releaseNotificationPreference(for: context) != false,
+              await notificationCenter.currentPermission() == .authorized else { return .notAuthorized }
         let title = airing.title_english ?? airing.title_romaji ?? "Upcoming Episode"
         let ep = airing.next_episode_number.map { "E\($0)" } ?? "Next"
         let center = notificationCenter
@@ -212,14 +234,17 @@ final class ReminderScheduler {
             // Reminders belong to the account that saved the title, still current after the chain.
             guard let self, self.accountSession.isCurrent(context) else { return .obsolete }
             // Schedule "now airing"; the owner marker names the account once the system holds a request.
-            guard await center.schedule(id: "airing-\(animeId)-start", title: "\(title) airs now", body: "\(ep) is starting.", at: airAt) else {
+            let link = ReleaseNotificationLink.userInfo(for: MediaKey(kind: .anime, id: animeId))
+            guard await center.schedule(id: "airing-\(animeId)-start", title: "\(title) airs now", body: "\(ep) is starting.",
+                                        at: airAt, userInfo: link) else {
                 return .failed
             }
             self.userDefaults.set(context.userId.lowercased(), forKey: Self.airingRemindersOwnerKey)
             // Schedule 1 hour before if applicable
             let oneHourBefore = airAt.addingTimeInterval(-3600)
             if oneHourBefore > Date(), self.accountSession.isCurrent(context) {
-                guard await center.schedule(id: "airing-\(animeId)-1h", title: "In 1 hour: \(title)", body: "\(ep) airs soon.", at: oneHourBefore) else {
+                guard await center.schedule(id: "airing-\(animeId)-1h", title: "In 1 hour: \(title)", body: "\(ep) airs soon.",
+                                            at: oneHourBefore, userInfo: link) else {
                     return .failed
                 }
             }
@@ -241,7 +266,8 @@ final class ReminderScheduler {
         await enqueueAiringRemindersRemoval().value
     }
 
-    /// Issues the removal of every pending `airing-*` request and the owner marker NOW, on the ownership
+    /// Issues the removal of every pending `airing-*` and `release-*` request (the release
+    /// notifications share the owner marker and the chain) and the owner marker NOW, on the ownership
     /// chain (F05): it runs after every reminder operation issued before it and before every one issued
     /// after it, so the session funnel calls this synchronously with the transition it belongs to, and
     /// awaits the returned task in its asynchronous tail.
@@ -251,7 +277,7 @@ final class ReminderScheduler {
         let center = notificationCenter
         return serialized {
             defaults.removeObject(forKey: Self.airingRemindersOwnerKey)
-            let ids = await center.pendingRequestIdentifiers().filter { $0.hasPrefix("airing-") }
+            let ids = await center.pendingRequestIdentifiers().filter(Self.isDeviceReminderId)
             guard !ids.isEmpty else { return }
             center.removePendingNotificationRequests(withIdentifiers: ids)
         }

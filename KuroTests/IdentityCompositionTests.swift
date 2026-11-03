@@ -261,7 +261,7 @@ struct CompositionGraphTests {
     static func expectedAccountScopedStates(_ g: AppGraph) -> [ObjectIdentifier] {
         let owners: [any AccountScopedState] = [
             g.libraryActions, g.home, g.collection, g.discovery, g.recommendations, g.releases, g.social, g.availability,
-            g.clubs, g.imports, g.concierge, g.taste, g.support, g.songPreview, g.interactionTelemetry,
+            g.clubs, g.imports, g.concierge, g.taste, g.support, g.widgets, g.songPreview, g.interactionTelemetry,
         ]
         return owners.map { ObjectIdentifier($0) }
     }
