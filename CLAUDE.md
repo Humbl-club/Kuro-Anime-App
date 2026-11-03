@@ -265,7 +265,7 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 240 Swift files in `Kuro/`
+### iOS app — 243 Swift files in `Kuro/`
 
 Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 71 in `KuroTests/` and 6 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
@@ -281,11 +281,11 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - `Identity/` — `IdentityStore` (UI auth state), `AuthService` (SDK auth transport, `check_email_exists`, `delete-account`), `SessionController` (session funnel: restore, auth events, sign-in/out, callbacks, deletion; single Library read at bootstrap), `AuthCallbackGuard` (since 2026-11-01: a signed-out callback is accepted only with a matching `PendingAuthFlow` record written when this device started a reset/magic-link flow; PKCE `?code=` exchange; `type=recovery` → set-new-password), `PendingAuthFlow`, `AuthCopy` (EN/DE auth error mapping by SDK error code), `OnboardingCompletion` (per-account onboarding key)
 - `Library/` — `LibraryActions` (the one view-facing writer mapping + banners: `save`, `apply`, `remove`, `toggleInCollection`, `incrementProgress`, `publishImport`), `LibraryRealtime` (user-list channel); the store itself is `LibraryStore` in `Packages/KuroModules`
 - `Home/` — `HomeStore` (Home bundle, medium selection, builds/attaches the SQLite `ProgressOutbox`, drains progress through `apply_progress_mutations_v1`), `HomeContracts`, `HomePersonalSnapshot`; views in `Kuro/Views/Home/` (`HomeView`, `SeriesDetailViews`, `HomeShelfPolicy`, `HomePagePicture`, `HomeCalendarPresentation`)
-- `Catalog/` — `CatalogStore` (detail, credits/entities, relations, ladder, links, episodes/chapters; public caches)
-- `Discovery/` — `DiscoveryStore` (Discover bundle, Browse paging), `RecommendationsReader`, `DiscoverCards`
+- `Catalog/` — `CatalogStore` (detail, credits/entities, relations, ladder, links, episodes/chapters; public caches; since 2026-11-03 `CatalogStore+Voices` cast/voice-actor readers over the prepared `anime_cast_v1` / `character_voice_actors_v1` / `staff_voice_roles_v1` with silent fallback, models in `CatalogVoiceModels`)
+- `Discovery/` — `DiscoveryStore` (Discover bundle, Browse paging), `RecommendationsReader` ("More like this": `fetchSimilar(kind:id:limit:)` over the prepared `media_similar_v1`, per-account cache, `AccountScopedState`), `DiscoverCards`
 - `Search/` — `SearchStore`
 - `Collection/` — `CollectionStore` (card pages + feed; no tracking fields)
-- `Releases/` — `ReleasesStore` (`user_airing_next`, countdowns; since 2026-11-01 also the release schedule + songs read model: `user_release_schedule_v1` / `media_release_schedule_v1` / `media_themes_v1` with silent fallback to `user_airing_next` while those prepared RPCs are not deployed), `ReleaseModels` (`ReleaseScheduleItem`, `ReleaseBasis` confirmed/announced/estimated, `release_precision`, `ThemeSong`), `ReleaseCopy` (certainty wording EN/DE; never a time unless precision = instant), `ReminderScheduler` (device notifications)
+- `Releases/` — `ReleasesStore` (`user_airing_next`, countdowns; since 2026-11-01 also the release schedule + songs read model: `user_release_schedule_v1` / `media_release_schedule_v1` / `media_themes_v1` with silent fallback to `user_airing_next` while those prepared RPCs are not deployed), `ReleaseModels` (`ReleaseScheduleItem`, `ReleaseBasis` confirmed/announced/estimated, `release_precision`, `ThemeSong`), `ReleaseCopy` (certainty wording EN/DE; never a time unless precision = instant), `ReminderScheduler` (device notifications), `SongPreviewPlayer` (2026-11-03: one Apple 30-second preview at a time, AVPlayer, `.soloAmbient`, stops on background/interruption/account change; `ThemeSong.apple` from the prepared trailing `media_themes_v1` columns)
 - `Providers/` — `ProviderAvailabilityStore` (+ `LegalLinks`, + `DetailLinks`: the detail pages' one `ProviderLinkSnapshot` API and the one `validatedOutboundURL`), `ProviderLinkBuilders` (pure link builders)
 - `Social/` — `SocialActivityStore`
 - `Clubs/` — `ClubsStore` (throws typed `ClubError`), `ClubRealtimeCoordinator`, `ClubsLibrarySink`, `ClubModels`
