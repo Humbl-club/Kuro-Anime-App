@@ -348,7 +348,7 @@ private struct ClubsInvitation: View {
 
 /// The Clubs invitation's copy (EN, DE). Pure, pinned in RestyleLaneTests.
 nonisolated enum ClubsEmptyCopy {
-    static func kicker(german: Bool) -> String { german ? "PRIVATE CLUBS" : "PRIVATE CLUBS" }
+    static func kicker(german: Bool) -> String { german ? "DEINE PRIVATEN CLUBS" : "YOUR PRIVATE CLUBS" }
     static func headline(german: Bool) -> String {
         german ? "Gemeinsam schauen.\nPrivat von Anfang an." : "Watch together.\nPrivate by design."
     }
