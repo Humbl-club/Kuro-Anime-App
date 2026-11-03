@@ -232,7 +232,7 @@ Every value is in G§1–§13 and DC§4. Lanes copy Home's literals; they do not
 | Role | Value | Source |
 |---|---|---|
 | Detail paper | `Color.kuroPaper` #F5F5F4 (anime detail, and character, staff, studio and author pages); manga detail keeps its prototype paper | G§1, PS§4 |
-| Detail gutter | body padding 24 (prototype `.detail-body` 23/24/24); compact ≤ 330 → 20 | `AnimeDetailSections.swift` body |
+| Detail gutter | body padding 24 at every width (prototype `.detail-body` 23/24/24; the code has no compact case) | `AnimeDetailSections.swift` body `.padding(.horizontal, 24)` |
 | Detail heading | `DetailSectionHeading(title:size:tracking:note:)`: 17 semibold −0.4, or 18/−0.7, with a 9/10 pt note | `Prototype/DetailPage.swift:130` (read-only API) |
 | Page heading (Profile, import) | 24 semibold −0.85 + 10 pt #656C66 summary | G§4 |
 | Eyebrow | 9 pt (8 compact), tracking 1.05, uppercase, `HomeInk.kicker` #666C68; on material use the detail kicker #C6CECA, 8 pt, tracking 1.7 | G§4, PS§4 D1 |
@@ -580,7 +580,7 @@ New:
   - Facts 9 pt.
   - Stills 72 × 40.
   - Peek gives 2 cards and a 52 pt slice.
-  - Gutter 20.
+  - Gutter stays 24 (as the code has it).
 - **iPad:** `.kuroReadableWidth()` 680. Rails bleed to the column edge (§5.1, 5 cards).
 - **Accessibility sizes:**
   - The facts line wraps.
@@ -804,7 +804,7 @@ The row is min 60 tall, with a 1 pt white @ 0x12 rule under each row. Left to ri
 **Common frame:**
 - Journey page on `kuroPaper`.
 - `EntityPageCollapse` keeps the shrinking header (H1–H4).
-- Gutter 24 (20 compact).
+- Gutter 24 at every width (the detail body's value).
 - The black `EntityFilterBar` pills and the serif-caps titles are retired from these pages (D21). The types stay unless a grep shows no other user.
 
 ### 9.1 Character page
@@ -1389,8 +1389,8 @@ The project uses file-system-synchronized groups, so new Swift files under exist
 
 | File | Scope |
 |---|---|
-| `Kuro/Views/DetailPages/Songs/` (new) | `DetailSongShelf`, `SongShelfGrouping` (pure), `SongPreviewPlayer`, `SongShelfCopy`, `EntityBrandedTile` (if songs need it before entities) |
-| `Kuro/Views/Shared/KuroThemeSongRow.swift` | It may restyle or reuse it. Its only caller is the legacy `DetailSongsSection`. |
+| `Kuro/Views/DetailPages/Songs/` (new) | `DetailSongShelf`, `SongShelfGrouping` (pure), `SongPreviewPlayer`, `SongShelfCopy`. The songs use `EntityBrandedTile` from `Kuro/Views/Entities/`. |
+| `Kuro/Views/Shared/KuroThemeSongRow.swift` | It may restyle or reuse it. Its initializer `KuroThemeSongRow(_ song: ThemeSong)` must stay source-compatible, because its only caller, the legacy `DetailSongsSection` in `DetailReleaseSections.swift`, is owned by the Detail lane. |
 | `Kuro/Views/DetailPages/EntityDetailSheets.swift` | Character, staff, author and studio pages (§9) |
 | `Kuro/Catalog/EntityWorks.swift` | Pure grouping (by year, decade) only |
 | `Kuro/Views/Entities/` (new) | `EntityPageHero`, `EntityVoiceCard`, `EntityRefineWords`, `EntityWorkRail`, `EntityRoleRow`, `EntityRailPeek`, `EntityBrandedTile`, `EntityPageCopy` |
