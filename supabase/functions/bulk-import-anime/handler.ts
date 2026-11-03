@@ -159,6 +159,8 @@ export async function run(payload: any, deps: AnimeImportDeps): Promise<Response
   const includeRelations: boolean = payload?.includeRelations ?? (trackDefaults?.includeRelations ?? !lightweight);
   const includeEpisodes: boolean = payload?.includeEpisodes ?? (trackDefaults?.includeEpisodes ?? !lightweight);
   const forceRefresh: boolean = payload?.forceRefresh ?? false;
+  // Voice actors are opt-in per run (never a track default): a heavier AniList query.
+  const includeVoiceActors: boolean = payload?.includeVoiceActors === true && includeRelations;
   const lockTtlSeconds: number = payload?.lockTtlSeconds ?? 1800;
   // Same inheritance as bulk-import-manga: a tracked preset's scheduleSafe applies unless the payload overrides it.
   const scheduleSafe: boolean = payload?.scheduleSafe ?? (trackDefaults?.scheduleSafe ?? false);
@@ -195,7 +197,7 @@ export async function run(payload: any, deps: AnimeImportDeps): Promise<Response
   if (watermarkMode && !sweep) sweep = { watermark: null, sweepTop: null, sweepPages: startPage - 1 };
   const priorMeta: CursorMeta | null = hasTrackRouting ? (priorCursor ?? cursorMetaFor(spec, trackPreset, watermarkMode ? sweep : null)) : null;
 
-  const results = { anime: 0, episodes: 0, characters: 0, studios: 0, staff: 0, tags: 0, relationships: 0, errors: 0 };
+  const results = { anime: 0, episodes: 0, characters: 0, studios: 0, staff: 0, tags: 0, relationships: 0, voiceActors: 0, errors: 0 };
   const runType = lightweight ? 'core' : 'heavy';
   const heavyImportsEnabled = deps.heavyImportsEnabled;
   const tRunStart = Date.now();
@@ -259,6 +261,7 @@ export async function run(payload: any, deps: AnimeImportDeps): Promise<Response
               sort: spec.sort,
               statusIn: spec.statusIn,
               deadlineMs,
+              ...(includeVoiceActors ? { includeVoiceActors: true } : {}),
             });
           } catch (e) {
             // No request was sent for this page: commit what this run fully persisted and stop.
@@ -284,7 +287,7 @@ export async function run(payload: any, deps: AnimeImportDeps): Promise<Response
           const chunk = anime.slice(bi, bi + ITEM_BATCH_SIZE);
           await Promise.all(chunk.map(async (item: any) => {
             try {
-              await processAnimeItem(supabase, item, results, includeRelations, includeEpisodes, forceRefresh);
+              await processAnimeItem(supabase, item, results, includeRelations, includeEpisodes, forceRefresh, includeVoiceActors);
             } catch (e) {
               console.error(e);
               results.errors++;
