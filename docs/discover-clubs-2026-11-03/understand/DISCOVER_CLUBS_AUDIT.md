@@ -32,10 +32,10 @@ Read-only: no source was changed. The audit commit contains only this file and t
 | P8 | **Club bottom bar is three unlabeled SF Symbols in a floating white capsule with a drop shadow** (`plus`, `person.badge.plus`, `chart.bar`). No other Kuro page has a floating toolbar, and Home's controls are keys. Two behaviours are also wrong: "Invite members" opens **Settings** (`ClubDetailView.swift:351`), and "Add a title" always targets `rails.first` (`:350`), so with no rails the tap does nothing (N9 dead tap). | `ClubDetailShellComponents.swift:295-357`, `ClubDetailView.swift:348-353` | Medium |
 | P9 | **The "This Week" tab is labelled "Active" / "Aktivität".** It is an undated feed of every member status ever, with no covers, although each entry already carries `coverImage` (`ClubDetailTabComponents.swift:497, 553`, never drawn). It reads as a plain log, while Home shows the same kind of activity as a room row with a title and an arrow. | `ClubDetailView.swift:29-44`, `ClubDetailTabComponents.swift:485-717` | Medium |
 | P10 | **Skeletons are nearly invisible.** Discover and the Clubs list draw `kuroBlack05` (5 % black). Amendment 18 set skeleton blocks to 8 % ink (`KuroSkeleton.blockInkOpacity`) so they read on warm canvases. The bespoke skeletons bypass `KuroSkeleton`. | `EditorialDiscoverFrames.swift:425-441, 599-640`, `ClubsView.swift:465-504` | Medium |
-| P11 | **Clubs list cards wrap their meta badly at 390.** "Progress shared · 5 members · 3 hr. ago" breaks beside the initials row. A club with two covers shows two dark empty slots that read like broken images. A club with no covers is a 120 pt black band with one serif letter. | `ClubsView.swift:541-592`, `ClubArtStrip` `:597-635` (render `clubs-list-full-390.png`) | Medium |
+| P11 | **Clubs list cards wrap their meta badly at 390.** "Progress shared · 5 members · 3 hr. ago" breaks beside the initials row. A club with two covers shows two dark empty slots that read like broken images. A club with no covers is a 120 pt black band with one serif letter. | `ClubsView.swift:541-592`, `ClubArtStrip` `:597-635` (render `clubs-list-full-390.jpg`) | Medium |
 | P12 | **Poll options that are titles are text only.** `ClubPollOption.media_type/media_id` exist (e.g. "Mushishi"), but the row draws only the label: no cover, and no way to open the title (N9). `closes_at` is never shown, so open polls give no deadline. | `ClubDetailTabComponents.swift:971-1049`, `ClubModels.swift:79-97` | Medium |
-| P13 | **Two retry styles inside one state family.** Discover empty shows an outline capsule "Try again" (`KuroStateView`); Discover and Clubs offline and failed show an ink-rule "Try again →" (`KuroOfflineView` / `KuroErrorView`). Empty also says "browse the catalogue" while offering no browse action where Browse is a pager page. | `EditorialDiscoverView.swift:168-182`, renders `discover-empty-390.png` vs `discover-offline-390.png` | Low-medium |
-| P14 | **The manga lead frame is a 4:5 cover up to 560 pt tall** (`DiscoverLeadFrame.pictureHeight`). On the Manga page the first screen is one cover and nothing else. | `EditorialDiscoverFrames.swift:374-376`, render `discover-manga-top-390.png` | Low-medium |
+| P13 | **Two retry styles inside one state family.** Discover empty shows an outline capsule "Try again" (`KuroStateView`); Discover and Clubs offline and failed show an ink-rule "Try again →" (`KuroOfflineView` / `KuroErrorView`). Empty also says "browse the catalogue" while offering no browse action where Browse is a pager page. | `EditorialDiscoverView.swift:168-182`, renders `discover-empty-390.jpg` vs `discover-offline-390.jpg` | Low-medium |
+| P14 | **The manga lead frame is a 4:5 cover up to 560 pt tall** (`DiscoverLeadFrame.pictureHeight`). On the Manga page the first screen is one cover and nothing else. | `EditorialDiscoverFrames.swift:374-376`, render `discover-manga-top-390.jpg` | Low-medium |
 | P15 | **The viewer appears as a stranger in their own club.** Initials include the viewer, so Max and Mina both show as "M". The closed poll reads "Max asks", not "You asked". Initials are white rings on the room instead of Home's positional fills (`ClubRoomPalette.memberFills`). | `ClubDetailShellComponents.swift:156-161`, `ClubDetailTabComponents.swift:890` (`askerLine`) | Low-medium |
 | P16 | **Joining a club doesn't open it; creating one does.** `JoinClubResponse.club_id` is available, but join only shows a toast. | `ClubsView.swift:114-119` vs `:219-225` | Low |
 
@@ -56,13 +56,13 @@ All renders are in `../before/` (33 PNGs, 390 px wide; tall ones are full pages)
 
 | Area | Files |
 |---|---|
-| Home (comparison) | `home-anime-top-390.png`, `home-anime-full-390.png`, `home-manga-top-390.png`, `home-manga-full-390.png` |
-| Discover, content | `discover-{all,anime,manga}-top-390.png`, `discover-{all,anime,manga}-full-390.png`, `discover-all-more-sections-full-390.png` |
-| Discover, states | `discover-loading-390.png`, `discover-empty-390.png`, `discover-offline-390.png` (first load), `discover-offline-with-content-390.png` (band over content), `discover-failed-390.png` |
-| See all | `discover-see-all-top-390.png`, `discover-see-all-scrolled-390.png` (journey page in `JourneyHost`) |
-| Clubs list | `clubs-list-top-390.png`, `clubs-list-full-390.png` (3 clubs: full art, partial art, no art + long German name), `clubs-empty-390.png`, `clubs-loading-390.png`, `clubs-offline-390.png` |
-| Club detail (journey) | `club-detail-rails-top-390.png`, `club-detail-rails-scrolled-390.png` (compact bar), `club-detail-rails-bottom-390.png`, `club-detail-rails-full-390.png`, `club-detail-active-full-390.png`, `club-detail-polls-full-390.png` |
-| Sheets | `club-create-sheet-390.png` (from the empty invitation's "Start a club"), `club-join-sheet-prefilled-390.png` (through the `kuro://join/<code>` prefill path), `club-create-rail-sheet-390.png`, `club-create-poll-sheet-390.png` |
+| Home (comparison) | `home-anime-top-390.jpg`, `home-anime-full-390.jpg`, `home-manga-top-390.jpg`, `home-manga-full-390.jpg` |
+| Discover, content | `discover-{all,anime,manga}-top-390.png`, `discover-{all,anime,manga}-full-390.png`, `discover-all-more-sections-full-390.jpg` |
+| Discover, states | `discover-loading-390.jpg`, `discover-empty-390.jpg`, `discover-offline-390.jpg` (first load), `discover-offline-with-content-390.jpg` (band over content), `discover-failed-390.jpg` |
+| See all | `discover-see-all-top-390.jpg`, `discover-see-all-scrolled-390.jpg` (journey page in `JourneyHost`) |
+| Clubs list | `clubs-list-top-390.jpg`, `clubs-list-full-390.jpg` (3 clubs: full art, partial art, no art + long German name), `clubs-empty-390.jpg`, `clubs-loading-390.jpg`, `clubs-offline-390.jpg` |
+| Club detail (journey) | `club-detail-rails-top-390.jpg`, `club-detail-rails-scrolled-390.jpg` (compact bar), `club-detail-rails-bottom-390.jpg`, `club-detail-rails-full-390.jpg`, `club-detail-active-full-390.jpg`, `club-detail-polls-full-390.jpg` |
+| Sheets | `club-create-sheet-390.jpg` (from the empty invitation's "Start a club"), `club-join-sheet-prefilled-390.jpg` (through the `kuro://join/<code>` prefill path), `club-create-rail-sheet-390.jpg`, `club-create-poll-sheet-390.jpg` |
 
 Fixture caveats (read before judging pixels):
 - **Page bodies only.** The app header (`KuroHeaderNew`) and pager are not composed. The top ~44 pt of each page shows the iOS 26 scroll-edge blur over the first row ("All · Anime · Manga", "Your clubs."). In the app the header sits there.
@@ -118,7 +118,7 @@ Full rules: `HOME_GRAMMAR.md` §0 and §14. In short:
 - **Headings** are `KuroSectionHeader(.title)` at 19 pt regular, with "See all" in 13 pt medium ink (P3). The file comments still say "serif section header" (`EditorialDiscoverFrames.swift:4, 471, 524, 578`); that is stale since 2026-11-01.
 - **Frames** (`DiscoverFrame`) show a cover (radius 4), a 15 pt medium title on two reserved lines, and one 13 pt quiet line ("2024 · 12 eps" / "Ep. 7 · 21:30" / "2 in your clubs").
   - The frame is clean, but it is the only element type on the page.
-  - The reserved second line leaves big gaps under short titles (see "Mushishi" in `discover-see-all-top-390.png`).
+  - The reserved second line leaves big gaps under short titles (see "Mushishi" in `discover-see-all-top-390.jpg`).
 - **Grids:**
   - "New to you." / "Manga new to you." have 8 items; "Classics" and "Top rated" (behind "N more sections") likewise.
   - Each grid is a 2-column block of large frames (≈170×243 + text), so one grid fills more than a screen (P2).
@@ -133,7 +133,7 @@ Full rules: `HOME_GRAMMAR.md` §0 and §14. In short:
 
 ### 3.5 States
 - **Loading:** a bespoke skeleton (lead block, two rails) in `kuroBlack05`, plus `KuroScrubLine`. Almost invisible at 5 % (P10). The shapes match the real layout ✔.
-- **Empty** (`discover-empty-390.png`): `KuroStateView(.empty)` with "Nothing to show yet." and an **outline-capsule** "Try again" (P13).
+- **Empty** (`discover-empty-390.jpg`): `KuroStateView(.empty)` with "Nothing to show yet." and an **outline-capsule** "Try again" (P13).
 - **Offline first load:** `KuroOfflineView` (mountain line, ink-rule "Try again →") ✔ branded.
 - **Offline band over content:** shown at the top of the content, above the word row. In the render it sits under the scroll-edge blur. In the app it sits under the header and pushes the page down by ~50 pt.
 - **Failed:** `KuroErrorView`, "Couldn't load Discover." ✔.
@@ -175,7 +175,7 @@ Full rules: `HOME_GRAMMAR.md` §0 and §14. In short:
   - A club with no art becomes a black 4:1.4 band with one serif letter. It is heavy, and on the list it outweighs the clubs that have real art.
 - **Unread:** an 8 pt ink dot after the name; VoiceOver label via `ClubsListCardRules` ✔.
 - **Actions after the list:** "NEW / Start another club. →" and "INVITE CODE / Join a club. →" are ink-rule invitation rows, Discover's "See all" language. Home uses keys and the room's own buttons (the invitation's dark key and quiet disclosure). That is two button vocabularies on one page: the invitation buttons when empty, the ink rules when not.
-- **Empty** (`clubs-empty-390.png`): the room invitation is the best-matched surface in the audit ✔. Minor issues:
+- **Empty** (`clubs-empty-390.jpg`): the room invitation is the best-matched surface in the audit ✔. Minor issues:
   - The kicker "PRIVATE CLUBS" is not translated (`ClubsEmptyCopy.kicker` returns the English string for German).
   - The room sits at the top of an otherwise empty white page; a warm canvas would carry it.
 - **Loading:** the card skeleton in `kuroBlack05` (P10).
@@ -221,7 +221,7 @@ Full rules: `HOME_GRAMMAR.md` §0 and §14. In short:
   - "Add a title" goes to `rails.first`, even if that rail is locked for members; admins can add anyway.
   - With no rails the tap does nothing.
   - "Invite members" opens Settings, where the invite code lives, but the label promises an invite flow.
-  - At 390 the capsule covers the second rail's titles while scrolling (`club-detail-rails-scrolled-390.png`).
+  - At 390 the capsule covers the second rail's titles while scrolling (`club-detail-rails-scrolled-390.jpg`).
 - **Data available, not shown** (`ClubBundle`):
   - `ClubRailItem`: `average_score`, `year`, `format`, `my_rating`, `my_status` (shown only as progress), `added_by` (used only to attribute notes), `reactions` (behind `clubs_reactions_v1`).
   - `ClubPoll`: `closes_at`, `created_at`.
@@ -231,7 +231,7 @@ Full rules: `HOME_GRAMMAR.md` §0 and §14. In short:
   - `ProviderAvailabilityStore.fetchClubSharedProviders` (flag `streaming_availability_v1`, 0%).
 
 ### 4.3 Sheets (tools)
-- **Create club** (`club-create-sheet-390.png`):
+- **Create club** (`club-create-sheet-390.jpg`):
   - Layout: Cancel (glass capsule, system), the kicker "NEW CLUB", the 26 pt "Start a club.", two grey filled fields (`kuroCanvasQuiet`, radius 12), and three audience rows with a check.
   - The "Create club" ink capsule shows grey while disabled.
   - Discard guard ✔ (N7), grabber ✔ (N8).

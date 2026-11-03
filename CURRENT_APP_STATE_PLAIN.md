@@ -2126,3 +2126,7 @@ A review pass on the new Discover and Clubs pages found small problems; they are
 - Small fixes: times and poll results no longer break across lines, today's pick's pitch is never cut off, the Clubs unread mark is a proper dot, note links look alike, and error screens sit at the same height on both pages.
 - The club page does much less work while scrolling.
 - All automatic tests passed. Nothing was deployed or pushed.
+
+### Change Log — 3 November 2026: Discover and Clubs now look like Home (TestFlight 23)
+
+Discover reads like a daily issue (a cover story in the title's own colours, a short contents line, a few hand-picked sections in different shapes, the rest folded away), and every club is a dark "room" like the one on Home, on the list and on the club's own page. It is in TestFlight build 23 and waits for the owner's review before it becomes part of the main version.
