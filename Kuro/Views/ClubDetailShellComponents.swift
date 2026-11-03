@@ -1,11 +1,12 @@
+import KuroCore
 import SwiftUI
 
 // MARK: - Club detail shell
-// The club's identity surface is the prototype's club room (`ClubRoomPalette.room`, #252b28, the same
-// colour as the Clubs invitation; rulebook §3.2/§14.7): real rail
-// artwork, the club name in serif, the honest audience line, member initials and one member note on
-// a light card, hidden until tapped (notes can spoil). Tab content sits on the white page below.
-// No blur, glass, parallax or decorative motion.
+// Discover + Clubs redesign (spec §7.3): the club's identity surface is the same dark room as Home's
+// and the Clubs list (`ClubRoomBackground`), full-bleed with a rounded foot: seal and kicker, the club
+// name in serif, the description, a "You" ring and the other members' positional fills, and the one
+// member note (D11) on Home's warm note card, spoiler-gated. Under it, on Home's warm paper, the
+// labelled keys (D9, D10) and the tabs. No blur, glass, parallax or decorative motion.
 
 // MARK: - Status bar (journey chrome)
 
@@ -129,229 +130,341 @@ struct ClubCircleButton: View {
     }
 }
 
-// MARK: - Room hero
+// MARK: - Room hero (spec §7.3)
 
 struct JournalHeroSection: View {
     let bundle: ClubBundle
+    /// The viewer's user id (the "You" ring; D13).
+    let viewerId: String?
     /// Space above the content (status bar plus the controls row).
     let topInset: CGFloat
+    let compact: Bool
 
-    private var coverURLs: [URL] {
-        bundle.rails
-            .flatMap(\.items)
-            .compactMap { $0.cover_image_medium.flatMap(URL.init(string:)) }
-            .prefix(4)
-            .map { $0 }
-    }
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// The note card's scroll anchor ("{name}'s note ↑" scrolls here).
+    static let noteAnchor = "club.hero.note"
+
+    private var german: Bool { KuroLocale.isGerman }
     private var openPollCount: Int { bundle.polls.filter { !$0.is_closed }.count }
 
-    private var initials: [String] {
-        ClubsListCardRules.memberInitials(
-            sharingLevel: bundle.club.sharing_level,
-            memberNames: bundle.members.map { $0.display_name ?? "" }.filter { !$0.isEmpty }
-        )
+    /// The other members' initials (never for a private club: `ClubsListCardRules.memberInitials`).
+    private var others: [String] {
+        let names = ClubRoomRules.otherMembers(bundle.members, viewerId: viewerId)
+            .compactMap { $0.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return ClubsListCardRules.memberInitials(sharingLevel: bundle.club.sharing_level, memberNames: names)
     }
 
     private var summary: String {
         ClubRoomCopy.summary(memberCount: bundle.member_count, railCount: bundle.rails.count,
-                             openPolls: openPollCount, german: KuroLocale.isGerman)
+                             openPolls: openPollCount, german: german)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-            ClubArtStrip(urls: coverURLs, monogram: String(bundle.club.name.prefix(1)), maxPixelSize: 360)
-                .clipShape(RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous))
-
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                Text(ClubsListCardRules.audienceLabel(sharingLevel: bundle.club.sharing_level, german: KuroLocale.isGerman))
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(2.1)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: compact ? 8 : 10) {
+                ClubSeal(ring: ClubSeal.ring(compact: compact))
+                    .accessibilityHidden(true)
+                Text(ClubRoomCopy.heroKicker(sharingLevel: bundle.club.sharing_level, german: german))
+                    .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))
+                    .tracking(1.4)
                     .textCase(.uppercase)
-                    .foregroundStyle(Color.kuroRoomTextSecondary)
-
-                Text(bundle.club.name)
-                    .font(.kuroEditorial(size: 30)).tracking(-0.6)
-                    .foregroundStyle(Color.kuroRoomText)
+                    .foregroundStyle(ClubRoomPalette.kicker)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-
-                if let desc = bundle.club.description?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
-                    Text(desc)
-                        .font(.kuroBody(weight: .light))
-                        .foregroundStyle(Color.kuroRoomTextSecondary)
-                        .lineLimit(4)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: KuroDesignSpacing.sm) {
-                        if !initials.isEmpty {
-                            ClubInitialsRow(initials: initials, total: bundle.member_count, onRoom: true)
-                        }
-                        summaryText
-                    }
-                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                        if !initials.isEmpty {
-                            ClubInitialsRow(initials: initials, total: bundle.member_count, onRoom: true)
-                        }
-                        summaryText
-                    }
-                }
+                Spacer(minLength: 0)
             }
+
+            Text(bundle.club.name)
+                .font(.kuroEditorial(size: compact ? 26 : 30))
+                .tracking(-0.9)
+                .foregroundStyle(ClubRoomPalette.text)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.top, 14)
+
+            if let desc = bundle.club.description?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
+                Text(desc)
+                    .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 24))
+                    .foregroundStyle(ClubRoomPalette.rowSecondary)
+                    .lineSpacing(2)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
+            }
+
+            memberRow
+                .padding(.top, 13)
 
             if let note = ClubRoomCopy.firstNote(in: bundle) {
-                ClubNoteCard(note: note.text, author: note.author, title: note.title)
+                ClubHeroNoteCard(note: note, item: item(note.itemId), rail: rail(of: note.itemId), compact: compact)
                     // A different (or edited) note is a new card: it starts hidden again.
                     .id(note.itemId + "\u{1F}" + note.text)
+                    .padding(.top, 16)
+                    .id(Self.noteAnchor)
             }
         }
-        .padding(.horizontal, KuroDesignSpacing.padding)
         .padding(.top, topInset)
-        .padding(.bottom, KuroDesignSpacing.lg)
-        // iPad: the room stays full-bleed; its art and text keep the readable column (spec D3).
+        .padding(.horizontal, ClubRoomLayout.heroPadding(compact: compact).leading)
+        .padding(.bottom, ClubRoomLayout.heroPadding(compact: compact).bottom)
+        // iPad: the room stays full-bleed; its text keeps the readable column.
         .kuroReadableWidth()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ClubRoomPalette.room)
+        .background(ClubRoomBackground(cornerRadius: 24, topCornerRadius: 0).ignoresSafeArea(edges: .top))
     }
 
-    private var summaryText: some View {
-        Text(summary)
-            .font(.kuroMeta())
-            .foregroundStyle(Color.kuroRoomTextSecondary)
-            .fixedSize(horizontal: false, vertical: true)
+    private func item(_ id: String) -> ClubRailItem? {
+        bundle.rails.lazy.flatMap(\.items).first { $0.id == id }
+    }
+
+    private func rail(of itemId: String) -> ClubRail? {
+        bundle.rails.first { $0.items.contains { $0.id == itemId } }
+    }
+
+    // MARK: Members
+
+    private var memberRow: some View {
+        let shown = Array(others.prefix(4))
+        let overflow = max(0, bundle.member_count - 1 - shown.count)
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
+        return layout {
+            HStack(spacing: -6) {
+                Text(ClubRoomCopy.you(german: german))
+                    .font(.kuroCustom(6.5, weight: .semibold, relativeTo: .caption2, maxSize: 12))
+                    .foregroundStyle(ClubRoomPalette.text)
+                    .frame(width: 24, height: 24)
+                    .overlay(Circle().strokeBorder(ClubRoomPalette.text.opacity(0.6), lineWidth: 1))
+                    .background(Circle().fill(ClubRoomPalette.room))
+                ClubMemberFills(initials: shown, size: 22, overflow: shown.isEmpty ? 0 : overflow)
+                    .padding(.leading, 9)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(ClubRoomCopy.youAndMembers(memberCount: bundle.member_count, german: german))
+            Text(summary)
+                .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                .foregroundStyle(ClubRoomPalette.rowSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
-// MARK: - Note card
+// MARK: - Hero note card (Home's warm note card; D11)
 
-/// A member's note on a light card. Notes may spoil, so the text stays hidden until tapped.
-struct ClubNoteCard: View {
-    let note: String
-    let author: String?
-    let title: String
+/// The club's one note: Home's light card (cover, author, the rail, "A note on {title}"), then the
+/// existing spoiler gate; opened, the quote in serif. "{title} ›" pushes the title. Rail notes carry
+/// no spoiler scope and no time, so the gate stays and no time is shown.
+struct ClubHeroNoteCard: View {
+    let note: ClubRoomCopy.Note
+    let item: ClubRailItem?
+    let rail: ClubRail?
+    let compact: Bool
 
+    @Environment(\.kuroRoutes) private var routes
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isRevealed = false
 
-    private var byline: String {
-        let german = KuroLocale.isGerman
-        let who = author ?? (german ? "Ein Mitglied" : "A member")
-        return german ? "\(who) zu \(title)" : "\(who) on \(title)"
-    }
+    private var german: Bool { KuroLocale.isGerman }
+    private var narrow: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        HStack(alignment: .top, spacing: compact ? 11 : 13) {
+            HomeCalendarArt(raw: item?.cover_image_medium)
+                .frame(width: narrow ? 40 : (compact ? 48 : 60), height: narrow ? 60 : (compact ? 72 : 90))
+                .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                .shadow(color: ClubRoomPalette.noteArtShadow, radius: 3, y: 3)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(note.author ?? KuroLocale.text("A club member", "Ein Clubmitglied"))
+                        .font(.kuroCustom(compact ? 10 : 11, weight: .semibold, relativeTo: .caption1, maxSize: 22))
+                        .foregroundStyle(ClubRoomPalette.noteInk)
+                    Spacer(minLength: 6)
+                    if let rail {
+                        Text(rail.title)
+                            .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
+                            .foregroundStyle(ClubRoomPalette.noteMeta)
+                            .lineLimit(1)
+                    }
+                }
+                Text(ClubRoomCopy.noteOn(note.title, german: german))
+                    .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                    .foregroundStyle(ClubRoomPalette.noteMeta)
+                    .padding(.top, 3)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if isRevealed {
+                    Text(KuroLocale.text("“\(note.text)”", "„\(note.text)“"))
+                        .font(.kuroEditorial(size: compact ? 16 : 18))
+                        .tracking(-0.3)
+                        .lineSpacing(3)
+                        .foregroundStyle(ClubRoomPalette.noteInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 10)
+                        .transition(.opacity)
+                        .accessibilityLabel(KuroLocale.text("Note by \(note.author ?? "a member"): \(note.text)",
+                                                            "Notiz von \(note.author ?? "einem Mitglied"): \(note.text)"))
+                } else {
+                    spoilerGate
+                        .padding(.top, 10)
+                }
+
+                if let item {
+                    Button {
+                        routes.openMedia(MediaRoute(ClubActivityTarget.key(mediaType: item.media_type, mediaId: item.media_id)))
+                    } label: {
+                        Text("\(note.title) ›")
+                            .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                            .foregroundStyle(ClubRoomPalette.noteLink)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .padding(.top, 8)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(HomeContactStyle())
+                    .accessibilityHint(KuroLocale.text("Opens this title", "Öffnet diesen Titel"))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(compact ? 14 : 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            shape.fill(ClubRoomPalette.note)
+                .shadow(color: ClubRoomPalette.noteShadow, radius: 3.5, y: 3)
+        }
+        .overlay(shape.strokeBorder(ClubRoomPalette.noteBorder, lineWidth: 1))
+        .accessibilityElement(children: .contain)
+    }
+
+    /// The existing gate copy ("May contain spoilers. Tap to read.") on Home's spoiler-line face.
+    private var spoilerGate: some View {
         Button {
-            guard !isRevealed else { return }
             KuroAccessibility.impactHaptic(.light)
             withAnimation(KuroMotion.resolve(KuroMotion.settle)) { isRevealed = true }
         } label: {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                Text(byline)
-                    .font(.kuroMeta(weight: .medium))
-                    .foregroundStyle(Color.kuroInkSecondary)
+            HStack(spacing: 10) {
+                Text(KuroLocale.text("May contain spoilers. Tap to read.", "Kann spoilern. Tippen zum Lesen."))
+                    .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                    .foregroundStyle(ClubRoomPalette.quietInk)
                     .fixedSize(horizontal: false, vertical: true)
-                if isRevealed {
-                    // A member's (spoiler) note is sans; the prototype's serif is only the club quote.
-                    Text(note)
-                        .font(.kuroBody(weight: .regular))
-                        .foregroundStyle(Color.kuroInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .transition(.opacity)
-                } else {
-                    HStack(spacing: KuroDesignSpacing.sm) {
-                        Image(systemName: "eye.slash")
-                            .font(.kuroMeta())
-                        Text(KuroLocale.text("May contain spoilers. Tap to read.", "Kann spoilern. Tippen zum Lesen."))
-                            .font(.kuroMeta())
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .foregroundStyle(Color.kuroInkQuiet)
-                }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.down")
+                    .font(.kuroCustom(12, weight: .regular, relativeTo: .footnote, maxSize: 20))
+                    .foregroundStyle(ClubRoomPalette.quietInk)
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
             }
-            .padding(KuroDesignSpacing.md)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                    .fill(Color.kuroCanvasPage)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                    .strokeBorder(Color.kuroHairline, lineWidth: 1)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
+            .padding(.vertical, 7)
+            .padding(.horizontal, 10)
+            .frame(minHeight: 46)
+            .background(ClubRoomPalette.quiet, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(ClubRoomPalette.quietBorder, lineWidth: 1))
+            .contentShape(Rectangle())
         }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+        .buttonStyle(HomeContactStyle())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isRevealed ? "\(byline): \(note)" : byline)
-        .accessibilityHint(isRevealed ? "" : KuroLocale.text("May contain spoilers. Double-tap to read.", "Kann spoilern. Doppeltippen zum Lesen."))
-        .accessibilityAddTraits(isRevealed ? [] : .isButton)
+        .accessibilityLabel(KuroLocale.text("Note by \(note.author ?? "a member"), may contain spoilers. Double tap to read.",
+                                            "Notiz von \(note.author ?? "einem Mitglied"), kann spoilern. Zum Lesen doppeltippen."))
+        .accessibilityAddTraits(.isButton)
     }
 }
 
-// MARK: - Bottom bar
+// MARK: - Key row (replaces the floating bottom bar; D9, D10)
 
-/// The club's actions as a solid white capsule with a hairline (no glass): add to a rail and start
-/// a poll for owners/admins, invite for everyone. Every target is 44 pt.
-struct JournalBottomBar: View {
-    let role: String
+/// The club's actions as labelled keys on paper: equal cells 8 apart, each a 44 pt raised light key
+/// (`KuroKeyFace(.light)` recipe: radius 7, the light key gradient, #20282326 border, inset highlight,
+/// a tight drop), a 15 pt glyph and a 12 pt medium label. Which keys show is `ClubRoomRules.keys`.
+/// Offline: drawn at .45 and disabled, VoiceOver value "Offline". Accessibility sizes stack them.
+struct ClubKeyRow: View {
+    let keys: [ClubRoomRules.Key]
+    let compact: Bool
     let isConnected: Bool
-    let onAdd: () -> Void
-    let onInvite: () -> Void
-    let onPoll: () -> Void
+    let onKey: (ClubRoomRules.Key) -> Void
 
-    private var isAdminOrOwner: Bool {
-        ["owner", "admin"].contains(role)
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private static func glyph(_ key: ClubRoomRules.Key) -> String {
+        switch key {
+        case .addTitle, .startRail: return "plus"
+        case .invite: return "arrow.up.right"
+        case .ask: return "questionmark"
+        }
     }
 
     var body: some View {
-        HStack(spacing: KuroDesignSpacing.xs) {
-            if isAdminOrOwner {
-                bottomBarButton(icon: "plus", label: KuroLocale.text("Add a title", "Titel hinzufügen"), action: onAdd)
-                divider
-            }
-
-            bottomBarButton(icon: "person.badge.plus", label: KuroLocale.text("Invite members", "Mitglieder einladen"), action: onInvite)
-
-            if isAdminOrOwner {
-                divider
-                bottomBarButton(icon: "chart.bar", label: KuroLocale.text("Start a poll", "Umfrage starten"), action: onPoll)
+        let german = KuroLocale.isGerman
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
+        layout {
+            ForEach(keys, id: \.self) { key in
+                let title = ClubRoomCopy.keyTitle(key, german: german)
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    onKey(key)
+                } label: {
+                    keyFace(title: title, glyph: Self.glyph(key), iconOver: compact && !stacked && keys.count > 2)
+                }
+                .buttonStyle(ClubKeyStyle())
+                .accessibilityLabel(title)
+                .accessibilityValue(isConnected ? "" : KuroLocale.text("Offline", "Offline"))
             }
         }
-        .padding(.horizontal, KuroDesignSpacing.md)
-        .padding(.vertical, KuroDesignSpacing.xs)
-        .background(
-            Capsule(style: .continuous)
-                .fill(Color.kuroCanvasPage)
-                .overlay(
-                    Capsule(style: .continuous)
-                        .strokeBorder(Color.kuroHairline, lineWidth: 1)
-                )
-                .shadow(color: Color.kuroBlack08, radius: 12, x: 0, y: 4)
-        )
-        .opacity(isConnected ? 1.0 : 0.5)
+        .opacity(isConnected ? 1 : 0.45)
         .disabled(!isConnected)
         .accessibilityElement(children: .contain)
     }
 
-    private func bottomBarButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
-        Button {
-            KuroAccessibility.impactHaptic(.light)
-            action()
-        } label: {
-            Image(systemName: icon)
-                .font(.kuroCustom(18, weight: .regular, relativeTo: .title3, maxSize: 26))
-                .foregroundStyle(Color.kuroInk)
-                .frame(minWidth: 48, minHeight: 44)
-                .contentShape(Rectangle())
+    private func keyFace(title: String, glyph: String, iconOver: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+        let content = Group {
+            Image(systemName: glyph)
+                .font(.kuroCustom(iconOver ? 13 : 15, weight: .regular, relativeTo: .subheadline, maxSize: 24))
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 24))
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .multilineTextAlignment(iconOver ? .center : .leading)
         }
-        .buttonStyle(KuroPressStyle())
-        .accessibilityLabel(label)
+        return Group {
+            if iconOver {
+                VStack(spacing: 2) { content }
+            } else {
+                HStack(spacing: 8) { content }
+            }
+        }
+        .foregroundStyle(Color(hex: "29352C"))
+        .padding(.horizontal, iconOver ? 4 : 10)
+        .padding(.vertical, iconOver ? 5 : 0)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: iconOver ? .center : .leading)
+        .background(
+            shape.fill(LinearGradient(colors: [.kuroKeyLightTop, .kuroKeyLightBottom], startPoint: .top, endPoint: .bottom))
+                .shadow(color: Color(hex: "142319", opacity: Double(0x12) / 255), radius: 0.5, y: 1)
+        )
+        .overlay(shape.strokeBorder(Color(hex: "202823", opacity: Double(0x26) / 255), lineWidth: 1))
+        .overlay(alignment: .top) {
+            shape.stroke(Color.white.opacity(Double(0x90) / 255), lineWidth: 1)
+                .mask(Rectangle().frame(height: 2).frame(maxHeight: .infinity, alignment: .top))
+        }
+        .contentShape(shape)
     }
+}
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.kuroHairline)
-            .frame(width: 1, height: 20)
-            .accessibilityHidden(true)
+/// The key press: Home's pressed key (scale .95, darkened), still under Reduce Motion.
+private struct ClubKeyStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .brightness(configuration.isPressed ? -0.06 : 0)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .animation(reduceMotion ? nil : KuroMotion.contact, value: configuration.isPressed)
     }
 }

@@ -10,6 +10,7 @@ import Testing
 /// numbers, poll copy, join dirtiness, the list room's order, meta and opening copy, and the one seal
 /// and threshold for every club surface.
 @Suite("Clubs lane: room rules")
+@MainActor
 struct DCclubsTests {
     // MARK: Fixtures
 
@@ -165,6 +166,7 @@ struct DCclubsTests {
         #expect(ClubWeekCopy.dayLabel(try Self.date("2026-10-29T10:00:00Z"), now: now, german: false) == "Thursday")
         #expect(ClubWeekCopy.time(try Self.date("2026-11-02T23:30:00Z")) == "00:30")
         #expect(ClubWeekCopy.summary(count: 5, since: ClubWeekRules.windowStart(now: now), german: false) == "5 updates since Tue 27 Oct")
+        #expect(ClubWeekCopy.since(ClubWeekRules.windowStart(now: now), german: false) == "Since Tue 27 Oct")
         #expect(ClubWeekCopy.updates(1, german: true) == "1 Neuigkeit")
         #expect(ClubWeekCopy.showOlder(12, german: false) == "Show 12 older updates")
         #expect(ClubWeekCopy.quietWeek(since: ClubWeekRules.windowStart(now: now), german: false)

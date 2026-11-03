@@ -10,9 +10,19 @@ import SwiftUI
 struct ClubSheetTitle: View {
     let kicker: String
     let title: String
+    /// The club seal above the title (create club / rail / poll; spec §7.4, visual only).
+    var showsSeal: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+            if showsSeal {
+                // The room's seal keeps its own dark ground (its inks are drawn for the room).
+                ClubSeal(ring: ClubSeal.compactRing)
+                    .padding(6)
+                    .background(Circle().fill(ClubRoomPalette.room))
+                    .padding(.bottom, 10)
+                    .accessibilityHidden(true)
+            }
             Text(kicker)
                 .kuroKicker()
                 .accessibilityHidden(true)
@@ -185,7 +195,8 @@ struct CreateClubRailSheet: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                     ClubSheetTitle(kicker: KuroLocale.text("New rail", "Neue Liste"),
-                                   title: KuroLocale.text("Start a shared list.", "Lege eine gemeinsame Liste an."))
+                                   title: KuroLocale.text("Start a shared list.", "Lege eine gemeinsame Liste an."),
+                                   showsSeal: true)
 
                     ClubFormField(label: KuroLocale.text("Title", "Titel"),
                                   prompt: KuroLocale.text("Watching together", "Schauen wir gemeinsam"),
@@ -317,7 +328,8 @@ struct CreateClubPollSheet: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                     ClubSheetTitle(kicker: KuroLocale.text("New poll", "Neue Umfrage"),
-                                   title: KuroLocale.text("Ask the club.", "Frag den Club."))
+                                   title: KuroLocale.text("Ask the club.", "Frag den Club."),
+                                   showsSeal: true)
 
                     ClubFormField(label: KuroLocale.text("Question", "Frage"),
                                   prompt: KuroLocale.text("What should we watch next?", "Was schauen wir als Nächstes?"),

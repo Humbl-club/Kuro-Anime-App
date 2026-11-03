@@ -65,6 +65,236 @@ struct ClubsAfterSnapshotTests {
         await harness.tearDown()
     }
 
+    // MARK: Clubs list
+
+    @Test("Clubs list: rooms at 390, 320 and iPad; empty, loading, offline, failed")
+    func clubsList() async throws {
+        await Self.seedArtwork()
+        let rows = Self.clubListRowsJSON()
+        let harness = try ClubsHarness(responder: { request in
+            (request.resource ?? "").hasPrefix("rpc/fetch_my_clubs") ? .json(rows) : .emptyArray
+        })
+        _ = await harness.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        await harness.clubs.fetchMyClubs()
+        for (width, height, suffix) in [(CGFloat(390), CGFloat(844), "top-390"), (390, 1_500, "full-390"),
+                                        (320, 1_500, "full-320"), (834, 1_200, "ipad")] {
+            let window = Self.window(Self.inject(ClubsView(), graph: harness.service, monitor: NetworkMonitor()),
+                                     width: width, height: height)
+            try? await Task.sleep(for: .milliseconds(1_500))
+            await capture(window, name: "clubs-list-\(suffix).png")
+            Self.close(window)
+        }
+
+        // Offline with clubs on screen: the quiet band.
+        let offlineMonitor = NetworkMonitor()
+        try? await Task.sleep(for: .milliseconds(300))
+        offlineMonitor.isConnected = false
+        let banded = Self.window(Self.inject(ClubsView(), graph: harness.service, monitor: offlineMonitor), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(1_400))
+        offlineMonitor.isConnected = false
+        try? await Task.sleep(for: .milliseconds(300))
+        await capture(banded, name: "clubs-offline-with-content-390.png")
+        Self.close(banded)
+
+        // Create sheet (seal above the title), from the list's own row.
+        let host = Self.window(Self.inject(ClubsView(), graph: harness.service, monitor: NetworkMonitor()), width: 390, height: 1_500)
+        try? await Task.sleep(for: .milliseconds(1_400))
+        if Self.activate(labelContains: KuroLocale.text("Start a club.", "Gründe einen Club."), in: host) {
+            try? await Task.sleep(for: .milliseconds(1_400))
+            await capture(host, name: "club-create-sheet-390.png", height: 844)
+        } else {
+            note("Create sheet: row could not be activated")
+        }
+        Self.close(host)
+
+        // Join sheet through its deep-link path (code prefilled).
+        let join = Self.window(Self.inject(ClubsView(pendingJoinCode: .constant("AbC12xYz")), graph: harness.service,
+                                           monitor: NetworkMonitor()), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(2_000))
+        await capture(join, name: "club-join-sheet-prefilled-390.png")
+        Self.close(join)
+        await harness.tearDown()
+
+        // Empty (a successful read with no clubs), 390 and 320.
+        let empty = try ClubsHarness(responder: { _ in .emptyArray })
+        _ = await empty.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        await empty.clubs.fetchMyClubs()
+        for width in [CGFloat(390), 320] {
+            let window = Self.window(Self.inject(ClubsView(), graph: empty.service, monitor: NetworkMonitor()), width: width, height: 844)
+            try? await Task.sleep(for: .milliseconds(1_400))
+            await capture(window, name: "clubs-empty-\(Int(width)).png")
+            Self.close(window)
+        }
+        await empty.tearDown()
+
+        // Loading (the read held back).
+        let gate = StubGate()
+        let loading = try ClubsHarness(responder: { _ in StubResponse.json("[]").held(by: gate) })
+        _ = await loading.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        let loadingWindow = Self.window(Self.inject(ClubsView(), graph: loading.service, monitor: NetworkMonitor()), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(1_200))
+        await capture(loadingWindow, name: "clubs-loading-390.png")
+        Self.close(loadingWindow)
+        gate.open()
+        await loading.tearDown()
+
+        // Offline first read.
+        let offline = try ClubsHarness(responder: { _ in .failure(.notConnectedToInternet) })
+        _ = await offline.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        let monitor = NetworkMonitor()
+        try? await Task.sleep(for: .milliseconds(300))
+        monitor.isConnected = false
+        await offline.clubs.fetchMyClubs()
+        let offlineWindow = Self.window(Self.inject(ClubsView(), graph: offline.service, monitor: monitor), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(1_400))
+        monitor.isConnected = false
+        try? await Task.sleep(for: .milliseconds(300))
+        await capture(offlineWindow, name: "clubs-offline-390.png")
+        Self.close(offlineWindow)
+        await offline.tearDown()
+
+        // Failed first read (a server error, connected).
+        let failed = try ClubsHarness(responder: { _ in ClubJSON.error(message: "boom", code: "XX000", status: 500) })
+        _ = await failed.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        await failed.clubs.fetchMyClubs()
+        let failedWindow = Self.window(Self.inject(ClubsView(), graph: failed.service, monitor: NetworkMonitor()), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(1_400))
+        await capture(failedWindow, name: "clubs-failed-390.png")
+        Self.close(failedWindow)
+        await failed.tearDown()
+    }
+
+    // MARK: Club page
+
+    @Test("Club page as a journey: owner and member views, tabs, pinned bar, 320 and iPad")
+    func clubPage() async throws {
+        await Self.seedArtwork()
+        let ownerBundle = Self.richClubBundleJSON(role: "owner")
+        let harness = try ClubsHarness(responder: { request in
+            request.resource == "rpc/fetch_club_bundle" ? .json(ownerBundle) : .emptyArray
+        })
+        _ = await harness.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+
+        for (width, suffix) in [(CGFloat(390), "390"), (320, "320"), (834, "ipad")] {
+            let window = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))),
+                                                 graph: harness.service, monitor: NetworkMonitor(), routes: false),
+                                     width: width, height: 844)
+            try? await Task.sleep(for: .milliseconds(2_200))
+            await capture(window, name: "club-detail-top-\(suffix).png")
+            if suffix == "390" {
+                // Scrolled past the room: the compact paper bar with the tabs pinned under it.
+                if let scroll = Self.scrollView(in: window) {
+                    scroll.setContentOffset(CGPoint(x: 0, y: min(760, max(0, scroll.contentSize.height - scroll.bounds.height))),
+                                            animated: false)
+                }
+                try? await Task.sleep(for: .milliseconds(900))
+                await capture(window, name: "club-detail-rails-scrolled-390.png")
+            }
+            Self.close(window)
+        }
+
+        let tall = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))), graph: harness.service,
+                                           monitor: NetworkMonitor(), routes: false), width: 390, height: 2_600)
+        try? await Task.sleep(for: .milliseconds(2_200))
+        await capture(tall, name: "club-detail-rails-full-390.png", height: 1_500)
+        Self.close(tall)
+        for (tab, file) in [(ClubDetailView.Tab.active, "this-week"), (.polls, "polls")] {
+            let window = Self.window(Self.inject(NavigationStack { ClubDetailView(clubId: "c1", initialTab: tab) },
+                                                 graph: harness.service, monitor: NetworkMonitor()),
+                                     width: 390, height: 1_900)
+            try? await Task.sleep(for: .milliseconds(2_200))
+            await capture(window, name: "club-detail-\(file)-full-390.png")
+            Self.close(window)
+        }
+
+        // Offline with the club on screen: keys disabled.
+        let offlineMonitor = NetworkMonitor()
+        try? await Task.sleep(for: .milliseconds(300))
+        let offline = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))), graph: harness.service,
+                                              monitor: offlineMonitor, routes: false), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(2_000))
+        offlineMonitor.isConnected = false
+        try? await Task.sleep(for: .milliseconds(500))
+        await capture(offline, name: "club-detail-offline-keys-390.png")
+        Self.close(offline)
+
+        // Tools: invite, rail chooser, create rail and poll (seal above the title).
+        let bundle = try JSONDecoder().decode(ClubBundle.self, from: Data(ownerBundle.utf8))
+        let tools: [(String, AnyView)] = [
+            ("club-invite-sheet-390.png", AnyView(ClubInviteSheet(clubName: bundle.club.name, code: "AbC12xYz"))),
+            ("club-rail-chooser-sheet-390.png", AnyView(ClubRailChooserSheet(rails: ClubRoomRules.addableRails(bundle), onPick: { _ in }))),
+            ("club-create-rail-sheet-390.png", AnyView(CreateClubRailSheet(clubId: "c1", onCreated: {}))),
+            ("club-create-poll-sheet-390.png", AnyView(CreateClubPollSheet(clubId: "c1", onCreated: {})))
+        ]
+        for (name, view) in tools {
+            let window = Self.window(Self.inject(view, graph: harness.service, monitor: NetworkMonitor()), width: 390, height: 844)
+            try? await Task.sleep(for: .milliseconds(900))
+            await capture(window, name: name)
+            Self.close(window)
+        }
+        await harness.tearDown()
+
+        // A member's view: no Invite or Ask; Add only for unlocked rails.
+        let memberBundle = Self.richClubBundleJSON(role: "member")
+        let member = try ClubsHarness(responder: { request in
+            request.resource == "rpc/fetch_club_bundle" ? .json(memberBundle) : .emptyArray
+        })
+        _ = await member.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        let memberWindow = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))),
+                                                   graph: member.service, monitor: NetworkMonitor(), routes: false),
+                                       width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(2_200))
+        await capture(memberWindow, name: "club-detail-member-390.png")
+        Self.close(memberWindow)
+        await member.tearDown()
+
+        // A quiet week (only older updates) and a duo club.
+        for (label, json) in [("quiet-week", Self.richClubBundleJSON(role: "owner", ageDays: 12)),
+                              ("duo", Self.duoClubBundleJSON())] {
+            let h = try ClubsHarness(responder: { request in
+                request.resource == "rpc/fetch_club_bundle" ? .json(json) : .emptyArray
+            })
+            _ = await h.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+            if label == "duo" {
+                let rails = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))), graph: h.service,
+                                                    monitor: NetworkMonitor(), routes: false), width: 390, height: 1_100)
+                try? await Task.sleep(for: .milliseconds(2_200))
+                await capture(rails, name: "club-detail-duo-rails-390.png")
+                Self.close(rails)
+            }
+            let window = Self.window(Self.inject(NavigationStack { ClubDetailView(clubId: "c1", initialTab: .active) },
+                                                 graph: h.service, monitor: NetworkMonitor()), width: 390, height: 1_300)
+            try? await Task.sleep(for: .milliseconds(2_200))
+            await capture(window, name: "club-detail-this-week-\(label)-390.png")
+            Self.close(window)
+            await h.tearDown()
+        }
+
+        // Club page loading (the bundle held back) and failed.
+        let gate = StubGate()
+        let held = try ClubsHarness(responder: { request in
+            request.resource == "rpc/fetch_club_bundle" ? StubResponse.json(ownerBundle).held(by: gate) : .emptyArray
+        })
+        _ = await held.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        let loading = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))), graph: held.service,
+                                              monitor: NetworkMonitor(), routes: false), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(1_200))
+        await capture(loading, name: "club-detail-loading-390.png")
+        Self.close(loading)
+        gate.open()
+        await held.tearDown()
+
+        let failing = try ClubsHarness(responder: { _ in ClubJSON.error(message: "boom", code: "XX000", status: 500) })
+        _ = await failing.service.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        let failedWindow = Self.window(Self.inject(JourneyHost(navigator: JourneyNavigator(root: .club(id: "c1"))),
+                                                   graph: failing.service, monitor: NetworkMonitor(), routes: false),
+                                       width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(2_000))
+        await capture(failedWindow, name: "club-detail-failed-390.png")
+        Self.close(failedWindow)
+        await failing.tearDown()
+    }
+
     // MARK: Hosting
 
     private static func inject<V: View>(_ view: V, graph: AppGraph, monitor: NetworkMonitor, routes: Bool = true) -> AnyView {
@@ -103,7 +333,7 @@ struct ClubsAfterSnapshotTests {
         let host = UIHostingController(rootView: view.frame(width: width, height: height))
         host.safeAreaRegions = []
         let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow(frame: .zero)
         window.frame = CGRect(x: 0, y: 0, width: width, height: height)
         window.rootViewController = host
         window.isHidden = false
@@ -150,12 +380,12 @@ struct ClubsAfterSnapshotTests {
         return best
     }
 
-    /// Activates the first accessibility element whose label is `label` (or starts with `labelPrefix`).
-    private static func activate(label: String? = nil, labelPrefix: String? = nil, in root: UIView) -> Bool {
+    /// Activates the first accessibility element whose label is `label` (or contains `labelContains`).
+    private static func activate(label: String? = nil, labelContains: String? = nil, in root: UIView) -> Bool {
         func matches(_ element: NSObject) -> Bool {
             guard let value = element.accessibilityLabel else { return false }
             if let label { return value == label }
-            if let labelPrefix { return value.hasPrefix(labelPrefix) }
+            if let labelContains { return value.contains(labelContains) }
             return false
         }
         func find(_ element: NSObject, depth: Int) -> NSObject? {

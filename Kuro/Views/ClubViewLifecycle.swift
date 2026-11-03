@@ -165,7 +165,7 @@ nonisolated enum ClubsListCardRules {
     }
 }
 
-extension ClubsListCardRules {
+nonisolated extension ClubsListCardRules {
     /// The honest audience label of a club (what members can see of each other), EN/DE.
     static func audienceLabel(sharingLevel: String, german: Bool) -> String {
         switch sharingLevel.lowercased() {
@@ -906,6 +906,12 @@ nonisolated enum ClubWeekCopy {
     static func summary(count: Int, since: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
         let date = shortDate(since, german: german, calendar: calendar)
         return german ? "\(updates(count, german: true)) seit \(date)" : "\(updates(count, german: false)) since \(date)"
+    }
+
+    /// "Since Tue 27 Oct" (a quiet week's summary: no "0 updates").
+    static func since(_ date: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        let day = shortDate(date, german: german, calendar: calendar)
+        return german ? "Seit \(day)" : "Since \(day)"
     }
 
     static func earlier(german: Bool) -> String { german ? "Früher" : "Earlier" }

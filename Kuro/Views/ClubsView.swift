@@ -1,9 +1,11 @@
 // MARK: - CLUBS VIEW (Main Clubs Page)
 // Entry point for the Clubs section (pager page; also presented from Profile).
-// Shows the caller's private clubs as inhabited cards (real rail artwork, serif name, member
-// initials, one real recent line or nothing, an ink dot for unread), the Create / Join invitation
-// when a successful read found no clubs, and honest loading / offline / failed states otherwise
-// (`ClubsListRules`: a failed or offline read never shows the invitation).
+// Discover + Clubs redesign (spec §7.1–§7.2, §7.5): on Home's warm canvas, Home's opening row ("YOUR
+// PRIVATE CLUBS · n" / "k with something new."), then one dark club room per club (`ClubRoomCard`,
+// the same room as Home's and the club page's hero), newest activity first, then Home's invitation
+// link rows (Start a club / Join a club) and Home's footer. A successful read with no clubs shows the
+// room invitation; loading, offline and failed states are their own (`ClubsListRules`: a failed or
+// offline read never shows the invitation).
 //
 // Data: `ClubsStore.refreshMyClubsIfStale()` on every visit (60 s window: revisiting the page does
 // not refetch), a forced `fetchMyClubs()` on pull-to-refresh and Retry. Account scope: every async
@@ -31,8 +33,12 @@ struct ClubsView: View {
     /// The club just created: opened once the create sheet has finished closing (presenting while a
     /// sheet is still leaving fails silently).
     @State private var createdClubId: String? = nil
+    /// The club just joined: opened the same way once the join sheet has closed (spec D14).
+    @State private var joinedClubId: String? = nil
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
+    /// The page's measured width (gutter and compact sizes; never the screen).
+    @State private var containerWidth: CGFloat = 0
 
     init(pendingJoinCode: Binding<String?> = .constant(nil)) {
         _pendingJoinCode = pendingJoinCode
@@ -46,16 +52,22 @@ struct ClubsView: View {
         )
     }
 
+    private var gutter: CGFloat { ClubRoomLayout.gutter(containerWidth: containerWidth) }
+    private var compact: Bool {
+        ClubRoomLayout.isCompact(columnWidth: min(containerWidth, KuroReadableWidth.maxWidth) - gutter * 2)
+    }
+
     var body: some View {
         let origin = actionScope.capture(session: clubs.accountSession)
         return ZStack {
-            Color.kuroCanvasPage.ignoresSafeArea()
+            // One canvas with the header (spec G1, seam rule): Home's warm paper.
+            Color.kuroCanvasHome.ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
                 content(origin: origin)
-                    .padding(.horizontal, KuroDesignSpacing.padding)
-                    .padding(.top, KuroDesignSpacing.md)
-                    .padding(.bottom, KuroDesignSpacing.xxl)
+                    .padding(.horizontal, gutter)
+                    .padding(.top, ClubRoomLayout.top)
+                    .padding(.bottom, KuroDesignSpacing.lg)
                     .kuroReadableWidth()
             }
             .refreshable {
@@ -78,6 +90,7 @@ struct ClubsView: View {
                 .zIndex(100)
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
         .task(id: origin) {
             guard let loadOrigin = actionScope.capture(session: clubs.accountSession) else { return }
             // Revisits inside the staleness window reuse what is on screen.
@@ -111,9 +124,13 @@ struct ClubsView: View {
         }
         // N10: a deep link collapses this page's own sheets too.
         .kuroNavigationLayer("clubs.create", isPresented: $showCreateSheet)
-        .sheet(isPresented: $showJoinSheet, onDismiss: { joinPrefillCode = "" }) {
+        .sheet(isPresented: $showJoinSheet, onDismiss: {
+            joinPrefillCode = ""
+            openJoinedClub()
+        }) {
             JoinClubSheet(initialCode: joinPrefillCode) { response in
                 guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+                joinedClubId = response.club_id
                 showToast(.success, title: KuroLocale.text("You joined", "Du bist beigetreten"), subtitle: response.club_name)
             }
             .kuroLeavesJourney()
@@ -128,10 +145,12 @@ struct ClubsView: View {
         // One switch on the branded state (`ClubsListState.brandedState`, tested in RestyleLaneTests).
         switch listState.brandedState {
         case .loading:
-            ClubsLoadingSkeleton()
+            VStack(alignment: .leading, spacing: ClubRoomLayout.stack) {
+                opening(kicker: ClubsEmptyCopy.kicker(german: KuroLocale.isGerman), headline: nil)
+                ClubRoomSkeleton()
+            }
         case .empty:
-            ClubsInvitation(onCreate: openCreate, onJoin: openJoin)
-                .padding(.top, KuroDesignSpacing.md)
+            ClubsInvitation(compact: compact, onCreate: openCreate, onJoin: openJoin)
         case .offline(hasContent: false):
             KuroStateView(.offline(hasCachedContent: false),
                           message: KuroLocale.text("Connect to see your clubs.", "Verbinde dich, um deine Clubs zu sehen."),
@@ -150,21 +169,31 @@ struct ClubsView: View {
         }
     }
 
+    private func opening(kicker: String, headline: String?) -> some View {
+        HomeOpeningLineView(kicker: kicker, headline: headline ?? "", compact: compact)
+            .padding(.bottom, 6)
+    }
+
     private func clubList(notice: ClubsListState.Notice?, origin: AccountActionScope.Ticket?) -> some View {
         let german = KuroLocale.isGerman
-        return VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
-            KuroSectionHeader(KuroLocale.text("Your clubs.", "Deine Clubs."),
-                              kicker: KuroLocale.text("Private", "Privat"))
-                .kuroTracking(.headline)
-
-            if let notice {
-                KuroStateView(notice == .offline ? .offline(hasCachedContent: true) : .failed(hasCachedContent: true),
-                              layout: .inline,
-                              retry: { retry(origin: origin) })
+        let rows = ClubRoomRules.sortedForList(clubs.myClubs)
+        let unread = rows.filter { clubs.hasUnseenActivity(club: $0) }.count
+        let now = Date()
+        return VStack(alignment: .leading, spacing: ClubRoomLayout.stack) {
+            if notice == .offline {
+                let band = ClubRoomCopy.offlineBand(german: german)
+                ClubOfflineBand(lead: band.lead, rest: band.rest, retry: { retry(origin: origin) })
             }
 
-            LazyVStack(spacing: KuroDesignSpacing.md) {
-                ForEach(clubs.myClubs) { club in
+            opening(kicker: ClubRoomCopy.listKicker(count: rows.count, german: german),
+                    headline: ClubRoomCopy.listHeadline(unread: unread, german: german))
+
+            if notice == .failed {
+                KuroStateView(.failed(hasCachedContent: true), layout: .inline, retry: { retry(origin: origin) })
+            }
+
+            LazyVStack(spacing: ClubRoomLayout.roomGap) {
+                ForEach(rows) { club in
                     let hasUnseen = clubs.hasUnseenActivity(club: club)
                     Button {
                         guard !suppressCardTaps else { return }
@@ -173,9 +202,9 @@ struct ClubsView: View {
                         // journey), never as a page-local sheet.
                         routes.openClub(club.id)
                     } label: {
-                        ClubListCard(club: club, hasUnseen: hasUnseen)
+                        ClubRoomCard(club: club, hasUnseen: hasUnseen, now: now)
                     }
-                    .buttonStyle(KuroPressStyle(pressedScale: 0.985))
+                    .buttonStyle(HomeContactStyle())
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(ClubsListCardRules.accessibilityLabel(
                         name: club.name,
@@ -185,20 +214,23 @@ struct ClubsView: View {
                         recentLine: ClubsListCardRules.recentLine(club.activity_preview, german: german),
                         german: german
                     ))
-                    .accessibilityHint(KuroLocale.text("Opens the club.", "Öffnet den Club."))
+                    .accessibilityHint(KuroLocale.text("Opens the club", "Öffnet den Club"))
                     .accessibilityAddTraits(.isButton)
+                    .accessibilityAction { routes.openClub(club.id) }
                 }
             }
 
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                ClubInvitationAction(kicker: KuroLocale.text("New", "Neu"),
-                                     title: KuroLocale.text("Start another club.", "Noch einen Club gründen."),
-                                     action: openCreate)
-                ClubInvitationAction(kicker: KuroLocale.text("Invite code", "Einladungscode"),
-                                     title: KuroLocale.text("Join a club.", "Einem Club beitreten."),
-                                     action: openJoin)
+            VStack(alignment: .leading, spacing: ClubRoomLayout.linkRowGap) {
+                ClubLinkRow(kicker: KuroLocale.text("New", "Neu"),
+                            title: KuroLocale.text("Start a club.", "Gründe einen Club."),
+                            action: openCreate)
+                ClubLinkRow(kicker: KuroLocale.text("Invite code", "Einladungscode"),
+                            title: KuroLocale.text("Join a club.", "Tritt einem Club bei."),
+                            action: openJoin)
             }
-            .padding(.top, KuroDesignSpacing.md)
+            .padding(.top, 16)
+
+            HomeFooter()
         }
     }
 
@@ -221,6 +253,15 @@ struct ClubsView: View {
                                                            isCurrent: actionScope.capture(session: clubs.accountSession) != nil)
         else { createdClubId = nil; return }
         createdClubId = nil
+        routes.openClub(clubId)
+    }
+
+    /// The join sheet has closed: the club just joined opens, the same way a created one does (D14).
+    private func openJoinedClub() {
+        guard let clubId = ClubCreationFollowUp.clubToOpen(created: joinedClubId,
+                                                           isCurrent: actionScope.capture(session: clubs.accountSession) != nil)
+        else { joinedClubId = nil; return }
+        joinedClubId = nil
         routes.openClub(clubId)
     }
 
@@ -258,8 +299,8 @@ struct ClubsView: View {
 
 // MARK: - Create, then open
 
-/// What happens when the create-club sheet has closed (pure, NavclubsTests): the club created there
-/// opens, but only for the account that created it; a cancelled sheet opens nothing.
+/// What happens when the create-club (or join-club) sheet has closed (pure, NavclubsTests): the club
+/// created or joined there opens, but only for the account that did it; a cancelled sheet opens nothing.
 nonisolated enum ClubCreationFollowUp {
     static func clubToOpen(created clubId: String?, isCurrent: Bool) -> String? {
         guard isCurrent, let clubId, !clubId.isEmpty else { return nil }
@@ -269,80 +310,84 @@ nonisolated enum ClubCreationFollowUp {
 
 // MARK: - Invitation (no clubs yet)
 
-/// The empty state after a successful read, in the prototype's club-room language (PROTOTYPE_SPEC §4
-/// "Club room"): the dark room with its seal, kicker and footer, a light note card that says what a
-/// club is, and the two real actions, Create and Join. No sample club, member or note is drawn (spec
-/// §7.2): the seal holds the prototype's "＋". Never shown for a failed or offline read.
+/// The empty page after a successful read (spec §7.2), on the warm canvas: Home's opening row, then
+/// the dark room with the club seal, "YOUR PRIVATE CLUB", the serif headline, the line, the solid room
+/// key "Start a club", the quiet "Join with a code ›" row and the room footer; a quiet card says what
+/// members can see; Home's footer. No sample club, member or note. Never shown for a failed or offline read.
 private struct ClubsInvitation: View {
+    let compact: Bool
     let onCreate: () -> Void
     let onJoin: () -> Void
-    /// The room's own width, measured; picks the 390 or 320 metrics (`ClubRoomMetrics`).
+    /// The room's own width, measured.
     @State private var roomWidth: CGFloat = 0
 
     var body: some View {
         let german = KuroLocale.isGerman
-        let metrics = ClubRoomMetrics.forRoomWidth(roomWidth)
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: metrics.mastheadGap) {
-                Text("＋")
-                    .font(.kuroCustom(metrics.seal * 20 / 43, weight: .ultraLight, relativeTo: .title3, maxSize: 30))
-                    .foregroundStyle(ClubRoomPalette.text)
-                    .frame(width: metrics.seal, height: metrics.seal)
-                    .overlay(Circle().strokeBorder(ClubRoomPalette.seal, lineWidth: 1))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(ClubsEmptyCopy.kicker(german: german))
+        let roomCompact = HomeClubRoom.isCompact(width: roomWidth)
+        VStack(alignment: .leading, spacing: ClubRoomLayout.stack) {
+            HomeOpeningLineView(kicker: ClubsEmptyCopy.kicker(german: german),
+                                headline: ClubRoomCopy.emptyHeadline(german: german), compact: compact)
+                .padding(.bottom, 6)
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .center, spacing: roomCompact ? 8 : 10) {
+                    ClubSeal(ring: ClubSeal.ring(compact: roomCompact))
+                        .accessibilityHidden(true)
+                    Text(KuroLocale.text("Your private club", "Dein privater Club"))
                         .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))
                         .tracking(1.4)
+                        .textCase(.uppercase)
                         .foregroundStyle(ClubRoomPalette.kicker)
                         .accessibilityHidden(true)
-                    Text(ClubsEmptyCopy.headline(german: german))
-                        .font(.kuroCustom(metrics.headline, weight: .bold, relativeTo: .title2, maxSize: 38))
-                        .tracking(-metrics.headline * 0.7 / 22)
-                        .foregroundStyle(ClubRoomPalette.text)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
-            }
-            .padding(.bottom, 19)
 
-            VStack(alignment: .leading, spacing: 14) {
+                Text(ClubsEmptyCopy.headline(german: german))
+                    .font(.kuroEditorial(size: roomCompact ? 26 : 30))
+                    .tracking(-0.9)
+                    .lineSpacing(1)
+                    .foregroundStyle(ClubRoomPalette.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .padding(.top, 18)
+
                 Text(ClubsEmptyCopy.line(german: german))
-                    .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 26))
-                    .foregroundStyle(ClubRoomPalette.noteInk)
+                    .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 24))
+                    .foregroundStyle(ClubRoomPalette.rowSecondary)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
-                ClubRoomPrimaryButton(title: ClubsEmptyCopy.create(german: german), action: onCreate)
-                ClubRoomQuietButton(title: ClubsEmptyCopy.join(german: german), action: onJoin)
-            }
-            .padding(metrics.notePadding)
-            // The drop belongs to the card's face only, so the text inside carries no shadow.
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(ClubRoomPalette.note)
-                .shadow(color: Color.black.opacity(0x22 / 255.0), radius: 3.5, x: 0, y: 3))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.white.opacity(0x88 / 255.0), lineWidth: 1))
+                    .padding(.top, 8)
 
-            HStack(spacing: 10) {
-                Text(ClubsEmptyCopy.footer(german: german))
-                Spacer(minLength: 0)
-                Text(ClubsEmptyCopy.size(german: german))
+                ClubRoomPrimaryButton(title: ClubsEmptyCopy.create(german: german), action: onCreate)
+                    .padding(.top, 20)
+                ClubRoomQuietRow(title: ClubsEmptyCopy.join(german: german), action: onJoin)
+                    .padding(.top, 6)
+
+                HStack(spacing: 10) {
+                    Text(ClubsEmptyCopy.footer(german: german))
+                    Spacer(minLength: 0)
+                    Text(ClubsEmptyCopy.size(german: german))
+                }
+                .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 15))
+                .foregroundStyle(ClubRoomPalette.footer)
+                .padding(.top, 10)
+                .padding(.horizontal, 2)
+                .overlay(alignment: .top) { Rectangle().fill(ClubRoomPalette.footerRule).frame(height: 1) }
+                .padding(.top, 8)
+                .accessibilityElement(children: .combine)
             }
-            .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 15))
-            .foregroundStyle(ClubRoomPalette.footer)
-            .padding(.top, 10)
-            .padding(.horizontal, 2)
-            .overlay(alignment: .top) { Rectangle().fill(ClubRoomPalette.footerRule).frame(height: 1) }
-            .padding(.top, 12)
-            .accessibilityElement(children: .combine)
+            .padding(.top, 22)
+            .padding(.horizontal, roomCompact ? 12 : 18)
+            .padding(.bottom, 12)
+            .background(ClubRoomBackground(cornerRadius: 24))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { roomWidth = $0 }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .contain)
+
+            HomeQuietCard(text: ClubRoomCopy.sharingLevelsNote(german: german))
+
+            HomeFooter()
         }
-        .padding(.top, 20)
-        .padding(.horizontal, metrics.horizontalPadding)
-        .padding(.bottom, 12)
-        .background(ClubRoomBackground(cornerRadius: 24))
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { roomWidth = $0 }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .contain)
     }
 }
 
@@ -362,37 +407,38 @@ nonisolated enum ClubsEmptyCopy {
     static func size(german: Bool) -> String { german ? "2–20 Personen" : "2–20 people" }
 }
 
-/// The room's primary action: the solid dark key face, light ink, a "＋".
+/// The room's primary key: the solid dark room key (`ClubRoomPalette.key`), light ink, centred label.
 private struct ClubRoomPrimaryButton: View {
     let title: String
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Text(title)
-                    .font(.kuroCustom(14, weight: .medium, relativeTo: .subheadline, maxSize: 26))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .multilineTextAlignment(.leading)
-                Image(systemName: "plus")
-                    .font(.kuroCustom(14, weight: .regular, relativeTo: .subheadline, maxSize: 24))
-                    .accessibilityHidden(true)
-            }
-            .foregroundStyle(ClubRoomPalette.keyInk)
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, minHeight: 46)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(ClubRoomPalette.key))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.white.opacity(0x1F / 255.0), lineWidth: 1))
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Text(title)
+                .font(.kuroCustom(13, weight: .medium, relativeTo: .subheadline, maxSize: 26))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(ClubRoomPalette.text)
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, minHeight: 46)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(LinearGradient(colors: [Color(hex: "36413A"), ClubRoomPalette.key], startPoint: .top, endPoint: .bottom))
+                )
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color(hex: "5B665E"), lineWidth: 1))
+                .overlay(alignment: .top) {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(Color.white.opacity(Double(0x22) / 255), lineWidth: 1)
+                        .mask(Rectangle().frame(height: 2).frame(maxHeight: .infinity, alignment: .top))
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
-        .buttonStyle(KuroPressStyle())
+        .buttonStyle(HomeContactStyle())
         .accessibilityLabel(title)
     }
 }
 
-/// The room's quiet action: the spoiler-disclosure face (`#e9ede2`, `#ccd4c3` border) with "›".
-private struct ClubRoomQuietButton: View {
+/// The room's quiet row: 12 pt `rowSecondary` text and "›", 44 pt.
+private struct ClubRoomQuietRow: View {
     let title: String
     let action: () -> Void
 
@@ -400,268 +446,20 @@ private struct ClubRoomQuietButton: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Text(title)
-                    .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 26))
+                    .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 24))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .multilineTextAlignment(.leading)
                 Text("›")
-                    .font(.kuroCustom(19, relativeTo: .body, maxSize: 30))
+                    .font(.kuroCustom(17, relativeTo: .body, maxSize: 28))
                     .accessibilityHidden(true)
             }
-            .foregroundStyle(ClubRoomPalette.quietInk)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, minHeight: 46)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(ClubRoomPalette.quiet))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(ClubRoomPalette.quietBorder, lineWidth: 1))
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .buttonStyle(KuroPressStyle())
-        .accessibilityLabel(title)
-    }
-}
-
-/// Invitation action (rulebook §7): kicker, a serif line, a full ink rule and an arrow. One target of
-/// at least 44 pt.
-struct ClubInvitationAction: View {
-    let kicker: String
-    let title: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-                Text(kicker)
-                    .kuroKicker()
-                HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
-                    Text(title)
-                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 30))
-                        .tracking(-0.2)
-                        .foregroundStyle(Color.kuroInk)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "arrow.right")
-                        .font(.kuroMeta(weight: .regular))
-                        .foregroundStyle(Color.kuroInk)
-                }
-                Rectangle()
-                    .fill(Color.kuroInk)
-                    .frame(height: 1)
-                    .padding(.top, KuroDesignSpacing.xs)
-            }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .foregroundStyle(ClubRoomPalette.rowSecondary)
+            .padding(.horizontal, 2)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .contentShape(Rectangle())
         }
-        .buttonStyle(KuroPressStyle())
-        .accessibilityElement(children: .ignore)
+        .buttonStyle(HomeContactStyle())
         .accessibilityLabel(title)
-        .accessibilityAddTraits(.isButton)
-    }
-}
-
-// MARK: - Loading skeleton
-
-/// Stable geometry while the first read is in flight: the card shape in quiet fills, no motion.
-private struct ClubsLoadingSkeleton: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-            RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
-                .fill(Color.kuroBlack05)
-                .frame(width: 160, height: 26)
-                .padding(.bottom, KuroDesignSpacing.sm)
-            ForEach(0..<2, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 2) {
-                        ForEach(0..<4, id: \.self) { _ in
-                            Color.kuroBlack05
-                                .aspectRatio(0.7, contentMode: .fit)
-                        }
-                    }
-                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                        RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
-                            .fill(Color.kuroBlack05)
-                            .frame(height: 20)
-                            .frame(maxWidth: 200)
-                        RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
-                            .fill(Color.kuroBlack05)
-                            .frame(height: 12)
-                            .frame(maxWidth: 140)
-                    }
-                    .padding(KuroDesignSpacing.md)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .strokeBorder(Color.kuroHairline, lineWidth: 1)
-                )
-            }
-            // The branded loading cue: the scrub line travelling under the card shapes.
-            KuroScrubLine().frame(maxWidth: 96)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(KuroLocale.text("Loading your clubs", "Deine Clubs werden geladen"))
-    }
-}
-
-// MARK: - Club card
-
-/// One club, inhabited by the real artwork of its latest rail titles.
-private struct ClubListCard: View {
-    let club: ClubListRow
-    let hasUnseen: Bool
-
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    private var coverURLs: [URL] {
-        (club.cover_images ?? []).prefix(4).compactMap(URL.init(string:))
-    }
-
-    private var initials: [String] {
-        ClubsListCardRules.memberInitials(sharingLevel: club.sharing_level, memberNames: club.member_names)
-    }
-
-    private var relativeTime: String? {
-        guard let raw = club.last_activity_at, let date = ClubsStore.parseISO8601(raw) else { return nil }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        formatter.locale = KuroLocale.locale
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
-
-    private var metaLine: String {
-        let german = KuroLocale.isGerman
-        var parts = [ClubsListCardRules.audienceLabel(sharingLevel: club.sharing_level, german: german)]
-        if let members = ClubsListCardRules.memberCountText(club.member_count, german: german) {
-            parts.append(members)
-        }
-        if let relativeTime { parts.append(relativeTime) }
-        return parts.joined(separator: " · ")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ClubArtStrip(urls: coverURLs, monogram: String(club.name.prefix(1)))
-
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.sm) {
-                    // The club name is one of the prototype's few serif lines (amendment 1).
-                    Text(club.name)
-                        .font(.kuroEditorial(size: 22))
-                        .tracking(-0.6)
-                        .foregroundStyle(Color.kuroInk)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    if hasUnseen {
-                        Circle()
-                            .fill(Color.kuroInk)
-                            .frame(width: 8, height: 8)
-                    }
-                }
-
-                let layout = dynamicTypeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: KuroDesignSpacing.sm))
-                    : AnyLayout(HStackLayout(alignment: .center, spacing: KuroDesignSpacing.sm))
-                layout {
-                    if !initials.isEmpty {
-                        ClubInitialsRow(initials: initials, total: club.member_count)
-                    }
-                    Text(metaLine)
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkQuiet)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if let line = ClubsListCardRules.recentLine(club.activity_preview, german: KuroLocale.isGerman) {
-                    Text(line)
-                        .font(.kuroBody(weight: .light))
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                }
-            }
-            .padding(KuroDesignSpacing.md)
-        }
-        .background(Color.kuroCanvasPage)
-        .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                .strokeBorder(Color.kuroHairline, lineWidth: 1)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
-    }
-}
-
-/// Up to four equal portrait covers on the club's room surface. Empty slots stay room-dark (never
-/// another title's art); with no art at all the room shows the club's monogram.
-struct ClubArtStrip: View {
-    let urls: [URL]
-    let monogram: String
-    var maxPixelSize: Int = 320
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(0..<4, id: \.self) { index in
-                Color.clear
-                    .aspectRatio(0.7, contentMode: .fit)
-                    .overlay {
-                        if index < urls.count {
-                            KuroCachedAsyncImage(url: urls[index], maxPixelSize: maxPixelSize) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                default:
-                                    Color.kuroMissingArt
-                                }
-                            }
-                        }
-                    }
-                    .clipped()
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .background(ClubRoomPalette.room)
-        .overlay {
-            if urls.isEmpty {
-                Text(monogram.uppercased())
-                    .font(.kuroEditorial(size: 34))
-                    .foregroundStyle(Color.kuroRoomTextSecondary)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-/// Member initials as small ink circles (never for private clubs: `ClubsListCardRules`).
-struct ClubInitialsRow: View {
-    let initials: [String]
-    let total: Int?
-    var onRoom: Bool = false
-
-    var body: some View {
-        let shown = Array(initials.prefix(4))
-        let overflow = max(0, (total ?? shown.count) - shown.count)
-        HStack(spacing: -6) {
-            ForEach(Array(shown.enumerated()), id: \.offset) { _, initial in
-                bubble(Text(initial))
-            }
-            if overflow > 0 {
-                bubble(Text(verbatim: "+\(overflow)"))
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func bubble(_ text: Text) -> some View {
-        text
-            .font(.kuroCustom(11, weight: .semibold, relativeTo: .caption1, maxSize: 18))
-            .foregroundStyle(onRoom ? Color.kuroRoomText : Color.kuroInk)
-            .frame(minWidth: 26, minHeight: 26)
-            .padding(.horizontal, 2)
-            .background(Circle().fill(onRoom ? ClubRoomPalette.room : Color.kuroCanvasQuiet))
-            .overlay(Circle().strokeBorder(onRoom ? Color.kuroRoomTextSecondary : Color.kuroCanvasPage, lineWidth: 1.5))
     }
 }
 
@@ -708,7 +506,8 @@ private struct CreateClubSheet: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                     ClubSheetTitle(kicker: KuroLocale.text("New club", "Neuer Club"),
-                                   title: KuroLocale.text("Start a club.", "Gründe einen Club."))
+                                   title: KuroLocale.text("Start a club.", "Gründe einen Club."),
+                                   showsSeal: true)
 
                     ClubFormField(label: KuroLocale.text("Name", "Name"),
                                   prompt: KuroLocale.text("Friday anime night", "Anime-Abend am Freitag"),
@@ -833,16 +632,21 @@ private struct JoinClubSheet: View {
     @State private var inviteCode: String
     @State private var isSubmitting = false
     @State private var errorText: String? = nil
+    @State private var confirmDiscard = false
     @FocusState private var codeFocused: Bool
 
+    /// The deep-link prefill: an untouched prefilled sheet is not unsaved input (N7).
+    private let initialCode: String
     let onJoined: (JoinClubResponse) -> Void
 
     init(initialCode: String = "", onJoined: @escaping (JoinClubResponse) -> Void) {
         _inviteCode = State(initialValue: ClubInviteCode.normalize(initialCode))
+        self.initialCode = initialCode
         self.onJoined = onJoined
     }
 
     private var isValid: Bool { ClubInviteCode.isValid(inviteCode) }
+    private var isDirty: Bool { ClubJoinRules.isDirty(code: inviteCode, initialCode: initialCode) }
 
     var body: some View {
         let origin = actionScope.capture(session: clubs.accountSession)
@@ -929,19 +733,28 @@ private struct JoinClubSheet: View {
             .background(Color.kuroCanvasPage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(KuroLocale.text("Cancel", "Abbrechen")) { dismiss() }
+                    Button(KuroLocale.text("Cancel", "Abbrechen")) { cancel() }
                         .font(.kuroBody(weight: .regular))
                         .tint(Color.kuroInk)
                 }
             }
         }
         .presentationDragIndicator(.visible)
-        .interactiveDismissDisabled(isSubmitting)
+        // N7: once a code is typed, swipe-down is blocked and Cancel asks first (spec §7.4).
+        .kuroDiscardGuard(isDirty: isDirty, isBusy: isSubmitting, isConfirming: $confirmDiscard) { dismiss() }
         .onAppear {
             actionScope.activate(session: clubs.accountSession)
             if inviteCode.isEmpty { codeFocused = true }
         }
         .onDisappear { actionScope.deactivate(); isSubmitting = false }
+    }
+
+    /// Cancel (N7): a clean (or untouched prefilled) form closes; a typed code asks first.
+    private func cancel() {
+        switch KuroDiscardGuard.cancelStep(isDirty: isDirty) {
+        case .close: dismiss()
+        case .confirm: confirmDiscard = true
+        }
     }
 
     private func submit(origin: AccountActionScope.Ticket?) {
