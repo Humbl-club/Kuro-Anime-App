@@ -4,10 +4,12 @@ import KuroLibrary
 import SwiftUI
 import UniformTypeIdentifiers
 
-// Profile: the account hub (rulebook §14.3). Order: identity, Your library (counts + "Your lists"),
+// Profile: the account hub (rulebook §14.3). Order: identity, Your numbers (details-songs spec §12:
+// counted on the device), Your library (counts + "Your lists"),
 // Imports and connections (incl. pending and resumable imports), Clubs, Preferences, Account and
 // privacy, About (Data sources and credits, Contact us, Terms once confirmed, version), then a quiet Advanced disclosure (cache tools; the streaming freshness card when that
 // feature is on). Rows: serif title, sans subtitle in secondary ink, hairlines, no chevrons.
+// Preferences carries the release-reminders toggle (spec §11.4) after "Refresh your lists".
 //
 // Navigation contract (2026-11-02): Profile is the root of a journey (`ShellJourneyPages.profile`).
 // Your clubs, Data sources, Find, Concierge and the import review PUSH inside it (back chevron + edge
@@ -84,6 +86,10 @@ struct ProfileView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
                     identityHeader
+
+                    // Details-songs spec §12.1: "Your numbers." after Identity, before Library.
+                    ProfileStatsSection()
+                        .padding(.horizontal, KuroDesignSpacing.padding)
 
                     librarySection
                         .padding(.horizontal, KuroDesignSpacing.padding)
@@ -513,6 +519,11 @@ struct ProfileView: View {
                 ) {
                     syncLists()
                 }
+
+                // Release reminders (spec §12.3): after "Refresh your lists"; asks for permission
+                // only when turned on.
+                rowHairline
+                ProfileRemindersRow()
 
                 rowHairline
 

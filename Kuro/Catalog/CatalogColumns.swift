@@ -56,7 +56,7 @@ enum CatalogColumns {
     static let animeCard: [String] = [
         "id", "title_english", "title_romaji", "title_native",
         "cover_image_large", "cover_image_medium", "banner_image",
-        "format", "status", "episodes", "season", "season_year", "start_date_year",
+        "format", "status", "episodes", "duration", "season", "season_year", "start_date_year",
         "next_episode_number", "next_airing_at",
         "average_score", "popularity", "trending", "favourites", "genres",
         "is_adult", "created_at", "updated_at",

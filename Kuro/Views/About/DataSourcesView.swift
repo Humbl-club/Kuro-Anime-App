@@ -46,6 +46,15 @@ struct DataSourcesView: View {
                         .font(.kuroBody())
                         .foregroundStyle(Color.kuroInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // Details-songs spec §15: what Apple's previews mean for privacy, and what stays local.
+                    Text(DataSourcesCopy.appleMusic(german: german))
+                        .font(.kuroBody())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(DataSourcesCopy.onDevice(german: german))
+                        .font(.kuroBody())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Text(german
@@ -99,5 +108,20 @@ private struct DataSourceRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, KuroDesignSpacing.md)
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// The About page's Apple Music and on-device lines (details-songs spec §15; EN/DE, pure).
+nonisolated enum DataSourcesCopy {
+    static func appleMusic(german: Bool) -> String {
+        german
+            ? "Apple Music: Song-Cover und 30-Sekunden-Vorschauen aus Apples iTunes-Katalog. Eine Vorschau wird erst gestreamt, wenn du auf ▶ tippst; dabei sieht Apple deine IP-Adresse."
+            : "Apple Music: song artwork and 30-second previews from Apple's iTunes catalogue. A preview streams from Apple only when you tap ▶, so Apple sees your IP address then."
+    }
+
+    static func onDevice(german: Bool) -> String {
+        german
+            ? "Widgets und Erinnerungen an Neuerscheinungen bleiben auf diesem Gerät."
+            : "Widgets and release reminders stay on this device."
     }
 }
