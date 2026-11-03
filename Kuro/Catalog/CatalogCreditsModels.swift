@@ -25,6 +25,28 @@ struct Character: Identifiable, Codable {
     }
 }
 
+extension Character {
+    /// Lenient decode (2026-11-03): `characters.age` is an INTEGER column (the importers store a
+    /// plain whole number), older rows/fixtures may carry text. A typed `String?` decode of a number
+    /// threw and blanked the whole credits read (every character rail with an aged character came
+    /// back empty), so `age` accepts a number or text, and an unreadable optional field is nil.
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        anilistId = try? c.decodeIfPresent(Int.self, forKey: .anilistId)
+        nameFull = try? c.decodeIfPresent(String.self, forKey: .nameFull)
+        nameNative = try? c.decodeIfPresent(String.self, forKey: .nameNative)
+        imageLarge = try? c.decodeIfPresent(String.self, forKey: .imageLarge)
+        description = try? c.decodeIfPresent(String.self, forKey: .description)
+        gender = try? c.decodeIfPresent(String.self, forKey: .gender)
+        if let number = try? c.decodeIfPresent(Int.self, forKey: .age) {
+            age = String(number)
+        } else {
+            age = (try? c.decodeIfPresent(String.self, forKey: .age)) ?? nil
+        }
+    }
+}
+
 struct Staff: Identifiable, Codable {
     let id: Int
     let anilistId: Int?
