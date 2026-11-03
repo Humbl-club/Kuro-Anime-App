@@ -138,12 +138,15 @@ final class ReleasesStore: AccountScopedState {
 
     // MARK: Release notification state (ReleasesStore+Notifications.swift)
 
-    /// Whether the current account gets release notifications (the Profile toggle reads this).
+    /// Whether the Profile toggle is on for the current account (every watching / reading title
+    /// notifies). Default off (spec D14); a detail bell can still turn single titles on.
     var releaseNotificationsEnabled = false
     /// The device permission as last read (never prompts; `refreshReleaseNotificationState`).
     var notificationPermission: NotificationPermission = .notDetermined
     /// Titles whose notifications the account muted (detail bell off).
     var mutedReleaseNotificationKeys: Set<MediaKey> = []
+    /// Titles the account turned on with a detail bell (on even while the toggle is off).
+    var allowedReleaseNotificationKeys: Set<MediaKey> = []
     /// The Library projection (watching / reading statuses decide what notifies). Wired by composition.
     @ObservationIgnored weak var library: LibraryStore?
     /// The pending debounced re-plan.
@@ -181,6 +184,7 @@ final class ReleasesStore: AccountScopedState {
         releaseNotificationsEnabled = false
         notificationPermission = .notDetermined
         mutedReleaseNotificationKeys = []
+        allowedReleaseNotificationKeys = []
         hasCommittedReleaseNotifications = false
     }
 
@@ -263,20 +267,13 @@ final class ReleasesStore: AccountScopedState {
 
     func publishImport(for context: AccountContext, entries: [LibraryEntry]) async throws {
         guard accountSession.isCurrent(context) else { throw CancellationError() }
-        let previous = Set(upcomingAirings.map(\.anime_id))
         try await upcomingLoads.runFresh(key: Self.upcomingLoadKey, context: context) { [self] in
             try await _fetchUpcomingForUserImpl(days: lastUpcomingDays, context: context)
         }
         guard accountSession.isCurrent(context) else { throw CancellationError() }
-        // Episode reminders only for watched anime (item 10), never for planned / paused ones.
-        let eligible = Set(entries.filter { $0.key.kind == .anime && ($0.status == .current || $0.status == .repeating) }.map { $0.key.id })
-        let current = Set(upcomingAirings.map(\.anime_id)).intersection(eligible)
-        for id in previous.subtracting(current) { reminders.cancelAiringNotifications(animeId: id) }
-        // iOS has a finite pending-notification budget; refresh a bounded visible schedule.
-        for row in upcomingAirings.filter({ current.contains($0.anime_id) }).prefix(32) {
-            guard accountSession.isCurrent(context), !Task.isCancelled else { throw CancellationError() }
-            _ = await reminders.scheduleAiringNotifications(airing: row, context: context)
-        }
+        // Release notifications are planned from the schedule (spec D14); the retired per-airing
+        // reminders are no longer scheduled here.
+        scheduleReleaseNotificationsSoon()
     }
 
     private func formatInterval(_ interval: TimeInterval) -> String {
@@ -326,13 +323,12 @@ final class ReleasesStore: AccountScopedState {
 
     // MARK: - Library change sink (registered by AppComposition, see LibraryChangeSinks.swift)
 
-    /// An anime that is tracked after the change (added, or edited e.g. +1 EP) re-arms its
-    /// next-episode reminder for the account that made the change, as every anime write did before
-    /// E3 (one `anime` read per write, R-E3-3). An added anime, or one whose status changed (e.g.
+    /// Every membership / status change re-plans the release notifications (spec D14; the retired
+    /// per-airing reminder and its per-write `anime` read are gone). An added anime, or one whose status changed (e.g.
     /// dropped -> watching, which `animeDidLeave` had emptied), also refreshes upcoming airings here
     /// (throttled and backed off as before): this device's own realtime echo is suppressed
     /// (LibraryRealtimeEcho.swift), so it no longer refreshes them. A removed anime, also one the
-    /// projection did not hold, loses its reminders, countdown and upcoming rows.
+    /// projection did not hold, loses its countdown and upcoming rows (and any retired reminder left).
     func libraryDidChange(_ change: LibraryChange) {
         guard accountSession.isCurrent(change.account), !change.isProgressOnly else { return }
         // Membership or status changed: the account's schedule is re-read on its next load, and what
@@ -349,16 +345,12 @@ final class ReleasesStore: AccountScopedState {
             animeDidLeave(animeId)
             return
         }
-        let context = change.account
         let refreshUpcoming = change.kind == .added || change.previous?.status != change.current?.status
-        // Episode reminders only for what the account is watching (item 10): a planned or paused anime
-        // keeps its schedule rows but loses its reminders.
-        let watching = change.current?.status == .current || change.current?.status == .repeating
-        if !watching { reminders.cancelAiringNotifications(animeId: animeId) }
+        // What notifies is re-planned above (`scheduleReleaseNotificationsSoon`, watching / reading
+        // only); the retired per-airing reminders are no longer armed here (spec D14).
+        guard refreshUpcoming else { return }
         libraryChangeTask = Task { [weak self] in
-            guard let self else { return }
-            if watching { await self.reminders.scheduleAiringNotifications(animeId: animeId, context: context) }
-            if refreshUpcoming { await self.fetchUpcomingForUser(days: 7) }
+            await self?.fetchUpcomingForUser(days: 7)
         }
     }
 

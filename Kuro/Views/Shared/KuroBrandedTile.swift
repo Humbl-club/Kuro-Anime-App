@@ -1,13 +1,16 @@
 import SwiftUI
 
-// MARK: - Branded tile (details-songs spec §5.2, D9; Songs + entities lane copy)
-// One tile replaces every missing picture: a cover without an image, a person or studio without a photo,
-// a song without (or veiled) artwork. The Detail lane writes `DetailBrandedTile` with identical values;
-// the integrator folds both into `Kuro/Views/Shared/KuroBrandedTile.swift` (§19.7). It never carries a
-// kanji glyph, a stock silhouette or a per-title colour table, and it is decorative: the row or card it
-// sits in speaks (`accessibilityHidden(true)`).
+// MARK: - Branded tile (details-songs spec §5.2, D9)
+// One tile replaces every missing picture: a cover without an image (the old 映 / 原作 glyphs), a source
+// or adaptation card, an episode without a trusted still, a person or studio without a photo, a song
+// without (or veiled) artwork. It never carries a kanji glyph, a stock silhouette or a per-title colour
+// table, and it is decorative: the row or card it sits in speaks (`accessibilityHidden(true)`).
+// Integrator fold (§19.7) of the lane copies `KuroBrandedTile` and `KuroBrandedTile`. Their paper
+// values were identical; where they differed this keeps the entity copy's associated-value `Style`, its
+// narrow rule (below 60 pt only "KURO", 4 pt padding, so 40 pt covers never break words) and its
+// initials rule ("MAPPA" → "MA"), and the detail copy's ink initials sized to the tile.
 
-struct EntityBrandedTile: View {
+struct KuroBrandedTile: View {
     enum Style: Equatable {
         /// Covers, stills, source and adaptation cards (the prototype's D4 season tile).
         case paper
@@ -37,6 +40,8 @@ struct EntityBrandedTile: View {
         static let titleInk = "4F5A52"
         /// Narrower than this, the title is left out.
         static let minTitleWidth: CGFloat = 60
+        /// Narrower than `minTitleWidth`, a kind word shows only up to this length (one line).
+        static let narrowKindMaxCharacters = 5
     }
 
     var body: some View {
@@ -73,12 +78,14 @@ struct EntityBrandedTile: View {
                         .tracking(1.4)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
-                    // A narrow tile (a 40 pt quiet-row cover) carries the mark only: words never break.
-                    if roomy, !kind.isEmpty {
+                    // A narrow tile (a 40 pt quiet-row cover) carries the mark plus only a short kind
+                    // word ("CH.", "EP. 8") on one line: words never break.
+                    if !kind.isEmpty, roomy || kind.count <= Paper.narrowKindMaxCharacters {
                         Text(kind.uppercased())
                             .font(.system(size: 7))
                             .tracking(1)
-                            .lineLimit(2)
+                            .lineLimit(roomy ? 2 : 1)
+                            .minimumScaleFactor(0.7)
                     }
                     Spacer(minLength: 0)
                     if let title, !title.isEmpty, roomy {
@@ -98,16 +105,25 @@ struct EntityBrandedTile: View {
     }
 
     private var ink: some View {
-        ZStack {
-            LinearGradient(colors: [.kuroKeyDarkTop, .kuroKeyDarkBottom], startPoint: .top, endPoint: .bottom)
-            if let initials, !initials.isEmpty {
-                Text(initials)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.9))
-                    .minimumScaleFactor(0.5)
-                    .padding(4)
+        GeometryReader { proxy in
+            ZStack {
+                LinearGradient(colors: [.kuroKeyDarkTop, .kuroKeyDarkBottom], startPoint: .top, endPoint: .bottom)
+                if let initials, !initials.isEmpty {
+                    Text(initials)
+                        .font(.system(size: Self.initialsSize(proxy.size), weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.9))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(4)
+                }
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
+    }
+
+    /// The initials scale with the tile: 42 % of its short side, 8…22 pt.
+    nonisolated static func initialsSize(_ size: CGSize) -> CGFloat {
+        min(22, max(8, min(size.width, size.height) * 0.42))
     }
 
     private func onMaterial(_ material: ArtworkMaterial) -> some View {

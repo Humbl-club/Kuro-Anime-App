@@ -6,8 +6,9 @@
 //  schedule with the certainty rules, account-scoped files cleared on sign-out / switch, kept for the
 //  restored owner), the +1 hand-off queue drained through `LibraryActions` (idempotent per account /
 //  title / target unit, caught-up guard, lifecycle check), and the release notification plan and its
-//  commit (estimates never notify, instants at their time, days at 09:00 local, 64 cap, account switch
-//  clears, never a prompt outside the explicit toggle).
+//  commit (spec D14: only exact confirmed / announced times notify, at their moment; an announced day or
+//  an estimate never; two per title, 48 cap; default off; the detail bell is a per-title override;
+//  account switch clears; never a prompt outside the explicit toggle / bell).
 //
 
 import Foundation
@@ -402,42 +403,53 @@ struct ReleaseNotificationPlanTests {
         #expect(plan(items).isEmpty)
     }
 
-    @Test("an instant notifies at its moment with its time; a day notifies at 09:00 local on that day, no time")
+    @Test("isEligible: instant + confirmed yes; announced day no; estimate no; past no (spec §20)")
+    func eligibility() {
+        let soon = Date().addingTimeInterval(3 * 86_400)
+        #expect(ReleaseNotificationPlanner.isEligible(release(1, at: soon, basis: .confirmed, precision: .instant), now: Date()))
+        #expect(ReleaseNotificationPlanner.isEligible(release(1, at: soon, basis: .announced, precision: .instant), now: Date()))
+        #expect(!ReleaseNotificationPlanner.isEligible(release(2, kind: .manga, at: soon, basis: .announced, precision: .day), now: Date()))
+        #expect(!ReleaseNotificationPlanner.isEligible(release(1, at: soon, basis: .estimated, precision: .instant), now: Date()))
+        #expect(!ReleaseNotificationPlanner.isEligible(release(1, at: Date().addingTimeInterval(-3600), basis: .confirmed,
+                                                               precision: .instant), now: Date()))
+        #expect(!ReleaseNotificationPlanner.isEligible(release(1, at: Date().addingTimeInterval(30), basis: .confirmed,
+                                                               precision: .instant), now: Date()), "inside the 60 s lead")
+    }
+
+    @Test("an instant notifies once at its moment (no 1 h reminder); an announced day never notifies")
     func precisionHandling() throws {
         let instant = release(1, kind: .anime, at: utc(2026, 11, 7, 20, 30), basis: .confirmed, precision: .instant)
         let day = release(2, kind: .manga, unit: 68, at: utc(2026, 11, 12), basis: .announced, precision: .day, source: "mangaupdates",
                           title: "Kagurabachi")
         let planned = plan([day, instant])
-        #expect(planned.map(\.key.id) == [1, 2], "soonest first")
+        #expect(planned.map(\.key.id) == [1], "an announced day notified")
         let first = try #require(planned.first)
         #expect(first.fireDate == utc(2026, 11, 7, 20, 30))
-        #expect(first.body == "Ep. 8 · Today, 21:30", "\(first.body)")
+        #expect(first.body == "Episode 8 just aired.", "\(first.body)")
+        #expect(first.title == "Frieren")
         #expect(first.userInfo["kuro_link"] == "kuro://anime/1")
-        let second = try #require(planned.last)
-        // 09:00 Berlin (UTC+1) on 12 Nov = 08:00 UTC.
-        #expect(second.fireDate == utc(2026, 11, 12, 8))
-        #expect(second.body == "Ch. 68 · Today")
-        #expect(!second.body.contains(":"))
-        #expect(second.title == "Kagurabachi")
     }
 
-    @Test("a day stored at 00:00 UTC is never a day early west of UTC (Los Angeles reads 12 Nov, 09:00 PST)")
-    func dayReadWestOfUTC() throws {
-        let day = release(2, kind: .manga, unit: 68, at: utc(2026, 11, 12), basis: .announced, precision: .day, source: "mangaupdates")
-        let fire = try #require(plan([day], zone: losAngeles).first?.fireDate)
-        #expect(fire == utc(2026, 11, 12, 17), "09:00 PST on 12 Nov is 17:00 UTC")
+    @Test("copy follows spec §11.3 in EN and DE (episode, chapter, volume, no number)")
+    func reminderCopy() throws {
+        let episode = release(1, kind: .anime, at: utc(2026, 11, 7, 20, 30), basis: .confirmed, precision: .instant)
+        let chapter = release(2, kind: .manga, unit: 68, at: utc(2026, 11, 8, 3), basis: .announced, precision: .instant, source: "mangadex")
+        #expect(plan([episode], german: true).first?.body == "Folge 8 wurde gerade ausgestrahlt.")
+        #expect(ReleaseReminderCopy.body(chapter, german: false) == "Chapter 68 is out.")
+        #expect(ReleaseReminderCopy.body(chapter, german: true) == "Kapitel 68 ist erschienen.")
+        let volume = ReleaseScheduleItem(medium: .manga, mediaId: 3, title: "T", unitKind: .volume, unitNumber: 12,
+                                         releaseAt: utc(2026, 11, 9, 3), basis: .confirmed, confidence: nil, source: "publisher",
+                                         precision: .instant)
+        #expect(ReleaseReminderCopy.body(volume, german: false) == "Volume 12 is out.")
+        #expect(ReleaseReminderCopy.body(volume, german: true) == "Band 12 ist erschienen.")
+        let unnumbered = ReleaseScheduleItem(medium: .anime, mediaId: 1, title: "T", unitKind: .episode, unitNumber: nil,
+                                             releaseAt: utc(2026, 11, 9, 3), basis: .confirmed, confidence: nil, source: "anilist",
+                                             precision: .instant)
+        #expect(ReleaseReminderCopy.body(unnumbered, german: false) == "A new episode just aired.")
+        #expect(ReleaseReminderCopy.body(unnumbered, german: true) == "Eine neue Folge wurde gerade ausgestrahlt.")
     }
 
-    @Test("German copy follows ReleaseCopy wording")
-    func germanCopy() throws {
-        let instant = release(1, kind: .anime, at: utc(2026, 11, 7, 20, 30), basis: .confirmed, precision: .instant)
-        let day = release(2, kind: .manga, unit: 68, at: utc(2026, 11, 12), basis: .announced, precision: .day, source: "mangaupdates")
-        let planned = plan([instant, day], german: true)
-        #expect(planned.first?.body == "F. 8 · Heute, 21:30")
-        #expect(planned.last?.body == "Kap. 68 · Heute")
-    }
-
-    @Test("only followed, unmuted titles; past moments skipped; at most 64, soonest first; stable ids")
+    @Test("only followed, unmuted titles; past moments skipped; two per title; at most 48, soonest first; stable ids")
     func followCapAndIds() {
         let unfollowed = release(99, kind: .anime, at: utc(2026, 11, 5, 12), basis: .confirmed, precision: .instant)
         let past = release(1, kind: .anime, at: now.addingTimeInterval(-3600), basis: .confirmed, precision: .instant)
@@ -448,14 +460,19 @@ struct ReleaseNotificationPlanTests {
             release(2, kind: .manga, unit: Double(n), at: now.addingTimeInterval(Double(100 - n) * 3600), basis: .confirmed,
                     precision: .instant, source: "mangadex")
         }
-        let planned = plan(many)
-        #expect(planned.count == 64)
-        #expect(planned == planned.sorted { $0.fireDate < $1.fireDate })
-        #expect(Set(planned.map(\.id)).count == 64)
-        #expect(planned.first?.id == "release-manga-2-chapter-99")
+        let perTitle = plan(many)
+        #expect(perTitle.map(\.id) == ["release-manga-2-chapter-99", "release-manga-2-chapter-98"], "next two per title")
+        let titles = (1...80).map { n in
+            release(n, kind: .anime, at: now.addingTimeInterval(Double(n) * 3600), basis: .confirmed, precision: .instant)
+        }
+        let capped = ReleaseNotificationPlanner.plan(items: titles, following: Set(titles.map(\.key)), muted: [], now: now,
+                                                     german: false, locale: english, timeZone: berlin)
+        #expect(capped.count == ReleaseNotificationPlanner.planLimit)
+        #expect(capped == capped.sorted { $0.fireDate < $1.fireDate })
+        #expect(Set(capped.map(\.id)).count == capped.count)
         let anilist = release(1, kind: .anime, at: utc(2026, 11, 7, 20), basis: .confirmed, precision: .instant)
-        #expect(ReleaseNotificationPlanner.identifier(anilist) == "airing-1-start",
-                "an AniList episode shares the airing reminder's id (never notified twice)")
+        #expect(ReleaseNotificationPlanner.identifier(anilist) == "release-anime-1-episode-8",
+                "no plan id uses the retired airing- prefix")
     }
 
     @Test("notification links accept only a title journey")
@@ -523,11 +540,56 @@ struct ReleaseNotificationDeviceTests {
         await h.tearDown()
     }
 
+    @Test("default off: an account that already allows notifications gets nothing until it turns them on")
+    func defaultOff() async throws {
+        let h = try await followedHarness(permission: .authorized)
+        let releases = h.service.releases
+        await releases.refreshReleaseNotifications()
+        #expect(!releases.releaseNotificationsEnabled)
+        #expect(!releases.releaseNotificationsOn(for: MediaKey(kind: .manga, id: 2)))
+        #expect(h.notifications.pending.isEmpty)
+        #expect(h.notifications.prompts == 0)
+        await h.tearDown()
+    }
+
+    @Test("the detail bell is a per-title override: on asks once, schedules only that title, leaves the toggle off")
+    func bellOverride() async throws {
+        let h = try await followedHarness(permission: .notDetermined)
+        let releases = h.service.releases
+        let key = MediaKey(kind: .manga, id: 2)
+        h.notifications.promptAnswer = .denied
+        #expect(await releases.setReleaseNotification(true, for: key) == .permissionDenied)
+        #expect(h.notifications.pending.isEmpty)
+        h.notifications.promptAnswer = .authorized
+        h.notifications.permission = .notDetermined
+        #expect(await releases.setReleaseNotification(true, for: key) == .enabled)
+        #expect(!releases.releaseNotificationsEnabled, "the bell turned the Profile toggle on")
+        #expect(releases.releaseNotificationsOn(for: key))
+        #expect(h.notifications.pending == ["release-manga-2-chapter-68"])
+        #expect(await releases.setReleaseNotification(false, for: key) == .disabled)
+        #expect(!releases.releaseNotificationsOn(for: key))
+        #expect(h.notifications.pending.isEmpty, "the muted title's notification stayed pending")
+        await h.tearDown()
+    }
+
+    @Test("the retired airing reminders are removed once on first run")
+    func legacyAiringRetired() async throws {
+        let h = try await followedHarness(permission: .authorized)
+        h.notifications.pending = ["airing-1-start", "airing-1-1h", "other-x"]
+        await h.service.releases.refreshReleaseNotifications()
+        #expect(h.notifications.pending == ["other-x"])
+        h.notifications.pending.append("airing-2-start")
+        await h.service.releases.refreshReleaseNotifications()
+        #expect(h.notifications.pending.contains("airing-2-start"), "the one-time cleanup ran twice")
+        await h.tearDown()
+    }
+
     @Test("the 64 budget counts device reminders Kuro does not own; stale release ids are removed")
     func budgetAndStale() async throws {
         let h = try await followedHarness(permission: .authorized)
         let context = try #require(h.service.accountSession.current)
-        h.notifications.pending = (0..<60).map { "airing-\($0)-1h" } + ["release-manga-2-chapter-1"]
+        h.service.reminders.setReleaseNotificationPreference(true, for: context)
+        h.notifications.pending = (0..<60).map { "other-\($0)" } + ["release-manga-2-chapter-1"]
         let plan = (0..<10).map { n in
             PlannedReleaseNotification(id: "release-manga-2-chapter-\(100 + n)", key: MediaKey(kind: .manga, id: 2),
                                        title: "T", body: "B", fireDate: Date().addingTimeInterval(Double(n + 1) * 3600), userInfo: [:])

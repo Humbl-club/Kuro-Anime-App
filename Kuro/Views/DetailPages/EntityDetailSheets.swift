@@ -167,7 +167,7 @@ enum AuthorRoleFilter: String, CaseIterable, EntityOptionTitled {
 //
 // Home's grammar (details-songs spec §9, 2026-11-03): `kuroPaper`, the 24 pt detail gutter at every width,
 // the readable column on iPad, the portrait hero (or the studio's cover line), `DetailSectionHeading`s,
-// refine and sort WORDS (no black pills), quiet rows and edge-peek rails (`EntityRailPeek`). Blocks without
+// refine and sort WORDS (no black pills), quiet rows and edge-peek rails (`KuroRailPeek`). Blocks without
 // data are left out. The works and voice readers answer [] on failure, so a failed read hides its block
 // rather than showing an invented "none" (spec §17.6).
 

@@ -115,12 +115,12 @@ nonisolated enum ProfileStatsCopy {
         german ? "Erinnerungen an Neuerscheinungen" : "Release reminders"
     }
 
-    /// The row's subtitle. Worded for the merged platform planner, which notifies confirmed and
-    /// announced releases (an exact time, or the release day in the morning) and never an estimate.
+    /// The row's subtitle (spec §12, D14): only exact confirmed / announced times notify, never an
+    /// estimate and never a release known only to the day.
     static func remindersSubtitle(german: Bool) -> String {
         german
-            ? "Neue Folgen und Kapitel von dem, was du schaust oder liest. Nur bestätigte und angekündigte Termine, nie Schätzungen."
-            : "New episodes and chapters of what you're watching or reading. Confirmed and announced dates only, never estimates."
+            ? "Neue Folgen und Kapitel von dem, was du schaust oder liest. Nur bestätigte Zeiten, nie Schätzungen."
+            : "New episodes and chapters of what you're watching or reading. Confirmed times only, never estimates."
     }
 
     static func remindersDenied(german: Bool) -> String {

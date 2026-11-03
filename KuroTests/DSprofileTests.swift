@@ -16,22 +16,22 @@ struct DSprofileTests {
         (CGFloat(660), 5, CGFloat(112), CGFloat(30))
     ])
     func peekTable(visible: CGFloat, shown: Int, width: CGFloat, slice: CGFloat) {
-        let card = DiscoverRailPeek.cardWidth(visible: visible)
+        let card = KuroRailPeek.cardWidth(visible: visible)
         #expect(card == width)
-        let spacing = DiscoverRailPeek.spacing
+        let spacing = KuroRailPeek.spacing
         let fully = Int(((visible + spacing) / (card + spacing)).rounded(.down))
         #expect(fully == shown)
         let next = visible - CGFloat(fully) * (card + spacing)
         #expect(next == slice)
-        #expect(next >= DiscoverRailPeek.peekMin)
+        #expect(next >= KuroRailPeek.peekMin)
     }
 
     @Test("Edge peek: covers are 2 : 3; an unmeasured rail uses the preferred width")
     func peekShapes() {
-        #expect(DiscoverRailPeek.coverHeight(width: 100) == 150)
-        #expect(DiscoverRailPeek.coverHeight(width: 98) == 147)
-        #expect(DiscoverRailPeek.coverHeight(width: 112) == 168)
-        #expect(DiscoverRailPeek.cardWidth(visible: 0) == 100)
+        #expect(KuroRailPeek.coverHeight(width: 100) == 150)
+        #expect(KuroRailPeek.coverHeight(width: 98) == 147)
+        #expect(KuroRailPeek.coverHeight(width: 112) == 168)
+        #expect(KuroRailPeek.cardWidth(visible: 0) == 100)
     }
 
     @Test("Discover rails: the visible width is the column plus the trailing gutter (390, 320, 430, iPad)")

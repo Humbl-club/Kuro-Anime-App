@@ -1501,11 +1501,13 @@ struct TastePlanKey: View {
                     .font(.kuroCustom(variant == .leaf ? (compact ? 9 : 10) : 11, weight: .medium,
                                       relativeTo: .caption1, maxSize: 20))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                Spacer(minLength: 4)
+                    // The compact leaf key (98 pt in a detail More-like-this rail, 84–96 pt in Discover's
+                    // index) gives its label more room so "Plan to watch" never truncates.
+                    .minimumScaleFactor(variant == .leaf && compact ? 0.7 : 0.85)
+                Spacer(minLength: variant == .leaf && compact ? 2 : 4)
                 Image(systemName: saved ? "bookmark.fill" : "bookmark")
                     .font(.system(size: 13, weight: .light))
-                    .frame(width: 26, height: 28)
+                    .frame(width: variant == .leaf && compact ? 18 : 26, height: 28)
                     .accessibilityHidden(true)
             }
             .foregroundStyle(saved ? Color.white : Self.ink)

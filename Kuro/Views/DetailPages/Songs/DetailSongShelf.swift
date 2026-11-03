@@ -186,7 +186,7 @@ struct DetailSongShelf: View {
     @ViewBuilder
     private func art(_ row: SongShelfRow, veiled: Bool) -> some View {
         let tileWord = veiled ? SongShelfCopy.spoilerArt(german: german) : SongShelfCopy.tileWord(row.song)
-        let tile = EntityBrandedTile(kind: tileWord, style: .onMaterial(material), cornerRadius: 4)
+        let tile = KuroBrandedTile(kind: tileWord, style: .onMaterial(material), cornerRadius: 4)
         // A veiled row never asks for its artwork (spec §8.3).
         if !veiled, let url = SongShelfGrouping.artworkURL(row.matched?.apple?.artworkURL, side: 132) {
             KuroCachedAsyncImage(url: url, maxPixelSize: 44) { phase in

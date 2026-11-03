@@ -3,7 +3,7 @@ import KuroLibrary
 import SwiftUI
 
 // MARK: - Detail rails: the cast and More like this (details-songs spec §6.7, §6.8, §7.6, §5.1)
-// Both rails use the edge peek (`DetailRailPeek`, 98 pt cards and a 30 pt slice at 390) and push their
+// Both rails use the edge peek (`KuroRailPeek`, 98 pt cards and a 30 pt slice at 390) and push their
 // pages inside the journey (`\.kuroRoutes`, navigation contract N9 / N5). One element per card, the
 // extra target (voice chip, Plan key) a sibling after it (§14.3).
 
@@ -33,14 +33,14 @@ struct DetailCastRail: View {
     var body: some View {
         let german = KuroLocale.isGerman
         let cards = shown
-        let width = DetailRailPeek.cardWidth(visible: visible)
+        let width = KuroRailPeek.cardWidth(visible: visible)
         VStack(alignment: .leading, spacing: 0) {
             DetailSectionHeading(title: KuroLocale.text("The characters.", "Die Figuren."),
                                  note: DetailCastRule.note(count: cards.count,
                                                            hasVoices: !bookish && cards.contains { $0.voiceActor != nil },
                                                            german: german))
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: DetailRailPeek.spacing) {
+                LazyHStack(alignment: .top, spacing: KuroRailPeek.spacing) {
                     ForEach(cards) { member in
                         card(member, width: width, german: german)
                     }
@@ -66,18 +66,18 @@ struct DetailCastRail: View {
             } label: {
                 VStack(alignment: .leading, spacing: 0) {
                     Color.clear
-                        .frame(width: width, height: DetailRailPeek.coverHeight(width: width))
+                        .frame(width: width, height: KuroRailPeek.coverHeight(width: width))
                         .overlay {
                             if let url = member.character.imageLarge.flatMap(AnimeDetailPage.webURL) {
                                 KuroCachedAsyncImage(url: url, maxPixelSize: 300) { phase in
                                     if case .success(let image) = phase {
                                         image.resizable().scaledToFill().saturation(bookish ? 0.6 : 1)
                                     } else {
-                                        DetailBrandedTile(kind: KuroLocale.text("Character", "Figur"), title: name, cornerRadius: radius)
+                                        KuroBrandedTile(kind: KuroLocale.text("Character", "Figur"), title: name, cornerRadius: radius)
                                     }
                                 }
                             } else {
-                                DetailBrandedTile(kind: KuroLocale.text("Character", "Figur"), title: name, cornerRadius: radius)
+                                KuroBrandedTile(kind: KuroLocale.text("Character", "Figur"), title: name, cornerRadius: radius)
                             }
                         }
                         .background(HomeInk.posterFill)
@@ -137,10 +137,10 @@ struct DetailCastRail: View {
                 if let url = staff.imageLarge.flatMap(AnimeDetailPage.webURL) {
                     KuroCachedAsyncImage(url: url, maxPixelSize: 80) { phase in
                         if case .success(let image) = phase { image.resizable().scaledToFill() }
-                        else { DetailBrandedTile(kind: "", initials: DetailBrandedTile.initials(of: name), style: .ink, cornerRadius: 10) }
+                        else { KuroBrandedTile(kind: "", initials: KuroBrandedTile.initials(name), style: .ink, cornerRadius: 10) }
                     }
                 } else {
-                    DetailBrandedTile(kind: "", initials: DetailBrandedTile.initials(of: name), style: .ink, cornerRadius: 10)
+                    KuroBrandedTile(kind: "", initials: KuroBrandedTile.initials(name), style: .ink, cornerRadius: 10)
                 }
             }
             .clipShape(Circle())
@@ -158,12 +158,12 @@ struct DetailMoreLikeThis: View {
 
     var body: some View {
         let german = KuroLocale.isGerman
-        let width = DetailRailPeek.cardWidth(visible: visible)
+        let width = KuroRailPeek.cardWidth(visible: visible)
         VStack(alignment: .leading, spacing: 0) {
             DetailSectionHeading(title: DetailMoreLikeThisRule.heading(german: german),
                                  note: DetailMoreLikeThisRule.note(german: german))
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: DetailRailPeek.spacing) {
+                LazyHStack(alignment: .top, spacing: KuroRailPeek.spacing) {
                     ForEach(items) { item in
                         card(item, width: width, german: german)
                     }
@@ -187,15 +187,15 @@ struct DetailMoreLikeThis: View {
             } label: {
                 VStack(alignment: .leading, spacing: 0) {
                     Color.clear
-                        .frame(width: width, height: DetailRailPeek.coverHeight(width: width))
+                        .frame(width: width, height: KuroRailPeek.coverHeight(width: width))
                         .overlay {
                             if let url = display.imageURL.flatMap(AnimeDetailPage.webURL) {
                                 KuroCachedAsyncImage(url: url, maxPixelSize: 320) { phase in
                                     if case .success(let image) = phase { image.resizable().scaledToFill() }
-                                    else { DetailBrandedTile(kind: Self.kindWord(item.key.kind, german: german), title: display.title) }
+                                    else { KuroBrandedTile(kind: Self.kindWord(item.key.kind, german: german), title: display.title) }
                                 }
                             } else {
-                                DetailBrandedTile(kind: Self.kindWord(item.key.kind, german: german), title: display.title)
+                                KuroBrandedTile(kind: Self.kindWord(item.key.kind, german: german), title: display.title)
                             }
                         }
                         .background(HomeInk.posterFill)

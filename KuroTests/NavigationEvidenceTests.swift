@@ -152,6 +152,7 @@ struct NavigationEvidenceTests {
             .environment(graph.home)
             .environment(graph.catalog)
             .environment(graph.releases)
+            .environment(graph.songPreview)
             .environment(graph.social)
             .environment(graph.clubs)
             .environment(graph.availability)

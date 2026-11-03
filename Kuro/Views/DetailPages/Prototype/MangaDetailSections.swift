@@ -1327,7 +1327,7 @@ struct MangaAdaptationCard: View {
     private var cover: some View {
         let german = KuroLocale.isGerman
         let kind = ["Anime", DetailFacts.animeFormatWord(item.format, german: german)].compactMap { $0 }.joined(separator: " · ")
-        let tile = DetailBrandedTile(kind: kind, title: item.title, cornerRadius: 3)
+        let tile = KuroBrandedTile(kind: kind, title: item.title, cornerRadius: 3)
         if let url = item.coverImage.flatMap(AnimeDetailPage.webURL) {
             KuroCachedAsyncImage(url: url, maxPixelSize: 240) { phase in
                 if case .success(let image) = phase { image.resizable().scaledToFill() } else { tile }

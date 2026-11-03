@@ -3,7 +3,7 @@ import KuroLibrary
 import SwiftUI
 
 // MARK: - Entity rails and rows (details-songs spec §9, §5.1)
-// Rails: 2 : 3 covers (radius 4) at the edge-peek width (`EntityRailPeek`), 14 pt apart, starting at the
+// Rails: 2 : 3 covers (radius 4) at the edge-peek width (`KuroRailPeek`), 14 pt apart, starting at the
 // 24 pt gutter and bleeding to the column's edge with the gutter as trailing inset. The rail's ScrollView
 // is never inside the page's horizontal padding. Rows: Home's quiet rows (40 × 60 cover, radius 2, gap 16,
 // min 60, a 0.5 pt hairline). Every tap pushes through `\.kuroRoutes` (N5 pops back to an open page).
@@ -22,9 +22,9 @@ struct EntityWorkRail: View {
     let column: CGFloat
 
     var body: some View {
-        let width = EntityRailPeek.cardWidth(visible: EntityPageLayout.railVisible(column: column))
+        let width = KuroRailPeek.cardWidth(visible: EntityPageLayout.railVisible(column: column))
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: EntityRailPeek.spacing) {
+            LazyHStack(alignment: .top, spacing: KuroRailPeek.spacing) {
                 ForEach(works) { work in
                     EntityWorkTile(media: work.media, width: width)
                 }
@@ -60,7 +60,7 @@ struct EntityWorkTile: View {
             VStack(alignment: .leading, spacing: 6) {
                 EntityCover(imageURL: media.imageURL,
                             kind: EntityCover.kindWord(kind: media.kind, formatRaw: media.formatRaw, german: german),
-                            title: title, width: width, height: EntityRailPeek.coverHeight(width: width))
+                            title: title, width: width, height: KuroRailPeek.coverHeight(width: width))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.detailSF(12, .medium, relativeTo: .footnote))
@@ -98,9 +98,9 @@ struct EntityCharacterRail: View {
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
-        let width = EntityRailPeek.cardWidth(visible: EntityPageLayout.railVisible(column: column))
+        let width = KuroRailPeek.cardWidth(visible: EntityPageLayout.railVisible(column: column))
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: EntityRailPeek.spacing) {
+            LazyHStack(alignment: .top, spacing: KuroRailPeek.spacing) {
                 ForEach(roles) { role in
                     let name = role.character.nameFull ?? ""
                     let title = KuroCardText.sanitizeTitleForCard(role.anime.displayTitle)
@@ -111,7 +111,7 @@ struct EntityCharacterRail: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             EntityPortrait(imageURL: role.character.imageLarge, name: name, width: width,
-                                           height: EntityRailPeek.coverHeight(width: width), cornerRadius: 4)
+                                           height: KuroRailPeek.coverHeight(width: width), cornerRadius: 4)
                             Text(name)
                                 .font(.detailSF(12, .medium, relativeTo: .footnote))
                                 .foregroundStyle(Color.kuroInk)

@@ -26,20 +26,20 @@ struct DSsongsTests {
             (366, 98, 30, 3), (370, 100, 28, 3), (304, 112, 52, 2), (410, 112, 32, 3), (660, 112, 30, 5),
         ]
         for row in rows {
-            let width = EntityRailPeek.cardWidth(visible: row.visible)
+            let width = KuroRailPeek.cardWidth(visible: row.visible)
             #expect(width == row.width, "visible \(row.visible)")
-            let slice = row.visible - CGFloat(row.whole) * (width + EntityRailPeek.spacing)
+            let slice = row.visible - CGFloat(row.whole) * (width + KuroRailPeek.spacing)
             #expect(slice == row.slice, "visible \(row.visible)")
         }
-        #expect(EntityRailPeek.cardWidth(visible: 0) == EntityRailPeek.preferredWidth)
-        #expect(EntityRailPeek.coverHeight(width: 98) == 147)
+        #expect(KuroRailPeek.cardWidth(visible: 0) == KuroRailPeek.preferredWidth)
+        #expect(KuroRailPeek.coverHeight(width: 98) == 147)
     }
 
     @Test("Entity pages: the rail's visible width is the column minus the 24 pt gutter")
     func railVisible() {
         #expect(EntityPageLayout.gutter == 24)
         #expect(EntityPageLayout.railVisible(column: 390) == 366)
-        #expect(EntityRailPeek.cardWidth(visible: EntityPageLayout.railVisible(column: 390)) == 98)
+        #expect(KuroRailPeek.cardWidth(visible: EntityPageLayout.railVisible(column: 390)) == 98)
         #expect(EntityPageLayout.railVisible(column: 10) == 0)
         #expect(EntityPageLayout.studioNameSize(column: 320) == 34)
         #expect(EntityPageLayout.studioNameSize(column: 390) == 44)
@@ -47,24 +47,24 @@ struct DSsongsTests {
 
     @Test("Branded tile: the paper values are the prototype's D4 season tile")
     func tileValues() {
-        #expect(EntityBrandedTile.Paper.fillTop == "FFFFFF")
-        #expect(EntityBrandedTile.Paper.fillBottom == "EEF1EE")
-        #expect(EntityBrandedTile.Paper.border == "D9DEDB")
-        #expect(EntityBrandedTile.Paper.stripe == "232C24")
-        #expect(EntityBrandedTile.Paper.stripeEvery == 6)
-        #expect(EntityBrandedTile.Paper.mark == "7B847E")
-        #expect(EntityBrandedTile.Paper.titleInk == "4F5A52")
-        #expect(EntityBrandedTile.Paper.minTitleWidth == 60)
+        #expect(KuroBrandedTile.Paper.fillTop == "FFFFFF")
+        #expect(KuroBrandedTile.Paper.fillBottom == "EEF1EE")
+        #expect(KuroBrandedTile.Paper.border == "D9DEDB")
+        #expect(KuroBrandedTile.Paper.stripe == "232C24")
+        #expect(KuroBrandedTile.Paper.stripeEvery == 6)
+        #expect(KuroBrandedTile.Paper.mark == "7B847E")
+        #expect(KuroBrandedTile.Paper.titleInk == "4F5A52")
+        #expect(KuroBrandedTile.Paper.minTitleWidth == 60)
     }
 
     @Test("Initials: two words give first and last initial; one word its first two letters")
     func initials() {
-        #expect(EntityBrandedTile.initials("Yuuki Kaji") == "YK")
-        #expect(EntityBrandedTile.initials("Kana Hanazawa") == "KH")
-        #expect(EntityBrandedTile.initials("MAPPA") == "MA")
-        #expect(EntityBrandedTile.initials("Jean-Pierre Polnareff") == "JP")
-        #expect(EntityBrandedTile.initials("  ") == nil)
-        #expect(EntityBrandedTile.initials(nil) == nil)
+        #expect(KuroBrandedTile.initials("Yuuki Kaji") == "YK")
+        #expect(KuroBrandedTile.initials("Kana Hanazawa") == "KH")
+        #expect(KuroBrandedTile.initials("MAPPA") == "MA")
+        #expect(KuroBrandedTile.initials("Jean-Pierre Polnareff") == "JP")
+        #expect(KuroBrandedTile.initials("  ") == nil)
+        #expect(KuroBrandedTile.initials(nil) == nil)
     }
 }
 

@@ -304,7 +304,7 @@ struct DetailMangaNextGlance: View {
                                                    topTrailingRadius: 10, style: .continuous))
             .accessibilityHidden(true)
         } else {
-            DetailBrandedTile(kind: copy.german ? "Kap." : "Ch.")
+            KuroBrandedTile(kind: copy.german ? "Kap." : "Ch.")
                 .frame(width: 40, height: 44)
         }
     }

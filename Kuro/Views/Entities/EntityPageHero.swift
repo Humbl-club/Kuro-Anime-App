@@ -69,7 +69,7 @@ struct EntityPortrait: View {
     var cornerRadius: CGFloat = 4
 
     var body: some View {
-        let tile = EntityBrandedTile(kind: "", initials: EntityBrandedTile.initials(name), style: .ink, cornerRadius: cornerRadius)
+        let tile = KuroBrandedTile(kind: "", initials: KuroBrandedTile.initials(name), style: .ink, cornerRadius: cornerRadius)
         Group {
             if let raw = imageURL, !raw.isEmpty, let url = URL(string: raw) {
                 KuroCachedAsyncImage(url: url, maxPixelSize: Int(max(width, height))) { phase in
@@ -98,7 +98,7 @@ struct EntityCover: View {
     var cornerRadius: CGFloat = 4
 
     var body: some View {
-        let tile = EntityBrandedTile(kind: kind, title: title, style: .paper, cornerRadius: cornerRadius)
+        let tile = KuroBrandedTile(kind: kind, title: title, style: .paper, cornerRadius: cornerRadius)
         Group {
             if let raw = imageURL, !raw.isEmpty, let url = URL(string: raw) {
                 KuroCachedAsyncImage(url: url, maxPixelSize: Int(max(width, height))) { phase in

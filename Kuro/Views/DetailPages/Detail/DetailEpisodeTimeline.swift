@@ -214,7 +214,7 @@ struct AnimeUnitsSection: View {
     @ViewBuilder
     private func still(_ number: Int, episode: Episode?) -> some View {
         if !dynamicTypeSize.isAccessibilitySize {
-            let tile = DetailBrandedTile(kind: DetailTimeline.smallLine(number, watched: false, german: german), cornerRadius: 3)
+            let tile = KuroBrandedTile(kind: DetailTimeline.smallLine(number, watched: false, german: german), cornerRadius: 3)
             Color.clear
                 .frame(width: stillSize.width, height: stillSize.height)
                 .overlay {

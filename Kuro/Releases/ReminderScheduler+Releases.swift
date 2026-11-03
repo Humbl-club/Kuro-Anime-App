@@ -11,12 +11,12 @@ import KuroCore
 // after waiting for the chain. Nothing here ever prompts for permission
 // (`requestNotificationPermission` is the one explicit, user-initiated call).
 //
-// Preference per account (app defaults, keyed by the lower-cased user id like the owner marker):
-//   nil   → follows the system permission (an account that already allowed notifications keeps
-//           getting its reminders after this update; nobody is opted in without having allowed them);
-//   true  → on (set by the Profile toggle / a detail bell after permission was granted);
-//   false → off (nothing automatic is scheduled, not even the airing reminders).
-// Muted titles (the detail bell off) are a per-account set.
+// Preference per account (app defaults, keyed by the lower-cased user id like the owner marker;
+// spec D14: default OFF):
+//   nil / false → off (only titles the account turned on with a detail bell notify);
+//   true        → on for every watching / reading title (set by the Profile toggle after permission).
+// Per-title overrides (the detail bell): an "allowed" set (on even while the toggle is off) and a
+// "muted" set (off even while the toggle is on).
 
 extension ReminderScheduler {
     /// What a plan commit did.
@@ -41,9 +41,16 @@ extension ReminderScheduler {
         "com.kuro.releaseNotifications.muted.\(userId.lowercased())"
     }
 
+    private nonisolated static func allowedKey(_ userId: String) -> String {
+        "com.kuro.releaseNotifications.allowed.\(userId.lowercased())"
+    }
+
+    /// Set once the retired `airing-*` reminders were removed from this device.
+    nonisolated static let legacyAiringRetiredKey = "com.kuro.releaseNotifications.legacyAiringRetired"
+
     // MARK: Preference
 
-    /// The account's stored choice (nil: never chosen; follows the system permission).
+    /// The account's stored choice (nil: never chosen, which is off).
     func releaseNotificationPreference(for context: AccountContext) -> Bool? {
         userDefaults.object(forKey: Self.preferenceKey(context.userId)) as? Bool
     }
@@ -55,7 +62,31 @@ extension ReminderScheduler {
 
     /// Titles whose release notifications the account muted (detail bell off).
     func mutedReleaseNotificationKeys(for context: AccountContext) -> Set<MediaKey> {
-        let raw = userDefaults.stringArray(forKey: Self.mutedKey(context.userId)) ?? []
+        keys(forKey: Self.mutedKey(context.userId))
+    }
+
+    func setMutedReleaseNotificationKeys(_ keys: Set<MediaKey>, for context: AccountContext) {
+        guard accountSession.isCurrent(context) else { return }
+        store(keys, forKey: Self.mutedKey(context.userId))
+    }
+
+    /// Titles the account turned on with a detail bell (they notify even while the toggle is off).
+    func allowedReleaseNotificationKeys(for context: AccountContext) -> Set<MediaKey> {
+        keys(forKey: Self.allowedKey(context.userId))
+    }
+
+    func setAllowedReleaseNotificationKeys(_ keys: Set<MediaKey>, for context: AccountContext) {
+        guard accountSession.isCurrent(context) else { return }
+        store(keys, forKey: Self.allowedKey(context.userId))
+    }
+
+    /// Whether anything can notify for the account: the toggle is on, or a bell turned a title on.
+    func releaseNotificationsWanted(for context: AccountContext) -> Bool {
+        releaseNotificationPreference(for: context) == true || !allowedReleaseNotificationKeys(for: context).isEmpty
+    }
+
+    private func keys(forKey key: String) -> Set<MediaKey> {
+        let raw = userDefaults.stringArray(forKey: key) ?? []
         return Set(raw.compactMap { text in
             let parts = text.split(separator: ":")
             guard parts.count == 2, let kind = MediaKind(rawValue: String(parts[0])), let id = Int(parts[1]) else { return nil }
@@ -63,16 +94,31 @@ extension ReminderScheduler {
         })
     }
 
-    func setMutedReleaseNotificationKeys(_ keys: Set<MediaKey>, for context: AccountContext) {
-        guard accountSession.isCurrent(context) else { return }
-        let raw = keys.map { "\($0.kind.rawValue):\($0.id)" }.sorted()
-        userDefaults.set(raw, forKey: Self.mutedKey(context.userId))
+    private func store(_ keys: Set<MediaKey>, forKey key: String) {
+        userDefaults.set(keys.map { "\($0.kind.rawValue):\($0.id)" }.sorted(), forKey: key)
     }
 
     /// Account deletion: the account's choices go with it.
     func removeReleaseNotificationPreferences(userId: String) {
         userDefaults.removeObject(forKey: Self.preferenceKey(userId))
         userDefaults.removeObject(forKey: Self.mutedKey(userId))
+        userDefaults.removeObject(forKey: Self.allowedKey(userId))
+    }
+
+    // MARK: Legacy cleanup
+
+    /// Removes the retired `airing-*` reminders ("… airs now" / "In 1 hour: …", English only) once per
+    /// device (spec §11.2). Ordered on the reminder chain; never prompts.
+    @discardableResult
+    func retireLegacyAiringRemindersOnce() -> Task<Void, Never>? {
+        guard !userDefaults.bool(forKey: Self.legacyAiringRetiredKey) else { return nil }
+        let center = notificationCenter
+        return serialized { [weak self] in
+            let pending = await center.pendingRequestIdentifiers()
+            let legacy = pending.filter { $0.hasPrefix(ReleaseNotificationPlanner.legacyAiringPrefix) }
+            if !legacy.isEmpty { center.removePendingNotificationRequests(withIdentifiers: legacy) }
+            self?.userDefaults.set(true, forKey: Self.legacyAiringRetiredKey)
+        }
     }
 
     // MARK: Permission
@@ -92,14 +138,14 @@ extension ReminderScheduler {
 
     /// Commits `plan` for the account in `context`: adds or replaces its requests and removes pending
     /// `release-*` requests it no longer contains. The budget is the system's 64 minus the device
-    /// reminders it does not own (e.g. the airing path's "in 1 hour" requests), soonest first.
+    /// reminders it does not own, soonest first.
     @discardableResult
     func syncReleaseNotifications(_ plan: [PlannedReleaseNotification], context: AccountContext) async -> ReleaseSyncOutcome {
         guard accountSession.isCurrent(context) else { return .obsolete }
         let center = notificationCenter
         return await serialized { [weak self] () -> ReleaseSyncOutcome in
             guard let self, self.accountSession.isCurrent(context) else { return .obsolete }
-            guard self.releaseNotificationPreference(for: context) != false,
+            guard self.releaseNotificationsWanted(for: context),
                   await center.currentPermission() == .authorized else { return .notAuthorized }
             let pending = await center.pendingRequestIdentifiers()
             guard self.accountSession.isCurrent(context) else { return .obsolete }

@@ -29,16 +29,16 @@ struct DSdetailTests {
     ])
     func peekTable(visible: Double, cards: Int, width: Double, slice: Double) {
         let v = CGFloat(visible)
-        #expect(DetailRailPeek.cardWidth(visible: v) == CGFloat(width))
-        #expect(DetailRailPeek.cardsShown(visible: v) == cards)
-        #expect(DetailRailPeek.slice(visible: v) == CGFloat(slice))
+        #expect(KuroRailPeek.cardWidth(visible: v) == CGFloat(width))
+        #expect(KuroRailPeek.cardsShown(visible: v) == cards)
+        #expect(KuroRailPeek.slice(visible: v) == CGFloat(slice))
     }
 
     @Test("Edge peek: covers are 2 : 3, an unmeasured rail uses the preferred width")
     func peekCover() {
-        #expect(DetailRailPeek.coverHeight(width: 98) == 147)
-        #expect(DetailRailPeek.cardWidth(visible: 0) == 100)
-        #expect(DetailRailPeek.spacing == 14)
+        #expect(KuroRailPeek.coverHeight(width: 98) == 147)
+        #expect(KuroRailPeek.cardWidth(visible: 0) == 100)
+        #expect(KuroRailPeek.spacing == 14)
     }
 
     // MARK: §6.2 / §7.2 Facts
@@ -320,9 +320,9 @@ struct DSdetailTests {
 
     @Test("Branded tile initials")
     func tileInitials() {
-        #expect(DetailBrandedTile.initials(of: "Aoi Yuuki") == "AY")
-        #expect(DetailBrandedTile.initials(of: "MAPPA") == "M")
-        #expect(DetailBrandedTile.initials(of: "  ") == nil)
-        #expect(DetailBrandedTile.initials(of: nil) == nil)
+        #expect(KuroBrandedTile.initials("Aoi Yuuki") == "AY")
+        #expect(KuroBrandedTile.initials("MAPPA") == "MA", "folded tile: one word gives two letters")
+        #expect(KuroBrandedTile.initials("  ") == nil)
+        #expect(KuroBrandedTile.initials(nil) == nil)
     }
 }

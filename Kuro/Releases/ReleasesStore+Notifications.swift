@@ -4,13 +4,14 @@ import KuroLibrary
 
 #if canImport(Supabase)
 
-// MARK: - Release notifications (view-facing API; state in ReleasesStore)
+// MARK: - Release notifications (view-facing API; state in ReleasesStore; spec D14, §11)
 // Profile toggle and detail bell call these; nothing else may ask for notification permission.
-// The plan (`ReleaseNotificationPlanner`) is rebuilt from the account's loaded schedule and its
-// watching / reading rows whenever either changes (debounced) and on every foreground, and committed
-// on the reminder chain (`ReminderScheduler.syncReleaseNotifications`). Estimates never notify; a time
-// is used only for an instant; day-precision releases notify at 09:00 local on their day. Everything
-// is cleared on sign-out / account switch (the session funnel's reminder removal covers `release-*`).
+// Default OFF. The Profile toggle turns on every watching / reading title; a detail bell turns one
+// title on (even while the toggle is off) or mutes it. The plan (`ReleaseNotificationPlanner`) is
+// rebuilt from the account's loaded schedule and its rows whenever either changes (debounced) and on
+// every foreground, and committed on the reminder chain (`ReminderScheduler.syncReleaseNotifications`).
+// Only exact, non-estimate confirmed / announced times notify, at their moment. Everything is cleared
+// on sign-out / account switch (the session funnel's reminder removal covers `release-*`).
 
 /// What a toggle did (the caller shows its own copy).
 enum ReleaseNotificationToggleResult: Equatable, Sendable {
@@ -31,16 +32,24 @@ extension ReleasesStore {
 
     // MARK: Reading (views)
 
-    /// Whether `key` notifies for the current account (detail bell state).
+    /// Whether `key` notifies for the current account (detail bell state): a bell override first,
+    /// then the Profile toggle (spec §11.2 `override[key] ?? followed`).
     func releaseNotificationsOn(for key: MediaKey) -> Bool {
-        releaseNotificationsEnabled && !mutedReleaseNotificationKeys.contains(key)
+        guard notificationPermission == .authorized else { return false }
+        if allowedReleaseNotificationKeys.contains(key) { return true }
+        return releaseNotificationsEnabled && !mutedReleaseNotificationKeys.contains(key)
+    }
+
+    /// Whether anything can notify for the current account (toggle on, or a bell turned a title on).
+    var releaseNotificationsActive: Bool {
+        notificationPermission == .authorized && (releaseNotificationsEnabled || !allowedReleaseNotificationKeys.isEmpty)
     }
 
     // MARK: Explicit user actions (the only permission requests)
 
     /// The Profile toggle. On: asks for permission (the system prompt appears only while undecided),
-    /// stores the choice and schedules the account's plan. Off: stores the choice and removes every
-    /// pending release notification and airing reminder.
+    /// stores the choice and schedules the account's plan. Off: stores the choice; titles a bell
+    /// turned on keep notifying, everything else pending is removed.
     @discardableResult
     func setReleaseNotificationsEnabled(_ enabled: Bool) async -> ReleaseNotificationToggleResult {
         guard let context = accountSession.current else { return .signedOut }
@@ -48,8 +57,12 @@ extension ReleasesStore {
             reminders.setReleaseNotificationPreference(false, for: context)
             releaseNotificationsEnabled = false
             releaseNotificationTask?.cancel()
-            hasCommittedReleaseNotifications = false
-            await reminders.removeAllReleaseNotifications().value
+            if allowedReleaseNotificationKeys.isEmpty {
+                hasCommittedReleaseNotifications = false
+                await reminders.removeAllReleaseNotifications().value
+            } else {
+                await syncReleaseNotificationsNow()
+            }
             return .disabled
         }
         let permission = await reminders.requestNotificationPermission()
@@ -67,26 +80,32 @@ extension ReleasesStore {
         return .enabled
     }
 
-    /// The detail bell for one title. On: turns release notifications on first when they are off
-    /// (an explicit action, so it may show the permission prompt), then unmutes the title. Off: mutes
-    /// the title (its pending notifications go on the next re-plan; its airing reminders now).
+    /// The detail bell for one title (a per-title override, spec D14). On: asks for permission when it
+    /// is undecided (an explicit action), then turns THIS title on; the Profile toggle is untouched.
+    /// Off: mutes the title (its pending notifications go on the re-plan).
     @discardableResult
     func setReleaseNotification(_ enabled: Bool, for key: MediaKey) async -> ReleaseNotificationToggleResult {
         guard let context = accountSession.current else { return .signedOut }
         var muted = reminders.mutedReleaseNotificationKeys(for: context)
+        var allowed = reminders.allowedReleaseNotificationKeys(for: context)
         if enabled {
-            if !releaseNotificationsEnabled {
-                let result = await setReleaseNotificationsEnabled(true)
-                guard result == .enabled else { return result }
-            }
+            let permission = await reminders.requestNotificationPermission()
+            guard accountSession.isCurrent(context) else { return .signedOut }
+            notificationPermission = permission
+            guard permission == .authorized else { return .permissionDenied }
             muted.remove(key)
+            allowed.insert(key)
         } else {
             muted.insert(key)
-            if key.kind == .anime { reminders.cancelAiringNotifications(animeId: key.id) }
+            allowed.remove(key)
         }
         guard accountSession.isCurrent(context) else { return .signedOut }
         reminders.setMutedReleaseNotificationKeys(muted, for: context)
+        reminders.setAllowedReleaseNotificationKeys(allowed, for: context)
         mutedReleaseNotificationKeys = muted
+        allowedReleaseNotificationKeys = allowed
+        // A title turned on should not stay silent because its schedule was never loaded.
+        if enabled, scheduleCoverageByMedium.isEmpty { _ = await loadSchedule() }
         await syncReleaseNotificationsNow()
         return enabled ? .enabled : .disabled
     }
@@ -100,25 +119,25 @@ extension ReleasesStore {
         guard accountSession.isCurrent(context) else { return }
         notificationPermission = permission
         mutedReleaseNotificationKeys = reminders.mutedReleaseNotificationKeys(for: context)
-        let preference = reminders.releaseNotificationPreference(for: context)
-        releaseNotificationsEnabled = permission == .authorized && (preference ?? true)
+        allowedReleaseNotificationKeys = reminders.allowedReleaseNotificationKeys(for: context)
+        // Default off (spec D14): only an explicit Profile toggle turns every watched title on.
+        releaseNotificationsEnabled = permission == .authorized && reminders.releaseNotificationPreference(for: context) == true
     }
 
     /// Foreground / bootstrap: state, then (when on) the schedule (cached 5 min) and the plan.
     func refreshReleaseNotifications() async {
+        // The retired per-airing reminders leave the device once (spec §11.2), before any plan commit.
+        await reminders.retireLegacyAiringRemindersOnce()?.value
         await refreshReleaseNotificationState()
-        guard releaseNotificationsEnabled, let context = accountSession.current else { return }
-        // An account that turned them on explicitly gets its schedule read even when no screen asked
-        // yet; otherwise the plan follows whatever the screens loaded.
-        if scheduleCoverageByMedium.isEmpty, reminders.releaseNotificationPreference(for: context) == true {
-            _ = await loadSchedule()
-        }
+        guard releaseNotificationsActive, accountSession.current != nil else { return }
+        // Something is on explicitly, so the schedule is read even when no screen asked yet.
+        if scheduleCoverageByMedium.isEmpty { _ = await loadSchedule() }
         await syncReleaseNotificationsNow()
     }
 
     /// Re-plans after `releaseNotificationDebounce` (a newer request replaces a waiting one).
     func scheduleReleaseNotificationsSoon() {
-        guard releaseNotificationsEnabled, accountSession.current != nil else { return }
+        guard releaseNotificationsActive || hasCommittedReleaseNotifications, accountSession.current != nil else { return }
         releaseNotificationTask?.cancel()
         releaseNotificationTask = Task { [weak self] in
             try? await Task.sleep(for: Self.releaseNotificationDebounce)
@@ -129,9 +148,10 @@ extension ReleasesStore {
 
     /// The current plan for the account (pure inputs; tests read it).
     func plannedReleaseNotifications(now: Date = Date()) -> [PlannedReleaseNotification] {
-        let following = Set((library?.allEntries ?? [])
-            .filter { $0.status == .current || $0.status == .repeating }
-            .map(\.key))
+        let watching = releaseNotificationsEnabled
+            ? Set((library?.allEntries ?? []).filter { $0.status == .current || $0.status == .repeating }.map(\.key))
+            : []
+        let following = watching.union(allowedReleaseNotificationKeys)
         return ReleaseNotificationPlanner.plan(
             items: scheduleItems(for: nil, now: now), following: following, muted: mutedReleaseNotificationKeys,
             now: now, german: KuroLocale.isGerman, locale: KuroLocale.locale, timeZone: KuroLocale.timeZone)
@@ -141,7 +161,14 @@ extension ReleasesStore {
     @discardableResult
     func syncReleaseNotificationsNow(now: Date = Date()) async -> ReminderScheduler.ReleaseSyncOutcome {
         guard let context = accountSession.current else { return .obsolete }
-        guard releaseNotificationsEnabled else { return .notAuthorized }
+        guard releaseNotificationsActive else {
+            // Nothing is on any more (or permission was revoked): what this account left pending goes.
+            if hasCommittedReleaseNotifications {
+                hasCommittedReleaseNotifications = false
+                await reminders.removeAllReleaseNotifications().value
+            }
+            return .notAuthorized
+        }
         let plan = plannedReleaseNotifications(now: now)
         // Nothing to add and nothing of ours committed for this account: no device round trip.
         guard !plan.isEmpty || hasCommittedReleaseNotifications else { return .synced(scheduled: 0) }

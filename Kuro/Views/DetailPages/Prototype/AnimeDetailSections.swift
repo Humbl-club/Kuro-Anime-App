@@ -435,9 +435,9 @@ struct AnimeDetailPage: View {
                 }
             }
         case .songs:
-            DetailSoundPanel(songs: songs, material: material,
-                             showsAll: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.songs),
-                             onCollapse: { foldCollapsed(.songs, proxy: proxy) })
+            DetailSongShelf(songs: songs, material: material, progress: progress,
+                            showsAll: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.songs),
+                            onCollapse: { foldCollapsed(.songs, proxy: proxy) })
         case .characters:
             DetailCastRail(members: castMembers)
         case .credits:
@@ -1353,7 +1353,7 @@ struct DetailSourceCard: View {
     /// (details-songs §6.5, §5.2: no glyph placeholder).
     private var book: some View {
         let kind = DetailFacts.mangaFormatWord(item.format, german: KuroLocale.isGerman) ?? "Manga"
-        let tile = DetailBrandedTile(kind: kind, title: item.title, cornerRadius: 0)
+        let tile = KuroBrandedTile(kind: kind, title: item.title, cornerRadius: 0)
         return ZStack {
             Rectangle().fill(Color(hex: "EDEEDF")).offset(x: 6, y: 2)
             Rectangle().fill(Color(hex: "C7CEBD")).offset(x: 4, y: 1)
@@ -1395,175 +1395,7 @@ struct DetailBookSpine: Shape {
 }
 
 // MARK: - D8 The sound of it.
-
-struct DetailSoundPanel: View {
-    let songs: [ThemeSong]
-    let material: ArtworkMaterial
-    /// "Show all N songs" open or closed (F3, `DetailFold.songs`).
-    @Binding var showsAll: Bool
-    /// F2: the page scrolls the panel back into view after it folds, when needed.
-    var onCollapse: () -> Void = {}
-    @State private var revealed: Set<ThemeSong> = []
-    @Environment(\.openURL) private var openURL
-
-    private static let collapsed = 4
-
-    var body: some View {
-        let shown = showsAll ? songs : Array(songs.prefix(Self.collapsed))
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(KuroLocale.text("The sound of it.", "So klingt es."))
-                    .font(.detailSF(17, .semibold, relativeTo: .title3))
-                    .tracking(-0.4)
-                    .foregroundStyle(DetailInk.soundInk)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer()
-                HStack(alignment: .center, spacing: 3) {
-                    ForEach([9.0, 14, 18, 12, 7], id: \.self) { height in
-                        Capsule().fill(Color(hex: "A4BAA9")).frame(width: 2, height: height)
-                    }
-                }
-                .accessibilityHidden(true)
-            }
-            .padding(.bottom, 8)
-            ForEach(Array(shown.enumerated()), id: \.offset) { _, song in
-                // The prototype's B:1px #ffffff14 under every song row, the last one included.
-                row(song)
-                    .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0x14 / 255.0)).frame(height: 1) }
-            }
-            if songs.count > Self.collapsed {
-                KuroFoldButton(isExpanded: $showsAll,
-                               expandLabel: KuroLocale.text("Show all \(songs.count) songs", "Alle \(songs.count) Songs zeigen"),
-                               collapseLabel: KuroLocale.text("Show fewer", "Weniger zeigen"),
-                               onCollapse: onCollapse) { title, _ in
-                    Text(title)
-                        .font(.detailSF(11, .medium, relativeTo: .footnote))
-                        .foregroundStyle(DetailInk.soundInk)
-                        .frame(minHeight: 44)
-                }
-            }
-            if songs.allSatisfy({ $0.source.lowercased() == "animethemes" }) {
-                Text(KuroLocale.text("via AnimeThemes", "über AnimeThemes"))
-                    .font(.detailSF(9, relativeTo: .caption2))
-                    .foregroundStyle(DetailInk.soundNote)
-                    .padding(.top, 13)
-            }
-        }
-        .padding(.top, 19)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 12)
-        .background {
-            // The shadow sits on the panel's shape, not on its rows and keys.
-            shape.fill(LinearGradient(colors: [material.base.color, material.deep.color], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .shadow(color: Color(hex: "14291C", opacity: 0x0B / 255.0), radius: 7, x: 0, y: 6)
-        }
-        .overlay(shape.strokeBorder(material.base.color, lineWidth: 1))
-        .padding(.top, 25)
-    }
-
-    private func kicker(_ song: ThemeSong) -> String {
-        let german = KuroLocale.isGerman
-        let kind: String
-        switch song.kind {
-        case .opening: kind = "Opening"
-        case .ending: kind = "Ending"
-        case .insert: kind = german ? "Insert-Song" : "Insert song"
-        }
-        var parts = [song.sequence.map { "\(kind) \($0)" } ?? kind]
-        if let episodes = song.episodes?.detailNonEmpty { parts.append(Self.episodes(episodes, german: german)) }
-        return parts.joined(separator: " · ")
-    }
-
-    /// "Ep. 1–5" / "Folge 3" / "Folgen 1–5" (§7.1 uses "Folge N"; "F." is not a German abbreviation).
-    static func episodes(_ value: String, german: Bool) -> String {
-        guard german else { return "Ep. " + value }
-        let plural = value.contains(where: { "–-—,&".contains($0) }) || value.lowercased().contains("bis")
-        return (plural ? "Folgen " : "Folge ") + value
-    }
-
-    private func row(_ song: ThemeSong) -> some View {
-        let hidden = song.isSpoiler && !revealed.contains(song)
-        return HStack(spacing: 12) {
-            VStack(spacing: 0) {
-                Text(song.kind.rawValue)
-                    .font(.detailSF(12, .medium, relativeTo: .subheadline))
-                    .tracking(-0.8)
-                    .foregroundStyle(material.base.color)
-                    .padding(.vertical, 4)
-                    .overlay(alignment: .top) { Rectangle().fill(Color(hex: "546B52", opacity: 0x35 / 255.0)).frame(height: 1) }
-                    .overlay(alignment: .bottom) { Rectangle().fill(Color(hex: "546B52", opacity: 0x35 / 255.0)).frame(height: 1) }
-            }
-            .frame(width: 43, height: 43)
-            .background(material.wash.color, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Color(hex: "E5ECD8", opacity: 0x4C / 255.0), lineWidth: 1))
-            .accessibilityLabel(song.spokenLabel(german: KuroLocale.isGerman))
-
-            VStack(alignment: .leading, spacing: 0) {
-                Text(kicker(song))
-                    .font(.detailSF(8, relativeTo: .caption2))
-                    .tracking(0.2)
-                    .foregroundStyle(DetailInk.soundKicker)
-                    .detailLineHeight(11.2, size: 8, relativeTo: .caption2)
-                if hidden {
-                    Button {
-                        revealed.insert(song)
-                    } label: {
-                        Text(KuroLocale.text("Spoiler. Tap to show.", "Spoiler. Zum Anzeigen tippen."))
-                            .font(.detailSF(13, .medium, relativeTo: .subheadline))
-                            .foregroundStyle(DetailInk.soundInk)
-                            .frame(minHeight: 44, alignment: .leading)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Text(song.title)
-                        .font(.detailSF(13, .semibold, relativeTo: .subheadline))
-                        .foregroundStyle(DetailInk.soundInk)
-                        .lineLimit(2)
-                        .detailLineHeight(16.25, size: 13, relativeTo: .subheadline)
-                        .padding(.vertical, 4)
-                    if let artist = song.artist?.detailNonEmpty {
-                        Text(artist)
-                            .font(.detailSF(10, relativeTo: .footnote))
-                            .foregroundStyle(DetailInk.soundArtist)
-                            .lineLimit(1)
-                            .detailLineHeight(14, size: 10, relativeTo: .footnote)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: hidden ? .contain : .combine)
-
-            if !hidden { listen(song) }
-        }
-        // 78 pt rows as measured (padding 12/0 around a 54 pt line block).
-        .frame(minHeight: 54)
-        .padding(.vertical, 12)
-    }
-
-    @ViewBuilder
-    private func listen(_ song: ThemeSong) -> some View {
-        let apple = song.appleMusicSearchURL
-        let spotify = song.spotifySearchURL
-        if apple != nil || spotify != nil {
-            Menu {
-                if let apple { Button("Apple Music") { openURL(apple) } }
-                if let spotify { Button("Spotify") { openURL(spotify) } }
-            } label: {
-                Image(systemName: "arrow.up.right")
-                    .font(.detailSF(12, relativeTo: .footnote))
-                    .foregroundStyle(DetailInk.soundArrow)
-                    .frame(width: 30, height: 30)
-                    .overlay(Circle().strokeBorder(Color.white.opacity(0x18 / 255.0), lineWidth: 1))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel(KuroLocale.text("Listen to \(song.title)", "\(song.title) anhören"))
-            .accessibilityHint(KuroLocale.text("Searches Apple Music or Spotify.", "Sucht in Apple Music oder Spotify."))
-        }
-    }
-}
+// The song shelf lives in `Kuro/Views/DetailPages/Songs/DetailSongShelf.swift` (details-songs spec §8).
 
 // MARK: - D9 The characters.
 // `DetailCastRail` (one rail, voice chips, edge peek) lives in Views/DetailPages/Detail/DetailRails.swift.

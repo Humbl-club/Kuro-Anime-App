@@ -279,10 +279,7 @@ struct DetailSectionPolicyTests {
         #expect(DetailPageCopy.progressCaption(total: nil, releasing: false, german: false) == nil)
         #expect(DetailPageCopy.aboutTitle(isSeason: true, german: false) == "About this season")
         #expect(DetailPageCopy.aboutTitle(isSeason: false, german: true) == "Über diese Geschichte")
-        // Song kickers: "Folge N" / "Folgen N–M" in German, never "F.".
-        #expect(DetailSoundPanel.episodes("1–5", german: true) == "Folgen 1–5")
-        #expect(DetailSoundPanel.episodes("3", german: true) == "Folge 3")
-        #expect(DetailSoundPanel.episodes("1–5", german: false) == "Ep. 1–5")
+        // Song kickers moved to `SongShelfCopy` (DSsongsTests).
         // Spoiler rows name the stored scope; no season number exists to show.
         #expect(FriendsActivitySection.spoilerLabel("story", german: false) == "Spoiler · Story")
         #expect(FriendsActivitySection.spoilerLabel("ending", german: true) == "Spoiler · Ende")
