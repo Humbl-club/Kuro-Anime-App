@@ -342,10 +342,14 @@ struct ClubHeroNoteCard: View {
     }
 
     /// The existing gate copy ("May contain spoilers. Tap to read.") on Home's spoiler-line face.
+    private func reveal() {
+        KuroAccessibility.impactHaptic(.light)
+        withAnimation(KuroMotion.resolve(KuroMotion.settle)) { isRevealed = true }
+    }
+
     private var spoilerGate: some View {
         Button {
-            KuroAccessibility.impactHaptic(.light)
-            withAnimation(KuroMotion.resolve(KuroMotion.settle)) { isRevealed = true }
+            reveal()
         } label: {
             HStack(spacing: 10) {
                 Text(KuroLocale.text("May contain spoilers. Tap to read.", "Kann spoilern. Tippen zum Lesen."))
@@ -371,6 +375,8 @@ struct ClubHeroNoteCard: View {
         .accessibilityLabel(KuroLocale.text("Note by \(note.author ?? "a member"), may contain spoilers. Double tap to read.",
                                             "Notiz von \(note.author ?? "einem Mitglied"), kann spoilern. Zum Lesen doppeltippen."))
         .accessibilityAddTraits(.isButton)
+        // A4: the combined element activates programmatically.
+        .accessibilityAction { reveal() }
     }
 }
 

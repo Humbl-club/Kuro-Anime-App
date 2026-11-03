@@ -76,10 +76,7 @@ struct ClubWeekCard: View {
             if !list.contains(cover) { list.append(cover) }
         }.prefix(3))
         return Button {
-            KuroAccessibility.selectionHaptic()
-            withAnimation(KuroFold.animation(reduceMotion: reduceMotion)) {
-                if isOpen { open.remove(day.start) } else { open.insert(day.start) }
-            }
+            toggle(day)
         } label: {
             HStack(spacing: 11) {
                 VStack(spacing: 0) {
@@ -134,6 +131,15 @@ struct ClubWeekCard: View {
         .accessibilityLabel("\(label), \(count)")
         .accessibilityValue(KuroFold.accessibilityValue(expanded: isOpen, german: german))
         .accessibilityAddTraits(.isButton)
+        // A4: the combined element activates programmatically.
+        .accessibilityAction { toggle(day) }
+    }
+
+    private func toggle(_ day: ClubWeekRules.Day) {
+        KuroAccessibility.selectionHaptic()
+        withAnimation(KuroFold.animation(reduceMotion: reduceMotion)) {
+            if open.contains(day.start) { open.remove(day.start) } else { open.insert(day.start) }
+        }
     }
 
     // MARK: Entry row

@@ -417,10 +417,7 @@ struct JournalRailTile: View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
-                guard !suppressCardTaps else { return }
-                KuroAccessibility.impactHaptic(.light)
-                routes.openMedia(MediaRoute(libraryKey))
+                open(origin: origin)
             } label: {
                 HStack(alignment: .top, spacing: 9) {
                     cover
@@ -455,6 +452,8 @@ struct JournalRailTile: View {
             .accessibilityLabel(accessibilityText)
             .accessibilityHint(KuroLocale.text("Opens the title.", "Öffnet den Titel."))
             .accessibilityAddTraits(.isButton)
+            // A4: the combined element activates programmatically.
+            .accessibilityAction { open(origin: origin) }
             .contextMenu {
                 Button(action: {
                     guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
@@ -480,6 +479,13 @@ struct JournalRailTile: View {
         }
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear { actionScope.deactivate() }
+    }
+
+    private func open(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
+        guard !suppressCardTaps else { return }
+        KuroAccessibility.impactHaptic(.light)
+        routes.openMedia(MediaRoute(libraryKey))
     }
 
     private var cover: some View {
