@@ -10,9 +10,5 @@
 	<array>
 		<string>applinks:kuro.app</string>
 	</array>
-	<key>com.apple.security.application-groups</key>
-	<array>
-		<string>group.com.Kuro.app</string>
-	</array>
 </dict>
 </plist>
