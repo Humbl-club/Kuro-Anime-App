@@ -41,6 +41,19 @@ This codebase has established patterns. Match them. Don't introduce new paradigm
 ### Rule 5: Navigation contract (binding since 2026-11-02)
 Every screen follows `docs/superpowers/specs/2026-11-02-navigation-contract-design.md`: pages (pager) → journeys (one sheet hosting a navigation stack; every further tap **pushes**) → tools (task sheets that close back to their page). Every pushed page has a back chevron and working edge swipe-back; every journey page has ✕, and ✕ / swipe-down collapses the whole journey to the page it started from; no duplicate pages in a stack; every sheet has a visible close/cancel; every tappable thing opens its target; deep links collapse everything first; detail/club/person pages have the shrinking header with back/✕ always visible; foldable sections animate and remember their state for the session. A new screen or tap target that breaks a rule there is a bug, not a style choice.
 
+### Rule 6: Discover contract (binding since 2026-11-04)
+Every change to Discover (the page, See all, mood journeys, the long-press preview, or any Discover card) must satisfy R1–R8 and their acceptance tests in `docs/superpowers/specs/2026-11-04-discover-usability-design.md`:
+- R1 one question per section, with personal sections saying why
+- R2 never the same series twice on one page (owned titles hidden in personal/new sections, marked elsewhere)
+- R3 one tap to open plus one Plan key per card, everything else in the long-press menu
+- R4 instant feedback (haptic + stamp) and Undo
+- R5 Not interested / Seen it remove the title at once and teach Taste (`.skip` / `.known`, never `.pass`)
+- R6 visible, local, plain-word filters that never reset the page
+- R7 the page ends: ≤ 6 sections, then "You're caught up for today" with Browse + Search
+- R8 your place is kept
+
+Every route from a pager page goes through the pager tap gate (`KuroRoutes.gated(by:)`), and removals are never horizontal swipes.
+
 ---
 
 ## WHAT THIS APP IS (exact description)

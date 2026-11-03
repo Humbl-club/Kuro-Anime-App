@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discover Tactile Direction</title>
+<meta name="description" content="Discover usability pass (2026-11-04), direction TACTILE: the satisfaction of acting. Ten 390 x 844 frames covering all 12 build items, plus the motion, haptic, data, copy and telemetry notes.">
+<style>
+
+/* ------------------------------------------------------------------
+   Tokens: Home grammar (HOME_GRAMMAR.md) + prototype measured inks.
+   Light mode only (the app is light-only: .preferredColorScheme(.light)).
+   ------------------------------------------------------------------ */
+:root{
+  --canvas:#FFFEF8;          /* kuroCanvasHome */
+  --canvas-manga:#F5F5F3;    /* kuroCanvasHomeManga */
+  --paper:#F5F5F4;           /* kuroPaper */
+  --ink:#252625;             /* kuroInk */
+  --muted:#696C6B;           /* kuroMuted */
+  --kicker:#666C68;          /* HomeInk.kicker */
+  --summary:#656C66;         /* HomeInk.calendarSummary */
+  --quiet:#6B6B6B;           /* kuroInkQuiet */
+  --line:#272B2920;          /* kuroLine (header hairline) */
+  --hair:#0000001a;          /* kuroHairline */
+  --switch-off:#6E786F;      /* HomeInk.switchUnselected */
+  --switch-mark:#203027;     /* HomeInk.switchMark */
+  --switch-hair:#20302744;   /* HomeInk.switchHairline */
+  --glance:#FFFEFA; --glance-border:#29312918; --glance-ink:#303932; --glance-muted:#687064;
+  --foot-title:#FAFAFA; --foot-fact:#DCE2DF; --foot-secondary:#DCE3DF;
+  --tab-face:#F3F4F4; --tab-ink:#26372C;
+  --key-light-top:#FBFBF9; --key-light-bottom:#E7E9E5; --key-ink:#29352C;
+  --cal:#FAFCF9; --cal-border:#D8DDD9; --cal-row:#E3E7E1; --cal-more:#F6F8F4; --cal-more-border:#D9E0D7;
+  /* ClubRoomPalette */
+  --room:#252B28; --room-glow:#444A46; --room-border:#535A554C; --room-text:#F0F4EF; --room-kicker:#C0CBBB;
+  --room-row:#F1F5ED; --room-row2:#C1CDB7; --room-footer:#B4C2A9; --room-key:#2B342E;
+  --note:#F5F6EF; --note-ink:#2E342C; --note-meta:#66705D;
+  --spoiler:#E9EDE2; --spoiler-border:#CCD4C3; --spoiler-ink:#59664E;
+  --m1:#D0D8CB; --m2:#ADBBA6; --m3:#899A82; --m-ink:#33412E; --m-rim:#2F3730;
+  --skel:#2526251f; /* placeholder, overridden below */
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --serif:"New York",ui-serif,"Iowan Old Style",Georgia,serif;
+  --studio:#E9E8E2; --studio-ink:#2B2E2C;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--studio);color:var(--studio-ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+img{display:block}
+button{font:inherit;color:inherit}
+
+/* ------------------------------ studio page ------------------------------ */
+.studio-head{max-width:1180px;margin:0 auto;padding:40px 24px 8px}
+.studio-head .eyebrow{font-size:10px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker)}
+.studio-head h1{font-size:40px;line-height:1.05;letter-spacing:-1.4px;font-weight:650;margin:8px 0 10px}
+.studio-head p{max-width:680px;font-size:14px;line-height:1.55;color:#4d524f;margin:0 0 8px}
+.studio-head .rule{width:46px;height:2px;background:var(--ink);margin:16px 0 4px}
+.row-label{max-width:1180px;margin:28px auto 10px;padding:0 24px;font-size:10px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker)}
+.strip{display:flex;gap:28px;overflow-x:auto;padding:6px 24px 26px;scroll-snap-type:x proximity}
+.strip::after{content:"";flex:0 0 1px}
+.cell{flex:none;scroll-snap-align:start}
+.cell>h3{font-size:12px;font-weight:600;margin:0 0 3px;letter-spacing:-.1px}
+.cell>p.cap{font-size:11px;color:#5e6460;margin:0 0 10px;max-width:390px;line-height:1.45}
+
+/* ------------------------------ the phone ------------------------------ */
+.phone{position:relative;width:390px;height:844px;border-radius:46px;overflow:hidden;background:var(--canvas);
+  box-shadow:0 0 0 9px #1d201e,0 0 0 10px #3a3f3c,0 30px 50px -24px #1a1f1c80;margin:10px;color:var(--ink);font-family:var(--sans)}
+.phone.short{height:560px}
+.phone.manga{background:var(--canvas-manga)}
+.status{position:absolute;inset:0 0 auto 0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 34px;font-size:15px;font-weight:600;z-index:30}
+.status i{font-style:normal;font-size:11px;letter-spacing:1px}
+.status.on-dark{color:#F0F4EF}
+.phone>.status:not(.on-dark){background:inherit}
+.scroll{position:absolute;inset:0;overflow:hidden}
+
+/* App header (KuroHeaderNew): paints the page canvas -> no seam (P1) */
+.app-header{position:absolute;top:47px;left:0;right:0;height:54px;padding:0 10px 0 22px;display:flex;align-items:center;gap:8px;background:inherit;z-index:20;border-bottom:.5px solid var(--line)}
+.phone .app-header{background:var(--canvas)}
+.phone.manga .app-header{background:var(--canvas-manga)}
+.wordmark{font-size:18px;font-weight:800;letter-spacing:3px}
+.page-name{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.dots{display:flex;gap:4px}.dots b{width:3px;height:3px;border-radius:50%;background:#25262530}.dots b.on{background:var(--ink)}
+.dots b.badge{position:relative}.hdr-icons{display:flex;align-items:center}
+.hdr-btn{width:44px;height:44px;display:grid;place-items:center}
+.ring{width:24px;height:24px;border-radius:50%;border:1px solid #2526258c;display:grid;place-items:center;font-size:11px;font-weight:500}
+.unseen{display:inline-block;width:5px;height:5px;border-radius:50%;background:#252625b3;margin-left:3px;vertical-align:2px}
+
+.content{position:absolute;left:0;right:0;top:101px;padding:7px 20px 0}
+.content.flush{padding-left:0;padding-right:0}
+
+/* ------------------------------ Home type ------------------------------ */
+.opening{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.eyebrow{font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);white-space:nowrap}
+.opening h2{margin:0;font-size:14px;font-weight:600;letter-spacing:-.3px;text-align:right}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:9px;margin:0 0 14px}
+.sec-head h2{margin:0;font-size:24px;line-height:1.1;font-weight:600;letter-spacing:-.85px}
+.sec-head small{font-size:10px;color:var(--summary);text-align:right}
+.sub-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 4px}
+.sub-head h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.sub-head small{font-size:10px;color:var(--muted)}
+.text-action{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:500;color:var(--ink)}
+
+/* ------------------------------ Discover: issue switch ------------------------------ */
+/* KuroPosterMediumSwitch grammar with three words spread edge to edge; 28 pt heavy (24 at <=328 pt). Measured: 244 pt of words at 28 pt (fits 350), 210 pt at 24 pt (fits SE 280). */
+.issue-switch{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--switch-hair);min-height:50px;margin:2px 0 12px;position:relative}
+.issue-switch span{font-size:28px;font-weight:900;letter-spacing:-1.45px;text-transform:uppercase;color:var(--switch-off);line-height:44px;position:relative;white-space:nowrap}
+.issue-switch span:nth-child(2){text-align:center}.issue-switch span:nth-child(3){text-align:right}
+.issue-switch span.on{color:transparent;-webkit-background-clip:text;background-clip:text;background-size:cover;background-position:center}
+.issue-switch span.on::after{content:"";position:absolute;bottom:-1px;width:28px;height:2px;background:var(--switch-mark);left:0}
+.issue-switch span:nth-child(2).on::after{left:50%;margin-left:-14px}
+.issue-switch span:nth-child(3).on::after{left:auto;right:0}
+
+/* ------------------------------ Discover: cover story (scene-card language) ------------------------------ */
+.cover-story{border-radius:5px;overflow:hidden;box-shadow:0 1px 1px #19221B0A;position:relative}
+.cs-art{position:relative;aspect-ratio:2.2/1;background:var(--mb,#3a3d3c)}
+.cs-art img{width:100%;height:100%;object-fit:cover}
+.cs-art::after{content:"";position:absolute;inset:50% 0 0 0;background:linear-gradient(transparent,#0000002e)}
+.cs-art .rim{position:absolute;inset:0;border:1px solid #ffffff25;border-bottom:0;border-radius:5px 5px 0 0;z-index:2}
+.tab{position:absolute;left:12px;bottom:0;z-index:3;background:var(--tab-face);border-radius:8px 8px 0 0;min-height:27px;padding:6px 9px 4px;display:flex;align-items:baseline;gap:5px;box-shadow:inset 0 1px #ffffff65}
+.tab small{font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:var(--tab-ink)}
+.tab b{font-size:13px;font-weight:600;color:var(--tab-ink);letter-spacing:-.2px}
+.foot{background:linear-gradient(135deg,var(--mb),var(--md));display:flex;align-items:stretch;min-height:58px;padding:0 10px 0 14px;border-top:1px solid #ffffff18;color:var(--foot-title)}
+.foot .t{flex:1;min-width:0;padding:11px 10px 11px 0}
+.foot .t b{display:block;font-size:17px;font-weight:600;letter-spacing:-.35px;line-height:1.2}
+.foot .t span{display:block;font-size:11px;line-height:1.45;color:var(--foot-secondary);margin-top:4px}
+.foot .div{width:1px;background:#ffffff24;margin:10px 0}
+.foot .k{width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.foot .k small{font-size:9px;color:var(--foot-secondary)}
+.fact{background:linear-gradient(135deg,var(--mb),var(--md));display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;padding:0 14px;border-top:1px solid #ffffff0d;font-size:10px;color:var(--foot-fact)}
+.fact .who{display:flex;align-items:center;gap:6px}
+.disc{width:17px;height:17px;border-radius:50%;background:#ffffff14;border:1px solid #ffffff44;display:grid;place-items:center;font-size:7px}
+
+/* Keys (KuroAdvanceKey faces) */
+.key{width:44px;height:44px;display:grid;place-items:center;flex:none}
+.key i{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:19px;font-weight:300;border:1px solid #20282326;box-shadow:inset 0 1px #ffffff35,0 1px 1px #14231912}
+.key.light i{background:linear-gradient(var(--key-light-top),var(--key-light-bottom));color:var(--key-ink)}
+.key.mat i{background:linear-gradient(var(--mb),var(--md));color:#fff;border-color:#ffffff30}
+.key.ink i{background:linear-gradient(#3A423D,#232925);color:#F2F5F0}
+.key.ghost i{background:none;border:none;box-shadow:none;color:#767B77;font-size:13px}
+.key.on-art.ghost i{color:#B9C5C1}
+
+/* Glance (HomeComingUpGlance) */
+.glance{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 12px;background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;box-shadow:0 1px 1px #29312905}
+.glance .g-copy{flex:1;min-width:0}
+.glance .g-copy b{display:block;font-size:14px;font-weight:600;letter-spacing:-.3px;color:var(--glance-ink)}
+.glance .g-copy span{display:block;font-size:10px;color:var(--glance-muted);margin-top:4px;line-height:1.35}
+.thumbs{display:flex}
+.thumbs img{width:27px;height:38px;object-fit:cover;border-radius:2px;border:1px solid var(--glance);box-shadow:0 1px 2px #26352B14;margin-left:-7px}
+.thumbs img:first-child{margin-left:0}
+.count{min-width:39px;text-align:right}
+.count b{display:block;font:500 21px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:-.6px;color:var(--glance-ink)}
+.count small{display:block;font-size:8px;color:var(--glance-muted);margin-top:3px}
+.chev{font-size:16px;color:#727D73;width:12px;text-align:center}
+
+/* Contents (in this issue) */
+.contents{padding:12px 0 2px;border-top:1px solid var(--hair)}
+.contents ol{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}
+.contents li{font-size:12px;font-weight:500;display:flex;align-items:baseline;gap:4px;min-height:22px}
+.contents li small{font-size:10px;color:var(--muted);font-weight:400}
+.link-row{display:flex;align-items:center;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--ink)}
+.link-row .lr{display:flex;flex-direction:column;gap:3px}
+.link-row .lr small{font-size:9px;font-weight:500;letter-spacing:2.1px;text-transform:uppercase;color:var(--quiet)}
+.link-row .lr b{font-size:17px;font-weight:600;letter-spacing:-.35px}
+.link-row .arr{font-size:13px}
+
+/* Feature + three (fewer, better) */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.trio .c img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:4px;box-shadow:0 2px 3px #242C2514}
+.trio .c b{display:block;font-size:12px;font-weight:500;line-height:1.3;margin-top:7px}
+.trio .c small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.mark{display:inline-block;font-size:9px;color:#5B635C;border:1px solid #D7DBD5;border-radius:4px;padding:1px 4px;margin-top:4px}
+
+/* Index list (Essentials) */
+.index{list-style:none;margin:0;padding:0;border-top:1px solid var(--hair)}
+.index li{display:flex;align-items:center;gap:12px;min-height:76px;padding:8px 0;border-bottom:.5px solid var(--hair)}
+.index .n{font:500 13px ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted);width:20px}
+.index img{width:40px;height:60px;object-fit:cover;border-radius:2px;box-shadow:0 1px 2px #242C2514}
+.index .x{flex:1;min-width:0}
+.index .x b{display:block;font-size:15px;font-weight:500;letter-spacing:-.2px;line-height:1.25}
+.index .x small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+
+/* Local refinement chips (rail-scoped, deliberately small: not the medium switch) */
+.refine{display:flex;gap:16px;margin:0 0 12px}
+.refine span{font-size:11px;font-weight:500;color:var(--muted);padding-bottom:5px;position:relative;min-height:28px;display:flex;align-items:flex-end}
+.refine span.on{color:var(--ink)}
+.refine span.on::after{content:"";position:absolute;left:0;bottom:0;width:16px;height:1.5px;background:var(--ink)}
+.rail{display:flex;gap:14px;overflow:hidden;margin-right:-20px}
+.rail .c{flex:none;width:106px}
+.rail .c img{width:106px;height:138px;object-fit:cover;border-radius:4px;box-shadow:0 2px 3px #242C2514}
+.rail .c b{display:block;font-size:12px;font-weight:500;line-height:1.3;margin-top:7px}
+.rail .c small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+
+.fold{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 14px;background:var(--cal-more);border:1px solid var(--cal-more-border);border-radius:10px;font-size:12px;font-weight:500}
+.fold small{font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap}
+.fold span{white-space:nowrap}
+.home-footer{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:28px 2px 28px}
+.home-footer b{letter-spacing:2px}
+
+/* ------------------------------ Clubs: the room ------------------------------ */
+.room{position:relative;border-radius:24px;padding:18px 16px 10px;color:var(--room-text);
+  background:radial-gradient(ellipse 260px 220px at 0 0,var(--room-glow),transparent 100%),var(--room);
+  border:1px solid var(--room-border);box-shadow:inset 0 1px #ffffff21,0 10px 20px -14px #10171066}
+.masthead{display:flex;align-items:center;gap:10px}
+.seal{width:36px;height:36px;flex:none;border:1px solid #bfcabd44;border-radius:9px;display:grid;place-items:center}
+.seal svg{width:28px;height:28px;fill:none;stroke:#D2DACD;stroke-width:.9;transform:rotate(-12deg)}
+.room .kick{display:block;font-size:7px;letter-spacing:1.4px;color:var(--room-kicker);text-transform:uppercase;margin-bottom:4px}
+.room h2{font-family:var(--serif);font-weight:400;font-size:22px;line-height:1.08;letter-spacing:-.6px;margin:0}
+.room .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--room-text);margin-left:6px;vertical-align:4px}
+.fan{display:flex;margin-left:auto;flex:none;padding-left:8px}
+.fan img{width:30px;height:44px;object-fit:cover;border-radius:2px;border:1.5px solid #2F3730;margin-left:-9px;box-shadow:-2px 0 3px #0000002a}
+.fan img:first-child{margin-left:0}
+.meta-line{display:flex;align-items:center;gap:8px;margin:12px 0 2px;font-size:10px;color:var(--room-row2)}
+.members{display:flex;flex:none}
+.members span{width:22px;height:22px;border-radius:50%;border:2px solid var(--m-rim);display:grid;place-items:center;font-size:7px;color:var(--m-ink);background:var(--m1);margin-left:-6px;font-weight:600}
+.members span:first-child{margin-left:0}
+.members span:nth-child(3n+2){background:var(--m2)}.members span:nth-child(3n+3){background:var(--m3)}
+.members span.you{background:none;border:1px solid #F0F4EF99;color:var(--room-text);font-size:6.5px;width:24px;height:24px}
+.members span.more{background:#3A433D;color:var(--room-row2)}
+.r-row{display:flex;align-items:center;gap:10px;min-height:62px;padding:10px 2px;border-top:1px solid #c5d2b81c;margin-top:10px}
+.r-row img{width:30px;height:44px;object-fit:cover;border-radius:3px}
+.r-row .rr{flex:1;min-width:0}
+.r-row b{display:block;font-size:11px;font-weight:500;color:var(--room-row)}
+.r-row .rr span{display:block;font-size:10px;color:var(--room-row2);margin-top:3px}
+.r-row .ch{font-size:15px;color:#CFDBC5}
+.r-foot{display:flex;justify-content:space-between;align-items:center;font-size:8px;color:var(--room-footer);padding:9px 2px 2px;border-top:1px solid #c5d2b81c}
+.room.manga{border-radius:13px}
+.room + .room{margin-top:14px}
+.note{background:var(--note);color:var(--note-ink);border:1px solid #ffffff88;border-radius:14px;box-shadow:0 3px 7px #00000022;padding:15px;margin-top:16px;display:flex;gap:13px}
+.note img{width:60px;height:90px;object-fit:cover;border-radius:3px;box-shadow:0 3px 6px #252B2625;flex:none}
+.note .nc{flex:1;min-width:0}
+.note .by{display:flex;justify-content:space-between;font-size:11px}
+.note .by b{font-weight:600}.note .by small{font-size:10px;color:var(--note-meta)}
+.note .on{font-size:10px;color:var(--note-meta);margin-top:3px}
+.spoiler{display:flex;align-items:center;justify-content:space-between;min-height:46px;padding:7px 10px;margin-top:10px;background:var(--spoiler);border:1px solid var(--spoiler-border);border-radius:8px;font-size:10px;color:var(--spoiler-ink)}
+.spoiler i{font-style:normal;font-size:16px}
+.note .ttl{display:block;font-size:10px;color:var(--note-meta);padding-top:9px}
+.room-key{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border-radius:9px;background:linear-gradient(#36413A,var(--room-key));border:1px solid #5B665E;box-shadow:inset 0 1px #ffffff22;color:var(--room-text);font-size:13px;font-weight:500}
+.room-quiet{display:flex;align-items:center;justify-content:space-between;min-height:44px;font-size:12px;color:var(--room-row2);padding:0 2px}
+
+/* Club journey sheet */
+.backdrop{position:absolute;inset:0;background:#0b0e0c}
+.backdrop .peek{position:absolute;left:12px;right:12px;top:47px;height:30px;border-radius:12px 12px 0 0;background:#d9d8d1;opacity:.55}
+.sheet{position:absolute;left:0;right:0;top:57px;bottom:0;border-radius:12px 12px 0 0;overflow:hidden;background:var(--canvas)}
+.grabber{position:absolute;top:6px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:#ffffff55;z-index:9}
+.hero{position:relative;padding:22px 18px 16px;border-radius:0 0 24px 24px;color:var(--room-text);
+  background:radial-gradient(ellipse 300px 240px at 0 0,var(--room-glow),transparent 100%),var(--room);box-shadow:0 10px 20px -14px #10171066}
+.hero-btns{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:5}
+.round{width:44px;height:44px;display:grid;place-items:center}
+.round i{width:34px;height:34px;border-radius:50%;background:#ffffff1f;border:1px solid #ffffff22;display:grid;place-items:center;font-style:normal;font-size:15px;color:#F0F4EF;backdrop-filter:blur(10px)}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:30px;letter-spacing:-.9px;line-height:1.05;margin:14px 0 6px}
+.hero .desc{font-size:12px;line-height:1.45;color:var(--room-row2);margin:0}
+.hero .meta-line{margin-top:13px}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px 18px 4px}
+.act{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 10px;border-radius:7px;background:linear-gradient(var(--key-light-top),var(--key-light-bottom));border:1px solid #20282326;box-shadow:inset 0 1px #ffffff90,0 1px 1px #14231912;font-size:12px;font-weight:500;color:var(--key-ink)}
+.act i{font-style:normal;font-size:15px;width:14px;text-align:center}
+.tabs{display:flex;gap:22px;padding:0 18px;border-bottom:1px solid var(--switch-hair);margin-top:10px;background:var(--canvas)}
+.tabs span{position:relative;min-height:44px;display:flex;align-items:center;gap:5px;font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--switch-off)}
+.tabs span small{font-size:10px;font-weight:400;color:var(--muted)}
+.tabs span.on{color:var(--ink)}
+.tabs span.on::after{content:"";position:absolute;left:0;bottom:-1px;width:28px;height:2px;background:var(--switch-mark)}
+.cbar{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;padding:0 6px 0 16px;background:#FFFEF8EB;backdrop-filter:blur(18px);border-bottom:.5px solid var(--line);z-index:8}
+.cbar b{flex:1;text-align:center;font-size:15px;font-weight:600;letter-spacing:-.2px;padding-left:44px}
+.cbar .g{width:44px;height:44px;display:grid;place-items:center;font-size:17px;color:var(--ink)}
+.list-block{padding:18px 18px 4px}
+.list-block .desc{font-size:11px;color:var(--muted);margin:2px 0 12px;line-height:1.4}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tile{display:flex;gap:9px}
+.tile img{width:44px;height:66px;object-fit:cover;border-radius:4px;box-shadow:0 3px 3.5px #22222255;flex:none}
+.tile .tt{flex:1;min-width:0}
+.tile .tt b{display:block;font-size:12px;font-weight:500;line-height:1.28}
+.tile .tt small{display:block;font-size:10px;color:#5B635C;margin-top:3px;line-height:1.3}
+.tile .tt .nlink{color:var(--ink);text-decoration:underline;text-decoration-color:#25262540;text-underline-offset:2px}
+.react{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.react span{font-size:10px;padding:2px 6px;border-radius:9px;background:#2526250d;color:#4c524e;min-height:20px;display:flex;align-items:center;gap:3px}
+.react span.mine{background:#2526251c;color:var(--ink)}
+.add-inline{font-size:12px;font-weight:500;color:var(--ink);display:flex;align-items:center;min-height:44px;gap:4px}
+.hairline{height:1px;background:var(--hair);margin:16px 18px 0}
+
+/* This week: HomeCalendarCard grammar */
+.cal{background:var(--cal);border:1px solid var(--cal-border);border-radius:18px;overflow:hidden;box-shadow:0 2px 3px #1D291C14}
+.day{display:flex;align-items:center;gap:11px;min-height:70px;padding:12px}
+.day+.day,.day+.ev,.ev+.day{border-top:1px solid var(--cal-row)}
+.chip{width:40px;height:44px;border-radius:10px;background:#fff;border:1px solid #D4DBD4;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.chip b{font:500 17px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:-.6px}
+.chip small{font-size:8px;letter-spacing:.4px;color:#667267;margin-top:2px;text-transform:uppercase}
+.day .dl{flex:1}
+.day .dl b{display:block;font-size:12px;font-weight:600}
+.day .dl small{display:block;font-size:10px;color:#68736A;margin-top:2px}
+.stack{display:flex}.stack img{width:23px;height:34px;object-fit:cover;border-radius:2px;border:2px solid #fff;margin-left:-6px;box-shadow:-2px 0 3px #243A2120}
+.disc-ch{font-size:19px;font-weight:300;color:#727D73;width:20px;text-align:center}
+.ev{display:flex;align-items:center;gap:11px;min-height:70px;padding:11px 12px 11px 63px;background:#fff}
+.ev img{width:32px;height:48px;object-fit:cover;border-radius:3px}
+.ev .el{flex:1;min-width:0}
+.ev .el p{margin:0;font-size:12px;line-height:1.35}
+.ev .el small{display:block;font-size:10px;color:#68736A;margin-top:3px}
+.ev .when{font-size:10px;color:#58665B;max-width:62px;text-align:right}
+.ev .c12{font-size:12px;color:#798679}
+
+/* Polls */
+.poll{background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;padding:14px 14px 6px;box-shadow:0 1px 1px #29312905}
+.poll .ph{display:flex;justify-content:space-between;align-items:baseline}
+.poll h4{font-size:17px;font-weight:600;letter-spacing:-.35px;margin:6px 0 10px;line-height:1.25}
+.opt{display:flex;align-items:center;gap:10px;min-height:58px;border-top:1px solid #E3E7E1;padding:7px 0}
+.opt img{width:27px;height:38px;object-fit:cover;border-radius:2px}
+.opt .ol{flex:1;min-width:0}
+.opt .ol b{font-size:13px;font-weight:500;display:flex;justify-content:space-between}
+.opt .bar{height:3px;background:#E4E7E2;border-radius:2px;margin-top:6px;overflow:hidden}
+.opt .bar i{display:block;height:100%;background:var(--ink)}
+.opt .ol small{font-size:10px;color:var(--muted);display:block;margin-top:4px}
+.opt .vote{width:22px;height:22px;border-radius:50%;border:1px solid #9AA39C;flex:none;display:grid;place-items:center;font-size:11px}
+.opt .vote.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* States */
+.sk{background:#2526251f;background:rgba(37,38,37,.08);border-radius:5px}
+.sk.deep{background:rgba(37,38,37,.13)}
+.scrub{width:96px;height:1px;background:#D7D9D7;margin:18px auto 0;position:relative;overflow:hidden}
+.scrub::after{content:"";position:absolute;left:0;top:0;bottom:0;width:38%;background:#626962}
+.state{text-align:center;padding:20px 32px}
+.state h4{font-size:24px;font-weight:700;letter-spacing:-.8px;margin:14px 0 6px}
+.state p{font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.45}
+.retry{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:500;border-bottom:1px solid var(--ink)}
+.band{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#FFFFFF80;border:1px solid #DCE1DC;border-radius:8px;font-size:11px;color:var(--muted);margin-bottom:12px}
+.band b{color:var(--ink);font-weight:600}
+.quietcard{font-size:11px;color:var(--muted);padding:12px;background:#FFFFFF80;border:1px solid #DCE1DC;border-radius:8px}
+
+/* Manga lead fallback (cover spread, capped) */
+.spread{display:flex;border-radius:5px;overflow:hidden;max-height:220px;box-shadow:0 1px 1px #19221B0A}
+.spread img{width:132px;height:198px;object-fit:cover}
+.spread .sp{flex:1;background:linear-gradient(135deg,var(--mb),var(--md));color:#FAFAFA;padding:14px 12px 10px 14px;display:flex;flex-direction:column}
+.spread .sp small.k{font-size:7px;letter-spacing:1.4px;color:var(--foot-secondary);text-transform:uppercase}
+.spread .sp b{font-size:20px;font-weight:600;letter-spacing:-.5px;margin-top:6px}
+.spread .sp span{font-size:11px;line-height:1.45;color:var(--foot-secondary);margin-top:6px;flex:1}
+.spread .sp .bot{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--foot-fact)}
+
+/* Docs below */
+.doc{max-width:1180px;margin:0 auto;padding:10px 24px 80px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:28px 40px}
+.doc section h2{font-size:24px;font-weight:600;letter-spacing:-.85px;margin:22px 0 10px}
+.doc section h3{font-size:15px;font-weight:600;letter-spacing:-.2px;margin:18px 0 6px}
+.doc section p,.doc section li{font-size:13px;line-height:1.6;color:#3f4441}
+.doc section ul,.doc section ol{padding-left:18px;margin:6px 0}
+.doc code{font:12px ui-monospace,"SF Mono",Menlo,monospace;background:#2526250d;padding:1px 4px;border-radius:3px}
+.doc .wide{grid-column:1/-1}
+table.copy{width:100%;border-collapse:collapse;font-size:12px}
+table.copy th{text-align:left;font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);font-weight:500;padding:8px 10px 8px 0;border-bottom:1px solid var(--ink)}
+table.copy td{padding:8px 10px 8px 0;border-bottom:.5px solid #00000018;vertical-align:top;line-height:1.45}
+table.copy td:first-child{color:#5e6460;width:22%}
+.tag{display:inline-block;font-size:9px;letter-spacing:.6px;text-transform:uppercase;border:1px solid #9aa39c;border-radius:4px;padding:1px 5px;color:#4f5651;margin-left:4px;vertical-align:1px}
+
+@media (max-width:520px){.strip{gap:12px;padding-inline:4px}.phone{transform:scale(.86);transform-origin:top left;margin-bottom:-110px;margin-right:-50px}.studio-head h1{font-size:30px}}
+
+/* ---------- FINAL additions ---------- */
+/* TastePlanKey (TastePicksView.swift:1455): labelled 44 pt plan key; saved = dark face + filled bookmark */
+.plan-key{display:inline-flex;align-items:center;justify-content:space-between;gap:5px;min-height:44px;padding:0 10px 0 12px;border-radius:10px;
+  background:#F4F6F5;border:1px solid #E0E5E1;box-shadow:inset 0 1px #fff;color:#36433A;font-size:11px;font-weight:500;white-space:nowrap;flex:none}
+.plan-key .bm{width:11px;height:13px;fill:none;stroke:currentColor;stroke-width:1.1}
+.plan-key .bm.fill{fill:currentColor}
+.plan-key.leaf{background:#FFFFFC;border-color:#BEC5B8;font-size:10px;width:96px;padding:0 8px 0 10px}
+.plan-key.saved{background:#303932;border-color:#303932;color:#fff;box-shadow:none}
+.plan-key.leaf.saved{background:#30352B;border-color:#30352B}
+.foot .k.k-plan{width:118px;padding-left:10px}
+.foot .k.k-plan .plan-key{width:100%}
+.spread .bot .plan-key{min-height:40px}
+/* iPhone SE frame (320 pt): gutter 16, switch 24 pt */
+.phone.se{width:320px}
+.phone.se .content{padding:7px 16px 0}
+.phone.se .opening .eyebrow{font-size:8px}.phone.se .opening h2{font-size:13px}
+.phone.se .issue-switch span{font-size:24px;letter-spacing:-1.25px}
+.phone.se .foot .k.k-plan{width:100px}
+.phone.se .trio{gap:10px}
+/* members row on a single-key (member) view */
+.actions.one{grid-template-columns:1fr}
+/* inline spoiler note under a tile (notes other than the hero note) */
+.tnote{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:5px;padding:5px 7px;border:1px solid #CCD4C3;background:#E9EDE2;border-radius:6px;font-size:9.5px;color:#59664E;min-height:28px}
+/* invite tool sheet */
+.tool{position:absolute;left:0;right:0;bottom:0;top:180px;border-radius:14px 14px 0 0;background:var(--canvas);box-shadow:0 -8px 24px #0000002a;padding:14px 20px}
+.tool .tg{width:36px;height:5px;border-radius:3px;background:#25262530;margin:0 auto 10px}
+.tool .tc{display:flex;justify-content:space-between;align-items:center;min-height:44px;font-size:15px}
+.code{font:500 24px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:3px;margin:8px 0 6px}
+.tool-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.final-note{max-width:1180px;margin:0 auto;padding:8px 24px 80px;font-size:13px;line-height:1.6;color:#3f4441}
+.final-note h2{font-size:24px;font-weight:600;letter-spacing:-.85px;margin:22px 0 10px;color:var(--studio-ink)}
+.final-note code{font:12px ui-monospace,"SF Mono",Menlo,monospace;background:#2526250d;padding:1px 4px;border-radius:3px}
+.final-note li{margin:3px 0}
+code{overflow-wrap:anywhere}
+.studio-head .eyebrow{white-space:normal}
+
+/* ================= TACTILE additions (2026-11-04) ================= */
+.cell .items{font-size:10px;letter-spacing:.4px;color:#8a5a3c;margin:-4px 0 8px}
+.pin{position:absolute;width:18px;height:18px;border-radius:50%;background:#E4572E;color:#fff;font:700 10px/18px var(--sans);text-align:center;z-index:60;box-shadow:0 0 0 2px #fff,0 2px 4px #0003}
+.pin.inline{position:static;display:inline-block;vertical-align:1px}
+.page-name{position:relative}
+.tap-hint{position:absolute;top:-11px;font-size:8px;color:#E4572E;white-space:nowrap;letter-spacing:.2px}
+.app-header.no-rule{border-bottom-color:transparent}
+.content.scrolled{top:139px}
+.nd{display:inline-block;width:5px;height:5px;border-radius:50%;background:#252625b3;margin-right:4px;vertical-align:1px}
+
+/* Pinned index (contents line, compact, under the header) */
+.pin-index{position:absolute;top:101px;left:0;right:0;height:38px;display:flex;align-items:stretch;justify-content:space-between;padding:0 20px;background:var(--canvas);border-bottom:.5px solid var(--line);z-index:19;box-shadow:0 8px 10px -12px #1d291c55}
+.phone.manga .pin-index{background:var(--canvas-manga)}
+.pin-index span{position:relative;display:flex;align-items:center;font-size:11px;font-weight:500;color:var(--switch-off);white-space:nowrap}
+.pin-index span.past{color:var(--ink)}
+.pin-index span.on{color:var(--ink);font-weight:600}
+.pin-index span.on::after{content:"";position:absolute;left:0;right:0;bottom:-.5px;height:2px;background:var(--switch-mark)}
+.pin-index span .nd{margin:0 0 0 3px;width:4px;height:4px;vertical-align:4px}
+
+/* Mood keys (KuroKeyFace .light recipe, 52 pt) */
+.moods-wrap{margin:0 0 12px}
+.moods-wrap .eyebrow{display:block;margin-bottom:6px}
+.moods{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.mood{display:flex;align-items:center;gap:9px;min-height:52px;padding:7px 10px;border-radius:10px;background:linear-gradient(var(--key-light-top),var(--key-light-bottom));border:1px solid #20282326;box-shadow:inset 0 1px #ffffffa0,0 1px 1px #14231912;color:var(--key-ink)}
+.mood.pressed{transform:scale(.97);filter:brightness(.92);box-shadow:inset 0 2px 3px #151D2430}
+.mood .mg svg{width:16px;height:16px;fill:none;stroke:var(--key-ink);stroke-width:1.2;stroke-linejoin:round;stroke-linecap:round;display:block}
+.mood .mw{flex:1;min-width:0}
+.mood .mw b{display:block;font-size:12.5px;font-weight:600;letter-spacing:-.2px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mood .mw small{display:block;font-size:9.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mood .ma{font-size:12px;color:#727D73}
+
+/* Contents as jump links */
+.toc{margin-top:12px}
+.toc-head{display:flex;justify-content:space-between}
+.toc ol{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px;margin:6px 0 0;gap:0 14px}
+.toc li{display:flex;align-items:baseline;gap:6px;min-height:30px;padding-top:7px;border-bottom:.5px solid var(--hair);font-size:12px;font-weight:500}
+.toc li .no{font:500 10px ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted)}
+.toc li .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:underline;text-decoration-color:#25262545;text-underline-offset:3px}
+.toc li em{font-style:normal;font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap}
+.toc li em.new{color:var(--ink);font-weight:500}
+.toc li .dn{font-size:11px;color:var(--muted)}
+.toc .link-row{margin-top:6px}
+
+/* Section heading: purpose line (R1) + new marker */
+.sec-head.t2{margin:0 0 4px}
+.why{margin:0 0 12px;font-size:11.5px;line-height:1.4;color:var(--summary)}
+.newmark{font-size:10px;color:var(--ink);font-weight:500;white-space:nowrap}
+.see-row{display:flex;justify-content:flex-end;margin:0 0 14px}
+
+/* Section feature */
+.feature{border-radius:5px;overflow:hidden;box-shadow:0 1px 1px #19221B0A;position:relative}
+.ft-art{position:relative;aspect-ratio:3.25/1;background:var(--mb)}
+.ft-art img{width:100%;height:100%;object-fit:cover}
+.ft-art .rim{position:absolute;inset:0;border:1px solid #ffffff25;border-bottom:0;border-radius:5px 5px 0 0}
+.kind{display:block;font-size:7.5px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--kicker);margin-top:7px}
+.kind.on-dark{color:var(--foot-secondary);margin:0 0 3px}
+.c .kind + b{margin-top:2px!important}
+.newtab{position:absolute;top:0;left:0;z-index:3;background:var(--tab-face);color:var(--tab-ink);font-size:7.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;padding:3px 6px 3px 5px;border-radius:0 0 5px 0;box-shadow:inset 0 -1px #00000010}
+.feature .newtab{border-radius:5px 0 5px 0}
+
+/* Cards: cover (open) + one key (Plan) under it, never on the art */
+.c .cv{display:block;position:relative;border-radius:4px;overflow:hidden;box-shadow:0 2px 3px #242C2514;background:#E9E9E6}
+.c .cv img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;border-radius:0;box-shadow:none}
+.rail .c .cv img{width:106px;height:150px;aspect-ratio:auto}
+.c b{display:block;font-size:12px;font-weight:500;line-height:1.3;margin-top:7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.c small{display:block;font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-key.card-key{width:100%;min-height:34px;margin-top:7px;padding:0 8px 0 10px;font-size:10px}
+.st-row{display:flex}
+.st-row .st-word{width:100%;justify-content:center;min-height:34px;margin-top:7px;border:1px solid #D7DBD5;border-radius:10px;background:#FFFFFF80}
+.st-word{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;color:var(--ink);white-space:nowrap}
+.st-word small{display:inline;font-size:10px;color:var(--muted);margin:0;font-weight:400}
+.ck{width:11px;height:11px;fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.stamp{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) rotate(-8deg);border:1.5px solid #fff;color:#fff;font-size:8.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;padding:4px 7px;border-radius:4px;background:#25262566;z-index:4}
+.refill .cv{outline:1.5px dashed #E4572E;outline-offset:3px}
+.trio{margin-top:14px}
+.rail{margin-bottom:8px}
+
+/* Index rows: status words, key stamp */
+.index .trail{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.key-stamp{font-size:7.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;border:1.2px solid var(--ink);color:var(--ink);padding:2px 5px;border-radius:3px;transform:rotate(-6deg)}
+.index li.done .x b{color:#3d4440}
+.index.tail{border-top:0}
+
+/* Progress hook (glance-card grammar) */
+.progress{background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;padding:12px;margin:0 0 6px;box-shadow:0 1px 1px #29312905}
+.pg-top{display:flex;align-items:center;gap:12px}
+.pg-big{font:500 26px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:-.8px;color:var(--glance-ink)}
+.pg-big small{font-size:13px;color:var(--glance-muted)}
+.pg-copy b{display:block;font-size:14px;font-weight:600;letter-spacing:-.3px;color:var(--glance-ink)}
+.pg-copy small{display:block;font-size:10px;color:var(--glance-muted);margin-top:3px}
+.segs{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:10px}
+.segs i{height:4px;border-radius:2px;background:#D7D9D7}
+.segs i.on{background:#303932}
+.segs i.half{background:linear-gradient(90deg,#303932 50%,#D7D9D7 50%)}
+
+/* Toast (TastePlanToastView, + one optional action) */
+.toast{position:absolute;left:13px;right:13px;bottom:30px;z-index:40;background:#282F2BF5;border-radius:18px;padding:5px 4px 5px 14px;min-height:44px;display:flex;align-items:center;gap:2px;color:#fff;font-size:12px;box-shadow:0 8px 15px #18241C30}
+.toast .t-msg{flex:1;min-width:0}
+.toast .t-act{font-size:12px;font-weight:500;color:#E6ECE8;text-decoration:underline;text-decoration-color:#ffffff55;text-underline-offset:3px;padding:0 6px;white-space:nowrap}
+.toast b{font-weight:600;padding:0 9px;min-height:34px;display:flex;align-items:center}
+.toast .t-x{width:30px;text-align:center;color:#ffffffaa;font-size:16px}
+
+/* Context menu (system look) */
+.cm-dim{position:absolute;inset:0;z-index:25;background:rgba(236,236,232,.32);-webkit-backdrop-filter:blur(14px) saturate(.9);backdrop-filter:blur(14px) saturate(.9)}
+.cm-preview{position:absolute;left:24px;right:24px;top:132px;z-index:30;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,var(--mb),var(--md));box-shadow:0 18px 40px #00000040}
+.cmp-art{position:relative;aspect-ratio:2.2/1}
+.cmp-art img{width:100%;height:100%;object-fit:cover}
+.cmp-art .rim{position:absolute;inset:0;border:1px solid #ffffff25;border-bottom:0;border-radius:14px 14px 0 0}
+.cmp-body{padding:12px 14px 13px;color:var(--foot-title)}
+.cmp-body b{display:block;font-size:18px;font-weight:600;letter-spacing:-.4px}
+.cmp-body small{display:block;font-size:10.5px;color:var(--foot-fact);margin-top:3px}
+.cmp-body p{font-size:12px;line-height:1.45;color:var(--foot-secondary);margin:8px 0}
+.cmp-why{display:block;font-size:10px;color:#C9D1CD;border-top:1px solid #ffffff1f;padding-top:8px}
+.cm-menu{position:absolute;left:24px;width:250px;top:466px;z-index:30;border-radius:13px;overflow:hidden;background:rgba(246,246,244,.95);box-shadow:0 10px 30px #0000002e}
+.cm-menu .mi{display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:0 16px;font-size:15px;color:#1c1c1e;border-top:.5px solid #3c3c4329}
+.cm-menu .mi:first-child{border-top:0}
+.cm-menu .mi.sep{border-top:7px solid #e2e2df}
+.cm-menu svg{width:17px;height:17px;fill:none;stroke:#1c1c1e;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.empty-slot{display:block;aspect-ratio:2/3;border-radius:4px;border:1px dashed #25262530}
+
+/* Journey pages (See all, mood) */
+.grabber.dark{background:#25262540}
+.sheet .cbar .g:first-child{visibility:hidden}
+.cbar b{padding-left:0}
+.sa-body{position:absolute;left:0;right:0;top:52px;padding:14px 18px 0}
+.sa-h{font-size:30px;font-weight:600;letter-spacing:-1px;margin:2px 0 4px;line-height:1.1}
+.refine.sort{align-items:flex-end;margin-bottom:6px}
+.refine .lbl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--kicker)}
+.refine .lbl.r{margin-left:auto;font-size:11px;letter-spacing:0;text-transform:none;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.chips span{display:inline-flex;align-items:center;min-height:30px;padding:0 11px;border:1px solid #D7DBD5;border-radius:15px;font-size:11.5px;font-weight:500;background:#FFFFFFA0}
+.chips span.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.result{font-size:10.5px;color:var(--muted);margin:0 0 12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 12px}
+.paging{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 0}
+.paging small{font-size:10px;color:var(--muted)}
+.paging .scrub{margin:0}
+.mood-list li{min-height:70px}
+.mood-foot{font-size:10.5px;color:var(--muted);margin:10px 0 0}
+
+/* End state */
+.end{text-align:center;padding:24px 4px 4px;border-top:1px solid var(--hair);margin-top:6px}
+.end-seal svg{width:40px;height:40px;fill:none;stroke:var(--ink);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.end h3{font-size:24px;font-weight:700;letter-spacing:-.8px;margin:10px 0 6px}
+.end p{font-size:13px;line-height:1.45;color:var(--muted);margin:0}
+.end-links{text-align:left;margin-top:16px}
+.end-links .link-row+.link-row{margin-top:10px}
+.more-lists{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin-top:16px;text-align:left}
+.more-lists .ml{font-size:12px;font-weight:500;min-height:30px;display:inline-flex;align-items:center;text-decoration:underline;text-decoration-color:#25262545;text-underline-offset:3px}
+
+/* Motion strip */
+.mcard{width:300px;background:#FBFBF7;border:1px solid #d9d9d1;border-radius:14px;padding:14px 14px 12px;color:var(--ink)}
+.mcard h4{font-size:13px;font-weight:600;margin:0 0 2px;letter-spacing:-.1px}
+.mcard p{font-size:11px;color:#5e6460;line-height:1.45;margin:4px 0 0}
+.steps{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
+.steps .ar{font-size:11px;color:#9aa19c}
+.step{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:8.5px;color:#5e6460;text-align:center;width:58px}
+.mini{width:48px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:500;background:linear-gradient(var(--key-light-top),var(--key-light-bottom));border:1px solid #20282326;box-shadow:inset 0 1px #fff;color:var(--key-ink)}
+.mini.press{transform:scale(.95);filter:brightness(.86);box-shadow:inset 0 2px 3px #151D2430}
+.mini.dark{background:#303932;color:#fff;border-color:#303932}
+.mini.stampd{background:#303932;color:#fff;border-color:#303932;outline:1.2px solid #303932;outline-offset:2px}
+.mcov{width:15px;height:22px;border-radius:2px;background:#c8ccc6;position:relative}
+.mcov.shrink{transform:scale(.9);opacity:.35}
+.mcov.gone{background:none;border:1px dashed #b9bdb7}
+.mcov.in{background:#8f978f}
+.tdots{display:flex;gap:3px}
+@media (max-width:520px){.mcard{width:270px}}
+.trio{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+.toc li.span{grid-column:1/-1}
+.spread .plan-key{color:#36433A}
+
+</style>
+</head>
+<body>
+<header class="studio-head">
+  <div class="eyebrow">Kuro · Discover usability pass · Direction: TACTILE · 4 Nov 2026 · design mockup, not binding</div>
+  <h1>Every touch answers.<br><span style="color:#8a908c">Discover that rewards acting.</span></h1>
+  <p>Today Discover is a magazine you can only read. In this direction it answers every touch. Every card has one tap (open) and one key (Plan). Everything else sits behind a long press that lifts the title into a preview. A key flips the moment you touch it. Removals happen in front of you, and the next title settles into the gap. Every action can be undone from the toast. Coming back is rewarded too: “new since your last visit” marks, progress through the canon, and an index that fills in as you read. The page ends with “You’re caught up for today.”</p>
+  <p>Built on Home’s grammar and the shipped daily issue (canvas #FFFEF8 / #F5F5F3, ink #252625, TastePlanKey, scene-card foot on ArtworkMaterial, the shipped toast). Artwork comes from the AniList CDN (metadata fetched from AniList today) and the prototype assets. Each frame obeys R2: no series appears twice on one page. The <span class="pin inline">n</span> orange pins are annotations, not UI. Each number is a build item.</p>
+  <div class="rule"></div>
+</header>
+<div class="row-label">Discover All · the page from top to end</div>
+<div class="strip"><div class="cell"><h3>1 · Discover, All (top)</h3><p class="cap">Four mood keys sit under the issue switch: physical light-face keys that press in on touch. The cover story keeps its Plan key and gains an ANIME label because the page mixes media. “In this issue” becomes a numbered list of jump links (↓), each showing its count or how many titles are new since your last visit. The airing-today glance moves into This season so the top stays short.</p><p class="items">Items 4 · 10 · 11 · 8 (counts) · R1 R6</p><div class="phone " aria-label="Discover All top"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><div class="content"><div class="opening"><span class="eyebrow">Today’s issue · Tue 3 Nov</span><h2>Edited for you.</h2></div><div class="issue-switch" role="group" aria-label="Show"><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg)">All</span><span>Anime</span><span>Manga</span></div><div class="moods-wrap"><span class="eyebrow">In the mood for</span><div class="moods"><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><circle cx="8" cy="8.6" r="5.6"/><path d="M8 5.4v3.4l2.2 1.3M6.4 1.6h3.2"/></svg></span><span class="mw"><b>Something short</b><small>Up to 13 eps, or a film</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M3 7.2h8.6v2.4a4.3 4.3 0 0 1-8.6 0zM11.6 8h.8a1.6 1.6 0 0 1 0 3.2h-1.1M5.4 2.4c-.6.9.6 1.4 0 2.6M8 2.4c-.6.9.6 1.4 0 2.6"/></svg></span><span class="mw"><b>Cozy</b><small>Slow, warm, gentle</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M8.8 1.6L3.6 9h4l-1 5.4L12.4 7H8.2z"/></svg></span><span class="mw"><b>Intense</b><small>Dread and mind games</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M8 13.6S2.4 10.2 2.4 6.2A2.9 2.9 0 0 1 8 4.9a2.9 2.9 0 0 1 5.6 1.3c0 4-5.6 7.4-5.6 7.4z"/></svg></span><span class="mw"><b>Like MUSHI-SHI</b><small>From your favourites</small></span></span></div></div><article class="cover-story" style="--mb:#3a4c31;--md:#252e21"><div class="cs-art"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="rim"></span><span class="tab"><small>Today’s</small><b>pick</b></span></div><div class="foot"><div class="t"><b>Frieren: Beyond Journey’s End</b><span>The hero’s party has won. The elf who will outlive them all sets out to learn what the journey meant.</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div><div class="fact"><span>Anime · 2023 · TV · 28 eps</span><span class="who"><span class="disc">L</span>2 in your clubs ›</span></div></article><div class="contents toc"><div class="toc-head"><span class="eyebrow">In this issue · 6 sections</span><span class="eyebrow">Tap to jump</span></div><ol><li class=""><span class="no">01</span><span class="nm">New to you</span><em class="new"><i class="nd"></i>2 new</em><span class="dn">↓</span></li><li class=""><span class="no">02</span><span class="nm">This season</span><em class="new"><i class="nd"></i>2 new</em><span class="dn">↓</span></li><li class=""><span class="no">03</span><span class="nm">Essential anime</span><em>8</em><span class="dn">↓</span></li><li class=""><span class="no">04</span><span class="nm">Manga new to you</span><em class="new"><i class="nd"></i>1 new</em><span class="dn">↓</span></li><li class=""><span class="no">05</span><span class="nm">Trending</span><em>10</em><span class="dn">↓</span></li><li class=""><span class="no">06</span><span class="nm">Classics</span><em>6</em><span class="dn">↓</span></li></ol><div class="link-row"><span class="lr"><small>Everything</small><b>Browse the catalogue</b></span><span class="arr">→</span></div></div></div><span class="pin" style="left:352px;top:196px">4</span><span class="pin" style="left:232px;top:56px">10</span><span class="pin" style="left:120px;top:620px">11</span><span class="pin" style="left:352px;top:668px">10</span></div></div><div class="cell"><h3>2 · Scrolled: pinned index and “new” markers</h3><p class="cap">Once the contents list scrolls away, it pins under the header as a one-line index. Sections you have passed turn ink, the current one carries the 28 × 2 mark, and a small dot shows a section that still has new titles. Tapping “Discover” in the header scrolls back to the top. Every section says what it is for in one line. Cards that are new since your last visit carry a NEW tab in the season-tab style, and every card has its own Plan key below the cover, never on the artwork.</p><p class="items">Items 2 (keys) · 6 · 8 · 10 · 11 · R1 R3 R8</p><div class="phone " aria-label="Discover scrolled"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header no-rule"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="tap-hint">tap: back to top</span><span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><nav class="pin-index" aria-label="In this issue"><span class="on" aria-label="New to you">New<i class="nd"></i></span><span class="" aria-label="This season">Season<i class="nd"></i></span><span class="" aria-label="Essential anime">Canon</span><span class="" aria-label="Manga new to you">Manga<i class="nd"></i></span><span class="" aria-label="Trending">Trending</span><span class="" aria-label="Classics">Classics</span></nav><div class="content scrolled"><div class="sec-head t2"><h2>New to you.</h2><small><span class="newmark"><i class="nd"></i>2 new since Sunday</span></small></div><p class="why">Anime you haven’t seen or hidden. Picked fresh each morning.</p><article class="feature" style="--mb:#4c3e31;--md:#2e2821"><div class="ft-art"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/banner/97986-C55UnbJKB7ZF.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="rim"></span></div><div class="foot"><div class="t"><span class="kind on-dark">Anime</span><b>Made in Abyss</b><span>2017 · TV · 13 eps</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key ">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></article><div class="trio"><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx128547-nNekWTKqmvEi.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>ODDTAXI</b><small>2021 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx155783-YosKbsmZzuDE.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>Heavenly Delusion</b><small>2023 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20607-fIOxVISIl0HY.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>Ping Pong the Animation</b><small>2014 · TV · 11 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div><div class="see-row"><span class="text-action">See all 48 ›</span></div><div class="sec-head t2"><h2>This season.</h2><small><span class="newmark"><i class="nd"></i>2 new since your last visit</span></small></div><p class="why">Airing now. 6 new episodes are out today.</p><div class="rail"><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx153288-25FBfFJzEQ5O.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>Kaiju No. 8</b><small>Ep. 7 out today</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx161645-QLbzHXiYRgV2.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>The Apothecary Diaries</b><small>Ep. 5 on Sat</small><span class="plan-key leaf card-key saved">Planned<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx137822-U8naszP96vzC.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>BLUE LOCK</b><small>Ep. 3 out today</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></div><span class="pin" style="left:120px;top:60px">10</span><span class="pin" style="left:1px;top:111px">10</span><span class="pin" style="left:1px;top:168px">6</span><span class="pin" style="left:1px;top:420px">8</span><span class="pin" style="left:371px;top:380px">2</span></div></div><div class="cell"><h3>3 · Long-press preview</h3><p class="cap">A long press anywhere on a title (Discover cards, See all cards, Home-grammar rails) opens the system context menu with a preview. The preview shows the artwork on its own material, the facts, three lines of synopsis and the reason the title is here. Tapping the preview opens the title. Below it, five actions in a fixed order: Plan to watch, Seen it, Not interested, Add to Club…, Open. Not interested stays in ink because red is kept for delete and leave. A medium haptic fires as the preview lifts.</p><p class="items">Items 2 · 3 · R3 R5</p><div class="phone " aria-label="Long-press preview"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header no-rule"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><nav class="pin-index" aria-label="In this issue"><span class="on" aria-label="New to you">New<i class="nd"></i></span><span class="" aria-label="This season">Season<i class="nd"></i></span><span class="" aria-label="Essential anime">Canon</span><span class="" aria-label="Manga new to you">Manga<i class="nd"></i></span><span class="" aria-label="Trending">Trending</span><span class="" aria-label="Classics">Classics</span></nav><div class="content scrolled"><div class="sec-head t2"><h2>New to you.</h2><small><span class="newmark"><i class="nd"></i>2 new since Sunday</span></small></div><p class="why">Anime you haven’t seen or hidden. Picked fresh each morning.</p><article class="feature" style="--mb:#4c3e31;--md:#2e2821"><div class="ft-art"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/banner/97986-C55UnbJKB7ZF.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="rim"></span></div><div class="foot"><div class="t"><span class="kind on-dark">Anime</span><b>Made in Abyss</b><span>2017 · TV · 13 eps</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key ">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></article><div class="trio"><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx128547-nNekWTKqmvEi.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>ODDTAXI</b><small>2021 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx155783-YosKbsmZzuDE.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>Heavenly Delusion</b><small>2023 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c"><span class="empty-slot"></span></div></div></div><div class="cm-dim"></div><div class="cm-preview" style="--mb:#4c3a31;--md:#2e2521"><div class="cmp-art"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/banner/20607-AYghLMjh7reA.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="rim"></span></div><div class="cmp-body"><span class="kind on-dark">Anime · New to you</span><b>Ping Pong the Animation</b><small>2014 · TV · 11 eps · Finished · Score 86</small><p>Two childhood friends play table tennis. One has talent and doesn’t care, the other cares about nothing else. A sports show about what winning costs.</p><span class="cmp-why">Why it’s here: New to you · unseen by you, finished, 11 episodes</span></div></div><div class="cm-menu" role="menu"><span class="mi">Plan to watch<svg viewBox="0 0 16 16"><path d="M4 2h8v12l-4-3-4 3z"/></svg></span><span class="mi">Seen it<svg viewBox="0 0 16 16"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></span><span class="mi">Not interested<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M3.8 12.2l8.4-8.4"/></svg></span><span class="mi sep">Add to Club…<svg viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.4"/><path d="M1.8 13.5c.5-2.6 2.2-4 4.2-4s3.7 1.4 4.2 4M11.5 6v4M9.5 8h4"/></svg></span><span class="mi">Open<svg viewBox="0 0 16 16"><path d="M5 11l6-6M6 5h5v5"/></svg></span></div><span class="pin" style="left:330px;top:168px">3</span><span class="pin" style="left:300px;top:520px">2</span><span class="pin" style="left:300px;top:610px">5</span></div></div><div class="cell"><h3>4 · Not interested: gone at once, Undo</h3><p class="cap">Ping Pong is gone the moment you choose Not interested. Its card shrinks and fades in 120 ms, the gap closes in 220 ms, and the next unseen title (Barakamon) settles into the slot. The See all count drops from 48 to 47, and the heading marker drops from 2 new to 1 new. A rigid haptic marks the removal. The shipped toast says what happened and offers Undo, which puts the title back in the same slot. The Taste signal (‘pass’) is sent through the TasteStore outbox, and the title stays hidden on every launch and every Discover page.</p><p class="items">Items 3 · R4 R5</p><div class="phone " aria-label="Not interested removal"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header no-rule"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><nav class="pin-index" aria-label="In this issue"><span class="on" aria-label="New to you">New<i class="nd"></i></span><span class="" aria-label="This season">Season<i class="nd"></i></span><span class="" aria-label="Essential anime">Canon</span><span class="" aria-label="Manga new to you">Manga<i class="nd"></i></span><span class="" aria-label="Trending">Trending</span><span class="" aria-label="Classics">Classics</span></nav><div class="content scrolled"><div class="sec-head t2"><h2>New to you.</h2><small><span class="newmark"><i class="nd"></i>1 new since Sunday</span></small></div><p class="why">Anime you haven’t seen or hidden. Picked fresh each morning.</p><article class="feature" style="--mb:#4c3e31;--md:#2e2821"><div class="ft-art"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/banner/97986-C55UnbJKB7ZF.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="rim"></span></div><div class="foot"><div class="t"><span class="kind on-dark">Anime</span><b>Made in Abyss</b><span>2017 · TV · 13 eps</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key ">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></article><div class="trio"><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx128547-nNekWTKqmvEi.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>ODDTAXI</b><small>2021 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx155783-YosKbsmZzuDE.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>Heavenly Delusion</b><small>2023 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  refill"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20722-2KAeq72E95dr.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>Barakamon</b><small>2014 · TV · 12 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div><div class="see-row"><span class="text-action">See all 47 ›</span></div><div class="sec-head t2"><h2>This season.</h2><small><span class="newmark"><i class="nd"></i>2 new since your last visit</span></small></div><p class="why">Airing now. 6 new episodes are out today.</p><div class="rail short"><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx153288-25FBfFJzEQ5O.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>Kaiju No. 8</b><small>Ep. 7 out today</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx161645-QLbzHXiYRgV2.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>The Apothecary Diaries</b><small>Ep. 5 on Sat</small><span class="plan-key leaf card-key saved">Planned<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx137822-U8naszP96vzC.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><span class="kind">Anime</span><b>BLUE LOCK</b><small>Ep. 3 out today</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></div><div class="toast" role="status"><span class="t-msg">Hidden. You’ll see fewer like this.</span><b>Undo</b><span class="t-x">×</span></div><span class="pin" style="left:300px;top:498px">5</span><span class="pin" style="left:371px;top:756px">4</span></div></div><div class="cell"><h3>4b · Seen it: marked, then one optional step</h3><p class="cap">Seen it removes the title (Laid-Back Camp, not shown) and records Taste ‘known’. It never writes a list status by itself. The toast has one extra action, “Add as Completed ›”, which opens the tracking editor as a tool with Completed preselected and returns to Discover. This adds one optional action to the shipped toast (message, Undo, ×). Trending marks titles you already track with their status word (86 EIGHTY-SIX: Completed) instead of hiding them. The local filter words are plain: “Up to 13 episodes” matches the shipped rule (≤ 13).</p><p class="items">Items 3 · 6 · R2 (mark) · R4 R6</p><div class="phone short" aria-label="Seen it toast"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header no-rule"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><nav class="pin-index" aria-label="In this issue"><span class="past" aria-label="New to you">New</span><span class="past" aria-label="This season">Season</span><span class="past" aria-label="Essential anime">Canon</span><span class="past" aria-label="Manga new to you">Manga</span><span class="on" aria-label="Trending">Trending</span><span class="" aria-label="Classics">Classics</span></nav><div class="content scrolled"><div class="sec-head t2"><h2>Trending.</h2><small>See all ›</small></div><p class="why">What people on Kuro started this week.</p><div class="refine"><span>Any length</span><span class="on">Up to 13 episodes</span><span>Finished</span></div><div class="rail"><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130003-HTDmeL4RGeJ4.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>BOCCHI THE ROCK!</b><small>2022 · TV · 12 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx99420-k5Tel6yRMwA8.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>Girls&#x27; Last Tour</b><small>2017 · TV · 12 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116589-KawXHB6sApFt.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>86 EIGHTY-SIX</b><small>2021 · TV · 11 eps</small><span class="st-row"><span class="st-word"><svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 6.4l2.4 2.3 5.2-5.4"/></svg>Completed</span></span></div><div class="c  " style="width:106px"><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx125367-1yuq9NFcQuLI.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><span class="kind">Anime</span><b>Kaguya-sama: Love is War</b><small>2022 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></div><div class="toast" role="status"><span class="t-msg">Marked as seen.</span><span class="t-act">Add as Completed ›</span><b>Undo</b><span class="t-x">×</span></div><span class="pin" style="left:326px;top:200px">6</span><span class="pin" style="left:371px;top:470px">3</span></div></div><div class="cell"><h3>5 · Essentials with a progress hook</h3><p class="cap">Essential lists show how far into the canon you are: “You’ve seen 3 of 8”, with eight segments (completed filled, the one you are watching half-filled). Titles you track keep their row and show their status word. Steins;Gate was just planned: the key turned dark at once, and after the save was confirmed the “Saved” stamp played and the shipped toast appeared. The section still owns the page: Monster is not repeated in Trending or Classics.</p><p class="items">Items 9 · 2 (Plan) · R2 (mark) · R4</p><div class="phone " aria-label="Essentials with progress"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header no-rule"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><nav class="pin-index" aria-label="In this issue"><span class="past" aria-label="New to you">New</span><span class="past" aria-label="This season">Season</span><span class="on" aria-label="Essential anime">Canon</span><span class="" aria-label="Manga new to you">Manga<i class="nd"></i></span><span class="" aria-label="Trending">Trending</span><span class="" aria-label="Classics">Classics</span></nav><div class="content scrolled"><div class="sec-head t2"><h2>Essential anime.</h2><small>The canon, in our order</small></div><p class="why">Eight titles to know anime by. Ours, not a ranking.</p><div class="progress"><div class="pg-top"><span class="pg-big">3<small>/8</small></span><span class="pg-copy"><b>You’ve seen 3 of 8.</b><small>Monster is under way. 4 to go after that.</small></span></div><div class="segs"><i class="on"></i><i class="on"></i><i class="on"></i><i class="half"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div></div><ol class="index"><li class="done"><span class="n">01</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1-GCsPm7waJ4kS.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Cowboy Bebop</b><small>1998 · TV · 26 eps</small></span><span class="trail"><span class="st-word"><svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 6.4l2.4 2.3 5.2-5.4"/></svg>Completed</span></span></li><li class="done"><span class="n">02</span><img class="" src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Fullmetal Alchemist: Brotherhood</b><small>2009 · TV · 64 eps</small></span><span class="trail"><span class="st-word"><svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 6.4l2.4 2.3 5.2-5.4"/></svg>Completed</span></span></li><li class=""><span class="n">03</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx19-gtMC64182sm4.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Monster</b><small>2004 · TV · 74 eps</small></span><span class="trail"><span class="st-word">Watching<small> · 41/74</small></span></span></li><li class="done"><span class="n">04</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199-sWefXJvXkDOb.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Spirited Away</b><small>2001 · Film</small></span><span class="trail"><span class="st-word"><svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 6.4l2.4 2.3 5.2-5.4"/></svg>Completed</span></span></li><li class=""><span class="n">05</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx9253-tIUXF2gfU8Sg.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Steins;Gate</b><small>2011 · TV · 24 eps</small></span><span class="trail"><span class="plan-key leaf saved" style="width:96px">Planned<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span><span class="key-stamp">Saved</span></span></li></ol><div class="see-row"><span class="text-action">See all 8 ›</span></div><div class="sec-head t2"><h2>Manga new to you.</h2><small><span class="newmark"><i class="nd"></i>1 new since Sunday</span></small></div><p class="why">Manga you haven’t read or hidden. Picked fresh each morning.</p><article class="feature" style="--mb:#4c4531;--md:#2e2b21"><div class="ft-art"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/manga/banner/98263-inZk3YmhgbQh.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="rim"></span></div><div class="foot"><div class="t"><span class="kind on-dark">Manga</span><b>Witch Hat Atelier</b><span>2016 · Manga</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key ">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></article></div><div class="toast" role="status"><span class="t-msg">Added to your list.</span><b>Undo</b><span class="t-x">×</span></div><span class="pin" style="left:330px;top:200px">9</span><span class="pin" style="left:371px;top:640px">4</span></div></div><div class="cell"><h3>6 · The end: “You’re caught up for today.”</h3><p class="cap">The page ends after six sections. There is no more “Show 8 more sections” fold. The rest becomes three “More lists” links that open their See all journeys. The end gives a short tally of what you did today (planned, hidden) as a reward for finishing. Then two exits: Browse, and Search. In the pinned index every section is now ink: you have read the whole issue.</p><p class="items">Items 7 · 10 · R7</p><div class="phone " aria-label="End state"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header no-rule"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><nav class="pin-index" aria-label="In this issue"><span class="past" aria-label="New to you">New</span><span class="past" aria-label="This season">Season</span><span class="past" aria-label="Essential anime">Canon</span><span class="past" aria-label="Manga new to you">Manga</span><span class="past" aria-label="Trending">Trending</span><span class="on" aria-label="Classics">Classics</span></nav><div class="content scrolled"><ol class="index tail"><li class=""><span class="n">05</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx47-4CR68arv452h.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Akira</b><small>1988 · Film</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li><li class=""><span class="n">06</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx4081-xi08naD69tjr.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Natsume’s Book of Friends</b><small>2008 · TV · 13 eps</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li></ol><div class="see-row"><span class="text-action">See all 20 ›</span></div><section class="end"><span class="end-seal" aria-hidden="true"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18.5"/><circle cx="20" cy="20" r="14" stroke-dasharray="2 2.6"/><path d="M13.5 20.5l4.4 4.2 8.6-9"/></svg></span><h3>You’re caught up for today.</h3><p>6 sections, 35 titles. You planned 2, hid 1 and marked 1 as seen.<br>A new issue tomorrow morning.</p><div class="end-links"><div class="link-row"><span class="lr"><small>Everything</small><b>Browse the catalogue</b></span><span class="arr">→</span></div><div class="link-row"><span class="lr"><small>Something specific</small><b>Search</b></span><span class="arr">→</span></div></div><div class="more-lists"><span class="eyebrow">More lists</span><span class="ml">Top rated ›</span><span class="ml">Just added ›</span><span class="ml">Essential manga ›</span></div></section><div class="home-footer"><b>KURO</b><span>Issue of Tue 3 Nov</span></div></div><span class="pin" style="left:300px;top:380px">7</span><span class="pin" style="left:1px;top:111px">10</span></div></div></div>
+<div class="row-label">Journeys and segments</div>
+<div class="strip"><div class="cell"><h3>7 · See all: a real page</h3><p class="cap">See all opens as a journey (✕ only at the root, N3). It has three sorts (Popular, Newest, Top rated), quick filters in plain words with a clear selected state and × to remove, a live match count, a Plan key on every card, the same long-press preview, and infinite paging where the source pages (Trending, Top rated and Just added use Browse’s paging; curated lists sort locally). Titles you track carry their status word. Tapping a card pushes the title inside this journey, and Back returns here at the same scroll position.</p><p class="items">Items 5 · 2 · 6 · R3 R6 R8</p><div class="phone " aria-label="See all"><div class="backdrop"><span class="peek"></span></div><div class="sheet"><span class="grabber dark"></span><div class="cbar"><span class="g"></span><b>Trending</b><span class="g">✕</span></div><div class="sa-body"><h1 class="sa-h">Trending.</h1><p class="why">What people on Kuro started this week. 214 titles.</p><div class="refine sort"><span class="lbl">Sort</span><span class="on">Popular</span><span>Newest</span><span>Top rated</span></div><div class="chips"><span>TV</span><span>Film</span><span class="on">Up to 13 episodes ×</span><span class="on">Finished ×</span></div><p class="result">38 match · <u>Clear filters</u></p><div class="grid3"><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130003-HTDmeL4RGeJ4.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>BOCCHI THE ROCK!</b><small>2022 · TV · 12 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx4081-xi08naD69tjr.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="stamp">Saved</span></span><b>Natsume’s Book of Friends</b><small>2008 · TV · 13 eps</small><span class="plan-key leaf card-key saved">Planned<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx99420-k5Tel6yRMwA8.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>Girls&#x27; Last Tour</b><small>2017 · TV · 12 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21234-XmqW39aQ9o7O.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>ERASED</b><small>2016 · TV · 12 eps</small><span class="st-row"><span class="st-word"><svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 6.4l2.4 2.3 5.2-5.4"/></svg>Completed</span></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116589-KawXHB6sApFt.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>86 EIGHTY-SIX</b><small>2021 · TV · 11 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx125367-1yuq9NFcQuLI.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>Kaguya-sama: Love is War</b><small>2022 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx7785-aTjIhsYva8cJ.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>The Tatami Galaxy</b><small>2010 · TV · 11 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20722-2KAeq72E95dr.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>Barakamon</b><small>2014 · TV · 12 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21827-ubzq619ZA2E9.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>Violet Evergarden</b><small>2018 · TV · 13 eps</small><span class="plan-key leaf card-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div><div class="paging"><span class="scrub"></span><small>Loading more</small></div></div></div><span class="pin" style="left:350px;top:170px">5</span><span class="pin" style="left:350px;top:214px">6</span><span class="pin" style="left:300px;top:330px">2</span></div></div><div class="cell"><h3>8 · Mood journey: “Something short.”</h3><p class="cap">Each mood key opens a journey page built from data the app already has. Something short uses format, episode count and airing status; Cozy and Intense use taste realms (realm_meta / media_realm_membership); “Like …” uses the favourites seed of Because-you. The page states its rule in one sentence, offers Anime / Manga, and every row has the Plan key and the long-press preview. A title you hid never comes back, here or anywhere on Discover.</p><p class="items">Items 4 · 3 (memory) · R1 R5</p><div class="phone " aria-label="Mood journey"><div class="backdrop"><span class="peek"></span></div><div class="sheet"><span class="grabber dark"></span><div class="cbar"><span class="g"></span><b>Something short</b><span class="g">✕</span></div><div class="sa-body"><span class="eyebrow">In the mood for</span><h1 class="sa-h">Something short.</h1><p class="why">Finished anime of 13 episodes or fewer, and films. One evening, or one weekend. Nothing you’ve seen or hidden.</p><div class="refine sort"><span class="on">Anime</span><span>Manga</span><span class="lbl r">Films · Series</span></div><ol class="index mood-list"><li class=""><span class="n">01</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx437-69NMlXKFeuse.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Perfect Blue</b><small>1998 · Film · one evening</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li><li class=""><span class="n">02</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx7785-aTjIhsYva8cJ.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>The Tatami Galaxy</b><small>2010 · TV · 11 eps · one weekend</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li><li class=""><span class="n">03</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx99420-k5Tel6yRMwA8.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Girls&#x27; Last Tour<i class="nd" style="margin-left:5px"></i></b><small>2017 · TV · 12 eps · one weekend</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li><li class=""><span class="n">04</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20722-2KAeq72E95dr.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Barakamon</b><small>2014 · TV · 12 eps · one weekend</small></span><span class="trail"><span class="plan-key leaf saved" style="width:96px">Planned<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li><li class=""><span class="n">05</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx47-4CR68arv452h.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>Akira</b><small>1988 · Film · one evening</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li><li class=""><span class="n">06</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx116589-KawXHB6sApFt.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>86 EIGHTY-SIX</b><small>2021 · TV · 11 eps · one weekend</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li><li class=""><span class="n">07</span><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21234-XmqW39aQ9o7O.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="x"><b>ERASED</b><small>2016 · TV · 12 eps · one weekend</small></span><span class="trail"><span class="plan-key leaf" style="width:96px">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></span></li></ol><p class="mood-foot">Ping Pong the Animation is not here because you hid it.</p></div></div><span class="pin" style="left:350px;top:150px">4</span><span class="pin" style="left:350px;top:420px">5</span></div></div><div class="cell"><h3>9 · Anime segment</h3><p class="cap">With Anime selected, the cards drop their ANIME labels (they only appear in All). The first contents entry is the personal section, and its name says why it is there: “Because you loved MUSHI-SHI”, from the shipped Because-you rail and its reason_title. The jump index lists this page’s own six sections. Violet Evergarden is today’s anime pick, so it is not repeated in any section below.</p><p class="items">Items 4 · 6 · 10 · 1 · R1 R2</p><div class="phone " aria-label="Anime segment"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><div class="content"><div class="opening"><span class="eyebrow">Today’s issue · Tue 3 Nov</span><h2>Edited for you.</h2></div><div class="issue-switch" role="group" aria-label="Show"><span>All</span><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(https://s4.anilist.co/file/anilistcdn/media/anime/banner/21827-ROucgYiiiSpR.jpg)">Anime</span><span>Manga</span></div><div class="moods-wrap"><span class="eyebrow">In the mood for</span><div class="moods"><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><circle cx="8" cy="8.6" r="5.6"/><path d="M8 5.4v3.4l2.2 1.3M6.4 1.6h3.2"/></svg></span><span class="mw"><b>Something short</b><small>Up to 13 eps, or a film</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M3 7.2h8.6v2.4a4.3 4.3 0 0 1-8.6 0zM11.6 8h.8a1.6 1.6 0 0 1 0 3.2h-1.1M5.4 2.4c-.6.9.6 1.4 0 2.6M8 2.4c-.6.9.6 1.4 0 2.6"/></svg></span><span class="mw"><b>Cozy</b><small>Slow, warm, gentle</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M8.8 1.6L3.6 9h4l-1 5.4L12.4 7H8.2z"/></svg></span><span class="mw"><b>Intense</b><small>Dread and mind games</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M8 13.6S2.4 10.2 2.4 6.2A2.9 2.9 0 0 1 8 4.9a2.9 2.9 0 0 1 5.6 1.3c0 4-5.6 7.4-5.6 7.4z"/></svg></span><span class="mw"><b>Like MUSHI-SHI</b><small>From your favourites</small></span></span></div></div><article class="cover-story" style="--mb:#313d4c;--md:#21272e"><div class="cs-art"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/anime/banner/21827-ROucgYiiiSpR.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="rim"></span><span class="tab"><small>Today’s</small><b>pick</b></span></div><div class="foot"><div class="t"><b>Violet Evergarden</b><span>A soldier who only knew orders learns to write other people’s letters, and what the words she was given meant.</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div><div class="fact"><span>2018 · TV · 13 eps</span><span class="who"><span class="disc">L</span>2 in your clubs ›</span></div></article><div class="contents toc"><div class="toc-head"><span class="eyebrow">In this issue · 6 sections</span><span class="eyebrow">Tap to jump</span></div><ol><li class="span"><span class="no">01</span><span class="nm">Because you loved MUSHI-SHI</span><em class="new"><i class="nd"></i>1 new</em><span class="dn">↓</span></li><li class=""><span class="no">02</span><span class="nm">New to you</span><em class="new"><i class="nd"></i>2 new</em><span class="dn">↓</span></li><li class=""><span class="no">03</span><span class="nm">This season</span><em class="new"><i class="nd"></i>2 new</em><span class="dn">↓</span></li><li class=""><span class="no">04</span><span class="nm">Essential anime</span><em>8</em><span class="dn">↓</span></li><li class=""><span class="no">05</span><span class="nm">Trending</span><em>10</em><span class="dn">↓</span></li><li class=""><span class="no">06</span><span class="nm">Classics</span><em>6</em><span class="dn">↓</span></li></ol></div></div><span class="pin" style="left:371px;top:600px">1</span><span class="pin" style="left:1px;top:676px">6</span></div></div><div class="cell"><h3>10 · Manga segment</h3><p class="cap">The manga canvas (#F5F5F3) and the manga words: “Plan to read”, “Something short” means up to 3 volumes or a one-shot, and “Like Berserk” comes from the favourites seed. The cover-only lead uses the capped spread. The trio has a Plan key under every cover, and NEW tabs mark what arrived since your last visit.</p><p class="items">Items 4 · 2 · 8 · R3</p><div class="phone manga" aria-label="Manga segment"><div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b class=""></b><b class=""></b><b class="on"></b><b class=""></b><b class=""></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div><div class="content"><div class="opening"><span class="eyebrow">Today’s issue · Tue 3 Nov</span><h2>Edited for you.</h2></div><div class="issue-switch" role="group" aria-label="Show"><span>All</span><span>Anime</span><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/journal-manga-14-cover.png)">Manga</span></div><div class="moods-wrap"><span class="eyebrow">In the mood for</span><div class="moods"><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><circle cx="8" cy="8.6" r="5.6"/><path d="M8 5.4v3.4l2.2 1.3M6.4 1.6h3.2"/></svg></span><span class="mw"><b>Something short</b><small>Up to 3 volumes, or a one-shot</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M3 7.2h8.6v2.4a4.3 4.3 0 0 1-8.6 0zM11.6 8h.8a1.6 1.6 0 0 1 0 3.2h-1.1M5.4 2.4c-.6.9.6 1.4 0 2.6M8 2.4c-.6.9.6 1.4 0 2.6"/></svg></span><span class="mw"><b>Cozy</b><small>Slow, warm, gentle</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M8.8 1.6L3.6 9h4l-1 5.4L12.4 7H8.2z"/></svg></span><span class="mw"><b>Intense</b><small>Dread and mind games</small></span></span><span class="mood"><span class="mg"><svg viewBox="0 0 16 16"><path d="M8 13.6S2.4 10.2 2.4 6.2A2.9 2.9 0 0 1 8 4.9a2.9 2.9 0 0 1 5.6 1.3c0 4-5.6 7.4-5.6 7.4z"/></svg></span><span class="mw"><b>Like Berserk</b><small>From your favourites</small></span></span></div></div><article class="spread" style="--mb:#313a49;--md:#20262e"><img class="" src="../../../tools/design-directions/assets/journal-manga-14-cover.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><div class="sp"><small class="k">Today’s pick</small><b>Vagabond</b><span>Musashi before he was a legend: a violent young man who has to learn what a sword is for.</span><div class="bot"><span>1998 · Manga · 327 ch.</span><span class="plan-key leaf" style="width:104px">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></article><div style="height:12px"></div><div class="sec-head t2"><h2>Manga new to you.</h2><small><span class="newmark"><i class="nd"></i>2 new since Sunday</span></small></div><p class="why">Manga you haven’t read or hidden. Picked fresh each morning.</p><div class="trio"><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx132288-YnkpDO1wNHNM.png" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><b>Hirayasumi</b><small>2021 · Manga</small><span class="plan-key leaf card-key">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30745-kueBpwriQkvZ.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></span><b>Pluto</b><small>2003 · Manga · 65 ch.</small><span class="plan-key leaf card-key">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div><div class="c  "><span class="cv"><img class="" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86890-hYxIiVM6rBBG.jpg" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><span class="newtab">New</span></span><b>Blue Giant</b><small>2013 · Manga · 80 ch.</small><span class="plan-key leaf card-key">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div></div><span class="pin" style="left:352px;top:196px">4</span><span class="pin" style="left:371px;top:800px">2</span></div></div></div>
+<div class="row-label">Motion and haptics · every quick action answers in two beats: at once on touch, then again once the save is confirmed</div>
+<div class="strip">
+  <div class="cell"><div class="mcard">
+    <h4>Plan (any card, any key)</h4>
+    <div class="steps">
+      <span class="step"><span class="mini">Plan ⌑</span>idle</span><span class="ar">→</span>
+      <span class="step"><span class="mini press">Plan ⌑</span>touch-down<br>.kuroPressSettle</span><span class="ar">→</span>
+      <span class="step"><span class="mini dark">Planned</span>instant flip<br>haptic light</span><span class="ar">→</span>
+      <span class="step"><span class="mini stampd">Planned</span>save confirmed<br>.kuroConfirmStamp</span>
+    </div>
+    <p><b>Beat 1 (0 ms):</b> the face presses in (scale .95, 14 % darker) and flips to the dark “Planned” face as soon as the finger lifts, with a light impact. <b>Beat 2:</b> once <code>LibraryActions.save(.planning)</code> returns, the stamp plays (settle 220 ms), a success haptic fires and the shipped toast “Added to your list.” offers Undo. <b>Failure:</b> <code>.kuroRestore</code> turns the face back, a warning haptic fires and the toast says “Not saved. Your list is unchanged.” The stamp only ever plays after a durable save (Home grammar rule 8).</p>
+  </div></div>
+  <div class="cell"><div class="mcard">
+    <h4>Not interested / Seen it (long-press menu)</h4>
+    <div class="steps">
+      <span class="step"><span class="tdots"><span class="mcov"></span><span class="mcov"></span><span class="mcov"></span></span>chosen</span><span class="ar">→</span>
+      <span class="step"><span class="tdots"><span class="mcov"></span><span class="mcov"></span><span class="mcov shrink"></span></span>shrink .9 + fade<br>contact 120</span><span class="ar">→</span>
+      <span class="step"><span class="tdots"><span class="mcov"></span><span class="mcov"></span><span class="mcov gone"></span></span>gap closes<br>settle 220</span><span class="ar">→</span>
+      <span class="step"><span class="tdots"><span class="mcov"></span><span class="mcov"></span><span class="mcov in"></span></span>refill enters<br>.homeEntrance</span>
+    </div>
+    <p>The title is removed locally <b>before</b> the network call: the hide is applied to the page model at once, and the Taste signal (‘pass’ or ‘known’) is queued in the bounded TasteStore outbox. A rigid haptic marks the removal. The next title from the section’s own reserve fills the slot. When the reserve is empty, the row simply closes up. <b>Undo</b> sends ‘retract’ and plays <code>.kuroRestore</code>, so the card returns to its exact slot.</p>
+  </div></div>
+  <div class="cell"><div class="mcard">
+    <h4>Long press, index, markers</h4>
+    <p><b>Long press:</b> the system context menu with <code>preview:</code>. iOS handles the lift, the blur and the haptic. The preview cannot be interacted with; tapping it opens the title (a root journey from the pager, a push inside See all and mood journeys, N9).</p>
+    <p><b>Pinned index:</b> it fades in as the contents list scrolls under the header (settle 220). The current mark fades in place and never travels, the same rule as the issue switch. Tapping a word scrolls with <code>KuroMotion.settle</code>.</p>
+    <p><b>NEW tabs:</b> they stay for the whole visit and clear on the next visit. They never blink while you read.</p>
+  </div></div>
+  <div class="cell"><div class="mcard">
+    <h4>Reduce Motion / Low Power</h4>
+    <p>Every movement above is decided by <code>KuroMotion.playsMotion(reduceMotion:lowPower:)</code>. When motion is off: the key flips without the press scale, the stamp appears without rotating in, a removed card cross-fades out, the gap closes instantly, the refill cross-fades in, and the pinned index appears without a fade. Haptics still follow the system haptics setting. They are feedback, not motion.</p>
+    <p><b>VoiceOver:</b> every card has custom actions (Plan, Seen it, Not interested, Add to Club…), so nothing depends on a long press. Removals are announced (“Hidden. Undo available.”). The progress hook reads “You’ve seen 3 of 8 essential anime”.</p>
+  </div></div>
+</div>
+
+<div class="doc">
+<section>
+<h2>The Discover contract, as this direction reads it</h2>
+<ol>
+<li><b>R1 One question per section.</b> Every section heading has a purpose line beneath it (“Anime you haven’t seen or hidden. Picked fresh each morning.”). Personal sections say why they are there, using the data that exists: “Because you loved MUSHI-SHI.” comes from <code>fetch_because_you_rail.reason_title</code>, a positive Taste seed. “Because you finished X” needs a different seed (the latest Completed from the Library), so it stays a lead decision.</li>
+<li><b>R2 Never the same series twice on one page.</b> The dedupe runs once per page build, by franchise key, in a fixed order of precedence: cover story → personal sections → Essentials → This season → Trending → Classics. Titles already on your list are hidden in personal and new sections. In Essentials and Trending they are marked with their status word.</li>
+<li><b>R3 One tap + one key.</b> Tapping a card opens the title. Every card (trio, rail, index, See all, mood) has one Plan key, under the cover and never on it. Everything else is in the long-press menu. <i>This reverses shipped §6.2 (“No key on the trio”).</i></li>
+<li><b>R4 Instant feedback + Undo.</b> Beat 1 is a haptic and the key flipping. Beat 2 is the stamp and the toast after a confirmed save. Every quick action has Undo.</li>
+<li><b>R5 Feedback changes the page.</b> Not interested and Seen it remove the title at once, send the Taste signal (‘pass’ / ‘known’), and keep it hidden on every Discover surface and every launch.</li>
+<li><b>R6 Filters are visible, local and in plain words.</b> “Any length · Up to 13 episodes · Finished”. The words match the shipped <code>DiscoverRailFilter</code> rule: Short means 13 episodes or fewer, so “Under 13” would be wrong. Filters never reset the page or its scroll position.</li>
+<li><b>R7 The page ends.</b> Six sections, then “You’re caught up for today.” with Browse and Search. The fold is removed.</li>
+<li><b>R8 Your place is kept.</b> Scroll position and the issue segment are kept per session. Journeys follow the navigation contract (N1–N11); tools return to their page.</li>
+</ol>
+<h3>Proposed CLAUDE.md Rule 6 (text)</h3>
+<p><code>Rule 6: Discover contract.</code> Every change to Discover (the page, See all, mood journeys, or any Discover card) must satisfy R1–R8 in <code>docs/superpowers/specs/2026-11-04-discover-usability-design.md</code> (to be written): one question per section; no series twice on a page; one tap plus one key per card, everything else on long press; instant feedback with Undo; feedback changes the page and teaches Taste; local, plain-word filters; the page ends; your place is kept. Every route from a pager page goes through the pager tap gate.</p>
+</section>
+
+<section>
+<h2>Hard constraints this direction respects</h2>
+<ul>
+<li><b>No horizontal swipes on cards.</b> Discover sits inside the horizontal pager behind the swipe-tap gate. Removal is only through the long-press menu or VoiceOver actions, never swipe-to-dismiss. Every route from a card goes through the pager tap gate.</li>
+<li><b>Native context menu.</b> <code>.contextMenu(menuItems:preview:)</code> with SF Symbols (bookmark, eye, nosign, person.2.badge.plus, arrow.up.forward). No custom gesture recognizer and no interactive preview. “Not interested” is not drawn as destructive (red is reserved for delete and leave).</li>
+<li><b>Monochrome.</b> NEW tabs use the season-tab face (#F3F4F4 / #26372C). New dots use ink at 70 % (the header’s unseen dot). Progress segments use ink and #D7D9D7. No coloured dots.</li>
+<li><b>One toast at a time.</b> The Seen it toast adds <i>one</i> optional text action (“Add as Completed ›”) to the shipped message + Undo + ×. That is a grammar extension of <code>TastePlanToastView</code>, recorded here. It never writes a status by itself.</li>
+<li><b>Branded states.</b> The refill uses the section’s reserve and never shows a spinner. An empty reserve closes the row up. A failed signal keeps the title hidden locally and retries through the outbox.</li>
+<li><b>Light only, tokens only, EN/DE through <code>KuroLocale</code>.</b></li>
+</ul>
+</section>
+
+<section class="wide">
+<h2>Coverage: the 12 build items</h2>
+<table class="copy">
+<tr><th>#</th><th>Item</th><th>Frames</th><th>How (tactile angle)</th></tr>
+<tr><td>1</td><td>Franchise dedupe + owned rule</td><td>all (R2 held in every frame) · 4b, 5 (marks)</td><td>A pure <code>DiscoverPagePolicy.dedupe(sections:franchiseKey:owned:)</code>, applied in <code>DiscoveryStore</code> once per build. Franchise key = series root from catalogue relations (the same source as the adaptation ladder); seasons group as in <code>SeriesGrouping</code>. Order of precedence as in R2. Owned titles: hidden in New to you / Because-you / Manga new to you / This season; marked in Essentials / Trending / Classics.</td></tr>
+<tr><td>2</td><td>Long-press preview</td><td>3 (and every card)</td><td>System preview: artwork on its material, facts, 3-line synopsis, “Why it’s here” line. Menu: Plan, Seen it, Not interested, Add to Club…, Open. Used on Discover cards, See all cards and Home-grammar rails on Discover.</td></tr>
+<tr><td>3</td><td>Not interested / Seen it → Taste</td><td>3, 4, 4b, 8</td><td><code>TasteStore.submitSignal(…, .pass / .known)</code>, Undo → <code>.retract</code>. Removed at once, refilled, kept hidden across launches (server signal + per-account local cache). Seen it offers “Add as Completed ›” through <code>routes.presentTrackingEditor</code>.</td></tr>
+<tr><td>4</td><td>Mood entry points</td><td>1, 8, 9, 10</td><td>Four light-face keys: Something short, Cozy, Intense, Like {favourite}. Each opens a journey page that states its rule.</td></tr>
+<tr><td>5</td><td>Real See all</td><td>7</td><td>Sort (Popular / Newest / Top rated), plain-word quick filters with ×, a match count, Plan keys, long press, infinite paging where the source pages.</td></tr>
+<tr><td>6</td><td>Purpose subtitles, reasons, clearer filter words</td><td>2, 4b, 5, 9</td><td>A <code>.why</code> line under every heading. The Trending words become “Any length · Up to 13 episodes · Finished”.</td></tr>
+<tr><td>7</td><td>End state, fewer folded sections</td><td>6</td><td>Six sections: This season and Classics move up; Essential manga, Top rated and Just added become “More lists” links. Ends with “You’re caught up for today.” plus a tally, Browse and Search.</td></tr>
+<tr><td>8</td><td>New since your last visit</td><td>1, 2, 5, 10</td><td>NEW tab on cards, a dot plus “2 new since Sunday” in the heading, and counts in the contents and the pinned index.</td></tr>
+<tr><td>9</td><td>Progress on Essentials</td><td>5</td><td>“You’ve seen 3 of 8.” with eight segments; Watching shows as a half segment.</td></tr>
+<tr><td>10</td><td>Header tap to top; jump-link contents that pin</td><td>1, 2, 5, 6</td><td>A numbered two-column jump list with ↓. It pins as a 38 pt one-line index, and words turn ink as you pass them.</td></tr>
+<tr><td>11</td><td>ANIME / MANGA labels in All</td><td>1–6</td><td>A 7.5 pt tracked kicker above every card title (and in the cover-story fact row), shown in All only.</td></tr>
+<tr><td>12</td><td>Telemetry</td><td>— (text)</td><td>See the telemetry table below.</td></tr>
+</table>
+</section>
+
+<section class="wide">
+<h2>Data map: what each new element reads</h2>
+<table class="copy">
+<tr><th>Element</th><th>Source</th><th>Status</th></tr>
+<tr><td>Plan key on every card</td><td><code>TastePlanController</code> (<code>.tastePlanHost</code>), <code>TasteCard(anime:/manga:)</code></td><td>exists</td></tr>
+<tr><td>Not interested / Seen it</td><td><code>record_taste_deck_signal(type,id,'pass'|'known')</code> via <code>TasteStore.submitSignal</code>; stored in <code>taste_signal_events</code></td><td>exists (client wiring new)</td></tr>
+<tr><td>Hidden across launches</td><td>Some serving RPCs already exclude <code>deck_love</code>/<code>deck_known</code> (<code>20260806020000_serving_hardening_v1.sql</code> ~l.447). Prepared change: extend the exclusion to <code>deck_pass</code> + <code>deck_known</code> for every Discover section, and add <code>fetch_my_discover_hidden_v1()</code> (ids only, caller-scoped, <code>SET search_path</code>) to hydrate the cache. Local: <code>DiscoverHiddenTitles</code>, per account (<code>AccountScopedState</code>), applied before render.</td><td>prepared (not applied) + on-device</td></tr>
+<tr><td>Franchise key</td><td>Catalogue relations / ladder series root; season grouping as <code>SeriesGrouping</code></td><td>exists; a pure policy is new</td></tr>
+<tr><td>Owned / status words</td><td><code>LibraryStore</code> entries (Folio status words)</td><td>exists</td></tr>
+<tr><td>Progress hook</td><td>The Essentials list (full See all list) ∩ Library Completed (plus ‘known’ signals as “seen”); Watching counts as half</td><td>on-device</td></tr>
+<tr><td>NEW markers</td><td><code>DiscoverVisitMemory</code>: per account, per section, a hash of the item ids at the end of the last visit. NEW = not in the last snapshot. The first visit ever shows none.</td><td>on-device</td></tr>
+<tr><td>Something short</td><td>Card <code>format</code>, <code>episodes</code>, status (the <code>DiscoverRailFilter.short</code> rule plus MOVIE); manga: <code>volumes</code> ≤ 3 or ONE_SHOT; paged through Browse</td><td>exists</td></tr>
+<tr><td>Cozy / Intense</td><td><code>realm_meta</code> + <code>media_realm_membership</code> (Cozy: slice-of-life-iyashikei, supernatural-yokai; Intense: psychological-thriller, horror-dread, war-military); copy echoes Concierge <code>cozy_comfort</code></td><td>prepared RPC <code>fetch_discover_mood_v1(p_mood, p_media_type, p_limit, p_offset)</code> if Browse cannot filter by realm</td></tr>
+<tr><td>Like {favourite}</td><td>Because-you seed (<code>reason_title</code>) → <code>recommend_ids_similar_to_seeds</code></td><td>exists</td></tr>
+<tr><td>See all sort / filters / paging</td><td>Browse paging (<code>DiscoveryStore</code>) for Trending / Top rated / Just added; curated lists sort locally</td><td>exists</td></tr>
+<tr><td>End tally</td><td>The session’s own counts (plans, hides) from the page controller</td><td>on-device, session only</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Haptics and motion</h2>
+<table class="copy">
+<tr><th>Moment</th><th>Haptic</th><th>Motion</th></tr>
+<tr><td>Key touch-down</td><td>—</td><td><code>.kuroPressSettle</code> (contact 120)</td></tr>
+<tr><td>Key flip (instant)</td><td>impact light</td><td>face swap, no movement</td></tr>
+<tr><td>Save confirmed</td><td>success</td><td><code>.kuroConfirmStamp</code> (settle 220) + toast</td></tr>
+<tr><td>Save failed</td><td>warning</td><td><code>.kuroRestore</code> + “Not saved…” toast</td></tr>
+<tr><td>Long press</td><td>system</td><td>system lift</td></tr>
+<tr><td>Not interested / Seen it</td><td>impact rigid</td><td>shrink and fade 120 → close 220 → refill <code>.homeEntrance</code> (380)</td></tr>
+<tr><td>Undo</td><td>impact soft</td><td><code>.kuroRestore</code> into the original slot</td></tr>
+<tr><td>Mood key, jump word, issue word</td><td>selection</td><td><code>HomeContactStyle</code> press; scroll with settle</td></tr>
+<tr><td>Reaching the end</td><td>—</td><td>the seal fades in once per issue (<code>KuroMotion.playsMotionNow</code>)</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Telemetry (existing owners only)</h2>
+<p>Every event goes through <code>InteractionTelemetry.trackInteractionEvent(_:surface:"discover",result:extra:)</code> (ConciergeAnalytics underneath). Payloads carry section keys, positions, medium and counts only. No titles, no free text, and no new third party.</p>
+<table class="copy">
+<tr><th>Event</th><th>result / extra</th></tr>
+<tr><td><code>discover_visit_end</code></td><td>sections_seen, max_depth_pct, taps, plans, hides, reached_end, dwell bucket</td></tr>
+<tr><td><code>discover_plan</code></td><td>added / removed / failed · section, position, source (card / preview / see_all / mood)</td></tr>
+<tr><td><code>discover_not_interested</code></td><td>hidden / undone · section, position</td></tr>
+<tr><td><code>discover_seen_it</code></td><td>marked / completed_via_editor / undone</td></tr>
+<tr><td><code>discover_preview</code></td><td>open / plan / seen / hide / club / dismissed</td></tr>
+<tr><td><code>discover_open_bounce</code></td><td>the title journey closed within 10 s · section, position</td></tr>
+<tr><td><code>discover_jump</code></td><td>contents / pinned / header_top · target section</td></tr>
+<tr><td><code>discover_mood_open</code>, <code>discover_see_all</code></td><td>mood key · section, sort, filter count, pages loaded</td></tr>
+</table>
+</section>
+
+<section class="wide">
+<h2>New copy (EN / DE)</h2>
+<table class="copy">
+<tr><th>Where</th><th>English</th><th>Deutsch</th></tr>
+<tr><td>Menu</td><td>Plan to watch / Plan to read · Seen it / Already read · Not interested · Add to Club… · Open</td><td>Vormerken · Schon gesehen / Schon gelesen · Kein Interesse · Zu einem Club hinzufügen… · Öffnen</td></tr>
+<tr><td>Toasts</td><td>Hidden. You’ll see fewer like this. · Marked as seen. · Add as Completed ›<br>(shipped: Added to your list. · Undo · Not saved. Your list is unchanged.)</td><td>Ausgeblendet. Du siehst weniger davon. · Als gesehen markiert. · Als abgeschlossen eintragen ›<br>(shipped: Zu deiner Liste hinzugefügt. · Rückgängig · Nicht gespeichert. Deine Liste ist unverändert.)</td></tr>
+<tr><td>Moods</td><td>In the mood for · Something short · Cozy · Intense · Like {title}<br>Up to 13 eps, or a film · Up to 3 volumes, or a one-shot · Slow, warm, gentle · Dread and mind games · From your favourites</td><td>Lust auf · Etwas Kurzes · Gemütlich · Intensiv · Wie {Titel}<br>Bis 13 Folgen oder ein Film · Bis 3 Bände oder ein One-Shot · Ruhig, warm, sanft · Grusel und Kopfspiele · Aus deinen Favoriten</td></tr>
+<tr><td>Contents</td><td>In this issue · {n} sections · Tap to jump · {n} new</td><td>In dieser Ausgabe · {n} Bereiche · Tippen zum Springen · {n} neu</td></tr>
+<tr><td>Markers</td><td>New · {n} new since {weekday} · {n} new since your last visit</td><td>Neu · {n} neu seit {Wochentag} · {n} neu seit deinem letzten Besuch</td></tr>
+<tr><td>Purpose lines</td><td>Anime you haven’t seen or hidden. Picked fresh each morning. · Airing now. {n} new episodes are out today. · Eight titles to know anime by. Ours, not a ranking. · What people on Kuro started this week.</td><td>Anime, die du nicht gesehen oder ausgeblendet hast. Jeden Morgen neu gewählt. · Läuft gerade. Heute {n} neue Folgen. · Acht Titel, an denen man Anime kennt. Unsere Auswahl, kein Ranking. · Was Leute auf Kuro diese Woche angefangen haben.</td></tr>
+<tr><td>Progress</td><td>You’ve seen {n} of {m}. / You’ve read {n} of {m}.</td><td>{n} von {m} gesehen. / {n} von {m} gelesen.</td></tr>
+<tr><td>Filters</td><td>Any length · Up to 13 episodes · Finished · Sort · Popular · Newest · Top rated · {n} match · Clear filters</td><td>Jede Länge · Bis 13 Folgen · Fertig erschienen · Sortieren · Beliebt · Neueste · Bestbewertet · {n} Treffer · Filter löschen</td></tr>
+<tr><td>End</td><td>You’re caught up for today. · {s} sections, {t} titles. You planned {p} and hid {h}. · A new issue tomorrow morning. · Something specific · Search · More lists</td><td>Für heute bist du durch. · {s} Bereiche, {t} Titel. {p} vorgemerkt, {h} ausgeblendet. · Morgen früh gibt es eine neue Ausgabe. · Etwas Bestimmtes · Suche · Weitere Listen</td></tr>
+<tr><td>Preview</td><td>Why it’s here: {reason}</td><td>Warum es hier ist: {Grund}</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Open questions for the lead</h2>
+<ul>
+<li>Should Seen it in Essentials count toward “You’ve seen n of m” without a list status? This direction says yes (a ‘known’ signal is “seen”), shown as the status word “Seen”.</li>
+<li>The Plan key on trio and rail cards reverses shipped §6.2. It is the core of the tactile angle, so it needs an explicit decision.</li>
+<li>German “Finished” filter: the shipped <code>DiscoverRailFilter</code> label is “Abgeschlossen”, which is also the Folio status word for Completed. This direction proposes “Fertig erschienen” for the filter, which changes a shipped label.</li>
+<li>“Like {favourite}” uses <code>reason_title</code> (the top positive seed). The plan’s “the last thing you loved” would need a recency source: the latest ‘love’ in <code>taste_signal_events</code>, or the latest Completed with a high score. Lead decision.</li>
+<li>The cover story when the title is already on your list: keep the shipped behaviour (the key opens the editor) or swap in the next feature? This direction keeps it and lets R2 dedupe everything below it.</li>
+<li>Should Not interested on a manga also hide its anime adaptation (franchise-wide)? This direction says yes on Discover, and only for that franchise key.</li>
+</ul>
+</section>
+</div>
+
+</body>
+</html>
