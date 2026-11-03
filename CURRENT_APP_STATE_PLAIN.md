@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 240 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 247 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2130,3 +2130,9 @@ A review pass on the new Discover and Clubs pages found small problems; they are
 ### Change Log — 3 November 2026: Discover and Clubs now look like Home (TestFlight 23)
 
 Discover reads like a daily issue (a cover story in the title's own colours, a short contents line, a few hand-picked sections in different shapes, the rest folded away), and every club is a dark "room" like the one on Home, on the list and on the club's own page. It is in TestFlight build 23 and waits for the owner's review before it becomes part of the main version.
+
+### Change Log — 3 November 2026: Home Screen widget and new-episode notifications (groundwork, not released)
+
+Kuro now has a Home Screen widget extension. It shows the next episodes and chapters of what you follow, and what you are watching or reading with a "+1" button. The widget never saves anything itself: a +1 is put in a small shared inbox, shows on the widget straight away, and Kuro saves it the normal way (with the same "already caught up" check) the next time it is open. Nothing about your account is stored for the widget except an anonymous tag, and everything is removed when you sign out or switch accounts.
+
+Kuro can also remind you about new episodes and chapters of titles you are watching or reading. It only uses dates the source has confirmed or announced, never guesses; exact times notify at that time, dates without a time notify at 9:00 that morning. Kuro only asks for notification permission when you switch this on yourself (Profile, or the bell on a title); it no longer asks on its own. Tapping a reminder opens the title. The Profile switch and the widget's final look are built by other lanes. All automatic tests for this part passed; nothing was deployed or pushed.
