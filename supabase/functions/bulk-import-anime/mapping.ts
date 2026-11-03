@@ -22,6 +22,71 @@ export function characterAge(raw: unknown): number | null {
   return Number(text);
 }
 
+export const VOICE_ACTOR_LANGUAGE = 'JAPANESE';
+export const MAX_VOICE_ACTORS_PER_CHARACTER = 3;
+
+/**
+ * The voice actors of one character edge, or null when they were not requested or the edge
+ * cannot be trusted (edges[i].node.id differs from nodes[i].id): null keeps the stored rows.
+ * An empty array means AniList lists none, and replaces the stored rows with none.
+ */
+// deno-lint-ignore no-explicit-any
+export function voiceActorsOfEdge(edge: any, character: any): any[] | null {
+  if (!edge || !Array.isArray(edge.voiceActors)) return null;
+  const nodeId = edge.node?.id;
+  if (nodeId != null && nodeId !== character?.id) return null;
+  const seen = new Set<number>();
+  return edge.voiceActors
+    // deno-lint-ignore no-explicit-any
+    .filter((va: any) => {
+      const ok = va && Number.isInteger(va.id) && va.id > 0 && !seen.has(va.id);
+      if (ok) seen.add(va.id);
+      return ok;
+    })
+    .slice(0, MAX_VOICE_ACTORS_PER_CHARACTER);
+}
+
+/** Staff columns a voice-actor edge carries; absent values are left out so they never null a stored value. */
+// deno-lint-ignore no-explicit-any
+export function voiceActorStaffRow(va: any): Record<string, unknown> {
+  const row: Record<string, unknown> = { anilist_id: va.id };
+  if (typeof va.name?.full === 'string' && va.name.full.trim()) row.name_full = va.name.full;
+  if (typeof va.name?.native === 'string' && va.name.native.trim()) row.name_native = va.name.native;
+  if (typeof va.image?.large === 'string' && va.image.large.startsWith('https://')) row.image_large = va.image.large;
+  return row;
+}
+
+// Replaces one character's voice actors for one anime (language JAPANESE). Every person is
+// upserted first; any failure keeps the stored rows (last-good) and is counted as an error.
+// deno-lint-ignore no-explicit-any
+async function replaceVoiceActors(supabase: any, animeId: number, characterId: number, actors: any[], results: any) {
+  const staffIds: number[] = [];
+  for (const va of actors) {
+    const { data: person, error } = await supabase
+      .from('staff')
+      .upsert(voiceActorStaffRow(va), { onConflict: 'anilist_id' })
+      .select('id')
+      .single();
+    if (noteOptionalFailure(results, error, 'voice actor staff upsert error:') || !person) return;
+    if (!staffIds.includes(person.id)) staffIds.push(person.id);
+  }
+  const { error: deleteError } = await supabase
+    .from('character_voice_actors')
+    .delete()
+    .eq('anime_id', animeId)
+    .eq('character_id', characterId)
+    .eq('language', VOICE_ACTOR_LANGUAGE);
+  if (noteOptionalFailure(results, deleteError, 'character_voice_actors delete error:')) return;
+  for (let i = 0; i < staffIds.length; i++) {
+    const { error } = await supabase.from('character_voice_actors').upsert(
+      { anime_id: animeId, character_id: characterId, staff_id: staffIds[i], language: VOICE_ACTOR_LANGUAGE, sort_order: i },
+      { onConflict: 'anime_id,character_id,staff_id,language' },
+    );
+    if (noteOptionalFailure(results, error, 'character_voice_actors upsert error:')) continue;
+    results.voiceActors = (results.voiceActors ?? 0) + 1;
+  }
+}
+
 export function isMirroredImageUrl(value: unknown): boolean {
   return typeof value === 'string' && value.includes('/storage/v1/');
 }
@@ -62,7 +127,7 @@ const EXISTING_ANIME_COLUMNS =
   'id, updated_at_anilist, episodes, duration, next_episode_number, next_airing_at, description, mal_id, cover_image_large, cover_image_medium, banner_image';
 
 // deno-lint-ignore no-explicit-any
-export async function processAnimeItem(supabase: any, anime: any, results: any, includeRelations: boolean, includeEpisodes: boolean, forceRefresh: boolean) {
+export async function processAnimeItem(supabase: any, anime: any, results: any, includeRelations: boolean, includeEpisodes: boolean, forceRefresh: boolean, includeVoiceActors = false) {
   const updatedAtAnilist = anime.updatedAt ? new Date(anime.updatedAt * 1000).toISOString() : null;
   const derivedEpisodes =
     anime.episodes ??
@@ -249,6 +314,10 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
       const { error: linkError } = await supabase.from('anime_characters').upsert({ anime_id: insertedAnime.id, character_id: ch.id, role: edge?.role }, { onConflict: 'anime_id,character_id' });
       if (noteOptionalFailure(results, linkError, 'anime_characters upsert error:')) continue;
       results.relationships++; results.characters++;
+      if (includeVoiceActors) {
+        const actors = voiceActorsOfEdge(edge, char);
+        if (actors) await replaceVoiceActors(supabase, insertedAnime.id, ch.id, actors, results);
+      }
     }
   }
   // Staff
