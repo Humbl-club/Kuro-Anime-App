@@ -10,6 +10,8 @@ import SwiftUI
 
 @main
 struct KuroApp: App {
+    /// Installs the notification delegate before launch finishes (a tap that launched the app is seen).
+    @UIApplicationDelegateAdaptor(KuroAppDelegate.self) private var appDelegate
     @State private var identity = AppComposition.shared.identity
     @State private var auth = AppComposition.shared.auth
     @State private var session = AppComposition.shared.session
@@ -36,6 +38,8 @@ struct KuroApp: App {
     @State private var outboundLinks = AppComposition.shared.outboundLinks
     @State private var artworkMaterials = AppComposition.shared.artworkMaterials
     @State private var songPreview = AppComposition.shared.songPreview
+    @State private var widgets = AppComposition.shared.widgets
+    @State private var notificationLinks = AppComposition.shared.notificationLinks
     @State private var networkMonitor = NetworkMonitor()
     @State private var pendingDeepLink: DeepLink? = nil
     @Environment(\.scenePhase) private var scenePhase
@@ -114,7 +118,20 @@ struct KuroApp: App {
                        identity.isAuthenticated {
                         clubs.invalidateSharedDisclosure()
                         Task { await session.refreshSessionIfNeeded(); await home.restorePendingProjection(); await home.drain() }
+                        // Home Screen widget: apply queued +1 taps, refresh the snapshot; release
+                        // notifications: re-read permission (no prompt) and re-plan.
+                        widgets.appDidBecomeActive()
+                        Task { await releases.refreshReleaseNotifications() }
+                    } else if newPhase == .background {
+                        widgets.appWillResignActive()
                     }
+                }
+                // A tapped release notification opens its title journey exactly like a `kuro://` link
+                // (navigation contract N10); cold start: routed once the scene is up.
+                .onChange(of: notificationLinks.pendingURL, initial: true) { _, url in
+                    guard url != nil, identity.configError == nil,
+                          let next = notificationLinks.take(), let link = DeepLink.from(url: next) else { return }
+                    pendingDeepLink = link
                 }
         }
     }

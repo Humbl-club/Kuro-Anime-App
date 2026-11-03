@@ -265,9 +265,9 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 243 Swift files in `Kuro/`
+### iOS app — 247 Swift files in `Kuro/`
 
-Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 71 in `KuroTests/` and 6 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
+Plus 33 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 72 in `KuroTests/`, 6 in `KuroUITests/` and 4 in the widget extension `KuroWidgets/` (2026-11-03). Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + `AppComposition` owners injected with `.environment(...)`, `.onOpenURL` deep link handler
@@ -285,7 +285,7 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - `Discovery/` — `DiscoveryStore` (Discover bundle, Browse paging), `RecommendationsReader` ("More like this": `fetchSimilar(kind:id:limit:)` over the prepared `media_similar_v1`, per-account cache, `AccountScopedState`), `DiscoverCards`
 - `Search/` — `SearchStore`
 - `Collection/` — `CollectionStore` (card pages + feed; no tracking fields)
-- `Releases/` — `ReleasesStore` (`user_airing_next`, countdowns; since 2026-11-01 also the release schedule + songs read model: `user_release_schedule_v1` / `media_release_schedule_v1` / `media_themes_v1` with silent fallback to `user_airing_next` while those prepared RPCs are not deployed), `ReleaseModels` (`ReleaseScheduleItem`, `ReleaseBasis` confirmed/announced/estimated, `release_precision`, `ThemeSong`), `ReleaseCopy` (certainty wording EN/DE; never a time unless precision = instant), `ReminderScheduler` (device notifications), `SongPreviewPlayer` (2026-11-03: one Apple 30-second preview at a time, AVPlayer, `.soloAmbient`, stops on background/interruption/account change; `ThemeSong.apple` from the prepared trailing `media_themes_v1` columns)
+- `Releases/` — `ReleasesStore` (`user_airing_next`, countdowns; since 2026-11-01 also the release schedule + songs read model: `user_release_schedule_v1` / `media_release_schedule_v1` / `media_themes_v1` with silent fallback to `user_airing_next` while those prepared RPCs are not deployed), `ReleaseModels` (`ReleaseScheduleItem`, `ReleaseBasis` confirmed/announced/estimated, `release_precision`, `ThemeSong`), `ReleaseCopy` (certainty wording EN/DE; never a time unless precision = instant), `ReminderScheduler` (device notifications; since 2026-11-03 also the release notifications: `ReleaseNotificationPlanner` (confirmed/announced only, instants at their time, days 09:00 local, 64 cap), `ReminderScheduler+Releases` (per-account preference, commit on the F05 chain), `ReleasesStore+Notifications` (toggle / bell API: the ONLY permission prompt), `ReleaseNotificationRouting` (tap → `kuro://` title journey); automatic scheduling never prompts), `SongPreviewPlayer` (2026-11-03: one Apple 30-second preview at a time, AVPlayer, `.soloAmbient`, stops on background/interruption/account change; `ThemeSong.apple` from the prepared trailing `media_themes_v1` columns)
 - `Providers/` — `ProviderAvailabilityStore` (+ `LegalLinks`, + `DetailLinks`: the detail pages' one `ProviderLinkSnapshot` API and the one `validatedOutboundURL`), `ProviderLinkBuilders` (pure link builders)
 - `Social/` — `SocialActivityStore`
 - `Clubs/` — `ClubsStore` (throws typed `ClubError`), `ClubRealtimeCoordinator`, `ClubsLibrarySink`, `ClubModels`
@@ -293,10 +293,11 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - `Concierge/` — `ConciergeStore`, `ConciergeFunctions`, `ConciergeRecommendModels`, `ConciergeRouting` (pure clarification gate, FM/keyword routing, input-field intent/paste rules)
 - `Taste/` — `TasteStore` (deck, signals + bounded outbox, profile, personalised NEW TO YOU), `TasteModels`
 - `Telemetry/` — `InteractionTelemetry`, `OutboundLinkTelemetry`
+- `Widgets/` (2026-11-03) — `WidgetSnapshotWriter` (account-scoped App Group snapshot for the KuroWidgets extension; registered in `makeAccountScopedStates`), `WidgetIntentInbox` (drains the widget's +1 queue through `LibraryActions.advanceQueuedProgress`; the extension never writes tracking data), `WidgetSnapshotBuilder` (pure; `ReleaseCopy` wording). Design + security: `docs/details-songs-2026-11-03/platform/WIDGET.md`
 - `Support/` (2026-11-02) — `SupportStore` (the in-app contact form: account-scoped draft, validation, one `contact-submit` call with the signed-in session, no auto-retry; registered in `makeAccountScopedStates` before interaction telemetry)
 - `Infrastructure/` — `TimedCache`, `withRetry` (`Retry.swift`), `MemoryPressure.swift`
 
-**Local package (`Packages/KuroModules`, linked into the app):** `KuroCore` (`MediaKind`, `MediaKey`, `AccountContext`, `AccountSessionCoordinator`, `AccountScopedLoads`), `KuroLibrary` (tracking values/contracts + `LibraryStore`, durable SQLite `ProgressOutbox` + `LibraryProgress`, import workflow/journal/batch (file-backed, file-protected), `MALExportParser`, `MALAccountList`, `SeriesGrouping`), `KuroSupabase` (`SupabaseLibraryBackend`, `LibraryRowTransport`, `LibraryFenceTransport` (revision-fenced writes when `series_foundation_v1` is on), `UserIdText`). No SwiftUI/UIKit/supabase-swift imports; Swift 5 mode, explicit isolation policy in `Package.swift`.
+**Local package (`Packages/KuroModules`, linked into the app):** `KuroCore` (`MediaKind`, `MediaKey`, `AccountContext`, `AccountSessionCoordinator`, `AccountScopedLoads`), `KuroLibrary` (tracking values/contracts + `LibraryStore`, durable SQLite `ProgressOutbox` + `LibraryProgress`, import workflow/journal/batch (file-backed, file-protected), `MALExportParser`, `MALAccountList`, `SeriesGrouping`), `KuroSupabase` (`SupabaseLibraryBackend`, `LibraryRowTransport`, `LibraryFenceTransport` (revision-fenced writes when `series_foundation_v1` is on), `UserIdText`), `KuroWidgetSupport` (2026-11-03: App Group `group.com.Kuro.app` contract shared with the `KuroWidgets` extension: `WidgetSnapshot`, `WidgetSnapshotStore`, `WidgetAdvanceQueue`, `WidgetAccountHash`; Foundation + CryptoKit only). No SwiftUI/UIKit/supabase-swift imports; Swift 5 mode, explicit isolation policy in `Package.swift`.
 
 **Retired (2026-10-05):** `SupabaseService.swift` and its 12 extensions (`+Browse`, `+ClubRealtime`, `+Clubs`, `+Collection`, `+Concierge`, `+Discover`, `+Monetization`, `+Recommendations`, `+Social`, `+Streaming`, `+Taste`, `+UserLists`) — deleted; see the ownership map for where each part went.
 
@@ -418,7 +419,7 @@ Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are s
 ### Config, CI & Root Files
 - `fastlane/Appfile` + `fastlane/Fastfile` — TestFlight automation (`fastlane beta`)
 - `Config/Shared.xcconfig`, `Config/Debug.xcconfig`, `Config/Release.xcconfig` — build settings
-- `Kuro/Kuro.entitlements` — `com.apple.developer.applesignin` + `applinks:kuro.app` (Associated Domains placeholder)
+- `Kuro/Kuro.entitlements` — `com.apple.developer.applesignin` + `applinks:kuro.app` (Associated Domains placeholder) + App Group `group.com.Kuro.app` (2026-11-03, shared with `KuroWidgets/KuroWidgets.entitlements`; widget extension `com.Kuro.app.widgets`, embedded via "Embed Foundation Extensions")
 - `Info.plist` (project root, NOT `Kuro/Info.plist`) — `CFBundleURLTypes` registering `kuro://` URL scheme. `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` in both Debug+Release configs (lines 447-448, 495-496 of project.pbxproj). Xcode merges generated keys with custom ones.
 - `.mcp.json` (project root) — MCP server config: Supabase (HTTP, project ref `bkdifromsqxkndnllmdj`) + Resend (`@resend/mcp` via npx, API key in env)
 - `emails/` — 5 branded HTML email templates (Cormorant serif wordmark, warm gray `#f5f5f0` background, black CTA buttons, MSO-compatible table layout):

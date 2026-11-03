@@ -66,8 +66,14 @@ final class FakeNotificationCenter: PendingNotificationCenter {
     var lookupGate: StubGate?
     /// `pendingRequestIdentifiers()` calls so far (started, also when still held).
     private(set) var lookups = 0
-    /// `requestAuthorizationIfNeeded()` calls so far.
+    /// `requestAuthorizationIfNeeded()` calls so far (the explicit, prompting request).
     private(set) var authorizationRequests = 0
+    /// `currentPermission()` calls so far (the automatic, never-prompting read).
+    private(set) var permissionReads = 0
+    /// The payload of every scheduled request, by id.
+    private(set) var userInfoById: [String: [String: String]] = [:]
+    /// The fire date of every scheduled request, by id.
+    private(set) var dateById: [String: Date] = [:]
     /// The device permission (Settings); `.notDetermined` until the user answered the prompt.
     var permission: NotificationPermission = .authorized
     /// What the user answers when prompted.
@@ -102,8 +108,20 @@ final class FakeNotificationCenter: PendingNotificationCenter {
         return permission
     }
 
+    func currentPermission() async -> NotificationPermission {
+        permissionReads += 1
+        changed()
+        return permission
+    }
+
+    func schedule(id: String, title: String, body: String, at date: Date, userInfo: [String: String]) async -> Bool {
+        userInfoById[id] = userInfo
+        return await schedule(id: id, title: title, body: body, at: date)
+    }
+
     func schedule(id: String, title: String, body: String, at date: Date) async -> Bool {
         scheduled.append(id)
+        dateById[id] = date
         guard acceptsRequests else { return false }
         if !pending.contains(id) { pending.append(id) }
         changed()
@@ -708,17 +726,17 @@ struct PendingReminderTests {
     nonisolated static let permissionCases: [PermissionCase] = [
         PermissionCase(name: "authorized -> scheduled", permission: .authorized, promptAnswer: .authorized,
                        acceptsRequests: true, expected: .scheduled),
-        PermissionCase(name: "undecided, the user allows on the one prompt -> scheduled", permission: .notDetermined,
-                       promptAnswer: .authorized, acceptsRequests: true, expected: .scheduled),
-        PermissionCase(name: "undecided, the user declines -> notAuthorized", permission: .notDetermined,
-                       promptAnswer: .denied, acceptsRequests: true, expected: .notAuthorized),
+        // Automatic scheduling never prompts (item 10: permission is asked only from an explicit user
+        // action), so an undecided permission schedules nothing whatever the user would answer.
+        PermissionCase(name: "undecided -> notAuthorized, no prompt (automatic scheduling never asks)", permission: .notDetermined,
+                       promptAnswer: .authorized, acceptsRequests: true, expected: .notAuthorized),
         PermissionCase(name: "denied in Settings -> notAuthorized, no prompt", permission: .denied,
                        promptAnswer: .authorized, acceptsRequests: true, expected: .notAuthorized),
         PermissionCase(name: "authorized but the system refuses the request -> failed (never success)", permission: .authorized,
                        promptAnswer: .authorized, acceptsRequests: false, expected: .failed),
     ]
 
-    @Test("F19: the outcome follows the device permission and the system's answer; anything but scheduled adds nothing and sets no owner marker; at most one prompt",
+    @Test("F19: the outcome follows the device permission and the system's answer; anything but scheduled adds nothing and sets no owner marker; never a prompt",
           arguments: permissionCases)
     func scheduleOutcomeFollowsPermission(_ permissionCase: PermissionCase) async throws {
         let notifications = FakeNotificationCenter()
@@ -735,7 +753,7 @@ struct PendingReminderTests {
 
         #expect(first == permissionCase.expected)
         #expect(second == permissionCase.expected)
-        #expect(notifications.prompts == (permissionCase.permission == .notDetermined ? 1 : 0), "a prompt on every schedule")
+        #expect(notifications.prompts == 0, "automatic scheduling prompted")
         let marker = harness.defaults.string(forKey: ReminderScheduler.airingRemindersOwnerKey)
         if permissionCase.expected == .scheduled {
             #expect(Set(notifications.pending) == ["airing-7-start", "airing-7-1h"])
@@ -747,10 +765,10 @@ struct PendingReminderTests {
         await harness.tearDown()
     }
 
-    @Test("F19: a permission revoked in Settings after reminders were scheduled is seen on the next schedule: notAuthorized, nothing added, no new prompt; the restored owner keeps its reminders")
+    @Test("F19: a permission revoked in Settings after reminders were scheduled is seen on the next schedule: notAuthorized, nothing added, no prompt; the restored owner keeps its reminders")
     func revokedPermissionIsSeenWithoutANewPrompt() async throws {
         let notifications = FakeNotificationCenter()
-        notifications.permission = .notDetermined
+        notifications.permission = .authorized
         notifications.promptAnswer = .authorized
         let harness = try PublicDataHarness(notifications: notifications, responder: Self.animeResponder)
         let service = harness.service
@@ -761,7 +779,7 @@ struct PendingReminderTests {
         notifications.permission = .denied
         #expect(await service.reminders.scheduleAiringNotifications(animeId: 8, context: context) == .notAuthorized)
 
-        #expect(notifications.prompts == 1)
+        #expect(notifications.prompts == 0)
         #expect(Set(notifications.pending) == ["airing-7-start", "airing-7-1h"])
         #expect(!notifications.scheduled.contains { $0.hasPrefix("airing-8") })
         // A later launch of the same owner keeps them (restored-own-account behavior intact).
@@ -794,7 +812,7 @@ struct PendingReminderTests {
         let schedulingB = Task.immediate { @MainActor in
             await service.reminders.scheduleAiringNotifications(animeId: 7, context: contextB)
         }
-        await notifications.waitUntil { $0.authorizationRequests == 1 }
+        await notifications.waitUntil { $0.permissionReads == 1 }
 
         // A's cleanup resumes.
         lookup.open()

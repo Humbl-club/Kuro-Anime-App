@@ -16,6 +16,10 @@
 		96A000032EF0000100BEE61E /* KuroCore in Frameworks */ = {isa = PBXBuildFile; productRef = 96A000022EF0000100BEE61E /* KuroCore */; };
 		96A000052EF0000100BEE61E /* KuroLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 96A000042EF0000100BEE61E /* KuroLibrary */; };
 		96A000072EF0000100BEE61E /* KuroSupabase in Frameworks */ = {isa = PBXBuildFile; productRef = 96A000062EF0000100BEE61E /* KuroSupabase */; };
+		D7E1000A2F00000100BEE61E /* KuroCore in Frameworks */ = {isa = PBXBuildFile; productRef = D7E100082F00000100BEE61E /* KuroCore */; };
+		D7E1000B2F00000100BEE61E /* KuroWidgetSupport in Frameworks */ = {isa = PBXBuildFile; productRef = D7E100092F00000100BEE61E /* KuroWidgetSupport */; };
+		D7E1000D2F00000100BEE61E /* KuroWidgetSupport in Frameworks */ = {isa = PBXBuildFile; productRef = D7E1000C2F00000100BEE61E /* KuroWidgetSupport */; };
+		D7E1000F2F00000100BEE61E /* KuroWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D7E100012F00000100BEE61E /* KuroWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -33,7 +37,28 @@
 			remoteGlobalIDString = 953474842E8AA6D5004F4AA2;
 			remoteInfo = Kuro;
 		};
+		D7E100112F00000100BEE61E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9534747D2E8AA6D5004F4AA2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D7E100042F00000100BEE61E;
+			remoteInfo = KuroWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D7E1000E2F00000100BEE61E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D7E1000F2F00000100BEE61E /* KuroWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		953474852E8AA6D5004F4AA2 /* Kuro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kuro.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -42,7 +67,18 @@
 		C0C0C001AAAAAAAA00000001 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		C0C0C001AAAAAAAA00000002 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		C0C0C001AAAAAAAA00000003 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		D7E100012F00000100BEE61E /* KuroWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KuroWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D7E100032F00000100BEE61E /* Exceptions for "KuroWidgets" folder in "KuroWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D7E100042F00000100BEE61E /* KuroWidgets */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		953474872E8AA6D5004F4AA2 /* Kuro */ = {
@@ -58,6 +94,14 @@
 		9534749F2E8AA6D6004F4AA2 /* KuroUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = KuroUITests;
+			sourceTree = "<group>";
+		};
+		D7E100022F00000100BEE61E /* KuroWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D7E100032F00000100BEE61E /* Exceptions for "KuroWidgets" folder in "KuroWidgets" target */,
+			);
+			path = KuroWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -76,6 +120,7 @@
 				96A000032EF0000100BEE61E /* KuroCore in Frameworks */,
 				96A000052EF0000100BEE61E /* KuroLibrary in Frameworks */,
 				96A000072EF0000100BEE61E /* KuroSupabase in Frameworks */,
+				D7E1000D2F00000100BEE61E /* KuroWidgetSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -93,6 +138,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D7E100062F00000100BEE61E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D7E1000A2F00000100BEE61E /* KuroCore in Frameworks */,
+				D7E1000B2F00000100BEE61E /* KuroWidgetSupport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -103,6 +157,7 @@
 				953474872E8AA6D5004F4AA2 /* Kuro */,
 				953474952E8AA6D6004F4AA2 /* KuroTests */,
 				9534749F2E8AA6D6004F4AA2 /* KuroUITests */,
+				D7E100022F00000100BEE61E /* KuroWidgets */,
 				953474862E8AA6D5004F4AA2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -123,6 +178,7 @@
 				953474852E8AA6D5004F4AA2 /* Kuro.app */,
 				953474922E8AA6D6004F4AA2 /* KuroTests.xctest */,
 				9534749C2E8AA6D6004F4AA2 /* KuroUITests.xctest */,
+				D7E100012F00000100BEE61E /* KuroWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -137,10 +193,12 @@
 				953474812E8AA6D5004F4AA2 /* Sources */,
 				953474822E8AA6D5004F4AA2 /* Frameworks */,
 				953474832E8AA6D5004F4AA2 /* Resources */,
+				D7E1000E2F00000100BEE61E /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D7E100102F00000100BEE61E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				953474872E8AA6D5004F4AA2 /* Kuro */,
@@ -156,6 +214,7 @@
 				96A000022EF0000100BEE61E /* KuroCore */,
 				96A000042EF0000100BEE61E /* KuroLibrary */,
 				96A000062EF0000100BEE61E /* KuroSupabase */,
+				D7E1000C2F00000100BEE61E /* KuroWidgetSupport */,
 			);
 			productName = Kuro;
 			productReference = 953474852E8AA6D5004F4AA2 /* Kuro.app */;
@@ -207,6 +266,30 @@
 			productReference = 9534749C2E8AA6D6004F4AA2 /* KuroUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		D7E100042F00000100BEE61E /* KuroWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D7E100122F00000100BEE61E /* Build configuration list for PBXNativeTarget "KuroWidgets" */;
+			buildPhases = (
+				D7E100052F00000100BEE61E /* Sources */,
+				D7E100062F00000100BEE61E /* Frameworks */,
+				D7E100072F00000100BEE61E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D7E100022F00000100BEE61E /* KuroWidgets */,
+			);
+			name = KuroWidgets;
+			packageProductDependencies = (
+				D7E100082F00000100BEE61E /* KuroCore */,
+				D7E100092F00000100BEE61E /* KuroWidgetSupport */,
+			);
+			productName = KuroWidgets;
+			productReference = D7E100012F00000100BEE61E /* KuroWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -227,6 +310,9 @@
 					9534749B2E8AA6D6004F4AA2 = {
 						CreatedOnToolsVersion = 26.0.1;
 						TestTargetID = 953474842E8AA6D5004F4AA2;
+					};
+					D7E100042F00000100BEE61E = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -251,6 +337,7 @@
 				953474842E8AA6D5004F4AA2 /* Kuro */,
 				953474912E8AA6D6004F4AA2 /* KuroTests */,
 				9534749B2E8AA6D6004F4AA2 /* KuroUITests */,
+				D7E100042F00000100BEE61E /* KuroWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -271,6 +358,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9534749A2E8AA6D6004F4AA2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D7E100072F00000100BEE61E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -301,6 +395,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D7E100052F00000100BEE61E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -313,6 +414,11 @@
 			isa = PBXTargetDependency;
 			target = 953474842E8AA6D5004F4AA2 /* Kuro */;
 			targetProxy = 9534749D2E8AA6D6004F4AA2 /* PBXContainerItemProxy */;
+		};
+		D7E100102F00000100BEE61E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D7E100042F00000100BEE61E /* KuroWidgets */;
+			targetProxy = D7E100112F00000100BEE61E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -609,6 +715,78 @@
 			};
 			name = Release;
 		};
+		D7E100132F00000100BEE61E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = KuroWidgets/KuroWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 23;
+				DEVELOPMENT_TEAM = YLG68JL5Y7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KuroWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Kuro;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Kuro.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D7E100142F00000100BEE61E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = KuroWidgets/KuroWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 23;
+				DEVELOPMENT_TEAM = YLG68JL5Y7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KuroWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Kuro;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Kuro.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -644,6 +822,15 @@
 			buildConfigurations = (
 				953474AD2E8AA6D6004F4AA2 /* Debug */,
 				953474AE2E8AA6D6004F4AA2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D7E100122F00000100BEE61E /* Build configuration list for PBXNativeTarget "KuroWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D7E100132F00000100BEE61E /* Debug */,
+				D7E100142F00000100BEE61E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -713,6 +900,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */;
 			productName = KuroSupabase;
+		};
+		D7E1000C2F00000100BEE61E /* KuroWidgetSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */;
+			productName = KuroWidgetSupport;
+		};
+		D7E100082F00000100BEE61E /* KuroCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */;
+			productName = KuroCore;
+		};
+		D7E100092F00000100BEE61E /* KuroWidgetSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */;
+			productName = KuroWidgetSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
