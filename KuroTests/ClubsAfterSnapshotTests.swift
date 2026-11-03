@@ -96,16 +96,12 @@ struct ClubsAfterSnapshotTests {
         await capture(banded, name: "clubs-offline-with-content-390.png")
         Self.close(banded)
 
-        // Create sheet (seal above the title), from the list's own row.
-        let host = Self.window(Self.inject(ClubsView(), graph: harness.service, monitor: NetworkMonitor()), width: 390, height: 1_500)
-        try? await Task.sleep(for: .milliseconds(1_400))
-        if Self.activate(labelContains: KuroLocale.text("Start a club.", "Gründe einen Club."), in: host) {
-            try? await Task.sleep(for: .milliseconds(1_400))
-            await capture(host, name: "club-create-sheet-390.png", height: 844)
-        } else {
-            note("Create sheet: row could not be activated")
-        }
-        Self.close(host)
+        // Create sheet (seal above the title), rendered directly.
+        let create = Self.window(Self.inject(CreateClubSheet(onCreated: { _ in }), graph: harness.service,
+                                             monitor: NetworkMonitor()), width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(1_000))
+        await capture(create, name: "club-create-sheet-390.png")
+        Self.close(create)
 
         // Join sheet through its deep-link path (code prefilled).
         let join = Self.window(Self.inject(ClubsView(pendingJoinCode: .constant("AbC12xYz")), graph: harness.service,
@@ -378,42 +374,6 @@ struct ClubsAfterSnapshotTests {
             stack.append(contentsOf: view.subviews)
         }
         return best
-    }
-
-    /// Activates the first accessibility element whose label is `label` (or contains `labelContains`).
-    private static func activate(label: String? = nil, labelContains: String? = nil, in root: UIView) -> Bool {
-        func matches(_ element: NSObject) -> Bool {
-            guard let value = element.accessibilityLabel else { return false }
-            if let label { return value == label }
-            if let labelContains { return value.contains(labelContains) }
-            return false
-        }
-        func find(_ element: NSObject, depth: Int) -> NSObject? {
-            guard depth < 80 else { return nil }
-            if matches(element) { return element }
-            if let children = element.accessibilityElements as? [NSObject] {
-                for child in children { if let hit = find(child, depth: depth + 1) { return hit } }
-            }
-            let count = element.accessibilityElementCount()
-            if count != NSNotFound, count > 0 {
-                for index in 0..<count {
-                    if let child = element.accessibilityElement(at: index) as? NSObject,
-                       let hit = find(child, depth: depth + 1) { return hit }
-                }
-            }
-            if let view = element as? UIView {
-                for sub in view.subviews { if let hit = find(sub, depth: depth + 1) { return hit } }
-            }
-            return nil
-        }
-        guard let target = find(root, depth: 0) else { return false }
-        return target.accessibilityActivate()
-    }
-
-    private func note(_ line: String) {
-        #if DEBUG
-        print("DCNOTE: " + line)
-        #endif
     }
 
     // MARK: Artwork

@@ -465,7 +465,7 @@ private struct ClubRoomQuietRow: View {
 
 // MARK: - Create Club Sheet
 
-private struct CreateClubSheet: View {
+struct CreateClubSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ClubsStore.self) private var clubs
     @State private var actionScope = AccountActionScope()
