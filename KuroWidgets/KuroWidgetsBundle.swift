@@ -5,6 +5,8 @@ import WidgetKit
 // MARK: - KuroWidgets extension entry point
 // Two widgets over the one app-written snapshot (`KuroSnapshotProvider`): the next releases of the
 // account's tracked titles, and Now Watching with an interactive +1 (`AdvanceProgressIntent`).
+// Gallery names and descriptions are EN/DE from the device language (`WidgetCopy`; the extension has
+// no string catalog).
 
 @main
 struct KuroWidgetsBundle: WidgetBundle {
@@ -20,8 +22,8 @@ struct NextReleaseWidget: Widget {
             NextReleaseWidgetView(entry: entry)
                 .containerBackground(WidgetPalette.canvas, for: .widget)
         }
-        .configurationDisplayName("Up next")
-        .description("The next episodes and chapters of what you follow.")
+        .configurationDisplayName(WidgetCopy.upNext(WidgetCopy.preferredGerman()))
+        .description(WidgetCopy.upNextDescription(WidgetCopy.preferredGerman()))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -32,8 +34,8 @@ struct NowWatchingWidget: Widget {
             NowWatchingWidgetView(entry: entry)
                 .containerBackground(WidgetPalette.canvas, for: .widget)
         }
-        .configurationDisplayName("Now watching")
-        .description("What you are watching and reading, with +1.")
+        .configurationDisplayName(WidgetCopy.nowWatching(WidgetCopy.preferredGerman()))
+        .description(WidgetCopy.nowWatchingDescription(WidgetCopy.preferredGerman()))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

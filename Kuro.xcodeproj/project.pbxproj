@@ -104,6 +104,11 @@
 			path = KuroWidgets;
 			sourceTree = "<group>";
 		};
+		D7E200012F00000100BEE61E /* KuroWidgetViews */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KuroWidgetViews;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -158,6 +163,7 @@
 				953474952E8AA6D6004F4AA2 /* KuroTests */,
 				9534749F2E8AA6D6004F4AA2 /* KuroUITests */,
 				D7E100022F00000100BEE61E /* KuroWidgets */,
+				D7E200012F00000100BEE61E /* KuroWidgetViews */,
 				953474862E8AA6D5004F4AA2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -202,6 +208,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				953474872E8AA6D5004F4AA2 /* Kuro */,
+				D7E200012F00000100BEE61E /* KuroWidgetViews */,
 			);
 			name = Kuro;
 			packageProductDependencies = (
@@ -280,6 +287,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				D7E100022F00000100BEE61E /* KuroWidgets */,
+				D7E200012F00000100BEE61E /* KuroWidgetViews */,
 			);
 			name = KuroWidgets;
 			packageProductDependencies = (
