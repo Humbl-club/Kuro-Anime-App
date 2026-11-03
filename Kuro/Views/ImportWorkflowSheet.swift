@@ -9,6 +9,9 @@ enum ImportResultDestination {
 }
 
 /// Reusable from Profile, Concierge and Home recovery. Closing keeps the durable job.
+/// Home's grammar (details-songs spec §13): the source as the eyebrow over the 24 pt heading, the review
+/// groups as refine words, review rows as quiet rows (10 pt muted state words), toggles as check rows,
+/// the failure as a glance card; every string, binding and busy rule unchanged.
 struct ImportWorkflowSheet: View {
     let imports: ImportsService
     let onNavigate: (ImportResultDestination) -> Void
@@ -64,10 +67,7 @@ struct ImportWorkflowSheet: View {
                             controls(job)
                             titlePages(job)
                         } else {
-                            Text(german ? "Importe." : "Imports.")
-                                .kuroRoleText(.headline)
-                                .foregroundStyle(Color.kuroInk)
-                                .accessibilityAddTraits(.isHeader)
+                            ImportPageHeading(title: german ? "Importe." : "Imports.")
                             if let failure = model.failure { failureCard(failure) }
                             history
                         }
@@ -122,17 +122,11 @@ struct ImportWorkflowSheet: View {
 
     private func summary(_ job: ImportOutcome) -> some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            Text(heading(job))
-                .kuroRoleText(.headline)
-                .foregroundStyle(Color.kuroInk)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            Text(ImportCopy.source(job.selection, german: german))
-                .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
-            Text(german ? "Anime und Manga bleiben getrennt. Deine Kuro-Werte bleiben, solange du keine Änderung bestätigst."
-                        : "Anime and Manga stay separate. Your Kuro values stay unless you confirm a change.")
-                .font(.kuroBody()).foregroundStyle(Color.kuroInkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            ImportPageHeading(
+                eyebrow: ImportCopy.source(job.selection, german: german),
+                title: heading(job),
+                description: german ? "Anime und Manga bleiben getrennt. Deine Kuro-Werte bleiben, solange du keine Änderung bestätigst."
+                                    : "Anime and Manga stay separate. Your Kuro values stay unless you confirm a change.")
             if !job.selection.media.allSatisfy({ job.exhaustedMedia[$0] == true }) {
                 Text(german ? "Noch nicht alles gelesen. Setz denselben Import fort, bevor du bestätigst."
                             : "Reading isn't finished. Resume the same import before confirming.")
@@ -199,9 +193,8 @@ struct ImportWorkflowSheet: View {
             }
             if job.phase == .reviewing, model.manifest?.phase == .reviewing, model.manifest?.decisions == nil {
                 note(g ? "Aus dieser Prüfung wird nichts gespeichert, bis du bestätigst." : "Nothing from this review is saved until you confirm.")
-                Toggle(g ? "Änderungen an vorhandenen Titeln prüfen" : "Review updates to existing titles", isOn: $reviewUpdates)
-                    .font(.kuroBody())
-                    .foregroundStyle(Color.kuroInk)
+                ImportCheckRow(title: g ? "Änderungen an vorhandenen Titeln prüfen" : "Review updates to existing titles",
+                               isOn: $reviewUpdates)
                     .disabled(model.busy || imports.importBusy)
                 KuroInkButton(g ? "Geprüfte Auswahl speichern" : "Save reviewed choices", isLoading: model.busy) {
                     Task { await model.apply() }
@@ -287,7 +280,7 @@ struct ImportWorkflowSheet: View {
         return HStack(alignment: .top, spacing: KuroDesignSpacing.sm) {
             Image(systemName: "exclamationmark.circle")
                 .font(.kuroCustom(15, relativeTo: .body, maxSize: 24))
-                .foregroundStyle(Color.kuroError)
+                .foregroundStyle(Color.kuroInk)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
                 Text(ImportCopy.failure(failure, german: g))
@@ -304,9 +297,12 @@ struct ImportWorkflowSheet: View {
                 }
             }
         }
-        .padding(KuroDesignSpacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.kuroCanvasQuiet, in: RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
+        .shadow(color: HomeInk.glanceShadow, radius: 1, y: 1)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("import.failure")
     }
@@ -320,7 +316,7 @@ struct ImportWorkflowSheet: View {
                 .accessibilityAddTraits(.isHeader)
             if job.phase == .reviewing {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: KuroDesignSpacing.md) {
+                    HStack(spacing: 16) {
                         groupWord(g ? "Alle (\(model.items.count))" : "All (\(model.items.count))", selected: reviewGroup == nil) {
                             reviewGroup = nil; visibleCount = 50
                         }
@@ -344,18 +340,9 @@ struct ImportWorkflowSheet: View {
         }
     }
 
+    /// A review group as a refine word (11 pt medium, the 16 × 1.5 rule under the selected one).
     private func groupWord(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.kuroMeta(weight: selected ? .semibold : .regular))
-                .foregroundStyle(selected ? Color.kuroInk : Color.kuroInkQuiet)
-                .underline(selected, color: Color.kuroInk)
-                .lineLimit(1)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        ImportRefineWord(title: title, isSelected: selected, action: action)
     }
 
     private func reviewRow(_ item: ImportReviewItem, job: ImportOutcome) -> some View {
@@ -363,7 +350,7 @@ struct ImportWorkflowSheet: View {
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             Text(item.title).font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2).foregroundStyle(Color.kuroInk).fixedSize(horizontal: false, vertical: true)
             Text("\(ImportCopy.medium(item.medium, german: g)) · \(ImportCopy.disposition(item.disposition, german: g))")
-                .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22)).foregroundStyle(Color.kuroMuted)
             if let detail = item.detail { Text(detail).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
             if let undo = item.undoDisposition { Text((g ? "Rückgängig: " : "Undo: ") + undo).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
             if job.phase == .reviewing {
@@ -386,7 +373,7 @@ struct ImportWorkflowSheet: View {
                             VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
                                 Text("Kuro: \(ImportFieldCopy.value(field, in: item.current))")
                                 Text((g ? "Neu: " : "Incoming: ") + ImportFieldCopy.value(field, in: item.incoming))
-                                Toggle((g ? "Übernehmen: " : "Update ") + ImportFieldCopy.label(field), isOn: Binding(
+                                ImportCheckRow(title: (g ? "Übernehmen: " : "Update ") + ImportFieldCopy.label(field), isOn: Binding(
                                     get: { model.approval.contains(field, for: item) },
                                     set: { model.approval.set(field, approved: $0, for: item) }
                                 ))

@@ -68,7 +68,7 @@ struct DCDiscoverLayoutTests {
         #expect(width * 4 + DiscoverIssueLayout.trioSpacing * 3 <= 640)
     }
 
-    @Test("Index: five rows, 76 pt tall, the key at least 96 (84 compact); the rail 106 × 150, ten at most")
+    @Test("Index: five rows, 76 pt tall, the key at least 96 (84 compact); the rail by the edge-peek rule, ten at most")
     func indexAndRail() {
         #expect(DiscoverIssueLayout.indexRows == 5)
         #expect(DiscoverIssueLayout.indexRows(onAll: true) == 3, "All carries both media: three rows, See all for the rest")
@@ -78,7 +78,11 @@ struct DCDiscoverLayoutTests {
         #expect(DiscoverIssueLayout.indexKeyWidth(compact: true) == 84)
         #expect(DiscoverIssueLayout.footKeyColumn(compact: false) == 112)
         #expect(DiscoverIssueLayout.footKeyColumn(compact: true) == 96)
-        #expect(DiscoverIssueLayout.railCover == CGSize(width: 106, height: 150))
+        // Details-songs spec §5.1: 100 × 150 at 390 (column 350 + gutter 20), 112 at 320 and on the iPad column.
+        #expect(DiscoverIssueLayout.railCover(column: 350, gutter: 20) == CGSize(width: 100, height: 150))
+        #expect(DiscoverIssueLayout.railCover(column: 288, gutter: 16) == CGSize(width: 112, height: 168))
+        #expect(DiscoverIssueLayout.railCover(column: 640, gutter: 20) == CGSize(width: 112, height: 168))
+        #expect(DiscoverIssueLayout.railSpacing == 14)
         #expect(DiscoverIssueLayout.railCap == 10)
         #expect(DiscoverIssueLayout.offersSeeAll(total: 8, shown: 4))
         #expect(!DiscoverIssueLayout.offersSeeAll(total: 4, shown: 4))
@@ -294,15 +298,20 @@ struct DCDiscoverSectionTests {
                         trendingManga: true, topRatedManga: true, newlyAddedManga: true)
     }
 
-    @Test("All: the curated order; Because-You replaces New to you; realm rails only behind their flag")
+    @Test("All: the curated order; Because-You replaces New to you; realm rails only behind their flag; Essential manga folded")
     func allIssue() {
-        #expect(Sections.main(full(.all, realm: false)) == [.newToYou, .essentials, .mangaNewToYou, .trending, .essentialsManga])
+        // Details-songs spec §14.2 (D17): on All, Manga new to you is one rail and Essential manga is the
+        // fold's first section.
+        #expect(Sections.main(full(.all, realm: false)) == [.newToYou, .essentials, .mangaNewToYou, .trending])
         #expect(Sections.main(full(.all, realm: false, becauseYou: true))
-                == [.becauseYou, .essentials, .mangaNewToYou, .trending, .essentialsManga])
+                == [.becauseYou, .essentials, .mangaNewToYou, .trending])
         #expect(Sections.main(full(.all, realm: true))
-                == [.newToYou, .tonightShelf, .essentials, .hiddenGem, .mangaNewToYou, .trending, .essentialsManga])
-        #expect(Sections.fold(full(.all, realm: false)) == [.animeClassics, .animeCurrentSeason, .animeTopRated, .animeNewlyAdded,
+                == [.newToYou, .tonightShelf, .essentials, .hiddenGem, .mangaNewToYou, .trending])
+        #expect(Sections.fold(full(.all, realm: false)) == [.mangaEssentials,
+                                                            .animeClassics, .animeCurrentSeason, .animeTopRated, .animeNewlyAdded,
                                                             .mangaClassics, .mangaTrending, .mangaTopRated, .mangaNewlyAdded])
+        #expect(Sections.drawsMangaNewToYouAsRail(.all))
+        #expect(!Sections.drawsMangaNewToYouAsRail(.manga))
     }
 
     @Test("Anime: no manga sections, Because-You never replaces New to you; the gem must match the issue")

@@ -3,7 +3,8 @@ import KuroLibrary
 import SwiftUI
 
 /// Account-keyed Profile discovery of saved and resumable imports. Durable continuation stays in the
-/// Imports owner; this section only lists what exists and opens it.
+/// Imports owner; this section only lists what exists and opens it. Home's grammar (details-songs spec
+/// §13): quiet rows (15 pt title, 10 pt muted state words, hairlines); strings unchanged.
 struct ImportHistorySection: View {
     let imports: ImportsService
     let onOpen: (ImportOutcome?) -> Void
@@ -101,19 +102,19 @@ struct ImportHistorySection: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.kuroBody(weight: .medium))
+                    .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(subtitle)
-                    .font(.kuroMeta())
-                    .foregroundStyle(Color.kuroInkSecondary)
+                    .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22))
+                    .foregroundStyle(Color.kuroMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
             .padding(.vertical, KuroDesignSpacing.sm)
             .contentShape(Rectangle())
         }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+        .buttonStyle(HomeContactStyle())
         .accessibilityHint(KuroLocale.text("Opens this import", "Öffnet diesen Import"))
     }
 }

@@ -439,11 +439,19 @@ struct EditorialDiscoverView: View {
                     .padding(.horizontal, gutter)
             }
         case .mangaNewToYou:
-            DiscoverFeatureTrio(anchor: anchor(.mangaNewToYou), title: headline(.mangaNewToYou),
-                                summary: DiscoverIssueCopy.newToYouSummary(german: german),
-                                cards: vm.newToYouManga.map { TasteCard(manga: $0) }, column: column,
-                                onSeeAll: { openSeeAll(.mangaNewToYou) })
-                .padding(.horizontal, gutter)
+            if DiscoverIssueSections.drawsMangaNewToYouAsRail(selectedMediaType) {
+                // All (§14.2): one rail in Trending's anatomy, up to ten, then "See all {n} ›".
+                DiscoverIssueRail(anchor: anchor(.mangaNewToYou), title: headline(.mangaNewToYou),
+                                  summary: DiscoverIssueCopy.newToYouSummary(german: german),
+                                  cards: vm.newToYouManga.map { TasteCard(manga: $0) }, column: column, gutter: gutter,
+                                  onSeeAll: { openSeeAll(.mangaNewToYou) })
+            } else {
+                DiscoverFeatureTrio(anchor: anchor(.mangaNewToYou), title: headline(.mangaNewToYou),
+                                    summary: DiscoverIssueCopy.newToYouSummary(german: german),
+                                    cards: vm.newToYouManga.map { TasteCard(manga: $0) }, column: column,
+                                    onSeeAll: { openSeeAll(.mangaNewToYou) })
+                    .padding(.horizontal, gutter)
+            }
         case .trending:
             DiscoverIssueRail(anchor: anchor(.animeTrending), title: headline(.animeTrending),
                               summary: DiscoverIssueCopy.trendingSummary(german: german),
@@ -474,6 +482,7 @@ struct EditorialDiscoverView: View {
         case .animeCurrentSeason: return vm.currentSeason.map { TasteCard(anime: $0) }
         case .animeTopRated: return vm.topRated.map { TasteCard(anime: $0) }
         case .animeNewlyAdded: return vm.newlyAdded.map { TasteCard(anime: $0) }
+        case .mangaEssentials: return vm.essentialsManga.map { TasteCard(manga: $0) }
         case .mangaClassics: return vm.classicsManga.map { TasteCard(manga: $0) }
         case .mangaTrending: return vm.trendingManga.map { TasteCard(manga: $0) }
         case .mangaTopRated: return vm.topRatedManga.map { TasteCard(manga: $0) }
@@ -1042,12 +1051,19 @@ enum DiscoverIssueSections {
         if input.realmRails, let kind = input.hiddenGemKind, matches(input.issue, kind: kind) { sections.append(.hiddenGem) }
         if input.issue == .all, input.mangaNewToYou { sections.append(.mangaNewToYou) }
         if anime, input.trending { sections.append(.trending) }
-        if showsManga(input.issue), input.essentialsManga { sections.append(.essentialsManga) }
+        // Details-songs spec §14.2 (D17): on All, Essential manga moves into the fold (its first
+        // section); the Manga issue keeps it on the page.
+        if input.issue == .manga, input.essentialsManga { sections.append(.essentialsManga) }
         return sections
     }
 
+    /// How Manga new to you is drawn: one rail on All (§14.2), the feature trio on Manga.
+    static func drawsMangaNewToYouAsRail(_ issue: Issue) -> Bool { issue == .all }
+
     static func fold(_ input: Inputs) -> [EditorialDiscoverRoute] {
         var routes: [EditorialDiscoverRoute] = []
+        // All: Essential manga is the fold's first section (§14.2).
+        if input.issue == .all, input.essentialsManga { routes.append(.mangaEssentials) }
         if showsAnime(input.issue) {
             if input.classics { routes.append(.animeClassics) }
             if input.currentSeason { routes.append(.animeCurrentSeason) }
