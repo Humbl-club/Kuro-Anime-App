@@ -1,10 +1,9 @@
 import SwiftUI
 
-// MARK: - The One Thing (Discover P1, issue frame since 2026-11-01)
-// One boosted title per day as the Discover lead frame (spec D8, rulebook §14.5): the full-width
-// picture, then a kicker, the serif title and its argument in at most two lines on the white page.
-// No glass, no gradient, no score or genre in the frame. Banner art keeps a wide crop; a cover is
-// cropped from the top. Tap routes to the standard detail.
+// MARK: - The One Thing (Discover P1; cover story since the Discover + Clubs redesign, 2026-11-03)
+// One boosted title per day as the Discover lead: since the redesign (§6.2 item 3) it is the cover
+// story, `DiscoverCoverStory`, on the title's own artwork material with the Plan key. No score or
+// genre (rulebook §14.5). Tap routes to the standard detail. These wrappers keep the shipped names.
 
 struct DiscoverOneThingCard: View {
     let feature: DailyFeature
@@ -15,15 +14,8 @@ struct DiscoverOneThingCard: View {
     static var defaultEyebrow: String { KuroLocale.text("Today's pick", "Tipp des Tages") }
 
     var body: some View {
-        DiscoverLeadFrame(
-            kicker: eyebrow ?? Self.defaultEyebrow,
-            title: feature.title,
-            line: feature.displayArgument,
-            imageURL: feature.artURL,
-            isWideArt: !(feature.bannerImage ?? "").isEmpty,
-            route: MediaRoute(kind: feature.kind, id: feature.mediaId),
-            width: width
-        )
+        DiscoverCoverStory(story: DiscoverStory(feature: feature, eyebrow: eyebrow ?? Self.defaultEyebrow),
+                           kind: eyebrow == nil ? .lead : .gem, column: width)
     }
 }
 
@@ -32,6 +24,6 @@ struct DiscoverOneThingSkeleton: View {
     let width: CGFloat
 
     var body: some View {
-        DiscoverLeadSkeleton(width: width)
+        DiscoverStorySkeleton(column: width)
     }
 }

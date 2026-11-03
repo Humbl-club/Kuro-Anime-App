@@ -1,7 +1,9 @@
 // Discover issue frames (spec D8, rulebook §14.5)
-// Issue-style frames on the white page: the picture first, then the title, then at most one line.
-// No glass, no score chips, no genre pills inside a frame. The lead frame keeps a full-width picture
-// with a serif title and at most two short lines. Every text sits on the ink tokens.
+// The shared issue frame (Browse, Search, Taste, Detail and Discover's See all page): the picture
+// first, then the title, then at most one line. No glass, no score chips, no genre pills inside a
+// frame. Every text sits on the ink tokens. Since the Discover + Clubs redesign (2026-11-03) the
+// Discover page itself draws its own blocks (`Kuro/Views/Discover/`); the shared types here keep their
+// API and pixels, and the Discover-only lead frame, rails, grids, heading and skeleton were retired.
 //
 // Interaction (rulebook §7): a frame opens the title through `routes.openMedia` on a deliberate tap
 // that honours the pager's tap suppression; its context menu keeps Quick Add / Edit / Add to Club.
@@ -335,8 +337,12 @@ struct DiscoverPicture: View {
     let url: URL?
     var maxPixelSize: Int? = 360
 
+    /// The missing-art field (`kuroMissingArt` unless a page sets its own; Discover's warm pages use
+    /// Home's poster fill).
+    @Environment(\.discoverMissingArt) private var missingArt
+
     var body: some View {
-        Color.kuroMissingArt
+        missingArt
             .overlay(alignment: .top) {
                 KuroCachedAsyncImage(url: url, maxPixelSize: maxPixelSize) { phase in
                     switch phase {
@@ -345,7 +351,7 @@ struct DiscoverPicture: View {
                             .resizable()
                             .scaledToFill()
                     default:
-                        Color.kuroMissingArt
+                        missingArt
                     }
                 }
             }
@@ -354,91 +360,10 @@ struct DiscoverPicture: View {
     }
 }
 
-// MARK: - Lead frame
-
-/// The lead issue frame: a full-width picture, then a kicker, a serif title and at most two short
-/// lines on white. Banner art keeps a wide crop; a cover is cropped from the top at 4:5.
-struct DiscoverLeadFrame: View {
-    let kicker: String?
-    let title: String
-    let line: String?
-    let imageURL: URL?
-    /// Banner art (wide) rather than a portrait cover.
-    let isWideArt: Bool
-    let route: MediaRoute
-    let width: CGFloat
-
-    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-    @Environment(\.kuroRoutes) private var routes
-
-    static func pictureHeight(width: CGFloat, isWideArt: Bool) -> CGFloat {
-        isWideArt ? floor(width / 2.2) : min(floor(width * 1.25), 560)
-    }
-
-    var body: some View {
-        // A Button so the press state cancels on scroll/drag (rulebook §7).
-        Button {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            routes.openMedia(route)
-        } label: {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                DiscoverPicture(url: imageURL, maxPixelSize: 1100)
-                    .frame(width: width, height: Self.pictureHeight(width: width, isWideArt: isWideArt))
-                    .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
-
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                    if let kicker, !kicker.isEmpty {
-                        Text(kicker)
-                            .kuroKicker()
-                            .accessibilityHidden(true)
-                    }
-                    Text(title)
-                        .kuroRoleText(.headline)
-                        .foregroundStyle(Color.kuroInk)
-                        .lineLimit(3)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let line, !line.isEmpty {
-                        Text(line)
-                            .font(.kuroBody(weight: .regular))
-                            .foregroundStyle(Color.kuroInkSecondary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(width: width, alignment: .leading)
-            }
-            .frame(width: width, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.985))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text([kicker, title, line].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")))
-        .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
-        .accessibilityAddTraits(.isButton)
-    }
-}
-
-/// The lead frame's stable placeholder while the daily pick loads.
-struct DiscoverLeadSkeleton: View {
-    let width: CGFloat
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-            RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
-                .fill(Color.kuroBlack05)
-                .frame(width: width, height: DiscoverLeadFrame.pictureHeight(width: width, isWideArt: true))
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(Color.kuroBlack05)
-                .frame(width: width * 0.6, height: 22)
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(Color.kuroBlack05)
-                .frame(width: width * 0.85, height: 14)
-        }
-        .accessibilityHidden(true)
-    }
+extension EnvironmentValues {
+    /// The field `DiscoverPicture` shows behind missing or failed art. Additive: every other caller
+    /// keeps `kuroMissingArt`.
+    @Entry var discoverMissingArt: Color = .kuroMissingArt
 }
 
 // MARK: - Rail filter (Trending / Top rated)
@@ -463,178 +388,5 @@ nonisolated enum DiscoverRailFilter: String, CaseIterable, Hashable, Sendable {
         case .long: return (episodes ?? 0) > 50
         case .finished: return statusRaw == "FINISHED"
         }
-    }
-}
-
-// MARK: - Sections
-
-/// A horizontal rail of issue frames under a serif section header.
-struct DiscoverRail<Item: MediaDisplayable>: View {
-    let title: String
-    let items: [Item]
-    let containerWidth: CGFloat
-    var onSeeAll: (() -> Void)? = nil
-    var showsFilters: Bool = false
-    var largeFrames: Bool = true
-    /// Stated airing slots by id (Airing today).
-    var airingSlots: [Int: DiscoverAiringSlot] = [:]
-
-    @State private var filter: DiscoverRailFilter = .all
-
-    private var shown: [Item] {
-        items.filter { filter.includes(episodes: $0.episodes, statusRaw: $0.statusRaw) }
-    }
-
-    var body: some View {
-        let gutter = DiscoverLayout.gutter(for: containerWidth)
-        let frameWidth = DiscoverLayout.railFrameWidth(for: containerWidth, large: largeFrames)
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            DiscoverSectionHeading(title: title, onSeeAll: onSeeAll)
-                .padding(.horizontal, gutter)
-
-            if showsFilters {
-                DiscoverWordPicker(
-                    options: DiscoverRailFilter.allCases.map { ($0, $0.title(german: KuroLocale.isGerman)) },
-                    selection: $filter,
-                    accessibilityLabel: KuroLocale.text("Refine \(title)", "\(title) eingrenzen")
-                )
-                .contentMargins(.horizontal, gutter, for: .scrollContent)
-            }
-
-            if shown.isEmpty {
-                KuroStateView(.empty,
-                              title: KuroLocale.text("Nothing here for this choice.", "Für diese Auswahl gibt es hier nichts."),
-                              layout: .inline)
-                    .padding(.horizontal, gutter)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(alignment: .top, spacing: DiscoverLayout.frameSpacing) {
-                        ForEach(shown, id: \.id) { item in
-                            DiscoverFrame(media: item, width: frameWidth, airing: airingSlots[item.id])
-                        }
-                    }
-                    .padding(.horizontal, gutter)
-                }
-                .kuroSwipeExclusionZone()
-            }
-        }
-    }
-}
-
-/// An equal-frame grid (columns derived from the width) under a serif section header.
-struct DiscoverGridSection<Item: MediaDisplayable>: View {
-    let title: String
-    let items: [Item]
-    let containerWidth: CGFloat
-    var onSeeAll: (() -> Void)? = nil
-    var showsFilters: Bool = false
-
-    @State private var filter: DiscoverRailFilter = .all
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    private var shown: [Item] {
-        items.filter { filter.includes(episodes: $0.episodes, statusRaw: $0.statusRaw) }
-    }
-
-    var body: some View {
-        let gutter = DiscoverLayout.gutter(for: containerWidth)
-        let inner = max(0, containerWidth - gutter * 2)
-        let columns = DiscoverLayout.columnCount(for: inner, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
-        let frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            DiscoverSectionHeading(title: title, onSeeAll: onSeeAll)
-                .padding(.horizontal, gutter)
-
-            if showsFilters {
-                DiscoverWordPicker(
-                    options: DiscoverRailFilter.allCases.map { ($0, $0.title(german: KuroLocale.isGerman)) },
-                    selection: $filter,
-                    accessibilityLabel: KuroLocale.text("Refine \(title)", "\(title) eingrenzen")
-                )
-                .contentMargins(.horizontal, gutter, for: .scrollContent)
-            }
-
-            if shown.isEmpty {
-                KuroStateView(.empty,
-                              title: KuroLocale.text("Nothing here for this choice.", "Für diese Auswahl gibt es hier nichts."),
-                              layout: .inline)
-                    .padding(.horizontal, gutter)
-            } else {
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.fixed(frameWidth), spacing: DiscoverLayout.frameSpacing, alignment: .top), count: columns),
-                    alignment: .leading,
-                    spacing: KuroDesignSpacing.lg
-                ) {
-                    ForEach(shown, id: \.id) { item in
-                        DiscoverFrame(media: item, width: frameWidth)
-                    }
-                }
-                .padding(.horizontal, gutter)
-            }
-        }
-    }
-}
-
-/// The section heading: serif title (a VoiceOver header) with an optional "See all".
-struct DiscoverSectionHeading: View {
-    let title: String
-    var onSeeAll: (() -> Void)? = nil
-
-    var body: some View {
-        KuroSectionHeader(
-            title,
-            size: .title,
-            actionTitle: onSeeAll == nil ? nil : KuroLocale.text("See all", "Alle ansehen"),
-            action: onSeeAll.map { open in
-                {
-                    KuroAccessibility.impactHaptic(.light)
-                    open()
-                }
-            }
-        )
-    }
-}
-
-/// First-paint placeholder: the lead frame and two rails at their real sizes.
-struct DiscoverLoadingSkeleton: View {
-    let containerWidth: CGFloat
-
-    var body: some View {
-        let gutter = DiscoverLayout.gutter(for: containerWidth)
-        let frameWidth = DiscoverLayout.railFrameWidth(for: containerWidth, large: true)
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
-            DiscoverLeadSkeleton(width: max(0, containerWidth - gutter * 2))
-                .padding(.horizontal, gutter)
-            // The branded loading cue: the scrub line travelling under the lead frame.
-            KuroScrubLine()
-                .frame(maxWidth: 96)
-                .padding(.horizontal, gutter)
-            ForEach(0..<2, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(Color.kuroBlack05)
-                        .frame(width: 140, height: 18)
-                        .padding(.horizontal, gutter)
-                    HStack(alignment: .top, spacing: DiscoverLayout.frameSpacing) {
-                        ForEach(0..<4, id: \.self) { _ in
-                            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                                RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
-                                    .fill(Color.kuroBlack05)
-                                    .frame(width: frameWidth, height: floor(frameWidth / KuroCardMetrics.imageAspectRatio))
-                                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                    .fill(Color.kuroBlack05)
-                                    .frame(width: frameWidth * 0.8, height: 12)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, gutter)
-                    .frame(width: containerWidth, alignment: .leading)
-                    .clipped()
-                }
-            }
-        }
-        .padding(.top, KuroDesignSpacing.sm)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(KuroLocale.text("Loading", "Wird geladen"))
     }
 }
