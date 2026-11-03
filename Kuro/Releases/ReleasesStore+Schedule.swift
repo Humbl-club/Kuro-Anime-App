@@ -485,7 +485,10 @@ extension ReleasesStore {
     /// Publishes the account's schedule while `context` is still current.
     private func publishSchedule(_ items: [ReleaseScheduleItem], context: AccountContext) -> [ReleaseScheduleItem] {
         guard accountSession.isCurrent(context) else { return [] }
-        if schedule != items { schedule = items }
+        if schedule != items {
+            schedule = items
+            scheduleReleaseNotificationsSoon()
+        }
         return items
     }
 
