@@ -500,31 +500,29 @@ struct StaffDetailSheet: View {
             let shown = shownWorks
             EntityHeading(title: EntityPageCopy.worksHeading(german: german),
                           note: EntityPageCopy.titles(shown.count, german: german))
-            VStack(alignment: .leading, spacing: 0) {
-                if availableMediaFilters.count > 1 || availableRoleFilters.count > 1 {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 24) {
-                            if availableMediaFilters.count > 1 {
-                                EntityWords(options: availableMediaFilters, selection: Binding(
-                                    get: { mediaFilter },
-                                    set: { option in
-                                        mediaFilter = option
-                                        // A role the new medium does not have would leave the list empty.
-                                        if !availableRoleFilters.contains(roleFilter) { roleFilter = .all }
-                                    }), groupLabel: EntityPageCopy.refineLabel(german: german))
-                            }
-                            if availableRoleFilters.count > 1 {
-                                EntityWords(options: availableRoleFilters, selection: $roleFilter,
-                                            groupLabel: EntityPageCopy.refineLabel(german: german))
-                            }
-                        }
-                        .padding(.horizontal, EntityPageLayout.gutter)
-                    }
-                    .scrollClipDisabled()
-                    .kuroSwipeExclusionZone()
+            let refines = availableMediaFilters.count > 1 || availableRoleFilters.count > 1
+            // One row when the words fit (refine left, sort right); otherwise the refine words scroll on
+            // their own row and the sort words sit under them.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 16) {
+                    if refines { staffRefineWords(german: german) }
+                    Spacer(minLength: 8)
+                    EntityWords(options: EntitySortMode.allCases, selection: $sortMode,
+                                groupLabel: EntityPageCopy.sortLabel(german: german))
                 }
-                EntitySortRow(sort: $sortMode)
-                    .entityGutter()
+                .entityGutter()
+                VStack(alignment: .leading, spacing: 0) {
+                    if refines {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            staffRefineWords(german: german)
+                                .padding(.horizontal, EntityPageLayout.gutter)
+                        }
+                        .scrollClipDisabled()
+                        .kuroSwipeExclusionZone()
+                    }
+                    EntitySortRow(sort: $sortMode)
+                        .entityGutter()
+                }
             }
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array((showsAllWorks ? shown : Array(shown.prefix(Self.foldedWorks))).enumerated()),
@@ -538,6 +536,28 @@ struct StaffDetailSheet: View {
                 EntityListFold(isExpanded: $showsAllWorks,
                                expand: EntityPageCopy.allWorks(shown.count, german: german),
                                collapse: EntityPageCopy.fewerRoles(german: german))
+            }
+        }
+    }
+}
+
+extension StaffDetailSheet {
+    /// All / Anime / Manga (when the filmography spans both), then the shipped craft words.
+    @ViewBuilder
+    fileprivate func staffRefineWords(german: Bool) -> some View {
+        HStack(spacing: 24) {
+            if availableMediaFilters.count > 1 {
+                EntityWords(options: availableMediaFilters, selection: Binding(
+                    get: { mediaFilter },
+                    set: { option in
+                        mediaFilter = option
+                        // A role the new medium does not have would leave the list empty.
+                        if !availableRoleFilters.contains(roleFilter) { roleFilter = .all }
+                    }), groupLabel: EntityPageCopy.refineLabel(german: german))
+            }
+            if availableRoleFilters.count > 1 {
+                EntityWords(options: availableRoleFilters, selection: $roleFilter,
+                            groupLabel: EntityPageCopy.refineLabel(german: german))
             }
         }
     }

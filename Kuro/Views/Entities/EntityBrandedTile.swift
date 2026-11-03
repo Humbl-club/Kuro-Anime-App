@@ -66,16 +66,22 @@ struct EntityBrandedTile: View {
                         x += Paper.stripeEvery
                     }
                 }
+                let roomy = proxy.size.width >= Paper.minTitleWidth
                 VStack(alignment: .leading, spacing: 2) {
                     Text("KURO")
                         .font(.system(size: 7, weight: .heavy))
                         .tracking(1.4)
-                    Text(kind.uppercased())
-                        .font(.system(size: 7))
-                        .tracking(1)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    // A narrow tile (a 40 pt quiet-row cover) carries the mark only: words never break.
+                    if roomy, !kind.isEmpty {
+                        Text(kind.uppercased())
+                            .font(.system(size: 7))
+                            .tracking(1)
+                            .lineLimit(2)
+                    }
                     Spacer(minLength: 0)
-                    if let title, !title.isEmpty, proxy.size.width >= Paper.minTitleWidth {
+                    if let title, !title.isEmpty, roomy {
                         Text(title)
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(Color(hex: Paper.titleInk))
@@ -84,7 +90,7 @@ struct EntityBrandedTile: View {
                     }
                 }
                 .foregroundStyle(Color(hex: Paper.mark))
-                .padding(7)
+                .padding(roomy ? 7 : 4)
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
             }
             .overlay(shape.strokeBorder(Color(hex: Paper.border), lineWidth: 1))

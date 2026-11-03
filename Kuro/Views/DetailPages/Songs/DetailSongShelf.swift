@@ -407,10 +407,10 @@ struct DetailSongShelf: View {
             if fromAnimeThemes || showsAttribution {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
-                        footerTexts(source: fromAnimeThemes, attribution: showsAttribution)
+                        footerTexts(source: fromAnimeThemes, attribution: showsAttribution, spaced: true)
                     }
                     VStack(alignment: .leading, spacing: 4) {
-                        footerTexts(source: fromAnimeThemes, attribution: showsAttribution)
+                        footerTexts(source: fromAnimeThemes, attribution: showsAttribution, spaced: false)
                     }
                 }
             }
@@ -419,19 +419,19 @@ struct DetailSongShelf: View {
     }
 
     @ViewBuilder
-    private func footerTexts(source: Bool, attribution: Bool) -> some View {
+    private func footerTexts(source: Bool, attribution: Bool, spaced: Bool) -> some View {
         if source {
             Text(SongShelfCopy.songListSource(german: german))
                 .font(.detailSF(9, relativeTo: .caption2))
                 .foregroundStyle(DetailInk.soundNote)
-                .fixedSize()
+                .fixedSize(horizontal: spaced, vertical: false)
         }
-        if source && attribution { Spacer(minLength: 8) }
+        if source && attribution && spaced { Spacer(minLength: 8) }
         if attribution {
             Text(SongShelfCopy.attribution(german: german))
                 .font(.detailSF(9, relativeTo: .caption2))
                 .foregroundStyle(DetailInk.soundNote)
-                .fixedSize()
+                .fixedSize(horizontal: spaced, vertical: false)
         }
     }
 
