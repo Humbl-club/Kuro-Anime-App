@@ -163,6 +163,7 @@ struct AnimeDetailPage: View {
     /// The schedule's upcoming rows (the catalogue's own next airing until the schedule answers).
     private var upcoming: [ReleaseScheduleItem] {
         DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil)
+                                          ?? (content.schedule.isEmpty ? nil : content.schedule)
                                           ?? DetailNextReleaseSection.seed(for: anime))
     }
 

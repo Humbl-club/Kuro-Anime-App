@@ -53,9 +53,11 @@ extension View {
     func detailRailBleed(visible width: Binding<CGFloat>, gutter: CGFloat = DetailRailPeek.detailGutter) -> some View {
         self
             .contentMargins(.trailing, gutter, for: .scrollContent)
-            .padding(.trailing, -gutter)
+            // Measured on the scroll view itself, before the bleed: the padding below reports the
+            // column's width to the page, while the scroll view is laid out `gutter` wider.
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { visible in
                 if abs(width.wrappedValue - visible) > 0.5 { width.wrappedValue = visible }
             }
+            .padding(.trailing, -gutter)
     }
 }

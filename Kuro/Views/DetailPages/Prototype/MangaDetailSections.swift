@@ -46,6 +46,8 @@ struct MangaDetailContent {
     var adaptationSite: URL? = nil
     var bundle: SeriesDetailBundle? = nil
     var friendsPreview: SocialActivityStore.FriendActivityResponse? = nil
+    /// Release rows for renders (the live page reads `ReleasesStore` through `.detailReleases`).
+    var schedule: [ReleaseScheduleItem] = []
     /// "More like this." cards (renders; the live page reads `RecommendationsReader`).
     var similar: [SimilarTitle] = []
     /// Renders: the bell's state without the release store (nil: the store's answer).
@@ -156,7 +158,9 @@ struct MangaDetailPage: View {
     }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { MangaDetailSections.bookmarkTotal(chapterCount: manga.chapterCount) }
-    private var upcoming: [ReleaseScheduleItem] { DetailNextReleaseSection.upcoming(releaseItems ?? []) }
+    private var upcoming: [ReleaseScheduleItem] {
+        DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil) ?? content.schedule)
+    }
     private var nextChapter: Int? {
         MangaDetailSections.nextChapter(progress: progress, chapterCount: manga.chapterCount, status: manga.status,
                                         scheduledNext: DetailSectionPolicy.scheduledNext(upcoming, kind: .chapter))
