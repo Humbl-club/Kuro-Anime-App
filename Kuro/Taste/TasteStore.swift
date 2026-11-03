@@ -69,23 +69,32 @@ final class TasteStore: AccountScopedState {
     @ObservationIgnored let libraryHook: LibraryRefreshHook
     @ObservationIgnored private let now: @MainActor () -> Date
     @ObservationIgnored private let retryBaseDelay: TimeInterval
+    /// Device storage of the per-account Discover answers (`TasteStore+DiscoverFeedback.swift`;
+    /// tests pass their own suite).
+    @ObservationIgnored let defaults: UserDefaults
 
     init(
         client: SupabaseClient?,
         accountSession: AccountSessionCoordinator,
         libraryHook: LibraryRefreshHook,
         now: @escaping @MainActor () -> Date = Date.init,
-        retryBaseDelay: TimeInterval = TasteStore.defaultRetryBaseDelay
+        retryBaseDelay: TimeInterval = TasteStore.defaultRetryBaseDelay,
+        defaults: UserDefaults = .standard
     ) {
         self.client = client
         self.accountSession = accountSession
         self.libraryHook = libraryHook
         self.now = now
         self.retryBaseDelay = retryBaseDelay
+        self.defaults = defaults
     }
 
-    /// The SDK client, or `MissingSupabaseConfiguration` when the app has none.
-    private func requiredClient() throws -> SupabaseClient {
+    /// The store's clock (the outbox backoff and the Discover answers use the same one).
+    var currentDate: Date { now() }
+
+    /// The SDK client, or `MissingSupabaseConfiguration` when the app has none (also used by
+    /// `TasteStore+DiscoverFeedback.swift`).
+    func requiredClient() throws -> SupabaseClient {
         guard let client else { throw MissingSupabaseConfiguration() }
         return client
     }
@@ -106,6 +115,20 @@ final class TasteStore: AccountScopedState {
     /// Foreground notifications handled so far (each forces one drain).
     @ObservationIgnored private(set) var foregroundDrainCount = 0
 
+    // MARK: Discover answers (R5; `TasteStore+DiscoverFeedback.swift`)
+
+    /// Titles of the signed-in account hidden on Discover right now, with the answer that hid them.
+    var discoverHidden: [MediaKey: DiscoverFeedback] = [:]
+    /// The account's believed deck action per title (last read + this device's answers): the prior
+    /// action an Undo restores.
+    @ObservationIgnored var discoverDeckActions: [MediaKey: TasteDeckAction] = [:]
+    /// The account's on-device memory (snapshot + overlay), persisted under its storage key.
+    @ObservationIgnored var discoverMemory = DiscoverHiddenMemory()
+    /// The lower-cased user id `discoverMemory` belongs to (nil: not loaded).
+    @ObservationIgnored var discoverMemoryAccount: String? = nil
+    /// When the server answers were last read this session (nil: not yet).
+    @ObservationIgnored var discoverHiddenReadAt: Date? = nil
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {
@@ -117,6 +140,26 @@ final class TasteStore: AccountScopedState {
     func clearPrivateState() {
         pendingSignals = []
         signalsNeedAttention = false
+        // Discover answers: the in-memory copy only. The device copy of each account survives
+        // sign-out (like recent searches) and is removed by `removeDeletedAccountData`.
+        discoverHidden = [:]
+        discoverDeckActions = [:]
+        discoverMemory = DiscoverHiddenMemory()
+        discoverMemoryAccount = nil
+        discoverHiddenReadAt = nil
+    }
+
+    /// Confirmed account deletion: removes the deleted account's Discover answers from this device.
+    func removeDeletedAccountData(userId: String) async throws {
+        guard let key = DiscoverHiddenMemory.storageKey(userId: userId) else { return }
+        defaults.removeObject(forKey: key)
+        if discoverMemoryAccount == userId.lowercased() {
+            discoverHidden = [:]
+            discoverDeckActions = [:]
+            discoverMemory = DiscoverHiddenMemory()
+            discoverMemoryAccount = nil
+            discoverHiddenReadAt = nil
+        }
     }
 
     // MARK: - Reads
