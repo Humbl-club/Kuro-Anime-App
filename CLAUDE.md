@@ -280,7 +280,7 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 272 Swift files in `Kuro/`
+### iOS app — 276 Swift files in `Kuro/`
 
 Plus 33 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 83 in `KuroTests/`, 6 in `KuroUITests/`, 4 in the widget extension `KuroWidgets/` and 8 in `KuroWidgetViews/` (2026-11-03: the widget views, compiled into the extension and KuroTests). Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
