@@ -162,19 +162,20 @@ final class NavigationContractUITests: XCTestCase {
         pushNext(to: 3)
         tapScrolling(fixtureButton("navfixture.title"))                     // level 4: the anime detail
         XCTAssertTrue(level(3).waitForNonExistence(timeout: 5))
-        let character = app.buttons["Fixture Character 1"].firstMatch
+        // The cast card reads "name, role" (details-songs spec §6: one element per card).
+        let character = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Fixture Character 1'")).firstMatch
         tapScrolling(character)                                             // level 5: the character page
-        XCTAssertTrue(app.staticTexts["Appears in"].firstMatch.waitForExistence(timeout: 8), "the character page is pushed")
+        XCTAssertTrue(app.staticTexts["Appears in."].firstMatch.waitForExistence(timeout: 8), "the character page is pushed")
         XCTAssertTrue(back.exists, "the character page shows Back")
         XCTAssertTrue(close.exists, "…and ✕")
         shot("nav-04-character-level5")
 
         // Back from the character returns to the detail (one level).
         back.tap()
-        XCTAssertTrue(app.staticTexts["Appears in"].firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Appears in."].firstMatch.waitForNonExistence(timeout: 5))
         XCTAssertTrue(character.waitForExistence(timeout: 5), "Back returns to the detail page")
         tapScrolling(character)
-        XCTAssertTrue(app.staticTexts["Appears in"].firstMatch.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Appears in."].firstMatch.waitForExistence(timeout: 8))
 
         close.tap()
         assertOnStartPage()
