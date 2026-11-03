@@ -41,6 +41,8 @@ export type PageQueryOptions = {
   sort: MediaSort;
   statusIn: string[] | null;
   deadlineMs?: number;
+  /** Anime only: also request JAPANESE voice actors per character edge (default off). */
+  includeVoiceActors?: boolean;
 };
 
 /** Stored in import_track_state.last_results.cursor. */
