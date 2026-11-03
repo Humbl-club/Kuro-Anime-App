@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 240 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 243 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2130,3 +2130,13 @@ A review pass on the new Discover and Clubs pages found small problems; they are
 ### Change Log — 3 November 2026: Discover and Clubs now look like Home (TestFlight 23)
 
 Discover reads like a daily issue (a cover story in the title's own colours, a short contents line, a few hand-picked sections in different shapes, the rest folded away), and every club is a dark "room" like the one on Home, on the list and on the club's own page. It is in TestFlight build 23 and waits for the owner's review before it becomes part of the main version.
+
+### Change Log — 3 November 2026: Groundwork for richer detail pages and songs (prepared, not live)
+
+Preparation for the owner's 13 detail/songs items; nothing is live yet and nothing was deployed.
+- Fixed: a title's characters list could stay empty when one of its characters had an age stored. It now shows.
+- Prepared (waiting for approval): voice actors for each character (Japanese voices first), "More like this" cards in one quick request, and Apple Music artwork plus a 30-second preview for opening and ending songs. Song matches must agree on both title and artist; anything uncertain is left out rather than guessed.
+- The app already knows how to show these and quietly falls back to today's behaviour until the server side is switched on.
+- A new preview player plays one song at a time, respects the phone's silent switch, and stops when you leave the app, take a call or switch accounts.
+- The privacy policy draft now explains song previews from Apple, local reminders and the widget.
+- All new automatic tests pass. Nothing was pushed or deployed.

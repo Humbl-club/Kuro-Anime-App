@@ -79,6 +79,8 @@ final class AppComposition {
     var outboundLinks: OutboundLinkTelemetry { graph.outboundLinks }
     /// Artwork materials (seed colour first, then derived from the artwork; memory + disk cache).
     var artworkMaterials: ArtworkMaterialStore { graph.artworkMaterials }
+    /// Theme-song previews (one at a time; stopped on background, interruption and account change).
+    var songPreview: SongPreviewPlayer { graph.songPreview }
     /// The owners that shed public caches on a memory warning (the ONE registration list:
     /// `memoryPressureOwners(publicData:assistant:)`).
     var memoryPressure: MemoryPressureRelief { graph.memoryPressure }
@@ -304,6 +306,7 @@ final class AppComposition {
             interactionTelemetry: shell.interactionTelemetry,
             outboundLinks: shell.outboundLinks,
             artworkMaterials: shell.artworkMaterials,
+            songPreview: shell.songPreview,
             memoryPressure: MemoryPressureRelief(owners: memoryPressureOwners(publicData: publicData, assistant: assistant))
         )
     }
@@ -352,7 +355,7 @@ final class AppComposition {
     /// account's Library refreshes are cancelled before anything else; the funnel rebinds/resets the
     /// store itself before this list runs), the Collection pages, the public-data owners (Discovery),
     /// the personal-data owners (Releases, Social, ProviderAvailability), Clubs, the assistant owners
-    /// (Imports, Concierge, Taste), Support (the contact draft) and the interaction telemetry LAST (the
+    /// (Imports, Concierge, Taste), Support (the contact draft), the song preview player (stops playback) and the interaction telemetry LAST (the
     /// ending account's queued events are dropped before the funnel sets the new user id).
     static func makeAccountScopedStates(
         libraryActions: LibraryActions,
@@ -367,7 +370,7 @@ final class AppComposition {
     ) -> [any AccountScopedState] {
         [libraryActions, home, collection] + publicData.accountScopedStates
             + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates + [support]
-            + [shell.interactionTelemetry]
+            + [shell.songPreview, shell.interactionTelemetry]
     }
 
     /// The Library writer mapping and refresh paths over `library` (account-scoped: refreshes,
@@ -405,7 +408,8 @@ final class AppComposition {
             banner: BannerCenter(),
             interactionTelemetry: interactionTelemetry,
             outboundLinks: OutboundLinkTelemetry(client: client, accountSession: accountSession),
-            artworkMaterials: ArtworkMaterialStore()
+            artworkMaterials: ArtworkMaterialStore(),
+            songPreview: SongPreviewPlayer()
         )
     }
 
@@ -504,12 +508,14 @@ final class AppComposition {
     ) -> PublicDataOwners {
         let catalog = CatalogStore(client: client)
         let discovery = DiscoveryStore(client: client, accountSession: accountSession, library: library)
+        // "More like this" excludes the caller's own list: per account, cleared on every transition.
+        let recommendations = RecommendationsReader(client: client, catalog: catalog, accountSession: accountSession)
         return PublicDataOwners(
             catalog: catalog,
             search: SearchStore(client: client),
             discovery: discovery,
-            recommendations: RecommendationsReader(client: client, catalog: catalog),
-            accountScopedStates: [discovery]
+            recommendations: recommendations,
+            accountScopedStates: [discovery, recommendations]
         )
     }
 
@@ -604,6 +610,8 @@ struct AppGraph {
     let interactionTelemetry: InteractionTelemetry
     let outboundLinks: OutboundLinkTelemetry
     let artworkMaterials: ArtworkMaterialStore
+    /// Theme-song previews (account-scoped: stopped on every transition).
+    let songPreview: SongPreviewPlayer
     let memoryPressure: MemoryPressureRelief
 }
 
@@ -623,6 +631,9 @@ struct ShellOwners {
     /// Artwork materials: AniList seed colour first, then the on-device `art-hue-v1` material
     /// (memory + disk cache keyed by image URL). Not account-scoped: derived from public artwork.
     let artworkMaterials: ArtworkMaterialStore
+    /// Theme-song previews: one at a time, AVPlayer over Apple's preview URL; stopped on background,
+    /// audio interruption and every account transition.
+    let songPreview: SongPreviewPlayer
 }
 
 /// The public-data owners built by `AppComposition.makePublicData`.
