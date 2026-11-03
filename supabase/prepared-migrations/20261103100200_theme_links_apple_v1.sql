@@ -1,8 +1,10 @@
 -- 20261103100200_theme_links_apple_v1.sql
 -- PREPARED, NOT DEPLOYED (2026-11-03 details/songs pass, DATA lane). Deploying needs explicit
--- owner approval. Nothing here schedules a job or writes data. REQUIRES the prepared
+-- owner approval. Nothing here schedules a job or writes data. REQUIRES
 -- 20261101000000_release_schedule_and_themes_v2.sql (media_themes_v1 and the theme_links
--- provenance columns) to be applied first.
+-- provenance columns) first: applied live on 2026-11-02 (docs/go-live/2026-11-02/STAGE2_RECEIPT.md).
+-- media_themes_v1 is therefore a LIVE read: the DROP + CREATE below runs in this file's single
+-- transaction (callers never see it missing), and today's app ignores the new trailing columns.
 --
 -- Owner item 7 (songs: Apple artwork + 30-second preview + "Open in Apple Music"):
 --   1. Nullable Apple match columns on theme_links (apple_track_id, apple_artwork_url,
