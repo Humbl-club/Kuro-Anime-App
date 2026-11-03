@@ -79,7 +79,7 @@ struct DiscoverAfterSnapshotTests {
         let folds = KuroFoldMemory()
         folds.setExpanded(true, page: DiscoverIssueCopy.foldPage, section: DiscoverIssueCopy.foldSection)
         let fold = Self.window(AnyView(Self.page(.all, graph: graph, monitor: monitor).environment(\.kuroFoldMemory, folds)),
-                               width: 390, height: 7_000)
+                               width: 390, height: 9_500)
         try? await Task.sleep(for: .milliseconds(2_600))
         let foldHeight = Self.contentHeight(in: fold)
         Self.measure("discover-all-fold-open-full-390", foldHeight)
@@ -124,6 +124,25 @@ struct DiscoverAfterSnapshotTests {
         await capture(tall, name: "discover-all-realm-full-390", height: height)
         Self.close(tall)
         await realm.tearDown()
+    }
+
+    @Test("Discover: tracked titles (Planned key face, On your list key and mark) at 390")
+    func tracked() async throws {
+        await Self.seedArtwork()
+        let backend = FakeLibraryBackend()
+        backend.setRows([
+            FakeLibraryBackend.entry(.anime, 402, rowId: 402, status: .planning, progress: 0, verdict: nil),
+            FakeLibraryBackend.entry(.anime, 403, rowId: 403, status: .current, progress: 7, verdict: nil),
+            FakeLibraryBackend.entry(.anime, 405, rowId: 405, status: .planning, progress: 0, verdict: nil)
+        ], for: LifecycleFixtures.userA)
+        let harness = try DCDiscoverHarness(responder: Self.responder(), libraryBackend: backend)
+        await harness.signIn()
+        try? await harness.graph.library.refresh()
+        let window = Self.window(Self.page(.all, graph: harness.graph, monitor: NetworkMonitor()), width: 390, height: 2_000)
+        try? await Task.sleep(for: .milliseconds(2_400))
+        await capture(window, name: "discover-all-tracked-390")
+        Self.close(window)
+        await harness.tearDown()
     }
 
     // MARK: States
@@ -484,7 +503,8 @@ struct DCDiscoverHarness {
     private let suiteName: String
     private let defaults: UserDefaults
 
-    init(responder: @escaping StubServer.Responder, launchArguments: [String] = []) throws {
+    init(responder: @escaping StubServer.Responder, launchArguments: [String] = [],
+         libraryBackend: (any LibraryBackend)? = nil) throws {
         server = StubServer()
         server.respond(with: responder)
         suiteName = "kuro.tests.dc-discover.\(UUID().uuidString)"
@@ -493,6 +513,7 @@ struct DCDiscoverHarness {
             testingUserDefaults: defaults,
             notificationCenter: FakeNotificationCenter(),
             client: StubSupabase.makeClient(server: server),
+            libraryBackend: libraryBackend,
             flags: FeatureFlags(userDefaults: defaults, launchArguments: launchArguments)
         )
     }
