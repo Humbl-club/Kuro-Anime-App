@@ -378,10 +378,19 @@ struct DUpreviewSeeAllTests {
             expected.status = .releasing
             return expected
         }())
-        // The device-side rules: > 50 (the server bucket starts at 27) and Hide my list.
+        // The device-side rules: > 50 (the server bucket starts at 27), Hide my list, and the status
+        // chip checked again on the row.
         #expect(!selection.includes(kind: .anime, episodes: 30, onList: false))
-        #expect(selection.includes(kind: .anime, episodes: 51, onList: false))
+        #expect(selection.includes(kind: .anime, episodes: 51, statusRaw: "RELEASING", onList: false))
+        #expect(!selection.includes(kind: .anime, episodes: 51, statusRaw: "FINISHED", onList: false))
         #expect(!selection.includes(kind: .anime, episodes: 64, onList: true))
+        var short = DiscoverSeeAllSelection(sort: .trending)
+        short.toggle(.upTo13)
+        short.toggle(.film)
+        #expect(short.includes(kind: .anime, episodes: 1, formatRaw: "MOVIE", onList: false))
+        #expect(!short.includes(kind: .anime, episodes: 26, formatRaw: "MOVIE", onList: false))
+        #expect(!short.includes(kind: .anime, episodes: 12, formatRaw: "TV", onList: false))
+        #expect(!short.includes(kind: .anime, episodes: nil, formatRaw: "MOVIE", onList: false))
         selection.clearFilters()
         #expect(selection.activeCount == 0)
         #expect(selection.includes(kind: .anime, episodes: 30, onList: true))
@@ -466,7 +475,7 @@ struct DUpreviewSeeAllTests {
         let more = DiscoverPage(items: first.items, next: .offset(4), reason: nil, origin: .server)
         var reads: [DiscoverPageCursor?] = []
         let second = DiscoverUsabilityFixtures.page(kind: .anime, count: 6)
-        await feed.start(policy: .mark, fetch: { cursor in
+        await feed.start(key: "trending", policy: .mark, fetch: { cursor in
             reads.append(cursor)
             if cursor == nil { return more }
             return DiscoverPage(items: Array(second.items.suffix(2)), next: nil, reason: nil, origin: .server)
@@ -482,19 +491,86 @@ struct DUpreviewSeeAllTests {
 
         // Top-up: a page that draws too few rows reads the next one automatically.
         let topped = DiscoverJourneyFeed(policy: .mark)
-        await topped.start(policy: .mark, fetch: { cursor in
+        await topped.start(key: "topped", policy: .mark, fetch: { cursor in
             cursor == nil ? more : DiscoverPage(items: Array(second.items.suffix(2)), next: nil, reason: nil, origin: .server)
         }, discovery: graph.discovery, taste: graph.taste, isOffline: { false }, visibleCount: { 0 })
         #expect(topped.isFinished)
         #expect(topped.pages == 2)
 
         let failed = DiscoverJourneyFeed(policy: .mark)
-        await failed.start(policy: .mark, fetch: { _ in nil }, discovery: graph.discovery, taste: graph.taste,
+        await failed.start(key: "f", policy: .mark, fetch: { _ in nil }, discovery: graph.discovery, taste: graph.taste,
                            isOffline: { false }, visibleCount: { 0 })
         #expect(failed.phase == .failed)
-        await failed.start(policy: .mark, fetch: { _ in nil }, discovery: graph.discovery, taste: graph.taste,
+        await failed.start(key: "f", policy: .mark, fetch: { _ in nil }, discovery: graph.discovery, taste: graph.taste,
                            isOffline: { true }, visibleCount: { 0 })
         #expect(failed.phase == .offline)
+    }
+
+    @Test("A page that comes back on screen keeps its rows (N1, R8): the same query reads once; Try again forces")
+    func feedKeepsRowsOnReturn() async throws {
+        let harness = try DCDiscoverHarness(responder: { _ in .emptyArray })
+        await harness.signIn()
+        defer { Task { await harness.tearDown() } }
+        let graph = harness.graph
+        let page = DiscoverUsabilityFixtures.page(kind: .anime, count: 4)
+        var reads = 0
+        let feed = DiscoverJourneyFeed(policy: .mark)
+        let fetch: DiscoverJourneyFeed.Fetch = { _ in
+            reads += 1
+            return page
+        }
+        await feed.start(key: "q", policy: .mark, fetch: fetch, discovery: graph.discovery, taste: graph.taste,
+                         isOffline: { false }, visibleCount: { 100 })
+        await feed.start(key: "q", policy: .mark, fetch: fetch, discovery: graph.discovery, taste: graph.taste,
+                         isOffline: { false }, visibleCount: { 100 })
+        #expect(reads == 1)
+        #expect(feed.phase == .ready)
+        await feed.start(key: "q", force: true, policy: .mark, fetch: fetch, discovery: graph.discovery,
+                         taste: graph.taste, isOffline: { false }, visibleCount: { 100 })
+        #expect(reads == 2)
+        await feed.start(key: "other", policy: .mark, fetch: fetch, discovery: graph.discovery, taste: graph.taste,
+                         isOffline: { false }, visibleCount: { 100 })
+        #expect(reads == 3)
+
+        // A read cancelled because the page left the screen is not a failure: it stays loading and
+        // reads again on return.
+        let cancelled = DiscoverJourneyFeed(policy: .mark)
+        let task = Task { @MainActor in
+            await cancelled.start(key: "c", policy: .mark, fetch: { _ in
+                try? await Task.sleep(for: .milliseconds(200))
+                return nil
+            }, discovery: graph.discovery, taste: graph.taste, isOffline: { false }, visibleCount: { 0 })
+        }
+        task.cancel()
+        await task.value
+        #expect(cancelled.phase == .loading)
+        #expect(cancelled.loadedKey == nil)
+    }
+
+    @Test("See all → a title → Back: the list is read once and its rows stay (journey round trip)")
+    func seeAllRoundTrip() async throws {
+        let harness = try DCDiscoverHarness(responder: { request in
+            request.resource == "rpc/discover_section_page_v1"
+                ? .json(DiscoverUsabilityFixtures.pageRowsJSON(kind: .anime, count: 6)) : .emptyArray
+        })
+        await harness.signIn()
+        let title = "Trending"
+        let navigator = JourneyNavigator(root: .seeAll(AnyJourneyPage(id: DiscoverSeeAllPolicy.pageID(.animeTrending), title: title) {
+            DiscoverSeeAllPage(source: .route(.animeTrending), title: title, purpose: "", animeItems: [], mangaItems: [])
+        }))
+        let window = DUPHosting.window(DUPHosting.inject(AnyView(JourneyHost(navigator: navigator)), graph: harness.graph),
+                                       width: 390, height: 844)
+        try? await Task.sleep(for: .milliseconds(1_200))
+        let reads = { harness.server.requests.filter { $0.resource == "rpc/discover_section_page_v1" }.count }
+        #expect(reads() == 1)
+        navigator.open(JourneyPage.media(MediaRoute(kind: .anime, id: 991_000)))
+        try? await Task.sleep(for: .milliseconds(900))
+        navigator.pop()
+        try? await Task.sleep(for: .milliseconds(1_200))
+        #expect(reads() == 1)
+        #expect(navigator.path.isEmpty)
+        DUPHosting.close(window)
+        await harness.tearDown()
     }
 }
 
@@ -645,6 +721,49 @@ struct DUpreviewRenderTests {
                      width: 390, height: 700, wait: 1_400)
         await empty.tearDown()
 
+        // Chips on: Up to 13 episodes + Hide my list (✓ faces, the match line).
+        var filtered = DiscoverSeeAllSelection(sort: .trending)
+        filtered.toggle(.upTo13)
+        filtered.toggle(.hideMyList)
+        await render(Self.seeAll(.animeTrending, german: german, selection: filtered), graph: graph,
+                     name: "du-preview-see-all-filtered-390", width: 390, height: 844, wait: 1_800)
+
+        // Nothing matches: Over 50 episodes + Film (no fixture row is both).
+        var none = DiscoverSeeAllSelection(sort: .trending)
+        none.toggle(.over50)
+        none.toggle(.film)
+        await render(Self.seeAll(.animeTrending, german: german, selection: none), graph: graph,
+                     name: "du-preview-see-all-no-match-390", width: 390, height: 700, wait: 1_600)
+
+        let failed = try DCDiscoverHarness(responder: { request in
+            request.resource == "rpc/discover_section_page_v1"
+                ? StubResponse.json(#"{"code":"XX000","message":"boom","details":null,"hint":null}"#, status: 500) : .emptyArray
+        })
+        await failed.signIn()
+        await render(Self.seeAll(.animeTrending, german: german), graph: failed.graph, name: "du-preview-see-all-failed-390",
+                     width: 390, height: 700, wait: 1_400)
+        await failed.tearDown()
+
+        let offline = try DCDiscoverHarness(responder: { _ in .failure(.notConnectedToInternet) })
+        await offline.signIn()
+        let monitor = NetworkMonitor()
+        try? await Task.sleep(for: .milliseconds(300))
+        monitor.isConnected = false
+        await render(Self.seeAll(.animeTrending, german: german), graph: offline.graph, name: "du-preview-see-all-offline-390",
+                     width: 390, height: 700, wait: 1_400, monitor: monitor)
+        await offline.tearDown()
+
+        // The list footer: Loading more, and the paging failure.
+        let footers = VStack(alignment: .leading, spacing: 18) {
+            DiscoverJourneyFooter(isLoadingMore: true, pageFailed: false, finished: false, count: 12, retry: {})
+            DiscoverJourneyFooter(isLoadingMore: false, pageFailed: true, finished: false, count: 12, retry: {})
+            DiscoverJourneyFooter(isLoadingMore: false, pageFailed: false, finished: true, count: 12, retry: {})
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color.kuroCanvasHome)
+        await render(AnyView(footers), graph: graph, name: "du-preview-see-all-footers-390", width: 390, height: 240)
+
         let gate = StubGate()
         let held = try DCDiscoverHarness(responder: { request in
             request.resource == "rpc/discover_section_page_v1" ? StubResponse.json("[]").held(by: gate) : .emptyArray
@@ -670,12 +789,21 @@ struct DUpreviewRenderTests {
                                                                                                  german: KuroLocale.isGerman)))
         await render(AnyView(manga), graph: harness.graph, name: "du-preview-mood-cozy-manga-390", width: 390, height: 844,
                      wait: 1_800)
+        // Empty with a chip on (Films on manga): the quiet card and Clear filters.
+        var films = DiscoverMoodFilters()
+        films.format = .films
+        let empty = JourneyHost(navigator: JourneyNavigator(root: .custom(AnyJourneyPage(id: DiscoverMoodRoute.pageID(.intense)) {
+            DiscoverMoodPage(mood: .intense, kind: .manga, filters: films)
+        })))
+        await render(AnyView(empty), graph: harness.graph, name: "du-preview-mood-empty-390", width: 390, height: 700,
+                     wait: 1_600)
         await harness.tearDown()
     }
 
     // MARK: Hosting
 
-    private static func seeAll(_ route: EditorialDiscoverRoute, german: Bool) -> AnyView {
+    private static func seeAll(_ route: EditorialDiscoverRoute, german: Bool,
+                               selection: DiscoverSeeAllSelection? = nil) -> AnyView {
         let title = route.title(german: german, reason: nil)
         let purpose: String
         switch route {
@@ -688,7 +816,8 @@ struct DUpreviewRenderTests {
             purpose = german ? "Was Anime-Fans gerade schauen." : "What anime fans are watching right now."
         }
         let navigator = JourneyNavigator(root: .seeAll(AnyJourneyPage(id: DiscoverSeeAllPolicy.pageID(route), title: title) {
-            DiscoverSeeAllPage(source: .route(route), title: title, purpose: purpose, animeItems: [], mangaItems: [])
+            DiscoverSeeAllPage(source: .route(route), title: title, purpose: purpose, animeItems: [], mangaItems: [],
+                               initialSelection: selection)
         }))
         return AnyView(JourneyHost(navigator: navigator))
     }
@@ -702,62 +831,11 @@ struct DUpreviewRenderTests {
     }
 
     private func render(_ view: AnyView, graph: AppGraph, name: String, width: CGFloat, height: CGFloat,
-                        wait: Int = 900) async {
-        let window = Self.window(Self.inject(view, graph: graph), width: width, height: height)
+                        wait: Int = 900, monitor: NetworkMonitor? = nil) async {
+        let window = DUPHosting.window(DUPHosting.inject(view, graph: graph, monitor: monitor), width: width, height: height)
         try? await Task.sleep(for: .milliseconds(wait))
         await capture(window, name: name)
-        Self.close(window)
-    }
-
-    private static func inject(_ view: AnyView, graph: AppGraph) -> AnyView {
-        AnyView(view
-            .environment(graph.identity)
-            .environment(graph.auth)
-            .environment(graph.session)
-            .environment(graph.library)
-            .environment(graph.libraryActions)
-            .environment(graph.home)
-            .environment(graph.search)
-            .environment(graph.discovery)
-            .environment(graph.recommendations)
-            .environment(graph.releases)
-            .environment(graph.social)
-            .environment(graph.availability)
-            .environment(graph.clubs)
-            .environment(graph.collection)
-            .environment(graph.imports)
-            .environment(graph.concierge)
-            .environment(graph.taste)
-            .environment(graph.deviceIntelligence)
-            .environment(graph.support)
-            .environment(graph.banner)
-            .environment(graph.flags)
-            .environment(graph.interactionTelemetry)
-            .environment(graph.outboundLinks)
-            .environment(graph.artworkMaterials)
-            .environment(graph.catalog)
-            .environment(NetworkMonitor()))
-    }
-
-    private static func window(_ view: AnyView, width: CGFloat, height: CGFloat) -> UIWindow {
-        let host = UIHostingController(rootView: view.frame(width: width, height: height))
-        host.safeAreaRegions = []
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
-        window.frame = CGRect(x: 0, y: 0, width: width, height: height)
-        window.rootViewController = host
-        window.isHidden = false
-        window.makeKey()
-        host.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
-        host.view.backgroundColor = .white
-        host.view.layoutIfNeeded()
-        return window
-    }
-
-    private static func close(_ window: UIWindow) {
-        window.rootViewController?.dismiss(animated: false)
-        window.isHidden = true
-        window.rootViewController = nil
+        DUPHosting.close(window)
     }
 
     private func capture(_ window: UIWindow, name: String) async {
@@ -866,5 +944,60 @@ struct DUpreviewRenderTests {
             default: return .emptyArray
             }
         }
+    }
+}
+
+/// Hosting for the lane's window-based tests and renders.
+@MainActor
+enum DUPHosting {
+    static func inject(_ view: AnyView, graph: AppGraph, monitor: NetworkMonitor? = nil) -> AnyView {
+        AnyView(view
+            .environment(graph.identity)
+            .environment(graph.auth)
+            .environment(graph.session)
+            .environment(graph.library)
+            .environment(graph.libraryActions)
+            .environment(graph.home)
+            .environment(graph.search)
+            .environment(graph.discovery)
+            .environment(graph.recommendations)
+            .environment(graph.releases)
+            .environment(graph.social)
+            .environment(graph.availability)
+            .environment(graph.clubs)
+            .environment(graph.collection)
+            .environment(graph.imports)
+            .environment(graph.concierge)
+            .environment(graph.taste)
+            .environment(graph.deviceIntelligence)
+            .environment(graph.support)
+            .environment(graph.banner)
+            .environment(graph.flags)
+            .environment(graph.interactionTelemetry)
+            .environment(graph.outboundLinks)
+            .environment(graph.artworkMaterials)
+            .environment(graph.catalog)
+            .environment(monitor ?? NetworkMonitor()))
+    }
+
+    static func window(_ view: AnyView, width: CGFloat, height: CGFloat) -> UIWindow {
+        let host = UIHostingController(rootView: view.frame(width: width, height: height))
+        host.safeAreaRegions = []
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        window.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        window.rootViewController = host
+        window.isHidden = false
+        window.makeKey()
+        host.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
+        host.view.backgroundColor = .white
+        host.view.layoutIfNeeded()
+        return window
+    }
+
+    static func close(_ window: UIWindow) {
+        window.rootViewController?.dismiss(animated: false)
+        window.isHidden = true
+        window.rootViewController = nil
     }
 }

@@ -26,6 +26,10 @@ final class DiscoverJourneyFeed {
 
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var fetch: Fetch?
+    /// The query the rows on screen belong to: a page that comes back on screen (Back from a pushed
+    /// title restarts its `.task`) keeps its rows, paging and scroll offset instead of reading again
+    /// (N1, R8).
+    @ObservationIgnored private(set) var loadedKey: AnyHashable?
 
     /// Pages read automatically after a page added fewer drawable rows than this (filters on the device).
     static let topUpRows = 12
@@ -39,18 +43,24 @@ final class DiscoverJourneyFeed {
     var isFinished: Bool { accumulator.isFinished }
     var hasMore: Bool { accumulator.next != nil }
 
-    /// Reads the first page of a (new) query. `isOffline` decides between the offline and the failed
-    /// state when the read fails; `visibleCount` is how many rows the page would draw now (top-up).
-    func start(policy: DiscoverOwnedPolicy, fetch: @escaping Fetch, discovery: DiscoveryStore, taste: TasteStore,
+    /// Reads the first page of the query `key`. The same key again while its rows are shown does
+    /// nothing (the page reappeared); `force` (Try again) always reads. `isOffline` decides between the
+    /// offline and the failed state when the read fails; `visibleCount` is how many rows the page would
+    /// draw now (top-up). A read cancelled because the page left the screen leaves the loading state, so
+    /// the page reads again when it returns.
+    func start(key: AnyHashable, force: Bool = false, policy: DiscoverOwnedPolicy, fetch: @escaping Fetch,
+               discovery: DiscoveryStore, taste: TasteStore,
                isOffline: () -> Bool, visibleCount: @escaping () -> Int) async {
+        if !force, loadedKey == key, phase == .ready { return }
         generation += 1
         let current = generation
         self.fetch = fetch
+        loadedKey = nil
         phase = .loading
         pageFailed = false
         isLoadingMore = false
         guard let page = await fetch(nil) else {
-            guard current == generation else { return }
+            guard current == generation, !Task.isCancelled else { return }
             phase = isOffline() ? .offline : .failed
             return
         }
@@ -62,6 +72,7 @@ final class DiscoverJourneyFeed {
         accumulator = fresh
         pages = 1
         phase = .ready
+        loadedKey = key
         await topUp(generation: current, discovery: discovery, taste: taste, visibleCount: visibleCount)
     }
 

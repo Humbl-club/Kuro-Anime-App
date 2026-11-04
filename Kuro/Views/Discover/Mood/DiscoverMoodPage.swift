@@ -91,9 +91,11 @@ struct DiscoverMoodPage: View {
     @State private var collapse: CGFloat = 0
     @State private var trackedOpen: Set<String> = []
 
-    init(mood: DiscoverMood, kind: MediaKind) {
+    /// `filters` (renders, tests): the chips the page opens with.
+    init(mood: DiscoverMood, kind: MediaKind, filters: DiscoverMoodFilters = DiscoverMoodFilters()) {
         _mood = State(initialValue: mood)
         _kind = State(initialValue: kind)
+        _filters = State(initialValue: filters)
     }
 
     private var german: Bool { KuroLocale.isGerman }
@@ -231,9 +233,9 @@ struct DiscoverMoodPage: View {
         case .loading:
             DiscoverJourneySkeleton()
         case .offline:
-            KuroOfflineView(hasContent: false) { Task { await start() } }
+            KuroOfflineView(hasContent: false) { Task { await start(force: true) } }
         case .failed:
-            KuroStateView(.failed(hasCachedContent: false), layout: .inline) { Task { await start() } }
+            KuroStateView(.failed(hasCachedContent: false), layout: .inline) { Task { await start(force: true) } }
         case .ready:
             if rows.isEmpty, !feed.hasMore, !feed.isLoadingMore {
                 VStack(alignment: .leading, spacing: 4) {
@@ -286,12 +288,13 @@ struct DiscoverMoodPage: View {
 
     // MARK: Loading
 
-    private func start() async {
+    private func start(force: Bool = false) async {
         let mood = mood
         let kind = kind
         let discovery = discovery
         await loadSeedTitle(kind: kind)
         await feed.start(
+            key: Load(mood: mood, kind: kind), force: force,
             policy: .hide,
             fetch: { cursor in await discovery.moodPage(mood, medium: kind, cursor: cursor, limit: 24) },
             discovery: discovery, taste: taste,

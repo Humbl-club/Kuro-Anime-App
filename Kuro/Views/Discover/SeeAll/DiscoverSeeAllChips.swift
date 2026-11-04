@@ -194,11 +194,32 @@ struct DiscoverSeeAllSelection: Hashable {
         return query
     }
 
-    /// The device-side rules: "Over 50 episodes" is > 50 (the server bucket starts at 27), and "Hide
-    /// my list" leaves out titles on the list.
-    func includes(kind: MediaKind, episodes: Int?, onList: Bool) -> Bool {
+    /// The device-side rules: "Over 50 episodes" is > 50 (the server bucket starts at 27), "Hide my
+    /// list" leaves out titles on the list, and every chip the server also applies is checked again on
+    /// the row, so the words stay true whichever reader answered (a page from an older reader, a
+    /// fallback that cannot filter).
+    func includes(kind: MediaKind, episodes: Int?, formatRaw: String? = nil, statusRaw: String? = nil,
+                  onList: Bool) -> Bool {
         if hideMyList, onList { return false }
-        if length == .over50, kind == .anime, (episodes ?? 0) <= 50 { return false }
+        if kind == .anime {
+            switch length {
+            case .upTo13?:
+                guard let episodes, (1...13).contains(episodes) else { return false }
+            case .over50?:
+                guard let episodes, episodes > 50 else { return false }
+            default: break
+            }
+            switch format {
+            case .tv?: if let formatRaw, formatRaw.uppercased() != "TV" { return false }
+            case .film?: if let formatRaw, formatRaw.uppercased() != "MOVIE" { return false }
+            default: break
+            }
+        }
+        switch status {
+        case .finished?: if let statusRaw, statusRaw.uppercased() != "FINISHED" { return false }
+        case .releasing?: if let statusRaw, statusRaw.uppercased() != "RELEASING" { return false }
+        default: break
+        }
         return true
     }
 }

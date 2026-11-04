@@ -56,8 +56,12 @@ enum DiscoverSeeAllCopy {
         german ? "Nichts passt zu diesen Filtern." : "Nothing matches these filters."
     }
 
-    static func nothingHere(german: Bool) -> String {
-        german ? "Hier ist gerade nichts, was du noch nicht kennst." : "Nothing here you haven't seen right now."
+    /// NEW (not in §8): the no-filter empty line. "Haven't seen" only where the list hides owned titles.
+    static func nothingHere(unseenOnly: Bool, german: Bool) -> String {
+        if unseenOnly {
+            return german ? "Hier ist gerade nichts, was du noch nicht kennst." : "Nothing here you haven't seen right now."
+        }
+        return german ? "Hier ist gerade nichts." : "Nothing here right now."
     }
 
     static func pageFailed(german: Bool) -> String {

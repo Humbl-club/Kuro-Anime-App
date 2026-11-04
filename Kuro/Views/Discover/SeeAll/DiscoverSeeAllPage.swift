@@ -46,9 +46,12 @@ struct DiscoverSeeAllPage: View {
 
     private let section: DiscoverSeeAllSection
 
+    /// `initialSelection` (renders, tests): the sort and chips the page opens with; nil = the list's own
+    /// order, no chip.
     init(source: DiscoverSeeAllSource, title: String, purpose: String,
          animeItems: [AnimeCard], mangaItems: [MangaCard],
-         airingSlots: [Int: DiscoverAiringSlot] = [:]) {
+         airingSlots: [Int: DiscoverAiringSlot] = [:],
+         initialSelection: DiscoverSeeAllSelection? = nil) {
         self.source = source
         self.title = title
         self.purpose = purpose
@@ -61,7 +64,7 @@ struct DiscoverSeeAllPage: View {
         }
         self.section = section
         _feed = State(initialValue: DiscoverJourneyFeed(policy: section.ownedPolicy))
-        _selection = State(initialValue: DiscoverSeeAllSelection(sort: section.defaultSort))
+        _selection = State(initialValue: initialSelection ?? DiscoverSeeAllSelection(sort: section.defaultSort))
     }
 
     private var german: Bool { KuroLocale.isGerman }
@@ -87,8 +90,10 @@ struct DiscoverSeeAllPage: View {
             hiddenFranchises: franchises,
             franchiseKeys: { discovery.franchiseKeys(for: $0) },
             include: { placed in
-                selection.includes(kind: placed.item.key.kind, episodes: placed.item.card.display.episodes,
-                                   onList: library.entry(for: placed.item.key) != nil)
+                let display = placed.item.card.display
+                return selection.includes(kind: placed.item.key.kind, episodes: display.episodes,
+                                          formatRaw: display.formatRaw, statusRaw: display.statusRaw,
+                                          onList: library.entry(for: placed.item.key) != nil)
             })
     }
 
@@ -195,15 +200,15 @@ struct DiscoverSeeAllPage: View {
         case .loading:
             DiscoverJourneySkeleton()
         case .offline:
-            KuroOfflineView(hasContent: false) { Task { await start() } }
+            KuroOfflineView(hasContent: false) { Task { await start(force: true) } }
         case .failed:
-            KuroStateView(.failed(hasCachedContent: false), layout: .inline) { Task { await start() } }
+            KuroStateView(.failed(hasCachedContent: false), layout: .inline) { Task { await start(force: true) } }
         case .ready:
             if rows.isEmpty, !feed.hasMore, !feed.isLoadingMore {
                 VStack(alignment: .leading, spacing: 4) {
                     HomeQuietCard(text: selection.activeCount > 0
                                   ? DiscoverSeeAllCopy.nothingMatches(german: german)
-                                  : DiscoverSeeAllCopy.nothingHere(german: german))
+                                  : DiscoverSeeAllCopy.nothingHere(unseenOnly: section.ownedPolicy == .hide, german: german))
                     if selection.activeCount > 0 {
                         DiscoverInkRuleLink(title: DiscoverSeeAllCopy.clearFilters(german: german)) {
                             selection.clearFilters()
@@ -253,11 +258,12 @@ struct DiscoverSeeAllPage: View {
 
     // MARK: Loading
 
-    private func start() async {
+    private func start(force: Bool = false) async {
         let query = query
         let rows = loadedRows
         let discovery = discovery
         await feed.start(
+            key: query, force: force,
             policy: section.ownedPolicy,
             fetch: { cursor in await discovery.seeAllPage(query, cursor: cursor, limit: 30, loadedRows: rows) },
             discovery: discovery, taste: taste,
