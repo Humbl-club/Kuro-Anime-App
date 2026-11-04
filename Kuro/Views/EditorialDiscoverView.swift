@@ -61,6 +61,8 @@ struct EditorialDiscoverView: View {
     @State private var reachedEnd = false
     @State private var maxDepth = 0
     @State private var visit = DiscoverVisitSession()
+    /// The tallies already reported by `discover_visit_end` this visit (a resumed visit reports deltas).
+    @State private var reportedTally = DiscoverVisitSession.Tally()
     /// "Like {title}": the seed's title for the issue's medium (nil: three mood keys).
     @State private var likeSeed: DiscoverLikeSeed? = nil
     @State private var localScroll = ScrollPosition(edge: .top)
@@ -462,23 +464,15 @@ struct EditorialDiscoverView: View {
     /// A title hidden on Discover right now: its own answer, or Not interested on another title of its
     /// franchise on this page (D16, within the visit's build).
     private func isLiveHidden(_ key: MediaKey) -> Bool {
-        if taste.isHiddenOnDiscover(key) { return true }
-        return build.isFranchiseHidden(key, notInterested: { taste.discoverHidden[$0] == .notInterested })
+        build.isLiveHidden(key, isHidden: { taste.isHiddenOnDiscover($0) },
+                           notInterested: { taste.discoverHidden[$0] == .notInterested })
     }
 
     /// The built sections with their titles still on the page (a section emptied by hides leaves the
     /// page and the contents; the cap is not refilled mid-visit, §7).
     private var visibleSections: [DiscoverIssueBuild.Built] {
-        build.sections.compactMap { built in
-            if built.section == .hiddenGem {
-                guard let first = built.cards.first, !isLiveHidden(first.key) else { return nil }
-                return built
-            }
-            let cards = built.cards.filter { !isLiveHidden($0.key) }
-            guard !cards.isEmpty else { return nil }
-            let removed = built.cards.count - cards.count
-            return DiscoverIssueBuild.Built(section: built.section, cards: cards, total: max(cards.count, built.total - removed))
-        }
+        build.visibleSections(isHidden: { taste.isHiddenOnDiscover($0) },
+                              notInterested: { taste.discoverHidden[$0] == .notInterested })
     }
 
     private func shownTitleCount(_ sections: [DiscoverIssueBuild.Built]) -> Int {
@@ -692,9 +686,8 @@ struct EditorialDiscoverView: View {
     // MARK: Moods
 
     private func openMood(_ mood: DiscoverMood) {
+        // `discover_mood_open` (with its count) is the mood journey's own event (lane B).
         let german = KuroLocale.isGerman
-        telemetry?.trackInteractionEvent("discover_mood_open", surface: "discover", result: "opened",
-                                         extra: ["mood": mood.rawValue, "medium": moodKind == .manga ? "MANGA" : "ANIME", "count": 0])
         routes.openPage(DiscoverMoodBridge.page(mood, kind: moodKind,
                                                 likeTitle: likeSeed?.kind == moodKind ? likeSeed?.title : nil,
                                                 german: german))
@@ -745,8 +738,7 @@ struct EditorialDiscoverView: View {
     /// "See all" opens the section as a journey (navigation contract §1): its frames push their title,
     /// ✕ / swipe-down collapses back to Discover. Hidden titles stay out (R5).
     private func openSeeAll(route: EditorialDiscoverRoute) {
-        telemetry?.trackInteractionEvent("discover_see_all", surface: "discover", result: "opened",
-                                         extra: ["section": route.id, "sort": "default", "filters": 0, "pages": 1])
+        // `discover_see_all` ("opened", sorts, filters, pages) is the See all page's own event (lane B).
         let title = route.title(german: KuroLocale.isGerman, reason: route == .animeBecauseYou ? vm.becauseYouReason : nil)
         let page = fullSection(for: route, title: title)
         routes.openPage(.seeAll(AnyJourneyPage(id: DiscoverSeeAllPolicy.pageID(route), title: title) { page }))
@@ -847,6 +839,7 @@ struct EditorialDiscoverView: View {
         let starts = visit.begin(userId: userId, defaults: visitDefaults, now: now)
         if starts {
             feedback.resetSession()
+            reportedTally = DiscoverVisitSession.Tally()
             maxDepth = 0
             reachedEnd = false
             // A new visit is a new build (D5), once the page has content.
@@ -856,16 +849,22 @@ struct EditorialDiscoverView: View {
 
     private func endVisit() {
         guard let summary = visit.end(defaults: visitDefaults, now: Date()) else { return }
+        // A visit resumed within 30 minutes ends again: each event carries only what happened since
+        // the last one, so summing events never double-counts (depth and sections reached are maxima).
+        let now = DiscoverVisitSession.Tally(taps: feedback.taps, plans: feedback.planned,
+                                             hides: feedback.hidden, seen: feedback.seen)
+        let delta = now.minus(reportedTally)
+        reportedTally = now
         telemetry?.trackInteractionEvent("discover_visit_end", surface: "discover", result: "ended", extra: [
             "issue": selectedMediaType.rawValue.lowercased(),
             "sections_total": visibleSections.count,
             "sections_reached": summary.sectionsSeen,
             "reached_end": reachedEnd,
             "depth_pct": min(100, maxDepth * 10),
-            "taps": feedback.taps,
-            "plans": feedback.planned,
-            "hides": feedback.hidden,
-            "seen": feedback.seen,
+            "taps": delta.taps,
+            "plans": delta.plans,
+            "hides": delta.hides,
+            "seen": delta.seen,
             "dwell": DiscoverVisitSession.dwellBucket(summary.seconds)
         ])
     }
@@ -1555,6 +1554,24 @@ struct DiscoverIssueBuild {
 
     func built(_ section: DiscoverIssueSections.Section) -> Built? { sections.first { $0.section == section } }
 
+    /// R5 mid-visit: hidden by its own answer, or (D16) by Not interested on another title of its
+    /// franchise in this build.
+    func isLiveHidden(_ key: MediaKey, isHidden: (MediaKey) -> Bool, notInterested: (MediaKey) -> Bool) -> Bool {
+        isHidden(key) || isFranchiseHidden(key, notInterested: notInterested)
+    }
+
+    /// The sections as the page draws them now: hidden titles out, so each section's reserve slides
+    /// up; See all counts lose the removed titles; a section emptied by hides (or a hidden Hidden gem)
+    /// leaves the page and the contents, and the cap is not refilled mid-visit (§7). Claims never move.
+    func visibleSections(isHidden: (MediaKey) -> Bool, notInterested: (MediaKey) -> Bool) -> [Built] {
+        sections.compactMap { built in
+            let cards = built.cards.filter { !isLiveHidden($0.key, isHidden: isHidden, notInterested: notInterested) }
+            guard !cards.isEmpty else { return nil }
+            let removed = built.cards.count - cards.count
+            return Built(section: built.section, cards: cards, total: max(cards.count, built.total - removed))
+        }
+    }
+
     /// D16 within the build: a title shares a franchise with a title answered Not interested.
     func isFranchiseHidden(_ key: MediaKey, notInterested: (MediaKey) -> Bool) -> Bool {
         guard let mine = franchises[key], !mine.isEmpty else { return false }
@@ -1652,6 +1669,16 @@ struct DiscoverVisitSession {
     struct Summary: Equatable {
         let sectionsSeen: Int
         let seconds: TimeInterval
+    }
+
+    /// The page's session counts at one moment (telemetry deltas).
+    struct Tally: Equatable {
+        var taps = 0, plans = 0, hides = 0, seen = 0
+
+        func minus(_ other: Tally) -> Tally {
+            Tally(taps: max(0, taps - other.taps), plans: max(0, plans - other.plans),
+                  hides: max(0, hides - other.hides), seen: max(0, seen - other.seen))
+        }
     }
 
     var ledger = DiscoverVisitLedger()

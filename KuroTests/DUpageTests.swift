@@ -273,6 +273,56 @@ struct DiscoverPageBuildTests {
         #expect(built.built(.essentials)?.cards.map(\.key) == build().built(.essentials)?.cards.map(\.key))
     }
 
+    @Test("Live hides (R5): the reserve slides up, See all loses the title, an emptied section leaves, D16 franchise-wide")
+    func liveHides() throws {
+        let built = build()
+        let ntY = try #require(built.built(.newToYou))
+        let hiddenKey = ntY.cards[1].key
+        let visible = built.visibleSections(isHidden: { $0 == hiddenKey }, notInterested: { _ in false })
+        let after = try #require(visible.first { $0.section == .newToYou })
+        #expect(after.cards.prefix(4).map(\.key) == [ntY.cards[0].key, ntY.cards[2].key, ntY.cards[3].key, ntY.cards[4].key],
+                "the reserve slides up")
+        #expect(after.total == ntY.total - 1)
+        #expect(visible.map(\.section) == built.sections.map(\.section), "no section moves (R8)")
+        #expect(visible.first { $0.section == .essentials }?.cards.map(\.key) == built.built(.essentials)?.cards.map(\.key))
+
+        // Every title of a section hidden: it leaves the page; the cap is not refilled mid-visit.
+        let classics = Set(try #require(built.built(.classics)).cards.map(\.key))
+        let emptied = built.visibleSections(isHidden: { classics.contains($0) }, notInterested: { _ in false })
+        #expect(!emptied.contains { $0.section == .classics })
+        #expect(emptied.count == built.sections.count - 1)
+
+        // Not interested on one title hides a claimed franchise-mate anywhere on the page, live (D16).
+        let mates = DiscoverIssueBuilder.build(
+            lead: nil,
+            sources: [DiscoverIssueBuilder.Source(section: .trending, cards: DUFixture.cards("trending"), shown: 10)],
+            hiddenKeys: [], notInterested: [], owned: { _ in nil }, franchise: { card in
+                // Both Demon Slayer entries share the stem key: claimed once, hidden together (D16).
+                card.key.id == 4 || card.key.id == 5 ? [.component(.anime, card.key.id), .stem(.anime, "demon slayer")]
+                                                       : [.component(.anime, card.key.id)]
+            }, issue: .all)
+        let claimed = try #require(mates.built(.trending)).cards.map(\.key.id)
+        #expect(claimed.contains(4) && !claimed.contains(5), "one franchise claimed once")
+        let slayer = MediaKey(kind: .anime, id: 4)
+        #expect(mates.isLiveHidden(MediaKey(kind: .anime, id: 5), isHidden: { _ in false }, notInterested: { $0 == slayer }))
+        #expect(!mates.isLiveHidden(MediaKey(kind: .anime, id: 43), isHidden: { _ in false }, notInterested: { $0 == slayer }))
+
+        // A hidden Hidden gem leaves with its section.
+        let gemCard = try #require(DUFixture.animeCard(7))
+        let gem = DiscoverIssueBuilder.build(lead: nil, sources: [DiscoverIssueBuilder.Source(section: .hiddenGem, cards: [gemCard], shown: 1)],
+                                             hiddenKeys: [], notInterested: [], owned: { _ in nil }, franchise: stem, issue: .anime)
+        #expect(gem.visibleSections(isHidden: { _ in false }, notInterested: { _ in false }).count == 1)
+        #expect(gem.visibleSections(isHidden: { $0 == gemCard.key }, notInterested: { _ in false }).isEmpty)
+    }
+
+    @Test("visit_end reports deltas, so a resumed visit never double-counts")
+    func tallyDeltas() {
+        let first = DiscoverVisitSession.Tally(taps: 5, plans: 2, hides: 1, seen: 0)
+        let later = DiscoverVisitSession.Tally(taps: 8, plans: 2, hides: 2, seen: 1)
+        #expect(later.minus(first) == DiscoverVisitSession.Tally(taps: 3, plans: 0, hides: 1, seen: 1))
+        #expect(first.minus(later) == DiscoverVisitSession.Tally())
+    }
+
     @Test("The cap counts sections that still hold titles after dedupe; the dropped ones become More lists")
     func capAfterDedupe() {
         let built = build(cap: 3)
