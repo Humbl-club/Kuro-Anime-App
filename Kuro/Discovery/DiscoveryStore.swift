@@ -76,8 +76,9 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         self.defaults = defaults
     }
 
-    /// The SDK client, or `MissingSupabaseConfiguration` when the app has none.
-    private func requiredClient() throws -> SupabaseClient {
+    /// The SDK client, or `MissingSupabaseConfiguration` when the app has none (also used by
+    /// `DiscoveryStore+Usability.swift`).
+    func requiredClient() throws -> SupabaseClient {
         guard let client else { throw MissingSupabaseConfiguration() }
         return client
     }
@@ -86,6 +87,13 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     var discoverBundleCache: [String: TimedCache<DiscoverBundle>] = [:]
     /// In-flight bundle loads: joined only by the same key and account context.
     let discoverBundleLoads = AccountScopedLoads<String, DiscoverBundle?>()
+
+    /// Franchise component of each title read so far (`media_franchise_ids_v1`, public catalogue
+    /// data: kept across sign-out, shed under memory pressure). See `DiscoveryStore+Usability.swift`.
+    var franchiseIds: [MediaKey: Int] = [:]
+    /// Prepared Discover readers that answered "not deployed", with the time (retried after
+    /// `discoverUndeployedRetryInterval`).
+    @ObservationIgnored var undeployedDiscoverContracts: [String: Date] = [:]
 
     // MARK: AccountScopedState
 
@@ -119,6 +127,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         airingSlots.removeAll()
         airingSlotIdsRead.removeAll()
         airingSlotsDay = nil
+        franchiseIds.removeAll()
     }
 
     // MARK: - Discover bundle (single call)
