@@ -16,8 +16,12 @@ protocol AccountScopedState: AnyObject {
     func clearPrivateState()
     /// Confirmed deletion cleanup uses the deleted identity even after a switch.
     func removeDeletedAccountData(userId: String) async throws
+    /// A failed launch restore after which the SDK holds no session: no account owns this device's
+    /// data any more (the funnel removes the airing reminders in the same case). Default: nothing.
+    func removeDataWithoutOwner()
 }
 
 extension AccountScopedState {
     func removeDeletedAccountData(userId: String) async throws {}
+    func removeDataWithoutOwner() {}
 }

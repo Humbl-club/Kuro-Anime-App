@@ -27,6 +27,9 @@ nonisolated struct ReleaseCopy {
     let german: Bool
     let locale: Locale
     let timeZone: TimeZone
+    /// "today" / "tomorrow" words. Off for text stored and shown later (the widget snapshot): a stored
+    /// "Tomorrow" would still read "Tomorrow" on the release day, so stored days are always absolute.
+    private(set) var relativeDays = true
 
     private let calendar: Calendar
     private let dayFormatter: DateFormatter
@@ -61,6 +64,13 @@ nonisolated struct ReleaseCopy {
         utcLongDayFormatter = cache.formatter("EEEEdMMMM", locale: locale, timeZone: utc)
         utcDayNumberFormatter = cache.formatter("d", locale: locale, timeZone: utc)
         utcShortMonthFormatter = cache.formatter("MMM", locale: locale, timeZone: utc)
+    }
+
+    /// The same wording with absolute days only ("Wed 26 Nov, 21:30", never "Tomorrow, 21:30").
+    func withoutRelativeDays() -> ReleaseCopy {
+        var copy = self
+        copy.relativeDays = false
+        return copy
     }
 
     /// The reader's language, locale and zone (`KuroLocale`), at `now`.
@@ -304,6 +314,7 @@ nonisolated struct ReleaseCopy {
 
     /// "today" / "tomorrow" (lower case) when `date` falls on that calendar day in `timeZone`.
     private func relativeDay(_ date: Date) -> String? {
+        guard relativeDays else { return nil }
         if calendar.isDate(date, inSameDayAs: now) { return pick("today", "heute") }
         if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
            calendar.isDate(date, inSameDayAs: tomorrow) {
@@ -315,6 +326,7 @@ nonisolated struct ReleaseCopy {
     /// "today" / "tomorrow" for a day-only date: its UTC calendar date against the reader's local
     /// calendar day of `now` and of the day after.
     private func relativeDay(announcedDay date: Date) -> String? {
+        guard relativeDays else { return nil }
         let day = utcCalendar.dateComponents([.year, .month, .day], from: date)
         func same(_ reference: Date) -> Bool {
             let local = calendar.dateComponents([.year, .month, .day], from: reference)

@@ -5,6 +5,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Focused AniList / MAL account / MAL XML choice. Uses the existing Profile import coordinator.
+/// Home's grammar (details-songs spec §13): the 24 pt page heading on the cover line, the existing
+/// ink-rule link rows with 9 / 1.05 kickers, the result as a glance card with `KuroInkButton`s.
 /// Does not create a credential store or skip review.
 /// Renders every coordinator outcome itself (it is offered from Onboarding, the empty Collection and
 /// Profile's new-account block; it owns its own coordinator instance, so it never relies on Profile's):
@@ -72,12 +74,7 @@ struct ImportSourceChooser: View {
                     Spacer()
                     topControl(ImportChooserTopControl.resolve(busy: busy, undoing: undoing))
                 }
-                Text(isGerman ? "Importiere deine Liste" : "Import your list")
-                    .kuroRoleText(.feature)
-                    .foregroundStyle(Color.kuroInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityAddTraits(.isHeader)
+                ImportPageHeading(title: isGerman ? "Importiere deine Liste" : "Import your list")
                 Rectangle()
                     .fill(Color.kuroInk)
                     .frame(width: 46, height: 2)
@@ -86,8 +83,8 @@ struct ImportSourceChooser: View {
                 Text(isGerman
                      ? "Wähle eine Quelle. Titel, die schon in deinen Listen sind, ändern sich erst, wenn du bestätigst."
                      : "Choose a source. Titles already in your lists change only after you confirm.")
-                    .font(.kuroBody())
-                    .foregroundStyle(Color.kuroInkSecondary)
+                    .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 26))
+                    .foregroundStyle(ImportInk.description)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -205,8 +202,7 @@ struct ImportSourceChooser: View {
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(isGerman ? "MAL-Konto" : "MAL account")
-                                .kuroKicker()
+                            ImportEyebrow(text: isGerman ? "MAL-Konto" : "MAL account")
                             Text(isGerman
                                  ? "Die Kontoverbindung ist noch nicht verfügbar. AniList und die XML-Datei funktionieren trotzdem."
                                  : "Account connection is not available yet. AniList and the XML file still work.")
@@ -381,8 +377,7 @@ struct ImportSourceChooser: View {
     private func sourceButton(kicker: String, title: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(kicker)
-                    .kuroKicker()
+                ImportEyebrow(text: kicker)
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(title)
                         .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
@@ -431,12 +426,11 @@ private struct ImportChooserResultCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(isReview ? (isGermanLocale ? "Prüfung" : "Review") : "Import")
-                        .kuroKicker()
+                    ImportEyebrow(text: isReview ? (isGermanLocale ? "Prüfung" : "Review") : "Import")
                         .accessibilityHidden(true)
                     Text(result.titleText)
-                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
-                        .foregroundStyle(Color.kuroInk)
+                        .font(.kuroCustom(14, weight: .semibold, relativeTo: .subheadline, maxSize: 28)).tracking(-0.3)
+                        .foregroundStyle(HomeInk.glanceInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                     Text(result.summaryText)
@@ -468,31 +462,17 @@ private struct ImportChooserResultCard: View {
             } else {
                 primaryButton(primaryTitle, action: onSeeLists)
                 if result.undoSessionId != nil {
-                    Button(action: onUndo) {
-                        Text(isGermanLocale ? "Import rückgängig machen" : "Undo import")
-                            .font(.kuroButtonLabel(weight: .medium))
-                            .foregroundStyle(Color.kuroInk)
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(
-                                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                                    .stroke(Color.kuroHairline, lineWidth: 0.8)
-                            )
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isBusy)
+                    KuroInkButton(isGermanLocale ? "Import rückgängig machen" : "Undo import", role: .secondary,
+                                  action: onUndo)
+                        .disabled(isBusy)
                 }
             }
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                .fill(Color.kuroCanvasQuiet)
-                .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .stroke(Color.kuroHairline, lineWidth: 0.5)
-                )
-        )
+        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
+        .shadow(color: HomeInk.glanceShadow, radius: 1, y: 1)
     }
 
     private var isReview: Bool {
@@ -501,19 +481,8 @@ private struct ImportChooserResultCard: View {
     }
 
     private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.kuroButtonLabel(weight: .medium))
-                .foregroundStyle(Color.kuroWhite)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .fill(Color.kuroInk)
-                )
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(isBusy)
+        KuroInkButton(title, role: .primary, action: action)
+            .disabled(isBusy)
     }
 }
 

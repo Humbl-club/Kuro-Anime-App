@@ -95,6 +95,35 @@ struct NaventityJourneyTests {
         #expect(navigator.path.map(\.id) == ["author:4"])
     }
 
+    @Test("N5: character → voice actor → the same character pops back (Maomao → Aoi Yuuki → Maomao is bounded)")
+    func voiceActorPingPong() throws {
+        let navigator = JourneyNavigator(root: .media(MediaRoute(kind: .anime, id: 161_645)))
+        let maomao = try character(1)
+        let voice = try staff(2)
+        navigator.routes.openCharacter(maomao)
+        navigator.routes.openStaff(voice)
+        #expect(navigator.path.map(\.id) == ["character:1", "staff:2"])
+        // The staff page's role row opens the character again: popped to, never pushed twice.
+        navigator.routes.openCharacter(maomao)
+        #expect(navigator.path.map(\.id) == ["character:1"])
+        navigator.routes.openStaff(voice)
+        navigator.routes.openStaff(voice)
+        #expect(navigator.path.map(\.id) == ["character:1", "staff:2"])
+        // A role row's cover opens the anime: the journey's root is popped to (no copy of the detail).
+        navigator.routes.openMedia(MediaRoute(kind: .anime, id: 161_645))
+        #expect(navigator.path.isEmpty)
+    }
+
+    @Test("A studio's year page is a pushed journey page; opening the same year again pops back to it")
+    func studioYearPage() throws {
+        let navigator = JourneyNavigator(root: .studio(try studio(3)))
+        let group = EntityYearGroup(year: 2023, works: [])
+        navigator.routes.openPage(EntityYearPage.page(studioName: "Studio 3", group: group))
+        navigator.routes.openMedia(MediaRoute(kind: .anime, id: 7))
+        navigator.routes.openPage(EntityYearPage.page(studioName: "Studio 3", group: group))
+        #expect(navigator.path.map(\.id) == ["seeAll:studio-year:Studio 3:2023"])
+    }
+
     @Test("Anime 7 and manga 7 from one staff page are different pages; staff 5 and author 5 too")
     func kindsStayDistinct() throws {
         let navigator = JourneyNavigator(root: .staff(try staff(5)))

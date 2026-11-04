@@ -120,6 +120,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.clubs)
                     .environment(graph.discovery)
                     .environment(graph.releases)
+                    .environment(graph.songPreview)
                     .environment(NetworkMonitor())
                     .environment(graph.artworkMaterials)
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
@@ -139,6 +140,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.clubs)
                     .environment(graph.discovery)
                     .environment(graph.releases)
+                    .environment(graph.songPreview)
                     .environment(NetworkMonitor())
                     .environment(graph.artworkMaterials)
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
@@ -165,6 +167,7 @@ struct HomeCompositionSnapshotTests {
                 .environment(graph.clubs)
                 .environment(graph.discovery)
                 .environment(graph.releases)
+                .environment(graph.songPreview)
                 .environment(NetworkMonitor())
                 .environment(graph.artworkMaterials)
                 .environment(\.kuroRoutes, KuroRoutes.unhandled),
@@ -188,6 +191,7 @@ struct HomeCompositionSnapshotTests {
                 .environment(graph.session)
                 .environment(graph.collection)
                 .environment(graph.releases)
+                .environment(graph.songPreview)
                 .environment(graph.availability)
                 .environment(graph.clubs)
                 .environment(graph.imports)
@@ -220,6 +224,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.social)
                     .environment(graph.catalog)
                     .environment(graph.releases)
+                    .environment(graph.songPreview)
                     // The series view now delegates to the prototype detail page (Task 6), which also
                     // reads these owners.
                     .environment(graph.flags)
@@ -238,6 +243,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.social)
                     .environment(graph.catalog)
                     .environment(graph.releases)
+                    .environment(graph.songPreview)
                     // The series view now delegates to the prototype manga page (Task 7).
                     .environment(graph.flags)
                     .environment(graph.artworkMaterials)

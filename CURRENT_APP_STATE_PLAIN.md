@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 240 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 272 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2130,3 +2130,35 @@ A review pass on the new Discover and Clubs pages found small problems; they are
 ### Change Log — 3 November 2026: Discover and Clubs now look like Home (TestFlight 23)
 
 Discover reads like a daily issue (a cover story in the title's own colours, a short contents line, a few hand-picked sections in different shapes, the rest folded away), and every club is a dark "room" like the one on Home, on the list and on the club's own page. It is in TestFlight build 23 and waits for the owner's review before it becomes part of the main version.
+
+### Change Log — 3 November 2026: Groundwork for richer detail pages and songs (prepared, not live)
+
+Preparation for the owner's 13 detail/songs items; nothing is live yet and nothing was deployed.
+- Fixed: a title's characters list could stay empty when one of its characters had an age stored. It now shows.
+- Prepared (waiting for approval): voice actors for each character (Japanese voices first), "More like this" cards in one quick request, and Apple Music artwork plus a 30-second preview for opening and ending songs. Song matches must agree on both title and artist; anything uncertain is left out rather than guessed.
+- The app already knows how to show these and quietly falls back to today's behaviour until the server side is switched on.
+- A new preview player plays one song at a time, respects the phone's silent switch, and stops when you leave the app, take a call or switch accounts.
+- The privacy policy draft now explains song previews from Apple, local reminders and the widget.
+- All new automatic tests pass. Nothing was pushed or deployed.
+
+### Change Log — 3 November 2026: Home Screen widget and new-episode notifications (groundwork, not released)
+
+Kuro now has a Home Screen widget extension. It shows the next episodes and chapters of what you follow, and what you are watching or reading with a "+1" button. The widget never saves anything itself: a +1 is put in a small shared inbox, shows on the widget straight away, and Kuro saves it the normal way (with the same "already caught up" check) the next time it is open. Nothing about your account is stored for the widget except an anonymous tag, and everything is removed when you sign out or switch accounts.
+
+Kuro can also remind you about new episodes and chapters of titles you are watching or reading. It only uses dates the source has confirmed or announced, never guesses; exact times notify at that time, dates without a time notify at 9:00 that morning. Kuro only asks for notification permission when you switch this on yourself (Profile, or the bell on a title); it no longer asks on its own. Tapping a reminder opens the title. The Profile switch and the widget's final look are built by other lanes. All automatic tests for this part passed; nothing was deployed or pushed.
+
+### Change Log — 3 November 2026: Richer detail pages, songs, widgets and reminders put together (not released)
+
+All thirteen of the owner's items now live together on one branch (`kuro/details-songs-platform`, local only). Detail pages show the year, format, studio and score, when the next episode is due (with "expected" for guesses), a timeline of episodes with pictures and ticks for what you've watched, the cast, and "More like this". Songs are grouped by part, show the artist, and can play Apple's 30-second preview once the song matches are loaded. Character, staff, studio and author pages look like Home. Profile shows your numbers and your year. The import screens look like Home but say exactly the same words. Sideways rows now show a slice of the next card.
+
+Reminders were tightened to the lead's rule: Kuro only reminds you at an exact time that was confirmed or announced — never for a guess and never for a day without a time. Reminders start off; you turn them on in Profile, or for one title with the bell on its page (the bell never turns on all the others). The old English-only "airs now / in 1 hour" reminders are gone and removed from the device once.
+
+Everything was tested: 1,068 app tests, 15 navigation UI tests, the widget build and a Release build pass, and a read-only look at the live app shows the "not loaded yet" states (no voice actors, no Apple song matches yet) behaving gracefully. Nothing was uploaded, deployed or switched on. Still open: checking VoiceOver and the widget on a real phone, and the Discover "All" page is about 100 points longer than aimed for.
+
+### Change Log — 3 November 2026 (evening): Fixes after the review of the detail/songs/widget work
+
+A review found real problems and they are fixed on the same local branch: the episode list no longer shows a different date for the next episode than the top of the page; long titles on a studio's year list wrap instead of running off the screen; character bios no longer start with "Height: 190 cm"; the widget never says "Tomorrow" on the day itself; a reminder you turned on for one title stops when you pause that title; song previews play even with the phone on silent and give up after 10 seconds on a bad connection; the greyed-out import button is readable. The backfill instructions for voice actors were wrong (they would have skipped three of every four pages) and are corrected, and the Apple song matcher is stricter (no "COLORS 2" for "COLORS", no live versions). Discover's All page is about 600 pt shorter than before but still about 100 pt over the 2,000 pt aim — the lead decides the next cut. Nothing was uploaded, deployed or switched on.
+
+### Change Log — 3 November 2026: New title pages, songs with previews, cast, and stats (build 24)
+
+Build 24 has the new title pages (facts, next episode with a bell, episode timeline, "More like this"), songs with artwork and 30-second Apple Music previews, characters with their Japanese voice actors, Profile numbers, the restyled import screens and edge peeks on sideways rows. The data behind voice actors and song previews is being filled in now and appears title by title. The Home Screen widget is finished but waits for one setting only the owner can make in Apple's developer account.

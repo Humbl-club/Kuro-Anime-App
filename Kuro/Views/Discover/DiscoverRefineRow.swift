@@ -6,8 +6,9 @@ import SwiftUI
 // unselected in `kuroMuted`, the selected in ink with a 16 × 1.5 rule, 16 pt apart, each a 44 pt
 // target; VoiceOver hears the group as "Refine this rail". It keeps the page's medium choice and this
 // choice visibly different (the page switch is the heavy issue switch).
-// The rail: 106 × 150 covers (radius 4), a 12 pt title and a 10 pt line, 14 pt apart, bleeding past the
-// trailing gutter; up to ten, then "See all {n} ›" under it.
+// The rail: 2 : 3 covers (radius 4) sized by the edge-peek rule (100 × 150 at 390, a slice of the next
+// cover always showing; details-songs spec §5.1), a 12 pt title and a 10 pt line, 14 pt apart, bleeding
+// past the trailing gutter; up to ten, then "See all {n} ›" under it.
 
 struct DiscoverRefineRow: View {
     @Binding var selection: DiscoverRailFilter
@@ -83,11 +84,11 @@ struct DiscoverIssueRail: View {
                               layout: .inline)
                     .padding(.horizontal, gutter)
             } else {
+                let cover = DiscoverIssueLayout.railCover(column: column, gutter: gutter)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: DiscoverIssueLayout.railSpacing) {
                         ForEach(rail) { card in
-                            DiscoverCoverTile(card: card, width: DiscoverIssueLayout.railCover.width,
-                                              height: DiscoverIssueLayout.railCover.height)
+                            DiscoverCoverTile(card: card, width: cover.width, height: cover.height)
                         }
                     }
                     .padding(.horizontal, gutter)

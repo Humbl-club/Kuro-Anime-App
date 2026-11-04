@@ -93,11 +93,6 @@ extension Font {
         let scaled = min(KuroTypeScale.current.scaled(size, relativeTo: textStyle), size * 1.75)
         return .custom(italic ? "Georgia-Italic" : "Georgia", fixedSize: scaled)
     }
-
-    /// Hiragino Mincho for the prototype's serif CJK marks (映): the system serif falls back to Gothic.
-    static func detailMincho(_ size: CGFloat) -> Font {
-        .custom("HiraMinProN-W3", fixedSize: min(KuroTypeScale.current.scaled(size, relativeTo: .title2), size * 1.75))
-    }
 }
 
 extension View {
@@ -171,23 +166,54 @@ struct DetailSectionHeading: View {
 // MARK: - Hero
 
 /// D1: the wide artwork fading into `deep`, then the band with kind kicker, title and status mark.
+/// Details-songs §6.2 (additive): the band is Home's scene foot, with two optional fact rows under the
+/// title (the facts line, then the next-release row with its bell) and Home's season tab on the art's
+/// bottom-left edge. VoiceOver reads the hero in order: title, mark, facts, next row, bell, tab.
 struct DetailHero<Mark: View>: View {
     let artworkURL: URL?
     let kicker: String
     let title: String
     let material: ArtworkMaterial
+    var facts: [DetailFacts.Part] = []
+    var nextRow: AnyView? = nil
+    var seasonTab: AnyView? = nil
     @ViewBuilder let mark: () -> Mark
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The title's full height at the side-by-side width, and two lines' height in the same font: a title
+    /// that needs more than two lines beside the mark stacks the mark under it instead of being cut.
+    @State private var fullTitleHeight: CGFloat = 0
+    @State private var twoLineHeight: CGFloat = 0
+    private var titleNeedsStack: Bool { twoLineHeight > 0 && fullTitleHeight > twoLineHeight + 1 }
+
+    init(artworkURL: URL?, kicker: String, title: String, material: ArtworkMaterial,
+         facts: [DetailFacts.Part] = [], nextRow: AnyView? = nil, seasonTab: AnyView? = nil,
+         @ViewBuilder mark: @escaping () -> Mark) {
+        self.artworkURL = artworkURL
+        self.kicker = kicker
+        self.title = title
+        self.material = material
+        self.facts = facts
+        self.nextRow = nextRow
+        self.seasonTab = seasonTab
+        self.mark = mark
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             artwork
+                .overlay(alignment: .bottomLeading) {
+                    if let seasonTab {
+                        // Read after the bell (§6.11): the tab is visually first but secondary.
+                        seasonTab.accessibilitySortPriority(-1)
+                    }
+                }
             heading
         }
         .background(
             LinearGradient(colors: [material.base.color, material.deep.color],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
         )
+        .accessibilityElement(children: .contain)
     }
 
     private var artwork: some View {
@@ -222,9 +248,29 @@ struct DetailHero<Mark: View>: View {
     }
 
     private var heading: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            titleRow
+            if !facts.isEmpty {
+                DetailFactsLine(parts: facts)
+                    .padding(.top, 10)
+            }
+            if let nextRow {
+                nextRow.padding(.top, facts.isEmpty ? 10 : 12)
+            }
+        }
+        .padding(.top, 4)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 19)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // iPad: the foot's leading edge is the body's readable column (the art stays full-bleed).
+        .kuroReadableWidth()
+        .background(material.deep.color)
+    }
+
+    private var titleRow: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         return Group {
-            if stacked {
+            if stacked || titleNeedsStack {
                 VStack(alignment: .leading, spacing: 8) {
                     titleBlock
                     mark()
@@ -237,6 +283,7 @@ struct DetailHero<Mark: View>: View {
                     HStack(alignment: .bottom, spacing: 12) {
                         titleBlock
                             .frame(minWidth: 140, idealWidth: 140, maxWidth: .infinity, alignment: .leading)
+                            .background(alignment: .topLeading) { titleMeasure }
                         mark()
                             .padding(.bottom, 8)
                     }
@@ -247,11 +294,31 @@ struct DetailHero<Mark: View>: View {
                 }
             }
         }
-        .padding(.top, 4)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 19)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(material.deep.color)
+    }
+
+    /// Hidden copies at the side-by-side width: the whole title, and two reference lines.
+    private var titleMeasure: some View {
+        ZStack(alignment: .topLeading) {
+            titleText.lineLimit(nil)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { value in
+                    if abs(fullTitleHeight - value) > 0.5 { fullTitleHeight = value }
+                }
+            Text(verbatim: "Ag\nAg")
+                .font(.detailSF(27, .semibold, relativeTo: .title1))
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { value in
+                    if abs(twoLineHeight - value) > 0.5 { twoLineHeight = value }
+                }
+        }
+        .hidden()
+        .accessibilityHidden(true)
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(.detailSF(27, .semibold, relativeTo: .title1))
+            .tracking(-1.1)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var titleBlock: some View {

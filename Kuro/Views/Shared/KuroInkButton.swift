@@ -108,11 +108,16 @@ private struct KuroInkButtonStyle: ButtonStyle {
         return Group {
             switch role {
             case .primary:
+                // Disabled: a quiet face with a hairline and the quiet ink label (about 5 : 1), not white
+                // on a 30 % ink face (about 2 : 1, unreadable).
                 configuration.label
-                    .foregroundStyle(Color.kuroWhite)
+                    .foregroundStyle(isEnabled ? Color.kuroWhite : Color.kuroInkQuiet)
                     .background(
-                        Capsule().fill(isEnabled ? (pressed ? Color.kuroInkPressed : Color.kuroInk) : Color.kuroInk.opacity(0.3))
+                        Capsule().fill(isEnabled ? (pressed ? Color.kuroInkPressed : Color.kuroInk) : Color.kuroCanvasQuiet)
                     )
+                    .overlay {
+                        if !isEnabled { Capsule().strokeBorder(Color.kuroHairline, lineWidth: 1) }
+                    }
             case .secondary:
                 configuration.label
                     .foregroundStyle(isEnabled ? Color.kuroInk : Color.kuroInkQuiet)

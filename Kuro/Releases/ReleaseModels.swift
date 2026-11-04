@@ -243,10 +243,14 @@ nonisolated struct ThemeSong: Hashable, Sendable, Identifiable {
     let isNSFW: Bool
     let source: String
     let sourceURL: URL?
+    /// The confident iTunes match for this song (artwork, 30-second preview, Apple Music link), or nil.
+    /// Decoded only from the trailing `media_themes_v1` columns of 20261103100200; the older shape
+    /// (and any row the client cannot verify) has none.
+    let apple: AppleSongMatch?
 
     init(kind: ThemeSongKind, sequence: Int?, title: String, artist: String?, episodes: String? = nil,
          version: Int? = nil, isSpoiler: Bool = false, isNSFW: Bool = false,
-         source: String = "animethemes", sourceURL: URL? = nil) {
+         source: String = "animethemes", sourceURL: URL? = nil, apple: AppleSongMatch? = nil) {
         self.kind = kind
         self.sequence = sequence
         self.title = title
@@ -257,6 +261,7 @@ nonisolated struct ThemeSong: Hashable, Sendable, Identifiable {
         self.isNSFW = isNSFW
         self.source = source
         self.sourceURL = sourceURL
+        self.apple = apple
     }
 
     var id: String { "\(kind.rawValue):\(sequence ?? 0):\(version ?? 0):\(title)" }
@@ -291,6 +296,54 @@ nonisolated struct ThemeSong: Hashable, Sendable, Identifiable {
 
     /// Spotify search for this song (nothing is stored from the service, spec D11).
     var spotifySearchURL: URL? { ThemeListenLinks.spotifySearch(searchQuery) }
+
+    /// "Open in Apple Music": the matched track when one is stored, otherwise the search.
+    var appleMusicURL: URL? { apple?.musicURL ?? appleMusicSearchURL }
+
+    /// Apple's 30-second preview stream (▶ in the page), when the match carries one.
+    var previewURL: URL? { apple?.previewURL }
+}
+
+/// A verified iTunes Search match of one theme song (owner item 7). Every URL is on Apple's own
+/// hosts (checked by the server and again here); a confidence under 0.8 is never a match.
+nonisolated struct AppleSongMatch: Hashable, Sendable {
+    let trackId: Int
+    /// 600×600 artwork on *.mzstatic.com, or nil.
+    let artworkURL: URL?
+    /// 30-second AAC preview (audio-ssl.itunes.apple.com / *.mzstatic.com), or nil.
+    let previewURL: URL?
+    /// The track on music.apple.com.
+    let musicURL: URL
+    let confidence: Double
+
+    static let minimumConfidence = 0.8
+
+    init?(trackId: Int?, artwork: String?, preview: String?, music: String?, confidence: Double?) {
+        guard let trackId, trackId > 0, let confidence, confidence >= Self.minimumConfidence,
+              let musicURL = Self.url(music, hosts: Self.musicHosts) else { return nil }
+        self.trackId = trackId
+        self.artworkURL = Self.url(artwork, hosts: [], suffix: ".mzstatic.com")
+        self.previewURL = Self.url(preview, hosts: ["audio-ssl.itunes.apple.com"], suffix: ".mzstatic.com")
+        self.musicURL = musicURL
+        self.confidence = min(1, confidence)
+    }
+
+    static let musicHosts: Set<String> = ["music.apple.com", "itunes.apple.com"]
+
+    /// An https URL on one of `hosts` (or any subdomain ending in `suffix`), no credentials, port 443.
+    static func url(_ text: String?, hosts: Set<String>, suffix: String? = nil) -> URL? {
+        guard let text, text.count <= 2048, let url = URL(string: text),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme == "https", components.user == nil, components.password == nil,
+              components.port == nil || components.port == 443,
+              let host = components.host?.lowercased() else { return nil }
+        if hosts.contains(host) { return url }
+        if let suffix, host.hasSuffix(suffix), host.count > suffix.count,
+           host.dropLast(suffix.count).allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" }) {
+            return url
+        }
+        return nil
+    }
 }
 
 extension ThemeSong: Decodable {
@@ -300,6 +353,11 @@ extension ThemeSong: Decodable {
         case isNSFW = "is_nsfw"
         case source
         case sourceURL = "source_url"
+        case appleTrackId = "apple_track_id"
+        case appleArtworkURL = "apple_artwork_url"
+        case applePreviewURL = "apple_preview_url"
+        case appleMusicURL = "apple_music_url"
+        case appleMatchConfidence = "apple_match_confidence"
     }
 
     init(from decoder: any Decoder) throws {
@@ -323,6 +381,14 @@ extension ThemeSong: Decodable {
         self.isNSFW = (try c.decodeIfPresent(Bool.self, forKey: .isNSFW)) ?? false
         self.source = (try c.decodeIfPresent(String.self, forKey: .source)) ?? "animethemes"
         self.sourceURL = (try c.decodeIfPresent(String.self, forKey: .sourceURL)).flatMap(ReleaseScheduleItem.httpsURL)
+        // Trailing Apple columns (20261103100200): optional, and an unreadable value is no match
+        // (never a decode failure that would drop the song).
+        self.apple = AppleSongMatch(
+            trackId: try? c.decodeIfPresent(Int.self, forKey: .appleTrackId),
+            artwork: try? c.decodeIfPresent(String.self, forKey: .appleArtworkURL),
+            preview: try? c.decodeIfPresent(String.self, forKey: .applePreviewURL),
+            music: try? c.decodeIfPresent(String.self, forKey: .appleMusicURL),
+            confidence: try? c.decodeIfPresent(Double.self, forKey: .appleMatchConfidence))
     }
 }
 

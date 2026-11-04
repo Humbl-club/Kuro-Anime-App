@@ -111,10 +111,19 @@ nonisolated enum DiscoverIssueLayout {
     /// The index row's Plan key: at least 96 pt wide (84 compact), growing only for its label.
     static func indexKeyWidth(compact: Bool) -> CGFloat { compact ? 84 : 96 }
 
-    /// The one horizontal rail (Trending, Tonight's shelf): 106 × 150 covers, 14 pt apart, up to 10.
-    static let railCover = CGSize(width: 106, height: 150)
-    static let railSpacing: CGFloat = 14
+    /// The horizontal rails (Trending, Tonight's shelf, Manga new to you on All): covers 14 pt apart,
+    /// up to 10, sized by the edge-peek rule (details-songs spec §5.1) so a slice of the next cover
+    /// always shows: 100 × 150 at 390 (visible 370), 112 × 168 at 320 and on the iPad column.
+    static let railSpacing: CGFloat = KuroRailPeek.spacing
     static let railCap = 10
+
+    /// The rail's cover for a content `column` and page `gutter`: the rail spans the column plus its
+    /// trailing gutter (it bleeds to the screen or readable-column edge) and starts at the gutter, so
+    /// the visible width is `column + gutter` (§5.1: 390 → 370, 320 → 304, iPad 680 → 660).
+    static func railCover(column: CGFloat, gutter: CGFloat) -> CGSize {
+        let width = KuroRailPeek.cardWidth(visible: column + gutter)
+        return CGSize(width: width, height: KuroRailPeek.coverHeight(width: width))
+    }
 
     /// The contents line names at most this many sections, then "+n more".
     static let contentsNames = 5
@@ -122,3 +131,4 @@ nonisolated enum DiscoverIssueLayout {
     /// A section with more items than it shows offers "See all".
     static func offersSeeAll(total: Int, shown: Int) -> Bool { total > shown }
 }
+

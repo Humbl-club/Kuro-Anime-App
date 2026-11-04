@@ -3,6 +3,8 @@ import KuroLibrary
 import SwiftUI
 
 /// Public catalog search only. Choosing a result stages a job-local mapping; it never saves tracking.
+/// Home's grammar (details-songs spec §13): the 24 pt heading, a glance-style search field, candidates as
+/// quiet rows with their medium and format; strings and behaviour unchanged.
 struct ImportCatalogMatchPicker: View {
     let imports: ImportsService
     let item: ImportReviewItem
@@ -28,15 +30,10 @@ struct ImportCatalogMatchPicker: View {
         let g = german
         NavigationStack {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                Text(g ? "„\(item.title)“ zuordnen" : "Match “\(item.title)”")
-                    .kuroRoleText(.headline)
-                    .foregroundStyle(Color.kuroInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                Text(g ? "Wähle den richtigen \(mediumWord)-Titel. Vor dem Speichern siehst du seine aktuellen Werte. Die Zuordnung gilt nur für diesen Import."
-                       : "Choose the right \(mediumWord) title. You'll see its current values before saving. This match applies to this import only.")
-                    .font(.kuroBody()).foregroundStyle(Color.kuroInkSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                ImportPageHeading(
+                    title: g ? "„\(item.title)“ zuordnen" : "Match “\(item.title)”",
+                    description: g ? "Wähle den richtigen \(mediumWord)-Titel. Vor dem Speichern siehst du seine aktuellen Werte. Die Zuordnung gilt nur für diesen Import."
+                                   : "Choose the right \(mediumWord) title. You'll see its current values before saving. This match applies to this import only.")
                 HStack(spacing: KuroDesignSpacing.sm) {
                     Image(systemName: "magnifyingglass")
                         .font(.kuroCustom(14, relativeTo: .body, maxSize: 22))
@@ -50,9 +47,10 @@ struct ImportCatalogMatchPicker: View {
                         .submitLabel(.search)
                         .accessibilityIdentifier("import.match.query")
                 }
-                .padding(.horizontal, KuroDesignSpacing.md)
+                .padding(.horizontal, 12)
                 .frame(minHeight: 44)
-                .background(Color.kuroCanvasQuiet, in: RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous))
+                .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
                 if busy {
                     KuroStateView(.loading, title: g ? "Katalog wird durchsucht." : "Searching the catalogue.", layout: .inline)
                 }
@@ -105,7 +103,8 @@ struct ImportCatalogMatchPicker: View {
                         .foregroundStyle(Color.kuroInk)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(candidate.detail).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                    Text(candidate.detail)
+                        .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22)).foregroundStyle(Color.kuroMuted)
                 }
                 Spacer(minLength: KuroDesignSpacing.sm)
                 Image(systemName: "arrow.right")
@@ -113,11 +112,11 @@ struct ImportCatalogMatchPicker: View {
                     .foregroundStyle(Color.kuroInk)
                     .accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .padding(.vertical, KuroDesignSpacing.md)
+            .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+        .buttonStyle(HomeContactStyle())
         .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
         .accessibilityHint(german ? "Diesen Titel zuordnen" : "Matches this title")
     }

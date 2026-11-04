@@ -711,3 +711,171 @@ Deno.test("AniList page depth: a cursor at the limit wraps to page 1 without a r
   assert.equal(cursor(db), 0);
   assert.equal(db.lockHeld.size, 0);
 });
+
+// ---- Voice actors (2026-11-03, owner item 4): opt-in, JAPANESE, last-good on failure ------
+import { buildAnimePageQuery } from "./anilist.ts";
+import { characterAge, voiceActorsOfEdge, voiceActorStaffRow } from "./mapping.ts";
+
+Deno.test("the voice-actor fragment is only in the query when requested (default query unchanged)", () => {
+  const plain = buildAnimePageQuery(true, true, false);
+  assert.equal(plain.includes("voiceActors"), false);
+  assert.equal(plain, buildAnimePageQuery(true, true, false, false));
+  const withVoices = buildAnimePageQuery(true, false, false, true);
+  assert.match(withVoices, /edges \{ role node \{ id \} voiceActors\(language: JAPANESE, sort: \[RELEVANCE, ID\]\)/);
+  assert.equal(buildAnimePageQuery(false, false, false, true).includes("voiceActors"), false, "no relations, no characters, no voices");
+});
+
+Deno.test("includeVoiceActors reaches the AniList query only when the payload asks for it", async () => {
+  for (const [flag, expected] of [[undefined, false], [false, false], [true, true]] as const) {
+    const db = new Db();
+    const transport = realTransport([{ data: { Page: { media: [] } } }]);
+    const payload = { ...cursorRunPayload(), useCursor: false, includeRelations: true, lightweight: false, includeVoiceActors: flag };
+    await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: transport.fetchPage });
+    assert.equal(String(transport.queries[0].query).includes("voiceActors"), expected, `flag ${flag}`);
+  }
+});
+
+function voicedMedia(id: number, updatedAt: number, voices: unknown) {
+  return {
+    ...media(id),
+    updatedAt,
+    characters: {
+      nodes: [
+        { id: 51, name: { full: "Hero" }, age: "17" },
+        { id: 52, name: { full: "Rival" }, age: "17-18" },
+        { id: 53, name: { full: "Misaligned" } },
+      ],
+      edges: [
+        { role: "MAIN", node: { id: 51 }, voiceActors: voices },
+        { role: "SUPPORTING", node: { id: 52 }, voiceActors: [] },
+        { role: "BACKGROUND", node: { id: 999 }, voiceActors: [{ id: 77, name: { full: "Wrong Person" } }] },
+      ],
+    },
+  };
+}
+
+Deno.test("voice actors: stored per character in order, staff upserted without nulling, misaligned edges skipped", async () => {
+  const db = new Db();
+  db.seed("staff", [{ id: 900, anilist_id: 61, name_full: "Old Name", description: "Kept bio", primary_occupations: ["Voice Actor"] }]);
+  const voices = [
+    { id: 61, name: { full: "Kana Hanazawa", native: "花澤香菜" }, image: { large: "https://s4.anilist.co/va61.jpg" } },
+    { id: 62, name: { full: "Second Voice" }, image: { large: null } },
+    { id: 61, name: { full: "Duplicate" } },
+    { id: 63 }, { id: 64 }, { id: -1 },
+  ];
+  const payload = { ...cursorRunPayload(), useCursor: false, includeRelations: true, lightweight: false, includeVoiceActors: true };
+  const res = await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([voicedMedia(710, 1, voices)]) });
+  const out = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(out.results.errors, 0);
+  const anime = db.rows("anime")[0];
+  const hero = db.rows("characters").find((c) => c.anilist_id === 51);
+  const rows = db.rows("character_voice_actors").filter((r) => r.character_id === hero?.id);
+  assert.equal(rows.length, 3, "deduped and capped at 3 per character");
+  assert.deepEqual(rows.map((r) => [r.anime_id, r.language, r.sort_order]), [[anime.id, "JAPANESE", 0], [anime.id, "JAPANESE", 1], [anime.id, "JAPANESE", 2]]);
+  assert.equal(rows[0].staff_id, 900, "the existing staff row is reused by AniList id");
+  const kana = db.rows("staff").find((s) => s.anilist_id === 61);
+  assert.equal(kana?.name_full, "Kana Hanazawa");
+  assert.equal(kana?.description, "Kept bio", "a voice-actor edge never nulls a stored description");
+  assert.deepEqual(kana?.primary_occupations, ["Voice Actor"]);
+  const second = db.rows("staff").find((s) => s.anilist_id === 62);
+  assert.equal("image_large" in (second ?? {}), false, "a missing image is left out, not written as null");
+  assert.equal(db.rows("staff").some((s) => s.anilist_id === 77), false, "misaligned edge: no person stored");
+  assert.equal(out.results.voiceActors, 3);
+  // The character age fix stays: plain numbers only.
+  assert.equal(hero?.age, 17);
+  assert.equal(db.rows("characters").find((c) => c.anilist_id === 52)?.age, null);
+  assert.equal(characterAge("16+"), null);
+});
+
+Deno.test("voice actors: a re-import replaces the character's rows; absent voiceActors keeps them", async () => {
+  const db = new Db();
+  const payload = { ...cursorRunPayload(), useCursor: false, includeRelations: true, lightweight: false, includeVoiceActors: true };
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([voicedMedia(720, 1, [{ id: 71 }, { id: 72 }])]) });
+  assert.equal(db.rows("character_voice_actors").length, 2);
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([voicedMedia(720, 2, [{ id: 72 }])]) });
+  const after = db.rows("character_voice_actors");
+  assert.equal(after.length, 1, "the dropped voice actor's row is removed");
+  assert.equal(after[0].staff_id, db.rows("staff").find((s) => s.anilist_id === 72)?.id);
+  assert.equal(after[0].sort_order, 0);
+  // A run without the option (or an edge without voiceActors) leaves the stored rows alone.
+  await run({ ...payload, includeVoiceActors: false }, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([voicedMedia(720, 3, [])]) });
+  assert.equal(db.rows("character_voice_actors").length, 1);
+});
+
+Deno.test("voice actors: a failed person upsert keeps the stored rows (last-good) and counts an error", async () => {
+  const db = new Db();
+  const payload = { ...cursorRunPayload(), useCursor: false, includeRelations: true, lightweight: false, includeVoiceActors: true };
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([voicedMedia(730, 1, [{ id: 81 }])]) });
+  assert.equal(db.rows("character_voice_actors").length, 1);
+  db.failUpsert = { table: "staff", anilistId: 82, message: "boom" };
+  const res = await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([voicedMedia(730, 2, [{ id: 82 }])]) });
+  const out = await res.json();
+  assert.equal(out.results.errors, 1);
+  assert.equal(db.rows("character_voice_actors").length, 1);
+  assert.equal(db.rows("character_voice_actors")[0].staff_id, db.rows("staff").find((s) => s.anilist_id === 81)?.id);
+});
+
+Deno.test("voiceActorsOfEdge / voiceActorStaffRow: pure rules", () => {
+  assert.equal(voiceActorsOfEdge({ role: "MAIN" }, { id: 1 }), null, "not requested");
+  assert.equal(voiceActorsOfEdge({ node: { id: 2 }, voiceActors: [{ id: 5 }] }, { id: 1 }), null, "misaligned");
+  assert.deepEqual(voiceActorsOfEdge({ voiceActors: [] }, { id: 1 }), [], "AniList lists none");
+  assert.deepEqual(voiceActorStaffRow({ id: 9, name: { full: " ", native: "名" }, image: { large: "http://insecure" } }), { anilist_id: 9, name_native: "名" });
+});
+
+// The voice-actor backfill runbook (docs/details-songs-2026-11-03/data/BACKFILL.md §2): its exact
+// payload imports TWO pages per run and answers nextStartPage = startPage + 2, so the next run's
+// startPage is always the previous nextStartPage (never a fixed step that skips pages).
+Deno.test("backfill runbook payload: 2 pages per run, nextStartPage = startPage + 2, no cursor written", async () => {
+  for (const startPage of [1, 3, 101]) {
+    const db = new Db();
+    const pages: number[] = [];
+    const res = await run({
+      useCursor: false,
+      startPage,
+      pagesPerBatch: 2,
+      perPage: 10,
+      runToEnd: false,
+      lightweight: false,
+      includeRelations: true,
+      includeEpisodes: false,
+      includeVoiceActors: true,
+      forceRefresh: true,
+      scheduleSafe: true,
+      delayMs: 0,
+    }, {
+      supabase: db,
+      heavyImportsEnabled: true,
+      fetchPage(page) {
+        pages.push(page);
+        return Promise.resolve([media(9000 + page)]);
+      },
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.success, true);
+    assert.deepEqual(pages, [startPage, startPage + 1], `pages for startPage ${startPage}`);
+    assert.equal(body.nextStartPage, startPage + 2);
+    assert.equal(cursor(db), undefined, "the scheduled cursor moved");
+  }
+});
+
+Deno.test("backfill runbook: scheduleSafe caps pagesPerBatch at 2 (a larger value never skips pages silently)", async () => {
+  const db = new Db();
+  const pages: number[] = [];
+  const res = await run({
+    useCursor: false, startPage: 7, pagesPerBatch: 4, maxPagesPerRun: 4, perPage: 10, runToEnd: false,
+    lightweight: false, includeRelations: true, includeEpisodes: false, includeVoiceActors: true,
+    forceRefresh: true, scheduleSafe: true, delayMs: 0,
+  }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page) {
+      pages.push(page);
+      return Promise.resolve([media(9100 + page)]);
+    },
+  });
+  const body = await res.json();
+  assert.deepEqual(pages, [7, 8]);
+  assert.equal(body.nextStartPage, 9);
+});

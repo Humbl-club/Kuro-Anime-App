@@ -2,6 +2,11 @@ import SwiftUI
 import KuroCore
 import KuroLibrary
 
+// AniList import in Home's grammar (details-songs spec §13, D16): the eyebrow "IMPORT · ANILIST" over the
+// EXISTING title (24 semibold −0.85) and description (13 pt); "Form / Preview" as refine words on the same
+// phase; a glance-style username field; check rows (type, statuses; several can be on) in the calendar-card
+// shell; `KuroInkButton` with the shipped upper-case literal. Behaviour, bindings, busy states, Stop (N7)
+// and every string are unchanged.
 struct ConciergeAniListImportSheet: View {
     let imports: ImportsService
     let isGermanLocale: Bool
@@ -74,7 +79,7 @@ struct ConciergeAniListImportSheet: View {
                 .padding(.top, 18)
                 .padding(.bottom, 24)
             }
-            .background(Color.kuroBackground.ignoresSafeArea())
+            .background(Color.kuroCanvasPage.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     // N7: while AniList is read or the import is sent, closing would cancel it without a
@@ -83,7 +88,8 @@ struct ConciergeAniListImportSheet: View {
                                   : (isGermanLocale ? "Fertig" : "Done")) {
                         if isBusy { confirmStop = true } else { dismiss() }
                     }
-                    .font(.kuroCaption(weight: .medium))
+                    .font(.kuroMeta(weight: .medium))
+                    .foregroundStyle(Color.kuroInk)
                     .accessibilityHint(isBusy
                                        ? (isGermanLocale ? "Hält den laufenden Import an." : "Stops the running import.")
                                        : "")
@@ -109,27 +115,22 @@ struct ConciergeAniListImportSheet: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(isGermanLocale ? "AniList importieren" : "Import from AniList")
-                .font(.kuroCustom(26, weight: .ultraLight, design: .serif, relativeTo: .title2))
-                .foregroundStyle(Color.kuroBlack.opacity(0.84))
-
-            Text(usesStructuredPath
+        ImportPageHeading(
+            eyebrow: ImportRestyleCopy.aniListEyebrow(german: isGermanLocale),
+            title: isGermanLocale ? "AniList importieren" : "Import from AniList",
+            description: usesStructuredPath
                 ? (isGermanLocale
                     ? "Kuro liest die ganze ausgewählte Liste, du prüfst jeden Titel und bestätigst dann, was gespeichert wird. Deine Kuro-Werte bleiben, solange du keine Änderung wählst."
                     : "Kuro reads the complete selected list, you review every title, then confirm what to save. Existing Kuro values stay unless you choose updates.")
                 : (isGermanLocale
                     ? "Erst Vorschau, dann Import. So siehst du Titel, Status und Umfang, bevor Kuro etwas übernimmt."
                     : "Preview first, then confirm. See titles, status, and scope before Kuro imports anything.")
-            )
-            .font(.kuroBody(weight: .light))
-            .foregroundStyle(Color.kuroBlack.opacity(0.62))
-            .lineSpacing(3)
-        }
+        )
     }
 
+    /// The phase as refine words (the same binding as the old step pills: the coordinator's phase).
     private var stepIndicator: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 16) {
             stepPill(
                 title: isGermanLocale ? "Formular" : "Form",
                 isActive: coordinator.phase == .form
@@ -140,6 +141,7 @@ struct ConciergeAniListImportSheet: View {
             )
             Spacer(minLength: 0)
         }
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -220,102 +222,67 @@ struct ConciergeAniListImportSheet: View {
     }
 
     private var formCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            fieldSectionTitle(isGermanLocale ? "Benutzername" : "Username")
-
-            TextField(isGermanLocale ? "z.B. maxmustermann" : "e.g. yourname", text: $username)
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
-                .focused($usernameFocused)
-                .font(.kuroBody())
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                        .fill(Color.kuroWhite92)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                                .stroke(Color.kuroBlack08, lineWidth: 0.7)
-                        )
-                )
-
-            fieldSectionTitle(isGermanLocale ? "Typ" : "Type")
-            HStack(spacing: 10) {
-                togglePill(title: "Anime", isOn: $includeAnime)
-                togglePill(title: "Manga", isOn: $includeManga)
-            }
-
-            fieldSectionTitle(isGermanLocale ? "Status" : "Status")
-            HStack(spacing: 10) {
-                togglePill(title: isGermanLocale ? "Aktuell" : "Current", isOn: $includeCurrent)
-                togglePill(title: isGermanLocale ? "Fertig" : "Completed", isOn: $includeCompleted)
-                togglePill(title: isGermanLocale ? "Plan" : "Planning", isOn: $includePlanning)
-            }
-            HStack(spacing: 10) {
-                togglePill(title: isGermanLocale ? "Pausiert" : "On hold", isOn: $includePaused)
-                togglePill(title: isGermanLocale ? "Abgebrochen" : "Dropped", isOn: $includeDropped)
-            }
-            togglePill(title: isGermanLocale ? "Wiederholung" : "Repeating", isOn: $includeRepeating)
-
-            Button {
-                Task { await startPreview() }
-            } label: {
-                HStack(spacing: 10) {
-                    if coordinator.isPreviewing {
-                        KuroBusyMark(width: 24, tint: Color.kuroWhite, track: Color.kuroWhite.opacity(0.28))
-                    }
-                    Text(usesStructuredPath ? "READ COMPLETE LIST FOR REVIEW" : (isGermanLocale ? "VORSCHAU" : "PREVIEW"))
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(2.0)
+        VStack(alignment: .leading, spacing: 12) {
+            ImportCardShell {
+                VStack(alignment: .leading, spacing: 6) {
+                    fieldSectionTitle(isGermanLocale ? "Benutzername" : "Username")
+                    TextField(isGermanLocale ? "z.B. maxmustermann" : "e.g. yourname", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+                        .focused($usernameFocused)
+                        .importGlanceField()
                 }
-                .foregroundStyle(Color.kuroWhite)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(canPreview ? Color.kuroBlack.opacity(0.88) : Color.kuroBlack10)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    fieldSectionTitle(isGermanLocale ? "Typ" : "Type")
+                    ImportCheckGrid(options: [
+                        togglePill(title: "Anime", isOn: $includeAnime),
+                        togglePill(title: "Manga", isOn: $includeManga)
+                    ], hint: isGermanLocale ? "Schaltet den Filter um" : "Toggles this filter")
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    fieldSectionTitle(isGermanLocale ? "Status" : "Status")
+                    ImportCheckGrid(options: [
+                        togglePill(title: isGermanLocale ? "Aktuell" : "Current", isOn: $includeCurrent),
+                        togglePill(title: isGermanLocale ? "Fertig" : "Completed", isOn: $includeCompleted),
+                        togglePill(title: isGermanLocale ? "Plan" : "Planning", isOn: $includePlanning),
+                        togglePill(title: isGermanLocale ? "Pausiert" : "On hold", isOn: $includePaused),
+                        togglePill(title: isGermanLocale ? "Abgebrochen" : "Dropped", isOn: $includeDropped),
+                        togglePill(title: isGermanLocale ? "Wiederholung" : "Repeating", isOn: $includeRepeating)
+                    ], hint: isGermanLocale ? "Schaltet den Filter um" : "Toggles this filter")
+                }
+
+                // The shipped upper-case literal is kept (D16; sentence case is an owner choice).
+                KuroInkButton(usesStructuredPath ? "READ COMPLETE LIST FOR REVIEW" : (isGermanLocale ? "VORSCHAU" : "PREVIEW"),
+                              role: .primary, isLoading: coordinator.isPreviewing) {
+                    Task { await startPreview() }
+                }
+                .disabled(!canPreview || coordinator.isPreviewing || coordinator.isImporting)
+                .padding(.top, 4)
+
+                ImportNote(text: isGermanLocale
+                    ? "Kuro liest öffentliche AniList-Listen. Private Einträge bleiben privat und werden nicht übernommen."
+                    : "Kuro reads public AniList lists. Private entries stay private and are not imported."
                 )
             }
-            .buttonStyle(.plain)
-            .disabled(!canPreview || coordinator.isPreviewing || coordinator.isImporting)
-            .padding(.top, 4)
-
-            Text(isGermanLocale
-                ? "Kuro liest öffentliche AniList-Listen. Private Einträge bleiben privat und werden nicht übernommen."
-                : "Kuro reads public AniList lists. Private entries stay private and are not imported."
-            )
-            .font(.kuroMicro())
-            .foregroundColor(.kuroTextTertiary)
-            .padding(.top, 2)
             if usesStructuredPath {
-                Text(isGermanLocale
+                ImportNote(text: isGermanLocale
                     ? "Alle ausgewählten Seiten werden gelesen, bevor du bestätigst. Status, Fortschritt, Bewertung und Notizen bleiben standardmäßig unverändert. Fehlende Felder siehst du in der Prüfung; eine öffentliche Liste kann keine privaten AniList-Einträge zeigen."
                     : "All selected pages are read before you confirm. Existing status, progress, rating and notes stay unchanged by default. Unavailable fields are shown in review; a public list cannot expose private AniList entries.")
-                    .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.92))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.black.opacity(0.07), lineWidth: 0.8)
-                )
-        )
     }
 
     private var selectionSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        ImportGlanceCard {
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(isGermanLocale ? "Vorschau für" : "Preview for")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.8)
-                        .foregroundColor(.kuroTextTertiary)
+                    ImportEyebrow(text: isGermanLocale ? "Vorschau für" : "Preview for")
                     Text("@\(username.trimmingCharacters(in: .whitespacesAndNewlines))")
-                        .font(.kuroCaption(weight: .medium))
-                        .foregroundColor(.kuroBlack80)
+                        .font(.kuroCustom(14, weight: .semibold, relativeTo: .subheadline, maxSize: 28))
+                        .tracking(-0.3)
+                        .foregroundStyle(HomeInk.glanceInk)
                 }
                 Spacer(minLength: 0)
                 Button {
@@ -323,11 +290,12 @@ struct ConciergeAniListImportSheet: View {
                     usernameFocused = true
                 } label: {
                     Text(isGermanLocale ? "ÄNDERN" : "EDIT")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.6)
-                        .foregroundColor(.kuroTextTertiary)
+                        .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HomeContactStyle())
             }
 
             HStack(spacing: 8) {
@@ -349,15 +317,6 @@ struct ConciergeAniListImportSheet: View {
                 if includeRepeating { summaryPill(isGermanLocale ? "Wiederholung" : "Repeating") }
             }
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.kuroWhite92)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.7)
-                )
-        )
     }
 
     private func previewCard(
@@ -365,17 +324,15 @@ struct ConciergeAniListImportSheet: View {
         errorMessage: String?,
         isImporting: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        ImportGlanceCard {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(isGermanLocale ? "VORSCHAU" : "PREVIEW")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.8)
-                        .foregroundColor(.kuroTextTertiary)
+                    ImportEyebrow(text: isGermanLocale ? "VORSCHAU" : "PREVIEW")
 
                     Text(countSummary(preview))
-                        .font(.kuroHeadline(weight: .ultraLight))
-                        .foregroundColor(.kuroBlack.opacity(0.84))
+                        .font(.kuroCustom(24, weight: .semibold, relativeTo: .title2, maxSize: 40))
+                        .tracking(-0.85)
+                        .foregroundStyle(Color.kuroInk)
                         .lineLimit(2)
                 }
 
@@ -388,9 +345,9 @@ struct ConciergeAniListImportSheet: View {
 
             if let text = preview.text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
                 Text(text)
-                    .font(.kuroBody(weight: .light))
-                    .foregroundColor(.kuroBlack60)
-                    .lineSpacing(3)
+                    .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 26))
+                    .foregroundStyle(ImportInk.description)
+                    .lineSpacing(2)
             }
 
             HStack(spacing: 8) {
@@ -409,26 +366,25 @@ struct ConciergeAniListImportSheet: View {
 
             if let errorMessage {
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.kuroBlack45)
-                        .padding(.top, 2)
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 22))
+                        .foregroundStyle(Color.kuroInk)
+                        .padding(.top, 1)
+                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(isGermanLocale ? "Etwas ist schiefgelaufen" : "Something went wrong")
-                            .font(.kuroCaption(weight: .medium))
-                            .foregroundColor(.kuroBlack80)
+                            .font(.kuroCustom(13, weight: .semibold, relativeTo: .footnote, maxSize: 26))
+                            .foregroundStyle(Color.kuroInk)
                         Text(errorMessage)
-                            .font(.kuroCaption(weight: .light))
-                            .foregroundColor(.kuroTextSecondary)
+                            .font(.kuroCustom(12, relativeTo: .caption1, maxSize: 24))
+                            .foregroundStyle(ImportInk.description)
                             .lineSpacing(2)
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.black.opacity(0.03))
-                )
+                .padding(.vertical, 10)
+                .overlay(alignment: .top) { Rectangle().fill(ImportInk.rule).frame(height: 1) }
+                .accessibilityElement(children: .combine)
             }
 
             if let counts = preview.countsByType, !counts.isEmpty {
@@ -446,13 +402,10 @@ struct ConciergeAniListImportSheet: View {
             }
 
             if let samples = preview.sampleItems, !samples.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(isGermanLocale ? "Beispiele" : "Samples")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.6)
-                        .foregroundColor(.kuroTextTertiary)
+                VStack(alignment: .leading, spacing: 4) {
+                    ImportEyebrow(text: isGermanLocale ? "Beispiele" : "Samples")
 
-                    VStack(spacing: 8) {
+                    VStack(spacing: 0) {
                         ForEach(samples.prefix(4)) { sample in
                             sampleRow(sample)
                         }
@@ -464,81 +417,49 @@ struct ConciergeAniListImportSheet: View {
                 HStack(spacing: 8) {
                     KuroBusyMark(width: 24)
                     Text(isGermanLocale ? "Import läuft..." : "Importing...")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.black.opacity(0.50))
+                        .font(.kuroCustom(12, relativeTo: .caption1, maxSize: 24))
+                        .foregroundStyle(Color.kuroMuted)
                 }
+                .accessibilityElement(children: .combine)
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.94))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.black.opacity(0.07), lineWidth: 0.8)
-                )
-        )
     }
 
     private var previewLoadingCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        ImportGlanceCard {
             HStack(spacing: 10) {
                 KuroBusyMark(width: 24)
                 Text(isGermanLocale ? "Vorschau wird geladen..." : "Loading preview...")
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroBlack60)
+                    .font(.kuroCustom(12, relativeTo: .caption1, maxSize: 24))
+                    .foregroundStyle(Color.kuroMuted)
             }
+            .accessibilityElement(children: .combine)
 
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.05))
-                .frame(height: 120)
-                .kuroShimmer()
-
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.05))
-                .frame(height: 88)
-                .kuroShimmer()
+            KuroSkeleton(kind: .row)
+            KuroSkeleton(kind: .row)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.94))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.black.opacity(0.07), lineWidth: 0.8)
-                )
-        )
     }
 
     private var errorCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        ImportGlanceCard {
             Text(isGermanLocale ? "Vorschau fehlgeschlagen" : "Preview failed")
-                .font(.kuroHeadline(weight: .ultraLight))
-                .foregroundColor(.kuroBlack.opacity(0.84))
+                .font(.kuroCustom(17, weight: .semibold, relativeTo: .headline, maxSize: 32))
+                .tracking(-0.4)
+                .foregroundStyle(Color.kuroInk)
+                .accessibilityAddTraits(.isHeader)
 
             Text(coordinator.errorMessage ?? (isGermanLocale ? "Bitte versuche es erneut." : "Please try again."))
-                .font(.kuroBody(weight: .light))
-                .foregroundColor(.kuroBlack60)
-                .lineSpacing(3)
+                .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 26))
+                .foregroundStyle(ImportInk.description)
+                .lineSpacing(2)
 
             if let retryAfter = coordinator.retryAfterSeconds {
-                Text(isGermanLocale
+                ImportNote(text: isGermanLocale
                     ? "Erneut versuchen in etwa \(retryAfter) Sekunden."
                     : "Try again in about \(retryAfter) seconds."
                 )
-                .font(.kuroMicro())
-                .foregroundColor(.kuroTextTertiary)
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.94))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.black.opacity(0.07), lineWidth: 0.8)
-                )
-        )
     }
 
     private func actionButtons(
@@ -547,94 +468,38 @@ struct ConciergeAniListImportSheet: View {
         secondaryTitle: String,
         secondaryAction: @escaping () -> Void
     ) -> some View {
-        VStack(spacing: 10) {
-            Button(action: primaryAction) {
-                HStack(spacing: 10) {
-                    if coordinator.isImporting || coordinator.isPreviewing {
-                        KuroBusyMark(width: 24, tint: Color.kuroWhite, track: Color.kuroWhite.opacity(0.28))
-                    }
-                    Text(primaryTitle)
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(2.0)
-                }
-                .foregroundStyle(Color.kuroWhite)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(Color.kuroBlack.opacity(0.88))
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(coordinator.isPreviewing || coordinator.isImporting)
+        VStack(spacing: 4) {
+            KuroInkButton(primaryTitle, role: .primary,
+                          isLoading: coordinator.isImporting || coordinator.isPreviewing, action: primaryAction)
+                .disabled(coordinator.isPreviewing || coordinator.isImporting)
 
             Button(action: secondaryAction) {
                 Text(secondaryTitle)
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.4)
-                    .foregroundColor(.kuroTextTertiary)
+                    .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
+                    .tracking(0.8)
+                    .foregroundStyle(Color.kuroInk)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HomeContactStyle())
         }
     }
 
-    private func togglePill(title: String, isOn: Binding<Bool>) -> some View {
-        Button(action: { isOn.wrappedValue.toggle() }) {
-            Text(title)
-                .font(.kuroCaption(weight: .medium))
-                .foregroundStyle(isOn.wrappedValue ? Color.kuroWhite : Color.kuroBlack.opacity(0.68))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(isOn.wrappedValue ? Color.kuroBlack.opacity(0.86) : Color.kuroBlack04)
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(Color.kuroBlack10, lineWidth: 0.6)
-                        )
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(isOn.wrappedValue ? .isSelected : [])
-        .accessibilityHint(isGermanLocale ? "Schaltet den Filter um" : "Toggles this filter")
+    /// One check row's option (the type and status toggles; several can be on).
+    private func togglePill(title: String, isOn: Binding<Bool>) -> ImportCheckOption {
+        ImportCheckOption(title: title, isOn: isOn)
     }
 
     private func stepPill(title: String, isActive: Bool) -> some View {
-        Text(title)
-            .font(.kuroMicro(weight: .medium))
-            .tracking(1.8)
-            .foregroundColor(isActive ? .white : .kuroTextTertiary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(isActive ? Color.black.opacity(0.88) : Color.black.opacity(0.04))
-                    .overlay(
-                        Capsule(style: .continuous)
-                            .stroke(Color.black.opacity(isActive ? 0.0 : 0.08), lineWidth: 0.7)
-                    )
-            )
+        ImportRefineWord(title: title, isSelected: isActive)
     }
 
     private func fieldSectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.kuroMicro(weight: .medium))
-            .tracking(1.8)
-            .foregroundColor(.kuroTextTertiary)
+        ImportEyebrow(text: title)
     }
 
     private func summaryPill(_ text: String) -> some View {
-        Text(text)
-            .font(.kuroMicro(weight: .medium))
-            .tracking(1.1)
-            .foregroundColor(.kuroBlack70)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(Color.black.opacity(0.04))
-            )
+        ImportTag(text: text)
     }
 
     private func countSection(title: String, counts: [String: Int]) -> some View {
@@ -643,10 +508,7 @@ struct ConciergeAniListImportSheet: View {
             .sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
 
         return VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.6)
-                .foregroundColor(.kuroTextTertiary)
+            ImportEyebrow(text: title)
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 8)], alignment: .leading, spacing: 8) {
                 ForEach(rows, id: \.key) { row in
@@ -656,29 +518,25 @@ struct ConciergeAniListImportSheet: View {
         }
     }
 
+    /// A Home quiet row (no cover: the preview carries none): title 15 pt, the meta 10 pt muted.
     private func sampleRow(_ sample: ConciergeAniListPreviewItem) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(sample.titleDisplay)
-                    .font(.kuroCaption(weight: .medium))
-                    .foregroundColor(.kuroBlack80)
+                    .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
+                    .foregroundStyle(Color.kuroInk)
                     .lineLimit(2)
 
                 Text(sampleMeta(sample))
-                    .font(.kuroMicro())
-                    .foregroundColor(.kuroTextTertiary)
+                    .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22))
+                    .foregroundStyle(Color.kuroMuted)
             }
             Spacer(minLength: 0)
-            Text(sample.type.uppercased())
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.2)
-                .foregroundColor(.kuroTextTertiary)
+            ImportEyebrow(text: sample.type.uppercased())
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.03))
-        )
+        .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
+        .accessibilityElement(children: .combine)
     }
 
     private func sampleMeta(_ sample: ConciergeAniListPreviewItem) -> String {

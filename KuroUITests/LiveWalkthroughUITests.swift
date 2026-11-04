@@ -472,4 +472,84 @@ final class LiveWalkthroughUITests: XCTestCase {
         scrollShots("w14-01-clubs-list", count: 3)
         soft(!close.exists, "looking at the Clubs list opens nothing")
     }
+
+    // MARK: W15 / W16 / W17 Details, songs & platform (2026-11-03) — read-only looks
+    // Opens titles through kuro:// deep links (Kuro ids: Cowboy Bebop = anime 117, Berserk = manga 5),
+    // scrolls, and leaves with ← / ✕ only. Never taps +1, Plan, Save, the bell, the reminders toggle,
+    // ▶ (a preview is harmless but not needed), Start a club, Join or any other control that writes.
+
+    private func openLink(_ link: String) {
+        guard let url = URL(string: link) else { XCTFail("walk: bad link \(link)"); return }
+        XCUIDevice.shared.system.open(url)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if springboard.buttons["Open"].waitForExistence(timeout: 3) { springboard.buttons["Open"].tap() }
+        soft(close.waitForExistence(timeout: 15), "\(link) opens a journey")
+        sleep(4)
+    }
+
+    /// A hittable button whose label begins with `prefix`, scrolling down up to `swipes` times.
+    private func findScrolling(_ prefix: String, swipes: Int = 10) -> XCUIElement? {
+        let query = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix))
+        if let e = firstHittable(query, timeout: 2) { return e }
+        for _ in 0..<swipes {
+            app.swipeUp(velocity: .slow); sleep(1)
+            if let e = firstHittable(query, timeout: 1) { return e }
+        }
+        return nil
+    }
+
+    func testW15DetailAndSongs() throws {
+        continueAfterFailure = true
+        openLink("kuro://anime/117")
+        shot("w15-00-anime-detail-top")
+        for index in 1...9 { app.swipeUp(velocity: .slow); sleep(2); shot("w15-01-anime-detail-scrolled-\(index)") }
+        closeJourneyIfOpen(); sleep(1)
+        openLink("kuro://manga/5")
+        shot("w15-02-manga-detail-top")
+        for index in 1...6 { app.swipeUp(velocity: .slow); sleep(2); shot("w15-03-manga-detail-scrolled-\(index)") }
+        closeJourneyIfOpen(); sleep(1)
+        soft(pagerProfile.isHittable, "back on the pager")
+    }
+
+    func testW16EntityPages() throws {
+        continueAfterFailure = true
+        openLink("kuro://anime/117")
+        if let spike = findScrolling("Spike") {
+            spike.tap(); sleep(4); shot("w16-00-character-top")
+            soft(back.exists && close.exists, "character page pushed (← and ✕)")
+            app.swipeUp(velocity: .slow); sleep(2); shot("w16-01-character-scrolled")
+            back.tap(); sleep(2)
+        } else { shot("w16-00-no-character"); XCTFail("walk: no Spike card on Cowboy Bebop") }
+        if let studio = findScrolling("Sunrise") ?? findScrolling("Animation") {
+            studio.tap(); sleep(4); shot("w16-02-studio-top")
+            soft(back.exists, "studio page pushed")
+            app.swipeUp(velocity: .slow); sleep(2); shot("w16-03-studio-scrolled")
+            app.swipeUp(velocity: .slow); sleep(2); shot("w16-04-studio-scrolled-2")
+        } else { shot("w16-02-no-studio"); XCTFail("walk: no studio row on Cowboy Bebop") }
+        closeJourneyIfOpen(); sleep(1)
+        openLink("kuro://manga/5")
+        if let author = findScrolling("Story & art") ?? findScrolling("Kentarou Miura") {
+            author.tap(); sleep(4); shot("w16-05-author-top")
+            app.swipeUp(velocity: .slow); sleep(2); shot("w16-06-author-scrolled")
+        } else { shot("w16-05-no-author"); XCTFail("walk: no author row on Berserk") }
+        closeJourneyIfOpen(); sleep(1)
+        soft(pagerProfile.isHittable, "back on the pager")
+    }
+
+    func testW17Profile() throws {
+        continueAfterFailure = true
+        openProfile(); sleep(4)
+        shot("w17-00-profile-top")
+        for index in 1...6 { app.swipeUp(velocity: .slow); sleep(2); shot("w17-01-profile-scrolled-\(index)") }
+        closeJourneyIfOpen(); sleep(1)
+        openProfile(); sleep(2)
+        if let row = findScrolling("Import from AniList") {
+            row.tap(); sleep(3); shot("w17-02-import-anilist")
+            let cancel = app.buttons.matching(NSPredicate(format: "label == 'Cancel' OR label == 'Close' OR label == 'Done'")).firstMatch
+            if back.exists { back.tap() } else if cancel.exists { cancel.tap() } else { swipeSheetDown() }
+            sleep(2)
+        } else { XCTFail("walk: Import from AniList row not found") }
+        closeJourneyIfOpen(); sleep(1)
+        soft(pagerProfile.isHittable, "back on the pager")
+    }
 }

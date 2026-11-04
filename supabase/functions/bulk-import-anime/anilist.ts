@@ -12,7 +12,18 @@ function client(): AniListClient {
 }
 
 /** The page query for one track. Variables are declared only when used (GraphQL rejects unused ones). */
-export function buildAnimePageQuery(includeRelations: boolean, includeEpisodes: boolean, withStatusFilter: boolean): string {
+export function buildAnimePageQuery(
+  includeRelations: boolean,
+  includeEpisodes: boolean,
+  withStatusFilter: boolean,
+  includeVoiceActors = false,
+): string {
+  // Voice actors (owner item 4, 2026-11-03): opt-in only (payload includeVoiceActors, default off),
+  // so the deployed query and its AniList complexity are unchanged until the lead enables it.
+  // edges.node.id lets the mapping verify that edges[i] belongs to nodes[i].
+  const voiceActorsFragment = includeRelations && includeVoiceActors
+    ? ` node { id } voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) { id name { full native } image { large } }`
+    : ``;
   const episodesFragment = includeEpisodes ? `streamingEpisodes { title thumbnail url site }` : ``;
   const externalLinksFragment = `
           externalLinks { site url language color isDisabled }`;
@@ -26,7 +37,7 @@ export function buildAnimePageQuery(includeRelations: boolean, includeEpisodes: 
           studios { nodes { id name isAnimationStudio siteUrl favourites } }
           tags { id name description category rank isGeneralSpoiler isMediaSpoiler isAdult }
           # Keep character ingestion intentionally compact: AniList ROLE sort puts mains first.
-          characters(sort: ROLE, perPage: 10) { edges { role } nodes { id name { full native } image { large } description gender age } }
+          characters(sort: ROLE, perPage: 10) { edges { role${voiceActorsFragment} } nodes { id name { full native } image { large } description gender age } }
           staff(sort: RELEVANCE, perPage: 10) { edges { role } nodes { id name { full native } image { large } description primaryOccupations } }
   ` : ``;
   const statusDecl = withStatusFilter ? `, $statusIn: [MediaStatus]` : ``;
@@ -73,7 +84,8 @@ export async function fetchAniListAnimeData(
   const withStatus = Array.isArray(options.statusIn) && options.statusIn.length > 0;
   const variables: Record<string, unknown> = { page, perPage, sort: [options.sort] };
   if (withStatus) variables.statusIn = options.statusIn;
-  const data = await anilist.query(buildAnimePageQuery(includeRelations, includeEpisodes, withStatus), variables, {
+  const query = buildAnimePageQuery(includeRelations, includeEpisodes, withStatus, options.includeVoiceActors === true);
+  const data = await anilist.query(query, variables, {
     require: ["Page"],
     deadlineMs: options.deadlineMs,
     retries,

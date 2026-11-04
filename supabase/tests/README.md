@@ -92,6 +92,9 @@ under one name). Pending now:
 | `20261101020000_bridge_identity_fix.sql` | legacy bridge natural key + one-time re-key with collision rule | `91`, `94` (accepts both key spellings) |
 | `20261101030000_auth_hardening.sql` | `check_email_exists` no longer callable by anon/authenticated (D13) | `92` |
 | `20261102100000_contact_messages.sql` | contact form table (service role only, no client policies), 12-month purge + daily cron, `user_id` SET NULL on account deletion | `93`, `50` (its FK is in the reviewed SET NULL set) |
+| `20261103100000_character_voice_actors_v1.sql` | voice-actor link table (public read, service-role write, cascades) + `anime_cast_v1` / `character_voice_actors_v1` / `staff_voice_roles_v1` (SECURITY INVOKER) | `84` |
+| `20261103100100_media_similar_v1.sql` | "More like this" card reader: thin SECURITY INVOKER wrapper over `recommend_ids_similar_to_seeds` (the wrapped RPC is a recording stub in the test; `media_similar_titles` does not replay) | `85` |
+| `20261103100200_theme_links_apple_v1.sql` (needs 20261101000000) | Apple match columns on `theme_links`, `media_themes_v1` with five trailing Apple columns (match key: never served for a changed title/artist), `upsert_theme_apple_matches_v1` writer | `86` |
 
 A file whose first 10 lines contain `-- kuro:replay-no-transaction` holds statements that cannot
 run in a transaction block; `replay_migrations.sh` applies it without `-1` (it must manage its

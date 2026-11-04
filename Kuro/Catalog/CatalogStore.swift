@@ -24,7 +24,7 @@ final class CatalogStore: MemoryPressureTrimmable {
     }
 
     /// The SDK client, or `MissingSupabaseConfiguration` when the app has none.
-    private func requiredClient() throws -> SupabaseClient {
+    func requiredClient() throws -> SupabaseClient {
         guard let client else { throw MissingSupabaseConfiguration() }
         return client
     }
@@ -62,6 +62,16 @@ final class CatalogStore: MemoryPressureTrimmable {
     @ObservationIgnored private var episodeStreamLinkCache: [String: TimedCache<EpisodeStreamLink?>] = [:]
     nonisolated static let externalLinksTTL: TimeInterval = 10 * 60
 
+    // Cast and voice actors (CatalogStore+Voices.swift): prepared RPCs, TTL `voiceTTL`; only
+    // successful reads (or the fallback while a contract is not deployed) are kept.
+    @ObservationIgnored var animeCastCache: [String: TimedCache<[CastMember]>] = [:]
+    @ObservationIgnored var characterVoiceActorsCache: [String: TimedCache<[VoiceActorCredit]>] = [:]
+    @ObservationIgnored var staffVoiceRolesCache: [String: TimedCache<[VoiceRole]>] = [:]
+    /// Voice contracts that answered "not deployed" (PGRST202/205...), retried after
+    /// `voiceUndeployedRetryInterval`. Public: kept across account transitions.
+    @ObservationIgnored var undeployedVoiceContracts: [CatalogVoiceContract: Date] = [:]
+    let animeCastLoads = AccountScopedLoads<String, [CastMember]>()
+
     // In-flight public loads: a concurrent duplicate read joins the running request instead of
     // issuing its own. Public data is not account-scoped, so these run with a nil context and are
     // never cancelled by an account transition.
@@ -84,6 +94,9 @@ final class CatalogStore: MemoryPressureTrimmable {
     func trimCachesForMemoryPressure() {
         animeCardCache.removeAll()
         mangaCardCache.removeAll()
+        animeCastCache.removeAll()
+        characterVoiceActorsCache.removeAll()
+        staffVoiceRolesCache.removeAll()
         externalLinksCache.removeAll()
         episodeStreamLinkCache.removeAll()
         animeCharactersCache.removeAll()
