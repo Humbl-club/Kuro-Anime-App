@@ -11,6 +11,9 @@ struct AddToListSheet: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     @State private var actionScope = AccountActionScope()
     let media: any MediaDisplayable
+    /// The status a title that is not on the list starts at (`TrackingEditorRequest.initialStatus`).
+    /// The baseline stays the plain Planned draft, so a preset counts as unsaved input (N7 guard).
+    var initialStatus: ListStatus? = nil
     /// Status, progress, score (1...10, 0 = unrated) and notes as the editor shows them.
     @State private var draft = TrackingDraft(entry: nil)
     /// The draft as the editor was filled: anything else is unsaved input (N7).
@@ -171,8 +174,8 @@ struct AddToListSheet: View {
             // realtime hints): fill the editor from it without a network round trip.
             let entry = library.entry(for: media.libraryKey)
             isExistingEntry = entry != nil
-            draft = TrackingDraft(entry: entry)
-            baseline = draft
+            baseline = TrackingDraft(entry: entry)
+            draft = TrackingDraft(entry: entry, initialStatus: entry == nil ? initialStatus : nil)
         }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected, saveError == offlineMutationMessage {

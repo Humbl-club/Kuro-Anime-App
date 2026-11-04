@@ -27,9 +27,11 @@ struct TrackingDraft: Equatable {
     let originalRating: UserRating?
     let originalNotes: String?
 
-    /// A draft filled from `entry`; a title that is not tracked starts as Planned with nothing set.
-    init(entry: LibraryEntry?) {
-        status = entry?.status ?? .planning
+    /// A draft filled from `entry`; a title that is not tracked starts as Planned with nothing set,
+    /// or at `initialStatus` when the caller preset one (Discover "Add as Completed ›"). An entry's own
+    /// status always wins over the preset.
+    init(entry: LibraryEntry?, initialStatus: ListStatus? = nil) {
+        status = entry?.status ?? initialStatus ?? .planning
         progress = entry?.progress ?? 0
         score = entry?.rating?.value ?? 0
         notes = entry?.notes ?? ""
