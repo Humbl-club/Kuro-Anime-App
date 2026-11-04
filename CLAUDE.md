@@ -566,7 +566,7 @@ scripts/quality-gates/check_migrations.sh
 - **Team ID**: YLG68JL5Y7
 - **API Key**: Key ID `4Y9VLAQLQN` (since 2026-11-02; the old `7L84A7P9X7` file is not on this Mac; `fastlane/Fastfile` reads `KURO_ASC_KEY_ID`, default `4Y9VLAQLQN`), Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
 - **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_4Y9VLAQLQN.p8`
-- **Latest TestFlight build**: 24 (2026-11-03; detail pages, songs with Apple previews, cast/voice actors, More like this, notifications, Profile stats, import restyle; the KuroWidgets extension is EXCLUDED from 24 because the App Group `group.com.Kuro.app` is not registered yet — the owner must register it once with an Apple ID: Xcode → Kuro target → Signing & Capabilities → App Groups, or developer.apple.com → Identifiers → App Groups; API-key signing cannot create App Groups). Tag `testflight-24` points at the shipped variant. Next is 25.
+- **Latest TestFlight build**: 25 (2026-11-04; Discover usability: moods, long-press preview, Not interested / Seen it, See all page, pinned index, end state, new-since markers, Essentials progress; widget still EXCLUDED until the owner registers the App Group `group.com.Kuro.app` with an Apple ID — API-key signing cannot create App Groups). Tags `testflight-24`/`-25` point at the shipped widget-less variants. Next is 26.
 - **Signing**: Automatic, `-allowProvisioningUpdates`
 
 ---
