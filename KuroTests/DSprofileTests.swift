@@ -43,26 +43,26 @@ struct DSprofileTests {
         #expect(DiscoverIssueLayout.railCap == 10)
     }
 
-    @Test("Discover All: Manga new to you is a rail and Essential manga folds; Anime and Manga unchanged")
+    @Test("Discover All: Manga new to you is a rail and Essential manga is the first More list; Anime and Manga unchanged")
     func discoverAll() {
         typealias Sections = DiscoverIssueSections
         let all = Sections.Inputs(issue: .all, realmRails: false, newToYou: true, essentials: true,
                                   mangaNewToYou: true, trending: true, essentialsManga: true, classicsManga: true)
         #expect(Sections.main(all) == [.newToYou, .essentials, .mangaNewToYou, .trending])
-        #expect(Sections.fold(all).first == .mangaEssentials)
-        #expect(Sections.fold(all) == [.mangaEssentials, .mangaClassics])
+        // Usability spec D17: the fold is retired; Essential manga is the first More-lists link on All.
+        #expect(Sections.moreLists(all, dropped: []).first == .route(.mangaEssentials))
         var manga = all
         manga.issue = .manga
-        #expect(Sections.main(manga) == [.mangaNewToYou, .essentialsManga])
-        #expect(!Sections.fold(manga).contains(.mangaEssentials))
+        #expect(Sections.main(manga) == [.mangaNewToYou, .essentialsManga, .classicsManga])
+        #expect(!Sections.moreLists(manga, dropped: []).contains(.route(.mangaEssentials)))
         var anime = all
         anime.issue = .anime
         #expect(!Sections.main(anime).contains(.essentialsManga))
-        #expect(!Sections.fold(anime).contains(.mangaEssentials))
-        // Without Essential manga content nothing is folded for it.
+        #expect(!Sections.moreLists(anime, dropped: []).contains(.route(.mangaEssentials)))
+        // Without Essential manga content there is no link for it.
         var noEssentials = all
         noEssentials.essentialsManga = false
-        #expect(!Sections.fold(noEssentials).contains(.mangaEssentials))
+        #expect(!Sections.moreLists(noEssentials, dropped: []).contains(.route(.mangaEssentials)))
     }
 
     @Test("Reminders row: only a refusal leaves a line; on, off and signed out say nothing")

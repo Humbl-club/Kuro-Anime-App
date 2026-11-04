@@ -1,5 +1,6 @@
 import Foundation
 import KuroCore
+import KuroLibrary
 
 // MARK: - Discover issue copy (Discover + Clubs redesign §8; EN / DE)
 // Every new Discover string lives here, pure, so tests pin it in both languages. Shipped strings are
@@ -156,25 +157,351 @@ nonisolated enum DiscoverIssueCopy {
         return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
-    // MARK: Contents and Browse
+    // MARK: Contents and Browse (usability spec §5.10)
 
-    static func contentsEyebrow(german: Bool) -> String { german ? "In dieser Ausgabe" : "In this issue" }
-    static func contentsMore(_ count: Int, german: Bool) -> String { german ? "+\(count) weitere" : "+\(count) more" }
-    /// "New to you, 8 titles" (a contents entry for VoiceOver).
+    /// "In this issue · 6 sections" / "In dieser Ausgabe · 6 Rubriken" (the view sets it in capitals).
+    static func contentsEyebrow(sections: Int, german: Bool) -> String {
+        if german { return "In dieser Ausgabe · \(sections) \(sections == 1 ? "Rubrik" : "Rubriken")" }
+        return "In this issue · \(sections) \(sections == 1 ? "section" : "sections")"
+    }
+
+    /// "Tap to jump" / "Tippen zum Springen" (the trailing eyebrow).
+    static func contentsTapToJump(german: Bool) -> String { german ? "Tippen zum Springen" : "Tap to jump" }
+
+    /// "{n} new" / "{n} neu" in place of a contents entry's count.
+    static func contentsNew(_ count: Int, german: Bool) -> String { german ? "\(count) neu" : "\(count) new" }
+
+    /// "Jump to New to you, 8 titles" / "Zu Neu für dich springen, 8 Titel".
     static func contentsSpoken(name: String, count: Int, german: Bool) -> String {
-        german ? "\(name), \(count) Titel" : "\(name), \(count) \(count == 1 ? "title" : "titles")"
+        german ? "Zu \(name) springen, \(count) Titel" : "Jump to \(name), \(count) \(count == 1 ? "title" : "titles")"
     }
 
     /// The Browse link row: kicker "Everything" / "Alles" (new) and the shipped title.
     static func browseKicker(german: Bool) -> String { german ? "Alles" : "Everything" }
     static func browseTitle(german: Bool) -> String { german ? "Den Katalog durchstöbern" : "Browse the catalogue" }
 
-    // MARK: Section summaries
+    // MARK: Header (§5.10)
 
-    static func newToYouSummary(german: Bool) -> String { german ? "Noch nicht gesehen · täglich neu" : "Unseen by you · changes daily" }
-    static func becauseYouSummary(german: Bool) -> String { german ? "Aus deinen Favoriten" : "From your favourites" }
-    static func canonSummary(german: Bool) -> String { german ? "Der Kanon, in unserer Reihenfolge" : "The canon, in our order" }
-    static func trendingSummary(german: Bool) -> String { german ? "Diese Woche auf Kuro" : "This week on Kuro" }
+    /// The header title's VoiceOver label while Discover is the page.
+    static func headerScrollToTop(german: Bool) -> String { german ? "Entdecken. Nach oben" : "Discover. Scroll to top" }
+
+    // MARK: Section purposes (R1, §8)
+
+    static func purposeNewToYou(german: Bool) -> String {
+        german ? "Serien, die du noch nicht kennst. Jeden Morgen neu." : "Series you haven't seen. A new set each morning."
+    }
+
+    static func purposeBecauseYou(german: Bool) -> String {
+        german ? "Ausgewählt nach dem, was du am meisten mochtest." : "Picked from what you loved most."
+    }
+
+    /// "Airing now. 3 new episodes out today." when today's rail holds titles, else the season line.
+    static func purposeSeason(airingToday: Int, german: Bool) -> String {
+        if airingToday > 0 {
+            if german { return "Läuft gerade. Heute \(airingToday) \(airingToday == 1 ? "neue Folge" : "neue Folgen")." }
+            return "Airing now. \(airingToday) new \(airingToday == 1 ? "episode" : "episodes") out today."
+        }
+        return german ? "Was diese Season läuft." : "What's airing this season."
+    }
+
+    static func purposeEssentials(count: Int, manga: Bool, german: Bool) -> String {
+        switch (manga, german) {
+        case (false, false): return "\(count) titles to know anime by. Our order, not a ranking."
+        case (false, true): return "\(count) Titel, an denen man Anime kennt. Unsere Reihenfolge, kein Ranking."
+        case (true, false): return "\(count) manga to know the medium by. Our order, not a ranking."
+        case (true, true): return "\(count) Manga, an denen man das Medium kennt. Unsere Reihenfolge, kein Ranking."
+        }
+    }
+
+    static func purposeMangaNewToYou(german: Bool) -> String {
+        german ? "Manga, die du noch nicht kennst. Jeden Morgen neu." : "Manga you haven't read. A new set each morning."
+    }
+
+    /// D15: the source is AniList's trending value, never Kuro activity.
+    static func purposeTrending(manga: Bool, german: Bool) -> String {
+        switch (manga, german) {
+        case (false, false): return "What anime fans are watching right now."
+        case (false, true): return "Was Anime-Fans gerade schauen."
+        case (true, false): return "What manga readers are reading right now."
+        case (true, true): return "Was Manga-Fans gerade lesen."
+        }
+    }
+
+    static func purposeClassics(manga: Bool, german: Bool) -> String {
+        switch (manga, german) {
+        case (false, false): return "Older series still worth an evening."
+        case (false, true): return "Ältere Serien, die einen Abend wert sind."
+        case (true, false): return "Older manga still worth a read."
+        case (true, true): return "Ältere Manga, die sich noch lohnen."
+        }
+    }
+
+    static func purposeTonightShelf(german: Bool) -> String {
+        german ? "Eine Stimmung für heute Abend, nach deinem Geschmack." : "One mood for tonight, picked from your taste."
+    }
+
+    static func purposeHiddenGem(german: Bool) -> String {
+        german ? "Ein Titel, den die meisten übersehen." : "One title most people miss."
+    }
+
+    // MARK: Why it's here (§8; the preview's foot, lane B)
+
+    enum Reason: Equatable, Sendable { case unseen, canon, airing, popular, classic, closeTo(String) }
+
+    static func reason(_ reason: Reason, german: Bool) -> String {
+        let word: String
+        switch (reason, german) {
+        case (.unseen, false): word = "unseen by you"
+        case (.unseen, true): word = "noch nicht gesehen"
+        case (.canon, false): word = "in our canon"
+        case (.canon, true): word = "in unserem Kanon"
+        case (.airing, false): word = "airing now"
+        case (.airing, true): word = "läuft gerade"
+        case (.popular, false): word = "popular this week"
+        case (.popular, true): word = "diese Woche beliebt"
+        case (.classic, false): word = "a classic"
+        case (.classic, true): word = "ein Klassiker"
+        case (.closeTo(let title), false): word = "close to \(title)"
+        case (.closeTo(let title), true): word = "nah an \(title)"
+        }
+        return german ? "Warum es hier ist: \(word)." : "Why it's here: \(word)."
+    }
+
+    // MARK: NEW markers (§5.8)
+
+    /// The card tab: "NEW" / "NEU".
+    static func newTab(german: Bool) -> String { german ? "NEU" : "NEW" }
+
+    /// The heading marker: "3 new since Tue" / "3 neu seit Di"; over six days: "… since your last visit".
+    static func newSince(_ count: Int, lastVisit: Date, now: Date, german: Bool, timeZone: TimeZone = berlin) -> String {
+        let days = now.timeIntervalSince(lastVisit) / 86_400
+        if days > 6 {
+            return german ? "\(count) neu seit deinem letzten Besuch" : "\(count) new since your last visit"
+        }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.locale = Locale(identifier: german ? "de_DE" : "en_GB")
+        let weekday = calendar.component(.weekday, from: lastVisit)
+        let symbols = calendar.shortStandaloneWeekdaySymbols
+        let name = symbols.indices.contains(weekday - 1) ? symbols[weekday - 1].replacingOccurrences(of: ".", with: "") : ""
+        return german ? "\(count) neu seit \(name)" : "\(count) new since \(name)"
+    }
+
+    // MARK: Trending refinement (D10)
+
+    /// The refine words: "Any length · Up to 13 episodes · Over 50 episodes · Finished" (DE "Jede Länge ·
+    /// Bis 13 Folgen · Über 50 Folgen · Fertig erschienen"). `DiscoverRailFilter`'s own labels stay for
+    /// its other users.
+    static func refineWord(_ filter: DiscoverRailFilter, german: Bool) -> String {
+        switch (filter, german) {
+        case (.all, false): return "Any length"
+        case (.all, true): return "Jede Länge"
+        case (.short, false): return "Up to 13 episodes"
+        case (.short, true): return "Bis 13 Folgen"
+        case (.long, false): return "Over 50 episodes"
+        case (.long, true): return "Über 50 Folgen"
+        case (.finished, false): return "Finished"
+        case (.finished, true): return "Fertig erschienen"
+        }
+    }
+
+    // MARK: Kind kicker (§5.11)
+
+    /// "ANIME" / "MANGA" (identical in German).
+    static func kindKicker(_ kind: MediaKind) -> String { kind == .manga ? "MANGA" : "ANIME" }
+
+    /// VoiceOver prefix on All: "Anime: Frieren".
+    static func kindSpoken(_ kind: MediaKind, title: String) -> String { "\(kind == .manga ? "Manga" : "Anime"): \(title)" }
+
+    // MARK: Status word (R2, mark sections)
+
+    /// The owned title's word on an index row's meta line: "Watching · Ep. 5" / "Schaue ich · F. 5",
+    /// "Completed" / "Abgeschlossen" (the Folio words and unit abbreviations, EXISTING).
+    @MainActor
+    static func statusWord(_ status: ListStatus, progress: Int, kind: MediaKind, german: Bool) -> String {
+        let word = FolioStatus(listStatus: status).title(medium: kind, german: german)
+        guard status == .current || status == .repeating, progress > 0 else { return word }
+        return "\(word) · \(FolioPolicy.unitShort(kind, german: german)) \(progress)"
+    }
+
+    // MARK: Progress hook (§5.9)
+
+    static func progressHead(seen: Int, of total: Int, manga: Bool, german: Bool) -> String {
+        switch (manga, german) {
+        case (false, false): return "You've seen \(seen) of \(total)."
+        case (false, true): return "\(seen) von \(total) gesehen."
+        case (true, false): return "You've read \(seen) of \(total)."
+        case (true, true): return "\(seen) von \(total) gelesen."
+        }
+    }
+
+    static func progressUnderWay(_ title: String, german: Bool) -> String {
+        german ? "\(title) läuft gerade." : "\(title) is under way."
+    }
+
+    static func progressToGo(_ remaining: Int, german: Bool) -> String {
+        german ? "Noch \(remaining)." : "\(remaining) to go."
+    }
+
+    /// "You've seen 3 of 8 essential anime" (VoiceOver).
+    static func progressSpoken(seen: Int, of total: Int, manga: Bool, german: Bool) -> String {
+        switch (manga, german) {
+        case (false, false): return "You've seen \(seen) of \(total) essential anime"
+        case (false, true): return "\(seen) von \(total) unverzichtbaren Anime gesehen"
+        case (true, false): return "You've read \(seen) of \(total) essential manga"
+        case (true, true): return "\(seen) von \(total) unverzichtbaren Manga gelesen"
+        }
+    }
+
+    // MARK: Moods (§5.4)
+
+    static func moodsEyebrow(german: Bool) -> String { german ? "Lust auf" : "In the mood for" }
+
+    @MainActor
+    static func moodTitle(_ mood: DiscoverMood, likeTitle: String?, german: Bool) -> String {
+        switch (mood, german) {
+        case (.short, false): return "Something short"
+        case (.short, true): return "Etwas Kurzes"
+        case (.cozy, false): return "Cozy"
+        case (.cozy, true): return "Gemütlich"
+        case (.intense, false): return "Intense"
+        case (.intense, true): return "Intensiv"
+        case (.likeLastLoved, false): return "Like \(likeTitle ?? "")"
+        case (.likeLastLoved, true): return "Wie \(likeTitle ?? "")"
+        }
+    }
+
+    @MainActor
+    static func moodSubtitle(_ mood: DiscoverMood, german: Bool) -> String {
+        switch (mood, german) {
+        case (.short, false): return "Short and complete"
+        case (.short, true): return "Kurz und abgeschlossen"
+        case (.cozy, false): return "Slow, warm, gentle"
+        case (.cozy, true): return "Ruhig, warm, sanft"
+        case (.intense, false): return "Dark and gripping"
+        case (.intense, true): return "Düster und packend"
+        case (.likeLastLoved, false): return "Because you finished it"
+        case (.likeLastLoved, true): return "Weil du es beendet hast"
+        }
+    }
+
+    @MainActor
+    static func moodSymbol(_ mood: DiscoverMood) -> String {
+        switch mood {
+        case .short: return "timer"
+        case .cozy: return "cup.and.saucer"
+        case .intense: return "bolt"
+        case .likeLastLoved: return "heart"
+        }
+    }
+
+    // MARK: End (§5.7)
+
+    static func endTitle(german: Bool) -> String { german ? "Für heute bist du durch." : "You're caught up for today." }
+
+    static func endTally(sections: Int, titles: Int, german: Bool) -> String {
+        if german { return "\(sections) \(sections == 1 ? "Rubrik" : "Rubriken"), \(titles) Titel." }
+        return "\(sections) \(sections == 1 ? "section" : "sections"), \(titles) \(titles == 1 ? "title" : "titles")."
+    }
+
+    /// "You planned 2, hid 1 and marked 1 as seen." Only the parts above zero; nil when all are zero.
+    static func endActions(planned: Int, hidden: Int, seen: Int, german: Bool) -> String? {
+        var parts: [String] = []
+        if german {
+            if planned > 0 { parts.append("\(planned) vorgemerkt") }
+            if hidden > 0 { parts.append("\(hidden) ausgeblendet") }
+            if seen > 0 { parts.append("\(seen) als gesehen markiert") }
+        } else {
+            if planned > 0 { parts.append("planned \(planned)") }
+            if hidden > 0 { parts.append("hid \(hidden)") }
+            if seen > 0 { parts.append("marked \(seen) as seen") }
+        }
+        guard !parts.isEmpty else { return nil }
+        let joined: String
+        if parts.count == 1 {
+            joined = parts[0]
+        } else {
+            joined = parts.dropLast().joined(separator: ", ") + (german ? " und " : " and ") + (parts.last ?? "")
+        }
+        if german { return joined.prefix(1).uppercased() + joined.dropFirst() + "." }
+        return "You " + joined + "."
+    }
+
+    static func endTomorrow(german: Bool) -> String { german ? "Morgen früh kommt eine neue Ausgabe." : "A new issue tomorrow morning." }
+
+    static func searchKicker(german: Bool) -> String { german ? "Etwas Bestimmtes" : "Something specific" }
+    static func searchTitle(german: Bool) -> String { german ? "Suchen" : "Search" }
+    static func moreListsEyebrow(german: Bool) -> String { german ? "Weitere Listen" : "More lists" }
+
+    // MARK: Pinned index (§5.10, §8)
+
+    @MainActor
+    static func pinnedWord(_ section: DiscoverIssueSections.Section, german: Bool) -> String {
+        switch (section, german) {
+        case (.newToYou, false), (.becauseYou, false), (.mangaNewToYou, false): return "New"
+        case (.newToYou, true), (.becauseYou, true), (.mangaNewToYou, true): return "Neu"
+        case (.currentSeason, _): return "Season"
+        case (.essentials, false), (.essentialsManga, false): return "Essentials"
+        case (.essentials, true), (.essentialsManga, true): return "Kanon"
+        case (.trending, false), (.trendingManga, false): return "Trending"
+        case (.trending, true), (.trendingManga, true): return "Im Trend"
+        case (.classics, false), (.classicsManga, false): return "Classics"
+        case (.classics, true), (.classicsManga, true): return "Klassiker"
+        case (.tonightShelf, false): return "Shelf"
+        case (.tonightShelf, true): return "Regal"
+        case (.hiddenGem, false): return "Gem"
+        case (.hiddenGem, true): return "Juwel"
+        }
+    }
+
+    /// On All, Manga new to you sits beside New to you: its pinned word is "Manga".
+    @MainActor
+    static func pinnedWord(_ section: DiscoverIssueSections.Section, issue: DiscoverIssueSections.Issue, german: Bool) -> String {
+        if section == .mangaNewToYou, issue == .all { return "Manga" }
+        return pinnedWord(section, german: german)
+    }
+
+    /// The pinned index's VoiceOver label.
+    static func pinnedLabel(german: Bool) -> String { german ? "Rubriken" : "Sections" }
+
+    // MARK: Feedback (interim page toast; lane B's DiscoverMenuCopy replaces it)
+
+    static func hiddenToast(german: Bool) -> String { german ? "Ausgeblendet. Du siehst weniger davon." : "Hidden. You'll see fewer like it." }
+    static func seenToast(german: Bool) -> String { german ? "Als gesehen markiert." : "Marked as seen." }
+    static func addAsCompleted(german: Bool) -> String { german ? "Als abgeschlossen eintragen ›" : "Add as Completed ›" }
+    static func hiddenSpoken(german: Bool) -> String { german ? "Ausgeblendet. Rückgängig möglich." : "Hidden. Undo available." }
+
+    @MainActor
+    static func menuPlan(_ action: TastePlanAction, kind: MediaKind, german: Bool) -> String {
+        switch (action, german) {
+        case (.plan, true): return "Vormerken"
+        case (.plan, false): return kind == .manga ? "Plan to read" : "Plan to watch"
+        case (.unplan, true): return "Aus Geplant entfernen"
+        case (.unplan, false): return "Remove from Planned"
+        case (.edit, true): return "Listeneintrag bearbeiten"
+        case (.edit, false): return "Edit list entry"
+        }
+    }
+
+    static func menuSeen(kind: MediaKind, german: Bool) -> String {
+        switch (kind, german) {
+        case (.anime, false): return "Seen it"
+        case (.anime, true): return "Schon gesehen"
+        case (.manga, false): return "Already read"
+        case (.manga, true): return "Schon gelesen"
+        }
+    }
+
+    static func menuSeenSubtitle(german: Bool) -> String {
+        german ? "Blendet es hier aus. Du kannst es als abgeschlossen eintragen." : "Hides it here. You can add it as Completed."
+    }
+
+    static func menuNotInterested(german: Bool) -> String { german ? "Kein Interesse" : "Not interested" }
+    static func menuNotInterestedSubtitle(german: Bool) -> String {
+        german ? "Blendet es aus und zeigt weniger davon." : "Hides it and shows fewer like it."
+    }
+    static func menuAddToClub(german: Bool) -> String { german ? "Zu einem Club hinzufügen\u{2026}" : "Add to club\u{2026}" }
+    static func menuOpen(german: Bool) -> String { german ? "Öffnen" : "Open" }
 
     /// A section heading with the editorial full stop ("New to you.").
     static func heading(_ title: String) -> String { title.hasSuffix(".") ? title : title + "." }
@@ -201,27 +528,10 @@ nonisolated enum DiscoverIssueCopy {
     /// The local refinement's group label.
     static func refineLabel(german: Bool) -> String { german ? "Diese Leiste eingrenzen" : "Refine this rail" }
 
-    // MARK: Fold
+    // MARK: Fold (retired, D17)
 
-    /// "Show 4 more sections" / "4 weitere Bereiche zeigen".
-    static func foldShow(_ count: Int, german: Bool) -> String {
-        if german { return count == 1 ? "1 weiteren Bereich zeigen" : "\(count) weitere Bereiche zeigen" }
-        return count == 1 ? "Show 1 more section" : "Show \(count) more sections"
-    }
-
-    /// "Show fewer" / "Weniger zeigen" (shipped).
-    static func foldFewer(german: Bool) -> String { german ? "Weniger zeigen" : "Show fewer" }
-
-    /// The fold's trailing names: "Classics, Top rated +2 ⌄" (the first two names, then the rest).
-    static func foldTrailing(names: [String], expanded: Bool) -> String {
-        let shown = names.prefix(2).joined(separator: ", ")
-        let rest = names.count - min(2, names.count)
-        let mark = expanded ? "⌃" : "⌄"
-        if shown.isEmpty { return mark }
-        return rest > 0 ? "\(shown) +\(rest) \(mark)" : "\(shown) \(mark)"
-    }
-
-    /// The fold's session memory (navigation contract F3): page "discover", section "more".
+    /// The retired fold's session-memory key (navigation contract F3). The page no longer reads it
+    /// (D17); the constants stay for `KuroFoldMemory` callers and the earlier lanes' tests.
     static let foldPage = "discover"
     static let foldSection = "more"
 
@@ -245,35 +555,32 @@ nonisolated enum DiscoverIssueCopy {
     }
 }
 
-// MARK: - Contents line (pure)
+// MARK: - Contents (pure)
 
-/// The "In this issue" line: the sections drawn on the page, in order, with their real counts.
+/// The "In this issue" block: the sections drawn on the page, in order, each a numbered jump link
+/// with its real count (or "{n} new"). Every drawn section is named (at most six, R7).
 nonisolated enum DiscoverContents {
     struct Entry: Equatable, Identifiable {
         /// The section's scroll anchor.
         let id: String
         let name: String
         let count: Int
+        var newCount: Int = 0
     }
 
-    struct Line: Equatable {
-        let names: [Entry]
-        /// "+n more": hidden page sections plus the folded ones; nil when nothing is left out.
-        let more: Int?
-        /// Where "+n more" scrolls: the first section not named, or the fold.
-        let moreTarget: String?
+    /// "01" … the entry's number.
+    static func number(_ index: Int) -> String { String(format: "%02d", index + 1) }
+
+    /// The trailing word: "{n} new" when the section has NEW titles, else the count.
+    static func trailing(_ entry: Entry, german: Bool) -> String {
+        entry.newCount > 0 ? DiscoverIssueCopy.contentsNew(entry.newCount, german: german) : "\(entry.count)"
     }
 
-    /// The fold's scroll anchor.
-    static let foldAnchor = "discover.fold"
-
-    /// Nil when fewer than two sections are drawn (the line is omitted; Browse may still show).
-    static func line(page: [Entry], folded: Int, limit: Int = DiscoverIssueLayout.contentsNames) -> Line? {
-        guard page.count >= 2 else { return nil }
-        let names = Array(page.prefix(limit))
-        let hidden = page.count - names.count
-        let more = hidden + folded
-        let target: String? = hidden > 0 ? page[names.count].id : (folded > 0 ? foldAnchor : nil)
-        return Line(names: names, more: more > 0 ? more : nil, moreTarget: target)
+    /// One column at accessibility sizes or in the compact column; two otherwise.
+    static func columns(accessibility: Bool, column: CGFloat) -> Int {
+        accessibility || DiscoverIssueLayout.isCompact(column: column) ? 1 : 2
     }
+
+    /// The contents block shows when two or more sections are drawn.
+    static func shows(_ entries: [Entry]) -> Bool { entries.count >= 2 }
 }
