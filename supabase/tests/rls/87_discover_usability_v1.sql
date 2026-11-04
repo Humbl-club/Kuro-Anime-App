@@ -11,7 +11,7 @@
 --   * discover_mood_v1: short / cozy / intense (genre fallback without the realm view, realm sets
 --     with it), like_last_loved (seed choice, reason, owned exclusion, signed-out/no-seed empty);
 --   * typed errors in the MESSAGE.
--- curated_rail_items, media_realm_membership_effective and the real recommend_ids_similar_to_seeds
+-- curated_rail_items, media_realm_membership (the mood's realm source since 20261104100100) and the real recommend_ids_similar_to_seeds
 -- body do not replay into this fixture: stand-ins (a table, a table, a recording stub) are created
 -- INSIDE this rolled-back transaction. That proves the readers' own logic, not the realm scorer.
 -- @requires table public.anime
@@ -188,8 +188,10 @@ select tests.eq('intense without the realm view: Thriller/Horror/Psychological',
   (select string_agg(id::text, ',' order by rank) from public.discover_mood_v1('intense', 'ANIME')), '870014');
 
 select tests.reset();
-create table public.media_realm_membership_effective (media_type text, media_id integer, realm text, family text, weight real);
-insert into public.media_realm_membership_effective (media_type, media_id, realm, weight) values
+-- Since 20261104100100 the mood reads the indexed rules matview media_realm_membership (not the
+-- effective view); the stand-in takes that name.
+create table public.media_realm_membership (media_type text, media_id integer, realm text, family text, weight real);
+insert into public.media_realm_membership (media_type, media_id, realm, weight) values
   ('ANIME', 870013, 'slice-of-life-iyashikei', 0.6),
   ('ANIME', 870003, 'food-craft', 0.3), ('ANIME', 870003, 'horror-dread', 0.3),
   ('ANIME', 870010, 'family-generations', 0.2),
