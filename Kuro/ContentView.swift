@@ -178,6 +178,9 @@ struct KuroMainView: View {
 	@State private var homeNewAccountLatch: Bool?
 	/// Taste's selected medium, owned here so the pager and header canvas follow it (amendment 8).
 	@State private var tasteMedium: MediaKind = .anime
+	/// Discover's issue (All / Anime / Manga), owned here so the pager and header canvas follow it
+	/// (Discover + Clubs redesign D3: manga Discover paints the manga canvas under the header too).
+	@State private var discoverIssue: EditorialDiscoverView.DiscoverMediaTypeFilter = .all
 	/// Every swipe-exclusion frame reported in `kuro_root` space (filtered to the viewport on use).
 	@State private var swipeExclusions: [CGRect] = []
     /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
@@ -305,9 +308,11 @@ struct KuroMainView: View {
 	                    .ignoresSafeArea()
 	                HomeInvitationWash()
 	            } else {
-	                selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga).ignoresSafeArea()
+	                selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga,
+	                                 mangaDiscover: discoverIssue == .manga).ignoresSafeArea()
 	                    .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil,
-	                               value: selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga))
+	                               value: selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga,
+	                                                       mangaDiscover: discoverIssue == .manga))
 	            }
 
 	            VStack(spacing: 0) {
@@ -325,7 +330,8 @@ struct KuroMainView: View {
                             showSearchSheet = true
                         },
                         onPicture: homeInvitation,
-                        tasteMedium: tasteMedium
+                        tasteMedium: tasteMedium,
+                        discoverIssue: discoverIssue
                     )
                 }
 
@@ -368,6 +374,7 @@ struct KuroMainView: View {
                             },
                             homeNewAccountLatch: homeNewAccountLatch,
                             tasteMedium: $tasteMedium,
+                            discoverIssue: $discoverIssue,
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
 	                    .offset(x: edgeBounceOffset)
@@ -764,6 +771,8 @@ private struct KuroSectionPager: View {
     var homeNewAccountLatch: Bool?
     /// Taste's selected medium (`KuroMainView.tasteMedium`).
     @Binding var tasteMedium: MediaKind
+    /// Discover's issue (`KuroMainView.discoverIssue`).
+    @Binding var discoverIssue: EditorialDiscoverView.DiscoverMediaTypeFilter
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
     var bottomInset: CGFloat = 0
@@ -818,7 +827,7 @@ private struct KuroSectionPager: View {
                     ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt,
                                   onImportNavigation: onImportNavigation)
                 case .discover:
-                    EditorialDiscoverView()
+                    EditorialDiscoverView(issue: $discoverIssue)
                 case .browse:
                     BrowseView()
                 case .collection:
@@ -978,11 +987,14 @@ extension KuroMainView.Section {
     /// `#fffef8` on Home and Taste, the manga Home canvas `#f5f5f3` while Home (or Taste, amendment 8:
     /// "Taste follows its reference") shows manga, the white page elsewhere. Taste paints the same
     /// tokens (`TastePageContent.canvas(for:)`), so no seam shows under the header or beside the
-    /// readable column on iPad.
-    func canvas(mangaHome: Bool, mangaTaste: Bool = false) -> Color {
+    /// readable column on iPad. Discover follows its issue (All and Anime warm, Manga the manga
+    /// canvas) and Clubs is warm (Discover + Clubs redesign D2, §5); both pages paint the same tokens.
+    func canvas(mangaHome: Bool, mangaTaste: Bool = false, mangaDiscover: Bool = false) -> Color {
         switch self {
         case .home: return mangaHome ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
         case .taste: return mangaTaste ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
+        case .discover: return mangaDiscover ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
+        case .clubs: return Color.kuroCanvasHome
         default: return Color.kuroBackground
         }
     }
@@ -997,6 +1009,8 @@ struct KuroHeaderNew: View {
     var onPicture: Bool = false
     /// Taste's medium: manga Taste paints the manga canvas under the header too.
     var tasteMedium: MediaKind = .anime
+    /// Discover's issue: manga Discover paints the manga canvas under the header too.
+    var discoverIssue: EditorialDiscoverView.DiscoverMediaTypeFilter = .all
     @Environment(IdentityStore.self) private var identity
     @Environment(SessionController.self) private var session
     @Environment(ClubsStore.self) private var clubs
@@ -1009,7 +1023,10 @@ struct KuroHeaderNew: View {
     private var playsMotion: Bool { KuroMotion.playsMotionNow(reduceMotion: reduceMotion) }
 
     /// This page's canvas (Home's follows its medium).
-    private var canvas: Color { selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga) }
+    private var canvas: Color {
+        selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga,
+                         mangaDiscover: discoverIssue == .manga)
+    }
 
     private var swipeOrder: [KuroMainView.Section] {
         KuroMainView.Section.pagerOrder(

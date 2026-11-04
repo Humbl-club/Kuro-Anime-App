@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 224 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 240 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2108,3 +2108,25 @@ Every way through the app was walked on real data: title → director → their 
 ### Change Log — 2 November 2026: Everyone gets the new Home
 
 The new Home is now switched on for every account, not just the owner's. Apps pick it up the next time they load their settings. It can be switched off again instantly if needed.
+
+### Change Log — 3 November 2026: Discover and Clubs now look like Home
+
+Discover and Clubs were redesigned to feel like the same app as the new Home: the same warm background, type, cards, keys and loading/offline screens.
+- Discover reads like a daily issue: a heading with today's date, an All · Anime · Manga switch, one big cover story, what airs today, a short table of contents, a few curated sections (new to you, essentials, trending) and the rest folded away. It is still hand-picked; the small filters only change one section.
+- The Clubs list shows each club as a dark "room" with its covers, members and latest activity. A club's own page opens on the same room, with clear buttons (Add a title, Start a rail, Invite, Ask).
+- All automatic tests passed. Nothing was deployed or pushed, and no data or settings were changed.
+- Still for the owner to decide: the All page of Discover is longer than planned, and poll results still appear only after you vote.
+
+### Change Log — 3 November 2026: Discover and Clubs, review fixes
+
+A review pass on the new Discover and Clubs pages found small problems; they are fixed:
+- Discover sat a few points left of centre, so swiping Home → Discover → Clubs made the content jump sideways. It now lines up exactly with Home, and a test guards it.
+- Discover's All page is shorter: each numbered list shows 3 titles there (5 on Anime and Manga), with "See all" for the rest. It is still longer than planned; the owner decides whether to shorten it more.
+- Swiping between pages over a "Plan to watch" key can no longer add or remove a title by accident.
+- Small fixes: times and poll results no longer break across lines, today's pick's pitch is never cut off, the Clubs unread mark is a proper dot, note links look alike, and error screens sit at the same height on both pages.
+- The club page does much less work while scrolling.
+- All automatic tests passed. Nothing was deployed or pushed.
+
+### Change Log — 3 November 2026: Discover and Clubs now look like Home (TestFlight 23)
+
+Discover reads like a daily issue (a cover story in the title's own colours, a short contents line, a few hand-picked sections in different shapes, the rest folded away), and every club is a dark "room" like the one on Home, on the list and on the club's own page. It is in TestFlight build 23 and waits for the owner's review before it becomes part of the main version.

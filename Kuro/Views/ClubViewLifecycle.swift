@@ -1,4 +1,5 @@
 import Foundation
+import KuroCore
 
 // MARK: - Club detail lifecycle rules
 
@@ -154,8 +155,8 @@ enum ClubSelectionRevocation {
 
 // MARK: - Clubs list card display rules
 
-/// Pure display rules for `JournalClubCard` on the Clubs list page.
-enum ClubsListCardRules {
+/// Pure display rules for the club rooms on the Clubs list page.
+nonisolated enum ClubsListCardRules {
     /// Private clubs show member count only (clubs spec): never list member name initials.
     /// Status and progress clubs keep up to the names the list row already carries.
     static func memberInitials(sharingLevel: String, memberNames: [String]?) -> [String] {
@@ -164,7 +165,7 @@ enum ClubsListCardRules {
     }
 }
 
-extension ClubsListCardRules {
+nonisolated extension ClubsListCardRules {
     /// The honest audience label of a club (what members can see of each other), EN/DE.
     static func audienceLabel(sharingLevel: String, german: Bool) -> String {
         switch sharingLevel.lowercased() {
@@ -626,6 +627,605 @@ nonisolated enum ClubActivityProse {
             return Parts(beforeTitle: isManga ? " plans to read " : " plans to watch ", afterTitle: "")
         default:
             return german ? Parts(beforeTitle: " hat ", afterTitle: " aktualisiert") : Parts(beforeTitle: " updated ", afterTitle: "")
+        }
+    }
+}
+
+// MARK: - Club room rules (Discover + Clubs redesign, spec §7)
+
+/// ISO-8601 timestamps as the club RPCs send them (with or without fractional seconds); nil when
+/// unreadable. A nonisolated twin of `ClubsStore.parseISO8601` for the pure rules below.
+nonisolated enum ClubDates {
+    /// Built once: the club page parses these on every body pass and in the list's sort comparator.
+    /// `ISO8601DateFormatter` is thread-safe for parsing once configured.
+    private static let fractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let basic: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    static func parse(_ raw: String) -> Date? {
+        fractional.date(from: raw) ?? basic.date(from: raw)
+    }
+}
+
+/// Who sees what on a club, and the list's order (pure; DCclubsTests).
+nonisolated enum ClubRoomRules {
+    /// Owners and admins: the roles `fetch_club_bundle` sends `invite_code` to and that may lock rails,
+    /// start rails and ask polls.
+    static func isAdmin(role: String) -> Bool {
+        ["owner", "admin"].contains(role.lowercased())
+    }
+
+    /// The existing add rule: an unlocked rail takes titles from anyone; a locked one only from admins.
+    static func canAddToRail(_ rail: ClubRail, role: String) -> Bool {
+        !rail.is_locked || isAdmin(role: role)
+    }
+
+    /// The rails the viewer may add to, in rail order.
+    static func addableRails(_ bundle: ClubBundle) -> [ClubRail] {
+        bundle.rails.filter { canAddToRail($0, role: bundle.my_role) }
+    }
+
+    /// The labelled keys on the club page (D9, D10), in this order.
+    enum Key: Equatable, Sendable, CaseIterable {
+        case addTitle, startRail, invite, ask
+    }
+
+    /// Add a title when some rail takes the viewer's titles; Start a rail for admins of a club without
+    /// rails; Invite only with an invite code (the server sends it to owners and admins only); Ask for
+    /// admins. A member who can add nothing sees no keys.
+    static func keys(role: String, rails: [ClubRail], hasInviteCode: Bool) -> [Key] {
+        var keys: [Key] = []
+        if rails.contains(where: { canAddToRail($0, role: role) }) { keys.append(.addTitle) }
+        if rails.isEmpty, isAdmin(role: role) { keys.append(.startRail) }
+        if hasInviteCode { keys.append(.invite) }
+        if isAdmin(role: role) { keys.append(.ask) }
+        return keys
+    }
+
+    /// Where "Add a title" goes: straight to the only eligible rail, or a chooser of several. Never a
+    /// guessed `rails.first`.
+    enum AddTarget: Equatable, Sendable {
+        case none
+        case rail(String)
+        case chooser([String])
+    }
+
+    static func addTarget(rails: [ClubRail], role: String) -> AddTarget {
+        let ids = rails.filter { canAddToRail($0, role: role) }.map(\.id)
+        switch ids.count {
+        case 0: return .none
+        case 1: return .rail(ids[0])
+        default: return .chooser(ids)
+        }
+    }
+
+    /// User ids are compared case-insensitively (the app lowercases them elsewhere).
+    static func isViewer(_ userId: String?, viewerId: String?) -> Bool {
+        guard let userId, let viewerId, !viewerId.isEmpty else { return false }
+        return userId.lowercased() == viewerId.lowercased()
+    }
+
+    /// The members other than the viewer, in the server's order (D13: "You" is its own ring).
+    static func otherMembers(_ members: [ClubMember], viewerId: String?) -> [ClubMember] {
+        members.filter { !isViewer($0.user_id, viewerId: viewerId) }
+    }
+
+    /// The list's order (D7): newest `last_activity_at` first; clubs without a date last, in the
+    /// server's order.
+    static func sortedForList(_ rows: [ClubListRow]) -> [ClubListRow] {
+        rows.enumerated().sorted { lhs, rhs in
+            let l = lhs.element.last_activity_at.flatMap(ClubDates.parse)
+            let r = rhs.element.last_activity_at.flatMap(ClubDates.parse)
+            switch (l, r) {
+            case let (l?, r?) where l != r: return l > r
+            case (_?, nil): return true
+            case (nil, _?): return false
+            default: return lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+    }
+
+    /// How a rail item shows its member note (D11): the first note in rail order lives in the hero
+    /// card, so its tile links up to it; every other note sits under its own tile, spoiler-gated.
+    enum NotePlacement: Equatable, Sendable {
+        case none
+        case linkToHero
+        case inline
+    }
+
+    static func notePlacement(itemId: String, note: String?, firstNoteItemId: String?) -> NotePlacement {
+        guard let text = note?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return .none }
+        return itemId == firstNoteItemId ? .linkToHero : .inline
+    }
+}
+
+// MARK: - This week (D12)
+
+/// The club's member updates as "This week" groups them (pure; DCclubsTests). Updates within the last
+/// 7 × 24 h of device time are grouped by calendar day in Europe/Berlin; older ones, and updates
+/// without a readable `updated_at`, go under "Earlier". Nothing is dropped.
+nonisolated enum ClubWeekRules {
+    static let window: TimeInterval = 7 * 24 * 60 * 60
+
+    /// The club time zone does not exist; days are Berlin days (spec D12). Built once (a value).
+    static let berlin: Calendar = KuroLocale.calendar(locale: Locale(identifier: "de_DE"),
+                                                      timeZone: TimeZone(identifier: "Europe/Berlin") ?? .autoupdatingCurrent)
+
+    struct Entry: Equatable, Identifiable, Sendable {
+        let id: String
+        let userId: String
+        let displayName: String?
+        let isViewer: Bool
+        let titleDisplay: String
+        let status: String?
+        let progress: Int?
+        let mediaType: String
+        let mediaId: Int
+        let coverImage: String?
+        let updatedAt: Date?
+
+        var isManga: Bool { mediaType.uppercased() == "MANGA" }
+        /// The title the entry is about (N9: the entry opens it).
+        var mediaKey: MediaKey { ClubActivityTarget.key(mediaType: mediaType, mediaId: mediaId) }
+    }
+
+    struct Day: Equatable, Identifiable, Sendable {
+        /// The Berlin start of the day.
+        let start: Date
+        let entries: [Entry]
+        var id: Date { start }
+    }
+
+    struct Partition: Equatable, Sendable {
+        let thisWeek: [Day]
+        let earlier: [Day]
+        /// Updates without a readable date (shown last under "Earlier").
+        let undated: [Entry]
+
+        var thisWeekCount: Int { thisWeek.reduce(0) { $0 + $1.entries.count } }
+        var earlierCount: Int { earlier.reduce(0) { $0 + $1.entries.count } + undated.count }
+        var isEmpty: Bool { thisWeek.isEmpty && earlier.isEmpty && undated.isEmpty }
+    }
+
+    /// Every member status of every rail item, newest first.
+    static func entries(in bundle: ClubBundle, viewerId: String?) -> [Entry] {
+        var result: [Entry] = []
+        for rail in bundle.rails {
+            for item in rail.items {
+                for status in item.member_statuses ?? [] {
+                    let name = status.display_name?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    result.append(Entry(
+                        id: "\(item.id)-\(status.user_id)",
+                        userId: status.user_id,
+                        displayName: (name?.isEmpty ?? true) ? nil : name,
+                        isViewer: ClubRoomRules.isViewer(status.user_id, viewerId: viewerId),
+                        titleDisplay: item.title_display,
+                        status: status.status,
+                        progress: status.progress,
+                        mediaType: item.media_type,
+                        mediaId: item.media_id,
+                        coverImage: item.cover_image_medium,
+                        updatedAt: status.updated_at.flatMap(ClubDates.parse)
+                    ))
+                }
+            }
+        }
+        return result.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.updatedAt, rhs.element.updatedAt) {
+            case let (l?, r?) where l != r: return l > r
+            case (_?, nil): return true
+            case (nil, _?): return false
+            default: return lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+    }
+
+    static func partition(_ entries: [Entry], now: Date, calendar: Calendar = berlin) -> Partition {
+        var week: [Entry] = []
+        var older: [Entry] = []
+        var undated: [Entry] = []
+        for entry in entries {
+            guard let date = entry.updatedAt else { undated.append(entry); continue }
+            if now.timeIntervalSince(date) < window { week.append(entry) } else { older.append(entry) }
+        }
+        return Partition(thisWeek: days(week, calendar: calendar), earlier: days(older, calendar: calendar), undated: undated)
+    }
+
+    /// Entries (already newest first) grouped by their Berlin day, newest day first.
+    private static func days(_ entries: [Entry], calendar: Calendar) -> [Day] {
+        var order: [Date] = []
+        var groups: [Date: [Entry]] = [:]
+        for entry in entries {
+            guard let date = entry.updatedAt else { continue }
+            let start = calendar.startOfDay(for: date)
+            if groups[start] == nil { order.append(start) }
+            groups[start, default: []].append(entry)
+        }
+        return order.map { Day(start: $0, entries: groups[$0] ?? []) }
+    }
+
+    /// The start of the 7-day window ("since Mon 27 Oct").
+    static func windowStart(now: Date) -> Date { now.addingTimeInterval(-window) }
+}
+
+/// This week's copy (EN/DE; spec §8). Dates are Berlin dates in `de_DE` / `en_GB` patterns.
+nonisolated enum ClubWeekCopy {
+    static func formatLocale(german: Bool) -> Locale { Locale(identifier: german ? "de_DE" : "en_GB") }
+
+    /// Formatters are built once per template, language and time zone (the language can change while
+    /// the app runs, so it is part of the key). `NSCache` is thread-safe; a configured `DateFormatter`
+    /// is safe to use from any thread.
+    private static let formatters = NSCache<NSString, DateFormatter>()
+
+    private static func cached(_ key: String, make: () -> DateFormatter) -> DateFormatter {
+        if let formatter = formatters.object(forKey: key as NSString) { return formatter }
+        let formatter = make()
+        formatters.setObject(formatter, forKey: key as NSString)
+        return formatter
+    }
+
+    private static func formatter(_ template: String, german: Bool, calendar: Calendar) -> DateFormatter {
+        cached("\(template)|\(german ? "de" : "en")|\(calendar.timeZone.identifier)") {
+            let f = DateFormatter()
+            f.locale = formatLocale(german: german)
+            f.timeZone = calendar.timeZone
+            f.setLocalizedDateFormatFromTemplate(template)
+            return f
+        }
+    }
+
+    /// "Mon 3 Nov" / "Mo. 3. Nov." (no commas).
+    static func shortDate(_ date: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        formatter("EEEdMMM", german: german, calendar: calendar).string(from: date).replacingOccurrences(of: ",", with: "")
+    }
+
+    /// "Today" / "Yesterday" / the weekday.
+    static func dayLabel(_ day: Date, now: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        if calendar.isDate(day, inSameDayAs: now) { return german ? "Heute" : "Today" }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(day, inSameDayAs: yesterday) {
+            return german ? "Gestern" : "Yesterday"
+        }
+        return weekday(day, german: german, calendar: calendar)
+    }
+
+    static func weekday(_ date: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        formatter("EEEE", german: german, calendar: calendar).string(from: date)
+    }
+
+    /// The date chip: day number and the 3-letter month, uppercased by the view.
+    static func chip(_ date: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> (day: String, month: String) {
+        let day = String(calendar.component(.day, from: date))
+        let month = formatter("MMM", german: german, calendar: calendar).string(from: date)
+            .replacingOccurrences(of: ".", with: "")
+        return (day, month)
+    }
+
+    /// 24 h "HH:mm" in Berlin.
+    static func time(_ date: Date, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        cached("HH:mm|fixed|\(calendar.timeZone.identifier)") {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_GB")
+            f.timeZone = calendar.timeZone
+            f.dateFormat = "HH:mm"
+            return f
+        }.string(from: date)
+    }
+
+    static func updates(_ count: Int, german: Bool) -> String {
+        german ? (count == 1 ? "1 Neuigkeit" : "\(count) Neuigkeiten") : (count == 1 ? "1 update" : "\(count) updates")
+    }
+
+    static func heading(german: Bool) -> String { german ? "Diese Woche." : "This week." }
+
+    /// "5 updates since Mon 27 Oct" / "5 Neuigkeiten seit Mo. 27. Okt."
+    static func summary(count: Int, since: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        let date = shortDate(since, german: german, calendar: calendar)
+        return german ? "\(updates(count, german: true)) seit \(date)" : "\(updates(count, german: false)) since \(date)"
+    }
+
+    /// "Since Tue 27 Oct" (a quiet week's summary: no "0 updates").
+    static func since(_ date: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        let day = shortDate(date, german: german, calendar: calendar)
+        return german ? "Seit \(day)" : "Since \(day)"
+    }
+
+    static func earlier(german: Bool) -> String { german ? "Früher" : "Earlier" }
+
+    static func showOlder(_ count: Int, german: Bool) -> String {
+        if german { return count == 1 ? "1 ältere Neuigkeit zeigen" : "\(count) ältere Neuigkeiten zeigen" }
+        return count == 1 ? "Show 1 older update" : "Show \(count) older updates"
+    }
+
+    static func hideOlder(german: Bool) -> String { german ? "Weniger zeigen" : "Show fewer" }
+
+    /// "Quiet week. Nobody has moved on since Monday."
+    static func quietWeek(since: Date, german: Bool, calendar: Calendar = ClubWeekRules.berlin) -> String {
+        let day = weekday(since, german: german, calendar: calendar)
+        return german ? "Ruhige Woche. Seit \(day) ist niemand weitergekommen."
+                      : "Quiet week. Nobody has moved on since \(day)."
+    }
+
+    /// One update as a sentence without its title (the title is the row's second line): the subject
+    /// ("You" for the viewer) and what they did.
+    static func line(subject: String?, isViewer: Bool, status: String?, progress: Int?, isManga: Bool,
+                     german: Bool) -> (subject: String, predicate: String) {
+        let name = isViewer ? (german ? "Du" : "You")
+                            : (subject ?? (german ? "Ein Mitglied" : "A member"))
+        let unit = isManga ? (german ? "Kapitel" : "chapter") : (german ? "Folge" : "episode")
+        let you = isViewer
+        let predicate: String
+        switch status?.uppercased() ?? "" {
+        case "COMPLETED":
+            predicate = german ? (you ? "hast es beendet" : "hat es beendet") : "finished it"
+        case "CURRENT", "WATCHING", "READING":
+            if let progress, progress > 0 {
+                predicate = german ? (you ? "bist bei \(unit) \(progress)" : "ist bei \(unit) \(progress)")
+                                   : "reached \(unit) \(progress)"
+            } else if german {
+                predicate = isManga ? (you ? "liest es jetzt" : "liest es jetzt") : (you ? "schaust es jetzt" : "schaut es jetzt")
+            } else {
+                predicate = isManga ? "started reading" : "started watching"
+            }
+        case "PAUSED":
+            predicate = german ? (you ? "pausierst es" : "pausiert es") : "paused it"
+        case "DROPPED":
+            predicate = german ? (you ? "hast es abgebrochen" : "hat es abgebrochen") : "dropped it"
+        case "PLANNING", "PLANNED":
+            predicate = german ? (you ? "hast es vorgemerkt" : "hat es vorgemerkt")
+                               : (isManga ? (you ? "plan to read it" : "plans to read it")
+                                          : (you ? "plan to watch it" : "plans to watch it"))
+        default:
+            predicate = german ? (you ? "hast es aktualisiert" : "hat es aktualisiert") : "updated it"
+        }
+        return (name, predicate)
+    }
+}
+
+// MARK: - Pace (existing rule, new wording)
+
+/// The existing pace rule (a progress club with at least 3 members; the viewer is behind the median of
+/// the member progress on an item), as numbers for the pace glance (pure; DCclubsTests).
+nonisolated enum ClubPaceRules {
+    struct Gap: Equatable, Sendable {
+        let behind: Int
+        let groupAt: Int
+    }
+
+    static func applies(sharingLevel: String, memberCount: Int, enabled: Bool) -> Bool {
+        enabled && sharingLevel == "progress" && memberCount >= 3
+    }
+
+    /// nil when the viewer has no progress, nobody else does, or the viewer is not behind.
+    static func gap(_ item: ClubRailItem) -> Gap? {
+        guard let mine = item.my_progress, let statuses = item.member_statuses, !statuses.isEmpty else { return nil }
+        let others = statuses.compactMap(\.progress).sorted()
+        guard !others.isEmpty else { return nil }
+        let count = others.count
+        let median = count % 2 == 0 ? (others[count / 2 - 1] + others[count / 2]) / 2 : others[count / 2]
+        let behind = median - mine
+        return behind > 0 ? Gap(behind: behind, groupAt: median) : nil
+    }
+
+    static func title(_ gap: Gap, isManga: Bool, german: Bool) -> String {
+        let n = gap.behind
+        if german {
+            let unit = isManga ? "Kapitel" : (n == 1 ? "Folge" : "Folgen")
+            return "Du bist \(n) \(unit) zurück"
+        }
+        let unit = isManga ? (n == 1 ? "chapter" : "chapters") : (n == 1 ? "episode" : "episodes")
+        return "You're \(n) \(unit) behind"
+    }
+
+    static func caption(_ gap: Gap, rail: String, title: String, isManga: Bool, german: Bool) -> String {
+        if german {
+            return "\(rail) · die Gruppe ist bei \(isManga ? "Kapitel" : "Folge") \(gap.groupAt) von \(title)"
+        }
+        return "\(rail) · the group is on \(isManga ? "Ch." : "Ep.") \(gap.groupAt) of \(title)"
+    }
+
+    static func countLabel(german: Bool) -> String { german ? "zurück" : "behind" }
+}
+
+// MARK: - Polls
+
+/// The polls tab's copy and closed-poll summary (pure; DCclubsTests).
+nonisolated enum ClubPollCopy {
+    /// "YOU ASKED · CLOSES SUN 9 NOV" / "MINA ASKED" (uppercased by the view); nil without an asker.
+    static func kicker(askerName: String?, isViewer: Bool, closesAt: Date?, german: Bool,
+                       calendar: Calendar = ClubWeekRules.berlin) -> String? {
+        let who: String?
+        if isViewer { who = german ? "Deine Frage" : "You asked" }
+        else if let askerName, !askerName.isEmpty { who = german ? "\(askerName) fragt" : "\(askerName) asked" }
+        else { who = nil }
+        let closes = closesAt.map { date in
+            let day = ClubWeekCopy.shortDate(date, german: german, calendar: calendar)
+            return german ? "Endet \(day)" : "Closes \(day)"
+        }
+        let parts = [who, closes].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    static func votes(_ count: Int, german: Bool) -> String {
+        german ? (count == 1 ? "1 Stimme" : "\(count) Stimmen") : (count == 1 ? "1 vote" : "\(count) votes")
+    }
+
+    static func yours(german: Bool) -> String { german ? " · deine" : " · yours" }
+
+    static func askLinkKicker(german: Bool) -> String { german ? "Admins" : "Admins" }
+    static func askLinkTitle(german: Bool) -> String { german ? "Frag den Club." : "Ask the club." }
+
+    /// "Mina asked: Sub or dub? · Sub won, 4 to 1"; "· Tied" on a tie; no outcome without votes.
+    static func closedSummary(askerName: String?, isViewer: Bool, question: String,
+                              options: [ClubPollOption], german: Bool) -> String {
+        let prefix: String
+        if isViewer { prefix = german ? "Du fragtest: " : "You asked: " }
+        else if let askerName, !askerName.isEmpty { prefix = german ? "\(askerName) fragte: " : "\(askerName) asked: " }
+        else { prefix = "" }
+        let ranked = options.sorted { $0.vote_count > $1.vote_count }
+        guard let top = ranked.first, top.vote_count > 0 else { return prefix + question }
+        let second = ranked.dropFirst().first?.vote_count ?? 0
+        if second == top.vote_count { return prefix + question + " · " + (german ? "Unentschieden" : "Tied") }
+        // Non-breaking spaces keep the result ("Sunday won, 4 to 1") on one line.
+        let outcome = german ? "\(top.label)\u{00A0}gewann,\u{00A0}\(top.vote_count)\u{00A0}zu\u{00A0}\(second)"
+                             : "\(top.label)\u{00A0}won,\u{00A0}\(top.vote_count)\u{00A0}to\u{00A0}\(second)"
+        return prefix + question + " · " + outcome
+    }
+}
+
+// MARK: - Join (D14)
+
+/// The join sheet's rules (pure; DCclubsTests).
+nonisolated enum ClubJoinRules {
+    /// Unsaved input is a typed code that differs from the deep-link prefill (a link-prefilled sheet
+    /// can still be swiped away untouched).
+    static func isDirty(code: String, initialCode: String) -> Bool {
+        let typed = ClubInviteCode.normalize(code)
+        return !typed.isEmpty && typed != ClubInviteCode.normalize(initialCode)
+    }
+}
+
+// MARK: - Invite payload
+
+/// The invite's share text, shared by Settings and the invite tool (strings unchanged from Settings).
+nonisolated enum ClubInviteCopy {
+    static func shareText(clubName: String, code: String, german: Bool) -> String {
+        german ? "Tritt meinem Club „\(clubName)“ in Kuro bei: kuro://join/\(code). Oder gib den Code \(code) in der App ein."
+               : "Join my club \u{201C}\(clubName)\u{201D} in Kuro: kuro://join/\(code). Or enter the code \(code) in the app."
+    }
+
+    static func shareSubject(clubName: String, german: Bool) -> String {
+        german ? "Tritt \(clubName) in Kuro bei" : "Join \(clubName) on Kuro"
+    }
+
+    static func shareMessage(code: String, german: Bool) -> String {
+        german ? "Einladungscode: \(code)" : "Invite code: \(code)"
+    }
+}
+
+// MARK: - Room copy additions (EN/DE; spec §8)
+
+extension ClubRoomCopy {
+    /// "YOUR PRIVATE CLUBS · 3" (uppercased by the view; the count is left out when unknown).
+    static func listKicker(count: Int?, german: Bool) -> String {
+        let base = german ? "Deine privaten Clubs" : "Your private clubs"
+        guard let count else { return base }
+        return "\(base) · \(count)"
+    }
+
+    /// "2 with something new." / "All caught up."
+    static func listHeadline(unread: Int, german: Bool) -> String {
+        if unread > 0 { return german ? "\(unread) mit Neuem." : "\(unread) with something new." }
+        return german ? "Alles gesehen." : "All caught up."
+    }
+
+    static func emptyHeadline(german: Bool) -> String { german ? "Nur deine Leute." : "Just your people." }
+
+    static func sharingLevelsNote(german: Bool) -> String {
+        german ? "Du bestimmst, was Mitglieder sehen: nur Summen, Status oder deinen Fortschritt. Das kannst du später in den Club-Einstellungen ändern."
+               : "You choose what members see: totals only, statuses, or your progress. You can change it later in the club's settings."
+    }
+
+    /// The list room's meta: "5 members · 3 rails · 2 polls". `poll_count` counts every poll (open and
+    /// closed; `fetch_my_clubs_*`), so the list says "polls", not "open polls". Unknown counts are left
+    /// out; a known zero rail count reads "no rails yet".
+    static func listMeta(memberCount: Int?, railCount: Int?, pollCount: Int?, german: Bool) -> String {
+        var parts: [String] = []
+        if let members = ClubsListCardRules.memberCountText(memberCount, german: german) { parts.append(members) }
+        if let railCount {
+            if railCount == 0 { parts.append(german ? "noch keine Listen" : "no rails yet") }
+            else { parts.append(german ? (railCount == 1 ? "1 Liste" : "\(railCount) Listen")
+                                       : (railCount == 1 ? "1 rail" : "\(railCount) rails")) }
+        }
+        if let pollCount, pollCount > 0 {
+            parts.append(german ? (pollCount == 1 ? "1 Umfrage" : "\(pollCount) Umfragen")
+                                : (pollCount == 1 ? "1 poll" : "\(pollCount) polls"))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// "YOUR PRIVATE CLUB · PROGRESS SHARED" (uppercased by the view).
+    static func heroKicker(sharingLevel: String, german: Bool) -> String {
+        let base = german ? "Dein privater Club" : "Your private club"
+        return "\(base) · \(ClubsListCardRules.audienceLabel(sharingLevel: sharingLevel, german: german))"
+    }
+
+    static func you(german: Bool) -> String { german ? "Du" : "You" }
+
+    /// VoiceOver for the member row: "You and 4 members".
+    static func youAndMembers(memberCount: Int, german: Bool) -> String {
+        let others = max(0, memberCount - 1)
+        if others == 0 { return german ? "Nur du" : "Just you" }
+        if german { return others == 1 ? "Du und 1 Mitglied" : "Du und \(others) Mitglieder" }
+        return others == 1 ? "You and 1 member" : "You and \(others) members"
+    }
+
+    /// "You · Ep. 7 of 24" / "Du · F. 7 von 24".
+    static func viewerProgress(_ progress: Int?, total: Int?, isManga: Bool, german: Bool) -> String? {
+        guard let line = self.progress(progress, total: total, isManga: isManga, german: german) else { return nil }
+        return "\(you(german: german)) · \(line)"
+    }
+
+    static func addedBy(_ name: String, german: Bool) -> String {
+        german ? "Hinzugefügt von \(name)" : "Added by \(name)"
+    }
+
+    static func noteOn(_ title: String, german: Bool) -> String {
+        german ? "Eine Notiz zu \(title)" : "A note on \(title)"
+    }
+
+    /// "Mina's note ↑" (the note is in the hero card above).
+    static func noteLinkUp(author: String?, german: Bool) -> String {
+        guard let author else { return german ? "Notiz ↑" : "Note ↑" }
+        return german ? "Notiz von \(author) ↑" : "\(author)’s note ↑"
+    }
+
+    /// "Mina's note · may contain spoilers ⌄".
+    static func noteInline(author: String?, german: Bool) -> String {
+        guard let author else { return german ? "Notiz · kann Spoiler enthalten" : "A note · may contain spoilers" }
+        return german ? "Notiz von \(author) · kann Spoiler enthalten" : "\(author)’s note · may contain spoilers"
+    }
+
+    /// " · locked" after a rail's title count.
+    static func locked(german: Bool) -> String { german ? " · gesperrt" : " · locked" }
+
+    static func addToRail(_ rail: String, german: Bool) -> String {
+        german ? "Titel zu \(rail) hinzufügen" : "Add a title to \(rail)"
+    }
+
+    static func chooserTitle(german: Bool) -> String { german ? "Zu welcher Liste hinzufügen?" : "Add to which rail?" }
+
+    static func offlineBand(german: Bool) -> (lead: String, rest: String) {
+        german ? ("Du bist offline.", "Du siehst deine Clubs von vorhin.")
+               : ("You're offline.", "Showing your clubs from earlier.")
+    }
+
+    static func keyTitle(_ key: ClubRoomRules.Key, german: Bool) -> String {
+        switch key {
+        case .addTitle: return german ? "Titel hinzufügen" : "Add a title"
+        case .startRail: return german ? "Liste anlegen" : "Start a rail"
+        case .invite: return german ? "Einladen" : "Invite"
+        case .ask: return german ? "Fragen" : "Ask"
+        }
+    }
+
+}
+
+extension ClubDetailView.Tab {
+    /// The count VoiceOver reads after the tab's name ("This week, 5 updates").
+    func countLabel(_ count: Int, german: Bool) -> String {
+        switch self {
+        case .rails: return german ? (count == 1 ? "1 Liste" : "\(count) Listen") : (count == 1 ? "1 rail" : "\(count) rails")
+        case .active: return ClubWeekCopy.updates(count, german: german)
+        case .polls: return german ? (count == 1 ? "1 offene Umfrage" : "\(count) offene Umfragen")
+                                   : (count == 1 ? "1 open poll" : "\(count) open polls")
         }
     }
 }

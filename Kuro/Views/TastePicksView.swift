@@ -1467,6 +1467,8 @@ struct TastePlanKey: View {
     /// result goes to the app banner instead (no Undo there).
     @Environment(TastePlanController.self) private var hostController: TastePlanController?
     @Environment(BannerCenter.self) private var banner: BannerCenter?
+    /// The root pager's tap guard: a horizontal swipe that starts on the key must not plan or unplan.
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @State private var localController = TastePlanController()
 
     private static let ink = Color(hex: "36433A")
@@ -1490,6 +1492,7 @@ struct TastePlanKey: View {
         let german = germanOverride ?? KuroLocale.isGerman
         let controller = hostController ?? localController
         Button {
+            guard Self.acceptsTap(suppressCardTaps: suppressCardTaps) else { return }
             KuroAccessibility.impactHaptic(.light)
             controller.tap(card, library: library, actions: libraryActions, routes: routes, german: german)
         } label: {
@@ -1530,6 +1533,10 @@ struct TastePlanKey: View {
             banner?.show(message)
         }
     }
+
+    /// The key writes to the library, so it honours the pager's tap suppression like every card tap
+    /// (the `.edit` route is gated again by `KuroPagerTapGate`; plan / unplan are not routes).
+    static func acceptsTap(suppressCardTaps: Bool) -> Bool { !suppressCardTaps }
 
     static func spokenLabel(action: TastePlanAction, title: String, german: Bool) -> String {
         switch action {

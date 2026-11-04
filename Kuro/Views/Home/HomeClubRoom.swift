@@ -274,8 +274,9 @@ struct HomeClubRoom: View {
     /// 390 and about 296 pt at 320.
     private var compact: Bool { HomeClubRoom.isCompact(width: roomWidth) }
 
-    /// Small-phone room below this width (pure).
-    static func isCompact(width: CGFloat) -> Bool { width > 0 && width < 330 }
+    /// Small-phone room at or below `ClubRoomMetrics.compactRoomWidth` (pure; the one club-room
+    /// threshold, spec D15).
+    static func isCompact(width: CGFloat) -> Bool { width > 0 && width <= ClubRoomMetrics.compactRoomWidth }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -312,7 +313,7 @@ struct HomeClubRoom: View {
     private var masthead: some View {
         Button { routes.openClub(club.id) } label: {
             HStack(alignment: .center, spacing: compact ? 8 : 10) {
-                ClubSeal(ring: compact ? 30 : 36)
+                ClubSeal(ring: ClubSeal.ring(compact: compact))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(KuroLocale.text("Your private club", "Dein privater Club"))
@@ -559,41 +560,7 @@ struct HomeClubRoom: View {
     }
 }
 
-/// The club seal: the prototype's 36 pt ring (30 on small phones) around its 28 pt knot (two
-/// nested squares and four ticks, stroke #d2dacd at 0.9 on a 40 pt grid), turned −12°. The turn
-/// does not change layout, as a CSS transform does not.
-private struct ClubSeal: View {
-    let ring: CGFloat
-
-    var body: some View {
-        ZStack {
-            Circle().strokeBorder(ClubRoomPalette.seal, lineWidth: 1)
-            ClubKnot()
-                .stroke(ClubRoomPalette.sealKnot, lineWidth: 0.9 * 28 / 40)
-                .frame(width: 28, height: 28)
-        }
-        .frame(width: ring, height: ring)
-        .rotationEffect(.degrees(-12))
-    }
-}
-
-/// `M9 9h22v22H9zM14 14h12v12H14zM4 20h10M26 20h10M20 4v10M20 26v10` on a 40 × 40 grid.
-private struct ClubKnot: Shape {
-    func path(in rect: CGRect) -> Path {
-        let unit = min(rect.width, rect.height) / 40
-        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
-            CGPoint(x: rect.minX + x * unit, y: rect.minY + y * unit)
-        }
-        var path = Path()
-        path.addRect(CGRect(origin: point(9, 9), size: CGSize(width: 22 * unit, height: 22 * unit)))
-        path.addRect(CGRect(origin: point(14, 14), size: CGSize(width: 12 * unit, height: 12 * unit)))
-        for (from, to) in [((4, 20), (14, 20)), ((26, 20), (36, 20)), ((20, 4), (20, 14)), ((20, 26), (20, 36))] {
-            path.move(to: point(CGFloat(from.0), CGFloat(from.1)))
-            path.addLine(to: point(CGFloat(to.0), CGFloat(to.1)))
-        }
-        return path
-    }
-}
+// `ClubSeal` and `ClubKnot` live in `ClubRoomStyle.swift` (one seal for every club surface, spec D15).
 
 /// The room's failure: the dark room shell with the branded failure line (spec §5.4), used when the
 /// clubs could not be read (`HomeClubRoom.Presentation.failed` / `.offline`).

@@ -1,10 +1,15 @@
-// Discover (spec D8, D2; rulebook §14.5)
-// Issue-style frames on the white page: one lead frame (today's pick), then rails and equal-frame
-// grids of picture, title and one line. Section heads are serif, sentence case, EN/DE. The page
-// reads the `discover_bundle` once per launch (`DiscoveryStore.ensureDiscoverBundle`); only pull to
-// refresh asks for a fresh one. "Airing today" is ordered by the stated air time where the
-// catalogue states one (never estimated). States: stable skeleton on first paint, then
-// `KuroStateView` for offline, failed and empty.
+// Discover (Discover + Clubs redesign §6, "Discover is an issue"; spec D8, D2; rulebook §14.5)
+// A daily issue in Home's grammar on Home's warm paper (`kuroCanvasHome`, the manga canvas on the
+// Manga issue; the header paints the same canvas through `KuroMainView.Section.canvas`): the opening
+// row ("TODAY'S ISSUE · TUE 3 NOV" / "Edited for you."), the three-word issue switch, one cover story
+// on the title's own artwork material with the Plan key, the Airing today glance, the contents line
+// with Browse, then sections in different forms: a feature plus three covers, a numbered index, one
+// rail with its local refinement, the fold (session memory, F3), Home's footer. The curated order,
+// every source and every flag gate are unchanged; a rail refinement stays a local filter.
+// The page reads the `discover_bundle` once per launch (`DiscoveryStore.ensureDiscoverBundle`); only
+// pull to refresh asks for a fresh one. "Airing today" is ordered by the stated air time where the
+// catalogue states one (never estimated). States: the issue skeleton on first paint, then the branded
+// offline, failed and empty states, and the quiet offline band over earlier content.
 
 import KuroCore
 import KuroLibrary
@@ -21,16 +26,27 @@ struct EditorialDiscoverView: View {
     @Environment(FeatureFlags.self) private var flags
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroFoldMemory) private var folds
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var vm = DiscoverViewModel()
     @State private var isLoadingSections = false
     @State private var didInitialLoad = false
     @State private var bannerMessage: String? = nil
     @State private var bannerTask: Task<Void, Never>? = nil
     @State private var loadError = false
+    /// The page's Plan keys (plan / unplan with Undo; a tracked title opens the editor).
+    @State private var plans = TastePlanController()
+    /// Top rated's local refinement (folded section).
+    @State private var topRatedFilter: DiscoverRailFilter = .all
 
+    /// The issue lives in `KuroMainView` (so the header canvas follows it); hosts without one (tests,
+    /// previews) keep it here.
+    private let externalIssue: Binding<DiscoverMediaTypeFilter>?
+    @State private var localIssue: DiscoverMediaTypeFilter = .all
 
-    @State private var showMoreSections = UserDefaults.standard.bool(forKey: "kuro_discover_show_more")
-    @State private var selectedMediaType: DiscoverMediaTypeFilter = .all
+    init(issue: Binding<DiscoverMediaTypeFilter>? = nil) {
+        self.externalIssue = issue
+    }
 
     enum DiscoverMediaTypeFilter: String, CaseIterable {
         case all = "ALL"
@@ -46,24 +62,19 @@ struct EditorialDiscoverView: View {
         }
     }
 
+    private var selectedMediaType: DiscoverMediaTypeFilter { externalIssue?.wrappedValue ?? localIssue }
+    private var issueBinding: Binding<DiscoverMediaTypeFilter> { externalIssue ?? $localIssue }
+
     private var showsAnime: Bool { selectedMediaType != .manga }
     private var showsManga: Bool { selectedMediaType != .anime }
 
-    private var secondarySectionCount: Int {
-        var count = 0
-        if showsAnime {
-            if !vm.classics.isEmpty { count += 1 }
-            if !vm.currentSeason.isEmpty { count += 1 }
-            if !vm.topRated.isEmpty { count += 1 }
-            if !vm.newlyAdded.isEmpty { count += 1 }
-        }
-        if showsManga {
-            if !vm.classicsManga.isEmpty { count += 1 }
-            if !vm.trendingManga.isEmpty { count += 1 }
-            if !vm.topRatedManga.isEmpty { count += 1 }
-            if !vm.newlyAddedManga.isEmpty { count += 1 }
-        }
-        return count
+    /// The page canvas, the same token `KuroMainView.Section.canvas` paints under the header (D2).
+    private var canvas: Color { selectedMediaType == .manga ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome }
+
+    /// The fold's session memory (F3): one per app run, never persisted (replaces the device-wide
+    /// `kuro_discover_show_more` default, which this page no longer reads).
+    private var showMoreSections: Binding<Bool> {
+        folds.binding(page: DiscoverIssueCopy.foldPage, section: DiscoverIssueCopy.foldSection)
     }
 
     private var hasAnyContent: Bool {
@@ -107,21 +118,24 @@ struct EditorialDiscoverView: View {
                 container: geo.size.width,
                 regularWidth: horizontalSizeClass == .regular
             )
-            ScrollView(.vertical, showsIndicators: false) {
-                content(width: width, minHeight: geo.size.height)
-                    .frame(width: width)
-                    .frame(maxWidth: .infinity)
-            }
-            // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
-            // Keep Discover scrollable regardless.
-            .scrollDisabled(false)
-            .background(Color.kuroCanvasPage)
-            .refreshable {
-                // Pull-to-refresh is user-initiated: also re-read the Library projection
-                // (badges/progress), next to the bundle. The first load relies on the session refresh.
-                async let libraryRefresh: Void? = try? library.refresh()
-                await refreshSections(force: true)
-                _ = await libraryRefresh
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    content(width: width, minHeight: geo.size.height, proxy: proxy)
+                        .frame(width: width)
+                        .frame(maxWidth: .infinity)
+                }
+                // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
+                // Keep Discover scrollable regardless.
+                .scrollDisabled(false)
+                .background(canvas)
+                .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil, value: canvas)
+                .refreshable {
+                    // Pull-to-refresh is user-initiated: also re-read the Library projection
+                    // (badges/progress), next to the bundle. The first load relies on the session refresh.
+                    async let libraryRefresh: Void? = try? library.refresh()
+                    await refreshSections(force: true)
+                    _ = await libraryRefresh
+                }
             }
             .overlay(alignment: .top) {
                 if let bannerMessage {
@@ -146,18 +160,24 @@ struct EditorialDiscoverView: View {
                 bannerTask?.cancel()
             }
         }
+        // The Plan keys' toast, outside the ScrollView so it stays at the page foot.
+        .tastePlanHost(plans)
+        .environment(\.discoverMissingArt, HomeInk.posterFill)
     }
 
     // MARK: Page
 
     @ViewBuilder
-    private func content(width: CGFloat, minHeight: CGFloat) -> some View {
-        let gutter = DiscoverLayout.gutter(for: width)
+    private func content(width: CGFloat, minHeight: CGFloat, proxy: ScrollViewProxy) -> some View {
+        let gutter = DiscoverIssueLayout.gutter(container: width)
+        let column = max(0, width - gutter * 2)
         // One switch on the branded state (`DiscoverPageRules.brandedState`, tested in RestyleLaneTests).
         switch DiscoverPageRules.brandedState(isLoading: isLoadingSections, hasContent: hasAnyContent,
                                               failed: loadError, isConnected: networkMonitor.isConnected) {
         case .loading:
-            DiscoverLoadingSkeleton(containerWidth: width)
+            DiscoverIssueSkeleton(column: column)
+                .padding(.horizontal, gutter)
+                .padding(.top, DiscoverIssueLayout.top)
         case .failed(hasContent: false):
             KuroErrorView(headline: KuroLocale.text("Couldn't load Discover.", "Entdecken konnte nicht geladen werden."),
                           retry: { Task { await refreshSections(force: true) } })
@@ -167,302 +187,308 @@ struct EditorialDiscoverView: View {
                 .frame(minHeight: minHeight * 0.8)
         case .empty:
             VStack(spacing: KuroDesignSpacing.lg) {
-                KuroStateView(
-                    .empty,
-                    title: KuroLocale.text("Nothing to show yet.", "Noch nichts zu zeigen."),
-                    message: KuroLocale.text("Pull to refresh, or browse the catalogue.",
-                                             "Zieh zum Aktualisieren, oder durchstöbere den Katalog."),
-                    retry: { Task { await refreshSections(force: true) } }
-                )
+                // The ink-rule retry, the same style as the offline and failed states (P13).
+                KuroEmptyView(headline: DiscoverIssueCopy.emptyTitle(german: KuroLocale.isGerman),
+                              message: DiscoverIssueCopy.emptyMessage(browseOffered: offersBrowseEntry,
+                                                                      german: KuroLocale.isGerman)) {
+                    KuroInkButton(KuroBrandedCopy.retryTitle(german: KuroLocale.isGerman), role: .secondary, haptic: false) {
+                        Task { await refreshSections(force: true) }
+                    }
+                    .frame(maxWidth: 280)
+                }
                 if offersBrowseEntry {
-                    browseEntry
+                    DiscoverLinkRow(kicker: DiscoverIssueCopy.browseKicker(german: KuroLocale.isGerman),
+                                    title: DiscoverIssueCopy.browseTitle(german: KuroLocale.isGerman),
+                                    action: { routes.openBrowse() })
                         .padding(.horizontal, gutter)
                 }
             }
             .frame(minHeight: minHeight * 0.8)
         case .offline(hasContent: true), .failed(hasContent: true), nil:
-            sections(width: width, gutter: gutter)
+            issue(gutter: gutter, column: column, proxy: proxy)
         }
     }
 
-    private func sections(width: CGFloat, gutter: CGFloat) -> some View {
-        let leadWidth = max(0, width - gutter * 2)
-        return VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
-            VStack(alignment: .leading, spacing: 0) {
+    /// The issue: opening blocks, sections, fold, footer.
+    private func issue(gutter: CGFloat, column: CGFloat, proxy: ScrollViewProxy) -> some View {
+        let german = KuroLocale.isGerman
+        let compact = DiscoverIssueLayout.isCompact(column: column)
+        let lead = leadStory
+        let main = mainSections
+        let folded = foldSections
+        return VStack(alignment: .leading, spacing: 0) {
+            Group {
                 if !networkMonitor.isConnected {
-                    // The branded offline band over earlier content.
-                    KuroOfflineView(hasContent: true)
-                        .padding(.horizontal, gutter)
+                    DiscoverOfflineBand(retry: { Task { await refreshSections(force: true) } })
+                        .padding(.bottom, DiscoverIssueLayout.top)
                 }
 
-                DiscoverWordPicker(
-                    options: DiscoverMediaTypeFilter.allCases.map { ($0, $0.title(german: KuroLocale.isGerman)) },
-                    selection: $selectedMediaType,
-                    accessibilityLabel: KuroLocale.text("Show", "Anzeigen")
-                )
-                .contentMargins(.horizontal, gutter, for: .scrollContent)
+                HomeOpeningLineView(kicker: DiscoverIssueCopy.openingKicker(now: Date(), german: german),
+                                    headline: DiscoverIssueCopy.openingHeadline(german: german),
+                                    compact: compact)
+
+                DiscoverIssueSwitch(selection: issueBinding, column: column, artRaw: lead?.artRaw)
+                    .padding(.top, DiscoverIssueLayout.openingToSwitch)
+
+                if let lead {
+                    DiscoverCoverStory(story: lead, kind: .lead, column: column)
+                        .padding(.top, DiscoverIssueLayout.openingStack)
+                } else if showsLeadSkeleton {
+                    DiscoverStorySkeleton(column: column)
+                        .padding(.top, DiscoverIssueLayout.openingStack)
+                }
+
+                if showsAnime, !vm.airingToday.isEmpty {
+                    airingGlance(compact: compact)
+                        .padding(.top, DiscoverIssueLayout.openingStack)
+                }
+
+                let line = DiscoverContents.line(page: main.compactMap(contentsEntry), folded: folded.count)
+                if line != nil || offersBrowseEntry {
+                    DiscoverContentsLine(
+                        line: line,
+                        browseOffered: offersBrowseEntry,
+                        onJump: { scroll(to: $0, proxy: proxy) },
+                        onMore: { target in
+                            if target == DiscoverContents.foldAnchor, !folded.isEmpty, !showMoreSections.wrappedValue {
+                                withTransaction(KuroFold.transaction(reduceMotion: reduceMotion)) {
+                                    showMoreSections.wrappedValue = true
+                                }
+                            }
+                            scroll(to: target, proxy: proxy)
+                        },
+                        onBrowse: { routes.openBrowse() }
+                    )
+                    .padding(.top, DiscoverIssueLayout.openingStack)
+                }
+            }
+            .padding(.horizontal, gutter)
+
+            ForEach(Array(main.enumerated()), id: \.element) { index, section in
+                mainSection(section, gutter: gutter, column: column)
+                    .padding(.top, index == 0 ? DiscoverIssueLayout.firstSection : DiscoverIssueLayout.section)
             }
 
-            lead(width: leadWidth)
-                .padding(.horizontal, gutter)
-
-            if showsAnime, !vm.airingToday.isEmpty {
-                let ordered = DiscoverAiringOrder.ordered(vm.airingToday, id: \.id, slots: airingSlots, now: Date())
-                DiscoverRail(
-                    title: headline(.animeAiringToday),
-                    items: Array(ordered.prefix(10)),
-                    containerWidth: width,
-                    onSeeAll: { openSeeAll(.animeAiringToday) },
-                    airingSlots: todaysSlots(for: ordered)
-                )
-            }
-
-            // Because-You replaces NEW TO YOU when the taste rail has enough signal (mixed anime +
-            // manga feed: All only).
-            if !vm.becauseYou.isEmpty && selectedMediaType == .all {
-                DiscoverGridSection(
-                    title: headline(.animeBecauseYou),
-                    items: Array(vm.becauseYou.prefix(8)),
-                    containerWidth: width,
-                    onSeeAll: { openSeeAll(.animeBecauseYou) }
-                )
-            } else if showsAnime, !vm.newToYou.isEmpty {
-                DiscoverGridSection(
-                    title: headline(.animeNewToYou),
-                    items: Array(vm.newToYou.prefix(8)),
-                    containerWidth: width,
-                    onSeeAll: { openSeeAll(.animeNewToYou) }
-                )
-            }
-
-            // Stage 4 — The Shelf (tonight's realm), flag-gated.
-            if flags.discoverRealmRailsV1Enabled, showsAnime, !vm.tonightShelf.isEmpty {
-                DiscoverRail(
-                    title: (vm.tonightShelfTitle ?? KuroLocale.text("Tonight's shelf", "Das Regal für heute Abend")) + ".",
-                    items: Array(vm.tonightShelf.prefix(10)),
-                    containerWidth: width
-                )
-            }
-
-            if showsAnime, !vm.essentials.isEmpty {
-                DiscoverRail(
-                    title: headline(.animeEssentials),
-                    items: Array(vm.essentials.prefix(10)),
-                    containerWidth: width,
-                    onSeeAll: { openSeeAll(.animeEssentials) }
-                )
-            }
-
-            // Stage 4 — Hidden Gem (the lead frame grammar).
-            if flags.discoverRealmRailsV1Enabled,
-               let gem = vm.hiddenGem,
-               selectedMediaType == .all
-                || (selectedMediaType == .anime && gem.kind == .anime)
-                || (selectedMediaType == .manga && gem.kind == .manga) {
-                DiscoverOneThingCard(
-                    feature: gem,
-                    width: leadWidth,
-                    eyebrow: KuroLocale.text("Hidden gem", "Verborgenes Juwel")
-                )
-                .padding(.horizontal, gutter)
-            }
-
-            if showsManga, !vm.newToYouManga.isEmpty {
-                DiscoverGridSection(
-                    title: headline(.mangaNewToYou),
-                    items: Array(vm.newToYouManga.prefix(8)),
-                    containerWidth: width,
-                    onSeeAll: { openSeeAll(.mangaNewToYou) }
-                )
-            }
-
-            if showsAnime, !vm.trending.isEmpty {
-                DiscoverRail(
-                    title: headline(.animeTrending),
-                    items: Array(vm.trending.prefix(20)),
-                    containerWidth: width,
-                    onSeeAll: { openSeeAll(.animeTrending) },
-                    showsFilters: true
-                )
-            }
-
-            if showsManga, !vm.essentialsManga.isEmpty {
-                DiscoverRail(
-                    title: headline(.mangaEssentials),
-                    items: Array(vm.essentialsManga.prefix(10)),
-                    containerWidth: width,
-                    onSeeAll: { openSeeAll(.mangaEssentials) }
-                )
-            }
-
-            if !showMoreSections && secondarySectionCount > 0 {
-                KuroInkButton(
-                    KuroLocale.text(
-                        secondarySectionCount == 1 ? "1 more section" : "\(secondarySectionCount) more sections",
-                        secondarySectionCount == 1 ? "1 weiterer Bereich" : "\(secondarySectionCount) weitere Bereiche"
-                    ),
-                    role: .secondary,
-                    haptic: false
-                ) {
-                    withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
-                        showMoreSections = true
+            if !folded.isEmpty {
+                DiscoverFoldButton(isExpanded: showMoreSections, count: folded.count,
+                                   names: folded.map { $0.title(german: german) })
+                    .id(DiscoverContents.foldAnchor)
+                    .padding(.horizontal, gutter)
+                    .padding(.top, DiscoverIssueLayout.fold)
+                if showMoreSections.wrappedValue {
+                    ForEach(folded) { route in
+                        foldSection(route, column: column)
+                            .padding(.horizontal, gutter)
+                            .padding(.top, DiscoverIssueLayout.section)
                     }
-                    UserDefaults.standard.set(true, forKey: "kuro_discover_show_more")
                 }
+            }
+
+            HomeFooter()
                 .padding(.horizontal, gutter)
-            }
+        }
+        .padding(.top, DiscoverIssueLayout.top)
+    }
 
-            if showMoreSections {
-                secondarySections(width: width)
-            }
+    // MARK: Lead
 
-            if offersBrowseEntry {
-                browseEntry
+    /// The lead: today's pick for this issue, else (once it has resolved) the season / trending lead on
+    /// All and Anime, or the first essential (or trending) manga on Manga, exactly as before.
+    private var leadSource: DiscoverIssueSections.Lead {
+        DiscoverIssueSections.lead(issue: selectedMediaType, dailyFeatureKind: vm.dailyFeature?.kind,
+                                   dailyFeatureResolved: vm.dailyFeatureResolved, hasFeatured: vm.featured != nil,
+                                   hasEssentialsManga: !vm.essentialsManga.isEmpty,
+                                   hasTrendingManga: !vm.trendingManga.isEmpty)
+    }
+
+    private var leadStory: DiscoverStory? {
+        switch leadSource {
+        case .dailyFeature:
+            guard let feature = vm.dailyFeature else { return nil }
+            return DiscoverStory(feature: feature, eyebrow: DiscoverOneThingCard.defaultEyebrow)
+        case .season:
+            guard let featured = vm.featured else { return nil }
+            return DiscoverStory(card: TasteCard(anime: featured),
+                                 eyebrow: vm.currentSeason.isEmpty
+                                    ? KuroLocale.text("Trending now", "Gerade beliebt")
+                                    : KuroLocale.text("This season", "Diese Season"))
+        case .manga:
+            guard let manga = vm.essentialsManga.first ?? vm.trendingManga.first else { return nil }
+            return DiscoverStory(card: TasteCard(manga: manga),
+                                 eyebrow: vm.essentialsManga.isEmpty
+                                    ? KuroLocale.text("Trending now", "Gerade beliebt")
+                                    : KuroLocale.text("Essential reading", "Lesenswert"))
+        case .skeleton, .none:
+            return nil
+        }
+    }
+
+    /// Today's pick is still resolving (not on Manga, where the lead never waits for it).
+    private var showsLeadSkeleton: Bool { leadSource == .skeleton }
+
+    // MARK: Airing today
+
+    private func airingGlance(compact: Bool) -> some View {
+        let now = Date()
+        let ordered = DiscoverAiringOrder.ordered(vm.airingToday, id: \.id, slots: airingSlots, now: now)
+        let today = todaysSlots(for: ordered)
+        let german = KuroLocale.isGerman
+        return DiscoverGlanceCard(
+            title: DiscoverIssueCopy.glanceTitle(german: german),
+            caption: DiscoverIssueCopy.glanceCaption(
+                ordered.map { DiscoverIssueCopy.AiringEntry(title: $0.title, slot: today[$0.id]) },
+                now: now, german: german),
+            thumbs: ordered.prefix(3).map { URL(string: $0.imageURL ?? "") },
+            count: ordered.count,
+            countLabel: DiscoverIssueCopy.glanceCountLabel(german: german),
+            compact: compact,
+            action: { openSeeAll(.animeAiringToday) }
+        )
+    }
+
+    // MARK: Sections
+
+    /// The sections drawn on this issue, in the curated order (the contents line and the page read the
+    /// same list, so they never disagree). The selection and its flag gates are `DiscoverIssueSections`.
+    typealias PageSection = DiscoverIssueSections.Section
+
+    private var sectionInputs: DiscoverIssueSections.Inputs {
+        DiscoverIssueSections.Inputs(
+            issue: selectedMediaType, realmRails: flags.discoverRealmRailsV1Enabled,
+            newToYou: !vm.newToYou.isEmpty, becauseYou: !vm.becauseYou.isEmpty, tonightShelf: !vm.tonightShelf.isEmpty,
+            essentials: !vm.essentials.isEmpty, hiddenGemKind: vm.hiddenGem?.kind, mangaNewToYou: !vm.newToYouManga.isEmpty,
+            trending: !vm.trending.isEmpty, essentialsManga: !vm.essentialsManga.isEmpty,
+            classics: !vm.classics.isEmpty, currentSeason: !vm.currentSeason.isEmpty, topRated: !vm.topRated.isEmpty,
+            newlyAdded: !vm.newlyAdded.isEmpty, classicsManga: !vm.classicsManga.isEmpty,
+            trendingManga: !vm.trendingManga.isEmpty, topRatedManga: !vm.topRatedManga.isEmpty,
+            newlyAddedManga: !vm.newlyAddedManga.isEmpty)
+    }
+
+    private var mainSections: [PageSection] { DiscoverIssueSections.main(sectionInputs) }
+
+    /// The folded sections, in their curated order.
+    private var foldSections: [EditorialDiscoverRoute] { DiscoverIssueSections.fold(sectionInputs) }
+
+    /// Index rows before "See all": three on All, five on Anime and Manga.
+    private var indexRowLimit: Int { DiscoverIssueLayout.indexRows(onAll: selectedMediaType == .all) }
+
+    private var tonightShelfName: String {
+        vm.tonightShelfTitle ?? KuroLocale.text("Tonight's shelf", "Das Regal für heute Abend")
+    }
+
+    private static let tonightShelfAnchor = "discover.tonightShelf"
+    private static let hiddenGemAnchor = "discover.hiddenGem"
+
+    /// The section's contents entry (the Hidden gem is one title, not a section with a count).
+    private func contentsEntry(_ section: PageSection) -> DiscoverContents.Entry? {
+        switch section {
+        case .newToYou: return entry(.animeNewToYou, count: vm.newToYou.count)
+        case .becauseYou: return entry(.animeBecauseYou, count: vm.becauseYou.count)
+        case .tonightShelf:
+            return DiscoverContents.Entry(id: Self.tonightShelfAnchor, name: tonightShelfName, count: vm.tonightShelf.count)
+        case .essentials: return entry(.animeEssentials, count: vm.essentials.count)
+        case .hiddenGem: return nil
+        case .mangaNewToYou: return entry(.mangaNewToYou, count: vm.newToYouManga.count)
+        case .trending: return entry(.animeTrending, count: vm.trending.count)
+        case .essentialsManga: return entry(.mangaEssentials, count: vm.essentialsManga.count)
+        }
+    }
+
+    private func entry(_ route: EditorialDiscoverRoute, count: Int) -> DiscoverContents.Entry {
+        DiscoverContents.Entry(id: anchor(route), name: sectionName(route), count: count)
+    }
+
+    private func anchor(_ route: EditorialDiscoverRoute) -> String { "discover.\(route.id)" }
+
+    private func sectionName(_ route: EditorialDiscoverRoute) -> String {
+        route.title(german: KuroLocale.isGerman, reason: route == .animeBecauseYou ? vm.becauseYouReason : nil)
+    }
+
+    @ViewBuilder
+    private func mainSection(_ section: PageSection, gutter: CGFloat, column: CGFloat) -> some View {
+        let german = KuroLocale.isGerman
+        switch section {
+        case .newToYou:
+            DiscoverFeatureTrio(anchor: anchor(.animeNewToYou), title: headline(.animeNewToYou),
+                                summary: DiscoverIssueCopy.newToYouSummary(german: german),
+                                cards: vm.newToYou.map { TasteCard(anime: $0) }, column: column,
+                                onSeeAll: { openSeeAll(.animeNewToYou) })
+                .padding(.horizontal, gutter)
+        case .becauseYou:
+            DiscoverFeatureTrio(anchor: anchor(.animeBecauseYou), title: headline(.animeBecauseYou),
+                                summary: DiscoverIssueCopy.becauseYouSummary(german: german),
+                                cards: vm.becauseYou.map { TasteCard(media: $0) }, column: column,
+                                onSeeAll: { openSeeAll(.animeBecauseYou) })
+                .padding(.horizontal, gutter)
+        case .tonightShelf:
+            DiscoverIssueRail(anchor: Self.tonightShelfAnchor, title: DiscoverIssueCopy.heading(tonightShelfName),
+                              summary: nil, cards: vm.tonightShelf.map { TasteCard(media: $0) },
+                              column: column, gutter: gutter)
+        case .essentials:
+            DiscoverIndexSection(anchor: anchor(.animeEssentials), title: headline(.animeEssentials),
+                                 summary: DiscoverIssueCopy.canonSummary(german: german),
+                                 cards: vm.essentials.map { TasteCard(anime: $0) }, column: column,
+                                 rowLimit: indexRowLimit,
+                                 onSeeAll: { openSeeAll(.animeEssentials) })
+                .padding(.horizontal, gutter)
+        case .hiddenGem:
+            if let gem = vm.hiddenGem {
+                DiscoverCoverStory(story: DiscoverStory(feature: gem, eyebrow: DiscoverIssueCopy.hiddenGem(german: german)),
+                                   kind: .gem, column: column)
+                    .id(Self.hiddenGemAnchor)
                     .padding(.horizontal, gutter)
             }
-        }
-        .padding(.top, KuroDesignSpacing.sm)
-        .padding(.bottom, KuroDesignSpacing.xxl)
-    }
-
-    @ViewBuilder
-    private func secondarySections(width: CGFloat) -> some View {
-        if showsAnime, !vm.classics.isEmpty {
-            DiscoverGridSection(
-                title: headline(.animeClassics),
-                items: Array(vm.classics.prefix(8)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.animeClassics) }
-            )
-        }
-
-        if showsAnime, !vm.currentSeason.isEmpty {
-            DiscoverRail(
-                title: headline(.animeCurrentSeason),
-                items: Array(vm.currentSeason.prefix(10)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.animeCurrentSeason) }
-            )
-        }
-
-        if showsAnime, !vm.topRated.isEmpty {
-            DiscoverGridSection(
-                title: headline(.animeTopRated),
-                items: Array(vm.topRated.prefix(8)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.animeTopRated) },
-                showsFilters: true
-            )
-        }
-
-        if showsAnime, !vm.newlyAdded.isEmpty {
-            DiscoverGridSection(
-                title: headline(.animeNewlyAdded),
-                items: Array(vm.newlyAdded.prefix(8)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.animeNewlyAdded) }
-            )
-        }
-
-        if showsManga, !vm.classicsManga.isEmpty {
-            DiscoverGridSection(
-                title: headline(.mangaClassics),
-                items: Array(vm.classicsManga.prefix(8)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.mangaClassics) }
-            )
-        }
-
-        if showsManga, !vm.trendingManga.isEmpty {
-            DiscoverRail(
-                title: headline(.mangaTrending),
-                items: Array(vm.trendingManga.prefix(10)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.mangaTrending) }
-            )
-        }
-
-        if showsManga, !vm.topRatedManga.isEmpty {
-            DiscoverGridSection(
-                title: headline(.mangaTopRated),
-                items: Array(vm.topRatedManga.prefix(8)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.mangaTopRated) }
-            )
-        }
-
-        if showsManga, !vm.newlyAddedManga.isEmpty {
-            DiscoverRail(
-                title: headline(.mangaNewlyAdded),
-                items: Array(vm.newlyAddedManga.prefix(10)),
-                containerWidth: width,
-                onSeeAll: { openSeeAll(.mangaNewlyAdded) }
-            )
+        case .mangaNewToYou:
+            DiscoverFeatureTrio(anchor: anchor(.mangaNewToYou), title: headline(.mangaNewToYou),
+                                summary: DiscoverIssueCopy.newToYouSummary(german: german),
+                                cards: vm.newToYouManga.map { TasteCard(manga: $0) }, column: column,
+                                onSeeAll: { openSeeAll(.mangaNewToYou) })
+                .padding(.horizontal, gutter)
+        case .trending:
+            DiscoverIssueRail(anchor: anchor(.animeTrending), title: headline(.animeTrending),
+                              summary: DiscoverIssueCopy.trendingSummary(german: german),
+                              cards: vm.trending.map { TasteCard(anime: $0) }, column: column, gutter: gutter,
+                              refines: true, onSeeAll: { openSeeAll(.animeTrending) })
+        case .essentialsManga:
+            DiscoverIndexSection(anchor: anchor(.mangaEssentials), title: headline(.mangaEssentials),
+                                 summary: DiscoverIssueCopy.canonSummary(german: german),
+                                 cards: vm.essentialsManga.map { TasteCard(manga: $0) }, column: column,
+                                 rowLimit: indexRowLimit,
+                                 onSeeAll: { openSeeAll(.mangaEssentials) })
+                .padding(.horizontal, gutter)
         }
     }
 
-    /// The lead frame: today's pick, its skeleton while it resolves, or the season/trending lead.
-    @ViewBuilder
-    private func lead(width: CGFloat) -> some View {
-        if let feature = vm.dailyFeature,
-           selectedMediaType == .all
-            || (selectedMediaType == .anime && feature.kind == .anime)
-            || (selectedMediaType == .manga && feature.kind == .manga) {
-            DiscoverOneThingCard(feature: feature, width: width)
-        } else if !vm.dailyFeatureResolved && selectedMediaType != .manga {
-            DiscoverOneThingSkeleton(width: width)
-        } else if let featured = vm.featured, showsAnime {
-            DiscoverLeadFrame(
-                kicker: vm.currentSeason.isEmpty
-                    ? KuroLocale.text("Trending now", "Gerade beliebt")
-                    : KuroLocale.text("This season", "Diese Season"),
-                title: featured.title,
-                line: DiscoverFrameCopy.line(
-                    kind: .anime,
-                    year: featured.year,
-                    episodes: featured.episodes,
-                    chapters: nil,
-                    statusRaw: featured.statusRaw,
-                    formatRaw: featured.formatRaw,
-                    german: KuroLocale.isGerman,
-                    locale: KuroLocale.locale,
-                    timeZone: KuroLocale.timeZone
-                ),
-                imageURL: URL(string: (featured.bannerImage?.isEmpty == false ? featured.bannerImage : featured.imageURL) ?? ""),
-                isWideArt: featured.bannerImage?.isEmpty == false,
-                route: MediaRoute(kind: .anime, id: featured.id),
-                width: width
-            )
-        } else if selectedMediaType == .manga, let manga = vm.essentialsManga.first ?? vm.trendingManga.first {
-            // The manga page leads with its first essential (or trending) title: a cover crop.
-            DiscoverLeadFrame(
-                kicker: vm.essentialsManga.isEmpty
-                    ? KuroLocale.text("Trending now", "Gerade beliebt")
-                    : KuroLocale.text("Essential reading", "Lesenswert"),
-                title: manga.title,
-                line: DiscoverFrameCopy.line(
-                    kind: .manga,
-                    year: manga.year,
-                    episodes: nil,
-                    chapters: manga.chapters,
-                    statusRaw: manga.statusRaw,
-                    formatRaw: manga.formatRaw,
-                    german: KuroLocale.isGerman,
-                    locale: KuroLocale.locale,
-                    timeZone: KuroLocale.timeZone
-                ),
-                imageURL: URL(string: manga.imageURL ?? ""),
-                isWideArt: false,
-                route: MediaRoute(kind: .manga, id: manga.id),
-                width: width
-            )
+    /// A folded section, in index grammar (Top rated keeps its local refinement).
+    private func foldSection(_ route: EditorialDiscoverRoute, column: CGFloat) -> some View {
+        DiscoverIndexSection(anchor: anchor(route), title: headline(route), summary: nil,
+                             cards: foldCards(route), column: column,
+                             refinement: route == .animeTopRated ? $topRatedFilter : nil,
+                             rowLimit: indexRowLimit,
+                             onSeeAll: { openSeeAll(route) })
+    }
+
+    private func foldCards(_ route: EditorialDiscoverRoute) -> [TasteCard] {
+        switch route {
+        case .animeClassics: return vm.classics.map { TasteCard(anime: $0) }
+        case .animeCurrentSeason: return vm.currentSeason.map { TasteCard(anime: $0) }
+        case .animeTopRated: return vm.topRated.map { TasteCard(anime: $0) }
+        case .animeNewlyAdded: return vm.newlyAdded.map { TasteCard(anime: $0) }
+        case .mangaClassics: return vm.classicsManga.map { TasteCard(manga: $0) }
+        case .mangaTrending: return vm.trendingManga.map { TasteCard(manga: $0) }
+        case .mangaTopRated: return vm.topRatedManga.map { TasteCard(manga: $0) }
+        case .mangaNewlyAdded: return vm.newlyAddedManga.map { TasteCard(manga: $0) }
+        default: return []
         }
     }
 
-    /// "Browse the catalogue": opens the catalogue as a journey (spec D2; navigation contract §1).
-    private var browseEntry: some View {
-        KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
-            routes.openBrowse()
+    /// Scrolls a contents entry's section to the top (settle; instant under Reduce Motion).
+    private func scroll(to id: String, proxy: ScrollViewProxy) {
+        let animation = KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
+        Task { @MainActor in
+            // One turn so a section the fold just opened is laid out first.
+            await Task.yield()
+            withAnimation(animation) { proxy.scrollTo(id, anchor: .top) }
         }
     }
 
@@ -811,7 +837,9 @@ private struct DiscoverFullSectionSheet<Item: MediaDisplayable>: View {
                 .frame(maxWidth: .infinity)
             }
             .kuroCollapseTracking($collapse, start: 0, distance: KuroJourneyChrome.barHeight)
-            .background(Color.kuroCanvasPage)
+            // Home's warm paper, and Home's poster fill behind missing art (§6.3); nothing else changes.
+            .background(Color.kuroCanvasHome)
+            .environment(\.discoverMissingArt, HomeInk.posterFill)
         }
         .kuroJourneyChrome(title: title, collapseProgress: collapse)
     }
@@ -940,5 +968,98 @@ nonisolated enum DiscoverPageRules {
         if isLoading { return .loading }
         if failed { return isConnected ? .failed(hasContent: false) : .offline(hasContent: false) }
         return .empty
+    }
+}
+
+// MARK: - Issue sections (pure)
+
+/// Which lead and sections the Discover issue draws, in the curated order and behind the page's flag
+/// gates (pure; DCdiscoverTests pins All / Anime / Manga with the flags on and off).
+enum DiscoverIssueSections {
+    typealias Issue = EditorialDiscoverView.DiscoverMediaTypeFilter
+
+    enum Section: Hashable {
+        case newToYou, becauseYou, tonightShelf, essentials, hiddenGem, mangaNewToYou, trending, essentialsManga
+    }
+
+    /// Where the lead story comes from.
+    enum Lead: Equatable {
+        /// Today's pick (it matches the issue).
+        case dailyFeature
+        /// Today's pick is still resolving (never on Manga).
+        case skeleton
+        /// The season / trending lead (All and Anime).
+        case season
+        /// The first essential (else trending) manga (Manga).
+        case manga
+        case none
+    }
+
+    /// Which rails hold content (and the Hidden gem's medium), as the page read them.
+    struct Inputs {
+        var issue: Issue
+        var realmRails: Bool
+        var newToYou = false, becauseYou = false, tonightShelf = false, essentials = false
+        var hiddenGemKind: MediaKind? = nil
+        var mangaNewToYou = false, trending = false, essentialsManga = false
+        var classics = false, currentSeason = false, topRated = false, newlyAdded = false
+        var classicsManga = false, trendingManga = false, topRatedManga = false, newlyAddedManga = false
+    }
+
+    static func showsAnime(_ issue: Issue) -> Bool { issue != .manga }
+    static func showsManga(_ issue: Issue) -> Bool { issue != .anime }
+
+    static func matches(_ issue: Issue, kind: MediaKind) -> Bool {
+        issue == .all || (issue == .anime && kind == .anime) || (issue == .manga && kind == .manga)
+    }
+
+    static func lead(issue: Issue, dailyFeatureKind: MediaKind?, dailyFeatureResolved: Bool, hasFeatured: Bool,
+                     hasEssentialsManga: Bool, hasTrendingManga: Bool) -> Lead {
+        if let kind = dailyFeatureKind, matches(issue, kind: kind) { return .dailyFeature }
+        if !dailyFeatureResolved && issue != .manga { return .skeleton }
+        if hasFeatured, showsAnime(issue) { return .season }
+        if issue == .manga, hasEssentialsManga || hasTrendingManga { return .manga }
+        return .none
+    }
+
+    static func main(_ input: Inputs) -> [Section] {
+        let anime = showsAnime(input.issue)
+        var sections: [Section] = []
+        if input.issue == .manga {
+            // Manga new to you takes New to you's place on the Manga issue (§6.1 row 6).
+            if input.mangaNewToYou { sections.append(.mangaNewToYou) }
+        } else if input.becauseYou && input.issue == .all {
+            // Because-You replaces NEW TO YOU when the taste rail has enough signal (mixed anime +
+            // manga feed: All only).
+            sections.append(.becauseYou)
+        } else if anime, input.newToYou {
+            sections.append(.newToYou)
+        }
+        // Stage 4: The Shelf (tonight's realm), flag-gated.
+        if input.realmRails, anime, input.tonightShelf { sections.append(.tonightShelf) }
+        if anime, input.essentials { sections.append(.essentials) }
+        // Stage 4: Hidden Gem (the cover-story grammar), flag-gated.
+        if input.realmRails, let kind = input.hiddenGemKind, matches(input.issue, kind: kind) { sections.append(.hiddenGem) }
+        if input.issue == .all, input.mangaNewToYou { sections.append(.mangaNewToYou) }
+        if anime, input.trending { sections.append(.trending) }
+        if showsManga(input.issue), input.essentialsManga { sections.append(.essentialsManga) }
+        return sections
+    }
+
+    static func fold(_ input: Inputs) -> [EditorialDiscoverRoute] {
+        var routes: [EditorialDiscoverRoute] = []
+        if showsAnime(input.issue) {
+            if input.classics { routes.append(.animeClassics) }
+            if input.currentSeason { routes.append(.animeCurrentSeason) }
+            if input.topRated { routes.append(.animeTopRated) }
+            if input.newlyAdded { routes.append(.animeNewlyAdded) }
+        }
+        if showsManga(input.issue) {
+            if input.classicsManga { routes.append(.mangaClassics) }
+            if input.trendingManga { routes.append(.mangaTrending) }
+            if input.topRatedManga { routes.append(.mangaTopRated) }
+            if input.newlyAddedManga { routes.append(.mangaNewlyAdded) }
+        }
+        return routes
     }
 }

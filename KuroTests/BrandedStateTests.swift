@@ -212,7 +212,7 @@ struct BrandedStateTests {
         #expect(pinned.showsWordmark && pinned.showsNeighbour)
     }
 
-    @Test("the warm Home canvas is on Home and Taste; manga Home takes its own canvas")
+    @Test("the warm Home canvas is on Home, Taste, Discover and Clubs; manga Home takes its own canvas")
     @MainActor
     func pageCanvas() {
         #expect(KuroMainView.Section.home.canvas(mangaHome: false) == Color.kuroCanvasHome)
@@ -223,7 +223,11 @@ struct BrandedStateTests {
         #expect(KuroMainView.Section.taste.canvas(mangaHome: false, mangaTaste: true) == TastePageContent.canvas(for: .manga))
         #expect(KuroMainView.Section.home.canvas(mangaHome: false, mangaTaste: true) == Color.kuroCanvasHome)
         #expect(KuroMainView.Section.home.canvas(mangaHome: true) == Color.kuroCanvasHomeManga)
-        #expect(KuroMainView.Section.discover.canvas(mangaHome: true) == Color.kuroBackground)
+        // Discover and Clubs share Home's warm canvas (Discover + Clubs redesign D3); the Manga issue takes the manga canvas.
+        #expect(KuroMainView.Section.discover.canvas(mangaHome: true) == Color.kuroCanvasHome)
+        #expect(KuroMainView.Section.discover.canvas(mangaHome: false, mangaDiscover: true) == Color.kuroCanvasHomeManga)
+        #expect(KuroMainView.Section.clubs.canvas(mangaHome: true) == Color.kuroCanvasHome)
+        #expect(KuroMainView.Section.collection.canvas(mangaHome: false) == Color.kuroBackground)
     }
 
     @Test("the medium switch words are 36 pt, 30 pt on phones ≤ 360 pt, and 24 pt compact")
