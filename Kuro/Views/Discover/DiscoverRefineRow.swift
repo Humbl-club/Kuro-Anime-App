@@ -56,6 +56,8 @@ struct DiscoverIssueRail: View {
     let cards: [TasteCard]
     /// What "See all {n}" counts (after dedupe and hiding).
     let total: Int
+    /// false: the section's See all is open-ended (it pages past the loaded rows): "See all ›", no number.
+    var exactCount: Bool = true
     /// The content column's width; `gutter` is the page's, so the rail bleeds to the column's edge.
     let column: CGFloat
     let gutter: CGFloat
@@ -107,8 +109,8 @@ struct DiscoverIssueRail: View {
                 .kuroSwipeExclusionZone()
             }
             if let onSeeAll, DiscoverIssueLayout.offersSeeAll(total: seeAllTotal, shown: rail.count) {
-                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(seeAllTotal, german: KuroLocale.isGerman),
-                                   spoken: DiscoverIssueCopy.seeAllSpoken(seeAllTotal, section: title, german: KuroLocale.isGerman),
+                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(exactCount ? seeAllTotal : nil, german: KuroLocale.isGerman),
+                                   spoken: DiscoverIssueCopy.seeAllSpoken(exactCount ? seeAllTotal : nil, section: title, german: KuroLocale.isGerman),
                                    action: {
                                        if refines, filter != .all, let onSeeAllRefined { onSeeAllRefined(filter) } else { onSeeAll() }
                                    })

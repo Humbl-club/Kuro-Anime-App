@@ -92,7 +92,7 @@ struct DiscoverContentsLine: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())
-        .accessibilityLabel(DiscoverIssueCopy.contentsSpoken(name: entry.name, count: entry.count, german: german))
+        .accessibilityLabel(DiscoverIssueCopy.contentsSpoken(name: entry.name, count: entry.exact ? entry.count : nil, german: german))
         .accessibilityValue(entry.newCount > 0 ? DiscoverIssueCopy.contentsNew(entry.newCount, german: german) : "")
     }
 }

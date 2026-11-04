@@ -78,6 +78,18 @@ struct DiscoverSeeAllSection: Equatable {
         return groups
     }
 
+    /// Whether the page's "See all {n}" number holds for this list (R1): true only for lists whose See
+    /// all never pages past the page's loaded rows: the curated canons (Essentials, Classics), Because
+    /// you… (a bounded taste rail) and Airing today (one day). Catalogue lists page the catalogue, and
+    /// New to you / This season page the server reader once it is applied.
+    var drawsOnlyLoadedRows: Bool {
+        guard !isCatalogue else { return false }
+        switch key {
+        case .essentials, .classics, .becauseYou, .airingToday: return true
+        default: return false
+        }
+    }
+
     /// The owned rule of the list (R2): personal lists hide titles on the list, the rest mark them.
     var ownedPolicy: DiscoverOwnedPolicy { key.ownedPolicy }
 }

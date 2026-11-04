@@ -542,7 +542,16 @@ struct EditorialDiscoverView: View {
 
     private func contentsEntry(_ built: DiscoverIssueBuild.Built) -> DiscoverContents.Entry {
         DiscoverContents.Entry(id: anchor(built.section), name: sectionName(built.section),
-                               count: built.section == .hiddenGem ? 1 : built.total, newCount: newKeys(built).count)
+                               count: built.section == .hiddenGem ? 1 : built.total, newCount: newKeys(built).count,
+                               exact: countIsExact(built.section))
+    }
+
+    /// Whether the section's number is what its See all draws: only for lists See all never pages
+    /// past (R1). Catalogue lists (Trending …) page the catalogue today, and New to you / This season
+    /// page the server once the prepared reader is applied, so they show no number.
+    private func countIsExact(_ section: PageSection) -> Bool {
+        guard let route = section.route else { return true }
+        return DiscoverSeeAllSection.of(route).drawsOnlyLoadedRows
     }
 
     /// The section's one question (R1, §8).
@@ -562,25 +571,25 @@ struct EditorialDiscoverView: View {
         switch section {
         case .newToYou, .becauseYou:
             DiscoverFeatureTrio(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                                cards: built.cards, total: built.total, column: column,
+                                cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column,
                                 onSeeAll: { openSeeAll(section) })
                 .padding(.horizontal, gutter)
         case .mangaNewToYou:
             if DiscoverIssueSections.drawsMangaNewToYouAsRail(selectedMediaType) {
                 // All (§14.2): one rail in Trending's anatomy, up to ten, then "See all {n} ›".
                 DiscoverIssueRail(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                                  cards: built.cards, total: built.total, column: column, gutter: gutter,
+                                  cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column, gutter: gutter,
                                   onSeeAll: { openSeeAll(section) })
             } else {
                 DiscoverFeatureTrio(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                                    cards: built.cards, total: built.total, column: column,
+                                    cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column,
                                     onSeeAll: { openSeeAll(section) })
                     .padding(.horizontal, gutter)
             }
         case .currentSeason:
             // D8: the Airing-today glance is This season's first block (All and Anime).
             DiscoverFeatureTrio(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                                cards: built.cards, total: built.total, column: column, feature: false,
+                                cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column, feature: false,
                                 glance: showsAnime && !vm.airingToday.isEmpty
                                     ? AnyView(airingGlance(compact: DiscoverIssueLayout.isCompact(column: column)))
                                     : nil,
@@ -588,24 +597,24 @@ struct EditorialDiscoverView: View {
                 .padding(.horizontal, gutter)
         case .tonightShelf:
             DiscoverIssueRail(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                              cards: built.cards, total: built.total, column: column, gutter: gutter,
+                              cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column, gutter: gutter,
                               onSeeAll: { openShelfSeeAll() })
         case .essentials, .essentialsManga:
             DiscoverIndexSection(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                                 cards: built.cards, total: built.total, column: column,
+                                 cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column,
                                  hook: progressModel(section), hookIsManga: section == .essentialsManga,
                                  rowLimit: indexRowLimit,
                                  onSeeAll: { openSeeAll(section) })
                 .padding(.horizontal, gutter)
         case .classics, .classicsManga:
             DiscoverIndexSection(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                                 cards: built.cards, total: built.total, column: column,
+                                 cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column,
                                  rowLimit: indexRowLimit,
                                  onSeeAll: { openSeeAll(section) })
                 .padding(.horizontal, gutter)
         case .trending, .trendingManga:
             DiscoverIssueRail(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
-                              cards: built.cards, total: built.total, column: column, gutter: gutter,
+                              cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column, gutter: gutter,
                               refines: section == .trending, ownCards: built.ownCards, refinePool: built.refinePool,
                               onSeeAll: { openSeeAll(section) },
                               onSeeAllRefined: { filter in openSeeAll(section, refine: filter) })

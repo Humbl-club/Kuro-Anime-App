@@ -802,6 +802,25 @@ struct DiscoverReviewFixTests {
         #expect(!DiscoverSeeAllSection.of(.animeBecauseYou).chipGroups.contains([.hideMyList]))
     }
 
+    @Test("The See all number is promised only where See all draws the loaded rows (R1)")
+    func exactCounts() {
+        for route in [EditorialDiscoverRoute.animeEssentials, .animeClassics, .mangaEssentials, .mangaClassics,
+                      .animeBecauseYou, .animeAiringToday] {
+            #expect(DiscoverSeeAllSection.of(route).drawsOnlyLoadedRows, "\(route)")
+        }
+        for route in [EditorialDiscoverRoute.animeTrending, .mangaTrending, .animeTopRated, .animeNewlyAdded,
+                      .animeNewToYou, .mangaNewToYou, .animeCurrentSeason] {
+            #expect(!DiscoverSeeAllSection.of(route).drawsOnlyLoadedRows, "\(route)")
+        }
+        #expect(DiscoverIssueCopy.seeAll(nil, german: false) == "See all ›")
+        #expect(DiscoverIssueCopy.seeAll(nil, german: true) == "Alle ansehen ›")
+        #expect(DiscoverIssueCopy.seeAll(12, german: false) == "See all 12 ›")
+        #expect(DiscoverIssueCopy.seeAllSpoken(nil, section: "Trending.", german: false).hasPrefix("See all"))
+        let open = DiscoverContents.Entry(id: "a", name: "Trending", count: 11, exact: false)
+        #expect(DiscoverContents.trailing(open, german: false) == "")
+        #expect(DiscoverIssueCopy.contentsSpoken(name: "Trending", count: nil, german: false) == "Jump to Trending")
+    }
+
     @Test("A new visit on a new rail day reads the new issue; the same day rebuilds; late inputs rebuild only before any action")
     func visitStart() {
         #expect(DiscoverPageRules.visitStart(hasBuilt: true, bundleIsToday: false) == .readNewIssue)

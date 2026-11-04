@@ -175,8 +175,9 @@ nonisolated enum DiscoverIssueCopy {
     static func contentsNew(_ count: Int, german: Bool) -> String { german ? "\(count) neu" : "\(count) new" }
 
     /// "Jump to New to you, 8 titles" / "Zu Neu für dich springen, 8 Titel".
-    static func contentsSpoken(name: String, count: Int, german: Bool) -> String {
-        german ? "Zu \(name) springen, \(count) Titel" : "Jump to \(name), \(count) \(count == 1 ? "title" : "titles")"
+    static func contentsSpoken(name: String, count: Int?, german: Bool) -> String {
+        guard let count else { return german ? "Zu \(name) springen" : "Jump to \(name)" }
+        return german ? "Zu \(name) springen, \(count) Titel" : "Jump to \(name), \(count) \(count == 1 ? "title" : "titles")"
     }
 
     /// The Browse link row: kicker "Everything" / "Alles" (new) and the shipped title.
@@ -471,10 +472,16 @@ nonisolated enum DiscoverIssueCopy {
     static func onYourList(german: Bool) -> String { german ? "Auf deiner Liste" : "On your list" }
 
     /// "See all 8 ›" / "Alle 8 ansehen ›" (shipped "See all" / "Alle ansehen" with the count).
-    static func seeAll(_ count: Int, german: Bool) -> String { german ? "Alle \(count) ansehen ›" : "See all \(count) ›" }
+    /// nil `count`: the See all list is open-ended (it pages past the page's loaded rows), so no
+    /// number is promised ("See all ›" / "Alle ansehen ›").
+    static func seeAll(_ count: Int?, german: Bool) -> String {
+        guard let count else { return german ? "Alle ansehen ›" : "See all ›" }
+        return german ? "Alle \(count) ansehen ›" : "See all \(count) ›"
+    }
     /// VoiceOver for the same action (begins with "See all", which the UI tests look for).
-    static func seeAllSpoken(_ count: Int, section: String, german: Bool) -> String {
-        german ? "Alle \(count) ansehen, \(section)" : "See all \(count), \(section)"
+    static func seeAllSpoken(_ count: Int?, section: String, german: Bool) -> String {
+        guard let count else { return german ? "Alle ansehen, \(section)" : "See all, \(section)" }
+        return german ? "Alle \(count) ansehen, \(section)" : "See all \(count), \(section)"
     }
 
     /// The index number, "01".
@@ -525,6 +532,8 @@ nonisolated enum DiscoverContents {
         let name: String
         let count: Int
         var newCount: Int = 0
+        /// false: the section's See all is open-ended, so the contents shows no number for it.
+        var exact: Bool = true
     }
 
     /// "01" … the entry's number.
@@ -532,7 +541,7 @@ nonisolated enum DiscoverContents {
 
     /// The trailing word: "{n} new" when the section has NEW titles, else the count.
     static func trailing(_ entry: Entry, german: Bool) -> String {
-        entry.newCount > 0 ? DiscoverIssueCopy.contentsNew(entry.newCount, german: german) : "\(entry.count)"
+        entry.newCount > 0 ? DiscoverIssueCopy.contentsNew(entry.newCount, german: german) : (entry.exact ? "\(entry.count)" : "")
     }
 
     /// One column at accessibility sizes or in the compact column; two otherwise.

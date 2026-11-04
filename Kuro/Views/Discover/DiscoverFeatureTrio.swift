@@ -22,6 +22,8 @@ struct DiscoverFeatureTrio: View {
     let cards: [TasteCard]
     /// What "See all {n}" counts (after dedupe and hiding).
     let total: Int
+    /// false: the section's See all is open-ended (it pages past the loaded rows): "See all ›", no number.
+    var exactCount: Bool = true
     let column: CGFloat
     /// This season draws the cover row without a feature (§4).
     var feature: Bool = true
@@ -67,8 +69,8 @@ struct DiscoverFeatureTrio: View {
                 .padding(.top, lead == nil ? 0 : 14)
             }
             if DiscoverIssueLayout.offersSeeAll(total: total, shown: shown) {
-                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(total, german: KuroLocale.isGerman),
-                                   spoken: DiscoverIssueCopy.seeAllSpoken(total, section: title, german: KuroLocale.isGerman),
+                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(exactCount ? total : nil, german: KuroLocale.isGerman),
+                                   spoken: DiscoverIssueCopy.seeAllSpoken(exactCount ? total : nil, section: title, german: KuroLocale.isGerman),
                                    action: onSeeAll)
                     .padding(.top, 4)
             }

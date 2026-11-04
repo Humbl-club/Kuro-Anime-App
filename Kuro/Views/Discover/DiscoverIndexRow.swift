@@ -21,6 +21,8 @@ struct DiscoverIndexSection: View {
     let cards: [TasteCard]
     /// What "See all {n}" counts (after dedupe and hiding).
     let total: Int
+    /// false: the section's See all is open-ended (it pages past the loaded rows): "See all ›", no number.
+    var exactCount: Bool = true
     let column: CGFloat
     /// The Essentials progress hook (§5.9), under the purpose line.
     var hook: DiscoverProgressModel? = nil
@@ -47,8 +49,8 @@ struct DiscoverIndexSection: View {
                     .transition(DiscoverCardMotion.transition(motion: motion))
             }
             if DiscoverIssueLayout.offersSeeAll(total: total, shown: rows.count) {
-                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(total, german: KuroLocale.isGerman),
-                                   spoken: DiscoverIssueCopy.seeAllSpoken(total, section: title, german: KuroLocale.isGerman),
+                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(exactCount ? total : nil, german: KuroLocale.isGerman),
+                                   spoken: DiscoverIssueCopy.seeAllSpoken(exactCount ? total : nil, section: title, german: KuroLocale.isGerman),
                                    action: onSeeAll)
                     .padding(.top, 4)
             }
