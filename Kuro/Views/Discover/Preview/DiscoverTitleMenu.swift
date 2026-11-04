@@ -35,6 +35,9 @@ struct DiscoverMenuItem {
     var surface: String = "discover"
     /// The page's refill hook, called after a hide was recorded.
     var onHidden: (DiscoverFeedbackReceipt) -> Void = { _ in }
+    /// Called when Open is chosen (after its `discover_open` event): the Discover page counts it as a
+    /// tap for its visit tally and the late-Library rebuild guard (D5). It must not send another event.
+    var onOpened: () -> Void = {}
 }
 
 /// What the menu offers for one title (pure; DUpreviewTests).
@@ -184,6 +187,7 @@ private struct DiscoverTitleMenuModifier: ViewModifier {
             "discover_open", surface: item.surface, result: "opened",
             extra: DiscoverMenuTelemetry.titleExtra(section: item.section, position: item.position, key: key)
                 .merging(["via": "menu"]) { _, new in new })
+        item.onOpened()
         routes.openMedia(MediaRoute(key))
     }
 

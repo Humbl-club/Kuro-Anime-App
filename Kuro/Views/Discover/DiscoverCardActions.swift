@@ -68,7 +68,8 @@ private struct DiscoverCardMenuModifier: ViewModifier {
             content.discoverTitleMenu(DiscoverMenuItem(
                 card: card, section: section.id, position: position, reason: section.reason,
                 sectionTitle: section.title, surface: "discover",
-                onHidden: { receipt in page?.noteHidden(receipt, card: card) }))
+                onHidden: { receipt in page?.noteHidden(receipt, card: card) },
+                onOpened: { page?.noteMenuOpen() }))
         } else {
             content.contextMenu {
                 DiscoverFrameMenu(media: item.card.media, isSaved: library.isTracked(item.card.key),
@@ -147,6 +148,9 @@ final class DiscoverPageFeedback {
         case .seenIt: seen = max(0, seen - 1)
         }
     }
+
+    /// Open from the long-press menu (lane B already sent `discover_open` with `via: menu`): one tap.
+    func noteMenuOpen() { taps += 1 }
 
     // MARK: Plan results
 

@@ -696,5 +696,7 @@ struct DiscoverPageFeedbackTests {
         #expect(page.planned == 0 && page.taps == 2)
         page.notePlanResult(TastePlanController.Result(key: key, outcome: .failed, token: 4), viaMenu: false)
         #expect(page.planned == 0 && page.taps == 2)
+        page.noteMenuOpen()
+        #expect(page.taps == 3, "an Open from the menu counts for the visit (and the D5 rebuild guard)")
     }
 }
