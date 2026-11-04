@@ -21,20 +21,6 @@
                ReferencedContainer = "container:Kuro.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D7E100042F00000100BEE61E"
-               BuildableName = "KuroWidgets.appex"
-               BlueprintName = "KuroWidgets"
-               ReferencedContainer = "container:Kuro.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
