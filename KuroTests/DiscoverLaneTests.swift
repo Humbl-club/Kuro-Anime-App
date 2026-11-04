@@ -61,6 +61,29 @@ struct DiscoverBundleOncePerLaunchTests {
         await harness.tearDown()
     }
 
+    @Test("A page left alive overnight knows its bundle is yesterday's (a new visit then reads the new issue)")
+    func currentDayBundle() async throws {
+        let harness = try PublicDataHarness { request in
+            request.resource == "rpc/discover_bundle" ? .json(emptyBundleJSON) : .emptyArray
+        }
+        let discovery = harness.service.discovery
+        let storedAt = try #require(ISO8601DateFormatter().date(from: "2026-10-28T20:00:00Z"))
+        let nextMorning = try #require(ISO8601DateFormatter().date(from: "2026-10-29T07:00:00Z"))
+        #expect(!discovery.hasCurrentDayBundle(now: storedAt), "no bundle yet")
+        discovery.discoverBundleCache[DiscoveryStore.bundleKey(user: nil, limit: 30, hours: 24)] = TimedCache(
+            value: try LifecycleFixtures.decode(DiscoverBundle.self, emptyBundleJSON),
+            storedAt: storedAt
+        )
+        #expect(discovery.hasCurrentDayBundle(now: storedAt.addingTimeInterval(3600)))
+        #expect(!discovery.hasCurrentDayBundle(now: nextMorning))
+        #expect(DiscoverPageRules.visitStart(hasBuilt: true, bundleIsToday: discovery.hasCurrentDayBundle(now: nextMorning))
+                == .readNewIssue)
+        // The read that visit asks for: ensure refetches once on the new rail day.
+        #expect(await discovery.ensureDiscoverBundle(now: nextMorning) != nil)
+        #expect(harness.requests(to: "rpc/discover_bundle").count == 1)
+        await harness.tearDown()
+    }
+
     @Test("Memory pressure keeps the current account's launch bundle and drops the others")
     func trimKeepsLaunchBundle() async throws {
         let harness = try PublicDataHarness()

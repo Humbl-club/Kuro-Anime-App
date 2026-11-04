@@ -9,7 +9,7 @@
 // `presentAddToClub`; the nearest `.routePresenter()` presents them). It does not read
 // SocialActivityStore, ProviderAvailabilityStore or FeatureFlags.
 // Consumers: EditorialDiscoverView.swift (`Dense2ColumnSectionFixed`, `Dense2ColumnMangaSectionFixed`,
-// `FullSectionView`, `FullMangaSectionView`), BrowseComponents.swift (Browse grid).
+// `FullSectionView`, Tonight's shelf only), BrowseComponents.swift (Browse grid).
 // Connected, not presentational: changing its interface is a separate (typed-navigation) decision.
 
 import KuroCore

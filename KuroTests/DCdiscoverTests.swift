@@ -4,8 +4,9 @@
 //
 //  Discover + Clubs redesign, Discover lane (2026-11-03): the issue's pure rules. Layout (gutter,
 //  compact column, switch sizes, art heights, the capped spread, trio and index metrics), the EN/DE
-//  copy (opening kicker, tab split, facts, glance caption, contents line, fold, states, See all), the
-//  fold's session memory and the page canvas the header paints.
+//  copy (opening kicker, tab split, facts, glance caption, contents, states, See all), the retired
+//  fold's session-memory key and the page canvas the header paints. The section list and the cap
+//  follow the usability spec (2026-11-04, D7).
 //
 
 import Foundation
@@ -169,42 +170,32 @@ struct DCDiscoverCopyTests {
         #expect(DiscoverIssueCopy.glanceTitle(german: true) == EditorialDiscoverRoute.animeAiringToday.title(german: true))
     }
 
-    @Test("Contents: at most five names, then +n (hidden + folded); omitted under two sections")
+    @Test("Contents: numbered jump links with counts or \"{n} new\"; shown from two sections (usability §5.10)")
     func contents() {
-        func entries(_ count: Int) -> [DiscoverContents.Entry] {
-            (0..<count).map { DiscoverContents.Entry(id: "s\($0)", name: "Section \($0)", count: 8) }
-        }
-        #expect(DiscoverContents.line(page: entries(1), folded: 4) == nil)
-        #expect(DiscoverContents.line(page: [], folded: 4) == nil)
-        let full = DiscoverContents.line(page: entries(6), folded: 4)
-        #expect(full?.names.count == 5)
-        #expect(full?.more == 5)
-        #expect(full?.moreTarget == "s5", "+n first scrolls to the first section not named")
-        let folded = DiscoverContents.line(page: entries(3), folded: 2)
-        #expect(folded?.names.count == 3)
-        #expect(folded?.more == 2)
-        #expect(folded?.moreTarget == DiscoverContents.foldAnchor)
-        let complete = DiscoverContents.line(page: entries(2), folded: 0)
-        #expect(complete?.more == nil)
-        #expect(complete?.moreTarget == nil)
-        #expect(DiscoverIssueCopy.contentsMore(4, german: false) == "+4 more")
-        #expect(DiscoverIssueCopy.contentsMore(4, german: true) == "+4 weitere")
-        #expect(DiscoverIssueCopy.contentsSpoken(name: "New to you", count: 8, german: false) == "New to you, 8 titles")
+        let one = [DiscoverContents.Entry(id: "s0", name: "New to you", count: 8)]
+        #expect(!DiscoverContents.shows(one))
+        #expect(!DiscoverContents.shows([]))
+        let two = one + [DiscoverContents.Entry(id: "s1", name: "Trending", count: 10, newCount: 3)]
+        #expect(DiscoverContents.shows(two))
+        #expect(DiscoverContents.number(0) == "01")
+        #expect(DiscoverContents.trailing(two[0], german: false) == "8")
+        #expect(DiscoverContents.trailing(two[1], german: false) == "3 new")
+        #expect(DiscoverContents.trailing(two[1], german: true) == "3 neu")
+        #expect(DiscoverContents.columns(accessibility: false, column: 350) == 2)
+        #expect(DiscoverContents.columns(accessibility: true, column: 350) == 1)
+        #expect(DiscoverContents.columns(accessibility: false, column: 288) == 1)
+        #expect(DiscoverIssueCopy.contentsEyebrow(sections: 6, german: false) == "In this issue · 6 sections")
+        #expect(DiscoverIssueCopy.contentsEyebrow(sections: 6, german: true) == "In dieser Ausgabe · 6 Rubriken")
+        #expect(DiscoverIssueCopy.contentsTapToJump(german: false) == "Tap to jump")
+        #expect(DiscoverIssueCopy.contentsTapToJump(german: true) == "Tippen zum Springen")
+        #expect(DiscoverIssueCopy.contentsSpoken(name: "New to you", count: 8, german: false) == "Jump to New to you, 8 titles")
+        #expect(DiscoverIssueCopy.contentsSpoken(name: "Neu für dich", count: 8, german: true) == "Zu Neu für dich springen, 8 Titel")
         #expect(DiscoverIssueCopy.browseTitle(german: true) == "Den Katalog durchstöbern")
         #expect(DiscoverIssueCopy.browseKicker(german: false) == "Everything")
     }
 
-    @Test("Fold: its words, its trailing names and its session-memory key (F3)")
+    @Test("The retired fold's session-memory key is unchanged (D17: the page no longer reads it)")
     func fold() {
-        #expect(DiscoverIssueCopy.foldShow(4, german: false) == "Show 4 more sections")
-        #expect(DiscoverIssueCopy.foldShow(4, german: true) == "4 weitere Bereiche zeigen")
-        #expect(DiscoverIssueCopy.foldShow(1, german: false) == "Show 1 more section")
-        #expect(DiscoverIssueCopy.foldFewer(german: false) == "Show fewer")
-        #expect(DiscoverIssueCopy.foldFewer(german: true) == "Weniger zeigen")
-        #expect(DiscoverIssueCopy.foldTrailing(names: ["Classics", "Top rated", "This season", "Just added"], expanded: false)
-                == "Classics, Top rated +2 ⌄")
-        #expect(DiscoverIssueCopy.foldTrailing(names: ["Classics"], expanded: false) == "Classics ⌄")
-        #expect(DiscoverIssueCopy.foldTrailing(names: [], expanded: true) == "⌃")
         #expect(KuroFold.key(page: DiscoverIssueCopy.foldPage, section: DiscoverIssueCopy.foldSection) == "discover#more")
     }
 
@@ -298,46 +289,57 @@ struct DCDiscoverSectionTests {
                         trendingManga: true, topRatedManga: true, newlyAddedManga: true)
     }
 
-    @Test("All: the curated order; Because-You replaces New to you; realm rails only behind their flag; Essential manga folded")
+    @Test("All: the D7 candidates in order; Because-You replaces New to you; realm rails only behind their flag")
     func allIssue() {
-        // Details-songs spec §14.2 (D17): on All, Manga new to you is one rail and Essential manga is the
-        // fold's first section.
-        #expect(Sections.main(full(.all, realm: false)) == [.newToYou, .essentials, .mangaNewToYou, .trending])
-        #expect(Sections.main(full(.all, realm: false, becauseYou: true))
-                == [.becauseYou, .essentials, .mangaNewToYou, .trending])
+        #expect(Sections.candidates(full(.all, realm: false))
+                == [.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics])
+        #expect(Sections.candidates(full(.all, realm: false, becauseYou: true))
+                == [.becauseYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics])
+        #expect(Sections.candidates(full(.all, realm: true))
+                == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .mangaNewToYou, .trending, .classics])
+        // The cap keeps six: Classics, then Manga new to you leave first (D7).
         #expect(Sections.main(full(.all, realm: true))
-                == [.newToYou, .tonightShelf, .essentials, .hiddenGem, .mangaNewToYou, .trending])
-        #expect(Sections.fold(full(.all, realm: false)) == [.mangaEssentials,
-                                                            .animeClassics, .animeCurrentSeason, .animeTopRated, .animeNewlyAdded,
-                                                            .mangaClassics, .mangaTrending, .mangaTopRated, .mangaNewlyAdded])
+                == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
+        #expect(Sections.main(full(.all, realm: false)).count == 6)
+        // More lists: Essential manga first (details-songs §14.2), Top rated, Just added, then the dropped.
+        let dropped = Sections.cap(Sections.candidates(full(.all, realm: true))).dropped
+        #expect(dropped == [.mangaNewToYou, .classics])
+        #expect(Sections.moreLists(full(.all, realm: true), dropped: dropped)
+                == [.route(.mangaEssentials), .route(.animeTopRated), .route(.animeNewlyAdded),
+                    .route(.mangaNewToYou), .route(.animeClassics)])
         #expect(Sections.drawsMangaNewToYouAsRail(.all))
         #expect(!Sections.drawsMangaNewToYouAsRail(.manga))
     }
 
     @Test("Anime: no manga sections, Because-You never replaces New to you; the gem must match the issue")
     func animeIssue() {
-        #expect(Sections.main(full(.anime, realm: false, becauseYou: true)) == [.newToYou, .essentials, .trending])
-        #expect(Sections.main(full(.anime, realm: true)) == [.newToYou, .tonightShelf, .essentials, .hiddenGem, .trending])
+        #expect(Sections.main(full(.anime, realm: false, becauseYou: true))
+                == [.newToYou, .currentSeason, .essentials, .trending, .classics])
+        #expect(Sections.main(full(.anime, realm: true))
+                == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
         var mangaGem = full(.anime, realm: true)
         mangaGem.hiddenGemKind = .manga
         #expect(!Sections.main(mangaGem).contains(.hiddenGem))
-        #expect(Sections.fold(full(.anime, realm: true)) == [.animeClassics, .animeCurrentSeason, .animeTopRated, .animeNewlyAdded])
+        #expect(Sections.moreLists(full(.anime, realm: true), dropped: [.classics])
+                == [.route(.animeTopRated), .route(.animeNewlyAdded), .route(.animeClassics)])
     }
 
     @Test("Manga: Manga new to you leads; no anime sections and no realm rails for an anime gem")
     func mangaIssue() {
-        #expect(Sections.main(full(.manga, realm: true, becauseYou: true)) == [.mangaNewToYou, .essentialsManga])
+        #expect(Sections.main(full(.manga, realm: true, becauseYou: true))
+                == [.mangaNewToYou, .essentialsManga, .trendingManga, .classicsManga])
         var mangaGem = full(.manga, realm: true)
         mangaGem.hiddenGemKind = .manga
-        #expect(Sections.main(mangaGem) == [.mangaNewToYou, .hiddenGem, .essentialsManga])
-        #expect(Sections.fold(full(.manga, realm: false)) == [.mangaClassics, .mangaTrending, .mangaTopRated, .mangaNewlyAdded])
+        #expect(Sections.main(mangaGem) == [.mangaNewToYou, .essentialsManga, .hiddenGem, .trendingManga, .classicsManga])
+        #expect(Sections.moreLists(full(.manga, realm: false), dropped: [])
+                == [.route(.mangaTopRated), .route(.mangaNewlyAdded)])
     }
 
     @Test("Empty rails are skipped, whatever the issue")
     func emptyRails() {
         let none = Sections.Inputs(issue: .all, realmRails: true)
         #expect(Sections.main(none).isEmpty)
-        #expect(Sections.fold(none).isEmpty)
+        #expect(Sections.moreLists(none, dropped: []).isEmpty)
     }
 
     @Test("Lead: today's pick when it matches, the skeleton while it resolves (never on Manga), then the fallbacks")

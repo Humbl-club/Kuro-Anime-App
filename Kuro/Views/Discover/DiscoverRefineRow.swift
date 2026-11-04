@@ -1,49 +1,46 @@
 import SwiftUI
 
-// MARK: - Local refinement and the one rail (Discover + Clubs redesign §6.2 item 8)
-// A rail's refinement is local (editorial-first rule: it filters the loaded rail, never the catalogue):
-// 11 pt medium words "All · Short · Long · Finished" (the shipped `DiscoverRailFilter` labels), the
-// unselected in `kuroMuted`, the selected in ink with a 16 × 1.5 rule, 16 pt apart, each a 44 pt
-// target; VoiceOver hears the group as "Refine this rail". It keeps the page's medium choice and this
-// choice visibly different (the page switch is the heavy issue switch).
+// MARK: - Local refinement and the one rail (Discover + Clubs redesign §6.2 item 8; usability R6, D10)
+// A rail's refinement is local (editorial-first rule: it filters the loaded rail, never the catalogue,
+// and never resets the page): 11 pt medium words "Any length · Up to 13 episodes · Over 50 episodes ·
+// Finished" (Discover's own words, D10; `DiscoverRailFilter`'s labels stay for its other users), the
+// unselected in `kuroMuted`, the selected in ink with a 16 × 1.5 rule, wrapping so they never clip at
+// 288, each a 44 pt target; VoiceOver hears the group as "Refine this rail".
 // The rail: 2 : 3 covers (radius 4) sized by the edge-peek rule (100 × 150 at 390, a slice of the next
-// cover always showing; details-songs spec §5.1), a 12 pt title and a 10 pt line, 14 pt apart, bleeding
-// past the trailing gutter; up to ten, then "See all {n} ›" under it.
+// cover always showing; details-songs spec §5.1), a 12 pt title, a 10 pt line and the Plan key (R3),
+// 14 pt apart, bleeding past the trailing gutter; up to ten, then "See all {n} ›" under it.
 
 struct DiscoverRefineRow: View {
     @Binding var selection: DiscoverRailFilter
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
-                ForEach(DiscoverRailFilter.allCases, id: \.self) { filter in
-                    let selected = filter == selection
-                    Button {
-                        guard !selected else { return }
-                        KuroAccessibility.impactHaptic(.light)
-                        selection = filter
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(filter.title(german: KuroLocale.isGerman))
-                                .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
-                                .foregroundStyle(selected ? Color.kuroInk : Color.kuroMuted)
-                                .lineLimit(1)
-                                .fixedSize()
-                            Rectangle()
-                                .fill(selected ? Color.kuroInk : Color.clear)
-                                .frame(width: 16, height: 1.5)
-                        }
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
+        FlowLayout(spacing: 16) {
+            ForEach(DiscoverRailFilter.allCases, id: \.self) { filter in
+                let selected = filter == selection
+                let word = DiscoverIssueCopy.refineWord(filter, german: KuroLocale.isGerman)
+                Button {
+                    guard !selected else { return }
+                    KuroAccessibility.impactHaptic(.light)
+                    selection = filter
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(word)
+                            .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
+                            .foregroundStyle(selected ? Color.kuroInk : Color.kuroMuted)
+                            .lineLimit(1)
+                            .fixedSize()
+                        Rectangle()
+                            .fill(selected ? Color.kuroInk : Color.clear)
+                            .frame(width: 16, height: 1.5)
                     }
-                    .buttonStyle(HomeContactStyle())
-                    .accessibilityLabel(filter.title(german: KuroLocale.isGerman))
-                    .accessibilityAddTraits(selected ? .isSelected : [])
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(HomeContactStyle())
+                .accessibilityLabel(word)
+                .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-        .scrollClipDisabled()
-        .kuroSwipeExclusionZone()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(DiscoverIssueCopy.refineLabel(german: KuroLocale.isGerman))
     }
@@ -53,26 +50,41 @@ struct DiscoverRefineRow: View {
 struct DiscoverIssueRail: View {
     let anchor: String
     let title: String
-    let summary: String?
+    let purpose: String?
+    var newMarker: String? = nil
+    /// The section's titles still on the page, in claim order.
     let cards: [TasteCard]
+    /// What "See all {n}" counts (after dedupe and hiding).
+    let total: Int
+    /// false: the section's See all is open-ended (it pages past the loaded rows): "See all ›", no number.
+    var exactCount: Bool = true
     /// The content column's width; `gutter` is the page's, so the rail bleeds to the column's edge.
     let column: CGFloat
     let gutter: CGFloat
     var refines: Bool = false
+    /// The section's own list (what See all draws) and the part of it no other section shows: a
+    /// refinement draws from `refinePool` and counts `ownCards` (R6), so it never runs out after the
+    /// claimed ten nor repeats a series another section shows (R2).
+    var ownCards: [TasteCard] = []
+    var refinePool: [TasteCard] = []
     var onSeeAll: (() -> Void)? = nil
+    /// See all with the rail's refinement selected (R6); falls back to `onSeeAll`.
+    var onSeeAllRefined: ((DiscoverRailFilter) -> Void)? = nil
 
     @State private var filter: DiscoverRailFilter = .all
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let compact = DiscoverIssueLayout.isCompact(column: column)
-        let shown = refines
-            ? cards.filter { filter.includes(episodes: $0.media.episodes, statusRaw: $0.media.statusRaw) }
-            : cards
-        let rail = Array(shown.prefix(DiscoverIssueLayout.railCap))
+        let refined = DiscoverRailRefine.make(filter: refines ? filter : .all, cards: cards, total: total,
+                                              ownCards: ownCards, refinePool: refinePool)
+        let rail = Array(refined.cards.prefix(DiscoverIssueLayout.railCap))
+        let seeAllTotal = refined.total
+        let motion = KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
         VStack(alignment: .leading, spacing: 0) {
-            DiscoverPageHeading(title: title, summary: summary, compact: compact)
+            DiscoverSectionHeader(title: title, purpose: purpose, newMarker: newMarker, compact: compact)
                 .padding(.horizontal, gutter)
-                .padding(.bottom, refines ? 2 : DiscoverIssueLayout.headingToContent)
+                .padding(.bottom, purpose == nil ? (refines ? 2 : DiscoverIssueLayout.headingToContent) : 0)
             if refines {
                 DiscoverRefineRow(selection: $filter)
                     .padding(.horizontal, gutter)
@@ -87,22 +99,46 @@ struct DiscoverIssueRail: View {
                 let cover = DiscoverIssueLayout.railCover(column: column, gutter: gutter)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: DiscoverIssueLayout.railSpacing) {
-                        ForEach(rail) { card in
-                            DiscoverCoverTile(card: card, width: cover.width, height: cover.height)
+                        ForEach(Array(rail.enumerated()), id: \.element.id) { index, card in
+                            DiscoverCoverTile(card: card, width: cover.width, height: cover.height, position: index)
+                                .transition(DiscoverCardMotion.transition(motion: motion))
                         }
                     }
                     .padding(.horizontal, gutter)
                 }
                 .kuroSwipeExclusionZone()
             }
-            if let onSeeAll, DiscoverIssueLayout.offersSeeAll(total: cards.count, shown: rail.count) {
-                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(cards.count, german: KuroLocale.isGerman),
-                                   spoken: DiscoverIssueCopy.seeAllSpoken(cards.count, section: title, german: KuroLocale.isGerman),
-                                   action: onSeeAll)
+            if let onSeeAll, DiscoverIssueLayout.offersSeeAll(total: seeAllTotal, shown: rail.count) {
+                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(exactCount ? seeAllTotal : nil, german: KuroLocale.isGerman),
+                                   spoken: DiscoverIssueCopy.seeAllSpoken(exactCount ? seeAllTotal : nil, section: title, german: KuroLocale.isGerman),
+                                   action: {
+                                       if refines, filter != .all, let onSeeAllRefined { onSeeAllRefined(filter) } else { onSeeAll() }
+                                   })
                     .padding(.horizontal, gutter)
                     .padding(.top, 4)
             }
         }
+        .animation(motion ? KuroMotion.settle : nil, value: cards.map(\.id))
         .id(anchor)
+    }
+}
+
+/// What a rail draws and counts for one refinement (pure; R6). "Any length" keeps the claimed cards
+/// and the section's total; a choice filters the section's whole unclaimed list (not only the claimed
+/// ten plus reserve) and counts the matching titles of its See all list.
+struct DiscoverRailRefine {
+    let cards: [TasteCard]
+    let total: Int
+
+    static func make(filter: DiscoverRailFilter, cards: [TasteCard], total: Int,
+                     ownCards: [TasteCard], refinePool: [TasteCard]) -> DiscoverRailRefine {
+        guard filter != .all else { return DiscoverRailRefine(cards: cards, total: total) }
+        let matches: (TasteCard) -> Bool = { filter.includes(episodes: $0.media.episodes, statusRaw: $0.media.statusRaw) }
+        // The claimed cards first, in their order, then the rest of the unclaimed list.
+        let claimed = cards.filter(matches)
+        let claimedKeys = Set(claimed.map(\.key))
+        let rest = refinePool.filter { matches($0) && !claimedKeys.contains($0.key) }
+        let source = ownCards.isEmpty ? cards : ownCards
+        return DiscoverRailRefine(cards: claimed + rest, total: max(claimed.count + rest.count, source.filter(matches).count))
     }
 }

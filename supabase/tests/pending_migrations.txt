@@ -39,3 +39,8 @@
 20261103100000_character_voice_actors_v1.sql
 20261103100100_media_similar_v1.sql
 20261103100200_theme_links_apple_v1.sql
+
+# 2026-11-04 Discover usability pass, DATA lane (prepared only; owner approval required to deploy).
+# Depends on nothing pending.
+20261104100000_discover_usability_v1.sql
+20261104100100_discover_mood_perf_v1.sql

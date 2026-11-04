@@ -649,10 +649,32 @@ final class TastePlanController {
         let account: AccountContext
     }
 
+    /// One durable Plan result (Discover usability 2026-11-04, R4): the key with `stampsOnConfirm`
+    /// stamps on `.added` and restores on `.failed`. `token` grows with every result, so the same
+    /// outcome twice still re-triggers.
+    struct Result: Equatable {
+        enum Outcome: Equatable { case added, removed, undone, failed }
+        let key: MediaKey
+        let outcome: Outcome
+        let token: Int
+    }
+
     /// The toast on screen, if any.
     private(set) var toast: Toast?
     /// Titles whose Plan write (or its Undo) is in flight.
     private(set) var inFlight: Set<MediaKey> = []
+    /// The latest result of this controller's writes (nil until one). Only keys built with
+    /// `stampsOnConfirm: true` read it, so Taste and Home never observe it.
+    private(set) var lastResult: Result?
+    /// Per title, how many plans were added and how many writes failed (monotonic, so a stamp
+    /// trigger never steps back and replays when another title's result arrives).
+    private(set) var stampCounts: [MediaKey: StampCount] = [:]
+    @ObservationIgnored private var resultCount = 0
+
+    struct StampCount: Equatable {
+        var added = 0
+        var failed = 0
+    }
 
     @ObservationIgnored private var dismissTask: Task<Void, Never>?
     @ObservationIgnored private let holdSeconds: Double
@@ -719,19 +741,33 @@ final class TastePlanController {
             // A write that outlives its account shows nothing to the next account.
             guard actions.accountSession.isCurrent(account) else { return }
             guard case .applied = outcome else {
+                self.record(key, .failed)
                 self.show(TastePlanCopy.message(.failed, german: german), undo: nil)
                 return
             }
             switch step {
             case .plan:
+                self.record(key, .added)
                 self.show(TastePlanCopy.message(.added, german: german),
                           undo: Undo(key: key, step: .remove, account: account))
             case .remove:
+                self.record(key, .removed)
                 self.show(TastePlanCopy.message(.removed, german: german),
                           undo: Undo(key: key, step: .replan, account: account))
             case .undoPlan, .undoRemove:
+                self.record(key, .undone)
                 self.show(TastePlanCopy.message(.undone, german: german), undo: nil)
             }
+        }
+    }
+
+    private func record(_ key: MediaKey, _ outcome: Result.Outcome) {
+        resultCount += 1
+        lastResult = Result(key: key, outcome: outcome, token: resultCount)
+        switch outcome {
+        case .added: stampCounts[key, default: StampCount()].added += 1
+        case .failed: stampCounts[key, default: StampCount()].failed += 1
+        case .removed, .undone: break
         }
     }
 
@@ -1458,6 +1494,10 @@ struct TastePlanKey: View {
     let card: TasteCard
     let variant: Variant
     var compact: Bool = false
+    /// Discover (2026-11-04, R4/D6): after the durable save the bookmark gives way to a stamped ✓
+    /// (`kuroConfirmStamp` / `kuroRestore`) with success feedback; a failed save restores with warning
+    /// feedback. Off by default, so Taste and Home keep their pixels.
+    var stampsOnConfirm: Bool = false
 
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var libraryActions
@@ -1505,10 +1545,26 @@ struct TastePlanKey: View {
                     // index) gives its label more room so "Plan to watch" never truncates.
                     .minimumScaleFactor(variant == .leaf && compact ? 0.7 : 0.85)
                 Spacer(minLength: variant == .leaf && compact ? 2 : 4)
-                Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 13, weight: .light))
+                if stampsOnConfirm {
+                    let stamp = Self.stampTokens(controller.stampCounts[card.key])
+                    ZStack {
+                        Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                            .font(.system(size: 13, weight: .light))
+                            .kuroRestore(trigger: stamp.restore)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .kuroConfirmStamp(trigger: stamp.confirm)
+                    }
                     .frame(width: variant == .leaf && compact ? 18 : 26, height: 28)
                     .accessibilityHidden(true)
+                    .sensoryFeedback(.success, trigger: stamp.confirm)
+                    .sensoryFeedback(.warning, trigger: stamp.failure)
+                } else {
+                    Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 13, weight: .light))
+                        .frame(width: variant == .leaf && compact ? 18 : 26, height: 28)
+                        .accessibilityHidden(true)
+                }
             }
             .foregroundStyle(saved ? Color.white : Self.ink)
             .padding(.horizontal, variant == .leaf && compact ? 8 : 12)
@@ -1534,6 +1590,14 @@ struct TastePlanKey: View {
             guard hostController == nil, let message = localController.toast?.message else { return }
             banner?.show(message)
         }
+    }
+
+    /// The stamp triggers of one title (pure; DUpreviewTests): `confirm` changes on each added plan,
+    /// `failure` on each failed write, `restore` on either (the bookmark gives way to the ✓ and comes
+    /// back; on failure it blinks back). All 0 until the first result; never decreasing.
+    static func stampTokens(_ count: TastePlanController.StampCount?) -> (confirm: Int, failure: Int, restore: Int) {
+        let count = count ?? TastePlanController.StampCount()
+        return (count.added, count.failed, count.added + count.failed)
     }
 
     /// The key writes to the library, so it honours the pager's tap suppression like every card tap

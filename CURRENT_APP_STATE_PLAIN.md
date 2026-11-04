@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 272 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 293 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2162,3 +2162,22 @@ A review found real problems and they are fixed on the same local branch: the ep
 ### Change Log — 3 November 2026: New title pages, songs with previews, cast, and stats (build 24)
 
 Build 24 has the new title pages (facts, next episode with a bell, episode timeline, "More like this"), songs with artwork and 30-second Apple Music previews, characters with their Japanese voice actors, Profile numbers, the restyled import screens and edge peeks on sideways rows. The data behind voice actors and song previews is being filled in now and appears title by title. The Home Screen widget is finished but waits for one setting only the owner can make in Apple's developer account.
+
+
+### Change Log — 4 November 2026: Discover remembers "Not interested" and "Seen it" (data side, prepared)
+
+The data side of the Discover usability pass is ready on a local branch; nothing is switched on or sent to the live backend. Saying "Not interested" or "Seen it" on a Discover card now hides the title at once, teaches the Taste profile (the same signal the Taste deck uses), is remembered on the phone even offline and after a restart, and can be undone (an earlier "calls to me" from the deck is restored, never erased). The page can now tell when two titles are the same series and show it only once. Three prepared server readers (not yet applied) add a real "See all" with sorting and filters, mood journeys ("Something short", "Cozy", "Intense", "Like the last thing you loved"), and series identity; until they are applied the app quietly uses what already exists.
+
+
+### Change Log — 4 November 2026: Discover is easier to use (local branch, not live yet)
+
+All three parts of the Discover usability pass now work together on one local branch. Discover shows each series only once, ends after about six sections with "You're caught up for today.", explains what every section is for, and has mood shortcuts ("Something short", "Cozy", "Intense"). A long press on any card shows a preview with Plan, Seen it, Not interested, Add to club and Open; Not interested and Seen it remove the title at once, teach Taste and can be undone. "See all" is now a real page with sorting and filters. The server parts are prepared but not switched on; until they are, the app quietly uses what already exists. Nothing was pushed or deployed.
+
+
+### Change Log — 4 November 2026: Discover review fixes (local branch, not live yet)
+
+A review of the Discover usability pass found real problems; they are fixed on the same local branch. If the app stays open overnight, the next morning's visit now loads the new day's Discover instead of showing yesterday's sections under today's date. Where a "See all" page can only show what Discover loaded (Essentials, Classics, Because you, Airing today), the link, the contents number and the page now show the same number; lists that keep going (Trending, New to you, This season) now say just "See all" instead of promising a number they would not match. "New to you" no longer offers a later season (such as "Final Season" or "3rd Season") as the way into a series. The Trending length choice now looks through the whole list, and "See all" keeps the choice. Plan keys on a row of covers all sit at the same height and are never cut off. Long German section names and mood subtitles wrap instead of being cut. "Something short" no longer promises a "complete" series; manga answers now say "read" instead of "seen". Undoing "Not interested" can no longer quietly put a title back on your list; the one cost is that a "calls to me" from the Taste deck on that title is forgotten (an earlier note here said it would be restored; that no longer holds). The prepared server readers (still not applied) now fill whole pages even for people with many titles on their list, and the phone remembers every hidden title, not just the newest ones. New pictures for iPad and German are in the gallery. Nothing was pushed, deployed or switched on.
+
+### Change Log — 4 November 2026: Discover is easier and more satisfying (build 25)
+
+Discover now starts with three moods (Something short, Cozy, Intense), a numbered list of today's sections you can jump to, and labels on every card. Press and hold any card for a preview with Plan, Seen it, Not interested and Add to club; hiding a title takes it away at once with an Undo and teaches Taste. "See all" is now a real page with sorting and plain filters, the Essentials show how many you've seen, and the page ends with "You're caught up for today". It is in TestFlight build 25.

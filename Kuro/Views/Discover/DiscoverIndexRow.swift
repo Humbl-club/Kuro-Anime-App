@@ -3,57 +3,59 @@ import KuroLibrary
 import SwiftUI
 
 // MARK: - Numbered index (Discover + Clubs redesign §6.2 items 7 and 13)
-// Essential anime / Essential manga, and every folded section: the page section heading, five rows
-// (three on the All issue),
-// then "See all {n} ›". A row is Home's quiet row with its minimum height raised to 76: the curated
+// Essential anime / Essential manga and Classics: the section heading with its purpose line (and the
+// Essentials progress hook), five rows (three on the All issue: the shipped owner decision wins over
+// the usability spec's drawn five), then "See all {n} ›". A row is Home's quiet row with its minimum height raised to 76: the curated
 // number ("01", 13 pt medium mono, `kuroMuted`, a 22 pt column), the 40 × 60 cover (radius 2), the
-// title (15 pt medium −0.2, two lines) over "{year} · {format} · {n} eps", then the leaf `TastePlanKey`
+// title (15 pt medium −0.2, two lines) over "{status} · {year} · {format} · {n} eps" (the Folio status
+// word when the title is on the list, usability R2), then the leaf `TastePlanKey`
 // (at least 96 pt wide, 84 compact), and a 0.5 pt `kuroHairline` under it. The number is the curated
 // order, never a rank. At accessibility sizes the key moves under the title.
 
 struct DiscoverIndexSection: View {
     let anchor: String
     let title: String
-    let summary: String?
+    let purpose: String?
+    var newMarker: String? = nil
+    /// The section's titles still on the page, in claim order (a hide refills from the reserve).
     let cards: [TasteCard]
+    /// What "See all {n}" counts (after dedupe and hiding).
+    let total: Int
+    /// false: the section's See all is open-ended (it pages past the loaded rows): "See all ›", no number.
+    var exactCount: Bool = true
     let column: CGFloat
-    /// The section's local refinement (Top rated), drawn between the heading and the rows.
-    var refinement: Binding<DiscoverRailFilter>? = nil
+    /// The Essentials progress hook (§5.9), under the purpose line.
+    var hook: DiscoverProgressModel? = nil
+    var hookIsManga = false
     /// Rows shown before "See all" (`DiscoverIssueLayout.indexRows(onAll:)`).
     var rowLimit: Int = DiscoverIssueLayout.indexRows
     let onSeeAll: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         let compact = DiscoverIssueLayout.isCompact(column: column)
-        let filtered = refinement.map { filter in
-            cards.filter { filter.wrappedValue.includes(episodes: $0.media.episodes, statusRaw: $0.media.statusRaw) }
-        } ?? cards
-        let rows = Array(filtered.prefix(rowLimit))
+        let rows = Array(cards.prefix(rowLimit))
+        let motion = KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
         VStack(alignment: .leading, spacing: 0) {
-            DiscoverPageHeading(title: title, summary: summary, compact: compact)
-                .padding(.bottom, refinement == nil ? DiscoverIssueLayout.headingToContent - 6 : 2)
-            if let refinement {
-                DiscoverRefineRow(selection: refinement)
-                    .padding(.bottom, 4)
+            DiscoverSectionHeader(title: title, purpose: purpose, newMarker: newMarker, compact: compact)
+                .padding(.bottom, purpose == nil ? DiscoverIssueLayout.headingToContent - 6 : 0)
+            if let hook, hook.shows {
+                DiscoverProgressHook(model: hook, manga: hookIsManga)
+                    .padding(.bottom, 6)
             }
-            if rows.isEmpty {
-                KuroStateView(.empty,
-                              title: KuroLocale.text("Nothing here for this choice.", "Für diese Auswahl gibt es hier nichts."),
-                              layout: .inline)
-            } else {
-                ForEach(Array(rows.enumerated()), id: \.element.id) { index, card in
-                    DiscoverIndexRow(position: index + 1, card: card, compact: compact)
-                }
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, card in
+                DiscoverIndexRow(position: index + 1, card: card, compact: compact)
+                    .transition(DiscoverCardMotion.transition(motion: motion))
             }
-            // "See all" opens the whole section (the refinement is local), so it counts the whole
-            // section, as the rail does.
-            if DiscoverIssueLayout.offersSeeAll(total: cards.count, shown: rows.count) {
-                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(cards.count, german: KuroLocale.isGerman),
-                                   spoken: DiscoverIssueCopy.seeAllSpoken(cards.count, section: title, german: KuroLocale.isGerman),
+            if DiscoverIssueLayout.offersSeeAll(total: total, shown: rows.count) {
+                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(exactCount ? total : nil, german: KuroLocale.isGerman),
+                                   spoken: DiscoverIssueCopy.seeAllSpoken(exactCount ? total : nil, section: title, german: KuroLocale.isGerman),
                                    action: onSeeAll)
                     .padding(.top, 4)
             }
         }
+        .animation(motion ? KuroMotion.settle : nil, value: cards.map(\.id))
         .id(anchor)
     }
 }
@@ -64,16 +66,23 @@ struct DiscoverIndexRow: View {
     let compact: Bool
 
     @Environment(LibraryStore.self) private var library
-    @Environment(ClubsStore.self) private var clubs
+    @Environment(DiscoverPageFeedback.self) private var feedback: DiscoverPageFeedback?
+    @Environment(\.discoverSection) private var section
+    @Environment(\.discoverKindKicker) private var kindKicker
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var german: Bool { KuroLocale.isGerman }
 
+    /// "{year} · {format} · {n} eps", led by the status word when the title is on the list (R2 mark).
     private var meta: String? {
-        DiscoverIssueCopy.facts(kind: card.media.kind, year: card.media.year, formatRaw: card.media.formatRaw,
-                                episodes: card.media.episodes, chapters: card.media.chapters, length: true, german: german)
+        let facts = DiscoverIssueCopy.facts(kind: card.media.kind, year: card.media.year, formatRaw: card.media.formatRaw,
+                                            episodes: card.media.episodes, chapters: card.media.chapters, length: true, german: german,
+                                            kindShown: kindKicker)
+        guard let entry = library.entry(for: card.key) else { return facts }
+        let word = DiscoverIssueCopy.statusWord(entry.status, progress: entry.progress, kind: card.media.kind, german: german)
+        return [word, facts].compactMap { $0 }.joined(separator: " · ")
     }
 
     var body: some View {
@@ -88,7 +97,8 @@ struct DiscoverIndexRow: View {
             } else {
                 HStack(alignment: .center, spacing: 12) {
                     openButton
-                    DiscoverAtLeastWidth(minimum: DiscoverIssueLayout.indexKeyWidth(compact: compact)) { key }
+                    DiscoverAtLeastWidth(minimum: DiscoverIssueLayout.indexKeyWidth(compact: compact),
+                                         maximum: DiscoverIssueLayout.indexKeyMaxWidth(compact: compact)) { key }
                 }
                 .frame(minHeight: DiscoverIssueLayout.indexRowMinHeight)
             }
@@ -99,14 +109,16 @@ struct DiscoverIndexRow: View {
     }
 
     private var key: some View {
-        TastePlanKey(card: card, variant: .leaf, compact: true)
+        DiscoverPlanKey(card: card, variant: .leaf, compact: true)
     }
 
     private var openButton: some View {
         let meta = meta
+        let isNew = section?.newKeys.contains(card.key) ?? false
         return Button {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
+            feedback?.trackOpen(card.key, slot: section.map { DiscoverCardSlot(section: $0.id, position: position - 1) }, via: "card")
             routes.openMedia(MediaRoute(card.key))
         } label: {
             HStack(alignment: .center, spacing: 12) {
@@ -119,7 +131,11 @@ struct DiscoverIndexRow: View {
                             placeholder: HomeInk.posterFill)
                     .frame(width: 40, height: 60)
                     .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .overlay(alignment: .topLeading) {
+                        if isNew { DiscoverNewTab().scaleEffect(0.85, anchor: .topLeading).padding(-4) }
+                    }
                 VStack(alignment: .leading, spacing: 3) {
+                    if kindKicker { DiscoverKindKicker(kind: card.media.kind) }
                     Text(KuroCardText.sanitizeTitleForCard(card.media.title))
                         .font(.kuroCustom(15, weight: .medium, relativeTo: .subheadline, maxSize: 30))
                         .tracking(-0.2)
@@ -128,10 +144,13 @@ struct DiscoverIndexRow: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if let meta {
+                        // Two lines: a long status word ("Abgeschlossen", "Schaue ich · F. 5") never
+                        // cuts the format and the episode count.
                         Text(meta)
                             .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
                             .foregroundStyle(Color.kuroMuted)
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -141,12 +160,11 @@ struct DiscoverIndexRow: View {
         }
         .buttonStyle(HomeContactStyle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text([DiscoverIssueCopy.indexSpoken(position, german: german), card.media.title, meta]
-            .compactMap { $0 }.joined(separator: ", ")))
-        .accessibilityValue(library.isTracked(card.key) ? DiscoverIssueCopy.onYourList(german: german) : "")
+        .accessibilityLabel(Text([DiscoverIssueCopy.indexSpoken(position, german: german),
+                                  DiscoverCardSpoken.label(title: card.media.title, kind: card.media.kind,
+                                                           kindKicker: kindKicker, line: meta, isNew: isNew)]
+            .joined(separator: ", ")))
         .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
-        .contextMenu {
-            DiscoverFrameMenu(media: card.media, isSaved: library.isTracked(card.key), hasClubs: !clubs.myClubs.isEmpty)
-        }
+        .discoverMenu(for: DiscoverCardItem(card: card, position: position - 1))
     }
 }

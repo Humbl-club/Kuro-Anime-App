@@ -76,8 +76,9 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         self.defaults = defaults
     }
 
-    /// The SDK client, or `MissingSupabaseConfiguration` when the app has none.
-    private func requiredClient() throws -> SupabaseClient {
+    /// The SDK client, or `MissingSupabaseConfiguration` when the app has none (also used by
+    /// `DiscoveryStore+Usability.swift`).
+    func requiredClient() throws -> SupabaseClient {
         guard let client else { throw MissingSupabaseConfiguration() }
         return client
     }
@@ -86,6 +87,13 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     var discoverBundleCache: [String: TimedCache<DiscoverBundle>] = [:]
     /// In-flight bundle loads: joined only by the same key and account context.
     let discoverBundleLoads = AccountScopedLoads<String, DiscoverBundle?>()
+
+    /// Franchise component of each title read so far (`media_franchise_ids_v1`, public catalogue
+    /// data: kept across sign-out, shed under memory pressure). See `DiscoveryStore+Usability.swift`.
+    var franchiseIds: [MediaKey: Int] = [:]
+    /// Prepared Discover readers that answered "not deployed", with the time (retried after
+    /// `discoverUndeployedRetryInterval`).
+    @ObservationIgnored var undeployedDiscoverContracts: [String: Date] = [:]
 
     // MARK: AccountScopedState
 
@@ -119,6 +127,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         airingSlots.removeAll()
         airingSlotIdsRead.removeAll()
         airingSlotsDay = nil
+        franchiseIds.removeAll()
     }
 
     // MARK: - Discover bundle (single call)
@@ -139,6 +148,15 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
             return loaded.value
         }
         return await fetchDiscoverBundle(limit: limit, hours: hours)
+    }
+
+    /// Whether the signed-in account's bundle was stored on `now`'s rail day (false: none yet, or one
+    /// from an earlier Berlin day). Discover asks this when a new visit starts (D18): a page left alive
+    /// overnight reads the new day's issue instead of rebuilding yesterday's.
+    func hasCurrentDayBundle(limit: Int = 30, hours: Int = 24, now: Date = Date()) -> Bool {
+        let key = Self.bundleKey(user: accountSession.current?.userId, limit: limit, hours: hours)
+        guard let loaded = discoverBundleCache[key] else { return false }
+        return Self.isSameRailDay(loaded.storedAt, now)
     }
 
     /// The cache and in-flight key of one account's bundle request ("anon" when signed out).

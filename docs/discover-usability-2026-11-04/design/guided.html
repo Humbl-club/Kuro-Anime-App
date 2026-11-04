@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discover Guided Direction</title>
+<meta name="description" content="Discover usability (2026-11-04), direction GUIDED: moods and a clear index lead; six numbered sections form a short, finishable path through today's issue with an explicit end. Covers build items 1-12 and the Discover contract R1-R8.">
+<style>
+/* ------------------------------------------------------------------
+   Tokens: Home grammar (HOME_GRAMMAR.md) + prototype measured inks.
+   Light mode only (the app is light-only: .preferredColorScheme(.light)).
+   ------------------------------------------------------------------ */
+:root{
+  --canvas:#FFFEF8;          /* kuroCanvasHome */
+  --canvas-manga:#F5F5F3;    /* kuroCanvasHomeManga */
+  --paper:#F5F5F4;           /* kuroPaper */
+  --ink:#252625;             /* kuroInk */
+  --muted:#696C6B;           /* kuroMuted */
+  --kicker:#666C68;          /* HomeInk.kicker */
+  --summary:#656C66;         /* HomeInk.calendarSummary */
+  --quiet:#6B6B6B;           /* kuroInkQuiet */
+  --line:#272B2920;          /* kuroLine (header hairline) */
+  --hair:#0000001a;          /* kuroHairline */
+  --switch-off:#6E786F;      /* HomeInk.switchUnselected */
+  --switch-mark:#203027;     /* HomeInk.switchMark */
+  --switch-hair:#20302744;   /* HomeInk.switchHairline */
+  --glance:#FFFEFA; --glance-border:#29312918; --glance-ink:#303932; --glance-muted:#687064;
+  --foot-title:#FAFAFA; --foot-fact:#DCE2DF; --foot-secondary:#DCE3DF;
+  --tab-face:#F3F4F4; --tab-ink:#26372C;
+  --key-light-top:#FBFBF9; --key-light-bottom:#E7E9E5; --key-ink:#29352C;
+  --cal:#FAFCF9; --cal-border:#D8DDD9; --cal-row:#E3E7E1; --cal-more:#F6F8F4; --cal-more-border:#D9E0D7;
+  /* ClubRoomPalette */
+  --room:#252B28; --room-glow:#444A46; --room-border:#535A554C; --room-text:#F0F4EF; --room-kicker:#C0CBBB;
+  --room-row:#F1F5ED; --room-row2:#C1CDB7; --room-footer:#B4C2A9; --room-key:#2B342E;
+  --note:#F5F6EF; --note-ink:#2E342C; --note-meta:#66705D;
+  --spoiler:#E9EDE2; --spoiler-border:#CCD4C3; --spoiler-ink:#59664E;
+  --m1:#D0D8CB; --m2:#ADBBA6; --m3:#899A82; --m-ink:#33412E; --m-rim:#2F3730;
+  --skel:#2526251f; /* placeholder, overridden below */
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --serif:"New York",ui-serif,"Iowan Old Style",Georgia,serif;
+  --studio:#E9E8E2; --studio-ink:#2B2E2C;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--studio);color:var(--studio-ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+img{display:block}
+button{font:inherit;color:inherit}
+
+/* ------------------------------ studio page ------------------------------ */
+.studio-head{max-width:1180px;margin:0 auto;padding:40px 24px 8px}
+.studio-head .eyebrow{font-size:10px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker)}
+.studio-head h1{font-size:40px;line-height:1.05;letter-spacing:-1.4px;font-weight:650;margin:8px 0 10px}
+.studio-head p{max-width:680px;font-size:14px;line-height:1.55;color:#4d524f;margin:0 0 8px}
+.studio-head .rule{width:46px;height:2px;background:var(--ink);margin:16px 0 4px}
+.row-label{max-width:1180px;margin:28px auto 10px;padding:0 24px;font-size:10px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker)}
+.strip{display:flex;gap:28px;overflow-x:auto;padding:6px 24px 26px;scroll-snap-type:x proximity}
+.strip::after{content:"";flex:0 0 1px}
+.cell{flex:none;scroll-snap-align:start}
+.cell>h3{font-size:12px;font-weight:600;margin:0 0 3px;letter-spacing:-.1px}
+.cell>p.cap{font-size:11px;color:#5e6460;margin:0 0 10px;max-width:390px;line-height:1.45}
+
+/* ------------------------------ the phone ------------------------------ */
+.phone{position:relative;width:390px;height:844px;border-radius:46px;overflow:hidden;background:var(--canvas);
+  box-shadow:0 0 0 9px #1d201e,0 0 0 10px #3a3f3c,0 30px 50px -24px #1a1f1c80;margin:10px;color:var(--ink);font-family:var(--sans)}
+.phone.short{height:560px}
+.phone.manga{background:var(--canvas-manga)}
+.status{position:absolute;inset:0 0 auto 0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 34px;font-size:15px;font-weight:600;z-index:30}
+.status i{font-style:normal;font-size:11px;letter-spacing:1px}
+.status.on-dark{color:#F0F4EF}
+.phone>.status:not(.on-dark){background:inherit}
+.scroll{position:absolute;inset:0;overflow:hidden}
+
+/* App header (KuroHeaderNew): paints the page canvas -> no seam (P1) */
+.app-header{position:absolute;top:47px;left:0;right:0;height:54px;padding:0 10px 0 22px;display:flex;align-items:center;gap:8px;background:inherit;z-index:20;border-bottom:.5px solid var(--line)}
+.phone .app-header{background:var(--canvas)}
+.phone.manga .app-header{background:var(--canvas-manga)}
+.wordmark{font-size:18px;font-weight:800;letter-spacing:3px}
+.page-name{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.dots{display:flex;gap:4px}.dots b{width:3px;height:3px;border-radius:50%;background:#25262530}.dots b.on{background:var(--ink)}
+.dots b.badge{position:relative}.hdr-icons{display:flex;align-items:center}
+.hdr-btn{width:44px;height:44px;display:grid;place-items:center}
+.ring{width:24px;height:24px;border-radius:50%;border:1px solid #2526258c;display:grid;place-items:center;font-size:11px;font-weight:500}
+.unseen{display:inline-block;width:5px;height:5px;border-radius:50%;background:#252625b3;margin-left:3px;vertical-align:2px}
+
+.content{position:absolute;left:0;right:0;top:101px;padding:7px 20px 0}
+.content.flush{padding-left:0;padding-right:0}
+
+/* ------------------------------ Home type ------------------------------ */
+.opening{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.eyebrow{font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);white-space:nowrap}
+.opening h2{margin:0;font-size:14px;font-weight:600;letter-spacing:-.3px;text-align:right}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:9px;margin:0 0 14px}
+.sec-head h2{margin:0;font-size:24px;line-height:1.1;font-weight:600;letter-spacing:-.85px}
+.sec-head small{font-size:10px;color:var(--summary);text-align:right}
+.sub-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 4px}
+.sub-head h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.sub-head small{font-size:10px;color:var(--muted)}
+.text-action{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:500;color:var(--ink)}
+
+/* ------------------------------ Discover: issue switch ------------------------------ */
+/* KuroPosterMediumSwitch grammar with three words spread edge to edge; 28 pt heavy (24 at <=328 pt). Measured: 244 pt of words at 28 pt (fits 350), 210 pt at 24 pt (fits SE 280). */
+.issue-switch{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--switch-hair);min-height:50px;margin:2px 0 12px;position:relative}
+.issue-switch span{font-size:28px;font-weight:900;letter-spacing:-1.45px;text-transform:uppercase;color:var(--switch-off);line-height:44px;position:relative;white-space:nowrap}
+.issue-switch span:nth-child(2){text-align:center}.issue-switch span:nth-child(3){text-align:right}
+.issue-switch span.on{color:transparent;-webkit-background-clip:text;background-clip:text;background-size:cover;background-position:center}
+.issue-switch span.on::after{content:"";position:absolute;bottom:-1px;width:28px;height:2px;background:var(--switch-mark);left:0}
+.issue-switch span:nth-child(2).on::after{left:50%;margin-left:-14px}
+.issue-switch span:nth-child(3).on::after{left:auto;right:0}
+
+/* ------------------------------ Discover: cover story (scene-card language) ------------------------------ */
+.cover-story{border-radius:5px;overflow:hidden;box-shadow:0 1px 1px #19221B0A;position:relative}
+.cs-art{position:relative;aspect-ratio:2.2/1;background:var(--mb,#3a3d3c)}
+.cs-art img{width:100%;height:100%;object-fit:cover}
+.cs-art::after{content:"";position:absolute;inset:50% 0 0 0;background:linear-gradient(transparent,#0000002e)}
+.cs-art .rim{position:absolute;inset:0;border:1px solid #ffffff25;border-bottom:0;border-radius:5px 5px 0 0;z-index:2}
+.tab{position:absolute;left:12px;bottom:0;z-index:3;background:var(--tab-face);border-radius:8px 8px 0 0;min-height:27px;padding:6px 9px 4px;display:flex;align-items:baseline;gap:5px;box-shadow:inset 0 1px #ffffff65}
+.tab small{font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:var(--tab-ink)}
+.tab b{font-size:13px;font-weight:600;color:var(--tab-ink);letter-spacing:-.2px}
+.foot{background:linear-gradient(135deg,var(--mb),var(--md));display:flex;align-items:stretch;min-height:58px;padding:0 10px 0 14px;border-top:1px solid #ffffff18;color:var(--foot-title)}
+.foot .t{flex:1;min-width:0;padding:11px 10px 11px 0}
+.foot .t b{display:block;font-size:17px;font-weight:600;letter-spacing:-.35px;line-height:1.2}
+.foot .t span{display:block;font-size:11px;line-height:1.45;color:var(--foot-secondary);margin-top:4px}
+.foot .div{width:1px;background:#ffffff24;margin:10px 0}
+.foot .k{width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.foot .k small{font-size:9px;color:var(--foot-secondary)}
+.fact{background:linear-gradient(135deg,var(--mb),var(--md));display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;padding:0 14px;border-top:1px solid #ffffff0d;font-size:10px;color:var(--foot-fact)}
+.fact .who{display:flex;align-items:center;gap:6px}
+.disc{width:17px;height:17px;border-radius:50%;background:#ffffff14;border:1px solid #ffffff44;display:grid;place-items:center;font-size:7px}
+
+/* Keys (KuroAdvanceKey faces) */
+.key{width:44px;height:44px;display:grid;place-items:center;flex:none}
+.key i{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:19px;font-weight:300;border:1px solid #20282326;box-shadow:inset 0 1px #ffffff35,0 1px 1px #14231912}
+.key.light i{background:linear-gradient(var(--key-light-top),var(--key-light-bottom));color:var(--key-ink)}
+.key.mat i{background:linear-gradient(var(--mb),var(--md));color:#fff;border-color:#ffffff30}
+.key.ink i{background:linear-gradient(#3A423D,#232925);color:#F2F5F0}
+.key.ghost i{background:none;border:none;box-shadow:none;color:#767B77;font-size:13px}
+.key.on-art.ghost i{color:#B9C5C1}
+
+/* Glance (HomeComingUpGlance) */
+.glance{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 12px;background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;box-shadow:0 1px 1px #29312905}
+.glance .g-copy{flex:1;min-width:0}
+.glance .g-copy b{display:block;font-size:14px;font-weight:600;letter-spacing:-.3px;color:var(--glance-ink)}
+.glance .g-copy span{display:block;font-size:10px;color:var(--glance-muted);margin-top:4px;line-height:1.35}
+.thumbs{display:flex}
+.thumbs img{width:27px;height:38px;object-fit:cover;border-radius:2px;border:1px solid var(--glance);box-shadow:0 1px 2px #26352B14;margin-left:-7px}
+.thumbs img:first-child{margin-left:0}
+.count{min-width:39px;text-align:right}
+.count b{display:block;font:500 21px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:-.6px;color:var(--glance-ink)}
+.count small{display:block;font-size:8px;color:var(--glance-muted);margin-top:3px}
+.chev{font-size:16px;color:#727D73;width:12px;text-align:center}
+
+/* Contents (in this issue) */
+.contents{padding:12px 0 2px;border-top:1px solid var(--hair)}
+.contents ol{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}
+.contents li{font-size:12px;font-weight:500;display:flex;align-items:baseline;gap:4px;min-height:22px}
+.contents li small{font-size:10px;color:var(--muted);font-weight:400}
+.link-row{display:flex;align-items:center;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--ink)}
+.link-row .lr{display:flex;flex-direction:column;gap:3px}
+.link-row .lr small{font-size:9px;font-weight:500;letter-spacing:2.1px;text-transform:uppercase;color:var(--quiet)}
+.link-row .lr b{font-size:17px;font-weight:600;letter-spacing:-.35px}
+.link-row .arr{font-size:13px}
+
+/* Feature + three (fewer, better) */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.trio .c img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:4px;box-shadow:0 2px 3px #242C2514}
+.trio .c b{display:block;font-size:12px;font-weight:500;line-height:1.3;margin-top:7px}
+.trio .c small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.mark{display:inline-block;font-size:9px;color:#5B635C;border:1px solid #D7DBD5;border-radius:4px;padding:1px 4px;margin-top:4px}
+
+/* Index list (Essentials) */
+.index{list-style:none;margin:0;padding:0;border-top:1px solid var(--hair)}
+.index li{display:flex;align-items:center;gap:12px;min-height:76px;padding:8px 0;border-bottom:.5px solid var(--hair)}
+.index .n{font:500 13px ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted);width:20px}
+.index img{width:40px;height:60px;object-fit:cover;border-radius:2px;box-shadow:0 1px 2px #242C2514}
+.index .x{flex:1;min-width:0}
+.index .x b{display:block;font-size:15px;font-weight:500;letter-spacing:-.2px;line-height:1.25}
+.index .x small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+
+/* Local refinement chips (rail-scoped, deliberately small: not the medium switch) */
+.refine{display:flex;gap:16px;margin:0 0 12px}
+.refine span{font-size:11px;font-weight:500;color:var(--muted);padding-bottom:5px;position:relative;min-height:28px;display:flex;align-items:flex-end}
+.refine span.on{color:var(--ink)}
+.refine span.on::after{content:"";position:absolute;left:0;bottom:0;width:16px;height:1.5px;background:var(--ink)}
+.rail{display:flex;gap:14px;overflow:hidden;margin-right:-20px}
+.rail .c{flex:none;width:106px}
+.rail .c img{width:106px;height:138px;object-fit:cover;border-radius:4px;box-shadow:0 2px 3px #242C2514}
+.rail .c b{display:block;font-size:12px;font-weight:500;line-height:1.3;margin-top:7px}
+.rail .c small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+
+.fold{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 14px;background:var(--cal-more);border:1px solid var(--cal-more-border);border-radius:10px;font-size:12px;font-weight:500}
+.fold small{font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap}
+.fold span{white-space:nowrap}
+.home-footer{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:28px 2px 28px}
+.home-footer b{letter-spacing:2px}
+
+/* Club journey sheet */
+.backdrop{position:absolute;inset:0;background:#0b0e0c}
+.backdrop .peek{position:absolute;left:12px;right:12px;top:47px;height:30px;border-radius:12px 12px 0 0;background:#d9d8d1;opacity:.55}
+.sheet{position:absolute;left:0;right:0;top:57px;bottom:0;border-radius:12px 12px 0 0;overflow:hidden;background:var(--canvas)}
+.grabber{position:absolute;top:6px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:#ffffff55;z-index:9}
+/* States */
+.sk{background:#2526251f;background:rgba(37,38,37,.08);border-radius:5px}
+.sk.deep{background:rgba(37,38,37,.13)}
+.scrub{width:96px;height:1px;background:#D7D9D7;margin:18px auto 0;position:relative;overflow:hidden}
+.scrub::after{content:"";position:absolute;left:0;top:0;bottom:0;width:38%;background:#626962}
+.state{text-align:center;padding:20px 32px}
+.state h4{font-size:24px;font-weight:700;letter-spacing:-.8px;margin:14px 0 6px}
+.state p{font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.45}
+.retry{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:500;border-bottom:1px solid var(--ink)}
+.band{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#FFFFFF80;border:1px solid #DCE1DC;border-radius:8px;font-size:11px;color:var(--muted);margin-bottom:12px}
+.band b{color:var(--ink);font-weight:600}
+.quietcard{font-size:11px;color:var(--muted);padding:12px;background:#FFFFFF80;border:1px solid #DCE1DC;border-radius:8px}
+
+/* Manga lead fallback (cover spread, capped) */
+.spread{display:flex;border-radius:5px;overflow:hidden;max-height:220px;box-shadow:0 1px 1px #19221B0A}
+.spread img{width:132px;height:198px;object-fit:cover}
+.spread .sp{flex:1;background:linear-gradient(135deg,var(--mb),var(--md));color:#FAFAFA;padding:14px 12px 10px 14px;display:flex;flex-direction:column}
+.spread .sp small.k{font-size:7px;letter-spacing:1.4px;color:var(--foot-secondary);text-transform:uppercase}
+.spread .sp b{font-size:20px;font-weight:600;letter-spacing:-.5px;margin-top:6px}
+.spread .sp span{font-size:11px;line-height:1.45;color:var(--foot-secondary);margin-top:6px;flex:1}
+.spread .sp .bot{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--foot-fact)}
+
+/* Docs below */
+.doc{max-width:1180px;margin:0 auto;padding:10px 24px 80px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:28px 40px}
+.doc section h2{font-size:24px;font-weight:600;letter-spacing:-.85px;margin:22px 0 10px}
+.doc section h3{font-size:15px;font-weight:600;letter-spacing:-.2px;margin:18px 0 6px}
+.doc section p,.doc section li{font-size:13px;line-height:1.6;color:#3f4441}
+.doc section ul,.doc section ol{padding-left:18px;margin:6px 0}
+.doc code{font:12px ui-monospace,"SF Mono",Menlo,monospace;background:#2526250d;padding:1px 4px;border-radius:3px}
+.doc .wide{grid-column:1/-1}
+table.copy{width:100%;border-collapse:collapse;font-size:12px}
+table.copy th{text-align:left;font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);font-weight:500;padding:8px 10px 8px 0;border-bottom:1px solid var(--ink)}
+table.copy td{padding:8px 10px 8px 0;border-bottom:.5px solid #00000018;vertical-align:top;line-height:1.45}
+table.copy td:first-child{color:#5e6460;width:22%}
+.tag{display:inline-block;font-size:9px;letter-spacing:.6px;text-transform:uppercase;border:1px solid #9aa39c;border-radius:4px;padding:1px 5px;color:#4f5651;margin-left:4px;vertical-align:1px}
+
+@media (max-width:520px){.strip{gap:12px;padding-inline:4px}.phone{transform:scale(.86);transform-origin:top left;margin-bottom:-110px;margin-right:-50px}.studio-head h1{font-size:30px}}
+
+/* ---------- FINAL additions ---------- */
+/* TastePlanKey (TastePicksView.swift:1455): labelled 44 pt plan key; saved = dark face + filled bookmark */
+.plan-key{display:inline-flex;align-items:center;justify-content:space-between;gap:5px;min-height:44px;padding:0 10px 0 12px;border-radius:10px;
+  background:#F4F6F5;border:1px solid #E0E5E1;box-shadow:inset 0 1px #fff;color:#36433A;font-size:11px;font-weight:500;white-space:nowrap;flex:none}
+.plan-key .bm{width:11px;height:13px;fill:none;stroke:currentColor;stroke-width:1.1}
+.plan-key .bm.fill{fill:currentColor}
+.plan-key.leaf{background:#FFFFFC;border-color:#BEC5B8;font-size:10px;width:96px;padding:0 8px 0 10px}
+.plan-key.saved{background:#303932;border-color:#303932;color:#fff;box-shadow:none}
+.plan-key.leaf.saved{background:#30352B;border-color:#30352B}
+.foot .k.k-plan{width:118px;padding-left:10px}
+.foot .k.k-plan .plan-key{width:100%}
+
+/* =====================================================================
+   GUIDED direction additions (2026-11-04). Everything above is copied
+   verbatim from docs/discover-clubs-2026-11-03/design/final.html (Home
+   grammar tokens). Only new components live below.
+   ===================================================================== */
+.studio-head .rules{display:flex;flex-wrap:wrap;gap:6px 10px;margin:14px 0 0;padding:0;list-style:none}
+.studio-head .rules li{font-size:11px;color:#3f4441;background:#ffffff80;border:1px solid #d6d9d3;border-radius:6px;padding:4px 8px}
+.studio-head .rules b{font-weight:650;margin-right:4px}
+.cell>p.cap b{color:var(--ink);font-weight:600}
+.cell>p.cap .it{display:inline-block;font:600 9px ui-monospace,"SF Mono",Menlo,monospace;border:1px solid #9aa39c;border-radius:4px;padding:0 4px;margin:0 2px 0 0;color:#3f4441}
+
+/* Medium label on every card in All (item 11). Plain caps word, never a pill. */
+.ml{font-weight:650;letter-spacing:.9px;font-size:8px;color:var(--ink);text-transform:uppercase;margin-right:3px}
+.ml.on-art{color:#F2F5F0}
+
+/* Section purpose line (R1): under the 24 pt heading, 12 pt muted, one sentence. */
+.sec-q{font-size:12px;line-height:1.4;color:var(--muted);margin:-8px 0 14px}
+.sec-q b{color:var(--ink);font-weight:600}
+.sec-num{font:500 10px ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted);margin-right:7px;letter-spacing:0;vertical-align:5px}
+
+/* New since your last visit (item 8): 5 pt ink dot + plain words; card corner word */
+.nd{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ink);vertical-align:1px;margin-right:4px}
+.new-tag{position:absolute;left:5px;top:5px;font-size:7px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;background:#FFFEF8;color:var(--ink);border-radius:3px;padding:2px 4px;box-shadow:0 1px 2px #0000001f}
+.c{position:relative}
+
+/* Mood keys (item 4): KuroKeyFace(.light) recipe, labelled, 52 pt */
+.moods{margin:0 0 12px}
+.moods .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.moods .mh small{font-size:10px;color:var(--summary)}
+.mood-row{display:flex;gap:8px;overflow:hidden;margin-right:-20px;padding:1px 0 2px}
+.mood{flex:none;display:flex;align-items:center;gap:9px;min-height:52px;padding:6px 12px 6px 8px;border-radius:9px;background:linear-gradient(var(--key-light-top),var(--key-light-bottom));border:1px solid #20282326;box-shadow:inset 0 1px #ffffff90,0 1px 1px #14231912;color:var(--key-ink)}
+.mood .ms{display:flex}
+.mood .ms img{width:20px;height:29px;object-fit:cover;border-radius:2px;border:1px solid #FBFBF9;margin-left:-8px;box-shadow:0 1px 2px #26352B18}
+.mood .ms img:first-child{margin-left:0}
+.mood b{display:block;font-size:12px;font-weight:600;letter-spacing:-.2px;white-space:nowrap}
+.mood small{display:block;font-size:9px;color:#5B635C;margin-top:2px;white-space:nowrap}
+.mood.on{background:linear-gradient(#3A423D,#232925);color:#F2F5F0;border-color:#232925}
+.mood.on small{color:#C9D1CB}
+.mood.on .ms img{border-color:#3A423D}
+
+/* Today's issue path (item 10): glance-card face, numbered jump rows, progress */
+.path{background:var(--glance);border:1px solid var(--glance-border);border-radius:8px;box-shadow:0 1px 1px #29312905;padding:10px 12px 8px}
+.path .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.path .ph small{font-size:10px;color:var(--glance-muted);white-space:nowrap}
+.path ol{list-style:none;margin:6px 0 0;padding:0}
+.path li{display:flex;align-items:center;gap:10px;min-height:44px;border-top:1px solid #E3E7E1}
+.path li:first-child{border-top:0}
+.path .n{font:500 11px ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted);width:18px;flex:none}
+.path .pn{flex:1;min-width:0}
+.path .pn b{display:block;font-size:13px;font-weight:600;letter-spacing:-.25px;color:var(--glance-ink);line-height:1.2}
+.path .pn span{display:block;font-size:10px;color:var(--glance-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.path .cnt{font:500 12px ui-monospace,"SF Mono",Menlo,monospace;color:var(--glance-ink);min-width:18px;text-align:right}
+.path .go{font-size:13px;color:#727D73;width:14px;text-align:center}
+.path li.read .n{color:var(--ink)}
+.path li.read .pn b{color:#7A817B;font-weight:500}
+.prog{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #E3E7E1}
+.prog small{font-size:10px;color:var(--glance-muted);white-space:nowrap}
+.segs{display:flex;gap:3px;flex:1}
+.segs i{flex:1;height:3px;border-radius:1px;background:#E1E5E0}
+.segs i.on{background:var(--ink)}
+
+/* Pinned compact index (item 10): appears once the path card scrolls away */
+.pin{position:absolute;top:101px;left:0;right:0;height:42px;background:#FFFEF8F2;backdrop-filter:blur(14px);border-bottom:.5px solid var(--line);display:flex;align-items:center;z-index:15}
+.phone.manga .pin{background:#F5F5F3F2}
+.pin .track{flex:1;display:flex;gap:14px;overflow:hidden;padding-left:20px;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+.pin .track span{position:relative;height:42px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--switch-off)}
+.pin .track span i{font-style:normal;font:500 9px ui-monospace,"SF Mono",Menlo,monospace;color:#8A918B}
+.pin .track span.read{color:#9AA19B}
+.pin .track span.read i::after{content:" ✓"}
+.pin .track span.on{color:var(--ink)}
+.pin .track span.on::after{content:"";position:absolute;left:0;bottom:-.5px;width:28px;height:2px;background:var(--switch-mark)}
+.pin .of{flex:none;padding:0 20px 0 10px;font:500 10px ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted)}
+
+/* Annotation pins (designer notes, not UI) */
+.anno{position:absolute;z-index:40;display:flex;align-items:center;gap:6px;font-size:10px;line-height:1.25;color:#fff;background:#C2410C;border-radius:10px;padding:4px 8px;box-shadow:0 2px 6px #0003;max-width:220px}
+.anno::before{content:attr(data-n);font:700 9px ui-monospace,Menlo,monospace;background:#fff;color:#C2410C;border-radius:50%;width:15px;height:15px;display:grid;place-items:center;flex:none}
+
+/* Long-press preview (item 2): system contextMenu with a custom preview */
+.blurred{position:absolute;inset:0;filter:blur(9px) saturate(.9);transform:scale(1.02)}
+.dim{position:absolute;inset:0;background:#FFFEF833;backdrop-filter:blur(2px);z-index:20}
+.preview{position:absolute;left:35px;right:35px;top:118px;border-radius:14px;overflow:hidden;background:var(--canvas);box-shadow:0 18px 40px -10px #1a1f1c66,0 0 0 .5px #0000001a;z-index:22}
+.preview .pa{position:relative;aspect-ratio:2.2/1}
+.preview .pa img{width:100%;height:100%;object-fit:cover}
+.preview .pb{padding:12px 14px 14px}
+.preview .pb h4{margin:4px 0 4px;font-size:19px;font-weight:600;letter-spacing:-.45px}
+.preview .pb .f{font-size:10px;color:var(--muted)}
+.preview .pb p{margin:9px 0 0;font-size:12px;line-height:1.45;color:#3f4441}
+.preview .why{display:block;margin-top:10px;padding-top:9px;border-top:1px solid var(--hair);font-size:10px;color:var(--muted)}
+.menu{position:absolute;left:35px;width:250px;top:478px;border-radius:13px;overflow:hidden;background:#F4F4F1EE;backdrop-filter:blur(20px);box-shadow:0 12px 30px -8px #1a1f1c55,0 0 0 .5px #0000001a;z-index:22}
+.menu div{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 14px 0 16px;font-size:15px;color:#1c1c1e;border-top:.5px solid #3c3c4330}
+.menu div:first-child{border-top:0}
+.menu div small{display:block;font-size:11px;color:#6b6b70;margin-top:1px}
+.menu div .lbl{display:flex;flex-direction:column;padding:6px 0}
+.menu .gap{min-height:8px;padding:0;background:#3c3c4314;border-top:0}
+.menu svg{width:17px;height:17px;fill:none;stroke:#1c1c1e;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* Toast: TastePlanToastView (TastePicksView.swift:757): #282F2B @ F5, radius 18, 12 pt white, Undo semibold */
+.toast{position:absolute;left:13px;right:13px;bottom:34px;display:flex;align-items:center;gap:4px;padding:5px 5px 5px 14px;border-radius:18px;background:#282F2BF5;box-shadow:0 8px 15px #18241C30;color:#fff;font-size:12px;z-index:25;line-height:1.35}
+.toast span{flex:1}
+.toast b{font-weight:600;padding:0 10px;min-height:44px;display:flex;align-items:center;white-space:nowrap}
+.toast b.sep{border-left:1px solid #ffffff30}
+.toast i{width:44px;height:44px;display:grid;place-items:center;font-style:normal;font-size:11px;opacity:.8}
+.toast-sample{position:relative;width:364px;margin:8px 0 0;left:auto;right:auto;bottom:auto}
+
+/* Removal motion depiction (item 3): replacement slides in on KuroMotion.settle */
+.c.entering{transform:translateX(9px);opacity:.82}
+.c.entering::before{content:"";position:absolute;left:-10px;top:30%;width:6px;height:40%;border-left:1.5px solid #25262540;border-right:1.5px solid #25262522}
+.stamp-ring{box-shadow:0 0 0 4px #30393222,0 0 0 9px #3039320d !important}
+
+/* Essentials progress hook (item 9) */
+.hook{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:10px 12px;background:#FFFFFF80;border:1px solid #DCE1DC;border-radius:8px}
+.hook .hc{flex:none}
+.hook b{display:block;font-size:13px;font-weight:600;letter-spacing:-.25px}
+.hook small{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.ticks{display:flex;gap:3px;margin-left:auto}
+.ticks i{width:13px;height:4px;border-radius:1px;background:#DCE1DC}
+.ticks i.on{background:var(--ink)}
+.state-word{flex:none;width:96px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#5B635C;border:1px dashed #C9CEC7;border-radius:10px}
+
+/* End state (item 7, R7) */
+.end{padding:30px 2px 0}
+.end .r{width:46px;height:2px;background:var(--ink);margin-bottom:14px}
+.end h3{margin:0;font-size:24px;font-weight:600;letter-spacing:-.85px;line-height:1.12}
+.end p{margin:8px 0 14px;font-size:13px;line-height:1.45;color:var(--muted)}
+.end .segs{margin:0 0 6px;max-width:200px}
+.end .link-row{margin-top:10px}
+.end .link-row + .link-row{margin-top:12px}
+.tomorrow{display:flex;align-items:center;gap:10px;margin-top:18px}
+.tomorrow .thumbs img{filter:grayscale(.2)}
+.tomorrow small{font-size:10px;color:var(--muted);line-height:1.4}
+
+/* Journey sheet (See all / mood journey): N3 + N8: grabber, ✕, no back on page one */
+.sheet .jbar{position:sticky;top:0;height:52px;display:flex;align-items:center;padding:0 4px 0 16px;background:#FFFEF8EB;backdrop-filter:blur(18px);border-bottom:.5px solid var(--line);z-index:8}
+.sheet.manga{background:var(--canvas-manga)}
+.sheet .jbar b{flex:1;text-align:center;font-size:15px;font-weight:600;letter-spacing:-.2px;padding-left:44px}
+.sheet .jbar .x{width:44px;height:44px;display:grid;place-items:center}
+.sheet .jbar .x i{width:30px;height:30px;border-radius:50%;background:#2526250f;display:grid;place-items:center;font-style:normal;font-size:12px}
+.sheet .grabber{background:#25262533}
+.jbody{padding:14px 20px 0}
+.sorts{display:flex;gap:22px;border-bottom:1px solid var(--switch-hair);margin:4px 0 12px}
+.sorts span{position:relative;min-height:40px;display:flex;align-items:center;font-size:14px;font-weight:600;letter-spacing:-.2px;color:var(--switch-off)}
+.sorts span.on{color:var(--ink)}
+.sorts span.on::after{content:"";position:absolute;left:0;bottom:-1px;width:28px;height:2px;background:var(--switch-mark)}
+.qf{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.qf span{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 11px;border-radius:16px;border:1px solid #C9CEC7;font-size:12px;color:#3f4441;background:#FFFFFF90}
+.qf span.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.qf span.on::before{content:"✓";font-size:10px}
+.qf .grp{font-size:9px;letter-spacing:1.05px;text-transform:uppercase;color:var(--kicker);border:0;background:none;padding:0 2px 0 0;min-height:32px}
+.qf .grp::before{content:none}
+.count-line{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin:0 0 4px}
+.count-line b{color:var(--ink);font-weight:600}
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--hair)}
+.list li{display:flex;align-items:center;gap:12px;min-height:76px;padding:8px 0;border-bottom:.5px solid var(--hair)}
+.list img{width:40px;height:60px;object-fit:cover;border-radius:2px;box-shadow:0 1px 2px #242C2514;flex:none}
+.list .x{flex:1;min-width:0}
+.list .x b{display:block;font-size:15px;font-weight:500;letter-spacing:-.2px;line-height:1.25}
+.list .x small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.busy{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 0 8px;font-size:10px;color:var(--muted)}
+.busy .scrub{margin:0}
+.mood-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:2px 0 4px}
+.mood-hero h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.85px}
+.mini-switch{display:flex;gap:14px;font-size:12px;font-weight:800;letter-spacing:-.2px;text-transform:uppercase;color:var(--switch-off)}
+.mini-switch span{position:relative;padding-bottom:5px}
+.mini-switch span.on{color:var(--ink)}
+.mini-switch span.on::after{content:"";position:absolute;left:0;bottom:0;width:16px;height:2px;background:var(--ink)}
+
+/* Annotation panel */
+.doc table.copy td:first-child{width:24%}
+.doc .two{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+@media (max-width:820px){.doc .two{grid-template-columns:1fr}}
+/* render fixes */
+.ml{display:inline !important;margin-top:0 !important}
+.path .pn b .nd{display:inline-block;margin:0 0 0 5px}
+.spread .sp .plan-key{color:#36433A;flex:none;margin:0;font-size:11px;line-height:normal;display:inline-flex}
+
+</style>
+</head>
+<body>
+<header class="studio-head">
+  <div class="eyebrow">Discover usability · direction G · 2026-11-04</div>
+  <h1>Guided: a short, finishable issue.</h1>
+  <p>Moods and a clear index lead the page. Today’s issue is a numbered path of six sections, each answering one question. The path pins as a compact index while you scroll, ticks off what you have read, and ends with “You’re caught up for today.” Every card is one tap to open plus one Plan key. Long-press opens a preview with Seen it and Not interested, which remove the title at once and teach Taste.</p>
+  <p>Built only from Home grammar (canvas #FFFEF8 / #F5F5F3, 24/−0.85 headings, 9/1.05 eyebrows, glance-card face, KuroKeyFace light keys, TastePlanKey, TastePlanToastView, 28 × 2 switch mark). Artwork comes from the prototype assets and their ArtworkMaterial values. No series appears twice in any frame (R2 applied to the mockup itself).</p>
+  <div class="rule"></div>
+  <ul class="rules">
+    <li><b>R1</b>one question per section</li><li><b>R2</b>never the same series twice</li><li><b>R3</b>tap = open, one Plan key, rest in long-press</li><li><b>R4</b>haptic + stamp + Undo</li><li><b>R5</b>feedback changes the page</li><li><b>R6</b>plain, local filters</li><li><b>R7</b>the page ends</li><li><b>R8</b>place respected</li>
+  </ul>
+</header>
+
+<div class="row-label">Discover page (pager page, no back control)</div>
+<div class="strip">
+
+  <!-- 1. All, top -->
+  <div class="cell">
+    <h3>1 · All, top: moods + today’s path</h3>
+    <p class="cap"><span class="it">4</span><span class="it">10</span><span class="it">6</span> Mood keys lead the page, under the switch. The cover story is shorter (2.6:1, facts in the foot). “Today’s issue” is now a numbered path of jump rows (↓ = scrolls to the section) with its question, count, and a 0-of-6 progress bar. Nothing is folded. The Airing-today glance moves to the Anime issue (frame 9). <b>R1, R7, R8.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening"><span class="eyebrow">Today’s issue · Tue 4 Nov</span><h2>Edited for you.</h2></div>
+        <div class="issue-switch" role="group" aria-label="Show">
+          <span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/journal-anime-15-banner.jpg)">All</span><span>Anime</span><span>Manga</span>
+        </div>
+
+        <div class="moods">
+          <div class="mh"><span class="eyebrow">In the mood for</span><small>Opens a short list</small></div>
+          <div class="mood-row">
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21087-B5DHjqZ3kW4b.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136807-KNfQQTRD4HUK.jpg" alt=""></span><span><b>Something short</b><small>Films, ≤ 12 eps, one-shots</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx98444-Vzysp1EsrzgD.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30104-sUVzNlTWZ5cu.jpg" alt=""></span><span><b>Cozy</b><small>Warm, low stakes</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31133-Jx6map3Oidz1.png" alt=""><img src="../../../tools/design-directions/assets/manga3.jpg" alt=""></span><span><b>Intense</b><small>Dark and gripping</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30003-E84fwIh22LAQ.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30745-kueBpwriQkvZ.jpg" alt=""></span><span><b>Like Monster</b><small>Your last 5 ★</small></span></span>
+          </div>
+        </div>
+
+        <article class="cover-story" style="--mb:#3c5870;--md:#253541">
+          <div class="cs-art" style="aspect-ratio:2.6/1"><img src="../../../tools/design-directions/assets/journal-anime-15-banner.jpg" alt=""><span class="rim"></span>
+            <span class="tab"><small>Today’s</small><b>pick</b></span></div>
+          <div class="foot">
+            <div class="t"><b>Your Name.</b><span><span class="ml on-art">Anime</span>2016 · Film · 1 h 46 min</span></div>
+            <span class="div"></span>
+            <div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div>
+          </div>
+        </article>
+
+        <div class="path" style="margin-top:12px">
+          <div class="ph"><span class="eyebrow">Today’s issue · 6 sections</span><small>About 4 min · new each morning</small></div>
+          <ol>
+            <li><span class="n">01</span><span class="pn"><b>New to you <span class="nd"></span></b><span>Series you haven’t seen yet</span></span><span class="cnt">4</span><span class="go">↓</span></li>
+            <li><span class="n">02</span><span class="pn"><b>This season <span class="nd"></span></b><span>What’s airing right now</span></span><span class="cnt">10</span><span class="go">↓</span></li>
+            <li><span class="n">03</span><span class="pn"><b>Essential anime</b><span>The canon · you’ve seen 3 of 8</span></span><span class="cnt">8</span><span class="go">↓</span></li>
+            <li><span class="n">04</span><span class="pn"><b>Manga new to you</b><span>Manga you haven’t opened</span></span><span class="cnt">4</span><span class="go">↓</span></li>
+            <li><span class="n">05</span><span class="pn"><b>Trending</b><span>What Kuro is watching this week</span></span><span class="cnt">10</span><span class="go">↓</span></li>
+            <li><span class="n">06</span><span class="pn"><b>Classics</b><span>Older series still worth an evening</span></span><span class="cnt">5</span><span class="go">↓</span></li>
+          </ol>
+          <div class="prog"><span class="segs"><i></i><i></i><i></i><i></i><i></i><i></i></span><small>0 of 6 read</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. All, scrolled: pinned index + markers -->
+  <div class="cell">
+    <h3>2 · All, scrolled: pinned index + “new” markers</h3>
+    <p class="cap"><span class="it">10</span><span class="it">8</span><span class="it">11</span><span class="it">1</span> Once the path card scrolls away, it pins as a compact index under the header. Read sections get ✓, the current one gets the 28 × 2 mark, and tapping a word jumps. Tapping “Discover” in the header scrolls to the top. “3 new since your last visit” and the corner word NEW come from an on-device content hash, per account. Every card in All carries ANIME or MANGA. A title already on your list keeps its status word here (“Watching · Ep 7”) because This season is not a personal section. <b>R1, R2, R8.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="pin"><div class="track"><span class="read"><i>01</i>New to you</span><span class="on"><i>02</i>This season</span><span><i>03</i>Essential anime</span><span><i>04</i>Manga new to you</span><span><i>05</i>Trending</span></div><span class="of">2 / 6</span></div>
+      <span class="anno" data-n="a" style="top:62px;left:112px">Tap “Discover” → back to top</span>
+      <div class="content" style="top:143px;padding-top:0">
+        <div class="trio" style="margin-top:-150px">
+          <div class="c"><img src="../../../tools/design-directions/assets/anime3.jpg" alt=""><b>Death Note</b><small><span class="ml">Anime</span>2006 · TV · 37 eps</small></div>
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9253-tIUXF2gfU8Sg.jpg" alt=""><b>Steins;Gate</b><small><span class="ml">Anime</span>2011 · TV</small></div>
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21827-ubzq619ZA2E9.png" alt=""><b>Violet Evergarden</b><small><span class="ml">Anime</span>2018 · TV</small></div>
+        </div>
+        <span class="text-action">See all 4 ›</span>
+
+        <div style="margin-top:20px">
+          <div class="sec-head"><h2><span class="sec-num">02</span>This season.</h2><small><span class="nd"></span>3 new since your last visit</small></div>
+          <p class="sec-q">What’s airing right now, newest episode first.</p>
+          <div class="refine"><span class="on">All</span><span>Airing</span><span>Under 13 episodes</span><span>Just started</span></div>
+          <div class="rail">
+            <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg" alt=""><span class="new-tag">New</span><b>Frieren</b><small><span class="ml">Anime</span>Ep. 4 on Fri</small></div>
+            <div class="c"><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""><span class="new-tag">New</span><b>Jujutsu Kaisen</b><small><span class="ml">Anime</span>Ep. 9 on Thu</small></div>
+            <div class="c"><img src="../../../tools/design-directions/assets/anime0.jpg" alt=""><b>Attack on Titan</b><small><span class="ml">Anime</span>Final season</small><span class="mark">Watching · Ep 7</span></div>
+            <div class="c"><img src="../../../tools/design-directions/assets/anime1.jpg" alt=""><span class="new-tag">New</span><b>Demon Slayer</b><small><span class="ml">Anime</span>Ep. 2 today</small></div>
+          </div>
+          <span class="text-action">See all 10 ›</span>
+        </div>
+
+        <div style="margin-top:20px">
+          <div class="sec-head"><h2><span class="sec-num">03</span>Essential anime.</h2><small>The canon, in our order</small></div>
+          <p class="sec-q">Which series should everyone see once?</p>
+          <div class="hook"><span class="hc"><b>You’ve seen 3 of 8</b><small>5 to go · in order</small></span><span class="ticks"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Long-press preview -->
+  <div class="cell">
+    <h3>3 · Long-press preview</h3>
+    <p class="cap"><span class="it">2</span><span class="it">3</span> iOS <code>contextMenu(menuItems:preview:)</code> on any Discover, See all or mood-journey card. The preview shows the artwork, facts, the synopsis, and why the title is here. Menu: <b>Plan to watch</b> (the same TastePlanKey action), <b>Seen it</b>, <b>Not interested</b>, Add to club…, Open. Tapping the preview opens the title as a journey (navigation contract). <b>R3.</b></p>
+    <div class="phone">
+      <div class="blurred">
+        <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+        <div class="content">
+          <div class="sec-head" style="margin-top:8px"><h2>New to you.</h2><small>Unseen by you · new each day</small></div>
+          <article class="cover-story" style="--mb:#493146;--md:#2c212c">
+            <div class="cs-art" style="aspect-ratio:3.25/1"><img src="../../../tools/design-directions/assets/journal-anime-22-banner.jpg" alt=""></div>
+            <div class="foot"><div class="t"><b>Mob Psycho 100</b><span>2016 · TV · 12 eps</span></div></div>
+          </article>
+          <div class="trio">
+            <div class="c"><img src="../../../tools/design-directions/assets/anime3.jpg" alt=""><b>Death Note</b></div>
+            <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9253-tIUXF2gfU8Sg.jpg" alt=""><b>Steins;Gate</b></div>
+            <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21827-ubzq619ZA2E9.png" alt=""><b>Violet Evergarden</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="dim"></div>
+      <div class="preview">
+        <div class="pa"><img src="../../../tools/design-directions/assets/anime3-banner.jpg" alt=""></div>
+        <div class="pb">
+          <span class="f"><span class="ml">Anime</span>2006 · TV · 37 eps · Finished</span>
+          <h4>Death Note</h4>
+          <p>A bored student finds a notebook that kills anyone whose name he writes in it, and a detective starts closing in.</p>
+          <span class="why">Here because: you finished Monster · 2 in your clubs</span>
+        </div>
+      </div>
+      <div class="menu">
+        <div><span class="lbl">Plan to watch</span><svg viewBox="0 0 18 18"><path d="M5 2.5h8v13l-4-3-4 3z"/></svg></div>
+        <div><span class="lbl">Seen it<small>Shows less like it · can add as Completed</small></span><svg viewBox="0 0 18 18"><path d="M1.5 9s2.8-5 7.5-5 7.5 5 7.5 5-2.8 5-7.5 5-7.5-5-7.5-5z"/><circle cx="9" cy="9" r="2.2"/></svg></div>
+        <div><span class="lbl">Not interested<small>Hides it and teaches your taste</small></span><svg viewBox="0 0 18 18"><path d="M1.5 9s2.8-5 7.5-5c1.4 0 2.6.4 3.7 1M16.5 9s-2.8 5-7.5 5c-1.4 0-2.6-.4-3.7-1"/><path d="M3 15L15 3"/></svg></div>
+        <div class="gap"></div>
+        <div><span class="lbl">Add to club…</span><svg viewBox="0 0 18 18"><circle cx="6.5" cy="7" r="2.5"/><circle cx="12" cy="7.5" r="2"/><path d="M2 15c.6-2.6 2.4-4 4.5-4s3.9 1.4 4.5 4M12.5 11c1.8.2 3 1.4 3.5 3.5"/></svg></div>
+        <div><span class="lbl">Open</span><svg viewBox="0 0 18 18"><path d="M7 3H3v12h12v-4M10 2.5h5.5V8M15.5 2.5L8 10"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Not interested removal + Undo -->
+  <div class="cell">
+    <h3>4 · Not interested: gone now, Undo for 6 s</h3>
+    <p class="cap"><span class="it">3</span><span class="it">1</span> Death Note collapses out of the row with a light haptic and the <code>.kuroConfirmStamp</code>. The next unseen title that is not a duplicate (ERASED) slides in on <code>KuroMotion.settle</code>, which is skipped under Reduce Motion. The signal is <code>TasteStore.submitSignal(…, .pass)</code>. A local hidden-set keeps it hidden across launches until the server excludes it. Undo sends <code>.retract</code> and puts the title back in its old place. <b>R4, R5, R2.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="pin"><div class="track"><span class="on"><i>01</i>New to you</span><span><i>02</i>This season</span><span><i>03</i>Essential anime</span><span><i>04</i>Manga new to you</span></div><span class="of">1 / 6</span></div>
+      <div class="content" style="top:143px;padding-top:14px">
+        <div class="sec-head"><h2><span class="sec-num">01</span>New to you.</h2><small><span class="nd"></span>2 new since your last visit</small></div>
+        <p class="sec-q">Series you haven’t seen yet. A new set each morning.</p>
+        <article class="cover-story" style="--mb:#493146;--md:#2c212c">
+          <div class="cs-art" style="aspect-ratio:3.25/1"><img src="../../../tools/design-directions/assets/journal-anime-22-banner.jpg" alt=""><span class="rim"></span></div>
+          <div class="foot"><div class="t"><b>Mob Psycho 100</b><span><span class="ml on-art">Anime</span>2016 · TV · 12 eps</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+        </article>
+        <div class="trio">
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9253-tIUXF2gfU8Sg.jpg" alt=""><b>Steins;Gate</b><small><span class="ml">Anime</span>2011 · TV</small></div>
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21827-ubzq619ZA2E9.png" alt=""><b>Violet Evergarden</b><small><span class="ml">Anime</span>2018 · TV</small></div>
+          <div class="c entering"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21234-XmqW39aQ9o7O.jpg" alt=""><b>ERASED</b><small><span class="ml">Anime</span>2016 · TV · 12 eps</small></div>
+        </div>
+        <span class="text-action">See all 4 ›</span>
+        <div class="sec-head" style="margin-top:20px"><h2><span class="sec-num">02</span>This season.</h2><small>Airing now</small></div>
+      </div>
+      <span class="anno" data-n="b" style="top:604px;left:236px">slides in · settle 220 ms</span>
+      <div class="toast"><span>Hidden. You’ll see less like Death Note.</span><b>Undo</b><i>✕</i></div>
+    </div>
+    <p class="cap" style="margin-top:14px"><b>Seen it</b> variant: same removal, signal <code>.known</code>. The toast offers “Add as Completed”, which opens the tracking editor through <code>routes.presentTrackingEditor</code> pre-set to Completed. No status is ever written silently.</p>
+    <div class="toast toast-sample"><span>Marked as seen.</span><b class="sep">Add as Completed</b><b>Undo</b><i>✕</i></div>
+  </div>
+
+  <!-- 5. Essentials + progress hook -->
+  <div class="cell">
+    <h3>5 · Essentials: “You’ve seen 3 of 8”</h3>
+    <p class="cap"><span class="it">9</span><span class="it">1</span> The progress hook counts list entries with status Completed (or Watching) against the curated list. Titles you own stay in place with their status word (the lead’s “mark, don’t hide” rule for essentials). One row has just been planned: dark face, “On your list”, a stamp ring, a haptic, and a toast with Undo. Section 04 below shows MANGA labels. <b>R2, R3, R4.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="pin"><div class="track"><span class="read"><i>01</i>New to you</span><span class="read"><i>02</i>This season</span><span class="on"><i>03</i>Essential anime</span><span><i>04</i>Manga new to you</span></div><span class="of">3 / 6</span></div>
+      <div class="content" style="top:143px;padding-top:14px">
+        <div class="sec-head"><h2><span class="sec-num">03</span>Essential anime.</h2><small>The canon, in our order</small></div>
+        <p class="sec-q">Which series should everyone see once?</p>
+        <div class="hook"><span class="hc"><b>You’ve seen 3 of 8</b><small>5 to go · Fullmetal Alchemist is next</small></span><span class="ticks"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span></div>
+        <ol class="index">
+          <li><span class="n">01</span><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1-GCsPm7waJ4kS.png" alt=""><span class="x"><b>Cowboy Bebop</b><small><span class="ml">Anime</span>1998 · TV · 26 eps</small></span><span class="state-word">✓ Completed</span></li>
+          <li><span class="n">02</span><img src="../../../tools/design-directions/assets/journal-anime-12-cover.jpg" alt=""><span class="x"><b>Fullmetal Alchemist: Brotherhood</b><small><span class="ml">Anime</span>2009 · TV · 64 eps</small></span><span class="plan-key leaf saved stamp-ring">On your list<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+          <li><span class="n">03</span><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11061-y5gsT1hoHuHw.png" alt=""><span class="x"><b>Hunter x Hunter</b><small><span class="ml">Anime</span>2011 · TV · 148 eps</small></span><span class="state-word">✓ Completed</span></li>
+          <li><span class="n">04</span><img src="../../../tools/design-directions/assets/journal-anime-16-cover.jpg" alt=""><span class="x"><b>A Silent Voice</b><small><span class="ml">Anime</span>2016 · Film</small></span><span class="plan-key leaf">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+          <li><span class="n">05</span><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx19-gtMC64182sm4.jpg" alt=""><span class="x"><b>Monster</b><small><span class="ml">Anime</span>2004 · TV · 74 eps</small></span><span class="state-word">✓ Completed</span></li>
+        </ol>
+        <span class="text-action">See all 8 ›</span>
+        <div class="sec-head" style="margin-top:16px"><h2><span class="sec-num">04</span>Manga new to you.</h2><small>Unseen by you</small></div>
+        <p class="sec-q">Manga you haven’t opened, picked from what you read.</p>
+        <div class="trio" style="margin-top:0">
+          <div class="c"><img src="../../../tools/design-directions/assets/journal-manga-16-cover.jpg" alt=""><b>Vinland Saga</b><small><span class="ml">Manga</span>2005</small></div>
+          <div class="c"><img src="../../../tools/design-directions/assets/journal-manga-14-cover.png" alt=""><b>Vagabond</b><small><span class="ml">Manga</span>1998</small></div>
+          <div class="c"><img src="../../../tools/design-directions/assets/journal-manga-23-cover.jpg" alt=""><b>Dandadan</b><small><span class="ml">Manga</span>2021</small></div>
+        </div>
+      </div>
+      <div class="toast"><span>Added to your list.</span><b>Undo</b><i>✕</i></div>
+    </div>
+  </div>
+
+  <!-- 6. End state -->
+  <div class="cell">
+    <h3>6 · The end: “You’re caught up for today.”</h3>
+    <p class="cap"><span class="it">7</span><span class="it">6</span> Six sections and then an explicit end. This season and Classics are promoted out of the old fold. Top rated and Just added become sorts on See all (Top rated, Newest), so nothing is lost. The end has the six-segment bar filled and Browse and Search as link rows. The plain Trending filter words (“Under 13 episodes · 13 or more · Finished”) are shown on its See all page (frame 7), and This season’s words in frame 2. Then <code>HomeFooter</code>. <b>R6, R7.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="pin"><div class="track"><span class="read"><i>03</i>Essential anime</span><span class="read"><i>04</i>Manga new to you</span><span class="read"><i>05</i>Trending</span><span class="on"><i>06</i>Classics</span></div><span class="of">6 / 6</span></div>
+      <div class="content" style="top:143px;padding-top:0">
+        <div class="rail" style="margin-top:-150px">
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101921-ufrjLzhSz7L1.jpg" alt=""><b>Kaguya-sama: Love is War</b><small><span class="ml">Anime</span>2019 · TV</small></div>
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130003-HTDmeL4RGeJ4.png" alt=""><b>Bocchi the Rock!</b><small><span class="ml">Anime</span>2022 · TV</small><span class="mark">Completed</span></div>
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20464-ooZUyBe4ptp9.png" alt=""><b>Haikyu!!</b><small><span class="ml">Anime</span>2014 · TV</small></div>
+          <div class="c"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx127230-DdP4vAdssLoz.png" alt=""><b>Chainsaw Man</b><small><span class="ml">Anime</span>2022 · TV</small></div>
+        </div>
+        <span class="text-action">See all 10 ›</span>
+
+        <div style="margin-top:14px">
+          <div class="sec-head"><h2><span class="sec-num">06</span>Classics.</h2><small>Before 2010</small></div>
+          <p class="sec-q">Older series still worth an evening.</p>
+          <ol class="index">
+            <li><span class="n">01</span><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx457-l6cTtNgI9Bi6.png" alt=""><span class="x"><b>Mushishi</b><small><span class="ml">Anime</span>2005 · TV · 26 eps</small></span><span class="plan-key leaf">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+            
+          </ol>
+          <span class="text-action">See all 5 ›</span>
+        </div>
+
+        <div class="end">
+          <div class="r"></div>
+          <h3>You’re caught up for today.</h3>
+          <p>You read all 6 sections. A new issue arrives tomorrow morning.</p>
+          <span class="segs"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+          <div class="link-row"><span class="lr"><small>Everything</small><b>Browse the catalogue</b></span><span class="arr">→</span></div>
+          <div class="link-row"><span class="lr"><small>Something specific</small><b>Search</b></span><span class="arr">→</span></div>
+        </div>
+        <div class="home-footer"><span>Your pace. Your place.</span><b>KURO</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row-label">Journeys opened from Discover (sheet: grabber, ✕, no back on the first page; N3 · N8)</div>
+<div class="strip">
+
+  <!-- 7. See all -->
+  <div class="cell">
+    <h3>7 · See all: sort, plain filters, Plan keys, paging</h3>
+    <p class="cap"><span class="it">5</span><span class="it">6</span> A real page. Sort words (Popular · Newest · Top rated) use the switch rule, and the quick filters are plain capsules with a ✓ when selected. Changing a sort or filter keeps the page and only refines the list. Every row has one Plan key and the long-press preview. Rows page on scroll where the source pages (the Browse paging in <code>DiscoveryStore</code>), and otherwise the list just ends. Open pushes inside the journey (N9). Tools return here (N7). <b>R3, R6, R8.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="sheet"><span class="grabber"></span>
+        <div class="jbar"><b>Trending</b><span class="x"><i>✕</i></span></div>
+        <div class="jbody">
+          <p class="sec-q" style="margin:0 0 6px">What everyone on Kuro is watching this week.</p>
+          <div class="sorts"><span class="on">Popular</span><span>Newest</span><span>Top rated</span></div>
+          <div class="qf"><span class="grp">Format</span><span class="on">TV</span><span>Film</span><span class="grp">Length</span><span class="on">Under 13 episodes</span><span>13 or more</span><span class="grp">Status</span><span>Finished</span><span>Airing</span><span>Hide my list</span></div>
+          <div class="count-line"><span><b>42 titles</b> · TV · under 13 episodes</span><span>Clear</span></div>
+          <ul class="list">
+            <li><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101921-ufrjLzhSz7L1.jpg" alt=""><span class="x"><b>Kaguya-sama: Love is War</b><small>2019 · TV · 12 eps · Finished</small></span><span class="plan-key leaf">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+            <li><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130003-HTDmeL4RGeJ4.png" alt=""><span class="x"><b>Bocchi the Rock!</b><small>2022 · TV · 12 eps · Finished</small></span><span class="state-word">✓ Completed</span></li>
+            <li><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx127230-DdP4vAdssLoz.png" alt=""><span class="x"><b>Chainsaw Man</b><small>2022 · TV · 12 eps · Finished</small></span><span class="plan-key leaf saved">On your list<svg class="bm fill" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+            <li><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21087-B5DHjqZ3kW4b.jpg" alt=""><span class="x"><b>One-Punch Man</b><small>2015 · TV · 12 eps · Finished</small></span><span class="plan-key leaf">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+          </ul>
+          <div class="busy"><span class="scrub"></span><span>Loading 20 more</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Mood journey -->
+  <div class="cell">
+    <h3>8 · Mood journey: “Something short”</h3>
+    <p class="cap"><span class="it">4</span><span class="it">6</span> A mood key opens a filtered journey. Its first line says what the mood means in plain words. The filters are pre-set and visible, so the user can loosen them. Other moods sit at the top so the user can switch without leaving. The source is existing data only: the Concierge vibe <code>short_one_season</code>, plus format and episode counts. Owned and passed titles are hidden here (personal). <b>R1, R2, R6.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div>
+      <div class="backdrop"><div class="peek"></div></div>
+      <div class="sheet"><span class="grabber"></span>
+        <div class="jbar"><b>In the mood for</b><span class="x"><i>✕</i></span></div>
+        <div class="jbody">
+          <div class="mood-row" style="margin-bottom:14px">
+            <span class="mood on"><span><b>Something short</b><small>Films, ≤ 12 eps, one-shots</small></span></span>
+            <span class="mood"><span><b>Cozy</b><small>Warm, low stakes</small></span></span>
+            <span class="mood"><span><b>Intense</b><small>Dark and gripping</small></span></span>
+          </div>
+          <div class="mood-hero"><h2>Something short.</h2><span class="mini-switch"><span class="on">All</span><span>Anime</span><span>Manga</span></span></div>
+          <p class="sec-q" style="margin:4px 0 12px">Done in a weekend: a film, a finished series under 13 episodes, or a one-shot.</p>
+          <div class="qf"><span class="on">Under 13 episodes</span><span class="on">Films &amp; one-shots</span><span class="on">Finished</span><span>Hide my list</span></div>
+          <article class="cover-story" style="--mb:#314649;--md:#202c2e">
+            <div class="spread" style="max-height:none;border-radius:0">
+              <img src="../../../tools/design-directions/assets/journal-anime-16-cover.jpg" alt="" style="width:104px;height:156px">
+              <div class="sp"><small class="k">Start here</small><b>A Silent Voice</b><span>A former bully tries to make amends with the deaf girl he drove away.</span><div class="bot"><span><span class="ml on-art">Anime</span>Film · 2 h 10 min</span></div></div>
+            </div>
+            <div class="foot" style="min-height:52px"><div class="t" style="padding:8px 10px 8px 0"><span style="margin:0">Because you finished Your Name.</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+          </article>
+          <ul class="list" style="margin-top:12px">
+            <li><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21234-XmqW39aQ9o7O.jpg" alt=""><span class="x"><b>ERASED</b><small><span class="ml">Anime</span>2016 · TV · 12 eps · Finished</small></span><span class="plan-key leaf">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+            <li><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136807-KNfQQTRD4HUK.jpg" alt=""><span class="x"><b>Look Back</b><small><span class="ml">Manga</span>2021 · One-shot · 1 ch.</small></span><span class="plan-key leaf">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row-label">Issue segments</div>
+<div class="strip">
+
+  <!-- 9. Anime segment -->
+  <div class="cell">
+    <h3>9 · Anime issue</h3>
+    <p class="cap"><span class="it">4</span><span class="it">10</span> The same guided top. The moods are anime-scoped, Airing today keeps its glance, and the path lists the anime issue’s five sections (Because you finished Monster takes New to you’s slot when there is a recent 5 ★ finish). The personal mood reads “Like Monster” because Monster is the last title rated 5 ★ (taste profile, Because-you seed). With no rated title, it falls back to “Like the last thing you loved” and opens the Taste deck seed. Cards carry no ANIME label in a single-medium issue. <b>R1, R7.</b></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening"><span class="eyebrow">Today’s issue · Tue 4 Nov</span><h2>Edited for you.</h2></div>
+        <div class="issue-switch"><span>All</span><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/anime1-banner.jpg)">Anime</span><span>Manga</span></div>
+        <div class="moods">
+          <div class="mh"><span class="eyebrow">In the mood for</span><small>Anime only</small></div>
+          <div class="mood-row">
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21087-B5DHjqZ3kW4b.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130003-HTDmeL4RGeJ4.png" alt=""></span><span><b>Something short</b><small>Under 13 episodes</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx98444-Vzysp1EsrzgD.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx457-l6cTtNgI9Bi6.png" alt=""></span><span><b>Cozy</b><small>Warm, low stakes</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9253-tIUXF2gfU8Sg.jpg" alt=""></span><span><b>Intense</b><small>Dark and gripping</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21234-XmqW39aQ9o7O.jpg" alt=""></span><span><b>Like Monster</b><small>Your last 5 ★</small></span></span>
+          </div>
+        </div>
+        <article class="cover-story" style="--mb:#28484b;--md:#1c2d2e">
+          <div class="cs-art" style="aspect-ratio:2.6/1"><img src="../../../tools/design-directions/assets/anime1-banner.jpg" alt=""><span class="rim"></span><span class="tab"><small>Today’s</small><b>pick</b></span></div>
+          <div class="foot"><div class="t"><b>Demon Slayer</b><span>2019 · TV · 26 eps</span></div><span class="div"></span><div class="k k-plan"><span class="plan-key">Plan to watch<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+        </article>
+        <div class="glance" style="margin-top:12px">
+          <div class="g-copy"><b>Airing today</b><span>Next: Jujutsu Kaisen · Ep. 9 at 17:30 · Frieren at 23:00</span></div>
+          <div class="thumbs"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg" alt=""><img src="../../../tools/design-directions/assets/anime2.jpg" alt=""></div>
+          <div class="count"><b>2</b><small>today</small></div><span class="chev">›</span>
+        </div>
+        <div class="path" style="margin-top:12px">
+          <div class="ph"><span class="eyebrow">Today’s issue · 5 sections</span><small>About 4 min</small></div>
+          <ol>
+            <li><span class="n">01</span><span class="pn"><b>Because you finished Monster <span class="nd"></span></b><span>Close in tone, unseen by you</span></span><span class="cnt">4</span><span class="go">↓</span></li>
+            <li><span class="n">02</span><span class="pn"><b>This season</b><span>What’s airing right now</span></span><span class="cnt">10</span><span class="go">↓</span></li>
+            <li><span class="n">03</span><span class="pn"><b>Essential anime</b><span>The canon · you’ve seen 3 of 8</span></span><span class="cnt">8</span><span class="go">↓</span></li>
+            <li><span class="n">04</span><span class="pn"><b>Trending</b><span>What Kuro is watching this week</span></span><span class="cnt">10</span><span class="go">↓</span></li>
+            <li><span class="n">05</span><span class="pn"><b>Classics</b><span>Older series still worth an evening</span></span><span class="cnt">5</span><span class="go">↓</span></li>
+          </ol>
+          <div class="prog"><span class="segs"><i></i><i></i><i></i><i></i><i></i></span><small>0 of 5 read</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Manga segment -->
+  <div class="cell">
+    <h3>10 · Manga issue</h3>
+    <p class="cap"><span class="it">4</span><span class="it">9</span> Canvas #F5F5F3. The moods use reading words (“One-volume reads”, chapters not episodes). The cover story is the manga spread fallback with “Plan to read”. The manga issue has four sections: New to you, Essential manga (with its own “You’ve read 2 of 8”), Trending manga, Classics. Top rated and Just added live as sorts on See all. <b>R1, R7.</b></p>
+    <div class="phone manga">
+      <div class="status"><span>9:41</span><i>▮▮▮ ▰</i></div><div class="app-header"><span class="wordmark">KURO</span><span class="page-name">Discover<span class="dots"><b></b><b></b><b class="on"></b><b></b><b></b></span></span><span class="hdr-icons"><span class="hdr-btn" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#252625" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l3.6 3.6"/></svg></span><span class="hdr-btn"><span class="ring">M</span></span></span></div>
+      <div class="content">
+        <div class="opening"><span class="eyebrow">Today’s issue · Tue 4 Nov</span><h2>Edited for you.</h2></div>
+        <div class="issue-switch"><span>All</span><span>Anime</span><span class="on" style="background-image:linear-gradient(#253A2A70,#15221Cb0),url(../../../tools/design-directions/assets/manga0-banner.jpg)">Manga</span></div>
+        <div class="moods">
+          <div class="mh"><span class="eyebrow">In the mood for</span><small>Manga only</small></div>
+          <div class="mood-row">
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136807-KNfQQTRD4HUK.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146983-pLf4apCkFwKL.jpg" alt=""></span><span><b>One-volume reads</b><small>Done in an evening</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30104-sUVzNlTWZ5cu.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx98263-kIeaTXrAbGkj.jpg" alt=""></span><span><b>Cozy</b><small>Warm, low stakes</small></span></span>
+            <span class="mood"><span class="ms"><img src="../../../tools/design-directions/assets/manga3.jpg" alt=""><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31133-Jx6map3Oidz1.png" alt=""></span><span><b>Intense</b><small>Dark and gripping</small></span></span>
+            <span class="mood"><span class="ms"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx46765-KPXir4sRqJBW.png" alt=""></span><span><b>Like Vinland Saga</b><small>Your last 5 ★</small></span></span>
+          </div>
+        </div>
+        <div class="spread" style="--mb:#493431;--md:#2c2321">
+          <img src="../../../tools/design-directions/assets/manga0.jpg" alt="">
+          <div class="sp"><small class="k">Today’s pick</small><b>Chainsaw Man</b><span>A broke devil hunter fuses with his chainsaw dog and gets hired by the people he feared.</span><div class="bot"><span>2018 · 160+ ch.</span><span class="plan-key">Plan to read<svg class="bm" viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1.5h8v11L6 9.6 2 12.5z"/></svg></span></div></div>
+        </div>
+        <div class="path" style="margin-top:12px">
+          <div class="ph"><span class="eyebrow">Today’s issue · 4 sections</span><small>About 3 min</small></div>
+          <ol>
+            <li><span class="n">01</span><span class="pn"><b>Manga new to you <span class="nd"></span></b><span>Manga you haven’t opened</span></span><span class="cnt">4</span><span class="go">↓</span></li>
+            <li><span class="n">02</span><span class="pn"><b>Essential manga</b><span>The canon · you’ve read 2 of 8</span></span><span class="cnt">8</span><span class="go">↓</span></li>
+            <li><span class="n">03</span><span class="pn"><b>Trending manga</b><span>What Kuro is reading this week</span></span><span class="cnt">10</span><span class="go">↓</span></li>
+            <li><span class="n">04</span><span class="pn"><b>Classics</b><span>Older series still worth a read</span></span><span class="cnt">5</span><span class="go">↓</span></li>
+          </ol>
+          <div class="prog"><span class="segs"><i></i><i></i><i></i><i></i></span><small>0 of 4 read</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ Annotation panel ============================ -->
+<div class="doc">
+  <section class="wide">
+    <h2>Build items → where they show</h2>
+    <table class="copy">
+      <tr><th>Item</th><th>Guided answer</th><th>Frame</th></tr>
+      <tr><td>1 Franchise dedupe + owned rule</td><td>One pass over the issue in curated order (<code>DiscoverIssueSections</code>): the first section to claim a franchise keeps it. The key is the relation root from <code>get_media_ladder</code>, or the series group (<code>SeriesGrouping</code>), with the title id as fallback. Anime and manga of the same franchise count as one on All. Owned: hidden in New to you / Because you / Manga new to you / mood journeys; marked with the status word in Essentials, This season, Trending, Classics.</td><td>2, 4, 5, 6</td></tr>
+      <tr><td>2 Long-press preview</td><td><code>.contextMenu(menuItems:preview:)</code>: artwork, facts, synopsis, “Here because”. Menu: Plan · Seen it · Not interested · Add to club… · Open. Used on Discover cards, See all rows, mood-journey rows, and Home-grammar rails on Discover. All routes go through the pager tap gate.</td><td>3</td></tr>
+      <tr><td>3 Not interested / Seen it</td><td><code>TasteStore.submitSignal(.pass / .known)</code>, Undo = <code>.retract</code>, all existing actions. A local per-account hidden-set (cache) removes the title at once and across launches. Seen it’s toast offers “Add as Completed” → tracking editor route.</td><td>3, 4</td></tr>
+      <tr><td>4 Mood entry points</td><td>Four keys under the switch. Something short = vibe <code>short_one_season</code> + format/episodes ≤ 12 or Film. Cozy = <code>cozy_comfort</code>. Intense = <code>dark_serious</code>. “Like {title}” = the taste profile / Because-you seed (the last title rated 5 ★). Manga adds “One-volume reads” (volumes ≤ 1 or finished ≤ 20 ch.). Each opens a journey page.</td><td>1, 8, 9, 10</td></tr>
+      <tr><td>5 Real See all</td><td>Sort words, plain capsule filters (format / length / status / hide my list), Plan keys, preview, paging.</td><td>7</td></tr>
+      <tr><td>6 Purpose + because + filter words</td><td>Every section gets a number, a 24 pt heading, and a 12 pt question line. Personal sections are titled with the reason. Trending is “Under 13 episodes · 13 or more · Finished”.</td><td>2, 4, 6, 9</td></tr>
+      <tr><td>7 End state, fewer folded sections</td><td>No fold. Six sections at most (flagged Tonight’s shelf / Hidden gem take Classics’ slot), then “You’re caught up for today.”</td><td>6</td></tr>
+      <tr><td>8 New since your last visit</td><td>An on-device per-account store (section id → content hash + item ids seen) gives the “● N new” summary, the NEW corner word and the path dot. It updates when a section scrolls fully into view. Nothing is sent to the server.</td><td>1, 2, 4</td></tr>
+      <tr><td>9 Progress hook</td><td>“You’ve seen 3 of 8” = curated items whose <code>LibraryStore</code> status is Completed (anime) / read (manga), with eight ticks. Shown only when ≥ 1.</td><td>2, 5, 10</td></tr>
+      <tr><td>10 Header to top + index</td><td>Tap “Discover” in <code>KuroHeaderNew</code> (only while Discover is current) → scroll to top. The path card is the jump index. When it leaves the viewport, a 42 pt pinned track replaces it.</td><td>1, 2, 4, 5, 6</td></tr>
+      <tr><td>11 ANIME/MANGA labels</td><td>8 pt caps word before the facts on every All card. Not shown in a single-medium issue.</td><td>2, 4, 5</td></tr>
+      <tr><td>12 Telemetry</td><td>Existing owners only (<code>InteractionTelemetry</code>, <code>ConciergeAnalytics</code>): <code>discover_scroll_depth</code> (sections reached 0–6, end reached), <code>discover_taps_per_visit</code>, <code>discover_plan</code>, <code>discover_not_interested</code> / <code>discover_seen</code> / <code>…_undo</code>, <code>discover_open_bounce</code> (opened and closed &lt; 5 s), <code>discover_mood_open</code>. Section id + media id only, the existing pattern. No new third party.</td><td>—</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Rules used</h2>
+    <ul>
+      <li><b>Path cap:</b> All has 6 sections. Anime has 5. Manga has 4. Top rated and Just added become sorts.</li>
+      <li><b>Read</b> = the section’s last row has scrolled above the pinned track once in this visit. The bar is per visit (reset each morning with the issue).</li>
+      <li><b>Removal never re-lays out the page above the viewport.</b> Only the affected section closes up. Scroll position and segment are kept (R8).</li>
+      <li><b>Haptics:</b> light on Plan / mood / sort, soft on Not interested / Seen it. The stamp and the slide-in are skipped under Reduce Motion / Low Power.</li>
+      <li><b>States:</b> the moods and the path are skeletons of their own shapes (<code>KuroSkeleton</code>). A mood journey that returns nothing says so in a <code>HomeQuietCard</code> (“Nothing short left that you haven’t seen.”) and offers to loosen one filter.</li>
+      <li><b>Accessibility:</b> the path rows are buttons (“Jump to New to you, 4 titles”). The pinned track is a tab-like group. The preview menu actions are also offered as VoiceOver custom actions on every card.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Open items (need checking)</h2>
+    <ul>
+      <li>We have not checked whether <code>fetch_discover_bundle</code> / the New-to-you RPCs already exclude <code>pass</code> / <code>known</code> deck signals on the server. If they don’t, a <b>prepared</b> RPC change in <code>supabase/prepared-migrations/</code> is needed. Until then, the local hidden-set does the hiding.</li>
+      <li>We have not checked whether mood journeys can use <code>media_realm_membership</code> directly or need a small read RPC (prepared only). The fallback is a client filter over the Browse paging with format/episode filters.</li>
+      <li>The franchise key: confirm that the relation root is available on Discover cards without an extra round trip. If not, use <code>SeriesGrouping</code> on titles, then fall back to the id.</li>
+      <li>Owner call: should Essential manga stay off the All issue (it lives in Manga)? It keeps All at six.</li>
+    </ul>
+  </section>
+
+  <section class="wide">
+    <h2>New copy (EN / DE)</h2>
+    <table class="copy">
+      <tr><th>Key</th><th>English</th><th>Deutsch</th></tr>
+      <tr><td>moods.eyebrow</td><td>In the mood for</td><td>Lust auf</td></tr>
+      <tr><td>mood.short</td><td>Something short · Under 13 episodes (Anime) / Films, ≤ 12 eps, one-shots (All)</td><td>Etwas Kurzes · Unter 13 Folgen / Filme, ≤ 12 Folgen, Einzelbände</td></tr>
+      <tr><td>mood.cozy</td><td>Cozy · Warm, low stakes</td><td>Gemütlich · Warm und entspannt</td></tr>
+      <tr><td>mood.intense</td><td>Intense · Dark and gripping</td><td>Intensiv · Düster und packend</td></tr>
+      <tr><td>mood.like</td><td>Like {title} · Your last 5 ★ / Like the last thing you loved</td><td>Wie {Titel} · Dein letztes 5 ★ / Wie dein letzter Liebling</td></tr>
+      <tr><td>mood.oneVolume</td><td>One-volume reads · Done in an evening</td><td>Ein-Band-Lektüre · An einem Abend durch</td></tr>
+      <tr><td>mood.short.line</td><td>Finished in a weekend: a film, or a finished series under 13 episodes.</td><td>An einem Wochenende durch: ein Film oder eine abgeschlossene Serie unter 13 Folgen.</td></tr>
+      <tr><td>path.eyebrow</td><td>Today’s issue · {n} sections</td><td>Heutige Ausgabe · {n} Rubriken</td></tr>
+      <tr><td>path.progress</td><td>{r} of {n} read</td><td>{r} von {n} gelesen</td></tr>
+      <tr><td>section.new</td><td>{n} new since your last visit</td><td>{n} neu seit deinem letzten Besuch</td></tr>
+      <tr><td>card.new</td><td>New</td><td>Neu</td></tr>
+      <tr><td>q.newToYou</td><td>Series you haven’t seen yet. A new set each morning.</td><td>Serien, die du noch nicht kennst. Jeden Morgen neu.</td></tr>
+      <tr><td>q.season</td><td>What’s airing right now, newest episode first.</td><td>Was gerade läuft, neueste Folge zuerst.</td></tr>
+      <tr><td>q.essentials</td><td>Which series should everyone see once?</td><td>Welche Serien sollte jeder einmal sehen?</td></tr>
+      <tr><td>q.trending</td><td>What everyone on Kuro is watching this week.</td><td>Was diese Woche auf Kuro geschaut wird.</td></tr>
+      <tr><td>q.classics</td><td>Older series still worth an evening.</td><td>Ältere Serien, die einen Abend wert sind.</td></tr>
+      <tr><td>because</td><td>Because you finished {title}</td><td>Weil du {Titel} beendet hast</td></tr>
+      <tr><td>hook</td><td>You’ve seen {k} of {n} · {r} to go</td><td>{k} von {n} gesehen · noch {r}</td></tr>
+      <tr><td>hook.manga</td><td>You’ve read {k} of {n}</td><td>{k} von {n} gelesen</td></tr>
+      <tr><td>filter.length</td><td>Under 13 episodes · 13 or more · Finished · Airing · Hide my list</td><td>Unter 13 Folgen · 13 oder mehr · Abgeschlossen · Läuft · Meine Liste ausblenden</td></tr>
+      <tr><td>sort</td><td>Popular · Newest · Top rated</td><td>Beliebt · Neueste · Bestbewertet</td></tr>
+      <tr><td>menu</td><td>Plan to watch · Seen it · Not interested · Add to club… · Open</td><td>Vormerken · Schon gesehen · Kein Interesse · Zum Club hinzufügen … · Öffnen</td></tr>
+      <tr><td>toast.pass</td><td>Hidden. You’ll see less like {title}. · Undo</td><td>Ausgeblendet. Du siehst weniger wie {Titel}. · Rückgängig</td></tr>
+      <tr><td>toast.known</td><td>Marked as seen. · Add as Completed · Undo</td><td>Als gesehen markiert. · Als abgeschlossen eintragen · Rückgängig</td></tr>
+      <tr><td>end.title</td><td>You’re caught up for today.</td><td>Für heute bist du durch.</td></tr>
+      <tr><td>end.line</td><td>You read all {n} sections. A new issue arrives tomorrow morning.</td><td>Du hast alle {n} Rubriken gelesen. Morgen früh kommt eine neue Ausgabe.</td></tr>
+      <tr><td>end.links</td><td>Everything · Browse the catalogue / Something specific · Search</td><td>Alles · Den Katalog durchstöbern / Etwas Bestimmtes · Suche</td></tr>
+      <tr><td>moods.empty</td><td>Nothing short left that you haven’t seen.</td><td>Nichts Kurzes mehr, das du noch nicht kennst.</td></tr>
+    </table>
+  </section>
+</div>
+
+</body>
+</html>

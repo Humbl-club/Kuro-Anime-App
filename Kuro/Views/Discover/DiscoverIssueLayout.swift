@@ -27,10 +27,18 @@ nonisolated enum DiscoverIssueLayout {
     /// Above the first section after the contents line, then between sections (the calendar's 32).
     static let firstSection: CGFloat = 28
     static let section: CGFloat = 32
-    /// Above the fold.
-    static let fold: CGFloat = 24
     /// Section heading → its content (the calendar heading's 17).
     static let headingToContent: CGFloat = 17
+    /// Heading → purpose line, and purpose line → content (usability spec §5.6).
+    static let headingToPurpose: CGFloat = 6
+    static let purposeToContent: CGFloat = 14
+    /// Above the mood keys and above the end block (usability spec §4).
+    static let moods: CGFloat = 12
+    static let end: CGFloat = 32
+    /// Each section claims its shown titles plus this many unclaimed ones as its refill reserve (§5.1).
+    static let reserve = 6
+    /// At most this many sections on the page; the rest are More lists (R7, D7).
+    static let sectionCap = 6
 
     // MARK: Issue switch
 
@@ -110,6 +118,8 @@ nonisolated enum DiscoverIssueLayout {
     static let indexRowMinHeight: CGFloat = 76
     /// The index row's Plan key: at least 96 pt wide (84 compact), growing only for its label.
     static func indexKeyWidth(compact: Bool) -> CGFloat { compact ? 84 : 96 }
+    /// The widest an index row's key grows ("Plan to watch" fits; "Auf deiner Liste" scales down).
+    static func indexKeyMaxWidth(compact: Bool) -> CGFloat { compact ? 96 : 112 }
 
     /// The horizontal rails (Trending, Tonight's shelf, Manga new to you on All): covers 14 pt apart,
     /// up to 10, sized by the edge-peek rule (details-songs spec §5.1) so a slice of the next cover
@@ -125,8 +135,8 @@ nonisolated enum DiscoverIssueLayout {
         return CGSize(width: width, height: KuroRailPeek.coverHeight(width: width))
     }
 
-    /// The contents line names at most this many sections, then "+n more".
-    static let contentsNames = 5
+    /// A contents entry's row (usability spec §5.10).
+    static let contentsRow: CGFloat = 44
 
     /// A section with more items than it shows offers "See all".
     static func offersSeeAll(total: Int, shown: Int) -> Bool { total > shown }

@@ -75,16 +75,8 @@ struct DiscoverAfterSnapshotTests {
         await capture(pad, name: "discover-all-top-ipad")
         Self.close(pad)
 
-        // The fold opened (session memory, F3).
-        let folds = KuroFoldMemory()
-        folds.setExpanded(true, page: DiscoverIssueCopy.foldPage, section: DiscoverIssueCopy.foldSection)
-        let fold = Self.window(AnyView(Self.page(.all, graph: graph, monitor: monitor).environment(\.kuroFoldMemory, folds)),
-                               width: 390, height: 9_500)
-        try? await Task.sleep(for: .milliseconds(2_600))
-        let foldHeight = Self.contentHeight(in: fold)
-        Self.measure("discover-all-fold-open-full-390", foldHeight)
-        await capture(fold, name: "discover-all-fold-open-full-390", height: foldHeight)
-        Self.close(fold)
+        // The fold render ("discover-all-fold-open") is retired: the usability pass (2026-11-04, R7)
+        // removed the fold; the page ends after six sections (DiscoverUsabilitySnapshotTests).
 
         // Offline band over earlier content.
         let offlineMonitor = NetworkMonitor()
@@ -228,10 +220,10 @@ struct DiscoverAfterSnapshotTests {
         let first = try #require(cards.first)
         for (column, regular) in [(CGFloat(350), false), (CGFloat(288), false), (CGFloat(640), true)] {
             let sections: [(String, AnyView)] = [
-                ("trio", AnyView(DiscoverFeatureTrio(anchor: "t", title: "New to you.", summary: "Rotates daily",
-                                                     cards: cards, column: column, onSeeAll: {}))),
-                ("index", AnyView(DiscoverIndexSection(anchor: "i", title: "Essential anime.", summary: nil,
-                                                       cards: cards, column: column, onSeeAll: {}))),
+                ("trio", AnyView(DiscoverFeatureTrio(anchor: "t", title: "New to you.", purpose: "Rotates daily",
+                                                     cards: cards, total: cards.count, column: column, onSeeAll: {}))),
+                ("index", AnyView(DiscoverIndexSection(anchor: "i", title: "Essential anime.", purpose: nil,
+                                                       cards: cards, total: cards.count, column: column, onSeeAll: {}))),
                 ("lead", AnyView(DiscoverCoverStory(story: DiscoverStory(card: first, eyebrow: "Today's pick"),
                                                     kind: .lead, column: column))),
                 ("feature", AnyView(DiscoverCoverStory(story: DiscoverStory(card: first, eyebrow: "New to you."),

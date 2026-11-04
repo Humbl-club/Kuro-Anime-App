@@ -77,4 +77,20 @@ printf '%s' "$cursor" >"$CURSOR_FILE"
 printf '{"finished_at":"%s","status":"%s","next_after_id":%s}\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$status" "$cursor" >"$STATUS_FILE"
 log_line "theme pass finished: status=$status next_after_id=$cursor"
+
+# Apple song matches (artwork + 30 s preview) for new or 30-day-old theme rows, after the theme pass.
+# Skipped when the checked-out worker predates --apple; stops early when Apple rate-limits.
+APPLE_PASSES="${SERIES_APPLE_PASSES:-2}"
+if [[ "$status" == "success" && "$APPLE_PASSES" -gt 0 ]] && "$PYTHON" "$ROOT/scripts/series_enrichment_worker.py" --help 2>/dev/null | grep -q -- '--apple'; then
+  for ((pass = 1; pass <= APPLE_PASSES; pass++)); do
+    if ! apple="$("$PYTHON" "$ROOT/scripts/series_enrichment_worker.py" --apply --allow-hosted --apple --limit 200 2>>"$LOG_FILE")"; then
+      log_line "apple pass $pass failed; next run retries"
+      break
+    fi
+    log_line "apple pass $pass: $apple"
+    checked="$(printf '%s' "$apple" | "$PYTHON" -c 'import json,sys; d=json.load(sys.stdin); print("stop" if d.get("rate_limited") or not d.get("checked") else "go")')"
+    [[ "$checked" == "stop" ]] && break
+  done
+fi
+
 [[ "$status" == "success" ]]

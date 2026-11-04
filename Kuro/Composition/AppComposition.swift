@@ -226,7 +226,8 @@ final class AppComposition {
             library: wiring.store,
             catalog: publicData.catalog,
             malRegistration: malRegistration,
-            malCredentials: malCredentials
+            malCredentials: malCredentials,
+            userDefaults: userDefaults
         )
         let collection = makeCollection(client: client, accountSession: accountSession)
         let support = makeSupport(client: client, accountSession: accountSession)
@@ -479,7 +480,8 @@ final class AppComposition {
         catalog: CatalogStore,
         deviceIntelligence: AppleFMService? = nil,
         malRegistration: MALNativeRegistration? = nil,
-        malCredentials: any MALCredentialStore = KeychainMALCredentialStore()
+        malCredentials: any MALCredentialStore = KeychainMALCredentialStore(),
+        userDefaults: UserDefaults = .standard
     ) -> AssistantOwners {
         let libraryHook = LibraryRefreshHook()
         let imports = ImportsService(
@@ -492,7 +494,10 @@ final class AppComposition {
             malCredentials: malCredentials
         )
         let concierge = ConciergeStore(client: client, accountSession: accountSession)
-        let taste = TasteStore(client: client, accountSession: accountSession, libraryHook: libraryHook)
+        // The graph's device store (KuroTests pass their own suite, so Discover answers never leak
+        // between test graphs through `UserDefaults.standard`).
+        let taste = TasteStore(client: client, accountSession: accountSession, libraryHook: libraryHook,
+                               defaults: userDefaults)
         return AssistantOwners(
             imports: imports,
             concierge: concierge,
