@@ -181,6 +181,10 @@ struct KuroMainView: View {
 	/// Discover's issue (All / Anime / Manga), owned here so the pager and header canvas follow it
 	/// (Discover + Clubs redesign D3: manga Discover paints the manga canvas under the header too).
 	@State private var discoverIssue: EditorialDiscoverView.DiscoverMediaTypeFilter = .all
+	/// Discover's scroll position, held here like the issue so both survive journeys (usability R8).
+	@State private var discoverScroll = ScrollPosition(edge: .top)
+	/// Counts header-title taps on Discover (scroll to top, usability §5.10).
+	@State private var discoverTopTick = 0
 	/// Every swipe-exclusion frame reported in `kuro_root` space (filtered to the viewport on use).
 	@State private var swipeExclusions: [CGRect] = []
     /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
@@ -331,7 +335,8 @@ struct KuroMainView: View {
                         },
                         onPicture: homeInvitation,
                         tasteMedium: tasteMedium,
-                        discoverIssue: discoverIssue
+                        discoverIssue: discoverIssue,
+                        onTitleTap: selection == .discover ? { discoverTopTick += 1 } : nil
                     )
                 }
 
@@ -375,6 +380,16 @@ struct KuroMainView: View {
                             homeNewAccountLatch: homeNewAccountLatch,
                             tasteMedium: $tasteMedium,
                             discoverIssue: $discoverIssue,
+                            discoverScroll: $discoverScroll,
+                            discoverTopTick: discoverTopTick,
+                            onDiscoverSearch: {
+                                // The end block's Search (usability §5.7): the same sheet as the header's,
+                                // scoped to the issue, dropped while the pager is mid-swipe (N9).
+                                guard !pagerTapGate.isSuppressed else { return }
+                                pendingSearchScope = discoverIssue == .manga ? .manga : (discoverIssue == .anime ? .anime : .all)
+                                searchSession += 1
+                                showSearchSheet = true
+                            },
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
 	                    .offset(x: edgeBounceOffset)
@@ -773,6 +788,10 @@ private struct KuroSectionPager: View {
     @Binding var tasteMedium: MediaKind
     /// Discover's issue (`KuroMainView.discoverIssue`).
     @Binding var discoverIssue: EditorialDiscoverView.DiscoverMediaTypeFilter
+    /// Discover's scroll position, header scroll-to-top tick and gated Search (`KuroMainView`).
+    @Binding var discoverScroll: ScrollPosition
+    var discoverTopTick: Int = 0
+    var onDiscoverSearch: () -> Void = {}
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
     var bottomInset: CGFloat = 0
@@ -827,7 +846,9 @@ private struct KuroSectionPager: View {
                     ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt,
                                   onImportNavigation: onImportNavigation)
                 case .discover:
-                    EditorialDiscoverView(issue: $discoverIssue)
+                    EditorialDiscoverView(issue: $discoverIssue, scrollPosition: $discoverScroll,
+                                          isCurrent: selection == .discover, scrollToTopTick: discoverTopTick,
+                                          onOpenSearch: onDiscoverSearch)
                 case .browse:
                     BrowseView()
                 case .collection:
@@ -1011,6 +1032,8 @@ struct KuroHeaderNew: View {
     var tasteMedium: MediaKind = .anime
     /// Discover's issue: manga Discover paints the manga canvas under the header too.
     var discoverIssue: EditorialDiscoverView.DiscoverMediaTypeFilter = .all
+    /// While Discover is the page, tapping the centred name scrolls it to the top (usability §5.10).
+    var onTitleTap: (() -> Void)? = nil
     @Environment(IdentityStore.self) private var identity
     @Environment(SessionController.self) private var session
     @Environment(ClubsStore.self) private var clubs
@@ -1121,9 +1144,17 @@ struct KuroHeaderNew: View {
         }
         .frame(minHeight: 44)
         .contentShape(Rectangle())
+        .onTapGesture {
+            guard let onTitleTap else { return }
+            KuroAccessibility.impactHaptic(.light)
+            onTitleTap()
+        }
         // One adjustable control: VoiceOver swipes up/down (and Switch Control) page the app.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(KuroLocale.text("Section", "Bereich"))
+        .accessibilityLabel(onTitleTap == nil ? KuroLocale.text("Section", "Bereich")
+                                              : DiscoverIssueCopy.headerScrollToTop(german: KuroLocale.isGerman))
+        .accessibilityAddTraits(onTitleTap == nil ? [] : .isButton)
+        .accessibilityAction { onTitleTap?() }
         .accessibilityValue(sectionAccessibilityValue)
         .accessibilityHint(KuroLocale.text("Swipe up or down to change sections.",
                                            "Zum Wechseln nach oben oder unten wischen."))

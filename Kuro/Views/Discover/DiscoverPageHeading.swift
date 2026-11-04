@@ -12,6 +12,8 @@ struct DiscoverPageHeading: View {
     let title: String
     var summary: String? = nil
     var compact: Bool = false
+    /// The summary is the NEW marker ("● 3 new since Tue", usability spec §5.6): the 5 pt ink dot leads it.
+    var marksNew: Bool = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -55,11 +57,51 @@ struct DiscoverPageHeading: View {
     }
 
     private func summaryText(_ summary: String, alignment: TextAlignment) -> some View {
-        Text(summary)
-            .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
-            .foregroundStyle(HomeInk.calendarSummary)
-            .multilineTextAlignment(alignment)
+        HStack(alignment: .center, spacing: 5) {
+            if marksNew {
+                Circle().fill(Color.kuroInk.opacity(0.7)).frame(width: 5, height: 5).accessibilityHidden(true)
+            }
+            Text(summary)
+                .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
+                .foregroundStyle(HomeInk.calendarSummary)
+                .multilineTextAlignment(alignment)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// A section's purpose (R1, usability spec §5.6): one question in 12 pt `kuroMuted`, at most two lines,
+/// 6 pt under the heading and 14 pt above the content.
+struct DiscoverPurposeLine: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 24))
+            .foregroundStyle(Color.kuroMuted)
+            .lineLimit(2)
+            .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, DiscoverIssueLayout.headingToPurpose)
+            .padding(.bottom, DiscoverIssueLayout.purposeToContent)
+    }
+}
+
+/// The section heading block: the heading (with the NEW marker in its summary slot) and the purpose.
+struct DiscoverSectionHeader: View {
+    let title: String
+    let purpose: String?
+    let newMarker: String?
+    let compact: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            DiscoverPageHeading(title: title, summary: newMarker, compact: compact, marksNew: newMarker != nil)
+            if let purpose, !purpose.isEmpty {
+                DiscoverPurposeLine(text: purpose)
+            }
+        }
     }
 }
 

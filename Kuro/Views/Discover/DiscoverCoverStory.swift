@@ -14,7 +14,9 @@ import SwiftUI
 // 104 × 156 compact; a feature 107 × 160), never taller than 220 pt outside accessibility sizes (P14).
 // The art and the title open the title (`routes.openMedia`, honouring the pager's tap suppression);
 // the Plan key is the existing `TastePlanKey` (plan / unplan with Undo; a tracked title opens the
-// editor); long press keeps `DiscoverFrameMenu`. No score or genre (rulebook §14.5).
+// editor); a long press opens the card menu (`discoverMenu(for:)`: Plan, Seen it, Not interested, Add
+// to club, Open; `DiscoverFrameMenu` outside the Discover page). On the All issue the kind leads the
+// fact row ("ANIME · 2016 · Movie", usability §5.11). No score or genre (rulebook §14.5).
 
 /// What a cover story shows (pure). Built from the daily feature, the Hidden gem, a season / trending
 /// lead or a section's first title; nothing is shown that the row does not carry.
@@ -66,16 +68,25 @@ struct DiscoverCoverStory: View {
     let column: CGFloat
 
     @Environment(ArtworkMaterialStore.self) private var materials: ArtworkMaterialStore?
-    @Environment(LibraryStore.self) private var library
-    @Environment(ClubsStore.self) private var clubs
     @Environment(SocialActivityStore.self) private var social
     @Environment(FeatureFlags.self) private var flags
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(DiscoverPageFeedback.self) private var feedback: DiscoverPageFeedback?
+    @Environment(\.discoverSection) private var section
+    @Environment(\.discoverKindKicker) private var kindKicker
 
     private var compact: Bool { DiscoverIssueLayout.isCompact(column: column) }
+
+    /// "ANIME · 2016 · Movie" on the All issue: the kind leads the fact row (usability §5.11).
+    private func withKind(_ facts: String?) -> String? {
+        guard kindKicker else { return facts }
+        let kind = DiscoverIssueCopy.kindKicker(story.card.media.kind)
+        guard let facts else { return kind }
+        return kind + " · " + facts
+    }
     private var german: Bool { KuroLocale.isGerman }
 
     private var material: ArtworkMaterial {
@@ -134,7 +145,7 @@ struct DiscoverCoverStory: View {
                 }
                 .buttonStyle(HomeArtworkPressStyle())
                 .accessibilityHidden(true)
-                .contextMenu { menu }
+                .discoverMenu(for: DiscoverCardItem(card: story.card, position: 0))
                 if kind != .feature { tab }
             }
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5))
@@ -168,7 +179,7 @@ struct DiscoverCoverStory: View {
     }
 
     private var secondaryLine: String? {
-        kind == .feature ? story.facts(length: true, german: german) : story.argument
+        kind == .feature ? withKind(story.facts(length: true, german: german)) : story.argument
     }
 
     private var titleButton: some View {
@@ -193,13 +204,13 @@ struct DiscoverCoverStory: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .contextMenu { menu }
+        .discoverMenu(for: DiscoverCardItem(card: story.card, position: 0))
         .accessibilityLabel(spoken)
         .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
     }
 
     private var planKey: some View {
-        TastePlanKey(card: story.card, variant: .landscape, compact: compact)
+        DiscoverPlanKey(card: story.card, variant: .landscape, compact: compact)
     }
 
     @ViewBuilder
@@ -232,7 +243,7 @@ struct DiscoverCoverStory: View {
 
     @ViewBuilder
     private var factRow: some View {
-        let facts = story.facts(length: false, german: german)
+        let facts = withKind(story.facts(length: false, german: german))
         let friends = friendCount
         if facts != nil || friends > 0 {
             HStack(spacing: 8) {
@@ -281,7 +292,7 @@ struct DiscoverCoverStory: View {
             }
             .buttonStyle(HomeArtworkPressStyle())
             .accessibilityHidden(true)
-            .contextMenu { menu }
+            .discoverMenu(for: DiscoverCardItem(card: story.card, position: 0))
 
             VStack(alignment: .leading, spacing: 0) {
                 Button(action: open) {
@@ -312,13 +323,13 @@ struct DiscoverCoverStory: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .contextMenu { menu }
+                .discoverMenu(for: DiscoverCardItem(card: story.card, position: 0))
                 .accessibilityLabel(spoken)
                 .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
 
                 Spacer(minLength: 8)
 
-                let facts = story.facts(length: kind == .feature, german: german)
+                let facts = withKind(story.facts(length: kind == .feature, german: german))
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .center, spacing: 8) {
                         if let facts { factText(facts) }
@@ -348,22 +359,19 @@ struct DiscoverCoverStory: View {
     // MARK: Actions
 
     private var spoken: String {
+        let title = kindKicker ? DiscoverIssueCopy.kindSpoken(story.card.media.kind, title: story.card.media.title)
+                               : story.card.media.title
         if kind == .feature {
-            return DiscoverIssueCopy.featureSpoken(title: story.card.media.title,
-                                                   facts: story.facts(length: true, german: german))
+            return DiscoverIssueCopy.featureSpoken(title: title, facts: story.facts(length: true, german: german))
         }
-        return DiscoverIssueCopy.storySpoken(eyebrow: story.eyebrow, title: story.card.media.title,
+        return DiscoverIssueCopy.storySpoken(eyebrow: story.eyebrow, title: title,
                                              argument: story.argument, facts: story.facts(length: false, german: german))
-    }
-
-    @ViewBuilder
-    private var menu: some View {
-        DiscoverFrameMenu(media: story.card.media, isSaved: library.isTracked(story.key), hasClubs: !clubs.myClubs.isEmpty)
     }
 
     private func open() {
         guard !suppressCardTaps else { return }
         KuroAccessibility.impactHaptic(.light)
+        feedback?.trackOpen(story.key, slot: section.map { DiscoverCardSlot(section: $0.id, position: 0) }, via: "card")
         routes.openMedia(MediaRoute(story.key))
     }
 }

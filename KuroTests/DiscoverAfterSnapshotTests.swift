@@ -228,10 +228,10 @@ struct DiscoverAfterSnapshotTests {
         let first = try #require(cards.first)
         for (column, regular) in [(CGFloat(350), false), (CGFloat(288), false), (CGFloat(640), true)] {
             let sections: [(String, AnyView)] = [
-                ("trio", AnyView(DiscoverFeatureTrio(anchor: "t", title: "New to you.", summary: "Rotates daily",
-                                                     cards: cards, column: column, onSeeAll: {}))),
-                ("index", AnyView(DiscoverIndexSection(anchor: "i", title: "Essential anime.", summary: nil,
-                                                       cards: cards, column: column, onSeeAll: {}))),
+                ("trio", AnyView(DiscoverFeatureTrio(anchor: "t", title: "New to you.", purpose: "Rotates daily",
+                                                     cards: cards, total: cards.count, column: column, onSeeAll: {}))),
+                ("index", AnyView(DiscoverIndexSection(anchor: "i", title: "Essential anime.", purpose: nil,
+                                                       cards: cards, total: cards.count, column: column, onSeeAll: {}))),
                 ("lead", AnyView(DiscoverCoverStory(story: DiscoverStory(card: first, eyebrow: "Today's pick"),
                                                     kind: .lead, column: column))),
                 ("feature", AnyView(DiscoverCoverStory(story: DiscoverStory(card: first, eyebrow: "New to you."),
