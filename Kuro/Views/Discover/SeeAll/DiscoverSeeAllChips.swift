@@ -72,7 +72,9 @@ struct DiscoverSeeAllSection: Equatable {
             groups.append([.upTo13, .over50])
         }
         groups.append([.finished, .releasing])
-        groups.append([.hideMyList])
+        // "Hide my list" only where the list keeps owned titles: a personal list already hides them,
+        // so the chip would change nothing there.
+        if ownedPolicy == .mark { groups.append([.hideMyList]) }
         return groups
     }
 
@@ -125,6 +127,23 @@ struct DiscoverSeeAllSelection: Hashable {
 
     init(sort: DiscoverSeeAllSortWord) {
         self.sort = sort
+    }
+
+    /// The selection a See all page opens with when a rail's local refinement was chosen (R6): the
+    /// list's own order plus the same choice as a chip ("Up to 13 episodes" / "Over 50 episodes" /
+    /// "Finished"); nil for "Any length" or a list without that chip.
+    static func opening(_ section: DiscoverSeeAllSection, refine: DiscoverRailFilter) -> DiscoverSeeAllSelection? {
+        let chip: DiscoverSeeAllChip?
+        switch refine {
+        case .all: chip = nil
+        case .short: chip = .upTo13
+        case .long: chip = .over50
+        case .finished: chip = .finished
+        }
+        guard let chip, section.chipGroups.contains(where: { $0.contains(chip) }) else { return nil }
+        var selection = DiscoverSeeAllSelection(sort: section.defaultSort)
+        selection.toggle(chip)
+        return selection
     }
 
     func isOn(_ chip: DiscoverSeeAllChip) -> Bool {
@@ -308,22 +327,36 @@ struct DiscoverChip: View {
     }
 }
 
-/// The chip groups in a wrapping layout, groups separated by a 1 pt hairline (only between two chips
-/// on the same line: a group that wraps starts its line without one).
+/// The chip groups in a wrapping layout, groups separated by a 1 pt hairline (only between two groups
+/// on the same line: a group that wraps starts its line without one). Each group is ONE unit of the
+/// flow, so an exclusive pair ("Up to 13 episodes · Over 50 episodes") never splits across lines and a
+/// hairline never stands inside a group; at accessibility sizes, where one group can be wider than the
+/// line, the chips wrap one by one.
 struct DiscoverChipGroups: View {
     let groups: [[DiscoverSeeAllChip]]
     let medium: MediaKind
     let selection: DiscoverSeeAllSelection
     let onToggle: (DiscoverSeeAllChip) -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         let german = KuroLocale.isGerman
         DiscoverChipFlow {
             ForEach(Array(groups.enumerated()), id: \.offset) { index, group in
                 if index > 0 { DiscoverChipSeparator() }
-                ForEach(group, id: \.self) { chip in
-                    DiscoverChip(title: DiscoverSeeAllCopy.chip(chip, medium: medium, german: german),
-                                 selected: selection.isOn(chip)) { onToggle(chip) }
+                if dynamicTypeSize.isAccessibilitySize {
+                    ForEach(group, id: \.self) { chip in
+                        DiscoverChip(title: DiscoverSeeAllCopy.chip(chip, medium: medium, german: german),
+                                     selected: selection.isOn(chip)) { onToggle(chip) }
+                    }
+                } else {
+                    HStack(spacing: DiscoverChipFlow.spacing) {
+                        ForEach(group, id: \.self) { chip in
+                            DiscoverChip(title: DiscoverSeeAllCopy.chip(chip, medium: medium, german: german),
+                                         selected: selection.isOn(chip)) { onToggle(chip) }
+                        }
+                    }
                 }
             }
         }

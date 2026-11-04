@@ -69,13 +69,16 @@ nonisolated enum DiscoverIssueCopy {
 
     /// "2016 · Movie", "2016 · TV · 12 eps", "1998 · Manga · 327 ch." Missing parts are skipped;
     /// nil when nothing is known. `length` false: year and format only (the cover story's fact row).
+    /// `kindShown`: the ANIME / MANGA kicker is on the card (the All issue, §5.11), so the plain manga
+    /// format word ("Manga") would only repeat it and is left out ("MANGA / 2018", not "2018 · Manga").
     static func facts(kind: MediaKind, year: String?, formatRaw: String?, episodes: Int?, chapters: Int?,
-                      length: Bool, german: Bool) -> String? {
+                      length: Bool, german: Bool, kindShown: Bool = false) -> String? {
         var parts: [String] = []
         if let digits = year?.filter(\.isNumber), digits.count >= 4 {
             parts.append(String(digits.prefix(4)))
         }
-        if let format = formatRaw?.trimmingCharacters(in: .whitespaces), !format.isEmpty {
+        if let format = formatRaw?.trimmingCharacters(in: .whitespaces), !format.isEmpty,
+           !(kindShown && kind == .manga && format.uppercased() == "MANGA") {
             parts.append(DiscoverFrameCopy.formatName(format, german: german))
         }
         if length {
@@ -249,17 +252,19 @@ nonisolated enum DiscoverIssueCopy {
     /// The card tab: "NEW" / "NEU".
     static func newTab(german: Bool) -> String { german ? "NEU" : "NEW" }
 
-    /// The heading marker: "3 new since Tue" / "3 neu seit Di"; over six days: "… since your last visit".
+    /// The heading marker: "3 new since Tue" / "3 neu seit Dienstag" (the German short symbols read
+    /// clipped: "seit Di"); a return on the same Berlin day or over six days later: "… since your last
+    /// visit" (a weekday would name today).
     static func newSince(_ count: Int, lastVisit: Date, now: Date, german: Bool, timeZone: TimeZone = berlin) -> String {
         let days = now.timeIntervalSince(lastVisit) / 86_400
-        if days > 6 {
-            return german ? "\(count) neu seit deinem letzten Besuch" : "\(count) new since your last visit"
-        }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         calendar.locale = Locale(identifier: german ? "de_DE" : "en_GB")
+        if days > 6 || calendar.isDate(lastVisit, inSameDayAs: now) {
+            return german ? "\(count) neu seit deinem letzten Besuch" : "\(count) new since your last visit"
+        }
         let weekday = calendar.component(.weekday, from: lastVisit)
-        let symbols = calendar.shortStandaloneWeekdaySymbols
+        let symbols = german ? calendar.standaloneWeekdaySymbols : calendar.shortStandaloneWeekdaySymbols
         let name = symbols.indices.contains(weekday - 1) ? symbols[weekday - 1].replacingOccurrences(of: ".", with: "") : ""
         return german ? "\(count) neu seit \(name)" : "\(count) new since \(name)"
     }
@@ -351,8 +356,9 @@ nonisolated enum DiscoverIssueCopy {
     @MainActor
     static func moodSubtitle(_ mood: DiscoverMood, german: Bool) -> String {
         switch (mood, german) {
-        case (.short, false): return "Short and complete"
-        case (.short, true): return "Kurz und abgeschlossen"
+        // No "complete": the anime fallback rail means "one season", not a finished series.
+        case (.short, false): return "An evening or a weekend"
+        case (.short, true): return "Für einen Abend oder ein Wochenende"
         case (.cozy, false): return "Slow, warm, gentle"
         case (.cozy, true): return "Ruhig, warm, sanft"
         case (.intense, false): return "Dark and gripping"
@@ -382,16 +388,31 @@ nonisolated enum DiscoverIssueCopy {
     }
 
     /// "You planned 2, hid 1 and marked 1 as seen." Only the parts above zero; nil when all are zero.
-    static func endActions(planned: Int, hidden: Int, seen: Int, german: Bool) -> String? {
+    /// `seenWord`: what "seen" means on this issue: watched (Anime), read (Manga), either (All).
+    enum SeenWord { case seen, read, seenOrRead }
+
+    static func endActions(planned: Int, hidden: Int, seen: Int, seenWord: SeenWord = .seen, german: Bool) -> String? {
         var parts: [String] = []
         if german {
+            let word: String
+            switch seenWord {
+            case .seen: word = "gesehen"
+            case .read: word = "gelesen"
+            case .seenOrRead: word = "gesehen oder gelesen"
+            }
             if planned > 0 { parts.append("\(planned) vorgemerkt") }
             if hidden > 0 { parts.append("\(hidden) ausgeblendet") }
-            if seen > 0 { parts.append("\(seen) als gesehen markiert") }
+            if seen > 0 { parts.append("\(seen) als \(word) markiert") }
         } else {
+            let word: String
+            switch seenWord {
+            case .seen: word = "seen"
+            case .read: word = "read"
+            case .seenOrRead: word = "seen or read"
+            }
             if planned > 0 { parts.append("planned \(planned)") }
             if hidden > 0 { parts.append("hid \(hidden)") }
-            if seen > 0 { parts.append("marked \(seen) as seen") }
+            if seen > 0 { parts.append("marked \(seen) as \(word)") }
         }
         guard !parts.isEmpty else { return nil }
         let joined: String

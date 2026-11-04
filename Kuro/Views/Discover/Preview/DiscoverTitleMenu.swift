@@ -153,7 +153,7 @@ private struct DiscoverTitleMenuModifier: ViewModifier {
             }
             let receipt = taste.recordDiscoverFeedback(feedback, for: key)
             if receipt != nil {
-                banner?.show(DiscoverMenuCopy.toast(feedback, german: german))
+                banner?.show(DiscoverMenuCopy.toast(feedback, medium: key.kind, german: german))
                 if let telemetry {
                     telemetry.trackInteractionEvent(
                         feedback == .notInterested ? "discover_not_interested" : "discover_seen",

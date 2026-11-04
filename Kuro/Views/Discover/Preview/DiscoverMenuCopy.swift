@@ -55,8 +55,13 @@ nonisolated enum DiscoverMenuCopy {
         german ? "Ausgeblendet. Du siehst weniger davon." : "Hidden. You'll see fewer like it."
     }
 
-    static func markedSeen(german: Bool) -> String {
-        german ? "Als gesehen markiert." : "Marked as seen."
+    static func markedSeen(medium: MediaKind = .anime, german: Bool) -> String {
+        switch (medium, german) {
+        case (.manga, false): return "Marked as read."
+        case (.manga, true): return "Als gelesen markiert."
+        case (_, false): return "Marked as seen."
+        case (_, true): return "Als gesehen markiert."
+        }
     }
 
     static func addAsCompleted(german: Bool) -> String {
@@ -79,20 +84,27 @@ nonisolated enum DiscoverMenuCopy {
     }
 
     /// The toast message for one answer.
-    static func toast(_ feedback: DiscoverFeedback, german: Bool) -> String {
+    static func toast(_ feedback: DiscoverFeedback, medium: MediaKind = .anime, german: Bool) -> String {
         switch feedback {
         case .notInterested: return hidden(german: german)
-        case .seenIt: return markedSeen(german: german)
+        case .seenIt: return markedSeen(medium: medium, german: german)
         }
     }
 
     // MARK: Preview
 
-    /// "ANIME · NEW TO YOU": the medium, then the section's name when the caller gives one.
+    /// "ANIME · NEW TO YOU": the medium, then the section's name when the caller gives one. A section
+    /// name that already names the medium stands alone ("ESSENTIAL ANIME", not "ANIME · ESSENTIAL ANIME").
     static func previewKicker(kind: MediaKind, section: String?, german: Bool) -> String {
-        var parts = [kindKicker(kind)]
+        let medium = kindKicker(kind)
+        var parts = [medium]
         if let section = section?.trimmingCharacters(in: .whitespacesAndNewlines), !section.isEmpty {
-            parts.append(section.hasSuffix(".") ? String(section.dropLast()) : section)
+            let name = section.hasSuffix(".") ? String(section.dropLast()) : section
+            if name.uppercased().split(whereSeparator: { !$0.isLetter }).contains(Substring(medium)) {
+                parts = [name]
+            } else {
+                parts.append(name)
+            }
         }
         return parts.joined(separator: " · ").uppercased()
     }
@@ -136,12 +148,13 @@ nonisolated enum DiscoverMenuCopy {
 
     /// The section reasons the preview names (§8 "Why it's here").
     enum Reason: Equatable {
-        case unseen, canon, airing, popular, classic
+        case unseen, unread, canon, airing, popular, classic
         case closeTo(String)
 
         func text(german: Bool) -> String {
             switch self {
             case .unseen: return german ? "noch nicht gesehen" : "unseen by you"
+            case .unread: return german ? "noch nicht gelesen" : "unread by you"
             case .canon: return german ? "in unserem Kanon" : "in our canon"
             case .airing: return german ? "läuft gerade" : "airing now"
             case .popular: return german ? "diese Woche beliebt" : "popular this week"

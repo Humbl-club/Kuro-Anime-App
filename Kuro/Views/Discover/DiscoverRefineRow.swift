@@ -60,17 +60,24 @@ struct DiscoverIssueRail: View {
     let column: CGFloat
     let gutter: CGFloat
     var refines: Bool = false
+    /// The section's own list (what See all draws) and the part of it no other section shows: a
+    /// refinement draws from `refinePool` and counts `ownCards` (R6), so it never runs out after the
+    /// claimed ten nor repeats a series another section shows (R2).
+    var ownCards: [TasteCard] = []
+    var refinePool: [TasteCard] = []
     var onSeeAll: (() -> Void)? = nil
+    /// See all with the rail's refinement selected (R6); falls back to `onSeeAll`.
+    var onSeeAllRefined: ((DiscoverRailFilter) -> Void)? = nil
 
     @State private var filter: DiscoverRailFilter = .all
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let compact = DiscoverIssueLayout.isCompact(column: column)
-        let shown = refines
-            ? cards.filter { filter.includes(episodes: $0.media.episodes, statusRaw: $0.media.statusRaw) }
-            : cards
-        let rail = Array(shown.prefix(DiscoverIssueLayout.railCap))
+        let refined = DiscoverRailRefine.make(filter: refines ? filter : .all, cards: cards, total: total,
+                                              ownCards: ownCards, refinePool: refinePool)
+        let rail = Array(refined.cards.prefix(DiscoverIssueLayout.railCap))
+        let seeAllTotal = refined.total
         let motion = KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
         VStack(alignment: .leading, spacing: 0) {
             DiscoverSectionHeader(title: title, purpose: purpose, newMarker: newMarker, compact: compact)
@@ -99,15 +106,37 @@ struct DiscoverIssueRail: View {
                 }
                 .kuroSwipeExclusionZone()
             }
-            if let onSeeAll, DiscoverIssueLayout.offersSeeAll(total: total, shown: rail.count) {
-                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(total, german: KuroLocale.isGerman),
-                                   spoken: DiscoverIssueCopy.seeAllSpoken(total, section: title, german: KuroLocale.isGerman),
-                                   action: onSeeAll)
+            if let onSeeAll, DiscoverIssueLayout.offersSeeAll(total: seeAllTotal, shown: rail.count) {
+                DiscoverTextAction(title: DiscoverIssueCopy.seeAll(seeAllTotal, german: KuroLocale.isGerman),
+                                   spoken: DiscoverIssueCopy.seeAllSpoken(seeAllTotal, section: title, german: KuroLocale.isGerman),
+                                   action: {
+                                       if refines, filter != .all, let onSeeAllRefined { onSeeAllRefined(filter) } else { onSeeAll() }
+                                   })
                     .padding(.horizontal, gutter)
                     .padding(.top, 4)
             }
         }
         .animation(motion ? KuroMotion.settle : nil, value: cards.map(\.id))
         .id(anchor)
+    }
+}
+
+/// What a rail draws and counts for one refinement (pure; R6). "Any length" keeps the claimed cards
+/// and the section's total; a choice filters the section's whole unclaimed list (not only the claimed
+/// ten plus reserve) and counts the matching titles of its See all list.
+struct DiscoverRailRefine {
+    let cards: [TasteCard]
+    let total: Int
+
+    static func make(filter: DiscoverRailFilter, cards: [TasteCard], total: Int,
+                     ownCards: [TasteCard], refinePool: [TasteCard]) -> DiscoverRailRefine {
+        guard filter != .all else { return DiscoverRailRefine(cards: cards, total: total) }
+        let matches: (TasteCard) -> Bool = { filter.includes(episodes: $0.media.episodes, statusRaw: $0.media.statusRaw) }
+        // The claimed cards first, in their order, then the rest of the unclaimed list.
+        let claimed = cards.filter(matches)
+        let claimedKeys = Set(claimed.map(\.key))
+        let rest = refinePool.filter { matches($0) && !claimedKeys.contains($0.key) }
+        let source = ownCards.isEmpty ? cards : ownCards
+        return DiscoverRailRefine(cards: claimed + rest, total: max(claimed.count + rest.count, source.filter(matches).count))
     }
 }

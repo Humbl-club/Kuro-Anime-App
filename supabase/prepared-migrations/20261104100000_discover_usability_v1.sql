@@ -72,6 +72,11 @@
 --     can carry the status word;
 --   * franchise dedupe (R2): one title per franchise component, the first in the page order wins,
 --     applied over the whole ordered pool BEFORE the offset, so pages never repeat a franchise;
+--   * pool depth (review fix 2026-11-04): the hidden / owned / catalogue exclusions run INSIDE each
+--     candidate query (before its LIMIT), and the pool grows (doubling, at most 4,000) until it holds
+--     offset + limit + 1 distinct franchises or the source ends, so a user with hundreds of owned or
+--     answered titles still gets full pages; a short page therefore means the source is exhausted
+--     (the client still ends a journey only on an EMPTY page, DiscoveryStore.serverPage);
 --   * rank = 1-based position in that deduped order (stable across pages for an unchanged
 --     catalogue), franchise_id on every row so the client can dedupe across sections.
 --   Owner comparison: list rows match on user_id = auth.uid()::text, the same comparison the list
@@ -305,6 +310,13 @@ comment on function public._discover_page_v1(uuid, text, integer[], boolean, int
 
 -- ---------------------------------------------------------------------------
 -- 3) discover_section_page_v1
+--    Review fix (2026-11-04, integrator): the caller's exclusions (hidden answers, owned titles of a
+--    personal section) and the catalogue exclusions (adult, Hentai / Ecchi, no cover) are applied
+--    INSIDE each candidate query, before `limit v_pool`, so the pool is spent only on titles the
+--    finisher can return; the pool then only has to absorb franchise dedupe, and it GROWS (doubling,
+--    at most v_pool_cap) until it holds offset + limit + 1 distinct franchises or the source is
+--    exhausted. The ordered candidates use ORDER BY ... LIMIT over plain sort columns (a top-N
+--    sort), not a window over the whole qualifying set.
 -- ---------------------------------------------------------------------------
 create or replace function public.discover_section_page_v1(
   p_section text,
@@ -335,6 +347,7 @@ as $$
 #variable_conflict use_column
 declare
   v_uid uuid := auth.uid();
+  v_uid_text text := auth.uid()::text;
   v_type text := upper(btrim(coalesce(p_media_type, '')));
   v_section text := lower(btrim(coalesce(p_section, '')));
   v_sort text := lower(btrim(coalesce(nullif(btrim(p_sort), ''), 'default')));
@@ -344,8 +357,12 @@ declare
   v_status text;
   v_limit integer := least(60, greatest(1, coalesce(p_limit, 24)));
   v_offset integer := least(440, greatest(0, coalesce(p_offset, 0)));
-  -- Pool depth: enough for the requested page after hidden/owned/franchise removals.
+  v_hide_owned boolean;
+  -- Pool depth: the page plus one more row, doubled while franchise dedupe leaves too few.
   v_pool integer;
+  v_pool_cap constant integer := 4000;
+  v_got integer;
+  v_distinct integer;
   v_season text := case
     when extract(month from now())::int in (12, 1, 2) then 'WINTER'
     when extract(month from now())::int in (3, 4, 5) then 'SPRING'
@@ -381,7 +398,8 @@ begin
     raise exception 'INVALID_STATUS: p_status must be finished, releasing or upcoming';
   end if;
 
-  v_pool := least(500, v_offset + v_limit * 4 + 40);
+  v_hide_owned := v_section = 'new_to_you' and v_uid is not null;
+  v_pool := least(v_pool_cap, (v_offset + v_limit) * 2 + 40);
 
   if v_section in ('essentials', 'classics') then
     v_curated_rail := case v_section when 'essentials' then 'gateway_' else 'classics_' end
@@ -392,144 +410,200 @@ begin
     end if;
   end if;
 
-  if v_type = 'ANIME' then
-    if v_has_curated then
-      execute $q$
-        select array_agg(s.aid order by s.k1 desc nulls last, s.k2 desc nulls last, s.k3 desc nulls last, s.aid desc)
+  loop
+    if v_type = 'ANIME' then
+      if v_has_curated then
+        execute $q$
+          select array_agg(s.aid order by s.k1 desc nulls last, s.k2 desc nulls last, s.k3 desc nulls last, s.aid desc)
+          from (
+            select a.id as aid,
+                   case when $3 = 'default' then -min(i.rank)::bigint
+                        when $3 = 'popular' then max(a.popularity)::bigint
+                        when $3 = 'top_rated' then max(a.average_score)::bigint
+                        else max(coalesce(a.start_date_year, a.season_year))::bigint end as k1,
+                   case when $3 = 'newest' then max(a.start_date_month)::bigint else null end as k2,
+                   case when $3 = 'newest' then max(a.start_date_day)::bigint else null end as k3
+            from public.curated_rail_items i
+            join public.anime a on a.anilist_id = i.anilist_id
+            where i.rail_id = $1 and i.media_type = 'ANIME'
+              and coalesce(a.is_adult, false) = false
+              and not (coalesce(a.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+              and nullif(btrim(coalesce(a.cover_image_large, a.cover_image_medium, '')), '') is not null
+              and (($2::text is null and upper(coalesce(a.format, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT'))
+                   or upper(coalesce(a.format, '')) = $2)
+              and ($4::text is null
+                   or ($4 = 'short' and a.episodes between 1 and 13)
+                   or ($4 = 'standard' and a.episodes between 14 and 50)
+                   or ($4 = 'long' and a.episodes >= 51))
+              and ($5::text is null or a.status = $5)
+              and ($7::uuid is null or not exists (
+                    select 1 from public.taste_signal_events e
+                    where e.user_id = $7 and e.media_type = 'ANIME' and e.media_id = a.id
+                      and e.event_type in ('deck_skip', 'deck_known')
+                      and e.created_at > now() - interval '365 days'))
+              and (not $8 or not exists (
+                    select 1 from public.anime_user_lists ul
+                    where ul.user_id = $7::text and ul.anime_id = a.id))
+            group by a.id
+            order by 2 desc nulls last, 3 desc nulls last, 4 desc nulls last, 1 desc
+            limit $6
+          ) s
+        $q$ into v_ids using v_curated_rail, v_format, v_sort, v_length, v_status, v_pool, v_uid, v_hide_owned;
+      else
+        select array_agg(s.aid order by s.k1 desc nulls last, s.k2 desc nulls last, s.k3 desc nulls last,
+                                        s.k4 desc nulls last, s.k5 desc nulls last, s.k6 desc nulls last,
+                                        s.k7 desc nulls last, s.k8 desc nulls last, s.pop desc, s.aid desc)
+          into v_ids
         from (
           select a.id as aid,
-                 case when $3 = 'default' then -min(i.rank)::bigint
-                      when $3 = 'popular' then max(a.popularity)::bigint
-                      when $3 = 'top_rated' then max(a.average_score)::bigint
-                      else max(coalesce(a.start_date_year, a.season_year))::bigint end as k1,
-                 case when $3 = 'newest' then max(a.start_date_month)::bigint else null end as k2,
-                 case when $3 = 'newest' then max(a.start_date_day)::bigint else null end as k3
-          from public.curated_rail_items i
-          join public.anime a on a.anilist_id = i.anilist_id
-          where i.rail_id = $1 and i.media_type = 'ANIME'
-            and (($2::text is null and upper(coalesce(a.format, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT'))
-                 or upper(coalesce(a.format, '')) = $2)
-            and ($4::text is null
-                 or ($4 = 'short' and a.episodes between 1 and 13)
-                 or ($4 = 'standard' and a.episodes between 14 and 50)
-                 or ($4 = 'long' and a.episodes >= 51))
-            and ($5::text is null or a.status = $5)
-          group by a.id
-          order by 2 desc nulls last, 3 desc nulls last, 4 desc nulls last, 1 desc
-          limit $6
-        ) s
-      $q$ into v_ids using v_curated_rail, v_format, v_sort, v_length, v_status, v_pool;
+                 -- the section's own order (default)
+                 case when v_sort = 'default' and v_section = 'essentials' then coalesce(a.favourites, 0) end as k1,
+                 case when v_sort = 'default' and v_section in ('essentials', 'classics', 'top_rated') then coalesce(a.average_score, 0) end as k2,
+                 case when v_sort = 'default' and v_section = 'trending' then coalesce(a.trending, 0) end as k3,
+                 case when v_sort = 'default' and v_section = 'newly_added' then a.created_at end as k4,
+                 -- chosen sorts
+                 case when v_sort = 'top_rated' then a.average_score end as k5,
+                 case when v_sort = 'newest' then coalesce(a.start_date_year, a.season_year) end as k6,
+                 case when v_sort = 'newest' then a.start_date_month end as k7,
+                 case when v_sort = 'newest' then a.start_date_day end as k8,
+                 -- popularity: the 'popular' sort and every section's tiebreak
+                 coalesce(a.popularity, 0) as pop
+          from public.anime a
+          where coalesce(a.is_adult, false) = false
+            and not (coalesce(a.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+            and nullif(btrim(coalesce(a.cover_image_large, a.cover_image_medium, '')), '') is not null
+            and ((v_format is null and upper(coalesce(a.format, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT'))
+                 or upper(coalesce(a.format, '')) = v_format)
+            and (v_length is null
+                 or (v_length = 'short' and a.episodes between 1 and 13)
+                 or (v_length = 'standard' and a.episodes between 14 and 50)
+                 or (v_length = 'long' and a.episodes >= 51))
+            and (v_status is null or a.status = v_status)
+            and case v_section
+                  when 'essentials' then coalesce(a.average_score, 0) >= 85
+                  when 'classics' then coalesce(a.season_year, a.start_date_year, 9999) < 2015
+                                       and coalesce(a.average_score, 0) >= 80
+                  when 'new_to_you' then coalesce(a.average_score, 0) >= 80
+                  when 'trending' then coalesce(a.trending, 0) > 0
+                  when 'top_rated' then coalesce(a.average_score, 0) >= 80
+                  when 'newly_added' then true
+                  when 'current_season' then a.season = v_season and a.season_year = v_year
+                  when 'airing_today' then a.status = 'RELEASING' and a.next_airing_at >= v_day_start
+                                           and a.next_airing_at < v_day_end
+                  else false
+                end
+            and (v_uid is null or not exists (
+                  select 1 from public.taste_signal_events e
+                  where e.user_id = v_uid and e.media_type = 'ANIME' and e.media_id = a.id
+                    and e.event_type in ('deck_skip', 'deck_known')
+                    and e.created_at > now() - interval '365 days'))
+            and (not v_hide_owned or not exists (
+                  select 1 from public.anime_user_lists ul
+                  where ul.user_id = v_uid_text and ul.anime_id = a.id))
+          order by k1 desc nulls last, k2 desc nulls last, k3 desc nulls last, k4 desc nulls last,
+                   k5 desc nulls last, k6 desc nulls last, k7 desc nulls last, k8 desc nulls last,
+                   pop desc, aid desc
+          limit v_pool
+        ) s;
+      end if;
     else
-      select array_agg(s.aid order by s.ord) into v_ids
-      from (
-        select a.id as aid,
-               row_number() over (
-                 order by
-                   -- the section's own order (default)
-                   case when v_sort = 'default' and v_section = 'essentials' then coalesce(a.favourites, 0) end desc nulls last,
-                   case when v_sort = 'default' and v_section in ('essentials', 'classics', 'top_rated') then coalesce(a.average_score, 0) end desc nulls last,
-                   case when v_sort = 'default' and v_section = 'trending' then coalesce(a.trending, 0) end desc nulls last,
-                   case when v_sort = 'default' and v_section = 'newly_added' then a.created_at end desc nulls last,
-                   -- chosen sorts
-                   case when v_sort = 'top_rated' then a.average_score end desc nulls last,
-                   case when v_sort = 'newest' then coalesce(a.start_date_year, a.season_year) end desc nulls last,
-                   case when v_sort = 'newest' then a.start_date_month end desc nulls last,
-                   case when v_sort = 'newest' then a.start_date_day end desc nulls last,
-                   -- popularity: the 'popular' sort and every section's tiebreak
-                   coalesce(a.popularity, 0) desc,
-                   a.id desc
-               ) as ord
-        from public.anime a
-        where coalesce(a.is_adult, false) = false
-          and ((v_format is null and upper(coalesce(a.format, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT'))
-               or upper(coalesce(a.format, '')) = v_format)
-          and (v_length is null
-               or (v_length = 'short' and a.episodes between 1 and 13)
-               or (v_length = 'standard' and a.episodes between 14 and 50)
-               or (v_length = 'long' and a.episodes >= 51))
-          and (v_status is null or a.status = v_status)
-          and case v_section
-                when 'essentials' then coalesce(a.average_score, 0) >= 85
-                when 'classics' then coalesce(a.season_year, a.start_date_year, 9999) < 2015
-                                     and coalesce(a.average_score, 0) >= 80
-                when 'new_to_you' then coalesce(a.average_score, 0) >= 80
-                when 'trending' then coalesce(a.trending, 0) > 0
-                when 'top_rated' then coalesce(a.average_score, 0) >= 80
-                when 'newly_added' then true
-                when 'current_season' then a.season = v_season and a.season_year = v_year
-                when 'airing_today' then a.status = 'RELEASING' and a.next_airing_at >= v_day_start
-                                         and a.next_airing_at < v_day_end
-                else false
-              end
-        order by ord
-        limit v_pool
-      ) s;
-    end if;
-  else
-    if v_has_curated then
-      execute $q$
-        select array_agg(s.mid order by s.k1 desc nulls last, s.k2 desc nulls last, s.k3 desc nulls last, s.mid desc)
+      if v_has_curated then
+        execute $q$
+          select array_agg(s.mid order by s.k1 desc nulls last, s.k2 desc nulls last, s.k3 desc nulls last, s.mid desc)
+          from (
+            select m.id as mid,
+                   case when $3 = 'default' then -min(i.rank)::bigint
+                        when $3 = 'popular' then max(m.popularity)::bigint
+                        when $3 = 'top_rated' then max(m.average_score)::bigint
+                        else max(m.start_date_year)::bigint end as k1,
+                   case when $3 = 'newest' then max(m.start_date_month)::bigint else null end as k2,
+                   case when $3 = 'newest' then max(m.start_date_day)::bigint else null end as k3
+            from public.curated_rail_items i
+            join public.manga m on m.anilist_id = i.anilist_id
+            where i.rail_id = $1 and i.media_type = 'MANGA'
+              and coalesce(m.is_adult, false) = false
+              and not (coalesce(m.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+              and nullif(btrim(coalesce(m.cover_image_large, m.cover_image_medium, '')), '') is not null
+              and ($2::text is null or upper(coalesce(m.format, '')) = $2)
+              and ($4::text is null
+                   or ($4 = 'short' and (m.chapters between 1 and 50 or (m.chapters is null and m.volumes between 1 and 5)))
+                   or ($4 = 'standard' and m.chapters between 51 and 150)
+                   or ($4 = 'long' and m.chapters >= 151))
+              and ($5::text is null or m.status = $5)
+              and ($7::uuid is null or not exists (
+                    select 1 from public.taste_signal_events e
+                    where e.user_id = $7 and e.media_type = 'MANGA' and e.media_id = m.id
+                      and e.event_type in ('deck_skip', 'deck_known')
+                      and e.created_at > now() - interval '365 days'))
+              and (not $8 or not exists (
+                    select 1 from public.manga_user_lists ul
+                    where ul.user_id = $7::text and ul.manga_id = m.id))
+            group by m.id
+            order by 2 desc nulls last, 3 desc nulls last, 4 desc nulls last, 1 desc
+            limit $6
+          ) s
+        $q$ into v_ids using v_curated_rail, v_format, v_sort, v_length, v_status, v_pool, v_uid, v_hide_owned;
+      else
+        select array_agg(s.mid order by s.k1 desc nulls last, s.k2 desc nulls last, s.k3 desc nulls last,
+                                        s.k4 desc nulls last, s.k5 desc nulls last, s.k6 desc nulls last,
+                                        s.k7 desc nulls last, s.k8 desc nulls last, s.pop desc, s.mid desc)
+          into v_ids
         from (
           select m.id as mid,
-                 case when $3 = 'default' then -min(i.rank)::bigint
-                      when $3 = 'popular' then max(m.popularity)::bigint
-                      when $3 = 'top_rated' then max(m.average_score)::bigint
-                      else max(m.start_date_year)::bigint end as k1,
-                 case when $3 = 'newest' then max(m.start_date_month)::bigint else null end as k2,
-                 case when $3 = 'newest' then max(m.start_date_day)::bigint else null end as k3
-          from public.curated_rail_items i
-          join public.manga m on m.anilist_id = i.anilist_id
-          where i.rail_id = $1 and i.media_type = 'MANGA'
-            and ($2::text is null or upper(coalesce(m.format, '')) = $2)
-            and ($4::text is null
-                 or ($4 = 'short' and (m.chapters between 1 and 50 or (m.chapters is null and m.volumes between 1 and 5)))
-                 or ($4 = 'standard' and m.chapters between 51 and 150)
-                 or ($4 = 'long' and m.chapters >= 151))
-            and ($5::text is null or m.status = $5)
-          group by m.id
-          order by 2 desc nulls last, 3 desc nulls last, 4 desc nulls last, 1 desc
-          limit $6
-        ) s
-      $q$ into v_ids using v_curated_rail, v_format, v_sort, v_length, v_status, v_pool;
-    else
-      select array_agg(s.mid order by s.ord) into v_ids
-      from (
-        select m.id as mid,
-               row_number() over (
-                 order by
-                   case when v_sort = 'default' and v_section = 'essentials' then coalesce(m.favourites, 0) end desc nulls last,
-                   case when v_sort = 'default' and v_section in ('essentials', 'classics', 'top_rated') then coalesce(m.average_score, 0) end desc nulls last,
-                   case when v_sort = 'default' and v_section = 'trending' then coalesce(m.trending, 0) end desc nulls last,
-                   case when v_sort = 'default' and v_section = 'newly_added' then m.created_at end desc nulls last,
-                   case when v_sort = 'top_rated' then m.average_score end desc nulls last,
-                   case when v_sort = 'newest' then m.start_date_year end desc nulls last,
-                   case when v_sort = 'newest' then m.start_date_month end desc nulls last,
-                   case when v_sort = 'newest' then m.start_date_day end desc nulls last,
-                   coalesce(m.popularity, 0) desc,
-                   m.id desc
-               ) as ord
-        from public.manga m
-        where coalesce(m.is_adult, false) = false
-          and (v_format is null or upper(coalesce(m.format, '')) = v_format)
-          and (v_length is null
-               or (v_length = 'short' and (m.chapters between 1 and 50 or (m.chapters is null and m.volumes between 1 and 5)))
-               or (v_length = 'standard' and m.chapters between 51 and 150)
-               or (v_length = 'long' and m.chapters >= 151))
-          and (v_status is null or m.status = v_status)
-          and case v_section
-                when 'essentials' then coalesce(m.average_score, 0) >= 85
-                when 'classics' then coalesce(m.start_date_year, 9999) < 2015 and coalesce(m.average_score, 0) >= 80
-                when 'new_to_you' then coalesce(m.average_score, 0) >= 80
-                when 'trending' then coalesce(m.trending, 0) > 0
-                when 'top_rated' then coalesce(m.average_score, 0) >= 80
-                when 'newly_added' then true
-                else false
-              end
-        order by ord
-        limit v_pool
-      ) s;
+                 case when v_sort = 'default' and v_section = 'essentials' then coalesce(m.favourites, 0) end as k1,
+                 case when v_sort = 'default' and v_section in ('essentials', 'classics', 'top_rated') then coalesce(m.average_score, 0) end as k2,
+                 case when v_sort = 'default' and v_section = 'trending' then coalesce(m.trending, 0) end as k3,
+                 case when v_sort = 'default' and v_section = 'newly_added' then m.created_at end as k4,
+                 case when v_sort = 'top_rated' then m.average_score end as k5,
+                 case when v_sort = 'newest' then m.start_date_year end as k6,
+                 case when v_sort = 'newest' then m.start_date_month end as k7,
+                 case when v_sort = 'newest' then m.start_date_day end as k8,
+                 coalesce(m.popularity, 0) as pop
+          from public.manga m
+          where coalesce(m.is_adult, false) = false
+            and not (coalesce(m.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+            and nullif(btrim(coalesce(m.cover_image_large, m.cover_image_medium, '')), '') is not null
+            and (v_format is null or upper(coalesce(m.format, '')) = v_format)
+            and (v_length is null
+                 or (v_length = 'short' and (m.chapters between 1 and 50 or (m.chapters is null and m.volumes between 1 and 5)))
+                 or (v_length = 'standard' and m.chapters between 51 and 150)
+                 or (v_length = 'long' and m.chapters >= 151))
+            and (v_status is null or m.status = v_status)
+            and case v_section
+                  when 'essentials' then coalesce(m.average_score, 0) >= 85
+                  when 'classics' then coalesce(m.start_date_year, 9999) < 2015 and coalesce(m.average_score, 0) >= 80
+                  when 'new_to_you' then coalesce(m.average_score, 0) >= 80
+                  when 'trending' then coalesce(m.trending, 0) > 0
+                  when 'top_rated' then coalesce(m.average_score, 0) >= 80
+                  when 'newly_added' then true
+                  else false
+                end
+            and (v_uid is null or not exists (
+                  select 1 from public.taste_signal_events e
+                  where e.user_id = v_uid and e.media_type = 'MANGA' and e.media_id = m.id
+                    and e.event_type in ('deck_skip', 'deck_known')
+                    and e.created_at > now() - interval '365 days'))
+            and (not v_hide_owned or not exists (
+                  select 1 from public.manga_user_lists ul
+                  where ul.user_id = v_uid_text and ul.manga_id = m.id))
+          order by k1 desc nulls last, k2 desc nulls last, k3 desc nulls last, k4 desc nulls last,
+                   k5 desc nulls last, k6 desc nulls last, k7 desc nulls last, k8 desc nulls last,
+                   pop desc, mid desc
+          limit v_pool
+        ) s;
+      end if;
     end if;
-  end if;
+
+    -- Enough distinct franchises for this page (+1, so a full page is never mistaken for the end),
+    -- or the source is exhausted, or the cap is reached: stop growing.
+    v_got := coalesce(cardinality(v_ids), 0);
+    exit when v_got < v_pool or v_pool >= v_pool_cap;
+    select count(distinct coalesce(fc.component_label, x.mid)) into v_distinct
+    from unnest(v_ids) as x(mid)
+    left join public.media_franchise_components fc on fc.media_type = v_type and fc.media_id = x.mid;
+    exit when v_distinct > v_offset + v_limit;
+    v_pool := least(v_pool_cap, v_pool * 2);
+  end loop;
 
   return query
   select * from public._discover_page_v1(
@@ -542,10 +616,12 @@ revoke all on function public.discover_section_page_v1(text, text, text, text, t
 grant execute on function public.discover_section_page_v1(text, text, text, text, text, text, integer, integer) to anon, authenticated, service_role;
 
 comment on function public.discover_section_page_v1(text, text, text, text, text, text, integer, integer) is
-  '20261104100000 (prepared). "See all" page of one Discover section (essentials, classics, new_to_you, trending, top_rated, newly_added, current_season and airing_today for anime) with sort default/popular/newest(release date)/top_rated and filters format/length/status, offset-paged over a deterministic order. Hidden (deck_skip/deck_known, 365 d) never returned; new_to_you hides owned titles, the other sections mark them (list_status); franchise-deduped before the offset. Read-only (no impressions).';
+  '20261104100000 (prepared). "See all" page of one Discover section (essentials, classics, new_to_you, trending, top_rated, newly_added, current_season and airing_today for anime) with sort default/popular/newest(release date)/top_rated and filters format/length/status, offset-paged over a deterministic order. Hidden (deck_skip/deck_known, 365 d), owned (new_to_you) and catalogue exclusions applied inside the candidate query; the pool grows until franchise dedupe leaves offset+limit+1 franchises or the source ends; new_to_you hides owned titles, the other sections mark them (list_status); franchise-deduped before the offset. Read-only (no impressions).';
 
 -- ---------------------------------------------------------------------------
 -- 4) discover_mood_v1
+--    Same review fix as discover_section_page_v1: exclusions inside the candidate queries, a pool
+--    that grows only for franchise dedupe. like_last_loved keeps its fixed 60-candidate similar list.
 -- ---------------------------------------------------------------------------
 create or replace function public.discover_mood_v1(
   p_mood text,
@@ -572,11 +648,15 @@ as $$
 #variable_conflict use_column
 declare
   v_uid uuid := auth.uid();
+  v_uid_text text := auth.uid()::text;
   v_type text := upper(btrim(coalesce(p_media_type, '')));
   v_mood text := lower(btrim(coalesce(p_mood, '')));
   v_limit integer := least(60, greatest(1, coalesce(p_limit, 24)));
   v_offset integer := least(440, greatest(0, coalesce(p_offset, 0)));
   v_pool integer;
+  v_pool_cap constant integer := 4000;
+  v_got integer;
+  v_distinct integer;
   v_threshold real := 0.25;
   v_cozy text[] := array['slice-of-life-iyashikei', 'food-craft', 'family-generations'];
   v_not_cozy text[] := array['horror-dread', 'tragedy-tearjerker', 'psychological-thriller'];
@@ -593,101 +673,9 @@ begin
   if v_mood not in ('short', 'cozy', 'intense', 'like_last_loved') then
     raise exception 'INVALID_MOOD: p_mood must be short, cozy, intense or like_last_loved';
   end if;
-  v_pool := least(500, v_offset + v_limit * 4 + 40);
+  v_pool := least(v_pool_cap, (v_offset + v_limit) * 2 + 40);
 
-  if v_mood = 'short' then
-    if v_type = 'ANIME' then
-      select array_agg(s.aid order by s.pop desc, s.aid desc) into v_ids
-      from (
-        select a.id as aid, coalesce(a.popularity, 0) as pop
-        from public.anime a
-        where coalesce(a.is_adult, false) = false
-          and coalesce(a.average_score, 0) >= 70
-          and ((upper(coalesce(a.format, '')) in ('TV', 'ONA', 'OVA') and a.status = 'FINISHED'
-                and a.episodes between 1 and 13)
-               or (upper(coalesce(a.format, '')) = 'MOVIE' and a.duration between 1 and 25))
-        order by coalesce(a.popularity, 0) desc, a.id desc
-        limit v_pool
-      ) s;
-    else
-      select array_agg(s.mid order by s.pop desc, s.mid desc) into v_ids
-      from (
-        select m.id as mid, coalesce(m.popularity, 0) as pop
-        from public.manga m
-        where coalesce(m.is_adult, false) = false
-          and coalesce(m.average_score, 0) >= 70
-          and m.status = 'FINISHED'
-          and (m.chapters between 1 and 50 or (m.chapters is null and m.volumes between 1 and 5))
-        order by coalesce(m.popularity, 0) desc, m.id desc
-        limit v_pool
-      ) s;
-    end if;
-  elsif v_mood in ('cozy', 'intense') then
-    if v_realms then
-      execute $q$
-        select array_agg(s.mid order by s.w desc, s.pop desc, s.mid desc)
-        from (
-          select r.media_id as mid, sum(r.weight)::real as w, max(coalesce(t.pop, 0)) as pop
-          from public.media_realm_membership_effective r
-          join (
-            select a.id, a.popularity as pop, a.average_score as sc, a.genres as g, a.is_adult as adult, a.format as f
-            from public.anime a where $1 = 'ANIME'
-            union all
-            select m.id, m.popularity, m.average_score, m.genres, m.is_adult, m.format
-            from public.manga m where $1 = 'MANGA'
-          ) t on t.id = r.media_id
-          where r.media_type = $1
-            and r.realm = any($2)
-            and r.weight >= $4
-            and coalesce(t.adult, false) = false
-            and coalesce(t.sc, 0) >= 65
-            and ($1 = 'MANGA' or upper(coalesce(t.f, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT'))
-            and ($5 = false or not ('Horror' = any(coalesce(t.g, '{}'::text[]))))
-            and not exists (
-              select 1 from public.media_realm_membership_effective x
-              where x.media_type = r.media_type and x.media_id = r.media_id
-                and x.realm = any($3) and x.weight >= $4
-            )
-          group by r.media_id
-          order by 2 desc, 3 desc, 1 desc
-          limit $6
-        ) s
-      $q$ into v_ids
-      using v_type,
-            case when v_mood = 'cozy' then v_cozy else v_intense end,
-            case when v_mood = 'cozy' then v_not_cozy else array[]::text[] end,
-            v_threshold, v_mood = 'cozy', v_pool;
-    elsif v_type = 'ANIME' then
-      select array_agg(s.aid order by s.pop desc, s.aid desc) into v_ids
-      from (
-        select a.id as aid, coalesce(a.popularity, 0) as pop
-        from public.anime a
-        where coalesce(a.is_adult, false) = false
-          and coalesce(a.average_score, 0) >= 65
-          and upper(coalesce(a.format, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT')
-          and case when v_mood = 'cozy'
-                   then 'Slice of Life' = any(coalesce(a.genres, '{}'::text[]))
-                        and not (coalesce(a.genres, '{}'::text[]) && array['Horror', 'Thriller', 'Psychological'])
-                   else coalesce(a.genres, '{}'::text[]) && array['Thriller', 'Horror', 'Psychological'] end
-        order by coalesce(a.popularity, 0) desc, a.id desc
-        limit v_pool
-      ) s;
-    else
-      select array_agg(s.mid order by s.pop desc, s.mid desc) into v_ids
-      from (
-        select m.id as mid, coalesce(m.popularity, 0) as pop
-        from public.manga m
-        where coalesce(m.is_adult, false) = false
-          and coalesce(m.average_score, 0) >= 65
-          and case when v_mood = 'cozy'
-                   then 'Slice of Life' = any(coalesce(m.genres, '{}'::text[]))
-                        and not (coalesce(m.genres, '{}'::text[]) && array['Horror', 'Thriller', 'Psychological'])
-                   else coalesce(m.genres, '{}'::text[]) && array['Thriller', 'Horror', 'Psychological'] end
-        order by coalesce(m.popularity, 0) desc, m.id desc
-        limit v_pool
-      ) s;
-    end if;
-  else
+  if v_mood = 'like_last_loved' then
     -- like_last_loved: the caller's seed; signed out or no seed answers no rows.
     if v_uid is null then
       return;
@@ -695,13 +683,13 @@ begin
     if v_type = 'ANIME' then
       select ul.anime_id into v_seed
       from public.anime_user_lists ul
-      where ul.user_id = v_uid::text and ul.list_type = 'COMPLETED'
+      where ul.user_id = v_uid_text and ul.list_type = 'COMPLETED'
       order by (coalesce(ul.rating, 0) >= 8) desc, ul.updated_at desc, ul.anime_id desc
       limit 1;
     else
       select ul.manga_id into v_seed
       from public.manga_user_lists ul
-      where ul.user_id = v_uid::text and ul.list_type = 'COMPLETED'
+      where ul.user_id = v_uid_text and ul.list_type = 'COMPLETED'
       order by (coalesce(ul.rating, 0) >= 8) desc, ul.updated_at desc, ul.manga_id desc
       limit 1;
     end if;
@@ -734,6 +722,163 @@ begin
     return;
   end if;
 
+  loop
+    if v_mood = 'short' then
+      if v_type = 'ANIME' then
+        select array_agg(s.aid order by s.pop desc, s.aid desc) into v_ids
+        from (
+          select a.id as aid, coalesce(a.popularity, 0) as pop
+          from public.anime a
+          where coalesce(a.is_adult, false) = false
+            and not (coalesce(a.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+            and nullif(btrim(coalesce(a.cover_image_large, a.cover_image_medium, '')), '') is not null
+            and coalesce(a.average_score, 0) >= 70
+            and ((upper(coalesce(a.format, '')) in ('TV', 'ONA', 'OVA') and a.status = 'FINISHED'
+                  and a.episodes between 1 and 13)
+                 or (upper(coalesce(a.format, '')) = 'MOVIE' and a.duration between 1 and 25))
+            and (v_uid is null or not exists (
+                  select 1 from public.taste_signal_events e
+                  where e.user_id = v_uid and e.media_type = 'ANIME' and e.media_id = a.id
+                    and e.event_type in ('deck_skip', 'deck_known')
+                    and e.created_at > now() - interval '365 days'))
+            and (v_uid is null or not exists (
+                  select 1 from public.anime_user_lists ul
+                  where ul.user_id = v_uid_text and ul.anime_id = a.id))
+          order by pop desc, aid desc
+          limit v_pool
+        ) s;
+      else
+        select array_agg(s.mid order by s.pop desc, s.mid desc) into v_ids
+        from (
+          select m.id as mid, coalesce(m.popularity, 0) as pop
+          from public.manga m
+          where coalesce(m.is_adult, false) = false
+            and not (coalesce(m.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+            and nullif(btrim(coalesce(m.cover_image_large, m.cover_image_medium, '')), '') is not null
+            and coalesce(m.average_score, 0) >= 70
+            and m.status = 'FINISHED'
+            and (m.chapters between 1 and 50 or (m.chapters is null and m.volumes between 1 and 5))
+            and (v_uid is null or not exists (
+                  select 1 from public.taste_signal_events e
+                  where e.user_id = v_uid and e.media_type = 'MANGA' and e.media_id = m.id
+                    and e.event_type in ('deck_skip', 'deck_known')
+                    and e.created_at > now() - interval '365 days'))
+            and (v_uid is null or not exists (
+                  select 1 from public.manga_user_lists ul
+                  where ul.user_id = v_uid_text and ul.manga_id = m.id))
+          order by pop desc, mid desc
+          limit v_pool
+        ) s;
+      end if;
+    elsif v_realms then
+      execute $q$
+        select array_agg(s.mid order by s.w desc, s.pop desc, s.mid desc)
+        from (
+          select r.media_id as mid, sum(r.weight)::real as w, max(coalesce(t.pop, 0)) as pop
+          from public.media_realm_membership_effective r
+          join (
+            select a.id, a.popularity as pop, a.average_score as sc, a.genres as g, a.is_adult as adult, a.format as f,
+                   coalesce(a.cover_image_large, a.cover_image_medium, '') as cover
+            from public.anime a where $1 = 'ANIME'
+            union all
+            select m.id, m.popularity, m.average_score, m.genres, m.is_adult, m.format,
+                   coalesce(m.cover_image_large, m.cover_image_medium, '')
+            from public.manga m where $1 = 'MANGA'
+          ) t on t.id = r.media_id
+          where r.media_type = $1
+            and r.realm = any($2)
+            and r.weight >= $4
+            and coalesce(t.adult, false) = false
+            and not (coalesce(t.g, '{}'::text[]) && array['Hentai', 'Ecchi'])
+            and nullif(btrim(t.cover), '') is not null
+            and coalesce(t.sc, 0) >= 65
+            and ($1 = 'MANGA' or upper(coalesce(t.f, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT'))
+            and ($5 = false or not ('Horror' = any(coalesce(t.g, '{}'::text[]))))
+            and not exists (
+              select 1 from public.media_realm_membership_effective x
+              where x.media_type = r.media_type and x.media_id = r.media_id
+                and x.realm = any($3) and x.weight >= $4
+            )
+            and ($7::uuid is null or not exists (
+                  select 1 from public.taste_signal_events e
+                  where e.user_id = $7 and e.media_type = $1 and e.media_id = r.media_id
+                    and e.event_type in ('deck_skip', 'deck_known')
+                    and e.created_at > now() - interval '365 days'))
+            and ($7::uuid is null or not exists (
+                  select 1 from public.anime_user_lists ul
+                  where $1 = 'ANIME' and ul.user_id = $7::text and ul.anime_id = r.media_id))
+            and ($7::uuid is null or not exists (
+                  select 1 from public.manga_user_lists ul
+                  where $1 = 'MANGA' and ul.user_id = $7::text and ul.manga_id = r.media_id))
+          group by r.media_id
+          order by 2 desc, 3 desc, 1 desc
+          limit $6
+        ) s
+      $q$ into v_ids
+      using v_type,
+            case when v_mood = 'cozy' then v_cozy else v_intense end,
+            case when v_mood = 'cozy' then v_not_cozy else array[]::text[] end,
+            v_threshold, v_mood = 'cozy', v_pool, v_uid;
+    elsif v_type = 'ANIME' then
+      select array_agg(s.aid order by s.pop desc, s.aid desc) into v_ids
+      from (
+        select a.id as aid, coalesce(a.popularity, 0) as pop
+        from public.anime a
+        where coalesce(a.is_adult, false) = false
+          and not (coalesce(a.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+          and nullif(btrim(coalesce(a.cover_image_large, a.cover_image_medium, '')), '') is not null
+          and coalesce(a.average_score, 0) >= 65
+          and upper(coalesce(a.format, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT')
+          and case when v_mood = 'cozy'
+                   then 'Slice of Life' = any(coalesce(a.genres, '{}'::text[]))
+                        and not (coalesce(a.genres, '{}'::text[]) && array['Horror', 'Thriller', 'Psychological'])
+                   else coalesce(a.genres, '{}'::text[]) && array['Thriller', 'Horror', 'Psychological'] end
+          and (v_uid is null or not exists (
+                select 1 from public.taste_signal_events e
+                where e.user_id = v_uid and e.media_type = 'ANIME' and e.media_id = a.id
+                  and e.event_type in ('deck_skip', 'deck_known')
+                  and e.created_at > now() - interval '365 days'))
+          and (v_uid is null or not exists (
+                select 1 from public.anime_user_lists ul
+                where ul.user_id = v_uid_text and ul.anime_id = a.id))
+        order by pop desc, aid desc
+        limit v_pool
+      ) s;
+    else
+      select array_agg(s.mid order by s.pop desc, s.mid desc) into v_ids
+      from (
+        select m.id as mid, coalesce(m.popularity, 0) as pop
+        from public.manga m
+        where coalesce(m.is_adult, false) = false
+          and not (coalesce(m.genres, '{}'::text[]) && array['Hentai', 'Ecchi'])
+          and nullif(btrim(coalesce(m.cover_image_large, m.cover_image_medium, '')), '') is not null
+          and coalesce(m.average_score, 0) >= 65
+          and case when v_mood = 'cozy'
+                   then 'Slice of Life' = any(coalesce(m.genres, '{}'::text[]))
+                        and not (coalesce(m.genres, '{}'::text[]) && array['Horror', 'Thriller', 'Psychological'])
+                   else coalesce(m.genres, '{}'::text[]) && array['Thriller', 'Horror', 'Psychological'] end
+          and (v_uid is null or not exists (
+                select 1 from public.taste_signal_events e
+                where e.user_id = v_uid and e.media_type = 'MANGA' and e.media_id = m.id
+                  and e.event_type in ('deck_skip', 'deck_known')
+                  and e.created_at > now() - interval '365 days'))
+          and (v_uid is null or not exists (
+                select 1 from public.manga_user_lists ul
+                where ul.user_id = v_uid_text and ul.manga_id = m.id))
+        order by pop desc, mid desc
+        limit v_pool
+      ) s;
+    end if;
+
+    v_got := coalesce(cardinality(v_ids), 0);
+    exit when v_got < v_pool or v_pool >= v_pool_cap;
+    select count(distinct coalesce(fc.component_label, x.mid)) into v_distinct
+    from unnest(v_ids) as x(mid)
+    left join public.media_franchise_components fc on fc.media_type = v_type and fc.media_id = x.mid;
+    exit when v_distinct > v_offset + v_limit;
+    v_pool := least(v_pool_cap, v_pool * 2);
+  end loop;
+
   return query
   select * from public._discover_page_v1(
     v_uid, v_type, coalesce(v_ids, '{}'::integer[]), true, v_limit, v_offset
@@ -745,6 +890,6 @@ revoke all on function public.discover_mood_v1(text, text, integer, integer) fro
 grant execute on function public.discover_mood_v1(text, text, integer, integer) to anon, authenticated, service_role;
 
 comment on function public.discover_mood_v1(text, text, integer, integer) is
-  '20261104100000 (prepared). Discover mood journeys over existing data: short (episode/chapter counts, short movies), cozy / intense (media_realm_membership_effective realm sets at the 0.25 membership threshold; genre fallback when the view is absent), like_last_loved (recommend_ids_similar_to_seeds from the caller''s latest COMPLETED title rated >= 8, else latest COMPLETED, else latest deck love; reason_media_id/reason_title name it). Owned and hidden (deck_skip/deck_known, 365 d) titles never returned; franchise-deduped before the offset. Read-only.';
+  '20261104100000 (prepared). Discover mood journeys over existing data: short (episode/chapter counts, short movies), cozy / intense (media_realm_membership_effective realm sets at the 0.25 membership threshold; genre fallback when the view is absent), like_last_loved (recommend_ids_similar_to_seeds from the caller''s latest COMPLETED title rated >= 8, else latest COMPLETED, else latest deck love; reason_media_id/reason_title name it). Owned, hidden (deck_skip/deck_known, 365 d) and catalogue exclusions applied inside the candidate query; the pool grows until franchise dedupe leaves offset+limit+1 franchises or the source ends; franchise-deduped before the offset. Read-only.';
 
 commit;

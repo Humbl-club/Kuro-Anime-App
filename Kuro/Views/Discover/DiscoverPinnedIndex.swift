@@ -5,7 +5,7 @@ import SwiftUI
 // `kuroHairline` under it: one line of short section words (New · Season · Essentials · Manga ·
 // Trending · Classics), scrolling sideways if needed. The current section is ink with the 28 × 2
 // `HomeInk.switchMark` under it (fading in place, no travel), passed sections ink, sections ahead
-// `HomeInk.switchUnselected`; a 4 pt dot follows a word whose section has NEW titles. A word scrolls to
+// `kuroMuted` (AA on both canvases); a 4 pt dot follows a word whose section has NEW titles. A word scrolls to
 // its section. Every word is a 44 pt target (the band's hit area reaches below the drawn 38).
 
 /// The band's words and states (pure).
@@ -72,7 +72,8 @@ struct DiscoverPinnedIndex: View {
                     Text(entry.word)
                         .font(.kuroCustom(12, weight: state == .current ? .semibold : .medium,
                                           relativeTo: .footnote, maxSize: 22))
-                        .foregroundStyle(state == .ahead ? HomeInk.switchUnselected : Color.kuroInk)
+                        // `kuroMuted` (4.86 : 1 on the Manga canvas #F5F5F3; `switchUnselected` was 4.20 : 1, under AA).
+                        .foregroundStyle(state == .ahead ? Color.kuroMuted : Color.kuroInk)
                         .lineLimit(1)
                         .fixedSize()
                     if entry.hasNew {

@@ -252,6 +252,14 @@ struct DiscoverUsabilityRuleTests {
         #expect(steady.items.map(\.item.key.id) == [100, 101, 102, 103, 104])
         // A page too small for an overlap still advances.
         #expect(DiscoveryStore.serverPage(rows(firstId: 1, firstRank: 1, count: 1), offset: 0, limit: 1).next == .offset(1))
+        // A short page does NOT end the journey (the server's franchise dedupe can thin a pool): it
+        // continues right after its last rank; only an empty page (or the offset cap) ends it.
+        let short = DiscoveryStore.serverPage(rows(firstId: 200, firstRank: 1, count: 2), offset: 0, limit: 24)
+        #expect(short.next == .offset(2))
+        #expect(DiscoveryStore.serverPage([], offset: 2, limit: 24).next == nil)
+        #expect(DiscoveryStore.serverPage(rows(firstId: 300, firstRank: 441, count: 3), offset: 440, limit: 3).next == nil)
+        // A reader that ignores the offset (no rank past it) ends the journey instead of looping.
+        #expect(DiscoveryStore.serverPage(rows(firstId: 200, firstRank: 1, count: 2), offset: 2, limit: 24).next == nil)
     }
 
     @Test("Fixture rows decode into pages (both media, reason, list status)")
@@ -279,13 +287,23 @@ struct DiscoverFeedbackStoreTests {
         let suiteName = "kuro.tests.discover-answers.\(UUID().uuidString)"
         let defaults: UserDefaults
 
-        init(signals: String = "[]") throws {
+        /// `signals`: the caller's stored deck rows; each read answers the rows of its `event_type`
+        /// filter, newest first, cut by its `offset` / `limit` like PostgREST.
+        init(signals: [(key: MediaKey, eventType: String, at: Date)] = []) throws {
             defaults = try #require(UserDefaults(suiteName: suiteName))
-            let rows = signals
+            let stored = signals.sorted { $0.at > $1.at }
             server.respond { request in
                 switch request.resource {
                 case DiscoverFeedbackStoreTests.signalRPC: return DUJSON.signalOK
-                case "taste_signal_events": return .json(rows)
+                case "taste_signal_events":
+                    let filter = request.query("event_type") ?? ""
+                    let types = filter.hasPrefix("in.(")
+                        ? Set(filter.dropFirst(4).dropLast().split(separator: ",").map(String.init)) : []
+                    let offset = Int(request.query("offset") ?? "") ?? 0
+                    let limit = Int(request.query("limit") ?? "") ?? Int.max
+                    let matching = stored.filter { types.contains($0.eventType) }
+                    let page = Array(matching.dropFirst(offset).prefix(limit))
+                    return .json(DiscoverUsabilityFixtures.deckSignalRowsJSON(page))
                 default: return .emptyArray
                 }
             }
@@ -335,15 +353,15 @@ struct DiscoverFeedbackStoreTests {
         #expect(seen.key.kind == .manga)
     }
 
-    @Test("The server read: own deck rows only (user, event types, window, newest first); skip/known hide, pass/love do not; Undo restores a deck love instead of erasing it")
+    @Test("The server read: own deck rows only (user, event types, window, newest first); skip/known hide, pass/love do not; Undo never replays a deck love (it would put the title back on the list)")
     func serverReadAndPriorAction() async throws {
         let now = Date()
-        let rows = DiscoverUsabilityFixtures.deckSignalRowsJSON([
+        let rows: [(key: MediaKey, eventType: String, at: Date)] = [
             (MediaKey(kind: .anime, id: 1), "deck_skip", now),
             (MediaKey(kind: .anime, id: 2), "deck_known", now.addingTimeInterval(-60)),
             (MediaKey(kind: .anime, id: 3), "deck_pass", now.addingTimeInterval(-120)),
             (MediaKey(kind: .manga, id: 4), "deck_love", now.addingTimeInterval(-180)),
-        ])
+        ]
         let fixture = try Fixture(signals: rows)
         defer { fixture.tearDown() }
         // A delivered 'love' (the Undo below) calls the Library hook: connect it to a graph's actions.
@@ -355,26 +373,44 @@ struct DiscoverFeedbackStoreTests {
         #expect(await taste.loadDiscoverHidden())
         #expect(taste.discoverHidden == [MediaKey(kind: .anime, id: 1): .notInterested, MediaKey(kind: .anime, id: 2): .seenIt])
 
-        let read = try #require(fixture.server.requests.first { $0.resource == "taste_signal_events" })
-        #expect(read.method == "GET")
-        #expect(read.query("user_id") == "eq.\(Self.userA.lowercased())")
-        #expect(read.query("event_type") == "in.(deck_love,deck_known,deck_skip,deck_pass)")
-        #expect(read.query("created_at")?.hasPrefix("gte.") == true)
-        #expect(read.query("order")?.hasPrefix("created_at.desc") == true)
-        #expect(read.query("limit") == "2000")
+        let reads = fixture.server.requests.filter { $0.resource == "taste_signal_events" }
+        #expect(reads.count == 2, "the hiding answers (one short page) and the prior actions")
+        for read in reads {
+            #expect(read.method == "GET")
+            #expect(read.query("user_id") == "eq.\(Self.userA.lowercased())")
+            #expect(read.query("created_at")?.hasPrefix("gte.") == true)
+            #expect(read.query("order")?.hasPrefix("created_at.desc") == true)
+        }
+        let hidingRead = try #require(reads.first { $0.query("event_type") == "in.(deck_skip,deck_known)" })
+        #expect(hidingRead.query("offset") == "0")
+        #expect(hidingRead.query("limit") == "\(TasteStore.discoverHiddenPageSize)")
+        let priorRead = try #require(reads.first { $0.query("event_type") == "in.(deck_love,deck_pass)" })
+        #expect(priorRead.query("limit") == "\(TasteStore.discoverPriorReadLimit)")
 
         // Within the TTL the read is reused.
         #expect(await taste.loadDiscoverHidden())
-        #expect(fixture.server.requests.filter { $0.resource == "taste_signal_events" }.count == 1)
+        #expect(fixture.server.requests.filter { $0.resource == "taste_signal_events" }.count == 2)
 
+        // A prior deck love is NOT replayed by Undo: `record_taste_deck_signal` inserts every love into
+        // the list as PLANNING, and the menu only offers the answer when the title is off the list.
         let loved = MediaKey(kind: .manga, id: 4)
         let receipt = try #require(taste.recordDiscoverFeedback(.notInterested, for: loved))
         #expect(receipt.priorAction == .love)
         await taste.drainTask?.value
         #expect(taste.undoDiscoverFeedback(receipt))
         await taste.drainTask?.value
-        #expect(fixture.sentSignals() == ["skip MANGA 4", "love MANGA 4"])
+        #expect(fixture.sentSignals() == ["skip MANGA 4", "retract MANGA 4"])
+        #expect(!fixture.sentSignals().contains("love MANGA 4"))
         #expect(!taste.isHiddenOnDiscover(loved))
+
+        // A prior deck pass is replayed (it writes nothing but the signal).
+        let passed = MediaKey(kind: .anime, id: 3)
+        let third = try #require(taste.recordDiscoverFeedback(.seenIt, for: passed))
+        #expect(third.priorAction == .pass)
+        await taste.drainTask?.value
+        taste.undoDiscoverFeedback(third)
+        await taste.drainTask?.value
+        #expect(fixture.sentSignals().suffix(2) == ["known ANIME 3", "pass ANIME 3"])
 
         // Undo of a Not interested on a title already marked Seen it restores Seen it (still hidden).
         let known = MediaKey(kind: .anime, id: 2)
@@ -384,6 +420,47 @@ struct DiscoverFeedbackStoreTests {
         #expect(taste.discoverHidden[known] == .seenIt)
         await taste.drainTask?.value
         await graph.tearDown()
+    }
+
+    @Test("The hiding read is paged to the end, and love/pass rows never push an older answer out of the set")
+    func hidingReadIsComplete() async throws {
+        let now = Date()
+        var rows: [(key: MediaKey, eventType: String, at: Date)] = []
+        // 1,200 newer undecided passes (more than one page and more than the prior read's limit).
+        for id in 1...1_200 { rows.append((MediaKey(kind: .anime, id: 10_000 + id), "deck_pass", now.addingTimeInterval(-Double(id)))) }
+        // 1,001 older Not interested answers: one more than a page, so a second page must be read.
+        for id in 1...1_001 { rows.append((MediaKey(kind: .anime, id: id), "deck_skip", now.addingTimeInterval(-10_000 - Double(id)))) }
+        let fixture = try Fixture(signals: rows)
+        defer { fixture.tearDown() }
+        _ = fixture.accountSession.begin(userId: Self.userA)
+        let taste = fixture.store()
+        #expect(await taste.loadDiscoverHidden())
+        #expect(taste.discoverHidden.count == 1_001)
+        #expect(taste.isHiddenOnDiscover(MediaKey(kind: .anime, id: 1_001)), "the oldest answer is still hidden")
+        #expect(!taste.isHiddenOnDiscover(MediaKey(kind: .anime, id: 10_001)), "a pass never hides")
+        let pages = fixture.server.requests.filter {
+            $0.resource == "taste_signal_events" && $0.query("event_type") == "in.(deck_skip,deck_known)"
+        }
+        #expect(pages.map { $0.query("offset") } == ["0", "1000"])
+    }
+
+    @Test("Undo when the prior action is unknown (no read yet) retracts the answer it sent")
+    func undoUnknownPriorRetracts() async throws {
+        let fixture = try Fixture()
+        defer { fixture.tearDown() }
+        _ = fixture.accountSession.begin(userId: Self.userA)
+        let taste = fixture.store()
+        let key = MediaKey(kind: .anime, id: 9)
+        let receipt = try #require(taste.recordDiscoverFeedback(.notInterested, for: key))
+        #expect(receipt.priorAction == nil)
+        await taste.drainTask?.value
+        taste.undoDiscoverFeedback(receipt)
+        await taste.drainTask?.value
+        #expect(fixture.sentSignals() == ["skip ANIME 9", "retract ANIME 9"])
+        #expect(TasteStore.undoAction(prior: .love) == .retract)
+        #expect(TasteStore.undoAction(prior: .pass) == .pass)
+        #expect(TasteStore.undoAction(prior: .skip) == .skip)
+        #expect(TasteStore.undoAction(prior: .known) == .known)
     }
 
     @Test("Device memory: answers survive a new store instance before any read; account changes clear the in-memory copy; deletion removes the device copy")
@@ -511,9 +588,10 @@ struct DiscoverReadersTests {
         let body = try #require(harness.requests(to: "rpc/discover_section_page_v1").first?.canonicalBody)
         #expect(body == #"{"p_format":"TV","p_length":"short","p_limit":3,"p_media_type":"ANIME","p_offset":24,"p_section":"trending","p_sort":"newest","p_status":"finished"}"#)
 
-        // A short page ends the journey.
-        let last = try #require(await harness.service.discovery.seeAllPage(query, limit: 10))
-        #expect(last.next == nil)
+        // A short page continues right after its last rank (franchise dedupe can thin a pool); only an
+        // empty page ends the journey (DiscoveryStore.serverPage).
+        let short = try #require(await harness.service.discovery.seeAllPage(query, limit: 10))
+        #expect(short.next == .offset(27))
         await harness.tearDown()
     }
 

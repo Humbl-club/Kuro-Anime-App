@@ -19,6 +19,8 @@ struct DiscoverIssueEnd: View {
     let planned: Int
     let hidden: Int
     let seen: Int
+    /// What "marked as seen" says on this issue (read on Manga, either on All).
+    var seenWord: DiscoverIssueCopy.SeenWord = .seen
     let browseOffered: Bool
     let moreLists: [MoreLink]
     let onBrowse: () -> Void
@@ -56,7 +58,7 @@ struct DiscoverIssueEnd: View {
                 .padding(.top, 10)
             VStack(alignment: .leading, spacing: 2) {
                 Text(DiscoverIssueCopy.endTally(sections: sections, titles: titles, german: german))
-                if let done = DiscoverIssueCopy.endActions(planned: planned, hidden: hidden, seen: seen, german: german) {
+                if let done = DiscoverIssueCopy.endActions(planned: planned, hidden: hidden, seen: seen, seenWord: seenWord, german: german) {
                     Text(done)
                 }
                 Text(DiscoverIssueCopy.endTomorrow(german: german))

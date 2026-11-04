@@ -67,6 +67,52 @@ struct DiscoverUsabilitySnapshotTests {
         await harness.tearDown()
     }
 
+    @Test("iPad (regular width, the 680 pt readable column): All top and full, downscaled to 603 px")
+    func iPadIssue() async throws {
+        await Self.seedArtwork()
+        let harness = try DCDiscoverHarness(responder: DUFixture.responder(), libraryBackend: Self.trackedBackend())
+        await harness.signIn()
+        try? await harness.graph.library.refresh()
+        let visits = try Self.visitDefaults()
+        let regular = AnyView(Self.page(.all, harness: harness, visits: visits)
+                                .environment(\.horizontalSizeClass, .regular))
+        let top = Self.window(regular, width: 820, height: 1_180)
+        try? await Task.sleep(for: .milliseconds(2_600))
+        await capture(top, name: "page-all-top-ipad", scaleToWidth: 603)
+        Self.close(top)
+        let tall = Self.window(AnyView(Self.page(.all, harness: harness, visits: visits)
+                                        .environment(\.horizontalSizeClass, .regular)), width: 820, height: 5_200)
+        try? await Task.sleep(for: .milliseconds(2_800))
+        let height = Self.contentHeight(in: tall)
+        await capture(tall, name: "page-all-full-ipad", height: height, scaleToWidth: 603)
+        Self.close(tall)
+        await harness.tearDown()
+    }
+
+    /// German renders: only in a run with `-testLanguage de -testRegion DE` (KuroLocale follows the
+    /// process's preferred languages); an English run skips them, so it never overwrites them.
+    @Test("German (de_DE): All full at 390 and 320, the contents and mood keys, Manga top")
+    func germanIssue() async throws {
+        guard KuroLocale.isGerman else { return }
+        await Self.seedArtwork()
+        let harness = try DCDiscoverHarness(responder: DUFixture.responder(), libraryBackend: Self.trackedBackend())
+        await harness.signIn()
+        try? await harness.graph.library.refresh()
+        let visits = try Self.visitDefaults()
+        for width in [CGFloat(390), 320] {
+            let tall = Self.window(Self.page(.all, harness: harness, visits: visits), width: width, height: 5_400)
+            try? await Task.sleep(for: .milliseconds(2_600))
+            let height = Self.contentHeight(in: tall)
+            await capture(tall, name: "page-all-full-\(Int(width))-de", height: height)
+            Self.close(tall)
+        }
+        let manga = Self.window(Self.page(.manga, harness: harness, visits: visits), width: 390, height: 1_400)
+        try? await Task.sleep(for: .milliseconds(2_400))
+        await capture(manga, name: "page-manga-top-390-de")
+        Self.close(manga)
+        await harness.tearDown()
+    }
+
     @Test("All scrolled: the pinned index under the header and NEW marks on the second visit")
     func scrolledWithNew() async throws {
         await Self.seedArtwork()
@@ -354,7 +400,7 @@ struct DiscoverUsabilitySnapshotTests {
     }
 
     /// JPEG q 0.8 at 1x (390 / 320 px wide, never above 603).
-    private func capture(_ window: UIWindow, name: String, height: CGFloat? = nil) async {
+    private func capture(_ window: UIWindow, name: String, height: CGFloat? = nil, scaleToWidth: CGFloat? = nil) async {
         do {
             try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
         } catch {
@@ -364,7 +410,22 @@ struct DiscoverUsabilitySnapshotTests {
         window.layoutIfNeeded()
         let size = CGSize(width: window.bounds.width, height: height ?? window.bounds.height)
         guard let png = FixtureRaster.png(of: window, size: size, diagnosticScale: nil),
-              let image = UIImage(data: png), let jpeg = image.jpegData(compressionQuality: 0.8) else {
+              let raster = UIImage(data: png) else {
+            Issue.record("\(name): encoding failed")
+            return
+        }
+        // iPad renders: the 820 pt window drawn at 1x, then scaled down to the gallery's 603 px.
+        var image = raster
+        if let target = scaleToWidth, raster.size.width * raster.scale > target {
+            let factor = target / (raster.size.width * raster.scale)
+            let scaled = CGSize(width: target, height: (raster.size.height * raster.scale * factor).rounded())
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            image = UIGraphicsImageRenderer(size: scaled, format: format).image { _ in
+                raster.draw(in: CGRect(origin: .zero, size: scaled))
+            }
+        }
+        guard let jpeg = image.jpegData(compressionQuality: 0.8) else {
             Issue.record("\(name): encoding failed")
             return
         }

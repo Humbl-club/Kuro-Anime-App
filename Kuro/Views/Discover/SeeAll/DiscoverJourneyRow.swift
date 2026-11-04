@@ -28,13 +28,14 @@ struct DiscoverJourneyRow: View {
 
     private var meta: String? {
         var parts: [String] = []
+        // The status word leads, as on the page's index rows (one placement for the R2 mark).
+        if let ownedStatus {
+            parts.append(DiscoverMenuCopy.statusWord(ownedStatus, medium: card.media.kind, german: german))
+        }
         if let facts = DiscoverIssueCopy.facts(kind: card.media.kind, year: card.media.year, formatRaw: card.media.formatRaw,
                                                episodes: card.media.episodes, chapters: card.media.chapters,
                                                length: true, german: german) {
             parts.append(facts)
-        }
-        if let ownedStatus {
-            parts.append(DiscoverMenuCopy.statusWord(ownedStatus, medium: card.media.kind, german: german))
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

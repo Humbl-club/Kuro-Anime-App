@@ -122,7 +122,8 @@ struct DiscoverCoverTile: View {
             if count > 0 { return DiscoverFrameCopy.clubCount(count, german: german) }
         }
         return DiscoverIssueCopy.facts(kind: card.media.kind, year: card.media.year, formatRaw: card.media.formatRaw,
-                                       episodes: nil, chapters: nil, length: false, german: german)
+                                       episodes: nil, chapters: nil, length: false, german: german,
+                                       kindShown: kindKicker)
     }
 
     var body: some View {
@@ -149,17 +150,19 @@ struct DiscoverCoverTile: View {
                     Text(KuroCardText.sanitizeTitleForCard(card.media.title))
                         .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 24))
                         .foregroundStyle(Color.kuroInk)
-                        .lineLimit(2)
+                        // Two lines reserved and one line of facts always: every tile of a rail or
+                        // trio has the same height, so the Plan keys share one baseline and the
+                        // rail's measured height never clips a key (R3).
+                        .lineLimit(2, reservesSpace: true)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, kindKicker ? 3 : 8)
-                    if let line {
-                        Text(line)
-                            .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
-                            .foregroundStyle(Color.kuroMuted)
-                            .lineLimit(1)
-                            .padding(.top, 2)
-                    }
+                    Text(line ?? " ")
+                        .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                        .foregroundStyle(Color.kuroMuted)
+                        .lineLimit(1)
+                        .padding(.top, 2)
+                        .accessibilityHidden(line == nil)
                 }
                 .frame(width: width, alignment: .topLeading)
                 .contentShape(Rectangle())

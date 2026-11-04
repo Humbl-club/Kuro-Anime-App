@@ -248,7 +248,7 @@ struct DiscoverSeeAllPage: View {
         let item = placed.item
         return DiscoverMenuItem(
             card: item.card.tasteCard, section: sectionID, position: position,
-            reason: DiscoverSeeAllCopy.reason(section.order, section: section.key, german: german),
+            reason: DiscoverSeeAllCopy.reason(section.order, section: section.key, medium: section.medium, german: german),
             sectionTitle: title, surface: "discover_see_all",
             onHidden: { receipt in
                 guard receipt.feedback == .notInterested else { return }

@@ -118,6 +118,8 @@ nonisolated enum DiscoverIssueLayout {
     static let indexRowMinHeight: CGFloat = 76
     /// The index row's Plan key: at least 96 pt wide (84 compact), growing only for its label.
     static func indexKeyWidth(compact: Bool) -> CGFloat { compact ? 84 : 96 }
+    /// The widest an index row's key grows ("Plan to watch" fits; "Auf deiner Liste" scales down).
+    static func indexKeyMaxWidth(compact: Bool) -> CGFloat { compact ? 96 : 112 }
 
     /// The horizontal rails (Trending, Tonight's shelf, Manga new to you on All): covers 14 pt apart,
     /// up to 10, sized by the edge-peek rule (details-songs spec §5.1) so a slice of the next cover

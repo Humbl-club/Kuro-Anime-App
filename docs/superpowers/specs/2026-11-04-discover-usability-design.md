@@ -473,11 +473,11 @@ The branded-state gate stays at 0 offenders, so no `ProgressView(` is used anywh
 | Where | English | Deutsch | |
 |---|---|---|---|
 | Moods eyebrow | IN THE MOOD FOR | LUST AUF | NEW |
-| Mood: short | Something short · Short and complete | Etwas Kurzes · Kurz und abgeschlossen | NEW. The curated rail doesn't guarantee an episode count, so the subtitle states none. |
+| Mood: short | Something short · An evening or a weekend | Etwas Kurzes · Für einen Abend oder ein Wochenende | NEW. The curated rail doesn't guarantee an episode count or a finished series (`short_one_season_anime` means one season), so the subtitle states neither (review fix 2026-11-04: was "Short and complete"). |
 | Mood: cozy | Cozy · Slow, warm, gentle | Gemütlich · Ruhig, warm, sanft | NEW |
 | Mood: intense | Intense · Dark and gripping | Intensiv · Düster und packend | NEW |
 | Mood: like | Like {title} · Because you finished it | Wie {Titel} · Weil du es beendet hast | NEW |
-| Mood purpose | Short and complete: our picks for an evening or a weekend. / Warm, low-stakes stories to unwind with. / Dark, serious stories that grip. / Close to {title} in tone and themes. | Kurz und abgeschlossen: unsere Auswahl für einen Abend oder ein Wochenende. / Warme, entspannte Geschichten zum Abschalten. / Düstere, ernste Geschichten, die packen. / Nah an {Titel} in Ton und Themen. | NEW |
+| Mood purpose | Short enough for an evening or a weekend. / Warm, low-stakes stories to unwind with. / Dark, serious stories that grip. / Close to {title} in tone and themes. | Kurz genug für einen Abend oder ein Wochenende. / Warme, entspannte Geschichten zum Abschalten. / Düstere, ernste Geschichten, die packen. / Nah an {Titel} in Ton und Themen. | NEW |
 | Mood eyebrow (like) | BECAUSE YOU FINISHED {TITLE} | WEIL DU {TITEL} BEENDET HAST | NEW |
 | Mood journey | Start here · That's all {n}. · Nothing {mood} left that you haven't seen. | Fang hier an · Das sind alle {n}. · Nichts {Stimmung} mehr, das du noch nicht kennst. | NEW |
 | Contents | IN THIS ISSUE · {n} SECTIONS · TAP TO JUMP · {n} new · Jump to {section}, {n} titles | IN DIESER AUSGABE · {n} RUBRIKEN · TIPPEN ZUM SPRINGEN · {n} neu · Zu {Rubrik} springen, {n} Titel | NEW |

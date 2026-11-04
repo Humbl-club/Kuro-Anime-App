@@ -87,7 +87,7 @@ final class DiscoverFeedbackController {
     /// Shows the toast of an answer already recorded (§11 API: the page may record it itself).
     func showHidden(_ receipt: DiscoverFeedbackReceipt, german: Bool) {
         let action: Action? = receipt.feedback == .seenIt ? .addAsCompleted(receipt.key) : nil
-        show(Toast(id: UUID(), message: DiscoverMenuCopy.toast(receipt.feedback, german: german),
+        show(Toast(id: UUID(), message: DiscoverMenuCopy.toast(receipt.feedback, medium: receipt.key.kind, german: german),
                    action: action, receipt: receipt))
     }
 

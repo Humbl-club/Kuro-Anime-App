@@ -235,6 +235,40 @@ select tests.as_anon();
 select tests.eq('like_last_loved: signed out answers no rows',
   (select count(*) from public.discover_mood_v1('like_last_loved', 'ANIME')), 0::bigint);
 
+-- ---- 3b. pool depth (review fix): exclusions inside the candidate query, pool grows for franchises
+-- 370 more anime, more popular than every row above: 0-199 on user 875's list, 200-239 answered
+-- (Not interested / Seen it), 240-359 ONE franchise (120 seasons), 360-369 singles. The old fixed
+-- pool (offset + limit * 4 + 40 = 60 candidates before any exclusion) answered NO rows here.
+select tests.reset();
+select tests.make_user(875);
+insert into public.anime (id, anilist_id, title_romaji, cover_image_large, is_adult, format, status,
+                          episodes, average_score, popularity, trending, favourites, genres)
+select 871000 + g, 1871000 + g, 'Pool ' || g, 'https://img.invalid/p' || g || '.jpg', false, 'TV', 'FINISHED',
+       12, 90, 100000 - g, 0, 0, array['Drama']
+from generate_series(0, 369) g;
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress)
+select tests.uid(875)::text, 871000 + g, 'PLANNING', 0 from generate_series(0, 199) g;
+insert into public.taste_signal_events (user_id, media_id, media_type, event_type, event_strength, created_at)
+select tests.uid(875), 871000 + g, 'ANIME', case when g % 2 = 0 then 'deck_skip' else 'deck_known' end, 0,
+       now() - interval '1 day'
+from generate_series(200, 239) g;
+insert into public.media_franchise_components (media_type, media_id, component_label)
+select 'ANIME', 871000 + g, 871240 from generate_series(240, 359) g;
+select tests.as_user(tests.uid(875));
+select tests.eq('pool depth: 240 owned/answered titles ahead of the rest and a 120-title franchise still fill page 1 (new_to_you, limit 5)',
+  (select string_agg(id::text, ',' order by rank) from public.discover_section_page_v1('new_to_you', 'ANIME', null, null, null, null, 5, 0)),
+  '871240,871360,871361,871362,871363');
+select tests.eq('pool depth: page 2 continues the deduped ranks (offset 5)',
+  (select string_agg(rank || ':' || id, ',' order by rank) from public.discover_section_page_v1('new_to_you', 'ANIME', null, null, null, null, 5, 5)),
+  '6:871364,7:871365,8:871366,9:871367,10:871368');
+select tests.eq('pool depth: the short mood fills its page the same way',
+  (select string_agg(id::text, ',' order by rank) from public.discover_mood_v1('short', 'ANIME', 5, 0)),
+  '871240,871360,871361,871362,871363');
+select tests.eq('pool depth: an editorial section (mark) keeps owned titles and marks them',
+  (select string_agg(id || ':' || coalesce(list_status, '-'), ',' order by rank)
+     from public.discover_section_page_v1('top_rated', 'ANIME', null, null, null, null, 2, 0)),
+  '871000:PLANNING,871001:PLANNING');
+
 -- ---- 4. typed errors ----------------------------------------------------------------------
 select tests.raises('unknown medium', $q$select * from public.discover_section_page_v1('trending', 'NOVEL')$q$, 'INVALID_MEDIUM:%');
 select tests.raises('unknown section', $q$select * from public.discover_section_page_v1('everything', 'ANIME')$q$, 'INVALID_SECTION:%');

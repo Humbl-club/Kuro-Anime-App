@@ -70,11 +70,13 @@ enum DiscoverSeeAllCopy {
     }
 
     /// The section reason the preview names for a See all list (§8 "Why it's here").
-    static func reason(_ kind: DiscoverSeeAllSection.OrderKind, section: DiscoverSectionKey, german: Bool) -> String {
+    static func reason(_ kind: DiscoverSeeAllSection.OrderKind, section: DiscoverSectionKey,
+                       medium: MediaKind = .anime, german: Bool) -> String {
         switch section {
         case .essentials: return DiscoverMenuCopy.Reason.canon.text(german: german)
         case .classics: return DiscoverMenuCopy.Reason.classic.text(german: german)
-        case .newToYou, .becauseYou: return DiscoverMenuCopy.Reason.unseen.text(german: german)
+        case .newToYou, .becauseYou:
+            return (medium == .manga ? DiscoverMenuCopy.Reason.unread : .unseen).text(german: german)
         case .currentSeason, .airingToday: return DiscoverMenuCopy.Reason.airing.text(german: german)
         case .trending, .topRated, .newlyAdded: return DiscoverMenuCopy.Reason.popular.text(german: german)
         }
@@ -100,7 +102,7 @@ enum DiscoverMoodCopy {
     /// The key's subtitle (manga issue: the same words; the rails differ, not the promise).
     static func subtitle(_ mood: DiscoverMood, german: Bool) -> String {
         switch mood {
-        case .short: return german ? "Kurz und abgeschlossen" : "Short and complete"
+        case .short: return german ? "Für einen Abend oder ein Wochenende" : "An evening or a weekend"
         case .cozy: return german ? "Ruhig, warm, sanft" : "Slow, warm, gentle"
         case .intense: return german ? "Düster und packend" : "Dark and gripping"
         case .likeLastLoved: return german ? "Weil du es beendet hast" : "Because you finished it"
@@ -111,8 +113,8 @@ enum DiscoverMoodCopy {
     static func purpose(_ mood: DiscoverMood, seedTitle: String?, german: Bool) -> String {
         switch mood {
         case .short:
-            return german ? "Kurz und abgeschlossen: unsere Auswahl für einen Abend oder ein Wochenende."
-                          : "Short and complete: our picks for an evening or a weekend."
+            return german ? "Kurz genug für einen Abend oder ein Wochenende."
+                          : "Short enough for an evening or a weekend."
         case .cozy: return german ? "Warme, entspannte Geschichten zum Abschalten." : "Warm, low-stakes stories to unwind with."
         case .intense: return german ? "Düstere, ernste Geschichten, die packen." : "Dark, serious stories that grip."
         case .likeLastLoved:

@@ -33,10 +33,10 @@ struct DiscoverStory {
     /// The art the page's switch word and material follow: the banner, else the cover.
     var artRaw: String? { bannerRaw ?? coverRaw }
 
-    func facts(length: Bool, german: Bool) -> String? {
+    func facts(length: Bool, german: Bool, kindShown: Bool = false) -> String? {
         DiscoverIssueCopy.facts(kind: card.media.kind, year: card.media.year, formatRaw: card.media.formatRaw,
                                 episodes: card.media.episodes, chapters: card.media.chapters,
-                                length: length, german: german)
+                                length: length, german: german, kindShown: kindShown)
     }
 }
 
@@ -179,7 +179,7 @@ struct DiscoverCoverStory: View {
     }
 
     private var secondaryLine: String? {
-        kind == .feature ? withKind(story.facts(length: true, german: german)) : story.argument
+        kind == .feature ? withKind(story.facts(length: true, german: german, kindShown: kindKicker)) : story.argument
     }
 
     private var titleButton: some View {
@@ -243,7 +243,7 @@ struct DiscoverCoverStory: View {
 
     @ViewBuilder
     private var factRow: some View {
-        let facts = withKind(story.facts(length: false, german: german))
+        let facts = withKind(story.facts(length: false, german: german, kindShown: kindKicker))
         let friends = friendCount
         if facts != nil || friends > 0 {
             HStack(spacing: 8) {
@@ -329,7 +329,7 @@ struct DiscoverCoverStory: View {
 
                 Spacer(minLength: 8)
 
-                let facts = withKind(story.facts(length: kind == .feature, german: german))
+                let facts = withKind(story.facts(length: kind == .feature, german: german, kindShown: kindKicker))
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .center, spacing: 8) {
                         if let facts { factText(facts) }
@@ -377,14 +377,17 @@ struct DiscoverCoverStory: View {
 }
 
 /// Lays its one child out at its own ideal width, but never narrower than `minimum` (the key column
-/// keeps Home's measured width and grows only for a longer label, never truncating it).
+/// keeps Home's measured width and grows only for a longer label, never truncating it). `maximum`
+/// (index rows) caps the growth: a long label ("Auf deiner Liste") then uses the key's own 0.7 minimum
+/// scale instead of squeezing the row's title and facts into truncation.
 struct DiscoverAtLeastWidth: Layout {
     let minimum: CGFloat
+    var maximum: CGFloat = .infinity
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         guard let child = subviews.first else { return .zero }
         let ideal = child.sizeThatFits(.unspecified)
-        let width = max(minimum, ideal.width)
+        let width = min(max(minimum, ideal.width), max(minimum, maximum))
         let fitted = child.sizeThatFits(ProposedViewSize(width: width, height: proposal.height))
         return CGSize(width: width, height: fitted.height)
     }

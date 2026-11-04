@@ -70,7 +70,10 @@ struct DiscoverContentsLine: View {
                 Text(entry.name)
                     .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 26))
                     .foregroundStyle(Color.kuroInk)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
+                    // Two lines: a long name ("Unverzichtbare Manga") is never cut at the word that
+                    // tells it from its twin; the row's 44 pt minimum still holds.
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 4)
                 Text(DiscoverContents.trailing(entry, german: german))
                     .font(.kuroCustom(10, weight: entry.newCount > 0 ? .medium : .regular, relativeTo: .caption2, maxSize: 20))

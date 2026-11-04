@@ -223,7 +223,12 @@ struct DiscoverPageBuildTests {
         let built = build()
         let ntY = try #require(built.built(.newToYou))
         #expect(ntY.cards.count == min(4 + DiscoverIssueLayout.reserve, 11), "AoT went to Essentials")
-        #expect(ntY.total == 11)
+        // "See all {n}" counts what the See all page draws: the section's own list after the rules,
+        // not after other sections' claims (See all is its own page, so AoT is on it).
+        #expect(ntY.total == 12)
+        #expect(ntY.total == ntY.ownCards.count)
+        #expect(ntY.ownCards.contains { $0.key == MediaKey(kind: .anime, id: 1) })
+        #expect(!ntY.refinePool.contains { $0.key == MediaKey(kind: .anime, id: 1) }, "a refinement never draws another section's title")
         let essentials = try #require(built.built(.essentials))
         #expect(essentials.cards.count == 3 + 6)
         #expect(essentials.total == 11 - 0)
@@ -472,7 +477,12 @@ struct DiscoverIssueTests {
         let tuesday = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 3, hour: 12)))
         let thursday = tuesday.addingTimeInterval(2 * 86_400)
         #expect(DiscoverIssueCopy.newSince(3, lastVisit: tuesday, now: thursday, german: false) == "3 new since Tue")
-        #expect(DiscoverIssueCopy.newSince(3, lastVisit: tuesday, now: thursday, german: true) == "3 neu seit Di")
+        #expect(DiscoverIssueCopy.newSince(3, lastVisit: tuesday, now: thursday, german: true) == "3 neu seit Dienstag")
+        // A return later the same day never names today's weekday.
+        #expect(DiscoverIssueCopy.newSince(3, lastVisit: tuesday, now: tuesday.addingTimeInterval(2 * 3600), german: false)
+            == "3 new since your last visit")
+        #expect(DiscoverIssueCopy.newSince(3, lastVisit: tuesday, now: tuesday.addingTimeInterval(2 * 3600), german: true)
+            == "3 neu seit deinem letzten Besuch")
         #expect(DiscoverIssueCopy.newSince(2, lastVisit: tuesday, now: tuesday.addingTimeInterval(8 * 86_400), german: false)
                 == "2 new since your last visit")
         #expect(DiscoverIssueCopy.newTab(german: false) == "NEW")
@@ -507,7 +517,7 @@ struct DiscoverIssueTests {
         #expect(DiscoverMoodKeys.columns(accessibility: false, compact: true, german: true) == 1)
         #expect(DiscoverIssueCopy.moodTitle(.likeLastLoved, likeTitle: "Frieren", german: false) == "Like Frieren")
         #expect(DiscoverIssueCopy.moodTitle(.likeLastLoved, likeTitle: "Frieren", german: true) == "Wie Frieren")
-        #expect(DiscoverIssueCopy.moodSubtitle(.short, german: false) == "Short and complete")
+        #expect(DiscoverIssueCopy.moodSubtitle(.short, german: false) == "An evening or a weekend")
         #expect(DiscoverIssueCopy.moodsEyebrow(german: true) == "Lust auf")
         #expect(DiscoverMoodRoute.pageID(.cozy) == "discover:mood:cozy")
     }
@@ -698,5 +708,129 @@ struct DiscoverPageFeedbackTests {
         #expect(page.planned == 0 && page.taps == 2)
         page.noteMenuOpen()
         #expect(page.taps == 3, "an Open from the menu counts for the visit (and the D5 rebuild guard)")
+    }
+}
+
+
+// MARK: - Review fixes (2026-11-04 integrator)
+
+@Suite("Discover usability: review fixes (counts, sequels, refine, visits, copy)")
+@MainActor
+struct DiscoverReviewFixTests {
+    private func card(_ id: Int, _ title: String, episodes: Int? = 12, status: String = "FINISHED") throws -> TasteCard {
+        let json = """
+        {"id":\(id),"title_english":"\(title)","title_romaji":null,"title_native":null,
+         "cover_image_large":"https://visual-fixture.invalid/a.jpg","cover_image_medium":null,"banner_image":null,
+         "format":"TV","status":"\(status)","episode_count":\(episodes.map(String.init) ?? "null"),"season_year":2020,
+         "start_date_year":2020,"average_score":80,"popularity":1000,"trending":1,"favourites":1,"genres":["Drama"]}
+        """
+        return TasteCard(anime: try JSONDecoder().decode(AnimeCard.self, from: Data(json.utf8)))
+    }
+
+    private func stem(_ card: TasteCard) -> Set<DiscoverFranchiseKey> {
+        if let stem = DiscoverFranchiseStem.stem(card.media.title) { return [.stem(card.key.kind, stem)] }
+        return [.component(card.key.kind, card.key.id)]
+    }
+
+    @Test("Sequel words: explicit seasons, parts, finals, R2, roman numerals and arcs; never a bare number")
+    func sequelWords() {
+        for title in ["Attack on Titan Final Season", "Attack on Titan Season 3 Part 2", "HAIKYU!! 3rd Season",
+                      "Code Geass: Lelouch of the Rebellion R2", "Demon Slayer: Kimetsu no Yaiba Swordsmith Village Arc",
+                      "Overlord II", "Mob Psycho 100 Season 2", "Attack on Titan: The Final Season"] {
+            #expect(DiscoverSequel.isSequel(title), "\(title) is a later entry")
+        }
+        for title in ["Attack on Titan", "Kaiju No. 8", "Mob Psycho 100", "Code Geass: Lelouch of the Rebellion",
+                      "Frieren: Beyond Journey's End", "Steins;Gate", "Season of Love", "Arcane"] {
+            #expect(!DiscoverSequel.isSequel(title), "\(title) is not a sequel")
+        }
+    }
+
+    @Test("Personal sections leave sequels out (a first-timer never gets season 3); editorial sections keep them")
+    func sequelsOutOfPersonalSections() throws {
+        let items = try [card(1, "Attack on Titan Final Season"), card(2, "Odd Taxi"), card(3, "HAIKYU!! 3rd Season")]
+        let compose: (DiscoverOwnedPolicy) -> [Int] = { policy in
+            DiscoverPageComposer.compose(
+                [DiscoverSectionInput(id: "s", policy: policy, items: items, displayCount: 10)],
+                key: \.key, franchiseKeys: { [.component(.anime, $0.key.id)] }, isHidden: { _ in false },
+                ownedStatus: { _ in nil }, isSequel: { DiscoverSequel.isSequel($0.media.title) })
+                .first?.items.map(\.item.key.id) ?? []
+        }
+        #expect(compose(.hide) == [2])
+        #expect(compose(.mark) == [1, 2, 3])
+    }
+
+    @Test("The tail is deduped within its section only: two seasons in a tail count once, and they never block a later section")
+    func tailFranchisesAreLocal() throws {
+        let a = try [card(1, "Odd Taxi"), card(2, "Planetes"), card(3, "Planetes Season 2")]
+        let b = try [card(4, "Planetes: The Movie")]
+        let placed = DiscoverPageComposer.compose(
+            [DiscoverSectionInput(id: "a", policy: .mark, items: a, displayCount: 1),
+             DiscoverSectionInput(id: "b", policy: .mark, items: b, displayCount: 1)],
+            key: \.key, franchiseKeys: stem, isHidden: { _ in false }, ownedStatus: { _ in nil })
+        #expect(placed[0].items.map(\.item.key.id) == [1])
+        #expect(placed[0].remainingCount == 1, "Planetes and its Season 2 are one series in the tail")
+        #expect(placed[1].items.map(\.item.key.id) == [4], "a tail never claims a franchise for the page")
+    }
+
+    @Test("The rail refinement draws from the whole unclaimed list and counts the See all matches (R6)")
+    func railRefine() throws {
+        let claimed = try (1...3).map { try card($0, "Claimed \($0)", episodes: 24) }
+        let pool = try claimed + (4...9).map { try card($0, "Pool \($0)", episodes: $0 % 2 == 0 ? 12 : 64) }
+        let own = try pool + [card(10, "Elsewhere", episodes: 10)]
+        let any = DiscoverRailRefine.make(filter: .all, cards: claimed, total: 10, ownCards: own, refinePool: pool)
+        #expect(any.cards.map(\.key.id) == [1, 2, 3])
+        #expect(any.total == 10)
+        let short = DiscoverRailRefine.make(filter: .short, cards: claimed, total: 10, ownCards: own, refinePool: pool)
+        #expect(short.cards.map(\.key.id) == [4, 6, 8], "beyond the claimed cards, never another section's title")
+        #expect(short.total == 4, "See all with the chip draws the section's own list: 4, 6, 8 and 10")
+        let long = DiscoverRailRefine.make(filter: .long, cards: claimed, total: 10, ownCards: own, refinePool: pool)
+        #expect(long.cards.map(\.key.id) == [5, 7, 9])
+    }
+
+    @Test("See all opens with the rail's choice selected; Hide my list only where owned titles are kept")
+    func seeAllOpening() throws {
+        let trending = DiscoverSeeAllSection.of(.animeTrending)
+        let short = try #require(DiscoverSeeAllSelection.opening(trending, refine: .short))
+        #expect(short.length == .upTo13)
+        #expect(short.sort == trending.defaultSort)
+        #expect(DiscoverSeeAllSelection.opening(trending, refine: .long)?.length == .over50)
+        #expect(DiscoverSeeAllSelection.opening(trending, refine: .finished)?.status == .finished)
+        #expect(DiscoverSeeAllSelection.opening(trending, refine: .all) == nil)
+        #expect(trending.chipGroups.contains([.hideMyList]))
+        #expect(!DiscoverSeeAllSection.of(.animeNewToYou).chipGroups.contains([.hideMyList]))
+        #expect(!DiscoverSeeAllSection.of(.mangaNewToYou).chipGroups.contains([.hideMyList]))
+        #expect(!DiscoverSeeAllSection.of(.animeBecauseYou).chipGroups.contains([.hideMyList]))
+    }
+
+    @Test("A new visit on a new rail day reads the new issue; the same day rebuilds; late inputs rebuild only before any action")
+    func visitStart() {
+        #expect(DiscoverPageRules.visitStart(hasBuilt: true, bundleIsToday: false) == .readNewIssue)
+        #expect(DiscoverPageRules.visitStart(hasBuilt: true, bundleIsToday: true) == .rebuild)
+        #expect(DiscoverPageRules.visitStart(hasBuilt: false, bundleIsToday: false) == nil)
+        #expect(DiscoverPageRules.lateRebuildAllowed(hasBuilt: true, taps: 0, depth: 1))
+        #expect(!DiscoverPageRules.lateRebuildAllowed(hasBuilt: true, taps: 1, depth: 0))
+        #expect(!DiscoverPageRules.lateRebuildAllowed(hasBuilt: true, taps: 0, depth: 2))
+        #expect(!DiscoverPageRules.lateRebuildAllowed(hasBuilt: false, taps: 0, depth: 0))
+    }
+
+    @Test("Copy: no doubled medium in the preview kicker, manga answers say read, the tally names the issue's word, the short mood promises no completeness")
+    func copyFixes() {
+        #expect(DiscoverMenuCopy.previewKicker(kind: .anime, section: "Essential anime.", german: false) == "ESSENTIAL ANIME")
+        #expect(DiscoverMenuCopy.previewKicker(kind: .manga, section: "Unverzichtbare Manga", german: true) == "UNVERZICHTBARE MANGA")
+        #expect(DiscoverMenuCopy.previewKicker(kind: .anime, section: "New to you.", german: false) == "ANIME · NEW TO YOU")
+        #expect(DiscoverMenuCopy.toast(.seenIt, medium: .manga, german: false) == "Marked as read.")
+        #expect(DiscoverMenuCopy.toast(.seenIt, medium: .manga, german: true) == "Als gelesen markiert.")
+        #expect(DiscoverMenuCopy.toast(.seenIt, medium: .anime, german: false) == "Marked as seen.")
+        #expect(DiscoverMenuCopy.Reason.unread.text(german: false) == "unread by you")
+        #expect(DiscoverMenuCopy.Reason.unread.text(german: true) == "noch nicht gelesen")
+        #expect(DiscoverIssueCopy.endActions(planned: 0, hidden: 0, seen: 2, seenWord: .read, german: false) == "You marked 2 as read.")
+        #expect(DiscoverIssueCopy.endActions(planned: 0, hidden: 0, seen: 2, seenWord: .seenOrRead, german: false)
+            == "You marked 2 as seen or read.")
+        #expect(DiscoverIssueCopy.moodSubtitle(.short, german: true) == "Für einen Abend oder ein Wochenende")
+        // The kind kicker on All already says MANGA: the plain manga format word is not repeated.
+        #expect(DiscoverIssueCopy.facts(kind: .manga, year: "2018", formatRaw: "MANGA", episodes: nil, chapters: nil,
+                                        length: false, german: false, kindShown: true) == "2018")
+        #expect(DiscoverIssueCopy.facts(kind: .manga, year: "2018", formatRaw: "MANGA", episodes: nil, chapters: nil,
+                                        length: false, german: false) == "2018 · Manga")
     }
 }

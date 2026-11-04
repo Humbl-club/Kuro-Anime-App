@@ -62,7 +62,8 @@ enum DiscoverFeedback: String, Codable, Sendable, CaseIterable {
 struct DiscoverFeedbackReceipt: Equatable, Sendable {
     let key: MediaKey
     let feedback: DiscoverFeedback
-    /// The title's deck signal before this answer (re-sent by Undo; nil: Undo retracts).
+    /// The title's deck signal before this answer (Undo re-sends it, except a love, which would put
+    /// the title back on the list: `TasteStore.undoAction`; nil: Undo retracts).
     let priorAction: TasteDeckAction?
     /// The account the answer was recorded for (Undo of an ended account does nothing).
     let accountUserId: String
@@ -560,6 +561,26 @@ nonisolated enum DiscoverFranchiseStem {
     }
 }
 
+/// Whether a title names a later entry of its series by an explicit sequel word: "Season 2",
+/// "3rd Season", "Final Season", "Part 2", "Cour 2", "R2", a trailing "II" / "III" / "IV", or a
+/// trailing "Arc" ("Swordsmith Village Arc"). Bare trailing numbers are NOT read as sequels
+/// ("Kaiju No. 8", "Mob Psycho 100"). Personal and "new" lists (owned policy `.hide`) leave these
+/// out: a first-time viewer is never handed season 3 as the way into a series (R1, R2).
+nonisolated enum DiscoverSequel {
+    private static let patterns = [
+        #"\bseason\s+([2-9]|\d{2,})\b"#, #"\b(2nd|3rd|[4-9]th|\d{2,}th)\s+season\b"#,
+        #"\bfinal\s+season\b"#, #"\bthe\s+final\b"#, #"\bpart\s+([2-9]|\d{2,})\b"#,
+        #"\bcour\s+[2-9]\b"#, #"\br[2-9]$"#, #"\s(ii|iii|iv)$"#, #"\sarc$"#,
+    ]
+
+    static func isSequel(_ title: String) -> Bool {
+        let text = title.lowercased()
+            .replacingOccurrences(of: #"[^\p{L}\p{N}]+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+        return patterns.contains { text.range(of: $0, options: .regularExpression) != nil }
+    }
+}
+
 // MARK: Page composition (R2): one pure rule for the whole page
 
 /// One section as the page wants to show it, before the R2 rules.
@@ -599,7 +620,8 @@ enum DiscoverPageComposer {
         key: (Item) -> MediaKey,
         franchiseKeys: (Item) -> Set<DiscoverFranchiseKey>,
         isHidden: (MediaKey) -> Bool,
-        ownedStatus: (MediaKey) -> ListStatus?
+        ownedStatus: (MediaKey) -> ListStatus?,
+        isSequel: (Item) -> Bool = { _ in false }
     ) -> [DiscoverPlacedSection<Item>] {
         var seenTitles: Set<MediaKey> = []
         var seenFranchises: Set<DiscoverFranchiseKey> = []
@@ -607,20 +629,26 @@ enum DiscoverPageComposer {
         for section in sections {
             var placed: [DiscoverPlacedItem<Item>] = []
             var remaining = 0
+            // The tail (See all's rest) is deduped within the section only: its franchises must not
+            // reach the page-wide set, or a later section would lose cards to titles it never shows.
+            var tailTitles: Set<MediaKey> = []
+            var tailFranchises: Set<DiscoverFranchiseKey> = []
             let limit = max(0, section.displayCount)
             for item in section.items {
                 let itemKey = key(item)
-                guard !isHidden(itemKey), !seenTitles.contains(itemKey) else { continue }
+                guard !isHidden(itemKey), !seenTitles.contains(itemKey), !tailTitles.contains(itemKey) else { continue }
                 let status = ownedStatus(itemKey)
-                if section.policy == .hide, status != nil { continue }
+                if section.policy == .hide, status != nil || isSequel(item) { continue }
                 let franchises = franchiseKeys(item)
-                guard seenFranchises.isDisjoint(with: franchises) else { continue }
+                guard seenFranchises.isDisjoint(with: franchises), tailFranchises.isDisjoint(with: franchises) else { continue }
                 if placed.count < limit {
                     placed.append(DiscoverPlacedItem(item: item, ownedStatus: section.policy == .mark ? status : nil))
                     seenTitles.insert(itemKey)
                     seenFranchises.formUnion(franchises)
                 } else {
                     remaining += 1
+                    tailTitles.insert(itemKey)
+                    tailFranchises.formUnion(franchises)
                 }
             }
             result.append(DiscoverPlacedSection(id: section.id, items: placed, remainingCount: remaining))
@@ -654,7 +682,8 @@ struct DiscoverPageAccumulator {
         _ page: DiscoverPage,
         franchiseKeys: (DiscoverPageItem) -> Set<DiscoverFranchiseKey>,
         isHidden: (MediaKey) -> Bool,
-        ownedStatus: (MediaKey) -> ListStatus?
+        ownedStatus: (MediaKey) -> ListStatus?,
+        isSequel: (DiscoverPageItem) -> Bool = { _ in false }
     ) {
         started = true
         next = page.next
@@ -662,7 +691,7 @@ struct DiscoverPageAccumulator {
         for item in page.items {
             guard !isHidden(item.key), !seenTitles.contains(item.key) else { continue }
             let status = ownedStatus(item.key) ?? item.serverListStatus
-            if policy == .hide, status != nil { continue }
+            if policy == .hide, status != nil || isSequel(item) { continue }
             let franchises = franchiseKeys(item)
             guard seenFranchises.isDisjoint(with: franchises) else { continue }
             items.append(DiscoverPlacedItem(item: item, ownedStatus: policy == .mark ? status : nil))

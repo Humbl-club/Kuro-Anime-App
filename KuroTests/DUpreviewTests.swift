@@ -549,9 +549,12 @@ struct DUpreviewSeeAllTests {
 
     @Test("See all → a title → Back: the list is read once and its rows stay (journey round trip)")
     func seeAllRoundTrip() async throws {
+        // The first page is short (6 of 24): the journey asks once more after its last rank and the
+        // empty answer ends it (DiscoveryStore.serverPage ends only on an empty page).
         let harness = try DCDiscoverHarness(responder: { request in
-            request.resource == "rpc/discover_section_page_v1"
-                ? .json(DiscoverUsabilityFixtures.pageRowsJSON(kind: .anime, count: 6)) : .emptyArray
+            guard request.resource == "rpc/discover_section_page_v1" else { return .emptyArray }
+            let offset = (request.jsonObject?["p_offset"] as? Int) ?? 0
+            return offset == 0 ? .json(DiscoverUsabilityFixtures.pageRowsJSON(kind: .anime, count: 6)) : .emptyArray
         })
         await harness.signIn()
         let title = "Trending"
@@ -562,12 +565,13 @@ struct DUpreviewSeeAllTests {
                                        width: 390, height: 844)
         try? await Task.sleep(for: .milliseconds(1_200))
         let reads = { harness.server.requests.filter { $0.resource == "rpc/discover_section_page_v1" }.count }
-        #expect(reads() == 1)
+        let settled = reads()
+        #expect(settled == 2, "the first page and the one empty read that ends the journey")
         navigator.open(JourneyPage.media(MediaRoute(kind: .anime, id: 991_000)))
         try? await Task.sleep(for: .milliseconds(900))
         navigator.pop()
         try? await Task.sleep(for: .milliseconds(1_200))
-        #expect(reads() == 1)
+        #expect(reads() == settled, "Back never reads the list again")
         #expect(navigator.path.isEmpty)
         DUPHosting.close(window)
         await harness.tearDown()

@@ -76,7 +76,8 @@ struct DiscoverIndexRow: View {
     /// "{year} · {format} · {n} eps", led by the status word when the title is on the list (R2 mark).
     private var meta: String? {
         let facts = DiscoverIssueCopy.facts(kind: card.media.kind, year: card.media.year, formatRaw: card.media.formatRaw,
-                                            episodes: card.media.episodes, chapters: card.media.chapters, length: true, german: german)
+                                            episodes: card.media.episodes, chapters: card.media.chapters, length: true, german: german,
+                                            kindShown: kindKicker)
         guard let entry = library.entry(for: card.key) else { return facts }
         let word = DiscoverIssueCopy.statusWord(entry.status, progress: entry.progress, kind: card.media.kind, german: german)
         return [word, facts].compactMap { $0 }.joined(separator: " · ")
@@ -94,7 +95,8 @@ struct DiscoverIndexRow: View {
             } else {
                 HStack(alignment: .center, spacing: 12) {
                     openButton
-                    DiscoverAtLeastWidth(minimum: DiscoverIssueLayout.indexKeyWidth(compact: compact)) { key }
+                    DiscoverAtLeastWidth(minimum: DiscoverIssueLayout.indexKeyWidth(compact: compact),
+                                         maximum: DiscoverIssueLayout.indexKeyMaxWidth(compact: compact)) { key }
                 }
                 .frame(minHeight: DiscoverIssueLayout.indexRowMinHeight)
             }
@@ -140,10 +142,13 @@ struct DiscoverIndexRow: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if let meta {
+                        // Two lines: a long status word ("Abgeschlossen", "Schaue ich · F. 5") never
+                        // cuts the format and the episode count.
                         Text(meta)
                             .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
                             .foregroundStyle(Color.kuroMuted)
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

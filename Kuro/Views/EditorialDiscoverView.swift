@@ -234,7 +234,9 @@ struct EditorialDiscoverView: View {
             .onChange(of: library.loadState) { _, state in
                 // The Library answered after the first build: build once more while nothing was done
                 // on the page yet (owned titles leave the personal sections, R2), never mid-visit.
-                guard state == .loaded, hasBuilt, feedback.taps == 0, maxDepth <= 1 else { return }
+                guard state == .loaded,
+                      DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: maxDepth)
+                else { return }
                 rebuild()
                 Task { await loadLikeSeed() }
             }
@@ -365,6 +367,7 @@ struct EditorialDiscoverView: View {
                 sections: sections.count,
                 titles: shownTitleCount(sections) + (lead == nil ? 0 : 1),
                 planned: feedback.planned, hidden: feedback.hidden, seen: feedback.seen,
+                seenWord: selectedMediaType == .manga ? .read : (selectedMediaType == .all ? .seenOrRead : .seen),
                 browseOffered: offersBrowseEntry,
                 moreLists: moreListLinks,
                 onBrowse: { routes.openBrowse() },
@@ -513,7 +516,8 @@ struct EditorialDiscoverView: View {
     private func reason(_ section: PageSection) -> String? {
         let german = KuroLocale.isGerman
         switch section {
-        case .newToYou, .mangaNewToYou: return DiscoverMenuCopy.Reason.unseen.text(german: german)
+        case .newToYou: return DiscoverMenuCopy.Reason.unseen.text(german: german)
+        case .mangaNewToYou: return DiscoverMenuCopy.Reason.unread.text(german: german)
         case .becauseYou:
             return vm.becauseYouReason.map { DiscoverMenuCopy.Reason.closeTo($0).text(german: german) }
         case .essentials, .essentialsManga: return DiscoverMenuCopy.Reason.canon.text(german: german)
@@ -543,8 +547,10 @@ struct EditorialDiscoverView: View {
 
     /// The section's one question (R1, §8).
     private func purpose(_ section: PageSection) -> String {
+        // The canon counts are the ones "See all {n}" and the contents show (after the R2 rules).
         DiscoverIssueSections.purpose(section, airingToday: showsAnime ? vm.airingToday.count : 0,
-                                      essentials: vm.essentials.count, essentialsManga: vm.essentialsManga.count,
+                                      essentials: build.built(.essentials)?.total ?? vm.essentials.count,
+                                      essentialsManga: build.built(.essentialsManga)?.total ?? vm.essentialsManga.count,
                                       shelfBlurb: vm.tonightShelfSubtitle, german: KuroLocale.isGerman)
     }
 
@@ -600,7 +606,9 @@ struct EditorialDiscoverView: View {
         case .trending, .trendingManga:
             DiscoverIssueRail(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
                               cards: built.cards, total: built.total, column: column, gutter: gutter,
-                              refines: section == .trending, onSeeAll: { openSeeAll(section) })
+                              refines: section == .trending, ownCards: built.ownCards, refinePool: built.refinePool,
+                              onSeeAll: { openSeeAll(section) },
+                              onSeeAllRefined: { filter in openSeeAll(section, refine: filter) })
         case .hiddenGem:
             if let gem = vm.hiddenGem {
                 VStack(alignment: .leading, spacing: 0) {
@@ -732,17 +740,19 @@ struct EditorialDiscoverView: View {
         }
     }
 
-    private func openSeeAll(_ section: PageSection) {
+    private func openSeeAll(_ section: PageSection, refine: DiscoverRailFilter = .all) {
         guard let route = section.route else { return }
-        openSeeAll(route: route)
+        openSeeAll(route: route, refine: refine)
     }
 
     /// "See all" opens the section as a journey (navigation contract §1): its frames push their title,
-    /// ✕ / swipe-down collapses back to Discover. Hidden titles stay out (R5).
-    private func openSeeAll(route: EditorialDiscoverRoute) {
+    /// ✕ / swipe-down collapses back to Discover. Hidden titles stay out (R5). A rail's local refinement
+    /// opens the page with the same choice selected (R6: the choice is never lost on the way).
+    private func openSeeAll(route: EditorialDiscoverRoute, refine: DiscoverRailFilter = .all) {
         // `discover_see_all` ("opened", sorts, filters, pages) is the See all page's own event (lane B).
         let title = route.title(german: KuroLocale.isGerman, reason: route == .animeBecauseYou ? vm.becauseYouReason : nil)
-        let page = fullSection(for: route, title: title)
+        let page = fullSection(for: route, title: title,
+                               selection: DiscoverSeeAllSelection.opening(DiscoverSeeAllSection.of(route), refine: refine))
         routes.openPage(.seeAll(AnyJourneyPage(id: DiscoverSeeAllPolicy.pageID(route), title: title) { page }))
     }
 
@@ -765,7 +775,8 @@ struct EditorialDiscoverView: View {
     /// The section's See all page (§5.5): lane B's `DiscoverSeeAllPage` (sorts, chips, Plan keys, the
     /// preview, paging where the source pages), seeded with the section's loaded rows minus the titles
     /// hidden right now (R5). The page applies the owned rule and the hidden memory itself.
-    private func fullSection(for route: EditorialDiscoverRoute, title: String) -> some View {
+    private func fullSection(for route: EditorialDiscoverRoute, title: String,
+                             selection: DiscoverSeeAllSelection? = nil) -> some View {
         let purpose = PageSection.allCases.first { $0.route == route }.map(purpose) ?? ""
         let anime: [AnimeCard]
         let manga: [MangaCard]
@@ -796,7 +807,8 @@ struct EditorialDiscoverView: View {
         case .mangaNewlyAdded: anime = []; manga = visibleManga(vm.newlyAddedManga)
         }
         return DiscoverSeeAllPage(source: .route(route), title: title, purpose: purpose,
-                                  animeItems: anime, mangaItems: manga, airingSlots: slots)
+                                  animeItems: anime, mangaItems: manga, airingSlots: slots,
+                                  initialSelection: selection)
     }
 
     // MARK: Build (R2, D5)
@@ -856,8 +868,13 @@ struct EditorialDiscoverView: View {
             reportedTally = DiscoverVisitSession.Tally()
             maxDepth = 0
             reachedEnd = false
-            // A new visit is a new build (D5), once the page has content.
-            if hasBuilt { rebuild() }
+            // A new visit is a new build (D5), once the page has content; on a new rail day it reads
+            // the new day's bundle first (`refreshSections` builds when it lands).
+            switch DiscoverPageRules.visitStart(hasBuilt: hasBuilt, bundleIsToday: discovery.hasCurrentDayBundle(now: now)) {
+            case .readNewIssue?: Task { await refreshSections(force: false) }
+            case .rebuild?: rebuild()
+            case nil: break
+            }
         }
     }
 
@@ -1012,11 +1029,22 @@ struct EditorialDiscoverView: View {
             vm.hiddenGem = nil
         }
 
-        // R2 / R5 inputs before the one build: the account's answers (device memory, then the server,
-        // cached) and the franchise components (silent while the prepared reader is not deployed).
-        _ = await taste.loadDiscoverHidden()
-        await discovery.loadFranchiseIds(for: allKeys)
+        // First paint: build at once from the bundle with the device memory of the account's answers
+        // (restored synchronously in `.task`) and the stem franchise rule. Then the server's answers and
+        // the franchise components (silent while the prepared reader is not deployed) are read side by
+        // side and the page builds once more while nothing was done on it yet (D5), as for the Library.
         rebuild()
+        let hiddenBefore = taste.discoverHidden
+        let franchisesBefore = discovery.knownFranchiseCount
+        let keys = allKeys
+        async let hiddenRead = taste.loadDiscoverHidden()
+        async let franchiseRead: Void = discovery.loadFranchiseIds(for: keys)
+        _ = await hiddenRead
+        await franchiseRead
+        if taste.discoverHidden != hiddenBefore || discovery.knownFranchiseCount != franchisesBefore,
+           DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: maxDepth) {
+            rebuild()
+        }
         await loadLikeSeed()
 
         KuroPerf.end(perf, message: gotAnyNew ? "ok" : "no new data")
@@ -1319,6 +1347,24 @@ nonisolated enum DiscoverPageRules {
         if failed { return isConnected ? .failed(hasContent: false) : .offline(hasContent: false) }
         return .empty
     }
+
+    /// What a new visit does with a page that already has an issue (D5, D18): read the bundle again
+    /// when the one in memory is from an earlier rail day (the page stayed alive overnight, so its
+    /// kicker, "a new set each morning" and NEW markers would otherwise describe yesterday), else
+    /// rebuild the claims over the data in memory. nil: nothing built yet (the first load builds).
+    enum VisitStart: Equatable { case readNewIssue, rebuild }
+
+    static func visitStart(hasBuilt: Bool, bundleIsToday: Bool) -> VisitStart? {
+        guard hasBuilt else { return nil }
+        return bundleIsToday ? .rebuild : .readNewIssue
+    }
+
+    /// Whether a late input (the Library, the server's hidden set, franchise ids) may rebuild the page:
+    /// only while nothing was done on it yet in this visit (no tap, no scroll past the first screen),
+    /// so claims never move under the user's finger (D5).
+    static func lateRebuildAllowed(hasBuilt: Bool, taps: Int, depth: Int) -> Bool {
+        hasBuilt && taps == 0 && depth <= 1
+    }
 }
 
 // MARK: - Issue sections (pure)
@@ -1547,8 +1593,14 @@ struct DiscoverIssueBuild {
         let section: DiscoverIssueSections.Section
         /// Shown + reserve, in the section's order (a hide lets the reserve slide up).
         let cards: [TasteCard]
-        /// What "See all {n}" counts: these plus the rows left after the same rules.
+        /// What "See all {n}" counts: the section's own list after the R2 rules (`ownCards.count`).
         let total: Int
+        /// The section's own list as its See all page draws it (hidden, owned, sequel rules, franchise
+        /// dedupe within the list only).
+        var ownCards: [TasteCard] = []
+        /// `ownCards` minus every title and franchise another section (or the lead) shows: what a local
+        /// refinement may draw without repeating a series on the page (R2, R6).
+        var refinePool: [TasteCard] = []
         var id: DiscoverIssueSections.Section { section }
     }
 
@@ -1572,10 +1624,12 @@ struct DiscoverIssueBuild {
     /// leaves the page and the contents, and the cap is not refilled mid-visit (§7). Claims never move.
     func visibleSections(isHidden: (MediaKey) -> Bool, notInterested: (MediaKey) -> Bool) -> [Built] {
         sections.compactMap { built in
-            let cards = built.cards.filter { !isLiveHidden($0.key, isHidden: isHidden, notInterested: notInterested) }
+            let visible: (TasteCard) -> Bool = { !isLiveHidden($0.key, isHidden: isHidden, notInterested: notInterested) }
+            let cards = built.cards.filter(visible)
             guard !cards.isEmpty else { return nil }
             let removed = built.cards.count - cards.count
-            return Built(section: built.section, cards: cards, total: max(cards.count, built.total - removed))
+            return Built(section: built.section, cards: cards, total: max(cards.count, built.total - removed),
+                         ownCards: built.ownCards.filter(visible), refinePool: built.refinePool.filter(visible))
         }
     }
 
@@ -1602,6 +1656,7 @@ enum DiscoverIssueBuilder {
     /// titles after the rules, then the shown sections are claimed again without the dropped ones.
     static func build(lead: TasteCard?, sources: [Source], hiddenKeys: Set<MediaKey>, notInterested: Set<MediaKey>,
                       owned: (MediaKey) -> ListStatus?, franchise: (TasteCard) -> Set<DiscoverFranchiseKey>,
+                      isSequel: (TasteCard) -> Bool = { DiscoverSequel.isSequel($0.media.title) },
                       issue: DiscoverIssueSections.Issue,
                       reserve: Int = DiscoverIssueLayout.reserve,
                       cap: Int = DiscoverIssueLayout.sectionCap) -> DiscoverIssueBuild {
@@ -1626,8 +1681,19 @@ enum DiscoverIssueBuilder {
                                                    items: source.cards, displayCount: source.shown + reserve))
             }
             let placed = DiscoverPageComposer.compose(inputs, key: \.key, franchiseKeys: { franchises[$0.key] ?? [] },
-                                                      isHidden: isHidden, ownedStatus: owned)
+                                                      isHidden: isHidden, ownedStatus: owned, isSequel: isSequel)
             return Dictionary(placed.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        }
+
+        /// What the section's See all page draws from the same rows: its own list after the hidden,
+        /// owned and sequel rules and franchise dedupe WITHIN the list (no other section's claims; See
+        /// all is its own page). "See all {n}", the contents count and the purpose line all say this.
+        func ownCards(_ source: Source) -> [TasteCard] {
+            let input = DiscoverSectionInput(id: source.section.id, policy: source.section.ownedRule,
+                                             items: source.cards, displayCount: source.cards.count)
+            return DiscoverPageComposer.compose([input], key: \.key, franchiseKeys: { franchises[$0.key] ?? [] },
+                                                isHidden: isHidden, ownedStatus: owned, isSequel: isSequel)
+                .first?.items.map(\.item) ?? []
         }
 
         let first = claim(sources)
@@ -1635,10 +1701,21 @@ enum DiscoverIssueBuilder {
         let capped = DiscoverIssueSections.cap(filled.map(\.section), limit: cap)
         let kept = filled.filter { capped.shown.contains($0.section) }
         let second = claim(kept)
+        // Every claimed title and franchise by the claim that holds it (the lead under its own id).
+        var claims: [String: (keys: Set<MediaKey>, franchises: Set<DiscoverFranchiseKey>)] = [:]
+        for (id, placed) in second {
+            let keys = Set(placed.items.map(\.item.key))
+            claims[id] = (keys, keys.reduce(into: Set<DiscoverFranchiseKey>()) { $0.formUnion(franchises[$1] ?? []) })
+        }
         let sections: [DiscoverIssueBuild.Built] = kept.compactMap { source in
             guard let placed = second[source.section.id], !placed.items.isEmpty else { return nil }
+            let own = ownCards(source)
+            let others = claims.filter { $0.key != source.section.id }.values
+            let pool = own.filter { card in
+                others.allSatisfy { !$0.keys.contains(card.key) && $0.franchises.isDisjoint(with: franchises[card.key] ?? []) }
+            }
             return DiscoverIssueBuild.Built(section: source.section, cards: placed.items.map(\.item),
-                                            total: placed.items.count + placed.remainingCount)
+                                            total: max(placed.items.count, own.count), ownCards: own, refinePool: pool)
         }
         return DiscoverIssueBuild(lead: second[DiscoverIssueSections.leadID]?.items.first?.item,
                                   sections: sections, dropped: capped.dropped, franchises: franchises)

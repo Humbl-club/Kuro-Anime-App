@@ -59,6 +59,10 @@ extension DiscoveryStore {
         return [.component(key.kind, key.id)]
     }
 
+    /// How many titles have a server franchise component in the session map (Discover rebuilds once
+    /// when a read added some).
+    var knownFranchiseCount: Int { franchiseIds.count }
+
     /// Franchise keys of a journey card (its row's component wins over the session map).
     func franchiseKeys(for item: DiscoverPageItem) -> Set<DiscoverFranchiseKey> {
         franchiseKeys(for: item.key, title: item.card.title, serverFranchiseId: item.franchiseId)
@@ -105,7 +109,8 @@ extension DiscoveryStore {
             key: { MediaKey(kind: $0.kind, id: $0.id) },
             franchiseKeys: { self.franchiseKeys(for: MediaKey(kind: $0.kind, id: $0.id), title: $0.title) },
             isHidden: { hidden.contains($0) },
-            ownedStatus: { self.library.entry(for: $0)?.status }
+            ownedStatus: { self.library.entry(for: $0)?.status },
+            isSequel: { DiscoverSequel.isSequel($0.title) }
         )
     }
 
@@ -116,7 +121,8 @@ extension DiscoveryStore {
             page,
             franchiseKeys: { self.franchiseKeys(for: $0) },
             isHidden: { hidden.contains($0) },
-            ownedStatus: { self.library.entry(for: $0)?.status }
+            ownedStatus: { self.library.entry(for: $0)?.status },
+            isSequel: { DiscoverSequel.isSequel($0.card.title) }
         )
     }
 
@@ -402,12 +408,23 @@ extension DiscoveryStore {
     /// BEFORE the offset, so every title hidden or planned during a journey shifts the pool by one;
     /// the overlap re-reads the boundary and `DiscoverPageAccumulator` drops the repeats, so no title
     /// is skipped for up to that many changes per page.
+    /// The journey ends only on an EMPTY page (or the reader's offset cap): a short page can be a pool
+    /// the server's franchise dedupe thinned, not the end of the source, so it continues right after
+    /// its last rank (no overlap, so a truly finished source answers the next read with nothing).
     static func serverPage(_ rows: [DiscoverPageRow], offset: Int, limit: Int) -> DiscoverPage {
         let ordered = rows.sorted { $0.rank < $1.rank }
         let items = ordered.compactMap(\.item)
         let last = ordered.last?.rank ?? offset
-        let next: DiscoverPageCursor? = rows.count < limit || last >= 440
-            ? nil : .offset(max(offset + 1, last - pageOverlap(limit: limit)))
+        let next: DiscoverPageCursor?
+        // No row past the asked offset is no progress either (a reader that ignores the offset must
+        // never loop a journey).
+        if rows.isEmpty || last >= 440 || !ordered.contains(where: { $0.rank > offset }) {
+            next = nil
+        } else if rows.count < limit {
+            next = .offset(max(offset + 1, last))
+        } else {
+            next = .offset(max(offset + 1, last - pageOverlap(limit: limit)))
+        }
         return DiscoverPage(items: items, next: next, reason: ordered.lazy.compactMap(\.reason).first, origin: .server)
     }
 }

@@ -80,7 +80,8 @@ struct DiscoverMoodKeys: View {
                     Text(subtitle)
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
                         .foregroundStyle(Color.kuroMuted)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : (compact ? 2 : 1))
+                        // Two lines at every size (a German subtitle is never cut); the key grows.
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)

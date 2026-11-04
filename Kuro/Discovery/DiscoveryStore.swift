@@ -150,6 +150,15 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         return await fetchDiscoverBundle(limit: limit, hours: hours)
     }
 
+    /// Whether the signed-in account's bundle was stored on `now`'s rail day (false: none yet, or one
+    /// from an earlier Berlin day). Discover asks this when a new visit starts (D18): a page left alive
+    /// overnight reads the new day's issue instead of rebuilding yesterday's.
+    func hasCurrentDayBundle(limit: Int = 30, hours: Int = 24, now: Date = Date()) -> Bool {
+        let key = Self.bundleKey(user: accountSession.current?.userId, limit: limit, hours: hours)
+        guard let loaded = discoverBundleCache[key] else { return false }
+        return Self.isSameRailDay(loaded.storedAt, now)
+    }
+
     /// The cache and in-flight key of one account's bundle request ("anon" when signed out).
     nonisolated static func bundleKey(user: String?, limit: Int, hours: Int) -> String {
         "\(bundleKeyPrefix(user: user))\(max(1, min(60, limit)))|\(max(1, min(168, hours)))"
