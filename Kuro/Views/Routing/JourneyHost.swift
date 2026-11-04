@@ -208,6 +208,12 @@ struct KuroJourneyAwareStack<Content: View>: View {
 struct JourneyHost: View {
     @State private var navigator: JourneyNavigator
     @Environment(\.dismiss) private var dismiss
+    /// Optional: hosts built in tests without the telemetry owner still work (`journey_close` is skipped).
+    @Environment(InteractionTelemetry.self) private var telemetry: InteractionTelemetry?
+    /// When the journey's root appeared, and the deepest stack it reached (`journey_close`, spec
+    /// 2026-11-04 §5.12: open-and-bounce is a `discover_open` followed by a close within 5 s).
+    @State private var openedAt: Date?
+    @State private var deepest = 0
 
     /// A journey a presenter (or the root coordinator) already holds.
     init(navigator: JourneyNavigator) {
@@ -240,7 +246,39 @@ struct JourneyHost: View {
         .onAppear {
             let dismiss = dismiss
             navigator.dismissJourney = { dismiss() }
+            if openedAt == nil { openedAt = Date() }
         }
+        .onChange(of: navigator.path.count) { _, count in deepest = max(deepest, count) }
+        .onDisappear {
+            guard let openedAt else { return }
+            self.openedAt = nil
+            telemetry?.trackInteractionEvent(
+                "journey_close", surface: "journey", result: "closed",
+                extra: JourneyCloseEvent.extra(root: navigator.root, seconds: Date().timeIntervalSince(openedAt),
+                                               depth: deepest))
+        }
+    }
+}
+
+/// The `journey_close` payload (pure; spec 2026-11-04 §5.12): the root's kind, its catalogue id when the
+/// root is a title (never a title string), the rounded seconds open and the deepest pushed depth.
+enum JourneyCloseEvent {
+    static func rootKind(_ root: JourneyPage) -> String {
+        switch root {
+        case .media(let route): return route.key.kind == .manga ? "manga" : "anime"
+        case .club: return "club"
+        default: return "page"
+        }
+    }
+
+    static func extra(root: JourneyPage, seconds: TimeInterval, depth: Int) -> [String: Any] {
+        var extra: [String: Any] = [
+            "root_kind": rootKind(root),
+            "seconds": Int(max(0, seconds).rounded()),
+            "depth": max(0, depth)
+        ]
+        if case .media(let route) = root { extra["media_id"] = route.key.id }
+        return extra
     }
 }
 

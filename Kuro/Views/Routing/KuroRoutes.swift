@@ -1,4 +1,5 @@
 import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Typed navigation outputs (E5 route migration; journeys since 2026-11-02)
@@ -74,6 +75,10 @@ struct MediaRoute {
 struct TrackingEditorRequest {
     /// What the editor shows (title, poster, year, episode/chapter total) and edits (its key).
     let media: any MediaDisplayable
+    /// The status a title that is NOT on the list yet starts at in the editor (Discover "Seen it" →
+    /// "Add as Completed ›", spec 2026-11-04 D13). Nothing is saved until the user taps Save; a title
+    /// already on the list ignores it. A `var`, so the memberwise init keeps `(media:)` working.
+    var initialStatus: ListStatus? = nil
 }
 
 /// One presentation a presenter can show.
@@ -352,13 +357,19 @@ struct ToolDestinationView: View {
     var body: some View {
         switch RoutePolicy.destination(for: route) {
         case .trackingEditor(let media):
-            AddToListSheet(media: media)
+            AddToListSheet(media: media, initialStatus: Self.initialStatus(of: route))
         case .addToClub(let mediaId, let mediaType):
             AddToClubRailSheet(mediaId: mediaId, mediaType: mediaType)
         case .mediaLoader, .animeDetail, .mangaDetail, .club, .browse, .journeyPage:
             // Pages never reach a tool slot (`RoutePolicy.journeyPage(for:)` sends them to a journey).
             EmptyView()
         }
+    }
+
+    /// The editor's preset status carried by a tracking-editor route (nil for every other route).
+    static func initialStatus(of route: AppRoute) -> ListStatus? {
+        if case .trackingEditor(let request) = route { return request.initialStatus }
+        return nil
     }
 }
 
