@@ -464,45 +464,6 @@ nonisolated enum DiscoverIssueCopy {
     /// The pinned index's VoiceOver label.
     static func pinnedLabel(german: Bool) -> String { german ? "Rubriken" : "Sections" }
 
-    // MARK: Feedback (interim page toast; lane B's DiscoverMenuCopy replaces it)
-
-    static func hiddenToast(german: Bool) -> String { german ? "Ausgeblendet. Du siehst weniger davon." : "Hidden. You'll see fewer like it." }
-    static func seenToast(german: Bool) -> String { german ? "Als gesehen markiert." : "Marked as seen." }
-    static func addAsCompleted(german: Bool) -> String { german ? "Als abgeschlossen eintragen ›" : "Add as Completed ›" }
-    static func hiddenSpoken(german: Bool) -> String { german ? "Ausgeblendet. Rückgängig möglich." : "Hidden. Undo available." }
-
-    @MainActor
-    static func menuPlan(_ action: TastePlanAction, kind: MediaKind, german: Bool) -> String {
-        switch (action, german) {
-        case (.plan, true): return "Vormerken"
-        case (.plan, false): return kind == .manga ? "Plan to read" : "Plan to watch"
-        case (.unplan, true): return "Aus Geplant entfernen"
-        case (.unplan, false): return "Remove from Planned"
-        case (.edit, true): return "Listeneintrag bearbeiten"
-        case (.edit, false): return "Edit list entry"
-        }
-    }
-
-    static func menuSeen(kind: MediaKind, german: Bool) -> String {
-        switch (kind, german) {
-        case (.anime, false): return "Seen it"
-        case (.anime, true): return "Schon gesehen"
-        case (.manga, false): return "Already read"
-        case (.manga, true): return "Schon gelesen"
-        }
-    }
-
-    static func menuSeenSubtitle(german: Bool) -> String {
-        german ? "Blendet es hier aus. Du kannst es als abgeschlossen eintragen." : "Hides it here. You can add it as Completed."
-    }
-
-    static func menuNotInterested(german: Bool) -> String { german ? "Kein Interesse" : "Not interested" }
-    static func menuNotInterestedSubtitle(german: Bool) -> String {
-        german ? "Blendet es aus und zeigt weniger davon." : "Hides it and shows fewer like it."
-    }
-    static func menuAddToClub(german: Bool) -> String { german ? "Zu einem Club hinzufügen\u{2026}" : "Add to club\u{2026}" }
-    static func menuOpen(german: Bool) -> String { german ? "Öffnen" : "Open" }
-
     /// A section heading with the editorial full stop ("New to you.").
     static func heading(_ title: String) -> String { title.hasSuffix(".") ? title : title + "." }
 

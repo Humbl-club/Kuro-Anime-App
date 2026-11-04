@@ -115,12 +115,13 @@ struct DiscoverUsabilitySnapshotTests {
         Self.close(window)
 
         // The toast itself (one slot, D12), over the page foot.
-        let feedback = DiscoverPageFeedback(holdSeconds: 600, assistiveTechnologyRunning: { true })
+        let page = DiscoverPageFeedback()
+        let hides = DiscoverFeedbackController(holdSeconds: 600, assistiveTechnologyRunning: { true })
         let plans = TastePlanController(holdSeconds: 600, assistiveTechnologyRunning: { true })
         let card = try #require(DUFixture.animeCard(16))
-        _ = feedback.record(.seenIt, card: card, slot: DiscoverCardSlot(section: "animeNewToYou", position: 1),
-                            taste: harness.graph.taste, plans: plans)
-        let toast = Self.window(Self.inject(Color.kuroCanvasHome.frame(height: 160).discoverPageFeedbackHost(feedback, plans: plans),
+        _ = hides.record(.seenIt, for: card.media, taste: harness.graph.taste, german: KuroLocale.isGerman)
+        let host = Color.kuroCanvasHome.frame(height: 160).discoverPageHost(page, hides: hides, plans: plans)
+        let toast = Self.window(Self.inject(host,
                                             graph: harness.graph, visits: visits), width: 390, height: 160)
         try? await Task.sleep(for: .milliseconds(600))
         await capture(toast, name: "page-toast-seen-390")

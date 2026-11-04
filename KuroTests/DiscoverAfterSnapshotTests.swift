@@ -75,16 +75,8 @@ struct DiscoverAfterSnapshotTests {
         await capture(pad, name: "discover-all-top-ipad")
         Self.close(pad)
 
-        // The fold opened (session memory, F3).
-        let folds = KuroFoldMemory()
-        folds.setExpanded(true, page: DiscoverIssueCopy.foldPage, section: DiscoverIssueCopy.foldSection)
-        let fold = Self.window(AnyView(Self.page(.all, graph: graph, monitor: monitor).environment(\.kuroFoldMemory, folds)),
-                               width: 390, height: 9_500)
-        try? await Task.sleep(for: .milliseconds(2_600))
-        let foldHeight = Self.contentHeight(in: fold)
-        Self.measure("discover-all-fold-open-full-390", foldHeight)
-        await capture(fold, name: "discover-all-fold-open-full-390", height: foldHeight)
-        Self.close(fold)
+        // The fold render ("discover-all-fold-open") is retired: the usability pass (2026-11-04, R7)
+        // removed the fold; the page ends after six sections (DiscoverUsabilitySnapshotTests).
 
         // Offline band over earlier content.
         let offlineMonitor = NetworkMonitor()

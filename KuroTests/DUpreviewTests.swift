@@ -378,7 +378,7 @@ struct DUpreviewSeeAllTests {
             expected.status = .releasing
             return expected
         }())
-        // The device-side rules: > 50 (the server bucket starts at 27), Hide my list, and the status
+        // The device-side rules: > 50 (the server's `long` bucket, 51+), Hide my list, and the status
         // chip checked again on the row.
         #expect(!selection.includes(kind: .anime, episodes: 30, onList: false))
         #expect(selection.includes(kind: .anime, episodes: 51, statusRaw: "RELEASING", onList: false))

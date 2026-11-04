@@ -48,6 +48,9 @@ final class DiscoverFeedbackController {
     @ObservationIgnored private var contexts: [MediaKey: Context] = [:]
     /// Titles whose last Plan came from the menu (telemetry `via: menu`).
     @ObservationIgnored private var menuPlans: Set<MediaKey> = []
+    /// The page's tally hook, called after the toast's Undo reversed an answer (the Discover page
+    /// keeps its own session tallies, `DiscoverPageFeedback.noteUndone`).
+    @ObservationIgnored var onUndone: (DiscoverFeedbackReceipt) -> Void = { _ in }
     @ObservationIgnored private var dismissTask: Task<Void, Never>?
     @ObservationIgnored private let holdSeconds: Double
     @ObservationIgnored private let assistiveTechnologyRunning: @MainActor () -> Bool
@@ -102,6 +105,7 @@ final class DiscoverFeedbackController {
         if let telemetry, let context = contexts[receipt.key] {
             Self.track(telemetry, feedback: receipt.feedback, result: "undone", key: receipt.key, context: context)
         }
+        onUndone(receipt)
         show(Toast(id: UUID(), message: DiscoverMenuCopy.undone(german: german), action: nil, receipt: nil))
         return receipt
     }

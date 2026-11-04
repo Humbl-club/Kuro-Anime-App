@@ -35,7 +35,7 @@
 --     date: start_date_year/month/day, then season_year; never created_at), 'top_rated' (score).
 --     p_format: one AniList format (anime default surface hides SPECIAL / MUSIC / TV_SHORT unless
 --     asked for explicitly, as browse_anime_page). p_length: anime 'short' 1-13 episodes,
---     'standard' 14-26, 'long' 27+; manga 'short' 1-50 chapters (or 1-5 volumes when chapters are
+--     'standard' 14-50, 'long' 51+ (D10: "Over 50 episodes"); manga 'short' 1-50 chapters (or 1-5 volumes when chapters are
 --     unknown), 'standard' 51-150, 'long' 151+; unknown counts never match a length filter.
 --     p_status: 'finished' / 'releasing' / 'upcoming' (FINISHED / RELEASING / NOT_YET_RELEASED).
 --
@@ -411,8 +411,8 @@ begin
                  or upper(coalesce(a.format, '')) = $2)
             and ($4::text is null
                  or ($4 = 'short' and a.episodes between 1 and 13)
-                 or ($4 = 'standard' and a.episodes between 14 and 26)
-                 or ($4 = 'long' and a.episodes >= 27))
+                 or ($4 = 'standard' and a.episodes between 14 and 50)
+                 or ($4 = 'long' and a.episodes >= 51))
             and ($5::text is null or a.status = $5)
           group by a.id
           order by 2 desc nulls last, 3 desc nulls last, 4 desc nulls last, 1 desc
@@ -445,8 +445,8 @@ begin
                or upper(coalesce(a.format, '')) = v_format)
           and (v_length is null
                or (v_length = 'short' and a.episodes between 1 and 13)
-               or (v_length = 'standard' and a.episodes between 14 and 26)
-               or (v_length = 'long' and a.episodes >= 27))
+               or (v_length = 'standard' and a.episodes between 14 and 50)
+               or (v_length = 'long' and a.episodes >= 51))
           and (v_status is null or a.status = v_status)
           and case v_section
                 when 'essentials' then coalesce(a.average_score, 0) >= 85

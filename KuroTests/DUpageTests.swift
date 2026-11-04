@@ -498,25 +498,6 @@ struct DiscoverIssueTests {
         #expect(DiscoverIssueCopy.headerScrollToTop(german: true) == "Entdecken. Nach oben")
     }
 
-    @Test("Menu words (§5.2, §8): Plan item mirrors the key; Seen it / Already read; subtitles")
-    func menuCopy() {
-        #expect(DiscoverIssueCopy.menuPlan(.plan, kind: .anime, german: false) == "Plan to watch")
-        #expect(DiscoverIssueCopy.menuPlan(.plan, kind: .manga, german: false) == "Plan to read")
-        #expect(DiscoverIssueCopy.menuPlan(.plan, kind: .anime, german: true) == "Vormerken")
-        #expect(DiscoverIssueCopy.menuPlan(.unplan, kind: .anime, german: false) == "Remove from Planned")
-        #expect(DiscoverIssueCopy.menuPlan(.edit, kind: .anime, german: true) == "Listeneintrag bearbeiten")
-        #expect(DiscoverIssueCopy.menuSeen(kind: .manga, german: false) == "Already read")
-        #expect(DiscoverIssueCopy.menuSeen(kind: .anime, german: true) == "Schon gesehen")
-        #expect(DiscoverIssueCopy.menuNotInterested(german: true) == "Kein Interesse")
-        #expect(DiscoverIssueCopy.menuNotInterestedSubtitle(german: false) == "Hides it and shows fewer like it.")
-        #expect(DiscoverIssueCopy.hiddenToast(german: false) == "Hidden. You'll see fewer like it.")
-        #expect(DiscoverIssueCopy.addAsCompleted(german: true) == "Als abgeschlossen eintragen ›")
-        #expect(DiscoverIssueCopy.hiddenSpoken(german: false) == "Hidden. Undo available.")
-        #expect(DiscoverPageFeedback.offersHide(tracked: false, signedIn: true))
-        #expect(!DiscoverPageFeedback.offersHide(tracked: true, signedIn: true))
-        #expect(!DiscoverPageFeedback.offersHide(tracked: false, signedIn: false))
-    }
-
     @Test("Mood keys (§5.4): four with a seed, three without; one column at accessibility sizes or compact German")
     func moodKeys() {
         #expect(DiscoverMoodKeys.moods(hasSeed: true) == [.short, .cozy, .intense, .likeLastLoved])
@@ -528,7 +509,7 @@ struct DiscoverIssueTests {
         #expect(DiscoverIssueCopy.moodTitle(.likeLastLoved, likeTitle: "Frieren", german: true) == "Wie Frieren")
         #expect(DiscoverIssueCopy.moodSubtitle(.short, german: false) == "Short and complete")
         #expect(DiscoverIssueCopy.moodsEyebrow(german: true) == "Lust auf")
-        #expect(DiscoverMoodBridge.pageID(.cozy) == "discover:mood:cozy")
+        #expect(DiscoverMoodRoute.pageID(.cozy) == "discover:mood:cozy")
     }
 
     @Test("Progress hook (§5.9): Completed + Seen it count, Not interested leaves the total, Watching is half")
@@ -659,82 +640,53 @@ struct DiscoverVisitTests {
 struct DiscoverPageFeedbackTests {
     init() { DUFixture.clearHiddenMemory() }
 
-    @Test("Not interested hides at once, tallies, toasts with Undo; Undo restores once, for the same account only")
-    func hideAndUndo() async throws {
+    @Test("Lane B's controller records the answer; the page tallies it, and Undo takes it back once")
+    func hideAndUndoTallies() async throws {
         let harness = try DCDiscoverHarness(responder: { _ in .emptyArray })
         await harness.signIn()
         let taste = harness.graph.taste
-        let feedback = DiscoverPageFeedback(holdSeconds: 60, assistiveTechnologyRunning: { false })
-        let plans = TastePlanController(holdSeconds: 60, assistiveTechnologyRunning: { false })
+        let page = DiscoverPageFeedback()
+        let hides = DiscoverFeedbackController(holdSeconds: 60, assistiveTechnologyRunning: { false })
+        hides.onUndone = { page.noteUndone($0) }
         let card = try #require(DUFixture.animeCard(15))
         var hiddenCards: [TasteCard] = []
-        feedback.onHidden = { _, hidden in hiddenCards.append(hidden) }
-        plans.show("Added to your list.", undo: nil)
+        page.onHidden = { _, hidden in hiddenCards.append(hidden) }
 
-        #expect(feedback.record(.notInterested, card: card, slot: DiscoverCardSlot(section: "animeNewToYou", position: 1),
-                                taste: taste, plans: plans, german: false))
+        let receipt = try #require(hides.record(.notInterested, for: card.media, taste: taste, german: false))
+        page.noteHidden(receipt, card: card)
         #expect(taste.isHiddenOnDiscover(card.key), "R5: removed before any network answer")
-        #expect(taste.discoverHidden[card.key] == .notInterested)
-        #expect(feedback.hidden == 1 && feedback.taps == 1)
+        #expect(page.hidden == 1 && page.taps == 1)
         #expect(hiddenCards.map(\.key) == [card.key])
-        #expect(feedback.toast?.message == "Hidden. You'll see fewer like it.")
-        #expect(feedback.toast?.receipt != nil)
-        #expect(plans.toast == nil, "D12: one toast slot")
+        #expect(hides.toast?.receipt != nil)
 
-        #expect(feedback.undo(taste: taste, german: false))
+        #expect(hides.undo(taste: taste, german: false) != nil)
         #expect(!taste.isHiddenOnDiscover(card.key))
-        #expect(feedback.hidden == 0)
-        #expect(feedback.toast?.message == "Undone.")
-        #expect(!feedback.undo(taste: taste, german: false), "Undo reverses exactly once")
+        #expect(page.hidden == 0, "Undo takes the tally back")
+        #expect(hides.undo(taste: taste, german: false) == nil, "Undo reverses exactly once")
+        #expect(page.hidden == 0)
+
+        let seen = try #require(DUFixture.animeCard(16))
+        let seenReceipt = try #require(hides.record(.seenIt, for: seen.media, taste: taste, german: false))
+        page.noteHidden(seenReceipt, card: seen)
+        #expect(page.seen == 1 && page.taps == 2)
+        page.resetSession()
+        #expect(page.seen == 0 && page.hidden == 0 && page.taps == 0 && page.planned == 0)
         await harness.tearDown()
         DUFixture.clearHiddenMemory()
     }
 
-    @Test("Seen it offers Add as Completed (the editor route, nothing saved); without a session nothing is recorded")
-    func seenAndSignedOut() async throws {
-        let harness = try DCDiscoverHarness(responder: { _ in .emptyArray })
-        await harness.signIn()
-        let feedback = DiscoverPageFeedback(holdSeconds: 60, assistiveTechnologyRunning: { false })
-        let card = try #require(DUFixture.animeCard(16))
-        #expect(feedback.record(.seenIt, card: card, slot: DiscoverCardSlot(section: "animeNewToYou", position: 2),
-                                taste: harness.graph.taste, plans: nil, german: true))
-        #expect(feedback.toast?.message == "Als gesehen markiert.")
-        #expect(feedback.toast?.editorMedia?.libraryKey == card.key)
-        #expect(feedback.seen == 1)
-        var opened: [TrackingEditorRequest] = []
-        var routes = KuroRoutes.unhandled
-        routes.presentTrackingEditor = { opened.append($0) }
-        feedback.addAsCompleted(routes: routes)
-        #expect(opened.count == 1)
-        #expect(feedback.toast == nil)
-        #expect(harness.graph.library.entry(for: card.key) == nil, "D13: Seen it never writes a status")
-
-        await harness.graph.session.endSession()
-        let other = try #require(DUFixture.animeCard(20))
-        #expect(!feedback.record(.notInterested, card: other, slot: DiscoverCardSlot(section: "x", position: 0),
-                                 taste: harness.graph.taste, plans: nil))
-        #expect(!harness.graph.taste.isHiddenOnDiscover(other.key))
-        await harness.tearDown()
-        DUFixture.clearHiddenMemory()
-    }
-
-    @Test("A Plan toast takes the one slot and is counted: added, then undone")
-    func planToast() async throws {
-        let harness = try DCDiscoverHarness(responder: { _ in .emptyArray })
-        await harness.signIn()
-        let feedback = DiscoverPageFeedback(holdSeconds: 60, assistiveTechnologyRunning: { false })
-        let card = try #require(DUFixture.animeCard(25))
-        _ = feedback.record(.seenIt, card: card, slot: DiscoverCardSlot(section: "s", position: 0),
-                            taste: harness.graph.taste, plans: nil)
-        let account = try #require(harness.graph.libraryActions.accountSession.current)
-        let added = TastePlanController.Toast(message: "Added to your list.",
-                                              undo: .init(key: card.key, step: .remove, account: account))
-        feedback.notePlanToast(added, german: false)
-        #expect(feedback.toast == nil, "D12")
-        #expect(feedback.planned == 1)
-        feedback.notePlanToast(TastePlanController.Toast(message: "Undone.", undo: nil), german: false)
-        #expect(feedback.planned == 0)
-        await harness.tearDown()
-        DUFixture.clearHiddenMemory()
+    @Test("Plan results are counted once per token: added, then undone; removed counts a tap only")
+    func planResults() {
+        let page = DiscoverPageFeedback()
+        let key = MediaKey(kind: .anime, id: 25)
+        page.notePlanResult(TastePlanController.Result(key: key, outcome: .added, token: 1), viaMenu: false)
+        page.notePlanResult(TastePlanController.Result(key: key, outcome: .added, token: 1), viaMenu: false)
+        #expect(page.planned == 1 && page.taps == 1, "the same result twice counts once")
+        page.notePlanResult(TastePlanController.Result(key: key, outcome: .undone, token: 2), viaMenu: false)
+        #expect(page.planned == 0)
+        page.notePlanResult(TastePlanController.Result(key: key, outcome: .removed, token: 3), viaMenu: true)
+        #expect(page.planned == 0 && page.taps == 2)
+        page.notePlanResult(TastePlanController.Result(key: key, outcome: .failed, token: 4), viaMenu: false)
+        #expect(page.planned == 0 && page.taps == 2)
     }
 }

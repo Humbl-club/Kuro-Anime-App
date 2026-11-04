@@ -121,8 +121,10 @@ select tests.eq('trending: a row without an English title keeps it null (romaji 
   'null/Franchise A 2');
 select tests.eq('trending: an explicit SPECIAL format filter reaches the ancillary format',
   (select string_agg(id::text, ',') from public.discover_section_page_v1('trending', 'ANIME', null, 'special')), '870006');
-select tests.eq('trending: length long = 27+ episodes',
+select tests.eq('trending: length long = 51+ episodes (D10)',
   (select string_agg(id::text, ',') from public.discover_section_page_v1('trending', 'ANIME', null, null, 'long')), '870003');
+select tests.eq('trending: length standard = 14-50 episodes (the 64-episode row is long only)',
+  (select string_agg(id::text, ',' order by id) from public.discover_section_page_v1('trending', 'ANIME', null, null, 'standard')), '870007');
 select tests.eq('trending: status releasing',
   (select string_agg(id::text, ',') from public.discover_section_page_v1('trending', 'ANIME', null, null, null, 'releasing')), '870007');
 select tests.eq('trending: newest sorts by RELEASE date (start year/month/day), not created_at',

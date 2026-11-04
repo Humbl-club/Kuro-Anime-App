@@ -245,8 +245,9 @@ enum DiscoverLengthFilter: String, CaseIterable, Sendable {
     var episodeRange: (min: Int, max: Int?) {
         switch self {
         case .short: return (1, 13)
-        case .standard: return (14, 26)
-        case .long: return (27, nil)
+        case .standard: return (14, 50)
+        // D10: "Over 50 episodes" (the shipped long rule is > 50).
+        case .long: return (51, nil)
         }
     }
 

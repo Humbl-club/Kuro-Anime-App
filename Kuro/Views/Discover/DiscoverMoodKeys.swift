@@ -9,8 +9,8 @@ import SwiftUI
 // medium follows the issue (All and Anime: anime; Manga: manga). "Like {title}" shows only with a
 // seed (the Library's latest well-rated Completed title); without one the grid keeps its shape with
 // the last cell empty. At accessibility sizes, or a compact column with German, one column.
-// A key opens the mood journey (a journey root, ✕ only; N3) through `DiscoverMoodBridge`, the swap
-// point for lane B's `DiscoverMoodRoute.page(_:kind:german:)`.
+// A key opens the mood journey (a journey root, ✕ only; N3): the page calls
+// `routes.openPage(DiscoverMoodRoute.journeyPage(...))` (lane B's `DiscoverMoodPage`, id `discover:mood:<raw>`).
 
 struct DiscoverMoodKeys: View {
     let kind: MediaKind
@@ -102,100 +102,5 @@ struct DiscoverMoodKeys: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(title). \(subtitle)")
         .accessibilityAddTraits(.isButton)
-    }
-}
-
-// MARK: - Mood journey bridge (swap point for lane B)
-
-/// Opens a mood journey. Until lane B's `DiscoverMoodPage` lands this is an interim list over the
-/// data lane's reader (`DiscoveryStore.moodPage`, accumulated with the hidden and owned rules); the
-/// integrator replaces `page(_:kind:likeTitle:german:)`'s body with `DiscoverMoodRoute.page(...)`.
-enum DiscoverMoodBridge {
-    /// The journey's identity, so a second tap never stacks a copy (N5); B's page uses the same id.
-    static func pageID(_ mood: DiscoverMood) -> String { "discover:mood:\(mood.rawValue)" }
-
-    @MainActor
-    static func page(_ mood: DiscoverMood, kind: MediaKind, likeTitle: String?, german: Bool) -> JourneyPage {
-        let title = DiscoverIssueCopy.moodTitle(mood, likeTitle: likeTitle, german: german)
-        return .custom(AnyJourneyPage(id: pageID(mood), title: title) {
-            DiscoverMoodInterimPage(mood: mood, kind: kind, title: title)
-        })
-    }
-}
-
-/// The interim mood journey: heading, rows in index grammar with Plan keys, paging, the end line.
-private struct DiscoverMoodInterimPage: View {
-    let mood: DiscoverMood
-    let kind: MediaKind
-    let title: String
-
-    @Environment(DiscoveryStore.self) private var discovery
-    @Environment(TasteStore.self) private var taste
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var accumulator = DiscoverPageAccumulator(policy: .hide)
-    @State private var loading = false
-    @State private var failed = false
-    @State private var collapse: CGFloat = 0
-
-    var body: some View {
-        GeometryReader { geo in
-            let width = DiscoverLayout.contentWidth(container: geo.size.width, regularWidth: horizontalSizeClass == .regular)
-            let gutter = DiscoverIssueLayout.gutter(container: width)
-            let column = max(0, width - gutter * 2)
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    DiscoverPageHeading(title: DiscoverIssueCopy.heading(title))
-                    let rows = accumulator.items.filter { !taste.isHiddenOnDiscover($0.item.key) }
-                    if rows.isEmpty {
-                        if loading || !accumulator.started {
-                            VStack(spacing: 10) { ForEach(0..<6, id: \.self) { _ in KuroSkeleton(kind: .row) } }
-                                .padding(.top, DiscoverIssueLayout.headingToContent)
-                        } else {
-                            KuroStateView(failed ? .failed(hasCachedContent: false) : .empty, layout: .inline,
-                                          retry: failed ? { Task { await load(next: nil) } } : nil)
-                                .padding(.top, DiscoverIssueLayout.headingToContent)
-                        }
-                    } else {
-                        ForEach(Array(rows.enumerated()), id: \.element.item.id) { index, placed in
-                            DiscoverIndexRow(position: index + 1, card: Self.card(placed.item.card),
-                                             compact: DiscoverIssueLayout.isCompact(column: column))
-                        }
-                        KuroLoadMoreSentinel(itemCount: rows.count, hasMore: accumulator.next != nil, isLoading: loading) {
-                            await load(next: accumulator.next)
-                        }
-                    }
-                }
-                .padding(.horizontal, gutter)
-                .padding(.top, KuroJourneyChrome.barHeight)
-                .padding(.bottom, KuroDesignSpacing.xl)
-                .frame(width: width)
-                .frame(maxWidth: .infinity)
-            }
-            .kuroCollapseTracking($collapse, start: 0, distance: KuroJourneyChrome.barHeight)
-            .background(Color.kuroCanvasHome)
-        }
-        .kuroJourneyChrome(title: title, collapseProgress: collapse)
-        .task { if !accumulator.started { await load(next: nil) } }
-    }
-
-    private func load(next: DiscoverPageCursor?) async {
-        guard !loading else { return }
-        loading = true
-        defer { loading = false }
-        guard let page = await discovery.moodPage(mood, medium: kind, cursor: next) else {
-            failed = true
-            return
-        }
-        failed = false
-        var acc = accumulator
-        discovery.accumulate(page, into: &acc, hidden: taste.discoverHiddenKeys)
-        accumulator = acc
-    }
-
-    static func card(_ value: DiscoverCardValue) -> TasteCard {
-        switch value {
-        case .anime(let anime): return TasteCard(anime: anime)
-        case .manga(let manga): return TasteCard(manga: manga)
-        }
     }
 }

@@ -151,6 +151,8 @@ final class TasteStore: AccountScopedState {
 
     /// Confirmed account deletion: removes the deleted account's Discover answers from this device.
     func removeDeletedAccountData(userId: String) async throws {
+        // The account's "New since your last visit" ledger (Discover §5.8) lives in the same store.
+        DiscoverVisitLedger.remove(defaults: defaults, userId: userId)
         guard let key = DiscoverHiddenMemory.storageKey(userId: userId) else { return }
         defaults.removeObject(forKey: key)
         if discoverMemoryAccount == userId.lowercased() {

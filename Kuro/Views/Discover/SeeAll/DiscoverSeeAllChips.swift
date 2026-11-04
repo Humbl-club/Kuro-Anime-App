@@ -9,8 +9,9 @@ import SwiftUI
 // and the chips map onto the data lane's `DiscoverSeeAllQuery` (`DiscoveryStore.seeAllPage`).
 //
 // Two rules the data lane's types do not carry, applied here on the device:
-//   - "Over 50 episodes" (D10: the shipped long rule is > 50) is read as the data lane's `.long`
-//     bucket (27+ episodes) and narrowed to > 50 here, so the chip's words stay true.
+//   - "Over 50 episodes" (D10: the shipped long rule is > 50) is the data lane's `.long` bucket (51+
+//     episodes, aligned at integration) and checked again on the row, so the words stay true whichever
+//     reader answered.
 //   - "Hide my list" hides titles on the viewer's list (independent of the other chips).
 
 /// What a See all page lists.
@@ -194,7 +195,7 @@ struct DiscoverSeeAllSelection: Hashable {
         return query
     }
 
-    /// The device-side rules: "Over 50 episodes" is > 50 (the server bucket starts at 27), "Hide my
+    /// The device-side rules: "Over 50 episodes" is > 50 (the server's `long` bucket, 51+), "Hide my
     /// list" leaves out titles on the list, and every chip the server also applies is checked again on
     /// the row, so the words stay true whichever reader answered (a page from an older reader, a
     /// fallback that cannot filter).

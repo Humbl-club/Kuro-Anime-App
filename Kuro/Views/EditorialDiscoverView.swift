@@ -50,8 +50,10 @@ struct EditorialDiscoverView: View {
     @State private var loadError = false
     /// The page's Plan keys (plan / unplan with Undo; a tracked title opens the editor).
     @State private var plans = TastePlanController()
-    /// Not interested / Seen it, the session tallies and the page's events.
+    /// The session tallies and the page's own events (opens, jumps, Plan results).
     @State private var feedback = DiscoverPageFeedback()
+    /// Not interested / Seen it: the hide toast with Undo and "Add as Completed ›" (lane B, D12).
+    @State private var hides = DiscoverFeedbackController()
     /// This visit's claims (R2, D5); rebuilt only at the build points, never mid-visit.
     @State private var build = DiscoverIssueBuild.empty
     @State private var hasBuilt = false
@@ -210,7 +212,7 @@ struct EditorialDiscoverView: View {
             }
             .task {
                 feedback.telemetry = telemetry
-                feedback.onHidden = { _, _ in }
+                hides.onUndone = { [feedback] receipt in feedback.noteUndone(receipt) }
                 // The device memory first, so a hidden title never flashes back after a launch.
                 taste.restoreDiscoverMemory()
                 if !didInitialLoad {
@@ -244,8 +246,7 @@ struct EditorialDiscoverView: View {
             }
         }
         // The page's two toasts share one slot at the page foot (D12), outside the ScrollView.
-        .discoverPageFeedbackHost(feedback, plans: plans)
-        .tastePlanHost(plans)
+        .discoverPageHost(feedback, hides: hides, plans: plans)
         .environment(\.discoverMissingArt, HomeInk.posterFill)
         .environment(\.discoverKindKicker, selectedMediaType == .all)
     }
@@ -503,7 +504,8 @@ struct EditorialDiscoverView: View {
     }
 
     private func sectionContext(_ built: DiscoverIssueBuild.Built) -> DiscoverSectionContext {
-        DiscoverSectionContext(id: built.section.id, newKeys: newKeys(built), reason: reason(built.section))
+        DiscoverSectionContext(id: built.section.id, newKeys: newKeys(built), reason: reason(built.section),
+                               title: sectionName(built.section))
     }
 
     /// "Why it's here: …" for the section's preview (lane B reads it through the context).
@@ -688,9 +690,8 @@ struct EditorialDiscoverView: View {
     private func openMood(_ mood: DiscoverMood) {
         // `discover_mood_open` (with its count) is the mood journey's own event (lane B).
         let german = KuroLocale.isGerman
-        routes.openPage(DiscoverMoodBridge.page(mood, kind: moodKind,
-                                                likeTitle: likeSeed?.kind == moodKind ? likeSeed?.title : nil,
-                                                german: german))
+        routes.openPage(DiscoverMoodRoute.journeyPage(mood, kind: moodKind, german: german,
+                                                      seedTitle: likeSeed?.kind == moodKind ? likeSeed?.title : nil))
     }
 
     /// "Like {title}": the Library's latest well-rated Completed title of the issue's medium (D9), with
@@ -760,29 +761,41 @@ struct EditorialDiscoverView: View {
         items.filter { !isLiveHidden(MediaKey(kind: .manga, id: $0.id)) }
     }
 
-    /// The section's See all page. Lane B's `DiscoverSeeAllPage` (sorts, chips, Plan keys, paging)
-    /// replaces this body at integration; until then the shipped grid, without the hidden titles.
-    @ViewBuilder
+    /// The section's See all page (§5.5): lane B's `DiscoverSeeAllPage` (sorts, chips, Plan keys, the
+    /// preview, paging where the source pages), seeded with the section's loaded rows minus the titles
+    /// hidden right now (R5). The page applies the owned rule and the hidden memory itself.
     private func fullSection(for route: EditorialDiscoverRoute, title: String) -> some View {
+        let purpose = PageSection.allCases.first { $0.route == route }.map(purpose) ?? ""
+        let anime: [AnimeCard]
+        let manga: [MangaCard]
+        var slots: [Int: DiscoverAiringSlot] = [:]
         switch route {
-        case .animeEssentials: FullSectionView(title: title, items: visibleAnime(vm.essentials))
-        case .animeClassics: FullSectionView(title: title, items: visibleAnime(vm.classics))
-        case .animeNewToYou: FullSectionView(title: title, items: visibleAnime(vm.newToYou))
-        case .animeBecauseYou: FullSectionView(title: title, items: vm.becauseYou.filter { !isLiveHidden($0.libraryKey) })
+        case .animeEssentials: anime = visibleAnime(vm.essentials); manga = []
+        case .animeClassics: anime = visibleAnime(vm.classics); manga = []
+        case .animeNewToYou: anime = visibleAnime(vm.newToYou); manga = []
+        case .animeBecauseYou:
+            // Because-you rows are generic media: the page's rows as catalogue cards, so See all can sort
+            // and filter them on the device while the prepared section reader is not deployed.
+            let rows = vm.becauseYou.filter { !isLiveHidden($0.libraryKey) }
+            anime = rows.filter { $0.kind == .anime }.map(DiscoverSeeAllRows.animeCard)
+            manga = rows.filter { $0.kind == .manga }.map(DiscoverSeeAllRows.mangaCard)
         case .animeAiringToday:
             let ordered = DiscoverAiringOrder.ordered(visibleAnime(vm.airingToday), id: \.id, slots: airingSlots, now: Date())
-            FullSectionView(title: title, items: ordered, airingSlots: todaysSlots(for: ordered))
-        case .animeCurrentSeason: FullSectionView(title: title, items: visibleAnime(vm.currentSeason))
-        case .animeTrending: FullSectionView(title: title, items: visibleAnime(vm.trending))
-        case .animeTopRated: FullSectionView(title: title, items: visibleAnime(vm.topRated))
-        case .animeNewlyAdded: FullSectionView(title: title, items: visibleAnime(vm.newlyAdded))
-        case .mangaEssentials: FullMangaSectionView(title: title, items: visibleManga(vm.essentialsManga))
-        case .mangaClassics: FullMangaSectionView(title: title, items: visibleManga(vm.classicsManga))
-        case .mangaNewToYou: FullMangaSectionView(title: title, items: visibleManga(vm.newToYouManga))
-        case .mangaTrending: FullMangaSectionView(title: title, items: visibleManga(vm.trendingManga))
-        case .mangaTopRated: FullMangaSectionView(title: title, items: visibleManga(vm.topRatedManga))
-        case .mangaNewlyAdded: FullMangaSectionView(title: title, items: visibleManga(vm.newlyAddedManga))
+            anime = ordered; manga = []
+            slots = todaysSlots(for: ordered)
+        case .animeCurrentSeason: anime = visibleAnime(vm.currentSeason); manga = []
+        case .animeTrending: anime = visibleAnime(vm.trending); manga = []
+        case .animeTopRated: anime = visibleAnime(vm.topRated); manga = []
+        case .animeNewlyAdded: anime = visibleAnime(vm.newlyAdded); manga = []
+        case .mangaEssentials: anime = []; manga = visibleManga(vm.essentialsManga)
+        case .mangaClassics: anime = []; manga = visibleManga(vm.classicsManga)
+        case .mangaNewToYou: anime = []; manga = visibleManga(vm.newToYouManga)
+        case .mangaTrending: anime = []; manga = visibleManga(vm.trendingManga)
+        case .mangaTopRated: anime = []; manga = visibleManga(vm.topRatedManga)
+        case .mangaNewlyAdded: anime = []; manga = visibleManga(vm.newlyAddedManga)
         }
+        return DiscoverSeeAllPage(source: .route(route), title: title, purpose: purpose,
+                                  animeItems: anime, mangaItems: manga, airingSlots: slots)
     }
 
     // MARK: Build (R2, D5)
@@ -1082,6 +1095,9 @@ struct DiscoverLikeSeed: Equatable {
 
 /// A Discover section in full: the loaded titles as an equal-frame grid with an in-place filter.
 /// A journey page (`routes.openPage(.seeAll(...))`): its frames push their title inside the journey.
+/// The shipped grid "See all", kept for Tonight's shelf only (no `EditorialDiscoverRoute`, so it has no
+/// `DiscoverSeeAllSource`; the shelf is behind `discover_realm_rails_v1`, 0% live). Every routed section
+/// opens lane B's `DiscoverSeeAllPage`.
 struct FullSectionView<Item: MediaDisplayable>: View {
     let title: String
     let items: [Item]
@@ -1089,16 +1105,6 @@ struct FullSectionView<Item: MediaDisplayable>: View {
 
     var body: some View {
         DiscoverFullSectionSheet(title: title, items: items, airingSlots: airingSlots)
-    }
-}
-
-/// The manga "See all" page (same grammar as `FullSectionView`).
-struct FullMangaSectionView<Item: MediaDisplayable>: View {
-    let title: String
-    let items: [Item]
-
-    var body: some View {
-        DiscoverFullSectionSheet(title: title, items: items)
     }
 }
 
@@ -1737,4 +1743,27 @@ struct DiscoverVisitSession {
 extension EnvironmentValues {
     /// Where visit memory is stored (`.standard`; tests pass a throwaway suite).
     @Entry var discoverVisitDefaults: UserDefaults = .standard
+}
+
+/// See all seeds for the rows the bundle hands over as generic `Media` (Because you loved…).
+enum DiscoverSeeAllRows {
+    static func animeCard(_ media: Media) -> AnimeCard {
+        AnimeCard(id: media.id, titleEnglish: media.title, titleRomaji: nil, titleNative: nil,
+                  coverImageLarge: media.imageURL, coverImageMedium: nil, bannerImage: nil,
+                  format: media.formatRaw, status: media.statusRaw, episodeCount: media.episodes,
+                  seasonYear: Int(media.year), startDateYear: nil,
+                  averageScore: media.rating.map { Int(($0 * 10).rounded()) },
+                  popularity: media.popularityValue, trending: media.trendingValue, favourites: nil,
+                  genreList: media.genres, createdAt: media.createdAtValue, rank: nil)
+    }
+
+    static func mangaCard(_ media: Media) -> MangaCard {
+        MangaCard(id: media.id, titleEnglish: media.title, titleRomaji: nil, titleNative: nil,
+                  coverImageLarge: media.imageURL, coverImageMedium: nil,
+                  format: media.formatRaw, status: media.statusRaw, chapterCount: media.chapters,
+                  startDateYear: Int(media.year),
+                  averageScore: media.rating.map { Int(($0 * 10).rounded()) },
+                  popularity: media.popularityValue, trending: media.trendingValue, favourites: nil,
+                  genreList: media.genres, createdAt: media.createdAtValue, rank: nil)
+    }
 }
