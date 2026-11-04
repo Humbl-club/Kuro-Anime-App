@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 276 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 293 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2167,3 +2167,8 @@ Build 24 has the new title pages (facts, next episode with a bell, episode timel
 ### Change Log — 4 November 2026: Discover remembers "Not interested" and "Seen it" (data side, prepared)
 
 The data side of the Discover usability pass is ready on a local branch; nothing is switched on or sent to the live backend. Saying "Not interested" or "Seen it" on a Discover card now hides the title at once, teaches the Taste profile (the same signal the Taste deck uses), is remembered on the phone even offline and after a restart, and can be undone (an earlier "calls to me" from the deck is restored, never erased). The page can now tell when two titles are the same series and show it only once. Three prepared server readers (not yet applied) add a real "See all" with sorting and filters, mood journeys ("Something short", "Cozy", "Intense", "Like the last thing you loved"), and series identity; until they are applied the app quietly uses what already exists.
+
+
+### Change Log — 4 November 2026: Discover is easier to use (local branch, not live yet)
+
+All three parts of the Discover usability pass now work together on one local branch. Discover shows each series only once, ends after about six sections with "You're caught up for today.", explains what every section is for, and has mood shortcuts ("Something short", "Cozy", "Intense"). A long press on any card shows a preview with Plan, Seen it, Not interested, Add to club and Open; Not interested and Seen it remove the title at once, teach Taste and can be undone. "See all" is now a real page with sorting and filters. The server parts are prepared but not switched on; until they are, the app quietly uses what already exists. Nothing was pushed or deployed.

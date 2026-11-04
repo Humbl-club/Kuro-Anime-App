@@ -552,4 +552,183 @@ final class LiveWalkthroughUITests: XCTestCase {
         closeJourneyIfOpen(); sleep(1)
         soft(pagerProfile.isHittable, "back on the pager")
     }
+
+    // MARK: W18 Discover usability (2026-11-04) — read-only look
+    // Scrolls All / Anime / Manga to the end block, opens one long-press preview and dismisses it
+    // WITHOUT choosing an item, opens See all and changes its sort, opens one mood page, and leaves with
+    // ✕ only. Never taps a Plan key, Not interested, Seen it, Add to club, a chip that writes, or any
+    // other control that writes (sort words and mood keys only read). The prepared RPCs are not live,
+    // so every journey must show rows through its silent fallback, never an error line.
+
+    private var walkDir: URL? { ProcessInfo.processInfo.environment["KURO_WALK_DIR"].map { URL(fileURLWithPath: $0) } }
+
+    private func note(_ line: String) {
+        let attachment = XCTAttachment(string: line)
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        guard let dir = walkDir else { return }
+        let url = dir.appendingPathComponent("w18-measurements.txt")
+        let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        try? (existing + line + "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// One fixed-distance vertical drag (held at the end, so no momentum): the page moves by exactly
+    /// `distance` points unless it hits its end. A moving drag never activates the control under it.
+    /// (The left gutter does not work: the pager's edge region takes drags there.)
+    /// Returns false when the page did not move (its end, or every start point sat on a sideways rail).
+    @discardableResult
+    private func dragPage(_ distance: CGFloat) -> Bool {
+        let height = app.frame.height
+        let before = XCUIScreen.main.screenshot().pngRepresentation
+        // A start on a sideways rail does not move the page: try a second start point.
+        for start in [0.8, 0.55] {
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: start))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: start - distance / height))
+            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.4)
+            usleep(500_000)
+            if XCUIScreen.main.screenshot().pngRepresentation != before { return true }
+        }
+        return false
+    }
+
+    /// Scrolls the current Discover issue to its end block in fixed drags, screenshotting every other
+    /// step, and notes the page height (drags × distance + where the end block sits) and the section count.
+    private func walkToEnd(_ prefix: String, issue: String) {
+        let sections = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'SECTIONS'")).firstMatch
+        let sectionsLine = sections.waitForExistence(timeout: 6) ? sections.label : "(no contents line)"
+        let endTitle = app.staticTexts["You're caught up for today."].firstMatch
+        let distance: CGFloat = 400
+        var drags = 0
+        let screen = app.frame.height
+        while drags < 40 {
+            if endTitle.exists, endTitle.frame.maxY > 0, endTitle.frame.maxY < screen { break }
+            guard dragPage(distance) else { break }
+            drags += 1
+            if drags % 2 == 0 { shot("\(prefix)-scrolled-\(drags)") }
+        }
+        sleep(1)
+        shot("\(prefix)-end")
+        soft(endTitle.exists, "\(issue): the page ends with \"You're caught up for today.\"")
+        let endY = endTitle.exists ? endTitle.frame.maxY : 0
+        // The end block and the footer sit below the end title; ~240 pt measured in the fixture renders.
+        let approx = Int(CGFloat(drags) * distance + endY + 240)
+        note("\(issue): \(sectionsLine); \(drags) drags of \(Int(distance)) pt to the end title; page height ≈ \(approx) pt (live, approximate)")
+        // Back to the top through the header title (scroll to top, item 10).
+        if let top = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Discover'")), timeout: 3) {
+            top.tap(); sleep(2)
+        } else {
+            for _ in 0..<(drags + 4) { app.swipeDown(velocity: .fast) }
+            sleep(1)
+        }
+    }
+
+    func testW18DiscoverUsability() throws {
+        continueAfterFailure = true
+        swipePager(times: 1); sleep(5)
+        // A transient bundle failure shows the branded error; its Try again only reads.
+        for attempt in 0..<3 where app.staticTexts["Couldn't load Discover."].firstMatch.exists {
+            note("discover: load failed on attempt \(attempt + 1); Try again")
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Try again'")).firstMatch.tap()
+            sleep(8)
+        }
+        shot("w18-00-discover-all-top")
+        soft(app.staticTexts["DISCOVER"].firstMatch.exists || app.staticTexts["Discover"].firstMatch.exists, "on Discover")
+        soft(!app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Show'")).firstMatch.exists, "no fold (R7)")
+
+        // A little down: the pinned index under the header.
+        dragPage(700); sleep(2); shot("w18-01-discover-all-pinned-index")
+        if let top = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Discover'")), timeout: 3) {
+            top.tap(); sleep(2); shot("w18-02-header-tap-to-top")
+        }
+
+        // The long-press preview: an index row's number side (never its Plan key), then dismissed
+        // outside the preview and menu, choosing nothing.
+        var row = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Number 1 in our order'")), timeout: 3)
+        var rowDrags = 0
+        while row == nil, rowDrags < 10 {
+            dragPage(400); rowDrags += 1
+            row = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Number 1 in our order'")), timeout: 1)
+        }
+        if let row {
+            // Bring the row to the middle of the screen (never press a row under the home indicator).
+            let screen = app.frame.height
+            var centring = 0
+            while centring < 6, row.frame.midY > screen * 0.6 { dragPage(200); centring += 1 }
+            row.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)).press(forDuration: 1.6)
+            sleep(3)
+            shot("w18-03-preview-open")
+            let notInterested = app.buttons["Not interested"].firstMatch
+            let openItem = app.buttons["Open"].firstMatch
+            let menuUp = notInterested.exists || openItem.exists
+            soft(menuUp, "the long-press menu is up")
+            note("preview: menu items visible: " + ["Plan to watch", "Plan to read", "Seen it", "Already read", "Not interested", "Add to club…", "Open", "Remove from Planned", "Edit list entry"]
+                .filter { app.buttons[$0].firstMatch.exists }.joined(separator: ", "))
+            if menuUp {
+                // Dismiss on the dimmed backdrop right of the preview, choosing nothing (while the menu is
+                // up the backdrop takes the tap; the status-bar row does not dismiss it). Never drag while
+                // the menu is up: a drag that ends on an item would choose it.
+                for point in [CGVector(dx: 0.93, dy: 0.47), CGVector(dx: 0.93, dy: 0.2)]
+                where notInterested.exists || openItem.exists {
+                    app.coordinate(withNormalizedOffset: point).tap()
+                    sleep(2)
+                }
+                shot("w18-04-preview-dismissed")
+                soft(!notInterested.exists && !openItem.exists, "the menu is gone and nothing was chosen")
+            }
+            soft(!close.exists, "the long press opened nothing")
+            closeJourneyIfOpen()
+            guard !notInterested.exists, !openItem.exists else {
+                XCTFail("walk: the menu would not close; stopping before any drag could choose an item")
+                return
+            }
+        } else { XCTFail("walk: no index row on Discover") }
+        if let top = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Discover'")), timeout: 3) { top.tap(); sleep(2) }
+
+        // A mood page (read only), then ✕.
+        closeJourneyIfOpen()
+        if let mood = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Something short'")), timeout: 6) {
+            mood.tap(); sleep(5); shot("w18-05-mood-short-top")
+            soft(close.exists, "the mood page is a journey with ✕")
+            soft(!app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH \"Couldn't load\"")).firstMatch.exists,
+                 "the mood page falls back silently (no error line)")
+            app.swipeUp(velocity: .slow); sleep(2); shot("w18-06-mood-short-scrolled")
+            closeJourneyIfOpen(); sleep(2)
+            soft(pagerProfile.isHittable, "✕ returns to Discover")
+        } else { XCTFail("walk: no Something short mood key") }
+
+        // See all with a sort change (sort words only read), then ✕.
+        var seeAll = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'See all'")), timeout: 3)
+        var swipes = 0
+        while seeAll == nil, swipes < 10 {
+            dragPage(400); swipes += 1
+            seeAll = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'See all'")), timeout: 1)
+        }
+        if let seeAll {
+            note("see all: opened from \"\(seeAll.label)\"")
+            seeAll.tap(); sleep(5); shot("w18-07-see-all-top")
+            soft(close.exists, "See all is a journey with ✕")
+            soft(!app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH \"Couldn't load\"")).firstMatch.exists,
+                 "See all falls back silently (no error line)")
+            if let popular = onScreen("Popular", timeout: 4) ?? onScreen("Top rated", timeout: 2) {
+                popular.tap(); sleep(4); shot("w18-08-see-all-sorted")
+                note("see all: sorted by \(popular.label)")
+            } else { XCTFail("walk: no sort word on See all") }
+            app.swipeUp(velocity: .slow); sleep(2); shot("w18-09-see-all-scrolled")
+            closeJourneyIfOpen(); sleep(2)
+            soft(pagerProfile.isHittable, "✕ returns to Discover")
+        } else { XCTFail("walk: no See all on Discover") }
+        if let top = firstHittable(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Discover'")), timeout: 3) { top.tap(); sleep(2) }
+
+        // All, Anime and Manga to the end (R7) with the section counts and page heights.
+        closeJourneyIfOpen()
+        walkToEnd("w18-10-all", issue: "All")
+        for (index, word) in ["Anime", "Manga"].enumerated() {
+            guard let issue = onScreen(word) else { XCTFail("walk: no \(word) issue word"); continue }
+            issue.tap(); sleep(5)
+            shot("w18-1\(index + 1)-\(word.lowercased())-top")
+            walkToEnd("w18-1\(index + 1)-\(word.lowercased())", issue: word)
+        }
+        if let all = onScreen("All") { all.tap(); sleep(2) }
+        soft(pagerProfile.isHittable, "back on the pager")
+    }
 }

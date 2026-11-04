@@ -22,7 +22,8 @@ struct DiscoverSectionContext: Equatable {
     var id: String
     /// Titles shown now that the section's last-visit snapshot lacks (§5.8).
     var newKeys: Set<MediaKey> = []
-    /// "Why it's here: …" (already localized), for the preview.
+    /// The reason words for the preview, already localized ("in our canon"); the preview adds
+    /// "Why it's here: " (`DiscoverMenuCopy.whyItsHere`).
     var reason: String? = nil
     /// The section's heading, for the preview kicker (nil: the medium only).
     var title: String? = nil

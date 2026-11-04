@@ -508,17 +508,18 @@ struct EditorialDiscoverView: View {
                                title: sectionName(built.section))
     }
 
-    /// "Why it's here: …" for the section's preview (lane B reads it through the context).
+    /// The section's reason words for the preview (bare words: `DiscoverMenuCopy.whyItsHere` adds
+    /// "Why it's here: " and the full stop).
     private func reason(_ section: PageSection) -> String? {
         let german = KuroLocale.isGerman
         switch section {
-        case .newToYou, .mangaNewToYou: return DiscoverIssueCopy.reason(.unseen, german: german)
+        case .newToYou, .mangaNewToYou: return DiscoverMenuCopy.Reason.unseen.text(german: german)
         case .becauseYou:
-            return vm.becauseYouReason.map { DiscoverIssueCopy.reason(.closeTo($0), german: german) }
-        case .essentials, .essentialsManga: return DiscoverIssueCopy.reason(.canon, german: german)
-        case .currentSeason: return DiscoverIssueCopy.reason(.airing, german: german)
-        case .trending, .trendingManga: return DiscoverIssueCopy.reason(.popular, german: german)
-        case .classics, .classicsManga: return DiscoverIssueCopy.reason(.classic, german: german)
+            return vm.becauseYouReason.map { DiscoverMenuCopy.Reason.closeTo($0).text(german: german) }
+        case .essentials, .essentialsManga: return DiscoverMenuCopy.Reason.canon.text(german: german)
+        case .currentSeason: return DiscoverMenuCopy.Reason.airing.text(german: german)
+        case .trending, .trendingManga: return DiscoverMenuCopy.Reason.popular.text(german: german)
+        case .classics, .classicsManga: return DiscoverMenuCopy.Reason.classic.text(german: german)
         case .tonightShelf, .hiddenGem: return nil
         }
     }

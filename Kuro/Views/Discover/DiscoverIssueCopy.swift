@@ -244,29 +244,6 @@ nonisolated enum DiscoverIssueCopy {
         german ? "Ein Titel, den die meisten übersehen." : "One title most people miss."
     }
 
-    // MARK: Why it's here (§8; the preview's foot, lane B)
-
-    enum Reason: Equatable, Sendable { case unseen, canon, airing, popular, classic, closeTo(String) }
-
-    static func reason(_ reason: Reason, german: Bool) -> String {
-        let word: String
-        switch (reason, german) {
-        case (.unseen, false): word = "unseen by you"
-        case (.unseen, true): word = "noch nicht gesehen"
-        case (.canon, false): word = "in our canon"
-        case (.canon, true): word = "in unserem Kanon"
-        case (.airing, false): word = "airing now"
-        case (.airing, true): word = "läuft gerade"
-        case (.popular, false): word = "popular this week"
-        case (.popular, true): word = "diese Woche beliebt"
-        case (.classic, false): word = "a classic"
-        case (.classic, true): word = "ein Klassiker"
-        case (.closeTo(let title), false): word = "close to \(title)"
-        case (.closeTo(let title), true): word = "nah an \(title)"
-        }
-        return german ? "Warum es hier ist: \(word)." : "Why it's here: \(word)."
-    }
-
     // MARK: NEW markers (§5.8)
 
     /// The card tab: "NEW" / "NEU".

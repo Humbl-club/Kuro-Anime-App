@@ -675,6 +675,14 @@ struct DiscoverPageFeedbackTests {
         DUFixture.clearHiddenMemory()
     }
 
+    @Test("The preview's reason line carries its prefix once (the page passes bare reason words)")
+    func reasonPrefixOnce() {
+        let line = DiscoverMenuCopy.whyItsHere(DiscoverMenuCopy.Reason.canon.text(german: false), german: false)
+        #expect(line == "Why it's here: in our canon.")
+        let de = DiscoverMenuCopy.whyItsHere(DiscoverMenuCopy.Reason.closeTo("Frieren").text(german: true), german: true)
+        #expect(de == "Warum es hier ist: nah an Frieren.")
+    }
+
     @Test("Plan results are counted once per token: added, then undone; removed counts a tap only")
     func planResults() {
         let page = DiscoverPageFeedback()
