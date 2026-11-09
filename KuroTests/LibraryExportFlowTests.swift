@@ -211,6 +211,52 @@ final class ExportProbe {
     }
 }
 
+/// The export `build` seam with a gate: the FIRST call blocks (on a background thread, where the owner's detached
+/// build runs) until `open()`; later calls build at once. Lets a test hold one run inside its detached work while
+/// another run starts, finishes, or the account ends.
+final class BuildBlocker: Sendable {
+    private struct State {
+        var calls = 0
+        var entered = false
+        var waiters: [CheckedContinuation<Void, Never>] = []
+    }
+
+    private let release = DispatchSemaphore(value: 0)
+    private let state = Mutex(State())
+
+    var buildCalls: Int { state.withLock { $0.calls } }
+
+    /// Suspends until the first build call is blocked inside the seam.
+    func waitUntilBlocked() async {
+        await withCheckedContinuation { continuation in
+            let alreadyBlocked = state.withLock { state -> Bool in
+                if state.entered { return true }
+                state.waiters.append(continuation)
+                return false
+            }
+            if alreadyBlocked { continuation.resume() }
+        }
+    }
+
+    /// Lets the blocked build go on.
+    func open() { release.signal() }
+
+    func build(_ input: LibraryExportInput, _ formats: Set<LibraryExportFormat>, _ exportedAt: Date, _ zone: TimeZone) -> LibraryExportBundle {
+        let (isFirst, waiters) = state.withLock { state -> (Bool, [CheckedContinuation<Void, Never>]) in
+            state.calls += 1
+            guard state.calls == 1 else { return (false, []) }
+            state.entered = true
+            defer { state.waiters = [] }
+            return (true, state.waiters)
+        }
+        if isFirst {
+            for waiter in waiters { waiter.resume() }
+            release.wait()
+        }
+        return LibraryExport.build(input, formats: formats, exportedAt: exportedAt, timeZone: zone)
+    }
+}
+
 /// A signed-in account with `titles` anime in its library, over the real SDK client (StubPostgREST) and
 /// the production graph builder.
 @MainActor
@@ -628,5 +674,52 @@ extension LibraryExportFlowTests {
         guard case .ready(let onResult) = on.service.state else { Issue.record("not ready"); return }
         #expect(onResult.summary.isComplete)
         await on.tearDown()
+    }
+
+    @Test("A superseded run's detached work never deletes the export that replaced it, and writes nothing")
+    func supersededRunCannotDeleteTheReplacementExport() async throws {
+        let blocker = BuildBlocker()
+        let fixture = try ExportFixture(titles: 5, now: Self.nov9Noon, build: { blocker.build($0, $1, $2, $3) })
+        try await fixture.signInAndLoad()
+
+        // Run 1 is inside its detached build (a large MAL XML, say) when the person prepares again.
+        let first = Task.immediate { @MainActor in await fixture.service.export(.csv) }
+        await blocker.waitUntilBlocked()
+        await fixture.service.export(.json)
+        guard case .ready(let result) = fixture.service.state else { Issue.record("run 2 not ready: \(fixture.service.state)"); blocker.open(); return }
+        #expect(result.format == .json)
+        let published = result.files
+        #expect(published.allSatisfy { FileManager.default.fileExists(atPath: $0.path) })
+
+        blocker.open()
+        await first.value
+
+        #expect(fixture.service.state == .ready(result), "run 1 neither changed the state nor replaced the files")
+        #expect(published.allSatisfy { FileManager.default.fileExists(atPath: $0.path) }, "run 2's files were deleted by run 1: \(fixture.filesOnDisk)")
+        #expect(Set(fixture.filesOnDisk.map(\.path)) == Set(published.map(\.path)), "nothing else is on disk")
+        #expect(fixture.writer.writeCount == 1, "run 1 wrote nothing after it was superseded")
+        await fixture.tearDown()
+    }
+
+    @Test("Signing out while a build is blocked: once it is released it writes nothing and leaves no folder")
+    func signOutDuringBuildLeavesNothingOnDisk() async throws {
+        let blocker = BuildBlocker()
+        let fixture = try ExportFixture(titles: 5, now: Self.nov9Noon, build: { blocker.build($0, $1, $2, $3) })
+        try await fixture.signInAndLoad()
+        let first = Task.immediate { @MainActor in await fixture.service.export(.csv) }
+        await blocker.waitUntilBlocked()
+
+        await fixture.harness.session.signOut()
+        #expect(fixture.service.state == .idle)
+        blocker.open()
+        await first.value
+
+        #expect(fixture.service.state == .idle)
+        #expect(fixture.writer.writeCount == 0, "the old account's notes were written after sign-out")
+        #expect(fixture.filesOnDisk.isEmpty)
+        let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: fixture.directory.path)) ?? []
+        #expect(leftovers.isEmpty, "a per-export folder was recreated after sign-out: \(leftovers)")
+        #expect(fixture.service.identityCache.isEmpty)
+        await fixture.tearDown()
     }
 }

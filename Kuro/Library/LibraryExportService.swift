@@ -2,6 +2,7 @@ import Foundation
 import KuroCore
 import KuroLibrary
 import Observation
+import Synchronization
 
 #if canImport(Supabase)
 
@@ -173,6 +174,10 @@ final class LibraryExportService: AccountScopedState {
     /// what this run wrote.
     func export(_ format: LibraryExportFormat) async {
         supersedeCurrentRun()
+        // Whatever an earlier run or an earlier process left in `directory` goes now, on the main actor and
+        // before this run starts. The detached work never touches `directory` as a whole: it only creates
+        // and writes its own per-run folder, so a stopped run can never delete a newer export's files.
+        removeItem(directory)
         guard isEnabled() else {
             state = .failed(.disabled)
             return
@@ -273,7 +278,7 @@ final class LibraryExportService: AccountScopedState {
         currentFolder = folder
         let outcome = await Self.buildAndWrite(
             input, format: format, exportedAt: now(), timeZone: timeZone(),
-            folder: folder, directory: directory, build: build, write: write
+            folder: folder, build: build, write: write
         )
 
         guard isLive(context, token) else { return abandon(token: token, folder: folder) }
@@ -295,6 +300,10 @@ final class LibraryExportService: AccountScopedState {
             currentFolder = nil
             state = .failed(.writeFailed)
             exportTask = nil
+        case .cancelled:
+            // Unreachable while `isLive` held above (a cancelled run is not live); kept so a stopped build
+            // can never publish.
+            abandon(token: token, folder: folder)
         }
     }
 
@@ -302,46 +311,71 @@ final class LibraryExportService: AccountScopedState {
         case written([URL], LibraryExportSummary)
         case buildFailed
         case writeFailed
+        /// The run was cancelled while building; nothing was published and its own folder was removed.
+        case cancelled
     }
 
-    /// Builds and writes off the main actor. Replaces whatever an earlier export left in `directory`.
+    /// Set (from the cancellation handler of the run that awaits the detached work) when that run is
+    /// cancelled; the detached work reads it before creating its folder and before every file it writes.
+    private nonisolated final class CancellationFlag: Sendable {
+        private let flag = Mutex(false)
+        func set() { flag.withLock { $0 = true } }
+        var isSet: Bool { flag.withLock { $0 } }
+    }
+
+    /// Builds and writes off the main actor, into this run's own `folder` only (never `directory` as a whole:
+    /// a cancelled run keeps running its detached work, and it must not be able to remove a newer export's
+    /// folder or recreate its own after the account ended). Once the run is cancelled (a newer export, a
+    /// dismiss, an account transition) the work writes no further file and removes whatever it created.
     private nonisolated static func buildAndWrite(
         _ input: LibraryExportInput,
         format: LibraryExportFormat,
         exportedAt: Date,
         timeZone: TimeZone,
         folder: URL,
-        directory: URL,
         build: @escaping @Sendable (LibraryExportInput, Set<LibraryExportFormat>, Date, TimeZone) -> LibraryExportBundle,
         write: @escaping @Sendable (Data, URL, Data.WritingOptions) throws -> Void
     ) async -> Outcome {
-        await Task.detached(priority: .userInitiated) {
-            let bundle = build(input, [format], exportedAt, timeZone)
-            // A format that could not be built is a failed export, not a partial one.
-            guard bundle.summary.failedFormats.isEmpty else { return Outcome.buildFailed }
-            do {
+        let cancelled = CancellationFlag()
+        return await withTaskCancellationHandler {
+            await Task.detached(priority: .userInitiated) {
+                let bundle = build(input, [format], exportedAt, timeZone)
+                // A format that could not be built is a failed export, not a partial one.
+                guard bundle.summary.failedFormats.isEmpty else { return Outcome.buildFailed }
                 let manager = FileManager.default
-                if manager.fileExists(atPath: directory.path) {
-                    try manager.removeItem(at: directory)
+                guard !cancelled.isSet else { return Outcome.cancelled }
+                do {
+                    try manager.createDirectory(
+                        at: folder, withIntermediateDirectories: true,
+                        attributes: [.protectionKey: FileProtectionType.complete]
+                    )
+                    var urls: [URL] = []
+                    for file in bundle.files {
+                        // The flag is set before a cancelling transition deletes anything, so a folder
+                        // created after that deletion is seen as cancelled here, before its first write.
+                        if cancelled.isSet {
+                            try? manager.removeItem(at: folder)
+                            return Outcome.cancelled
+                        }
+                        let url = folder.appendingPathComponent(file.name, isDirectory: false)
+                        try write(file.data, url, [.atomic, .completeFileProtection])
+                        urls.append(url)
+                    }
+                    if cancelled.isSet {
+                        try? manager.removeItem(at: folder)
+                        return Outcome.cancelled
+                    }
+                    return Outcome.written(urls, bundle.summary)
+                } catch {
+                    #if DEBUG
+                    print("[LibraryExportService] Writing the export failed: \(error)")
+                    #endif
+                    return Outcome.writeFailed
                 }
-                try manager.createDirectory(
-                    at: folder, withIntermediateDirectories: true,
-                    attributes: [.protectionKey: FileProtectionType.complete]
-                )
-                var urls: [URL] = []
-                for file in bundle.files {
-                    let url = folder.appendingPathComponent(file.name, isDirectory: false)
-                    try write(file.data, url, [.atomic, .completeFileProtection])
-                    urls.append(url)
-                }
-                return Outcome.written(urls, bundle.summary)
-            } catch {
-                #if DEBUG
-                print("[LibraryExportService] Writing the export failed: \(error)")
-                #endif
-                return Outcome.writeFailed
-            }
-        }.value
+            }.value
+        } onCancel: {
+            cancelled.set()
+        }
     }
 
     // MARK: Lifecycle helpers
