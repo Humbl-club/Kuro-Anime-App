@@ -1,0 +1,368 @@
+{
+  "scope": "Frozen public config and synthetic responses; offline, not hosted capacity proof",
+  "comparisons": 36,
+  "beforePremiumCalls": 276,
+  "afterPremiumCalls": 120,
+  "cases": [
+    {
+      "text": "something cozy",
+      "scope": "anime",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 4,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "premium action anime",
+      "scope": "anime",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 3,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "sad but hopeful",
+      "scope": "anime",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 5,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "classics without horror",
+      "scope": "anime",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 4,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "short sci-fi under 20 episodes",
+      "scope": "anime",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 3,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "something without romance",
+      "scope": "anime",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 3,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "something cozy",
+      "scope": "manga",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 4,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "premium action anime",
+      "scope": "manga",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 3,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "sad but hopeful",
+      "scope": "manga",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 5,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "classics without horror",
+      "scope": "manga",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 4,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "short sci-fi under 20 episodes",
+      "scope": "manga",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 3,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "something without romance",
+      "scope": "manga",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 3,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "something cozy",
+      "scope": "both",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 8,
+      "beforeHydrationReads": 12,
+      "afterHydrationReads": 12
+    },
+    {
+      "text": "premium action anime",
+      "scope": "both",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 3,
+      "beforeHydrationReads": 6,
+      "afterHydrationReads": 6
+    },
+    {
+      "text": "sad but hopeful",
+      "scope": "both",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 10,
+      "beforeHydrationReads": 12,
+      "afterHydrationReads": 12
+    },
+    {
+      "text": "classics without horror",
+      "scope": "both",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 8,
+      "beforeHydrationReads": 12,
+      "afterHydrationReads": 12
+    },
+    {
+      "text": "short sci-fi under 20 episodes",
+      "scope": "both",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 6,
+      "beforeHydrationReads": 12,
+      "afterHydrationReads": 12
+    },
+    {
+      "text": "something without romance",
+      "scope": "both",
+      "librarySize": 0,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 6,
+      "beforeHydrationReads": 12,
+      "afterHydrationReads": 12
+    },
+    {
+      "text": "something cozy",
+      "scope": "anime",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 1,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "premium action anime",
+      "scope": "anime",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 1,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "sad but hopeful",
+      "scope": "anime",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "classics without horror",
+      "scope": "anime",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "short sci-fi under 20 episodes",
+      "scope": "anime",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 1,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "something without romance",
+      "scope": "anime",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "something cozy",
+      "scope": "manga",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 1,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "premium action anime",
+      "scope": "manga",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 1,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "sad but hopeful",
+      "scope": "manga",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "classics without horror",
+      "scope": "manga",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "short sci-fi under 20 episodes",
+      "scope": "manga",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 1,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "something without romance",
+      "scope": "manga",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "something cozy",
+      "scope": "both",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 13,
+      "afterHydrationReads": 13
+    },
+    {
+      "text": "premium action anime",
+      "scope": "both",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 6,
+      "afterPremiumCalls": 1,
+      "beforeHydrationReads": 7,
+      "afterHydrationReads": 7
+    },
+    {
+      "text": "sad but hopeful",
+      "scope": "both",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 4,
+      "beforeHydrationReads": 13,
+      "afterHydrationReads": 13
+    },
+    {
+      "text": "classics without horror",
+      "scope": "both",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 4,
+      "beforeHydrationReads": 13,
+      "afterHydrationReads": 13
+    },
+    {
+      "text": "short sci-fi under 20 episodes",
+      "scope": "both",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 2,
+      "beforeHydrationReads": 13,
+      "afterHydrationReads": 13
+    },
+    {
+      "text": "something without romance",
+      "scope": "both",
+      "librarySize": 2000,
+      "identical": true,
+      "beforePremiumCalls": 12,
+      "afterPremiumCalls": 4,
+      "beforeHydrationReads": 13,
+      "afterHydrationReads": 13
+    }
+  ]
+}

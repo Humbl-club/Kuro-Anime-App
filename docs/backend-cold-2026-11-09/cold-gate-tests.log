@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: complete onset, routes and library coverage pass without changing the limits
+ok 1 - complete onset, routes and library coverage pass without changing the limits
+  ---
+  duration_ms: 56.969625
+  type: 'test'
+  ...
+# Subtest: one slow first call fails even when warm requests make overall p95 pass
+ok 2 - one slow first call fails even when warm requests make overall p95 pass
+  ---
+  duration_ms: 53.554375
+  type: 'test'
+  ...
+# Subtest: missing rare large-library coverage fails instead of disappearing from percentiles
+ok 3 - missing rare large-library coverage fails instead of disappearing from percentiles
+  ---
+  duration_ms: 49.031958
+  type: 'test'
+  ...
+# Subtest: a missing first-minute route fails even when it occurs in the later warm period
+ok 4 - a missing first-minute route fails even when it occurs in the later warm period
+  ---
+  duration_ms: 47.242875
+  type: 'test'
+  ...
+# Subtest: conflicting media and missing user starts cannot qualify
+ok 5 - conflicting media and missing user starts cannot qualify
+  ---
+  duration_ms: 60.968542
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 313.164209

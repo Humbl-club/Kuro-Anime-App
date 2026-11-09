@@ -1,0 +1,48 @@
+{
+  "fixture_accounts_requeued": 50,
+  "fixture_only_queue_changes": true,
+  "large_libraries_included": 5,
+  "manual_worker_execution_ms": 143.502,
+  "natural_cron_left_active": true,
+  "plan": {
+    "Execution Time": 143.502,
+    "Plan": {
+      "Actual Loops": 1,
+      "Actual Rows": 1,
+      "Actual Startup Time": 143.438,
+      "Actual Total Time": 143.439,
+      "Async Capable": false,
+      "Local Dirtied Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Written Blocks": 0,
+      "Node Type": "Result",
+      "Parallel Aware": false,
+      "Plan Rows": 1,
+      "Plan Width": 4,
+      "Shared Dirtied Blocks": 3,
+      "Shared Hit Blocks": 15211,
+      "Shared Read Blocks": 0,
+      "Shared Written Blocks": 1,
+      "Startup Cost": 0,
+      "Temp Read Blocks": 0,
+      "Temp Written Blocks": 0,
+      "Total Cost": 0.26
+    },
+    "Planning": {
+      "Local Dirtied Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Written Blocks": 0,
+      "Shared Dirtied Blocks": 0,
+      "Shared Hit Blocks": 0,
+      "Shared Read Blocks": 0,
+      "Shared Written Blocks": 0,
+      "Temp Read Blocks": 0,
+      "Temp Written Blocks": 0
+    },
+    "Planning Time": 0.042,
+    "Triggers": []
+  },
+  "queued_at": "2026-11-09T12:07:55.794848+00:00"
+}

@@ -8,7 +8,9 @@ This file defines which Markdown surfaces are current, which are reference-only,
 |---|---|---|
 | `CURRENT_APP_STATE.md` | Technical current-state authority | Full engineering snapshot; may include historical changelog entries, but current inventory markers at the top are the source of truth. |
 | `CURRENT_APP_STATE_PLAIN.md` | Plain-English current-state authority | Non-technical companion to `CURRENT_APP_STATE.md`. |
-| `CLAUDE.md` | Rules + operating context | Policy, workflow rules, and high-value runtime context. Not the full system inventory. |
+| `AGENTS.md` | Shared agent operating policy | Provider-neutral correctness, ownership, authorization and verification rules. Supersedes personal always-multiple-personas conventions for Kuro. |
+| `agents/routes.yaml` + `agents/README.md` | Validated source/verification registry + usage | Current owner starting points, capability/check contracts, explicit discovery for unknown paths, and enforcement limitations. No runtime/deployment proof. |
+| `CLAUDE.md` + `.claude/agents/`, `.claude/rules/`, `.claude/settings.json` | Claude adapter | Imports the shared policy; optional model/tool defaults and local startup validation. No independent policy or copied live-state authority. |
 | `IMPLEMENTATION_PLAN_Variation1.md` | Ongoing implementation ledger | Tracks shipped work and plan status; historical by nature, but still maintained. |
 
 ## Live reference docs
@@ -53,6 +55,11 @@ This file defines which Markdown surfaces are current, which are reference-only,
 
 Historical snapshots live in `archive/`.
 
+`archive/agent-policy-2026-11-09.md` preserves the pre-consolidation working-tree
+instruction files (including uncommitted Claude changes) with original hashes.
+Its instructions, inventories and command lists are superseded and must not be
+auto-imported into agent sessions.
+
 Use them when you need:
 - old design iteration context
 - previous generated source bundles
@@ -73,6 +80,6 @@ Do not treat archived docs as current truth unless they are explicitly re-verifi
 ## Current practical rule
 
 When a doc and the code disagree:
-1. Code and live backend win
-2. `CURRENT_APP_STATE.md` should be corrected next
-3. Other docs should then be aligned or marked historical
+1. Code proves local implementation; fresh owning-service evidence proves hosted behavior. Neither silently overrides intended behavior or grants authorization.
+2. Resolve the relevant specification/implementation/runtime discrepancy before dependent changes; follow root `AGENTS.md` for instruction authority.
+3. Correct `CURRENT_APP_STATE.md`, then align other docs or mark them historical. Never use a historical successful check to erase a later failure.

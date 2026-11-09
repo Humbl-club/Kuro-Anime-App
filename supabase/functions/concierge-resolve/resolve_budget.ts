@@ -63,10 +63,12 @@ const unavailable = {
  */
 export async function withResolveBudget<T>(
   client: ResolveBudgetClient,
+  globalClient: ResolveBudgetClient | null,
   reserved: number,
   model: string,
   run: () => Promise<{ value: T; actualTokens: number }>,
 ): Promise<ResolveBudgetOutcome<T>> {
+  if (!globalClient) return unavailable;
   const user = interpretBudget(await readRpc(client.rpc("llm_budget_reserve", {
     p_reserved_tokens: reserved,
     p_max_daily_tokens: null,
@@ -92,7 +94,7 @@ export async function withResolveBudget<T>(
       });
     }
     if (scopes.global) {
-      await finalize(client, "llm_global_budget_finalize", {
+      await finalize(globalClient, "llm_global_budget_finalize", {
         p_reserved_tokens: reserved,
         p_actual_tokens: actual,
       });
@@ -110,7 +112,7 @@ export async function withResolveBudget<T>(
     } | null)?.global_llm_budget ?? null;
     const globalDailyTokens = Number(globalBudget?.daily_tokens ?? 250000);
     const globalDailyCalls = Number(globalBudget?.daily_calls ?? 600);
-    const global = interpretBudget(await readRpc(client.rpc("llm_global_budget_reserve", {
+    const global = interpretBudget(await readRpc(globalClient.rpc("llm_global_budget_reserve", {
       p_reserved_tokens: reserved,
       p_max_daily_tokens: Number.isFinite(globalDailyTokens) ? globalDailyTokens : 250000,
       p_max_daily_calls: Number.isFinite(globalDailyCalls) ? globalDailyCalls : 600,

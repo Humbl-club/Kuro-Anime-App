@@ -1,0 +1,366 @@
+[
+  {
+    "column_default": "nextval('anime_user_lists_id_seq'::regclass)",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "user_id",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "anime_id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "list_type",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "0",
+    "column_name": "progress",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "rating",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "notes",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "now()",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "now()",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "verdict",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "1",
+    "column_name": "server_revision",
+    "data_type": "bigint",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "gen_random_uuid()",
+    "column_name": "lifecycle_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "progress_label",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "0",
+    "column_name": "repeat_count",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "score_raw",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "score_scale",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "started_raw",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "finished_raw",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "false",
+    "column_name": "entry_private",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "'[]'::jsonb",
+    "column_name": "source_custom_lists",
+    "data_type": "jsonb",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "false",
+    "column_name": "source_hidden",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "source_list_options",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "anime_user_lists"
+  },
+  {
+    "column_default": "nextval('manga_user_lists_id_seq'::regclass)",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "user_id",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "manga_id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "list_type",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "0",
+    "column_name": "progress",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "rating",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "notes",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "now()",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "now()",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "verdict",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "1",
+    "column_name": "server_revision",
+    "data_type": "bigint",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "gen_random_uuid()",
+    "column_name": "lifecycle_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "progress_label",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "0",
+    "column_name": "repeat_count",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "score_raw",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "score_scale",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "started_raw",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "finished_raw",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "volumes_progress",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "false",
+    "column_name": "entry_private",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "'[]'::jsonb",
+    "column_name": "source_custom_lists",
+    "data_type": "jsonb",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": "false",
+    "column_name": "source_hidden",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "source_list_options",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "manga_user_lists"
+  },
+  {
+    "column_default": null,
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "table_name": "profiles"
+  },
+  {
+    "column_default": null,
+    "column_name": "display_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "table_name": "profiles"
+  },
+  {
+    "column_default": "now()",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "table_name": "profiles"
+  },
+  {
+    "column_default": "now()",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "table_name": "profiles"
+  },
+  {
+    "column_default": "false",
+    "column_name": "adult_opt_in",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "table_name": "profiles"
+  }
+]

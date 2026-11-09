@@ -45,6 +45,9 @@ class Db {
         return { data: Array.isArray(payload) ? stored : stored[0], error: null };
       }
       if (action === "update") {
+        if (payload && !Array.isArray(payload) && payload.mal_id != null && rows.some((r) => !matches(r) && r.mal_id === (payload as Row).mal_id)) {
+          return { data: null, error: { code: "23505", message: "duplicate key anime_mal_id_key" } };
+        }
         for (const row of rows) if (matches(row)) Object.assign(row, payload);
         return { data: null, error: null };
       }
@@ -53,6 +56,9 @@ class Db {
         return { data: null, error: null };
       }
       const incoming = Array.isArray(payload) ? payload : [payload as Row];
+      if (table === "anime" && incoming.some((p) => p.mal_id != null && rows.some((r) => r.anilist_id !== p.anilist_id && r.mal_id === p.mal_id))) {
+        return { data: null, error: { code: "23505", message: "duplicate key anime_mal_id_key" } };
+      }
       if (
         db.failUpsert &&
         table === db.failUpsert.table &&
@@ -189,6 +195,23 @@ Deno.test("successful batch persists the fetched page, advances the cursor, and 
   assert.equal(db.rpcs[0].args.p_key, "anime");
   assert.equal(db.lockHeld.size, 0);
   assert.equal(db.rows("import_runs")[0].status, "success");
+});
+
+Deno.test("a duplicate MAL alias cannot pin the cursor or merge two AniList titles", async () => {
+  const db = new Db();
+  db.seed("anime", [{ id: 1, anilist_id: 1, mal_id: 1501 }]);
+  const res = await run({ useCursor: true, lightweight: true, pagesPerBatch: 1, perPage: 25,
+    delayMs: 0, includeRelations: false, includeEpisodes: false }, {
+    supabase: db, heavyImportsEnabled: true,
+    fetchPage: () => Promise.resolve([media(501)]),
+  });
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(body.results.identityConflicts, 1);
+  assert.equal(body.results.errors, 0);
+  assert.equal(cursor(db), 1);
+  assert.equal(db.rows("anime").find((r) => r.id === 1)?.mal_id, 1501);
+  assert.equal(db.rows("anime").find((r) => r.anilist_id === 501)?.mal_id, undefined);
 });
 
 Deno.test("provider failure releases the lock and does not advance the cursor past unpersisted work", async () => {

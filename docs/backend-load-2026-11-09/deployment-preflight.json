@@ -1,0 +1,95 @@
+{
+  "before_functions": [
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "browse_anime_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "browse_manga_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "discover_bundle(integer,integer)"
+    },
+    {
+      "grants": "{postgres=X/postgres,service_role=X/postgres,anon=X/postgres,authenticated=X/postgres}",
+      "settings": [
+        "search_path=public, extensions"
+      ],
+      "signature": "discover_mood_v1(text,text,integer,integer)"
+    },
+    {
+      "grants": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "settings": [
+        "search_path=public, extensions"
+      ],
+      "signature": "home_bundle_v1(text,text,integer,integer,integer,text)"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)"
+    },
+    {
+      "grants": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "settings": [
+        "search_path=public, extensions"
+      ],
+      "signature": "series_detail_bundle_v1(text,integer,uuid,text)"
+    }
+  ],
+  "checked_at": "2026-11-09T00:20:39.520559+00:00",
+  "clubs": 5,
+  "connections": [
+    {
+      "count": 1,
+      "state": "active",
+      "wait_event_type": null
+    },
+    {
+      "count": 11,
+      "state": "idle",
+      "wait_event_type": "Client"
+    },
+    {
+      "count": 2,
+      "state": null,
+      "wait_event_type": "Extension"
+    }
+  ],
+  "fixture_accounts": 100,
+  "function_count": 8,
+  "indexes_absent_before": true,
+  "library_shape": [
+    {
+      "entries": 7650,
+      "medium": "anime",
+      "owners": 80
+    },
+    {
+      "entries": 4100,
+      "medium": "manga",
+      "owners": 80
+    }
+  ],
+  "preexisting_migration": false
+}

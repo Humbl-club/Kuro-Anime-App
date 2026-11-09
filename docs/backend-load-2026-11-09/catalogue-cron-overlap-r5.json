@@ -1,0 +1,51 @@
+{
+  "checked_at": "2026-11-09T10:01:27.395819+00:00",
+  "jobs": [
+    {
+      "active": true,
+      "dispatcher_duration_seconds": null,
+      "end_time": null,
+      "jobid": 101,
+      "jobname": "kuro-import-anime-hourly",
+      "runid": null,
+      "schedule": "5 * * * *",
+      "start_time": null,
+      "status": null
+    },
+    {
+      "active": true,
+      "dispatcher_duration_seconds": "1.0291",
+      "end_time": "2026-11-09 10:00:01.491823+00",
+      "jobid": 102,
+      "jobname": "kuro-import-anime-weekly",
+      "runid": 99768,
+      "schedule": "0 * * * *",
+      "start_time": "2026-11-09 10:00:00.462761+00",
+      "status": "succeeded"
+    },
+    {
+      "active": true,
+      "dispatcher_duration_seconds": null,
+      "end_time": null,
+      "jobid": 103,
+      "jobname": "kuro-import-manga-hourly",
+      "runid": null,
+      "schedule": "35 * * * *",
+      "start_time": null,
+      "status": null
+    },
+    {
+      "active": true,
+      "dispatcher_duration_seconds": null,
+      "end_time": null,
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "runid": null,
+      "schedule": "10 * * * *",
+      "start_time": null,
+      "status": null
+    }
+  ],
+  "observed_from": "2026-11-09T09:50:28.553339+00:00",
+  "scope_note": "pg_cron dispatcher completion is not proof of asynchronous Edge import completion or upstream provider saturation."
+}

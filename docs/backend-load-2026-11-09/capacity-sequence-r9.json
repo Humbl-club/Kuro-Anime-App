@@ -1,0 +1,19 @@
+{
+  "started_at": "2026-11-09T10:23:19.976429+00:00",
+  "profiles": [
+    {
+      "name": "r9-warmup-5rps",
+      "exit_code": 1,
+      "pass": false,
+      "started_at": "2026-11-09T10:23:20.002Z",
+      "finished_at": "2026-11-09T10:24:20.612Z",
+      "output": "r9-warmup-5rps.json"
+    }
+  ],
+  "complete": false,
+  "prior_failed_sequences": [
+    "capacity-sequence.json",
+    "capacity-sequence-r2.json"
+  ],
+  "finished_at": "2026-11-09T10:24:20.634958+00:00"
+}

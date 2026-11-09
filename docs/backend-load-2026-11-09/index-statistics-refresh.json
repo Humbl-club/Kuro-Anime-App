@@ -1,0 +1,6 @@
+{
+  "checked_at": "2026-11-09T00:23:07.856911+00:00",
+  "customer_row_changes": false,
+  "operation": "ANALYZE public.anime; ANALYZE public.manga",
+  "purpose": "Collect statistics for the new expression indexes"
+}

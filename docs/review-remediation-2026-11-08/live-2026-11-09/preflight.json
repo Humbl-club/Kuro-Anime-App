@@ -1,0 +1,159 @@
+{
+  "auth": {
+    "external_apple_enabled": false,
+    "jwt_exp": 3600,
+    "mailer_autoconfirm": true,
+    "password_hibp_enabled": false,
+    "password_min_length": 6,
+    "security_captcha_enabled": false,
+    "site_url": " kuro://auth/callback",
+    "uri_allow_list": "kuro://auth/callback"
+  },
+  "backups": [
+    {
+      "id": 2201552266,
+      "inserted_at": "2026-11-08T05:49:42.686Z",
+      "is_physical_backup": true,
+      "status": "COMPLETED"
+    },
+    {
+      "id": 2191863521,
+      "inserted_at": "2026-11-07T05:49:38.269Z",
+      "is_physical_backup": true,
+      "status": "COMPLETED"
+    },
+    {
+      "id": 2181975079,
+      "inserted_at": "2026-11-06T05:49:40.767Z",
+      "is_physical_backup": true,
+      "status": "COMPLETED"
+    }
+  ],
+  "checked_at": "2026-11-08T23:48:07.311825+00:00",
+  "cron": [
+    {
+      "active": true,
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "schedule": "10 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 101,
+      "jobname": "kuro-import-anime-hourly",
+      "schedule": "5 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 102,
+      "jobname": "kuro-import-anime-weekly",
+      "schedule": "0 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 103,
+      "jobname": "kuro-import-manga-hourly",
+      "schedule": "35 * * * *",
+      "username": "postgres"
+    }
+  ],
+  "functions": [
+    {
+      "slug": "bulk-import-anime",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 86
+    },
+    {
+      "slug": "bulk-import-manga",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 84
+    },
+    {
+      "slug": "concierge-parse",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 48
+    },
+    {
+      "slug": "concierge-recommend",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 53
+    },
+    {
+      "slug": "concierge-resolve",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 19
+    }
+  ],
+  "grants": [
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "name": "check_email_exists(text)",
+      "service_execute": true
+    },
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "name": "llm_global_budget_finalize(integer,integer)",
+      "service_execute": true
+    },
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "name": "llm_global_budget_reserve(integer,integer,integer)",
+      "service_execute": true
+    },
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "name": "rate_limit_hit(text,integer)",
+      "service_execute": true
+    },
+    {
+      "acl": "{postgres=X/postgres,anon=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": false,
+      "name": "upsert_rec_edges(jsonb)",
+      "service_execute": true
+    }
+  ],
+  "health": [
+    {
+      "long_queries": 0
+    }
+  ],
+  "manifest": "../manifest.json",
+  "migrations": [],
+  "pitr_enabled": false,
+  "private_rollback_directory": "/Users/max/.codex/release-runs/kuro-remediation-20261109",
+  "project": {
+    "id": "bkdifromsqxkndnllmdj",
+    "name": "AniThing is Possible",
+    "region": "eu-central-1",
+    "status": "ACTIVE_HEALTHY"
+  },
+  "security": {
+    "counts": {
+      "anon_security_definer_function_executable": 76,
+      "auth_leaked_password_protection": 1,
+      "authenticated_security_definer_function_executable": 96,
+      "extension_in_public": 1,
+      "function_search_path_mutable": 1,
+      "materialized_view_in_api": 9,
+      "rls_enabled_no_policy": 35
+    },
+    "errors": []
+  }
+}

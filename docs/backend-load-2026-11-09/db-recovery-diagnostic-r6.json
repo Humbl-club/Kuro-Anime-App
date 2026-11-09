@@ -1,0 +1,138 @@
+{
+  "profile": "recovery-diagnostic-r6",
+  "samples": [
+    {
+      "active": 6,
+      "blks_hit": 22696747147,
+      "blks_read": 233351960,
+      "checked_at": "2026-11-09 10:04:25.720707+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "2.820954",
+      "temp_bytes": 8108024465568
+    },
+    {
+      "active": 0,
+      "blks_hit": 22696921852,
+      "blks_read": 233354456,
+      "checked_at": "2026-11-09 10:04:39.274722+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108024465568
+    },
+    {
+      "active": 0,
+      "blks_hit": 22696924459,
+      "blks_read": 233354457,
+      "checked_at": "2026-11-09 10:04:49.717005+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108024465568
+    },
+    {
+      "active": 0,
+      "blks_hit": 22696925132,
+      "blks_read": 233354457,
+      "checked_at": "2026-11-09 10:05:00.215429+00",
+      "connections": 14,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108032579232
+    },
+    {
+      "active": 1,
+      "blks_hit": 22696933988,
+      "blks_read": 233355260,
+      "checked_at": "2026-11-09 10:05:11.159577+00",
+      "connections": 14,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "10.867457",
+      "temp_bytes": 8108032579232
+    },
+    {
+      "active": 0,
+      "blks_hit": 22697094642,
+      "blks_read": 233369171,
+      "checked_at": "2026-11-09 10:05:21.609326+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108034851476
+    },
+    {
+      "active": 0,
+      "blks_hit": 22697095281,
+      "blks_read": 233369171,
+      "checked_at": "2026-11-09 10:05:32.131436+00",
+      "connections": 12,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108034851476
+    },
+    {
+      "active": 0,
+      "blks_hit": 22697095920,
+      "blks_read": 233369171,
+      "checked_at": "2026-11-09 10:05:42.606319+00",
+      "connections": 12,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108034851476
+    },
+    {
+      "active": 0,
+      "blks_hit": 22697099161,
+      "blks_read": 233369195,
+      "checked_at": "2026-11-09 10:05:54.47631+00",
+      "connections": 12,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108034851476
+    },
+    {
+      "active": 0,
+      "blks_hit": 22697100197,
+      "blks_read": 233369195,
+      "checked_at": "2026-11-09 10:06:04.816425+00",
+      "connections": 12,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108034851476
+    },
+    {
+      "active": 0,
+      "blks_hit": 22697108345,
+      "blks_read": 233369392,
+      "checked_at": "2026-11-09 10:06:15.169153+00",
+      "connections": 15,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108034851476
+    }
+  ],
+  "stopped": false
+}

@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-11-09T00:47:27.019701+00:00",
+  "doc_inventory": "PASS293/33/248",
+  "source_secrets": "PASS0",
+  "public_evidence_secrets": "PASS",
+  "approved_migration_hashes": "PASS",
+  "measured_and_current_source_hashes": "PASS",
+  "whitespace": "PASS",
+  "node_tests": 14,
+  "query_differential_cases": 74,
+  "query_sql_assertions": 5,
+  "worker_sql_concurrency_assertions": 11,
+  "live_same_snapshot_comparisons": 34,
+  "live_taste_vector_parity_cases": 4,
+  "full_capacity_verdict": "NOT_QUALIFIED",
+  "pending_worker_deployment_approval": true,
+  "fixture_cleanup": "PASS"
+}

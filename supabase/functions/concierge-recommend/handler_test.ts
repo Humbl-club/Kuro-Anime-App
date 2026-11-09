@@ -73,13 +73,28 @@ async function recommend(fake: ReturnType<typeof queryFake>, body: Record<string
       headers: { "Content-Type": "application/json", Authorization: "Bearer test", "x-forwarded-for": "203.0.113.9" },
       body: JSON.stringify(body),
     }),
-    { client: () => fake.client, env: (k) => env[k], fetch: net.fetch, now: () => NOW },
+    { client: () => fake.client, globalBudgetClient: () => fake.client, env: (k) => env[k], fetch: net.fetch, now: () => NOW },
   );
   return { res, body: (await res.json()) as Json };
 }
 
 const onlyLimiterCalled = (fake: ReturnType<typeof queryFake>) =>
   assertEquals(fake.calls.filter((c) => c.kind !== "rpc" || c.name !== "check_concierge_rate_limit"), []);
+
+Deno.test("global accounting uses only the trusted client; missing service credentials fail closed", async () => {
+  const caller = world();
+  const trusted = queryFake({ rpc: {
+    llm_global_budget_reserve: { data: { allowed: true }, error: null },
+  } });
+  const budget = supabaseNarrationBudget(caller.client, trusted.client);
+  assertEquals(await budget.reserveGlobal(10, 1000, 100), true);
+  await budget.finalizeGlobal(10, 5);
+  assertEquals(caller.calls, []);
+  assertEquals(trusted.calls.map((c) => c.kind === "rpc" ? c.name : "unexpected"),
+    ["llm_global_budget_reserve", "llm_global_budget_finalize"]);
+  assertEquals(await supabaseNarrationBudget(caller.client, null).reserveGlobal(10, 1000, 100), false);
+  assertEquals(caller.calls, []);
+});
 
 Deno.test("actual narration transport bounds held headers and body, then releases only its two reservations", async () => {
   for (const phase of ["headers", "body"] as const) {
@@ -97,7 +112,7 @@ Deno.test("actual narration transport bounds held headers and body, then release
     try {
       const result = await narrateWithBudget({
         requested: true, debug: true, apiKey: "test", model: "test", lang: "en", userText: PROMPT, globalBudgetConfig: {},
-      }, [{ id: "ANIME|7", title: "Fixture", signals: [] }], supabaseNarrationBudget(fake.client),
+      }, [{ id: "ANIME|7", title: "Fixture", signals: [] }], supabaseNarrationBudget(fake.client, fake.client),
         (opts) => groqNarrate({ ...opts, fetch: fetchImpl, timeoutMs: 10 }));
       assertEquals(result.narrated, true);
       assertEquals(result.blurbs, {});
@@ -164,8 +179,11 @@ Deno.test("F73: each rail is built once: the primary plus each secondary candida
   const telemetry = fake.rpcCalls("log_concierge_run").find((a) => a.p_kind === "recommend_router_v2");
   const candidates = JSON.parse(String(telemetry?.p_error)).secondary_candidates_count;
   assertEquals(candidates > 0, true);
-  // Anime-only prompt, no curated cards: every rail build is exactly one recommend_ids_premium call.
-  assertEquals(fake.rpcCalls("recommend_ids_premium").length, 1 + candidates);
+  // Hydration is still independent per rail; shared candidate reads must not hide an extra build.
+  assertEquals(fake.reads("anime"), 1 + candidates);
+  const queries = fake.rpcCalls("recommend_ids_premium");
+  assertEquals(queries.length > 0 && queries.length <= 1 + candidates, true);
+  assertEquals(new Set(queries.map((args) => JSON.stringify(args))).size, queries.length);
 });
 
 Deno.test("F76: a non-numeric limit falls back to the default 8; a numeric one is still clamped and honored", async () => {

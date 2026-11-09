@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-11-09T10:47:33.504036+00:00",
+  "git_commit": "146e5492f4e79cbd1686f070a098ee9f3464795b",
+  "branch": "codex/review-remediation-20261108",
+  "dirty_tree_preserved": true,
+  "node_tests_passed": 19,
+  "current_source_hashes_verified": 8,
+  "canonical_sql_files": 250,
+  "migration_gate": "PASS with warning for five newly staged/applied immutable migrations",
+  "secrets_gate": "PASS",
+  "documentation_gate": "PASS",
+  "whitespace_gate": "PASS",
+  "cleanup_accounts": 300,
+  "cleanup_clubs": 15,
+  "cleanup_application_checks_per_cohort": [
+    41,
+    41,
+    41
+  ],
+  "current_pool": 3,
+  "approved_index_readiness_verified": 20,
+  "overall_capacity": "NOT_QUALIFIED",
+  "next_step": "Reliable network path and fresh unchanged full sequence; Ethernet availability question pending."
+}

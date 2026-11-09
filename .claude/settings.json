@@ -1,0 +1,18 @@
+{
+  "env": {
+    "CLAUDE_CODE_DISABLE_ADVISOR_TOOL": "1"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/agents/policy.py\" --claude-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

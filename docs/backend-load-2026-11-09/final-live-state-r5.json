@@ -1,0 +1,130 @@
+{
+  "api_configuration": {
+    "db_extra_search_path": "public, extensions",
+    "db_pool": 6,
+    "db_pool_acquisition_timeout": 10,
+    "db_pool_max_idletime": 30,
+    "db_pool_max_lifetime": 1800,
+    "db_schema": "public,graphql_public",
+    "max_rows": 1000
+  },
+  "auth": {
+    "external_apple_enabled": false,
+    "jwt_exp": 3600,
+    "mailer_autoconfirm": true,
+    "password_hibp_enabled": true,
+    "password_min_length": 8,
+    "security_captcha_enabled": false,
+    "site_url": "kuro://auth/callback",
+    "uri_allow_list": "kuro://auth/callback"
+  },
+  "checked_at": "2026-11-09T10:10:51.880398+00:00",
+  "fixture_cleanup_verified": true,
+  "functions": [
+    {
+      "slug": "bulk-import-anime",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 87
+    },
+    {
+      "slug": "bulk-import-manga",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 85
+    },
+    {
+      "slug": "concierge-parse",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 49
+    },
+    {
+      "slug": "concierge-recommend",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 54
+    },
+    {
+      "slug": "concierge-resolve",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 20
+    }
+  ],
+  "health": [
+    {
+      "lock_waiters": 0,
+      "long_queries": 0
+    }
+  ],
+  "job": [
+    {
+      "active": true,
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "schedule": "* * * * *",
+      "username": "postgres"
+    }
+  ],
+  "load_running": false,
+  "migration_history": [
+    {
+      "md5": "e923bd9396dc42deb595ff0329bcdac4",
+      "name": "review_security_v1",
+      "version": "20261108120159"
+    },
+    {
+      "md5": "0e7343d4a5e9878a1bd788f2ea7ac609",
+      "name": "catalog_intake_schedule_v1",
+      "version": "20261108120211"
+    },
+    {
+      "md5": "a315c1be8c8eb61846bede5d4baa3420",
+      "name": "load_hotpaths_v1",
+      "version": "20261109001251"
+    },
+    {
+      "md5": "61e43c0a4a57988d5e1072686c7d9d66",
+      "name": "taste_worker_latency_v1",
+      "version": "20261109003243"
+    }
+  ],
+  "performance_advisors": {
+    "counts": {
+      "auth_db_connections_absolute": 1,
+      "auth_rls_initplan": 10,
+      "no_primary_key": 2,
+      "unindexed_foreign_keys": 22,
+      "unused_index": 81
+    },
+    "errors": []
+  },
+  "project": "ACTIVE_HEALTHY",
+  "security_advisors": {
+    "counts": {
+      "anon_security_definer_function_executable": 71,
+      "authenticated_security_definer_function_executable": 92,
+      "extension_in_public": 1,
+      "function_search_path_mutable": 1,
+      "materialized_view_in_api": 9,
+      "rls_enabled_no_policy": 35
+    },
+    "errors": []
+  },
+  "worker_grants": [
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "drain_taste_recompute_queue()",
+      "server": true
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "recompute_user_taste_profile(uuid)",
+      "server": true
+    }
+  ],
+  "worker_math_and_source_verified": true
+}

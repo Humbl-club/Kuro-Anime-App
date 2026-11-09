@@ -33,6 +33,35 @@ function scripted(steps: Record<string, { data?: unknown; error?: unknown } | "t
 const reserved = 585;
 const model = "test-model";
 
+Deno.test("missing trusted accounting client never reserves or runs a provider", async () => {
+  const caller = scripted({});
+  let invoked = false;
+  const outcome = await withResolveBudget(caller.client, null, reserved, model, () => {
+    invoked = true;
+    return Promise.resolve({ value: "ran", actualTokens: 10 });
+  });
+  assertEquals(outcome.status, 503);
+  assertEquals(invoked, false);
+  assertEquals(caller.calls, []);
+});
+
+Deno.test("resolve keeps user accounting on the caller and global accounting on the server", async () => {
+  const caller = scripted({
+    llm_budget_reserve: { data: { allowed: true } },
+    llm_budget_finalize: { data: { success: true } },
+    get_concierge_config: { data: {} },
+  });
+  const trusted = scripted({
+    llm_global_budget_reserve: { data: { allowed: true } },
+    llm_global_budget_finalize: { data: { success: true } },
+  });
+  const outcome = await withResolveBudget(caller.client, trusted.client, reserved, model,
+    () => Promise.resolve({ value: "done", actualTokens: 10 }));
+  assertEquals(outcome.value, "done");
+  assertEquals(caller.calls.map((c) => c.fn), ["llm_budget_reserve", "get_concierge_config", "llm_budget_finalize"]);
+  assertEquals(trusted.calls.map((c) => c.fn), ["llm_global_budget_reserve", "llm_global_budget_finalize"]);
+});
+
 Deno.test("a denied global reservation finalizes only the user reservation and does not call the provider", async () => {
   let providerCalls = 0;
   const { client, calls } = scripted({
@@ -41,7 +70,7 @@ Deno.test("a denied global reservation finalizes only the user reservation and d
     llm_global_budget_reserve: { data: { allowed: false }, error: null },
     llm_budget_finalize: { data: { success: true }, error: null },
   });
-  const outcome = await withResolveBudget(client, reserved, model, async () => {
+  const outcome = await withResolveBudget(client, client, reserved, model, async () => {
     providerCalls += 1;
     return { value: "ran", actualTokens: reserved };
   });
@@ -60,7 +89,7 @@ Deno.test("a config failure after the user reservation releases only that reserv
     get_concierge_config: "throw",
     llm_budget_finalize: { data: { success: true }, error: null },
   });
-  const outcome = await withResolveBudget(client, reserved, model, async () => {
+  const outcome = await withResolveBudget(client, client, reserved, model, async () => {
     providerCalls += 1;
     return { value: "ran", actualTokens: reserved };
   });
@@ -77,7 +106,7 @@ Deno.test("malformed user or global budget data does not call the provider", asy
     const user = scripted({
       llm_budget_reserve: { data: malformed, error: null },
     });
-    const userOutcome = await withResolveBudget(user.client, reserved, model, async () => {
+    const userOutcome = await withResolveBudget(user.client, user.client, reserved, model, async () => {
       providerCalls += 1;
       return { value: "ran", actualTokens: 1 };
     });
@@ -92,7 +121,7 @@ Deno.test("malformed user or global budget data does not call the provider", asy
       llm_global_budget_reserve: { data: malformed, error: null },
       llm_budget_finalize: { data: { success: true }, error: null },
     });
-    const globalOutcome = await withResolveBudget(global.client, reserved, model, async () => {
+    const globalOutcome = await withResolveBudget(global.client, global.client, reserved, model, async () => {
       providerCalls += 1;
       return { value: "ran", actualTokens: 1 };
     });
@@ -111,7 +140,7 @@ Deno.test("a provider throw releases both acquired reservations once and does no
     llm_budget_finalize: { data: { success: true }, error: null },
     llm_global_budget_finalize: { data: { success: true }, error: null },
   });
-  const outcome = await withResolveBudget(client, reserved, model, () => {
+  const outcome = await withResolveBudget(client, client, reserved, model, () => {
     throw new Error("provider down");
   });
   assertEquals(outcome.status, 500);

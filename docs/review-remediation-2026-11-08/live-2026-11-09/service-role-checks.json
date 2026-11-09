@@ -1,0 +1,6 @@
+[
+  {
+    "scope": "all writes rolled back",
+    "service_role_execution": "PASS"
+  }
+]

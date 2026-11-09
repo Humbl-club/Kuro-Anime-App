@@ -1,0 +1,50 @@
+{
+  "cron_runs": [
+    {
+      "duration_seconds": "0.0211",
+      "end_time": "2026-11-09 09:49:00.086189+00",
+      "runid": 99753,
+      "start_time": "2026-11-09 09:49:00.06508+00",
+      "status": "succeeded"
+    }
+  ],
+  "observations": [
+    {
+      "checked_at": "2026-11-09T09:48:29.742910+00:00",
+      "profile_computation_batches": [],
+      "queue": {
+        "errors": 0,
+        "pending": 0,
+        "processed": 80
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:48:51.027507+00:00",
+      "profile_computation_batches": [],
+      "queue": {
+        "errors": 0,
+        "pending": 0,
+        "processed": 80
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:49:12.216966+00:00",
+      "profile_computation_batches": [],
+      "queue": {
+        "errors": 0,
+        "pending": 0,
+        "processed": 80
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:49:33.428810+00:00",
+      "profile_computation_batches": [],
+      "queue": {
+        "errors": 0,
+        "pending": 0,
+        "processed": 80
+      }
+    }
+  ],
+  "observed_from": "2026-11-09T09:48:28.371279+00:00"
+}

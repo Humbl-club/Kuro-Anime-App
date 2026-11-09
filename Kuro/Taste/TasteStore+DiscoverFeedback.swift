@@ -29,8 +29,10 @@ import Supabase
 // replayed love would silently put back a title the user removed (D13). The deck love's taste
 // weight is lost instead (the skip already replaced it on the server). An unknown prior (no
 // successful read yet) also retracts: the skip / known was already sent and must not stay. The
-// title is hidden / shown at once, whatever the delivery does (a RATE_LIMITED or dropped signal
-// keeps the local answer for `DiscoverHiddenMemory.overlayLifetime`).
+// title is hidden / shown at once. Its delivery is persisted per account and restored on relaunch;
+// an outage never uses up its retries. Queue capacity and `DiscoverHiddenMemory.overlayLifetime`
+// bound storage; a successful delivery removes the pending write, while the visible overlay stays
+// until the next server read reflects it.
 //
 // Account scope: every read captures its `AccountContext` and applies nothing once it ended; the
 // in-memory copy is cleared on account transitions (`clearPrivateState`); the device copy is removed
@@ -137,7 +139,7 @@ extension TasteStore {
         discoverDeckActions[key] = feedback.deckAction
         discoverMemory.record(key, state: feedback, at: currentDate)
         persistDiscoverMemory()
-        submitSignal(mediaType: key.kind.rawValue, mediaId: key.id, action: feedback.deckAction)
+        submitSignal(mediaType: key.kind.rawValue, mediaId: key.id, action: feedback.deckAction, durable: true)
         return receipt
     }
 
@@ -154,10 +156,11 @@ extension TasteStore {
         } else {
             discoverDeckActions[receipt.key] = nil
         }
-        discoverMemory.record(receipt.key, state: restored.flatMap(DiscoverFeedback.init(deckAction:)), at: currentDate)
+        discoverMemory.record(receipt.key, state: restored.flatMap(DiscoverFeedback.init(deckAction:)), at: currentDate,
+                              action: Self.undoAction(prior: restored))
         persistDiscoverMemory()
         submitSignal(mediaType: receipt.key.kind.rawValue, mediaId: receipt.key.id,
-                     action: Self.undoAction(prior: restored))
+                     action: Self.undoAction(prior: restored), durable: true)
         return true
     }
 
@@ -187,6 +190,7 @@ extension TasteStore {
             applyOverlayToDeckActions()
         }
         discoverHidden = discoverMemory.hidden
+        drainSignalOutbox()
     }
 
     /// The server rows -> snapshot (hiding answers), believed deck actions, overlay pruning.
@@ -205,6 +209,20 @@ extension TasteStore {
         discoverMemory.adopt(server: hidden, now: now)
         discoverDeckActions = actions
         applyOverlayToDeckActions()
+        persistDiscoverMemory()
+        // Upgrade feedback from older builds only AFTER a read proves the server does not reflect
+        // it. Acknowledged new writes are never re-sent while their visual overlay awaits a read.
+        for entry in discoverMemory.overlay where entry.acknowledged != true {
+            guard let key = entry.ref.key, !pendingSignals.contains(where: { $0.card == key }) else { continue }
+            submitSignal(mediaType: key.kind.rawValue, mediaId: key.id,
+                         action: entry.deliveryAction ?? entry.state?.deckAction ?? .retract, durable: true)
+        }
+    }
+
+    func acknowledgeDiscoverDelivery(key: MediaKey, action: TasteDeckAction) {
+        guard let index = discoverMemory.overlay.firstIndex(where: { $0.ref.key == key }),
+              (discoverMemory.overlay[index].deliveryAction ?? discoverMemory.overlay[index].state?.deckAction ?? .retract) == action else { return }
+        discoverMemory.overlay[index].acknowledged = true
         persistDiscoverMemory()
     }
 

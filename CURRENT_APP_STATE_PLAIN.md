@@ -1,5 +1,14 @@
 # Kuro — Current State (Plain English)
 
+> **Fresh-session test, 9 November 2026:** Fresh Claude sessions loaded Kuro's shared rules and used the expected models. The test caught misleading source guidance, an older database definition, an incomplete test command and an extra automatic advisor call. Those were corrected for Kuro. The repeat ran all 30 policy tests successfully; this verifies the sampled coding workflow, not the app or a live release. [Results](docs/agent-policy/fresh-session-2026-11-09/REPORT.md).
+
+> **Coding-agent rules, 9 November 2026:** All coding agents now share one Kuro policy. They must find the current owner and decide how to check the result before choosing a model. Claude has a small adapter. This replaces the earlier Claude-only rules and conflicting requirement to use several helpers for every task. It changes local guidance/tools, not app behavior or production status.
+
+> **Backend test, 9 November 2026 — THE SPECIFIED WARMED 100-ACTIVE-USER TEST PASSES.** The approved recommendation fix is deployed and verified. R15 completed 16,500 requests with 0 errors and 0 missed starts; all required checks passed for that warmed sequence. Slow first calls and earlier failures remain recorded. All 500 test accounts and 25 clubs are removed and independently checked. This is a bounded backend result; cold starts and whole-app release remain separate. [Results](docs/backend-load-2026-11-09/REPORT.md).
+
+> **9 November 2026: approved server fixes are live and checked.** The servers now block the reviewed unsafe calls, require stronger passwords, reject breached passwords and rotate bounded catalogue imports. All four import paths completed without errors; anime refreshed 50 voice-actor links. Sign-in and recommendations passed live checks, and the temporary test account was removed. The auth provider also changed a disabled OAuth feature’s read-only limit; its API would not restore it, so that exception remains recorded. Offline Discover feedback/Undo is still a local app fix awaiting an iOS release. This does not complete capacity testing, widget/email setup, licensing or App Store readiness. [Live receipt](docs/review-remediation-2026-11-08/live-2026-11-09/RECEIPT.md).
+
+
 > **Design polish, 9 October — a saved shelf is the original homepage again; not accepted yet.** The empty mountain page is unchanged. Once you have anime, Home shows wide scenes, your episode, and a light plus. Once you have manga, Home shows equal covers with the chapter sitting on the cover and a dark plus. Coming up is the first line under Anime and Manga. Nothing was deployed or sent to TestFlight.
 
 > **Design polish, 9 October — empty and saved Home are different; not accepted yet.** Before you save anything, Home is the mountain invitation. After you save anime or manga, that medium becomes the white shelf again: a large title, your place in it, then the other titles. The two pages are not the same layout. Nothing was deployed or sent to TestFlight.
@@ -147,11 +156,11 @@
 
 **Approved welcome reference (2026-09-25):** Max confirmed GitHub `b943e457` on `codex/kuro-onboarding-no-tv` as the intended welcome/onboarding: painted scene, grouped wordmark/headline, TV removed. Preserve that composition; the separate local 72%-height composition edits remain untouched and are not the approved baseline. Email/auth logic matches the reference; improvement proposals concern the form and signed-in experience. The GitHub upload is verified, while TestFlight/public release and installed visual equivalence remain unverified. The detailed review now consolidates market, monetization and design decisions; no app implementation.
 
-**Last updated:** 2026-10-31 (October work saved as local commits, not pushed; codebase reorganized 2026-10-05; Home browser prototype 2026-10-02; installed-app status is separate)
+**Last updated:** 2026-11-09 (approved server fixes deployed and checked; local app fixes have not been released)
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 293 app Swift files, 33 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 293 app Swift files, 33 package Swift files and 250 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2181,3 +2190,93 @@ A review of the Discover usability pass found real problems; they are fixed on t
 ### Change Log — 4 November 2026: Discover is easier and more satisfying (build 25)
 
 Discover now starts with three moods (Something short, Cozy, Intense), a numbered list of today's sections you can jump to, and labels on every card. Press and hold any card for a preview with Plan, Seen it, Not interested and Add to club; hiding a title takes it away at once with an Undo and teaches Taste. "See all" is now a real page with sorting and plain filters, the Essentials show how many you've seen, and the page ends with "You're caught up for today". It is in TestFlight build 25.
+
+
+### Change Log — 8 November 2026: Review remediation and bounded intake
+
+Implemented the 8 November review repairs locally on `codex/review-remediation-20261108`: durable account-scoped Discover feedback/Undo (including legacy-overlay reconciliation and deletion), server-only global-budget transport, prepared effective-grant revokes, bounded MAL-alias conflict retries with diagnostic samples, and a prepared four-slot rotating intake schedule with separate cursors and voice actors. Updated the recommendation-edge operator credential contract. No Swift files were added (293 app / 33 package files); the deployed-chain migration directory remains at 245 files. Two new SQL files remain in prepared-migrations and are listed in pending_migrations.txt. Added SQL authorization/scheduler tests and regression cases in the existing Swift/Deno suites. Production/auth deployment, device/TestFlight qualification and owner inputs remain pending. Release/check record: `docs/review-remediation-2026-11-08/RELEASE.md`.
+
+Verification for the 8 November remediation: 29 focused iOS tests, 127 Deno tests and 29 SQL assertions passed locally; architecture/navigation/branded-state/secrets/docs/migration checks passed. Prepared migrations applied to the audited fixture; historical complete replay and live acceptance remain unproven. No production rollout.
+
+
+### Change Log — 9 November 2026: Server fixes deployed with approval
+
+Published the five approved server functions, applied the two reviewed database changes, and tightened password settings. Live sign-in, recommendations, permissions and all four bounded import paths passed; the temporary test account was deleted. Anime enrichment refreshed 50 voice-actor links. The auth provider changed a disabled OAuth feature’s read-only limit, which its documented API cannot restore; this exception remains open. Updated the deployment record, pending list and two applied SQL files; the current migration folder now contains 247 SQL files. The offline feedback app fix still needs its own iOS release, and measured capacity, device, email, legal and licensing work remains. [Live evidence](docs/review-remediation-2026-11-08/live-2026-11-09/RECEIPT.md).
+
+The next automatic import also finished successfully on its own: 10 anime, 112 voice-actor writes and no errors. This confirms that the live scheduler runs the new backfill path.
+
+
+### Change Log — 9 November2026:100-user backend qualification started
+
+Owner chose100 active users. Retained failing low-rate evidence, repaired Search/Browse query planning/index access and scoped JIT overhead, then deployed only the explicitly approved exact migration20261109001251. Local74 differential cases and34 live same-snapshot comparisons pass. New bounded authenticated workload and fixture tooling have14 safety/contract tests. Corrected the catalogue seed pagination before capacity qualification; original baseline large libraries held1600 titles, final fixture libraries hold2000. Capacity sequence and cleanup are pending in this entry; no unmeasured scale claim. Inventory:293 app Swift /33 package Swift /248 migration SQL. [Evidence](docs/backend-load-2026-11-09/PLAN.md).
+
+
+### Change Log — 9 November 2026: Backend load result and safe cleanup
+
+Tested with 100 separate accounts, including five with 2,000 saved titles. The approved query repair is live: Search p95 fell from about 879 ms to 158 ms at five requests per second. The test passed at two, five and ten requests per second. At twenty, a background taste job ran for 31 seconds and the test stopped after 54 timeouts and 44 planned calls could not start. The 100-user target has not passed.
+
+The worker repair is built and tested. It needs your approval before changing the live worker and its schedule. All test accounts, five clubs and their application data have been removed and independently checked. Required security deletion guards remain. The required documents and project memory are updated; the migration directory contains 248 SQL files. [Full results and pending change](docs/backend-load-2026-11-09/REPORT.md).
+
+
+### Change Log — 9 November 2026: Live worker repair and realistic load result
+
+The approved background-worker repair is deployed. More testing found memory pressure, so a smaller connection pool was applied without buying more compute. Normal activity passed12000 requests over ten minutes, including large libraries, real saves, background calculations and a scheduled import. The faster burst and subsequent recovery failed, so the complete target is still unqualified. Earlier failures and a slow recommendation after restart remain recorded.
+
+All200 temporary accounts and ten clubs across both cohorts are independently gone; existing seven-day security safeguards remain intentionally. The repeatable test tool now refreshes its own revisions after uncertain writes, with16 focused tests passing. Two missing catalogue indexes are prepared and tested locally, with approval required before deployment. This is a concrete next repair, not a promise that every remaining bottleneck is solved. [Results](docs/backend-load-2026-11-09/REPORT.md).
+
+
+### Change Log — 9 November 2026: Approved parent lookup indexes deployed
+
+Owner explicitly approved exact20261109100800 (SHA57e8b11dba091808cac9aebdc7fb7ac71831e1f727d4ba4cb19cbf53d292ec58). Applied atomically with exact history at10:11UTC. Two full parent indexes valid/ready (about4.77MiB total); original partial uniqueness indexes retained. Same live parent rows match, episodes10.609→0.577ms and chapters44.762→1.176ms in recorded cases. Ten local plan/NULL/rowset checks pass. SQL promoted byte-identically tocanonical, pendingentry removed, checksum ledger updated; inventory250SQL/293appSwift/33packageSwift. No RPC/Auth/RLS/credential/billing change. Previousfailedrunsretained; fresh100-account cohort setup and complete qualification pending. Added numeric upstream/first-response timing only toloadreports, withsensitiveheaders neverretained; current16Nodechecksinclude that assertion, previousruntime6sourcesarchivedv3. [Deploymentreceipt](docs/backend-load-2026-11-09/parent-index-deployment-receipt.json).
+
+
+### Change Log — 9 November 2026: Live fixes, honest load result and complete cleanup
+
+The approved database fixes are deployed and their live behavior is verified. Normal traffic passed 12,000 requests over ten minutes, including large libraries, actual saves, background calculations and a scheduled catalogue import. The faster burst and recovery failed. Further checks found both real server stalls and separate client/network delays; changing the database cannot be justified from every slow reply. A smaller connection pool is live without buying more compute, but the complete target is still unproved.
+
+All 300 temporary accounts and 15 clubs are removed and independently checked. Existing seven-day deletion safeguards remain intentionally. The repeatable harness has 19 passing focused tests, and every failed result is preserved. Testing is stopped; a wired connection was requested for the next qualification. No cloud setup, public release or TestFlight occurred. [Measured results](docs/backend-load-2026-11-09/REPORT.md).
+
+- 2026-11-09, plans for the tracker gaps (planning only, no app change): research into why people leave other list apps led to a plan for ten improvements — export your list, alerts offered when you add a show, a clear note that 18+ titles aren't listed, browsing before signing up, one row per series, tags and your own lists, "up next in your series", plus the widget, AniList sync, dark mode and dub/where-to-watch once the owner decides on them. Each has plain-language acceptance scenarios and test-first steps, and must stay inside the 100-user speed targets. Spec: docs/superpowers/specs/2026-11-09-tracker-gaps-design.md; plans: docs/superpowers/plans/2026-11-09-tracker-gaps/. Nothing is built yet.
+
+- 2026-11-09, default rules for the AI coding helpers (no app change): Claude now has project rules saying which model does which job. Quick code searches and running tests use the fast model, writing code from a finished plan uses the middle model, and planning, database/security work and final review use the strongest one. There are also short always-on facts about the app: tech stack, the 100-user speed target, the speed limit for each screen, and where the data comes from (with what happens when a source fails). Rules for the database and the app cover double taps, retries, background jobs, table clean-up and avoiding extra network calls. Based on Google's and Anthropic's published research on when several AI agents help and when they hurt. Files: `.claude/agents/`, `.claude/rules/`.
+
+
+### Change Log — 9 November 2026: Recommendation repair prepared after the wired test
+
+The wired test completed 12,000 requests over ten minutes without errors or missed starts. It still failed the declared limit for users with large libraries: one recommendation took 2.61 seconds against a 2.5-second target. The burst and recovery were stopped. All 400 temporary accounts and 20 clubs from four cohorts are independently removed; existing seven-day deletion safeguards remain intentionally.
+
+The handler can repeat the same expensive catalogue query across its recommendation rails. The prepared fix shares successful identical reads within a single request, keeps each caller and request separate, and preserves independent failure handling. Twenty-six focused tests pass, and 36 complete before/after responses match in offline comparisons. The affected synthetic case uses one premium query instead of six. The new function deployment requires approval, followed by a fresh full live test. No production change was made for this repair yet. [Exact review](docs/backend-load-2026-11-09/DEPLOYMENT-RECOMMEND-FANOUT.md).
+
+
+### Change Log — 9 November 2026: Approved recommendation query sharing deployed
+
+The owner explicitly approved the reviewed Edge-only fix. Deployed concierge-recommend v55 from the isolated eight-file closure; all eight downloaded source hashes match review (changed catalog repository SHA49b88d972cec80199a86ef58bca6cf0f17fb5d77300d50af918484c9ad7af92b). JWT verification remains enabled; every other function version/JWT setting and selected Auth settings are unchanged. No database, pool, feature flag, credential or billing change. Twenty-six focused tests/type checks and 36 offline full-response comparisons passed before deployment; these are separate from live capacity proof.
+
+The fifth 100-account cohort is being seeded for the unchanged wired test, with independently verified row counts, ordinary authenticated smoke checks, real background work and complete cleanup required. All earlier failures and the 400-user/20-club cleanup evidence are retained. Canonical inventory remains 293 app Swift /33 package Swift /250 SQL migrations. [Exact deployment and source receipt](docs/backend-load-2026-11-09/recommend-fanout-deployment-receipt.json).
+
+
+### Change Log — 9 November 2026: One policy for Kuro's coding agents
+
+All coding agents now share the same Kuro instructions. Before editing, they must find the current code owner, follow its callers and decide what evidence would show the change is correct. A small local routing tool points to source files and suitable checks. It combines related areas and flags unknown or retired locations instead of guessing. Its 16 routes cover the current app's source folders; the agent still needs to read and confirm the actual code.
+
+Claude now loads that shared policy through a small adapter. Helpers are optional, and the search/review helpers have no shell or write tools. This explicitly replaces the conflicting personal rule demanding several helpers for every Kuro task, while leaving defaults for other projects unchanged. Previous instructions and existing edits were preserved in a dated archive. Shared adapter files can be versioned; personal settings remain local.
+
+Twenty-four focused routing/configuration checks and the documentation check pass. The app/backend inventory remains 293 app Swift files, 33 package Swift files and 250 SQL migrations. This work changes local coding guidance and tooling; it does not change the app, prove that one model is better/faster, or certify a live release. Restart Claude to load the new definitions. Instructions and limitations are in `agents/README.md`.
+
+
+### Change Log — 9 November 2026: Recommendation fix live and final wired test recorded
+
+The approved recommendation fix is deployed and its production source is verified. The final warmed test completed16,500 requests with0 errors and0 missed starts. Result: **SPECIFIED WARMED 100-ACTIVE-USER WORKLOAD PASSES**. The original speed checks remain unchanged; all earlier failures and slow first calls remain visible. The report also discloses the warmup observer restart and which background and privacy checks actually ran.
+
+All500 temporary test accounts and25 clubs from five cohorts are removed and independently checked. Required technical/plain docs, plan, project notes are synchronized. Cold starts, larger workloads, long-term reliability and App Store readiness are separate. [Results and evidence limits](docs/backend-load-2026-11-09/REPORT.md).
+
+Final evidence review: independent read-only source/receipt review found no actionable issues and recomputed149 observed endpoint/library-size groups plus medium/hash checks. This adds review of saved evidence, not new live probes or tests. Final docs/secrets/migration/hash/whitespace checks pass; concurrent agent-policy edits were preserved. [Review](docs/backend-load-2026-11-09/independent-review-r15.json).
+
+
+### Change Log — 9 November 2026: Tested the shared rules in fresh Claude sessions
+
+Four new sessions actually loaded the shared policy. Runtime records confirm the intended models: Opus 5.5 for the main session/reviewer, Sonnet 5.5 for the implementation preflight, and Haiku 5.5 for search/check execution. Two small lookups used one agent. The first test found real guidance/evidence problems: not every progress action goes through the same facade, a newer database function had been missed, the proposed package command lacked its path, and an automatic advisor added an untracked model call.
+
+Corrected the source guidance, added a local database-definition lookup, tightened evidence reporting and disabled the automatic advisor for Kuro only. The fresh repeat ran all 30 policy tests and the documentation check successfully; the final probe traced the current sender and production flag argument without guessing remote flag values. Existing app/backend files and staged SQL are preserved. No app tests, live backend checks or releases were made by this work. The full report preserves the initial failures and limits at docs/agent-policy/fresh-session-2026-11-09/REPORT.md. Source inventory remains 293 app Swift, 33 package Swift and 250 migrations.
+
+- 2026-11-09, tracker-gaps plans corrected after an outside review (planning only): AniList's current terms leave no permission route, so that is now the first owner decision; every feature gets its own off switch; load tests keep normal traffic at full rate and need real data and enough samples; Undo, multi-device list edits and account switching are protected; export keeps list order and splits very large files; the alert offer only shows on the page you're looking at. Nothing built yet.

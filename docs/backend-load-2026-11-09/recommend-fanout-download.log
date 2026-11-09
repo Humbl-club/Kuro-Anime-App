@@ -1,0 +1,12 @@
+Downloading Function: concierge-recommend
+Extracting file: supabase/functions/concierge-recommend/index.ts
+Extracting file: supabase/functions/concierge-recommend/handler.ts
+Extracting file: supabase/functions/_shared/rate_limit_gate.ts
+Extracting file: supabase/functions/concierge-recommend/catalog_repository.ts
+Extracting file: supabase/functions/concierge-recommend/rail_policy.ts
+Extracting file: supabase/functions/concierge-recommend/router.ts
+Extracting file: supabase/functions/concierge-recommend/curated_copy.ts
+Extracting file: supabase/functions/concierge-recommend/narration.ts
+Downloaded Function concierge-recommend from project bkdifromsqxkndnllmdj.
+A new version of Supabase CLI is available: v3.0.0 (currently installed v2.78.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

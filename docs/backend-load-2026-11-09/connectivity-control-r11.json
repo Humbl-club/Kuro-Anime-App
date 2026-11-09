@@ -1,0 +1,82 @@
+{
+  "samples": [
+    {
+      "at": "2026-11-09T10:38:30.457994+00:00",
+      "auth_health": {
+        "ms": 119.96,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 165.55,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:38:40.641618+00:00",
+      "auth_health": {
+        "ms": 107.58,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 144.37,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:38:50.814488+00:00",
+      "auth_health": {
+        "ms": 233.7,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 257.69,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:39:01.098294+00:00",
+      "auth_health": {
+        "ms": 169.3,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 305.94,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:39:11.433134+00:00",
+      "auth_health": {
+        "ms": 342.77,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 453.22,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:39:21.906953+00:00",
+      "auth_health": {
+        "ms": 128.03,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 166.55,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:39:32.100161+00:00",
+      "auth_health": {
+        "ms": 97.7,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 223.52,
+        "status": 200
+      }
+    }
+  ],
+  "scope": "Independent HTTPS control requests; no library/database workload, no automatic traffic retries. R7 controls alongside unchanged load; inspect numeric upstream timing to distinguish API/network delay."
+}

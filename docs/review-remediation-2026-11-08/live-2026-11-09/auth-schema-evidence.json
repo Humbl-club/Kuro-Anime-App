@@ -1,0 +1,5 @@
+{
+  "custom_oauth_max_providers_in_get": true,
+  "custom_oauth_max_providers_in_patch": false,
+  "url": "https://raw.githubusercontent.com/supabase/supabase/master/apps/docs/spec/api_v1_openapi.json"
+}

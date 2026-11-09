@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-11-09T11:40:37.027893+00:00",
+  "passed": false,
+  "sequence_complete": false,
+  "cleanup_passed": true,
+  "derived_medium_passed": false,
+  "isolation_passed": true,
+  "large_profiles_passed": true,
+  "wired_route_observed": true,
+  "completed": 12300,
+  "errors": 0,
+  "dropped": 0,
+  "cold_call_failure_retained": "r12-warmup-5rps.json"
+}

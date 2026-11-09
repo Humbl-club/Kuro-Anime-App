@@ -1,0 +1,11 @@
+{
+  "checked_at": "2026-11-09T00:00:07.284907+00:00",
+  "docs_gate": "PASS: app Swift293/package Swift33/migration SQL247",
+  "source_secrets_gate": "PASS:0",
+  "public_evidence_credentials_scan": "PASS",
+  "manifest_hashes": "PASS:39 entries including36 function closure entries",
+  "migration_checksums": "PASS:2 new entries; no existing checksum changed",
+  "migration_gate_warning": "Only the two newly added/staged migration files are reported as modified; deployed hashes match.",
+  "whitespace": "PASS:staged and unstaged",
+  "scope": "No Swift or function source edits after the previously recorded local suites; no unrelated suite rerun."
+}

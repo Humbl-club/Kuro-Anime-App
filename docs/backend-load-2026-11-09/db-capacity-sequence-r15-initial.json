@@ -1,0 +1,19 @@
+{
+  "profile": "capacity-sequence-r15",
+  "samples": [
+    {
+      "active": 3,
+      "blks_hit": 22723883459,
+      "blks_read": 233577324,
+      "checked_at": "2026-11-09 12:06:40.308709+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0.196596",
+      "temp_bytes": 8108884055178
+    }
+  ],
+  "stopped": false
+}

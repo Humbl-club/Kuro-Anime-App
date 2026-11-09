@@ -1,0 +1,9 @@
+{
+  "applied_at": "2026-11-08T23:49:11.150870+00:00",
+  "migration": {
+    "md5": "e923bd9396dc42deb595ff0329bcdac4",
+    "name": "review_security_v1",
+    "version": "20261108120159"
+  },
+  "sha256": "9b415eddaee9cdd61c23bcc4f42f6cd9971e74371a39d66a7a0300ab9717162d"
+}

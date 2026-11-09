@@ -1,0 +1,32 @@
+[
+  {
+    "path": "scripts/load/backend_fixture.js",
+    "sha256": "7c8c4ff2feef098cb99c3c3ec7fc2eced4bc57ef2819785ef552f55ce830f0a2",
+    "archived_path": "docs/backend-load-2026-11-09/measured-source-v2/scripts/load/backend_fixture.js"
+  },
+  {
+    "path": "scripts/load/backend_fixture.test.js",
+    "sha256": "172cc5f5fe4336af338377521f3283fd495bbb4d44fd040d3ddac75cca3967d5",
+    "archived_path": "docs/backend-load-2026-11-09/measured-source-v2/scripts/load/backend_fixture.test.js"
+  },
+  {
+    "path": "scripts/load/backend_runner.test.js",
+    "sha256": "4fb73f975bff648a7eb4a44d617f502c623227351bfa8fada0ba0c24aa98bd1b",
+    "archived_path": "docs/backend-load-2026-11-09/measured-source-v2/scripts/load/backend_runner.test.js"
+  },
+  {
+    "path": "scripts/load/backend_workload.js",
+    "sha256": "48fd6ff315bd7f5cabb78622a17c49ccfd3ac23b4a5683b3ed733d881046ae9e",
+    "archived_path": "docs/backend-load-2026-11-09/measured-source-v2/scripts/load/backend_workload.js"
+  },
+  {
+    "path": "scripts/load/backend_workload.test.js",
+    "sha256": "9a4f4b2f0dc22666adc28a43ce139398f369e3af735dfa0e2bb157f23d2217c1",
+    "archived_path": "docs/backend-load-2026-11-09/measured-source-v2/scripts/load/backend_workload.test.js"
+  },
+  {
+    "path": "scripts/load_test_backend.js",
+    "sha256": "b167968ba5554bac41d2e9521a791417b3a2cde26c9ebbfa562e5de859f1f0a3",
+    "archived_path": "docs/backend-load-2026-11-09/measured-source-v2/scripts/load_test_backend.js"
+  }
+]

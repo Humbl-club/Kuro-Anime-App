@@ -1,0 +1,195 @@
+[
+  {
+    "active": [
+      {
+        "age_seconds": 1.828968,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_bundle"
+        ],
+        "leader_pid": null,
+        "pid": 780827,
+        "query_sha256": "1d3cf1beabb666731bf473acfb4fcd3ca0905f93b6d3d485f22d2643c9b3bbd2",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 3.334058,
+        "application_name": "mgmt-api",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [],
+        "leader_pid": null,
+        "pid": 780837,
+        "query_sha256": "33fbb2f32c1e11da1708fbb0964a38cab3c967d387a1a11ed8a2a5e83ff98f82",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 5.617106,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_mood_v1"
+        ],
+        "leader_pid": null,
+        "pid": 780828,
+        "query_sha256": "26477ca0fabf75e2e4141d171a5cce6789361a6d1e32b3f460c505a3f1f02d89",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 0.782887,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_mood_v1"
+        ],
+        "leader_pid": null,
+        "pid": 780829,
+        "query_sha256": "26477ca0fabf75e2e4141d171a5cce6789361a6d1e32b3f460c505a3f1f02d89",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 4.328592,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_bundle"
+        ],
+        "leader_pid": null,
+        "pid": 780833,
+        "query_sha256": "1d3cf1beabb666731bf473acfb4fcd3ca0905f93b6d3d485f22d2643c9b3bbd2",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      }
+    ],
+    "at": "2026-11-09T10:23:26.126133+00:00"
+  },
+  {
+    "active": [
+      {
+        "age_seconds": 4.339001,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_bundle"
+        ],
+        "leader_pid": null,
+        "pid": 780827,
+        "query_sha256": "1d3cf1beabb666731bf473acfb4fcd3ca0905f93b6d3d485f22d2643c9b3bbd2",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 0.526343,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_mood_v1"
+        ],
+        "leader_pid": null,
+        "pid": 780832,
+        "query_sha256": "26477ca0fabf75e2e4141d171a5cce6789361a6d1e32b3f460c505a3f1f02d89",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 1.098629,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_mood_v1"
+        ],
+        "leader_pid": null,
+        "pid": 780835,
+        "query_sha256": "26477ca0fabf75e2e4141d171a5cce6789361a6d1e32b3f460c505a3f1f02d89",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 3.29292,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_mood_v1"
+        ],
+        "leader_pid": null,
+        "pid": 780829,
+        "query_sha256": "26477ca0fabf75e2e4141d171a5cce6789361a6d1e32b3f460c505a3f1f02d89",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 6.838625,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_bundle"
+        ],
+        "leader_pid": null,
+        "pid": 780833,
+        "query_sha256": "1d3cf1beabb666731bf473acfb4fcd3ca0905f93b6d3d485f22d2643c9b3bbd2",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      }
+    ],
+    "at": "2026-11-09T10:23:28.699747+00:00"
+  },
+  {
+    "active": [
+      {
+        "age_seconds": 3.006915,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "discover_mood_v1"
+        ],
+        "leader_pid": null,
+        "pid": 780832,
+        "query_sha256": "26477ca0fabf75e2e4141d171a5cce6789361a6d1e32b3f460c505a3f1f02d89",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 0.739725,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "search_manga_page"
+        ],
+        "leader_pid": null,
+        "pid": 780835,
+        "query_sha256": "c9912f5507c97b8254c8931bdb98fc4470bc7e94aa3a7448d3adbc90da7b17e6",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      }
+    ],
+    "at": "2026-11-09T10:23:31.109281+00:00"
+  }
+]

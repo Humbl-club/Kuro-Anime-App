@@ -1,0 +1,17 @@
+=== Migration Hygiene Check ===
+
+Checking for untracked migration files...
+Checking for modified migration files...
+WARNING: Modified migration files (may have been applied already):
+  - supabase/migrations/20261108120159_review_security_v1.sql
+  - supabase/migrations/20261108120211_catalog_intake_schedule_v1.sql
+  - supabase/migrations/20261109001251_load_hotpaths_v1.sql
+  - supabase/migrations/20261109003243_taste_worker_latency_v1.sql
+  - supabase/migrations/20261109100800_parent_unit_lookup_v1.sql
+Verifying migration checksums...
+
+Total migration files: 250
+
+--- Migration Hygiene Summary ---
+Warnings: 1
+Completed with 1 warning(s).

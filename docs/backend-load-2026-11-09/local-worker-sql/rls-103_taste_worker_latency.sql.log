@@ -1,0 +1,3 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:9: NOTICE:  TEST ok: background taste worker and math run without JIT; source math remains present
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:13: ERROR:  TEST FAIL: worker remains server-only for anonymous and authenticated callers
+CONTEXT:  PL/pgSQL function tests.ok(text,boolean) line 4 at RAISE

@@ -153,7 +153,7 @@ export function clampBlurb(s: string, maxWords: number, maxChars: number) {
 /** One item offered for narration (`id` is `${mediaType}|${mediaId}`). */
 export type NarrationItem = { id: string; title: string; year?: number | null; format?: string | null; signals: string[] };
 
-/** Kill switch and budget RPCs over the caller's client (the user budget is keyed by auth.uid()). */
+/** User budget is keyed by the caller's auth.uid(); global accounting uses a server-only client. */
 export interface NarrationBudget {
   /** `is_flag_enabled('llm_enabled')`: true only when the RPC answered true (an error reads as off). */
   llmEnabled(): Promise<boolean>;
@@ -169,7 +169,7 @@ export interface NarrationBudget {
 // deno-lint-ignore no-explicit-any
 type SupabaseLike = any;
 
-export function supabaseNarrationBudget(client: SupabaseLike): NarrationBudget {
+export function supabaseNarrationBudget(client: SupabaseLike, globalClient: SupabaseLike | null): NarrationBudget {
   // deno-lint-ignore no-explicit-any
   const answered = (r: any) => !r?.error && r?.data != null ? r.data : null;
   return {
@@ -198,7 +198,7 @@ export function supabaseNarrationBudget(client: SupabaseLike): NarrationBudget {
     async reserveGlobal(tokens, maxDailyTokens, maxDailyCalls) {
       try {
         const data = answered(
-          await client.rpc("llm_global_budget_reserve", {
+          await globalClient?.rpc("llm_global_budget_reserve", {
             p_reserved_tokens: tokens,
             p_max_daily_tokens: maxDailyTokens,
             p_max_daily_calls: maxDailyCalls,
@@ -218,7 +218,7 @@ export function supabaseNarrationBudget(client: SupabaseLike): NarrationBudget {
     },
     async finalizeGlobal(reserved, actual) {
       try {
-        await client.rpc("llm_global_budget_finalize", { p_reserved_tokens: reserved, p_actual_tokens: actual });
+        await globalClient?.rpc("llm_global_budget_finalize", { p_reserved_tokens: reserved, p_actual_tokens: actual });
       } catch {
         // best-effort
       }

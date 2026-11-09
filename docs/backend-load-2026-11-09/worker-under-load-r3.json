@@ -1,0 +1,155 @@
+{
+  "cron_runs": [
+    {
+      "duration_seconds": "0.2664",
+      "end_time": "2026-11-09 09:23:00.299763+00",
+      "runid": 99718,
+      "start_time": "2026-11-09 09:23:00.033371+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.4880",
+      "end_time": "2026-11-09 09:24:00.605893+00",
+      "runid": 99719,
+      "start_time": "2026-11-09 09:24:00.117909+00",
+      "status": "succeeded"
+    }
+  ],
+  "observations": [
+    {
+      "checked_at": "2026-11-09T09:22:30.916141+00:00",
+      "profile_computation_batches": [],
+      "queue": {
+        "errors": 0,
+        "pending": 45,
+        "processed": 35
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:22:52.070783+00:00",
+      "profile_computation_batches": [],
+      "queue": {
+        "errors": 0,
+        "pending": 45,
+        "processed": 35
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:23:13.208176+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 09:23:00.033827+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 40,
+        "processed": 40
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:23:34.533020+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 09:23:00.033827+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 40,
+        "processed": 40
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:23:55.858004+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 09:23:00.033827+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:23:49.945968+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 67,
+        "processed": 13
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:24:17.032338+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 09:23:00.033827+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:23:49.945968+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:24:00.117034+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 62,
+        "processed": 18
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:24:38.549135+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 09:23:00.033827+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:23:49.945968+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:24:00.117034+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 62,
+        "processed": 18
+      }
+    },
+    {
+      "checked_at": "2026-11-09T09:25:20.480816+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 09:23:00.033827+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:23:49.945968+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:24:00.117034+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 09:25:00.870086+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 57,
+        "processed": 23
+      }
+    }
+  ],
+  "observed_from": "2026-11-09T09:22:29.494060+00:00"
+}

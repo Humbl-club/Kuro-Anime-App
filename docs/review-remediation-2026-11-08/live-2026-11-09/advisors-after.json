@@ -1,0 +1,23 @@
+{
+  "performance": {
+    "counts": {
+      "auth_db_connections_absolute": 1,
+      "auth_rls_initplan": 10,
+      "no_primary_key": 2,
+      "unindexed_foreign_keys": 22,
+      "unused_index": 87
+    },
+    "errors": []
+  },
+  "security": {
+    "counts": {
+      "anon_security_definer_function_executable": 71,
+      "authenticated_security_definer_function_executable": 92,
+      "extension_in_public": 1,
+      "function_search_path_mutable": 1,
+      "materialized_view_in_api": 9,
+      "rls_enabled_no_policy": 35
+    },
+    "errors": []
+  }
+}

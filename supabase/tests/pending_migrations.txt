@@ -1,3 +1,8 @@
+# Reconciled 2026-11-09 against live migration history (see review-remediation live receipt).
+# One active pending cold-read migration below; previous query-load and taste-worker migrations are deployed with approval. 20261101030000_auth_hardening.sql was NOT
+# applied separately: its email-oracle revoke is superseded by deployed 20261108120159.
+# Older prepared-file headers/comments below are historical; never blanket-push this folder.
+
 # Migrations in supabase/prepared-migrations/ (deliberately OUTSIDE supabase/migrations/ so
 # no `supabase db push` or scripts/local_cd.sh can deploy them) that are PREPARED ONLY:
 # NOT applied to production. Deployment is a separate, explicit human approval.
@@ -22,25 +27,24 @@
 #     "four recorded identities"); their file headers saying "prepared, NOT deployed" are stale.
 # Kept: 20261007120000_feature_flag_overrides.sql is NOT live (PGRST205 on 2026-11-01).
 
-20261007120000_feature_flag_overrides.sql
 
 # 2026-11-01 overnight production pass (prepared only; owner approval required to deploy).
-20261101000000_release_schedule_and_themes_v2.sql
-20261101010000_perf_hotpaths.sql
-20261101010100_perf_drop_duplicate_indexes.sql
-20261101020000_bridge_identity_fix.sql
-20261101030000_auth_hardening.sql
 
 # 2026-11-02 contact form (prepared only; owner approval required to deploy).
-20261102100000_contact_messages.sql
 
 # 2026-11-03 details/songs pass, DATA lane (prepared only; owner approval required to deploy).
 # 20261103100200 needs 20261101000000 (media_themes_v1) applied first.
-20261103100000_character_voice_actors_v1.sql
-20261103100100_media_similar_v1.sql
-20261103100200_theme_links_apple_v1.sql
 
 # 2026-11-04 Discover usability pass, DATA lane (prepared only; owner approval required to deploy).
 # Depends on nothing pending.
-20261104100000_discover_usability_v1.sql
-20261104100100_discover_mood_perf_v1.sql
+
+# 2026-11-08 review remediation: local only, deploy requires owner approval.
+
+# 2026-11-09 load migration20261109001251: applied after explicit approval; canonical file promoted byte-identically.
+
+# Worker migration20261109003243 applied2026-11-09 after explicit owner approval.
+
+# Parent-unit lookup indexes20261109100800: applied after explicit owner approval.
+
+# Prepared cold-read working-set repair; deployment requires separate owner approval.
+20261109123758_cold_catalogue_reads_v1.sql

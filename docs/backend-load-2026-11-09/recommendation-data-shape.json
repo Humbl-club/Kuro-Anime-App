@@ -1,0 +1,37 @@
+[
+  {
+    "bytes": 20389888,
+    "estimated_rows": 112746,
+    "relname": "anime_tags"
+  },
+  {
+    "bytes": 28098560,
+    "estimated_rows": 131490,
+    "relname": "manga_tags"
+  },
+  {
+    "bytes": 75595776,
+    "estimated_rows": 252045,
+    "relname": "media_realm_membership"
+  },
+  {
+    "bytes": 11886592,
+    "estimated_rows": 17160,
+    "relname": "media_relations"
+  },
+  {
+    "bytes": 35004416,
+    "estimated_rows": 230697,
+    "relname": "media_similar_titles"
+  },
+  {
+    "bytes": 104546304,
+    "estimated_rows": 390569,
+    "relname": "media_tag_vectors"
+  },
+  {
+    "bytes": 8642560,
+    "estimated_rows": 21405,
+    "relname": "taste_signal_events"
+  }
+]

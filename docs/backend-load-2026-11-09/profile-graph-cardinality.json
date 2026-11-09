@@ -1,0 +1,23 @@
+[
+  {
+    "distinct_signal_titles": 25,
+    "largest_component": 5,
+    "library_size": 25,
+    "old_all_pairs_reach_rows": 53,
+    "relations": 20
+  },
+  {
+    "distinct_signal_titles": 100,
+    "largest_component": 6,
+    "library_size": 100,
+    "old_all_pairs_reach_rows": 206,
+    "relations": 86
+  },
+  {
+    "distinct_signal_titles": 2000,
+    "largest_component": 18,
+    "library_size": 2000,
+    "old_all_pairs_reach_rows": 5982,
+    "relations": 1882
+  }
+]

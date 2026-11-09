@@ -1,0 +1,149 @@
+{
+  "checked_at": "2026-11-09T12:49:51.914902+00:00",
+  "comparisons": [
+    {
+      "baseline_execution_ms": 550.507,
+      "baseline_logical_blocks": 1301,
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 56.806,
+      "proposed_logical_blocks": 1295,
+      "query": "Naruto",
+      "rows": 20
+    },
+    {
+      "baseline_execution_ms": 171.192,
+      "baseline_logical_blocks": 1330,
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 62.924,
+      "proposed_logical_blocks": 1324,
+      "query": "naroto",
+      "rows": 1
+    },
+    {
+      "baseline_execution_ms": 88.924,
+      "baseline_logical_blocks": 881,
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 15.397,
+      "proposed_logical_blocks": 875,
+      "query": "Berserk",
+      "rows": 10
+    },
+    {
+      "baseline_execution_ms": 105.451,
+      "baseline_logical_blocks": 989,
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 27.881,
+      "proposed_logical_blocks": 983,
+      "query": "berser",
+      "rows": 10
+    },
+    {
+      "baseline_execution_ms": 634.425,
+      "baseline_logical_blocks": 1879,
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 35.935,
+      "proposed_logical_blocks": 1122,
+      "query": "Fate/stay",
+      "rows": 8
+    },
+    {
+      "baseline_execution_ms": 28.4,
+      "baseline_logical_blocks": 433,
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 3.167,
+      "proposed_logical_blocks": 427,
+      "query": "\u65e5\u672c\u8a9e",
+      "rows": 0
+    },
+    {
+      "baseline_execution_ms": 11.928,
+      "baseline_logical_blocks": 40,
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 0.204,
+      "proposed_logical_blocks": 40,
+      "query": null,
+      "rows": 30
+    },
+    {
+      "baseline_execution_ms": 410.858,
+      "baseline_logical_blocks": 2807,
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 219.646,
+      "proposed_logical_blocks": 2801,
+      "query": "Naruto",
+      "rows": 30
+    },
+    {
+      "baseline_execution_ms": 532.628,
+      "baseline_logical_blocks": 2966,
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 238.095,
+      "proposed_logical_blocks": 2960,
+      "query": "naroto",
+      "rows": 2
+    },
+    {
+      "baseline_execution_ms": 66.709,
+      "baseline_logical_blocks": 958,
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 21.32,
+      "proposed_logical_blocks": 952,
+      "query": "Berserk",
+      "rows": 7
+    },
+    {
+      "baseline_execution_ms": 191.131,
+      "baseline_logical_blocks": 1270,
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 57.466,
+      "proposed_logical_blocks": 1264,
+      "query": "berser",
+      "rows": 9
+    },
+    {
+      "baseline_execution_ms": 882.99,
+      "baseline_logical_blocks": 2719,
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 63.02,
+      "proposed_logical_blocks": 1384,
+      "query": "Fate/stay",
+      "rows": 8
+    },
+    {
+      "baseline_execution_ms": 23.306,
+      "baseline_logical_blocks": 435,
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 3.155,
+      "proposed_logical_blocks": 429,
+      "query": "\u65e5\u672c\u8a9e",
+      "rows": 2
+    },
+    {
+      "baseline_execution_ms": 1.486,
+      "baseline_logical_blocks": 38,
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 0.142,
+      "proposed_logical_blocks": 38,
+      "query": null,
+      "rows": 30
+    }
+  ],
+  "complete": true,
+  "passed": true,
+  "persistent_remote_changes": false,
+  "scope": "Raw exact Search query; thresholds scoped to one repeatable-read read-only transaction. Administrative diagnostic, not deployed RPC change or HTTP/cold-capacity proof."
+}

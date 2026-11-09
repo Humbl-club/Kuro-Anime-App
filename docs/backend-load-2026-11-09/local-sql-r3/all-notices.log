@@ -1,0 +1,5 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/102_load_hotpaths.sql:40: NOTICE:  TEST ok: search blob is identical to the prior concat_ws including null empty whitespace and Unicode
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/102_load_hotpaths.sql:59: NOTICE:  TEST ok: all 54 differential Search/Browse rankings and filters match
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/102_load_hotpaths.sql:60: NOTICE:  TEST ok: differential checks executed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/102_load_hotpaths.sql:64: NOTICE:  TEST ok: both Search functions have custom plans and no JIT; public contract remains definer
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/102_load_hotpaths.sql:84: NOTICE:  TEST ok: selective fuzzy Search uses real title GIN indexes in both media

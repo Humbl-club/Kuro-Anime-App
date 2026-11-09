@@ -1,0 +1,401 @@
+{
+  "checked_at": "2026-11-09T12:50:58.669770+00:00",
+  "comparisons": [
+    {
+      "baseline_execution_ms": 62.338,
+      "baseline_logical_blocks": 1301,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 62.338,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 56.024,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 56.062,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 113.606,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 56.024,
+      "proposed_logical_blocks": 1295,
+      "query": "Naruto",
+      "rows": 20
+    },
+    {
+      "baseline_execution_ms": 68.448,
+      "baseline_logical_blocks": 1330,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 68.448,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 62.315,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 61.782,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 62.145,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 62.315,
+      "proposed_logical_blocks": 1324,
+      "query": "naroto",
+      "rows": 1
+    },
+    {
+      "baseline_execution_ms": 21.652,
+      "baseline_logical_blocks": 881,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 21.652,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 18.37,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 18.11,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 19.04,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 18.37,
+      "proposed_logical_blocks": 875,
+      "query": "Berserk",
+      "rows": 10
+    },
+    {
+      "baseline_execution_ms": 31.441,
+      "baseline_logical_blocks": 989,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 31.441,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 28.257,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 27.962,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 28.313,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 28.257,
+      "proposed_logical_blocks": 983,
+      "query": "berser",
+      "rows": 10
+    },
+    {
+      "baseline_execution_ms": 118.163,
+      "baseline_logical_blocks": 1879,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 118.163,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 35.841,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 35.685,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 108.54,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 35.841,
+      "proposed_logical_blocks": 1122,
+      "query": "Fate/stay",
+      "rows": 8
+    },
+    {
+      "baseline_execution_ms": 4.523,
+      "baseline_logical_blocks": 433,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 4.523,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 3.62,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 3.447,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 3.499,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 3.62,
+      "proposed_logical_blocks": 427,
+      "query": "\u65e5\u672c\u8a9e",
+      "rows": 0
+    },
+    {
+      "baseline_execution_ms": 0.293,
+      "baseline_logical_blocks": 40,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 0.293,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 0.161,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 0.149,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 0.157,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "anime",
+      "proposed_execution_ms": 0.161,
+      "proposed_logical_blocks": 40,
+      "query": null,
+      "rows": 30
+    },
+    {
+      "baseline_execution_ms": 234.7,
+      "baseline_logical_blocks": 2807,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 234.7,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 217.493,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 222.666,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 218.446,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 217.493,
+      "proposed_logical_blocks": 2801,
+      "query": "Naruto",
+      "rows": 30
+    },
+    {
+      "baseline_execution_ms": 256.879,
+      "baseline_logical_blocks": 2966,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 256.879,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 243.196,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 240.177,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 242.824,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 243.196,
+      "proposed_logical_blocks": 2960,
+      "query": "naroto",
+      "rows": 2
+    },
+    {
+      "baseline_execution_ms": 23.795,
+      "baseline_logical_blocks": 958,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 23.795,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 21.147,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 22.156,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 24.239,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 21.147,
+      "proposed_logical_blocks": 952,
+      "query": "Berserk",
+      "rows": 7
+    },
+    {
+      "baseline_execution_ms": 62.281,
+      "baseline_logical_blocks": 1270,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 62.281,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 57.626,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 56.562,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 57.366,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 57.626,
+      "proposed_logical_blocks": 1264,
+      "query": "berser",
+      "rows": 9
+    },
+    {
+      "baseline_execution_ms": 214.603,
+      "baseline_logical_blocks": 2719,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 214.603,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 61.866,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 61.255,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 201.999,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 61.866,
+      "proposed_logical_blocks": 1384,
+      "query": "Fate/stay",
+      "rows": 8
+    },
+    {
+      "baseline_execution_ms": 3.968,
+      "baseline_logical_blocks": 435,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 3.968,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 3.137,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 3.132,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 3.075,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 3.137,
+      "proposed_logical_blocks": 429,
+      "query": "\u65e5\u672c\u8a9e",
+      "rows": 2
+    },
+    {
+      "baseline_execution_ms": 0.277,
+      "baseline_logical_blocks": 38,
+      "counterbalanced_execution_ms": [
+        {
+          "execution_ms": 0.277,
+          "threshold": "0.3"
+        },
+        {
+          "execution_ms": 0.135,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 0.176,
+          "threshold": "0.35"
+        },
+        {
+          "execution_ms": 0.121,
+          "threshold": "0.3"
+        }
+      ],
+      "identical": true,
+      "medium": "manga",
+      "proposed_execution_ms": 0.135,
+      "proposed_logical_blocks": 38,
+      "query": null,
+      "rows": 30
+    }
+  ],
+  "complete": true,
+  "passed": true,
+  "persistent_remote_changes": false,
+  "scope": "Raw exact Search query; thresholds scoped to one repeatable-read read-only transaction. Administrative diagnostic, not deployed RPC change or HTTP/cold-capacity proof."
+}

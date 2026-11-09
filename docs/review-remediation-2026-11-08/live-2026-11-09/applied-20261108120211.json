@@ -1,0 +1,9 @@
+{
+  "applied_at": "2026-11-08T23:50:11.653077+00:00",
+  "migration": {
+    "md5": "0e7343d4a5e9878a1bd788f2ea7ac609",
+    "name": "catalog_intake_schedule_v1",
+    "version": "20261108120211"
+  },
+  "sha256": "2a54ec1f1a87c8a35d75259d0d11248ac55e3636bc4e00028cd56f6757dac1cd"
+}

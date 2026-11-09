@@ -1,0 +1,54 @@
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-recommend/catalog_repository_test.ts
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-recommend/handler_test.ts
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-recommend/router_test.ts
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-recommend/router_corpus_test.ts
+running 7 tests from ./supabase/functions/concierge-recommend/catalog_repository_test.ts
+ragSeed rejects wrong-medium answers and preserves matching or unscoped identity ... ok (1ms)
+ragSeed rejects malformed confidence and fractional identity instead of bypassing the threshold ... ok (0ms)
+candidate rails share concurrent and completed successful reads, with independent returned rows ... ok (0ms)
+candidate read keys distinguish every RPC filter and retain empty-result semantics ... ok (0ms)
+candidate caches cannot cross requests or callers ... ok (0ms)
+a failed candidate read is not cached and a later independent read can succeed ... ok (0ms)
+a secondary consumer retains its own attempt when the shared read fails ... ok (0ms)
+running 10 tests from ./supabase/functions/concierge-recommend/handler_test.ts
+global accounting uses only the trusted client; missing service credentials fail closed ... ok (0ms)
+actual narration transport bounds held headers and body, then releases only its two reservations ... ok (26ms)
+explicit rate denial is 429 with Retry-After and no catalog, cache or narration work ... ok (1ms)
+F32: a limiter error fails closed as a retryable 503 with no catalog, search or paid narration call ... ok (0ms)
+mode cache: a fresh entry decides the primary rail; a stale one is re-routed and overwritten ... ok (25ms)
+F73: each rail is built once: the primary plus each secondary candidate, no duplicate fallback build ... ok (4ms)
+F76: a non-numeric limit falls back to the default 8; a numeric one is still clamped and honored ... ok (7ms)
+narration failure keeps the deterministic recommendations unchanged (no blurbs, error only under debug) ... ok (12ms)
+budget accounting: a held reservation is released exactly once, with 0 tokens when the provider fails ... ok (7ms)
+budget denial or error never calls the provider and releases only the reservation actually taken ... ok (22ms)
+running 7 tests from ./supabase/functions/concierge-recommend/router_test.ts
+router cases file still holds the 75 offline cases ... ok (0ms)
+75 offline cases route as expected through the production chain (migration-chain modes) ...
+------- post-test output -------
+[router-rules] executed 75 offline cases through router.ts routePrimaryMode; 75 passed. 60 non-title prompts are bare-title candidates whose route assumes live search_titles returns no row with score >= 0.45: #2 #3 #4 #5 #6 #9 #10 #11 #12 #13 #14 #16 #17 #18 #19 #20 #21 #22 #23 #25 #26 #27 #28 #29 #30 #31 #32 #33 #34 #35 #36 #37 #38 #39 #40 #41 #42 #43 #44 #45 #46 #47 #48 #49 #50 #51 #52 #53 #54 #55 #56 #57 #64 #65 #66 #68 #69 #71 #74 #75
+----- post-test output end -----
+75 offline cases route as expected through the production chain (migration-chain modes) ... ok (40ms)
+22 production-only German alternatives fire their rule and route through the chain ... ok (0ms)
+chain order is production's: classic beats gateway, gateway beats hidden gems ... ok (0ms)
+bare-title path: a confident search_titles row turns a short prompt into a seed (live-DB contingency) ... ok (0ms)
+abbreviation seed: AOT is verified through search_titles and adopted as the seed ... ok (0ms)
+fallback modes: only cases targeting the six v8-only modes degrade ...
+------- post-test output -------
+[router-rules] fallback defaultModes(): 13/75 cases lose their v8 mode: #31->premium_picks #42->scifi #43->premium_picks #44->dark_serious #45->dark_serious #46->premium_picks #47->premium_picks #48->dark_serious #49->premium_picks #50->premium_picks #51->premium_picks #52->premium_picks #53->premium_picks
+----- post-test output end -----
+fallback modes: only cases targeting the six v8-only modes degrade ... ok (90ms)
+running 2 tests from ./supabase/functions/concierge-recommend/router_corpus_test.ts
+router corpora: 67 cases executed through the production chain (migration-chain modes) ...
+------- post-test output -------
+[corpora-execution] router: 67 cases executed; 67 match, 0 pinned divergences:
+  55 cases are bare-title candidates contingent on live search_titles (no confident row assumed).
+----- post-test output end -----
+router corpora: 67 cases executed through the production chain (migration-chain modes) ... ok (61ms)
+router corpora under fallback modes: only v8-mode and v7-synonym cases change ...
+------- post-test output -------
+[corpora-execution] router under defaultModes(): 16/67 cases change: router_en_018 router_en_019 router_en_020 router_en_021 router_en_022 router_en_023 router_de_001 router_de_004 router_de_014 router_de_015 router_de_016 router_de_017 router_de_024 router_de_025 router_de_026 router_de_032
+----- post-test output end -----
+router corpora under fallback modes: only v8-mode and v7-synonym cases change ... ok (124ms)
+
+ok | 26 passed | 0 failed (528ms)
+

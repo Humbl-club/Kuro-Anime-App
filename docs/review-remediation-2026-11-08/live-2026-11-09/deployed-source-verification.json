@@ -1,0 +1,210 @@
+{
+  "functions": [
+    {
+      "slug": "bulk-import-anime",
+      "status": "ACTIVE",
+      "updated_at": 1794181777100,
+      "verify_jwt": true,
+      "version": 87
+    },
+    {
+      "slug": "bulk-import-manga",
+      "status": "ACTIVE",
+      "updated_at": 1794181795564,
+      "verify_jwt": true,
+      "version": 85
+    },
+    {
+      "slug": "concierge-parse",
+      "status": "ACTIVE",
+      "updated_at": 1794181803370,
+      "verify_jwt": true,
+      "version": 49
+    },
+    {
+      "slug": "concierge-recommend",
+      "status": "ACTIVE",
+      "updated_at": 1794181704342,
+      "verify_jwt": true,
+      "version": 54
+    },
+    {
+      "slug": "concierge-resolve",
+      "status": "ACTIVE",
+      "updated_at": 1794181723638,
+      "verify_jwt": true,
+      "version": 20
+    }
+  ],
+  "sources": {
+    "bulk-import-anime": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/anilist_client.ts",
+          "sha256": "9c5e83ec0d0a9764627fca6e08107e9ace5cd6904f9ef779b1ea4a33cc57363a"
+        },
+        {
+          "path": "supabase/functions/_shared/catalog_identity.ts",
+          "sha256": "0add75ba819cf9eeca2826d7e3b8acfec091bcdcdfd1ba62a30b8198606829a9"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/anilist.ts",
+          "sha256": "cb7ab15e244839f1534b74e6e80aa381778289b04bde3ba20573fa1dd5f178d1"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/handler.ts",
+          "sha256": "5966a5bbbbd76477091c1fe071c19f6a30d39226f47827755d5bcf7a76527cc4"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/index.ts",
+          "sha256": "290902e64672db78cd5d0bff53297ecdcd31053d17b4473e49ca7f0e26c24eb1"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/mapping.ts",
+          "sha256": "b015a89e4feda0ba8c0b4e26a56853e690109b8d99cbf52adc09e0984550bc8d"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/persistence.ts",
+          "sha256": "139c558d53ff42b9773c2b3c525194ce4466e100cc6fa1fd57fb8a908f977c3b"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/tracks.ts",
+          "sha256": "ea904b1e4a9282dbf2277dddba4d8c3a319e6b0021a629728e2d813075d25151"
+        }
+      ],
+      "matched_reviewed_source": true
+    },
+    "bulk-import-manga": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/anilist_client.ts",
+          "sha256": "9c5e83ec0d0a9764627fca6e08107e9ace5cd6904f9ef779b1ea4a33cc57363a"
+        },
+        {
+          "path": "supabase/functions/_shared/catalog_identity.ts",
+          "sha256": "0add75ba819cf9eeca2826d7e3b8acfec091bcdcdfd1ba62a30b8198606829a9"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/mapping.ts",
+          "sha256": "b015a89e4feda0ba8c0b4e26a56853e690109b8d99cbf52adc09e0984550bc8d"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/persistence.ts",
+          "sha256": "139c558d53ff42b9773c2b3c525194ce4466e100cc6fa1fd57fb8a908f977c3b"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/tracks.ts",
+          "sha256": "ea904b1e4a9282dbf2277dddba4d8c3a319e6b0021a629728e2d813075d25151"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/anilist.ts",
+          "sha256": "605dec8323247d1564fba7d6203d7742c732c4683eeb04f7f3020cb42601c2e0"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/handler.ts",
+          "sha256": "f697e33351e17660d39b050428868f3ea27599fe9c790a345b6a3339d6624924"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/index.ts",
+          "sha256": "81de1bbb8a8153219ace2b33861d6437fc0b1ec7c4cc69fea8cc9fc2ecc561a0"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/mapping.ts",
+          "sha256": "55320201fda99d3801675f8a02ccc0cb53d28adfcfee32c87027430cf410b0a8"
+        }
+      ],
+      "matched_reviewed_source": true
+    },
+    "concierge-parse": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/alias_normalization.ts",
+          "sha256": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673"
+        },
+        {
+          "path": "supabase/functions/_shared/normalization.ts",
+          "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+        },
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/handler.ts",
+          "sha256": "8303c891879839cbe9ac0613f797d257e67c5c19e6324ff769bae82653c054d3"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/index.ts",
+          "sha256": "c55a8f3cba01e7fcb6e0b993abcecc0c605b1f0cf01715c117039bca3bccac47"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/parse_repository.ts",
+          "sha256": "248dacd964388c905f6924b2d8219fd6cc63496cb8e6b79e0b6d40b661c72c41"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/rules.ts",
+          "sha256": "9750d2134cb72944d0593974b3cd269a3ec3ce8840ee332c479321bc55ed27e9"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/search_plan.ts",
+          "sha256": "f6ed30f6306074d5a63195cc7a5546106a9fb6a63bdff371e899d8ed74019276"
+        }
+      ],
+      "matched_reviewed_source": true
+    },
+    "concierge-recommend": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+          "sha256": "22ace7dc146ec8581af758e9b77450c775fc60d146c1fc77f689d15ddf3540b9"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/curated_copy.ts",
+          "sha256": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/handler.ts",
+          "sha256": "f70117167f7292b6f9ac317a01ecd62db04aef950d771e311eea846f9fcf3824"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/index.ts",
+          "sha256": "4792b3d7cec776723bd6d77ecdf06dd690146187a40b884b2615f5e85c3bd6ed"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/narration.ts",
+          "sha256": "0cbe95a6aeaf2be35641d9c018db6f524a785e10e5b190666c6f6476e541dd1a"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/rail_policy.ts",
+          "sha256": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/router.ts",
+          "sha256": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921"
+        }
+      ],
+      "matched_reviewed_source": true
+    },
+    "concierge-resolve": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-resolve/index.ts",
+          "sha256": "15ffc92b26cdcce5eae1743a02df7321c37afa7b8f493fb66e958c815cc970cf"
+        },
+        {
+          "path": "supabase/functions/concierge-resolve/resolve_budget.ts",
+          "sha256": "3fe76bcfbf99f3d2906a1fada6e3191779ce8ef82715925c05d0134a7b55277b"
+        }
+      ],
+      "matched_reviewed_source": true
+    }
+  }
+}

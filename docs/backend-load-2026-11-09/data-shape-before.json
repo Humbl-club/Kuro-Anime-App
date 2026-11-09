@@ -1,0 +1,37 @@
+[
+  {
+    "bytes": 84320256,
+    "estimated_rows": 21692,
+    "relname": "anime"
+  },
+  {
+    "bytes": 131072,
+    "estimated_rows": 37,
+    "relname": "anime_user_lists"
+  },
+  {
+    "bytes": 81920,
+    "estimated_rows": 1,
+    "relname": "club_members"
+  },
+  {
+    "bytes": 81920,
+    "estimated_rows": 1,
+    "relname": "clubs"
+  },
+  {
+    "bytes": 160743424,
+    "estimated_rows": 41733,
+    "relname": "manga"
+  },
+  {
+    "bytes": 131072,
+    "estimated_rows": 11,
+    "relname": "manga_user_lists"
+  },
+  {
+    "bytes": 131072,
+    "estimated_rows": 124,
+    "relname": "taste_signal_events"
+  }
+]

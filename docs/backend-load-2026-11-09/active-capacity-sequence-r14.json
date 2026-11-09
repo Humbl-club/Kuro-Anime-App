@@ -1,0 +1,52 @@
+[
+  {
+    "active": [
+      {
+        "age_seconds": 2.765369,
+        "application_name": "pg_cron",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "rebuild_media_similar_titles"
+        ],
+        "leader_pid": null,
+        "pid": 789517,
+        "query_sha256": "4f4fddef8051c96d16cfd6089e1fd1af364e53af8dd015a0bf4618642acb7bb1",
+        "state": "active",
+        "wait_event": "DataFileRead",
+        "wait_event_type": "IO"
+      },
+      {
+        "age_seconds": 2.771858,
+        "application_name": "pg_cron",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "drain_taste_recompute_queue"
+        ],
+        "leader_pid": null,
+        "pid": 789516,
+        "query_sha256": "6071a2252c0b516a5a5c0eb78e4d905e685834ec7aac35b903046a44e2551a90",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 0.001469,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "anime"
+        ],
+        "leader_pid": null,
+        "pid": 789495,
+        "query_sha256": "02c8bb1b02b8656a25a15597e451cde0b9a84e6756214f1134e99eba86e96eed",
+        "state": "active",
+        "wait_event": "DataFileRead",
+        "wait_event_type": "IO"
+      }
+    ],
+    "at": "2026-11-09T12:05:02.943402+00:00"
+  }
+]

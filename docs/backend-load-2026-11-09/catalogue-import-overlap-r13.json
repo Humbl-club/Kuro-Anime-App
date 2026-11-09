@@ -1,0 +1,50 @@
+{
+  "checked_at": "2026-11-09T11:18:21.156207+00:00",
+  "runs": [
+    {
+      "finished_at": "2026-11-09 11:15:32.02+00",
+      "id": 43721,
+      "media_type": "MANGA",
+      "message": null,
+      "results": {
+        "429_cooldown_count": 0,
+        "alias_memory_hits": 0,
+        "api_429_count": 0,
+        "auto_retry_due_processed": 0,
+        "auto_retry_enqueued": 20,
+        "chapters_upserted": 0,
+        "collision_tiebreak_ambiguous": 0,
+        "collision_tiebreak_attempted": 0,
+        "collision_tiebreak_resolved": 0,
+        "errors": 0,
+        "fractional_skipped": 0,
+        "fuzzy_attempted": 12,
+        "fuzzy_auto_mapped": 0,
+        "manga_processed": 20,
+        "mapped_by_al": 0,
+        "mapped_by_mal": 0,
+        "mapped_by_title_strict": 0,
+        "mode_degraded": false,
+        "mode_used": "fuzzy_v2",
+        "rate_limiter_wait_ms": 8258,
+        "skipped_ambiguous": 0,
+        "skipped_low_confidence": 12,
+        "unresolved_mappings": 20,
+        "unresolved_reason_counts": {
+          "fuzzy_score_low": 6,
+          "hard_conflict": 2,
+          "no_candidates": 8,
+          "title_similarity_low": 4
+        },
+        "verify_checked": 0,
+        "verify_deactivated": 0,
+        "verify_mismatch": 0,
+        "wrong_map_proxy_count": 0
+      },
+      "run_type": "chapter_enrich",
+      "started_at": "2026-11-09 11:15:03.148+00",
+      "status": "success",
+      "track_key": null
+    }
+  ]
+}

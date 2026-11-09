@@ -1,0 +1,114 @@
+CREATE SCHEMA
+CREATE EXTENSION
+CREATE EXTENSION
+CREATE SCHEMA
+SET
+SET
+CREATE TABLE
+CREATE TABLE
+INSERT 0 22000
+INSERT 0 42000
+SELECT 2444
+SELECT 2210
+SELECT 709
+SELECT 792
+DO
+SELECT 256000
+CREATE INDEX
+CREATE INDEX
+VACUUM
+VACUUM
+VACUUM
+VACUUM
+VACUUM
+VACUUM
+VACUUM
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+psql:docs/backend-cold-2026-11-09/cold-local-state.sql:9: NOTICE:  LOCAL_BUFFER_COLD verified: catalogue pages=0, postmaster=2026-11-09 13:47:58.664958+01
+DO
+SET
+SET
+CREATE TABLE
+DO
+DO
+BEGIN
+SET
+SET
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DO
+ALTER FUNCTION
+ALTER FUNCTION
+NOTIFY
+COMMIT
+psql:docs/backend-cold-2026-11-09/cold-local-state.sql:9: NOTICE:  LOCAL_BUFFER_COLD verified: catalogue pages=0, postmaster=2026-11-09 13:47:59.121359+01
+DO
+SET
+SET
+CREATE TABLE
+psql:docs/backend-cold-2026-11-09/cold-catalogue-assertions.sql:21: NOTICE:  FOOTPRINT mv_anime_top_rated-30 before:[{"Plan": {"Plans": [{"Plans": [{"Alias": "mv_anime_top_rated", "Filter": "((NOT COALESCE(is_adult, false)) AND (COALESCE(average_score, 0) >= 80) AND (COALESCE(format, ''::text) <> ALL ('{SPECIAL,MUSIC,TV_SHORT}'::text[])) AND ('Hentai'::text <> ALL (COALESCE(genres, '{}'::text[]))) AND ('Ecchi'::text <> ALL (COALESCE(genres, '{}'::text[]))))", "Node Type": "Seq Scan", "Plan Rows": 115, "Plan Width": 96, "Total Cost": 148.25, "Actual Rows": 283, "Actual Loops": 1, "Startup Cost": 0.00, "Async Capable": false, "Relation Name": "mv_anime_top_rated", "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.298, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 119, "Actual Startup Time": 0.006, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0, "Rows Removed by Filter": 426}], "Sort Key": ["(COALESCE(average_score, 0)) DESC", "id DESC"], "Node Type": "Sort", "Plan Rows": 115, "Plan Width": 96, "Total Cost": 151.93, "Actual Rows": 30, "Sort Method": "top-N heapsort", "Actual Loops": 1, "Startup Cost": 151.64, "Async Capable": false, "Parallel Aware": false, "Sort Space Type": "Memory", "Sort Space Used": 32, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.346, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 119, "Actual Startup Time": 0.345, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 96, "Total Cost": 151.72, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 151.64, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.347, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 119, "Actual Startup Time": 0.345, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 57, "Shared Read Blocks": 7, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 4, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.140, "Execution Time": 0.357}] after:[{"Plan": {"Plans": [{"Alias": "mv_anime_top_rated", "Node Type": "Index Scan", "Plan Rows": 115, "Index Cond": "(COALESCE(average_score, 0) >= 80)", "Index Name": "idx_mv_anime_score_cold_v1", "Plan Width": 96, "Total Cost": 318.29, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Relation Name": "mv_anime_top_rated", "Parallel Aware": false, "Scan Direction": "Forward", "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.062, "Local Read Blocks": 0, "Shared Hit Blocks": 6, "Shared Read Blocks": 26, "Actual Startup Time": 0.012, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0, "Rows Removed by Index Recheck": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 96, "Total Cost": 83.23, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.064, "Local Read Blocks": 0, "Shared Hit Blocks": 6, "Shared Read Blocks": 26, "Actual Startup Time": 0.013, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 79, "Shared Read Blocks": 8, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 1, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.262, "Execution Time": 0.071}]
+psql:docs/backend-cold-2026-11-09/cold-catalogue-assertions.sql:21: NOTICE:  FOOTPRINT mv_anime_trending-30 before:[{"Plan": {"Plans": [{"Plans": [{"Alias": "mv_anime_trending", "Filter": "((NOT COALESCE(is_adult, false)) AND (COALESCE(format, ''::text) <> ALL ('{SPECIAL,MUSIC,TV_SHORT}'::text[])) AND ('Hentai'::text <> ALL (COALESCE(genres, '{}'::text[]))) AND ('Ecchi'::text <> ALL (COALESCE(genres, '{}'::text[]))))", "Node Type": "Seq Scan", "Plan Rows": 1192, "Plan Width": 96, "Total Cost": 515.71, "Actual Rows": 1994, "Actual Loops": 1, "Startup Cost": 0.00, "Async Capable": false, "Relation Name": "mv_anime_trending", "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 1.104, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 421, "Actual Startup Time": 0.007, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0, "Rows Removed by Filter": 450}], "Sort Key": ["(COALESCE(trending, 0)) DESC", "id DESC"], "Node Type": "Sort", "Plan Rows": 1192, "Plan Width": 96, "Total Cost": 553.89, "Actual Rows": 30, "Sort Method": "top-N heapsort", "Actual Loops": 1, "Startup Cost": 550.91, "Async Capable": false, "Parallel Aware": false, "Sort Space Type": "Memory", "Sort Space Used": 31, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 1.357, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 421, "Actual Startup Time": 1.357, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 96, "Total Cost": 550.99, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 550.91, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 1.359, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 421, "Actual Startup Time": 1.357, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 47, "Shared Read Blocks": 5, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 3, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.179, "Execution Time": 1.367}] after:[{"Plan": {"Plans": [{"Alias": "mv_anime_trending", "Node Type": "Index Scan", "Plan Rows": 1192, "Index Name": "idx_mv_anime_trending_cold_v1", "Plan Width": 96, "Total Cost": 1722.16, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Relation Name": "mv_anime_trending", "Parallel Aware": false, "Scan Direction": "Forward", "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.078, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 32, "Actual Startup Time": 0.010, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 96, "Total Cost": 43.61, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.080, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 32, "Actual Startup Time": 0.011, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 65, "Shared Read Blocks": 6, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 1, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.252, "Execution Time": 0.087}]
+psql:docs/backend-cold-2026-11-09/cold-catalogue-assertions.sql:21: NOTICE:  FOOTPRINT mv_manga_top_rated-30 before:[{"Plan": {"Plans": [{"Plans": [{"Alias": "mv_manga_top_rated", "Filter": "((NOT COALESCE(is_adult, false)) AND (COALESCE(average_score, 0) >= 80) AND ('Hentai'::text <> ALL (COALESCE(genres, '{}'::text[]))) AND ('Ecchi'::text <> ALL (COALESCE(genres, '{}'::text[]))))", "Node Type": "Seq Scan", "Plan Rows": 131, "Plan Width": 100, "Total Cost": 161.70, "Actual Rows": 360, "Actual Loops": 1, "Startup Cost": 0.00, "Async Capable": false, "Relation Name": "mv_manga_top_rated", "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.313, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 132, "Actual Startup Time": 0.007, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0, "Rows Removed by Filter": 432}], "Sort Key": ["(COALESCE(average_score, 0)) DESC", "id DESC"], "Node Type": "Sort", "Plan Rows": 131, "Plan Width": 100, "Total Cost": 165.90, "Actual Rows": 30, "Sort Method": "top-N heapsort", "Actual Loops": 1, "Startup Cost": 165.57, "Async Capable": false, "Parallel Aware": false, "Sort Space Type": "Memory", "Sort Space Used": 32, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.367, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 132, "Actual Startup Time": 0.366, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 100, "Total Cost": 165.64, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 165.57, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.368, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 132, "Actual Startup Time": 0.366, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 50, "Shared Read Blocks": 3, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 1, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.122, "Execution Time": 0.373}] after:[{"Plan": {"Plans": [{"Alias": "mv_manga_top_rated", "Node Type": "Index Scan", "Plan Rows": 131, "Index Cond": "(COALESCE(average_score, 0) >= 80)", "Index Name": "idx_mv_manga_score_cold_v1", "Plan Width": 100, "Total Cost": 358.57, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Relation Name": "mv_manga_top_rated", "Parallel Aware": false, "Scan Direction": "Forward", "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.075, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 32, "Actual Startup Time": 0.012, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0, "Rows Removed by Index Recheck": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 100, "Total Cost": 82.33, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.077, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 32, "Actual Startup Time": 0.012, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 67, "Shared Read Blocks": 4, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.194, "Execution Time": 0.081}]
+psql:docs/backend-cold-2026-11-09/cold-catalogue-assertions.sql:21: NOTICE:  FOOTPRINT mv_manga_trending-30 before:[{"Plan": {"Plans": [{"Plans": [{"Alias": "mv_manga_trending", "Filter": "((NOT COALESCE(is_adult, false)) AND ('Hentai'::text <> ALL (COALESCE(genres, '{}'::text[]))) AND ('Ecchi'::text <> ALL (COALESCE(genres, '{}'::text[]))))", "Node Type": "Seq Scan", "Plan Rows": 1094, "Plan Width": 100, "Total Cost": 446.35, "Actual Rows": 2106, "Actual Loops": 1, "Startup Cost": 0.00, "Async Capable": false, "Relation Name": "mv_manga_trending", "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.877, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 369, "Actual Startup Time": 0.005, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0, "Rows Removed by Filter": 104}], "Sort Key": ["(COALESCE(trending, 0)) DESC", "id DESC"], "Node Type": "Sort", "Plan Rows": 1094, "Plan Width": 100, "Total Cost": 481.40, "Actual Rows": 30, "Sort Method": "top-N heapsort", "Actual Loops": 1, "Startup Cost": 478.66, "Async Capable": false, "Parallel Aware": false, "Sort Space Type": "Memory", "Sort Space Used": 33, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 1.340, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 369, "Actual Startup Time": 1.340, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 100, "Total Cost": 478.74, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 478.66, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 1.342, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 369, "Actual Startup Time": 1.340, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 50, "Shared Read Blocks": 2, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.107, "Execution Time": 1.347}] after:[{"Plan": {"Plans": [{"Alias": "mv_manga_trending", "Node Type": "Index Scan", "Plan Rows": 1094, "Index Name": "idx_mv_manga_trending_cold_v1", "Plan Width": 100, "Total Cost": 1512.69, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Relation Name": "mv_manga_trending", "Parallel Aware": false, "Scan Direction": "Forward", "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.024, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 9, "Actual Startup Time": 0.009, "Parent Relationship": "Outer", "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}], "Node Type": "Limit", "Plan Rows": 30, "Plan Width": 100, "Total Cost": 41.75, "Actual Rows": 30, "Actual Loops": 1, "Startup Cost": 0.28, "Async Capable": false, "Parallel Aware": false, "Local Hit Blocks": 0, "Temp Read Blocks": 0, "Actual Total Time": 0.025, "Local Read Blocks": 0, "Shared Hit Blocks": 0, "Shared Read Blocks": 9, "Actual Startup Time": 0.009, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Planning": {"Local Hit Blocks": 0, "Temp Read Blocks": 0, "Local Read Blocks": 0, "Shared Hit Blocks": 67, "Shared Read Blocks": 3, "Temp Written Blocks": 0, "Local Dirtied Blocks": 0, "Local Written Blocks": 0, "Shared Dirtied Blocks": 0, "Shared Written Blocks": 0}, "Triggers": [], "Planning Time": 0.183, "Execution Time": 0.028}]
+DO
+DO
+ set_config 
+------------
+ 0.35
+(1 row)
+
+DO
+REFRESH MATERIALIZED VIEW
+REFRESH MATERIALIZED VIEW
+REFRESH MATERIALIZED VIEW
+REFRESH MATERIALIZED VIEW
+REFRESH MATERIALIZED VIEW
+DO
+ passed_assertions 
+-------------------
+                79
+(1 row)
+
+         name          | before_hit | before_read | after_hit | after_read 
+-----------------------+------------+-------------+-----------+------------
+ mv_anime_top_rated-30 | 0          | 119         | 6         | 26
+ mv_anime_trending-30  | 0          | 421         | 0         | 32
+ mv_manga_top_rated-30 | 0          | 132         | 0         | 32
+ mv_manga_trending-30  | 0          | 369         | 0         | 9
+ realm-cozy            | 43675      | 761         | 1         | 205
+(5 rows)
+
+            relname            |  bytes  
+-------------------------------+---------
+ idx_mv_anime_score_cold_v1    |   32768
+ idx_mv_anime_trending_cold_v1 |   65536
+ idx_mv_manga_score_cold_v1    |   40960
+ idx_mv_manga_trending_cold_v1 |   65536
+ idx_realm_mood_cold_v1        | 9560064
+(5 rows)
+

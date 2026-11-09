@@ -1,0 +1,35 @@
+[
+  {
+    "active": true,
+    "end_time": "2026-11-09 00:30:31.41814+00",
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "return_message": "1 row",
+    "runid": 99466,
+    "schedule": "*/15 * * * *",
+    "start_time": "2026-11-09 00:30:00.41173+00",
+    "status": "succeeded"
+  },
+  {
+    "active": true,
+    "end_time": "2026-11-09 00:30:00.511271+00",
+    "jobid": 112,
+    "jobname": "manga-chapter-enrich-15m",
+    "return_message": "1 row",
+    "runid": 99467,
+    "schedule": "*/15 * * * *",
+    "start_time": "2026-11-09 00:30:00.431965+00",
+    "status": "succeeded"
+  },
+  {
+    "active": true,
+    "end_time": "2026-11-09 00:30:00.526592+00",
+    "jobid": 87,
+    "jobname": "realm-similar-drive-5m",
+    "return_message": "1 row",
+    "runid": 99468,
+    "schedule": "*/5 * * * *",
+    "start_time": "2026-11-09 00:30:00.439815+00",
+    "status": "succeeded"
+  }
+]

@@ -1,0 +1,81 @@
+{
+  "cron_runs": [
+    {
+      "duration_seconds": "8.0700",
+      "end_time": "2026-11-09 10:15:08.287756+00",
+      "runid": 99788,
+      "start_time": "2026-11-09 10:15:00.217744+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.2893",
+      "end_time": "2026-11-09 10:16:00.355234+00",
+      "runid": 99792,
+      "start_time": "2026-11-09 10:16:00.065969+00",
+      "status": "succeeded"
+    }
+  ],
+  "observations": [
+    {
+      "checked_at": "2026-11-09T10:15:03.284410+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 10:15:00.223332+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 60,
+        "processed": 20
+      }
+    },
+    {
+      "checked_at": "2026-11-09T10:15:24.779171+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 10:15:00.223332+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 60,
+        "processed": 20
+      }
+    },
+    {
+      "checked_at": "2026-11-09T10:15:46.064358+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 10:15:00.223332+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 60,
+        "processed": 20
+      }
+    },
+    {
+      "checked_at": "2026-11-09T10:16:10.283818+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 10:15:00.223332+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 10:16:00.066443+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 55,
+        "processed": 25
+      }
+    }
+  ],
+  "observed_from": "2026-11-09T10:14:59.544117+00:00"
+}

@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-11-09T12:23:08.953681+00:00",
+  "passed": true,
+  "sequence_complete": true,
+  "cleanup_passed": true,
+  "derived_medium_passed": true,
+  "isolation_passed": true,
+  "large_profiles_passed": true,
+  "wired_route_observed": true,
+  "database_monitor_healthy": true,
+  "host_observer_healthy": true,
+  "real_worker_backlog_exercised": true,
+  "post_cleanup_live_readback": true,
+  "approved_recommend_source_verified": true,
+  "reviewed_indexes_ready": true,
+  "completed": 16500,
+  "errors": 0,
+  "dropped": 0,
+  "cold_call_failure_retained": "r12-warmup-5rps.json",
+  "v55_cold_call_failure_retained": "r14-warmup-5rps.json",
+  "previous_tail_failure_retained": "r13-soak-20rps.json"
+}

@@ -1,0 +1,53 @@
+{
+  "checked_at": "2026-11-09T09:50:15.669188+00:00",
+  "samples": [
+    {
+      "items": 18,
+      "ms": 1051.58,
+      "prompt": "something cozy",
+      "round": 0,
+      "status": 200,
+      "success": true
+    },
+    {
+      "items": 18,
+      "ms": 765.58,
+      "prompt": "premium action anime",
+      "round": 0,
+      "status": 200,
+      "success": true
+    },
+    {
+      "items": 17,
+      "ms": 735.59,
+      "prompt": "sad but hopeful",
+      "round": 0,
+      "status": 200,
+      "success": true
+    },
+    {
+      "items": 18,
+      "ms": 658.47,
+      "prompt": "something cozy",
+      "round": 1,
+      "status": 200,
+      "success": true
+    },
+    {
+      "items": 18,
+      "ms": 966.03,
+      "prompt": "premium action anime",
+      "round": 1,
+      "status": 200,
+      "success": true
+    },
+    {
+      "items": 17,
+      "ms": 680.87,
+      "prompt": "sad but hopeful",
+      "round": 1,
+      "status": 200,
+      "success": true
+    }
+  ]
+}

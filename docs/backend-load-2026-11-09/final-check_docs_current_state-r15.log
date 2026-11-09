@@ -1,0 +1,9 @@
+=== Current-State Docs Check ===
+
+PASS: shared policy, 16 routes, references and Claude adapter
+PASS
+- app_swift=293
+- package_swift=33
+- migrations=250
+
+Current-state docs PASSED.

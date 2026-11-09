@@ -1,0 +1,60 @@
+{
+  "checked_at": "2026-11-09T12:34:12.478598+00:00",
+  "results": [
+    {
+      "execution_ms": 233.767,
+      "management_total_ms": 628.67,
+      "name": "search_manga_inner",
+      "pass": 0,
+      "planning_ms": 7.698,
+      "shared_hits": 2797,
+      "shared_reads": 0
+    },
+    {
+      "execution_ms": 233.828,
+      "management_total_ms": 814.12,
+      "name": "search_manga_inner",
+      "pass": 1,
+      "planning_ms": 7.683,
+      "shared_hits": 2797,
+      "shared_reads": 0
+    },
+    {
+      "execution_ms": 1823.311,
+      "management_total_ms": 2154.54,
+      "name": "mood_anime_cozy_sql",
+      "pass": 0,
+      "planning_ms": 0.086,
+      "shared_hits": 9683,
+      "shared_reads": 7
+    },
+    {
+      "execution_ms": 60.669,
+      "management_total_ms": 888.3,
+      "name": "mood_anime_cozy_sql",
+      "pass": 1,
+      "planning_ms": 0.084,
+      "shared_hits": 9690,
+      "shared_reads": 0
+    },
+    {
+      "execution_ms": 732.48,
+      "management_total_ms": 1115.74,
+      "name": "discover_signed_out_sql",
+      "pass": 0,
+      "planning_ms": 0.013,
+      "shared_hits": 5585,
+      "shared_reads": 42
+    },
+    {
+      "execution_ms": 57.581,
+      "management_total_ms": 490.26,
+      "name": "discover_signed_out_sql",
+      "pass": 1,
+      "planning_ms": 0.015,
+      "shared_hits": 5627,
+      "shared_reads": 0
+    }
+  ],
+  "scope": "Explicit read-only transaction using admin Management role; signed out, not ordinary-user capacity proof. First connection discards only its own plans; no global cache eviction/restart. Second request may use a different backend."
+}

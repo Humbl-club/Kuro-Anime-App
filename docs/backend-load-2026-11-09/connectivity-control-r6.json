@@ -1,0 +1,500 @@
+{
+  "samples": [
+    {
+      "at": "2026-11-09T10:04:23.610022+00:00",
+      "auth_health": {
+        "ms": 196.97,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 280.0,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:04:28.912694+00:00",
+      "auth_health": {
+        "ms": 390.67,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 135.68,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:04:34.309018+00:00",
+      "auth_health": {
+        "ms": 109.09,
+        "status": 200
+      },
+      "management_project": {
+        "error_type": "timeout",
+        "ms": 8049.55
+      }
+    },
+    {
+      "at": "2026-11-09T10:04:47.389771+00:00",
+      "auth_health": {
+        "ms": 115.53,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 179.82,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:04:52.640353+00:00",
+      "auth_health": {
+        "ms": 108.32,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 162.84,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:04:57.843345+00:00",
+      "auth_health": {
+        "ms": 101.72,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 144.52,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:03.012719+00:00",
+      "auth_health": {
+        "ms": 93.83,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 182.27,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:08.218670+00:00",
+      "auth_health": {
+        "ms": 89.73,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 143.75,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:13.388917+00:00",
+      "auth_health": {
+        "ms": 153.23,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 216.16,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:18.631446+00:00",
+      "auth_health": {
+        "ms": 162.63,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 199.19,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:23.854983+00:00",
+      "auth_health": {
+        "ms": 193.46,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 227.84,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:29.103768+00:00",
+      "auth_health": {
+        "ms": 220.38,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 194.72,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:34.335420+00:00",
+      "auth_health": {
+        "ms": 186.92,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 216.11,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:39.586943+00:00",
+      "auth_health": {
+        "ms": 194.32,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 195.2,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:44.808494+00:00",
+      "auth_health": {
+        "ms": 241.22,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 314.27,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:50.148686+00:00",
+      "auth_health": {
+        "ms": 102.91,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 144.76,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:05:55.321484+00:00",
+      "auth_health": {
+        "ms": 163.28,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 203.53,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:00.550985+00:00",
+      "auth_health": {
+        "ms": 184.74,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 272.92,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:05.849903+00:00",
+      "auth_health": {
+        "ms": 229.4,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 289.74,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:11.173920+00:00",
+      "auth_health": {
+        "ms": 91.53,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 140.8,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:16.341158+00:00",
+      "auth_health": {
+        "ms": 121.2,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 183.29,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:21.552141+00:00",
+      "auth_health": {
+        "ms": 154.58,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 202.37,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:26.777747+00:00",
+      "auth_health": {
+        "ms": 165.59,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 417.59,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:32.219879+00:00",
+      "auth_health": {
+        "ms": 103.47,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 156.78,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:37.399459+00:00",
+      "auth_health": {
+        "ms": 126.64,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 180.87,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:42.606215+00:00",
+      "auth_health": {
+        "ms": 111.2,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 163.56,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:47.802412+00:00",
+      "auth_health": {
+        "ms": 112.41,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 144.06,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:52.983405+00:00",
+      "auth_health": {
+        "ms": 173.96,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 205.87,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:06:58.229022+00:00",
+      "auth_health": {
+        "ms": 202.44,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 226.07,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:03.489251+00:00",
+      "auth_health": {
+        "ms": 159.8,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 236.7,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:08.757726+00:00",
+      "auth_health": {
+        "ms": 128.57,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 168.79,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:13.956401+00:00",
+      "auth_health": {
+        "ms": 180.94,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 198.79,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:19.189700+00:00",
+      "auth_health": {
+        "ms": 219.39,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 230.25,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:24.457010+00:00",
+      "auth_health": {
+        "ms": 146.07,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 196.23,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:29.684155+00:00",
+      "auth_health": {
+        "ms": 205.31,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 842.44,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:35.560264+00:00",
+      "auth_health": {
+        "ms": 104.1,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 163.38,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:40.759223+00:00",
+      "auth_health": {
+        "ms": 115.46,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 150.83,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:45.943777+00:00",
+      "auth_health": {
+        "ms": 172.62,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 213.02,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:51.195869+00:00",
+      "auth_health": {
+        "ms": 197.53,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 204.06,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:07:56.437252+00:00",
+      "auth_health": {
+        "ms": 177.8,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 280.3,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:08:01.753671+00:00",
+      "auth_health": {
+        "ms": 95.51,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 147.25,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:08:06.940661+00:00",
+      "auth_health": {
+        "ms": 159.83,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 166.25,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:08:12.135561+00:00",
+      "auth_health": {
+        "ms": 179.02,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 226.3,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:08:17.391165+00:00",
+      "auth_health": {
+        "ms": 183.36,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 235.61,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:08:22.658143+00:00",
+      "auth_health": {
+        "ms": 1266.46,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 1296.51,
+        "status": 200
+      }
+    }
+  ],
+  "scope": "Independent HTTPS control requests; no library/database workload, no automatic traffic retries. Started after failed R5 burst to investigate path-wide latency."
+}

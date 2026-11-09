@@ -1,0 +1,6 @@
+{
+  "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+  "sha256": "22ace7dc146ec8581af758e9b77450c775fc60d146c1fc77f689d15ddf3540b9",
+  "deployed_version_before": 54,
+  "capacity_status": "R13 failed large-library Recommend p95 2614.42ms, n=3"
+}

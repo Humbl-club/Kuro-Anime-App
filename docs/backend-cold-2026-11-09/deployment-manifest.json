@@ -1,0 +1,115 @@
+{
+  "status": "PREPARED_NOT_DEPLOYED_COLD_CAPACITY_UNPROVEN",
+  "created_at": "2026-11-09T12:53:29.876718+00:00",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "migration": "supabase/prepared-migrations/20261109123758_cold_catalogue_reads_v1.sql",
+  "files": [
+    {
+      "path": "supabase/prepared-migrations/20261109123758_cold_catalogue_reads_v1.sql",
+      "sha256": "c1acc7f38a955b87a66b4283f0369ca35a897b75c6efde6f33010aa47b9c9278"
+    },
+    {
+      "path": "scripts/load/backend_cold_gate.js",
+      "sha256": "7ff8db0c5cfd31b5a2da5faa17f4e7f760d53341fe8e95f15019bb0e13ad820d"
+    },
+    {
+      "path": "scripts/load/backend_cold_gate.test.js",
+      "sha256": "6d2418c5d9a40b65e6c935ed3d2585da4697a535e71ec8c2e3a4c1f2b15eb3e8"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/INSTALL-CACHE-INSPECTION.sql",
+      "sha256": "ec12ea856ff71667e3dcc371eab177f11847ff9823574d5474339918023199ac"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/READ-CACHE-STATE.sql",
+      "sha256": "71767ff498944cfaac0a1778fa3a3f7446691aa1ea58a0f50d048e9b4067ad1e"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/REMOVE-CACHE-INSPECTION.sql",
+      "sha256": "edb8dea9c3c8c1fdf4a391fa44dc510b68fb99f78759fd290790a09d58173bc2"
+    }
+  ],
+  "edge_same_source_redeploys": {
+    "concierge-parse": [
+      {
+        "path": "supabase/functions/_shared/alias_normalization.ts",
+        "sha256": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673"
+      },
+      {
+        "path": "supabase/functions/_shared/normalization.ts",
+        "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+      },
+      {
+        "path": "supabase/functions/_shared/rate_limit_gate.ts",
+        "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/handler.ts",
+        "sha256": "8303c891879839cbe9ac0613f797d257e67c5c19e6324ff769bae82653c054d3"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/index.ts",
+        "sha256": "c55a8f3cba01e7fcb6e0b993abcecc0c605b1f0cf01715c117039bca3bccac47"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/parse_repository.ts",
+        "sha256": "248dacd964388c905f6924b2d8219fd6cc63496cb8e6b79e0b6d40b661c72c41"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/rules.ts",
+        "sha256": "9750d2134cb72944d0593974b3cd269a3ec3ce8840ee332c479321bc55ed27e9"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/search_plan.ts",
+        "sha256": "f6ed30f6306074d5a63195cc7a5546106a9fb6a63bdff371e899d8ed74019276"
+      }
+    ],
+    "concierge-recommend": [
+      {
+        "path": "supabase/functions/_shared/rate_limit_gate.ts",
+        "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+        "sha256": "49b88d972cec80199a86ef58bca6cf0f17fb5d77300d50af918484c9ad7af92b"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/curated_copy.ts",
+        "sha256": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/handler.ts",
+        "sha256": "f70117167f7292b6f9ac317a01ecd62db04aef950d771e311eea846f9fcf3824"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/index.ts",
+        "sha256": "4792b3d7cec776723bd6d77ecdf06dd690146187a40b884b2615f5e85c3bd6ed"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/narration.ts",
+        "sha256": "0cbe95a6aeaf2be35641d9c018db6f524a785e10e5b190666c6f6476e541dd1a"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/rail_policy.ts",
+        "sha256": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/router.ts",
+        "sha256": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921"
+      }
+    ]
+  },
+  "edge_versions_before": {
+    "concierge-parse": 49,
+    "concierge-recommend": 55
+  },
+  "new_indexes": 5,
+  "new_tables": 0,
+  "rpc_bodies_changed": 0,
+  "function_settings_changed": 2,
+  "production_restart_count_limit": 1,
+  "temporary_cache_inspector": "pg_buffercache1.5; client execution revoked; no eviction calls; remove only if created by this experiment",
+  "slo_changes": false,
+  "fixture_accounts_to_create": 100,
+  "prior_fixtures": "all500 accounts/25clubs already clean; no sixth cohort created yet"
+}

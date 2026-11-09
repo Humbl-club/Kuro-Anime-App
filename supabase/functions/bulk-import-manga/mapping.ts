@@ -3,6 +3,7 @@
 // relations. Anime mapping stays in bulk-import-anime; the row shapes differ.
 
 import { characterAge, preserveExistingColumns } from "../bulk-import-anime/mapping.ts";
+import { writeWithMALConflict } from "../_shared/catalog_identity.ts";
 
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
 
@@ -93,13 +94,21 @@ export async function processMangaItem(
     // Existing row: an UPDATE by id with only the columns that may change (anilist_id stays out
     // of the SET list; mirrored images and unchanged description/synopsis state are kept).
     const { anilist_id: _anilistId, ...rest } = writable;
-    const { error: mangaError } = await supabase.from('manga').update(preserveExistingColumns(rest, existing)).eq('id', existing.id);
+    const { error: mangaError } = await writeWithMALConflict('manga', (omitMalId) => {
+      const payload = preserveExistingColumns(rest, existing);
+      if (omitMalId) delete payload.mal_id;
+      return supabase.from('manga').update(payload).eq('id', existing.id);
+    }, results, { anilistId: manga.id, malId: manga.idMal });
     if (mangaError) throw mangaError;
     insertedManga = { id: existing.id };
   } else {
-    const { data, error: mangaError } = await supabase.from('manga').upsert(writable, { onConflict: 'anilist_id' }).select('id').single();
+    const { data, error: mangaError } = await writeWithMALConflict('manga', (omitMalId) => {
+      const payload = { ...writable };
+      if (omitMalId) delete payload.mal_id;
+      return supabase.from('manga').upsert(payload, { onConflict: 'anilist_id' }).select('id').single();
+    }, results, { anilistId: manga.id, malId: manga.idMal });
     if (mangaError) throw mangaError;
-    insertedManga = data;
+    insertedManga = data as { id: number };
   }
   results.manga++;
 

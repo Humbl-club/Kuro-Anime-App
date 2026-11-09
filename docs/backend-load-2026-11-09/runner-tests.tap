@@ -1,0 +1,94 @@
+TAP version 13
+# Subtest: cleanup refuses a mismatched provenance before any deletion
+ok 1 - cleanup refuses a mismatched provenance before any deletion
+  ---
+  duration_ms: 13.478083
+  type: 'test'
+  ...
+# Subtest: cleanup refuses a token for a different account
+ok 2 - cleanup refuses a token for a different account
+  ---
+  duration_ms: 254.740708
+  type: 'test'
+  ...
+# Subtest: already absent identities are acknowledged without a deletion request
+ok 3 - already absent identities are acknowledged without a deletion request
+  ---
+  duration_ms: 1.777542
+  type: 'test'
+  ...
+# Subtest: lookalike origins and customer inventories fail before network access
+ok 4 - lookalike origins and customer inventories fail before network access
+  ---
+  duration_ms: 3.047041
+  type: 'test'
+  ...
+# Subtest: catalogue seeds page through the PostgREST1000-row cap
+ok 5 - catalogue seeds page through the PostgREST1000-row cap
+  ---
+  duration_ms: 758.379458
+  type: 'test'
+  ...
+# Subtest: fixed arrival scheduling counts saturated starts instead of slowing offered traffic
+ok 6 - fixed arrival scheduling counts saturated starts instead of slowing offered traffic
+  ---
+  duration_ms: 805.182166
+  type: 'test'
+  ...
+# Subtest: a configured safety stop prevents sending the first request
+ok 7 - a configured safety stop prevents sending the first request
+  ---
+  duration_ms: 1.452
+  type: 'test'
+  ...
+# Subtest: exact origin, explicit mode and bounded limits reject unsafe runs
+ok 8 - exact origin, explicit mode and bounded limits reject unsafe runs
+  ---
+  duration_ms: 1.264708
+  type: 'test'
+  ...
+# Subtest: nearest rank percentiles preserve tail values
+ok 9 - nearest rank percentiles preserve tail values
+  ---
+  duration_ms: 0.141417
+  type: 'test'
+  ...
+# Subtest: errors, lost arrivals and slow successful replies cannot pass
+ok 10 - errors, lost arrivals and slow successful replies cannot pass
+  ---
+  duration_ms: 0.263625
+  type: 'test'
+  ...
+# Subtest: workload represents bounded real RPCs; paid narration stays off
+ok 11 - workload represents bounded real RPCs; paid narration stays off
+  ---
+  duration_ms: 0.486542
+  type: 'test'
+  ...
+# Subtest: HTTP200 empty failures do not masquerade as working personalized pages
+ok 12 - HTTP200 empty failures do not masquerade as working personalized pages
+  ---
+  duration_ms: 0.113958
+  type: 'test'
+  ...
+# Subtest: tracking must be applied with matching receipt; conflicts do not count as success
+ok 13 - tracking must be applied with matching receipt; conflicts do not count as success
+  ---
+  duration_ms: 0.132041
+  type: 'test'
+  ...
+# Subtest: parser response belongs to the caller; deterministic recommendations contain content
+ok 14 - parser response belongs to the caller; deterministic recommendations contain content
+  ---
+  duration_ms: 0.052291
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1071.848583

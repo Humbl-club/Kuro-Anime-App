@@ -1,0 +1,200 @@
+{
+  "catalogue_import_checkpoints": [
+    {
+      "last_page": 45,
+      "media_type": "ANIME",
+      "updated_at": "2026-11-08 23:05:04.643+00"
+    },
+    {
+      "last_page": 63,
+      "media_type": "MANGA",
+      "updated_at": "2026-11-08 23:35:05.473+00"
+    }
+  ],
+  "commands_omitted": true,
+  "dispatch_boundary": "For jobs that enqueue HTTP, cron success proves dispatch only. Checkpoint timestamps show importer progress, not complete-catalogue success.",
+  "observed_from": "2026-11-09T12:06:39.935105+00:00",
+  "observed_until": "2026-11-09T12:20:10.052109+00:00",
+  "runs": [
+    {
+      "duration_seconds": 0.358163,
+      "end_time": "2026-11-09 12:07:00.413767+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99942,
+      "start_time": "2026-11-09 12:07:00.055604+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.350348,
+      "end_time": "2026-11-09 12:08:00.402609+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99943,
+      "start_time": "2026-11-09 12:08:00.052261+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.254818,
+      "end_time": "2026-11-09 12:09:00.320257+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99944,
+      "start_time": "2026-11-09 12:09:00.065439+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.247363,
+      "end_time": "2026-11-09 12:10:00.561674+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99945,
+      "start_time": "2026-11-09 12:10:00.314311+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.023123,
+      "end_time": "2026-11-09 12:10:00.34508+00",
+      "jobid": 87,
+      "jobname": "realm-similar-drive-5m",
+      "runid": 99947,
+      "start_time": "2026-11-09 12:10:00.321957+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.024044,
+      "end_time": "2026-11-09 12:10:00.350785+00",
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "runid": 99946,
+      "start_time": "2026-11-09 12:10:00.326741+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.272169,
+      "end_time": "2026-11-09 12:11:00.344461+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99948,
+      "start_time": "2026-11-09 12:11:00.072292+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.596663,
+      "end_time": "2026-11-09 12:12:01.030692+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99949,
+      "start_time": "2026-11-09 12:12:00.434029+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 5.507801,
+      "end_time": "2026-11-09 12:13:05.62326+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99950,
+      "start_time": "2026-11-09 12:13:00.115459+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.450596,
+      "end_time": "2026-11-09 12:14:00.536549+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99951,
+      "start_time": "2026-11-09 12:14:00.085953+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.519099,
+      "end_time": "2026-11-09 12:15:00.804445+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99952,
+      "start_time": "2026-11-09 12:15:00.285346+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 3.292168,
+      "end_time": "2026-11-09 12:15:03.616116+00",
+      "jobid": 87,
+      "jobname": "realm-similar-drive-5m",
+      "runid": 99955,
+      "start_time": "2026-11-09 12:15:00.323948+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.105154,
+      "end_time": "2026-11-09 12:15:00.536092+00",
+      "jobid": 112,
+      "jobname": "manga-chapter-enrich-15m",
+      "runid": 99953,
+      "start_time": "2026-11-09 12:15:00.430938+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.053625,
+      "end_time": "2026-11-09 12:15:00.494773+00",
+      "jobid": 18,
+      "jobname": "rag-cache-cleanup",
+      "runid": 99954,
+      "start_time": "2026-11-09 12:15:00.441148+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.419618,
+      "end_time": "2026-11-09 12:16:00.657756+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99956,
+      "start_time": "2026-11-09 12:16:00.238138+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.439477,
+      "end_time": "2026-11-09 12:17:00.534921+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99957,
+      "start_time": "2026-11-09 12:17:00.095444+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.480095,
+      "end_time": "2026-11-09 12:18:00.568106+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99958,
+      "start_time": "2026-11-09 12:18:00.088011+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.242484,
+      "end_time": "2026-11-09 12:19:00.343687+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99959,
+      "start_time": "2026-11-09 12:19:00.101203+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.531904,
+      "end_time": "2026-11-09 12:20:00.574581+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 99960,
+      "start_time": "2026-11-09 12:20:00.042677+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": 0.082041,
+      "end_time": "2026-11-09 12:20:00.129698+00",
+      "jobid": 87,
+      "jobname": "realm-similar-drive-5m",
+      "runid": 99961,
+      "start_time": "2026-11-09 12:20:00.047657+00",
+      "status": "succeeded"
+    }
+  ]
+}

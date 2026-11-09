@@ -22,7 +22,7 @@ import KuroLibrary
 ///
 /// Each is stored as one Taste deck signal, so the Taste deck and Discover share one memory per
 /// title (`record_taste_deck_signal` keeps one deck signal per user and title).
-enum DiscoverFeedback: String, Codable, Sendable, CaseIterable {
+nonisolated enum DiscoverFeedback: String, Codable, Sendable, CaseIterable {
     case notInterested = "not_interested"
     case seenIt = "seen_it"
 
@@ -120,14 +120,17 @@ nonisolated struct DiscoverDeckSignalRow: Decodable, Sendable {
 ///
 /// Merge rule: hidden = snapshot, then every overlay entry in order (a hide adds, an undo removes).
 /// An overlay entry is pruned once a server read shows the same state for its title, and after
-/// `overlayLifetime` regardless (the outbox gives up after five attempts; the answer then stays
-/// local for at most this long).
+/// `overlayLifetime` regardless. Pending delivery is persisted separately and survives relaunch;
+/// the same lifetime and capacity bound that work.
 nonisolated struct DiscoverHiddenMemory: Codable, Equatable, Sendable {
     nonisolated struct Entry: Codable, Equatable, Sendable {
         let ref: DiscoverMediaRef
         /// The wanted Discover state of the title: hidden with this answer, or visible (nil, an Undo).
         let state: DiscoverFeedback?
         let at: Date
+        /// Optional for compatibility with feedback saved before durable delivery existed.
+        var deliveryAction: TasteDeckAction? = nil
+        var acknowledged: Bool? = nil
     }
 
     /// The hiding answers of the last successful server read.
@@ -154,10 +157,10 @@ nonisolated struct DiscoverHiddenMemory: Codable, Equatable, Sendable {
     }
 
     /// Records a device answer (replacing an earlier one for the same title).
-    mutating func record(_ key: MediaKey, state: DiscoverFeedback?, at: Date) {
+    mutating func record(_ key: MediaKey, state: DiscoverFeedback?, at: Date, action: TasteDeckAction? = nil) {
         let ref = DiscoverMediaRef(key)
         overlay.removeAll { $0.ref == ref }
-        overlay.append(Entry(ref: ref, state: state, at: at))
+        overlay.append(Entry(ref: ref, state: state, at: at, deliveryAction: action ?? state?.deckAction ?? .retract))
         if overlay.count > Self.overlayCapacity {
             overlay.removeFirst(overlay.count - Self.overlayCapacity)
         }

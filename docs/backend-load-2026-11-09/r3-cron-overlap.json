@@ -1,0 +1,65 @@
+[
+  {
+    "end_time": "2026-11-09 09:23:00.299763+00",
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "runid": 99718,
+    "seconds": "0.2664",
+    "start_time": "2026-11-09 09:23:00.033371+00",
+    "status": "succeeded"
+  },
+  {
+    "end_time": "2026-11-09 09:24:00.605893+00",
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "runid": 99719,
+    "seconds": "0.4880",
+    "start_time": "2026-11-09 09:24:00.117909+00",
+    "status": "succeeded"
+  },
+  {
+    "end_time": "2026-11-09 09:25:08.201923+00",
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "runid": 99720,
+    "seconds": "7.3322",
+    "start_time": "2026-11-09 09:25:00.869727+00",
+    "status": "succeeded"
+  },
+  {
+    "end_time": "2026-11-09 09:25:01.755329+00",
+    "jobid": 116,
+    "jobname": "kuro-release-intake-airing-hourly",
+    "runid": 99721,
+    "seconds": "0.8691",
+    "start_time": "2026-11-09 09:25:00.886262+00",
+    "status": "succeeded"
+  },
+  {
+    "end_time": "2026-11-09 09:25:01.753859+00",
+    "jobid": 87,
+    "jobname": "realm-similar-drive-5m",
+    "runid": 99722,
+    "seconds": "0.8577",
+    "start_time": "2026-11-09 09:25:00.896144+00",
+    "status": "succeeded"
+  },
+  {
+    "end_time": "2026-11-09 09:26:00.815975+00",
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "runid": 99723,
+    "seconds": "0.4889",
+    "start_time": "2026-11-09 09:26:00.327044+00",
+    "status": "succeeded"
+  },
+  {
+    "end_time": "2026-11-09 09:27:04.705088+00",
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "runid": 99724,
+    "seconds": "4.5775",
+    "start_time": "2026-11-09 09:27:00.127624+00",
+    "status": "succeeded"
+  }
+]

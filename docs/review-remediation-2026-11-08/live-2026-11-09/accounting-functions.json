@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "concierge-recommend",
+    "status": "ACTIVE",
+    "updated_at": 1794181704342,
+    "verify_jwt": true,
+    "version": 54
+  },
+  {
+    "slug": "concierge-resolve",
+    "status": "ACTIVE",
+    "updated_at": 1794181723638,
+    "verify_jwt": true,
+    "version": 20
+  }
+]

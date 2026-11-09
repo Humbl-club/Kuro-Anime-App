@@ -1,0 +1,2 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/fixtures/00_platform_stub.sql:173: WARNING:  "wal_level" is insufficient to publish logical changes
+HINT:  Set "wal_level" to "logical" before creating subscriptions.

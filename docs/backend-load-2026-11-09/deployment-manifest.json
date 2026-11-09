@@ -1,0 +1,31 @@
+{
+  "status": "DEPLOYED_VERIFIED_SPECIFIED_WARMED_WORKLOAD_PASSED",
+  "migration": "supabase/migrations/20261109001251_load_hotpaths_v1.sql",
+  "sha256": "cba0a3317bd9c3b4002fffbdef0958e21781728a04412bb194fb4c14709777a6",
+  "new_indexes": 18,
+  "query_rpc_replacements": [
+    "browse_anime_page",
+    "browse_manga_page",
+    "search_anime_page",
+    "search_manga_page"
+  ],
+  "jit_settings": [
+    "discover_mood_v1",
+    "discover_bundle",
+    "series_detail_bundle_v1",
+    "home_bundle_v1"
+  ],
+  "local_differential_cases": 74,
+  "sql_assertions": 5,
+  "runner_unit_tests": 14,
+  "production_baselines": [
+    "before-100users-2rps.json",
+    "before-100users-5rps.json"
+  ],
+  "no_rls_or_customer_data_changes": true,
+  "live_differential_cases": 34,
+  "approved_migration_path": "supabase/prepared-migrations/20261109001251_load_hotpaths_v1.sql",
+  "capacity_result": "REPORT.md",
+  "capacity_sequence": "capacity-sequence-r15.json",
+  "cold_call_gap_retained": true
+}

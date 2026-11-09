@@ -1,0 +1,182 @@
+{
+  "accounts_removed": 100,
+  "application_rows": [
+    {
+      "relation": "account_deletion_barriers.user_id",
+      "remaining": 100
+    },
+    {
+      "relation": "anime_comments.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "anime_user_lists.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "club_analytics.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "club_member_blocks.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "club_members.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "club_membership_signals.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "club_messages.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "club_polls.created_by",
+      "remaining": 0
+    },
+    {
+      "relation": "club_rail_item_reactions.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "club_rails.created_by",
+      "remaining": 0
+    },
+    {
+      "relation": "club_votes.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "clubs.created_by",
+      "remaining": 0
+    },
+    {
+      "relation": "concierge_events.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "concierge_mode_cache.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "concierge_parse_feedback.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "concierge_runs.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "contact_messages.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "discover_rail_impressions.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "feature_flag_overrides.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "home_publications.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "import_sessions.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "library_import_jobs.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "list_entry_tombstones.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "llm_daily_usage.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "manga_comments.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "manga_user_lists.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "mutation_receipts.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "outbound_link_events.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "profiles.id",
+      "remaining": 0
+    },
+    {
+      "relation": "rag_retrieval_feedback.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "taste_import_context.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "taste_profile_recompute_queue.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "taste_signal_events.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "taste_tag_stats.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "title_aliases.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "title_comment_reactions.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "title_comments.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "user_series_intent.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "user_streaming_services.user_id",
+      "remaining": 0
+    },
+    {
+      "relation": "user_taste_profiles.user_id",
+      "remaining": 0
+    }
+  ],
+  "application_tables_checked": 41,
+  "auth_rows_remaining": 0,
+  "checked_at": "2026-11-09T10:43:16.899340+00:00",
+  "exact_fixture_clubs_remaining": 0,
+  "intentionally_retained_security_guards": [
+    {
+      "relation": "account_deletion_barriers.user_id",
+      "remaining": 100
+    }
+  ],
+  "passed": true,
+  "retention_reason": "Existing deletion barriers outlive Auth for stale-token protection and are purged by existing seven-day policy; do not remove them as test litter.",
+  "unexpected_remaining": []
+}

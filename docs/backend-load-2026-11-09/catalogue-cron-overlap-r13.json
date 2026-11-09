@@ -1,0 +1,51 @@
+{
+  "checked_at": "2026-11-09T11:18:20.756128+00:00",
+  "jobs": [
+    {
+      "active": true,
+      "dispatcher_duration_seconds": null,
+      "end_time": null,
+      "jobid": 101,
+      "jobname": "kuro-import-anime-hourly",
+      "runid": null,
+      "schedule": "5 * * * *",
+      "start_time": null,
+      "status": null
+    },
+    {
+      "active": true,
+      "dispatcher_duration_seconds": null,
+      "end_time": null,
+      "jobid": 102,
+      "jobname": "kuro-import-anime-weekly",
+      "runid": null,
+      "schedule": "0 * * * *",
+      "start_time": null,
+      "status": null
+    },
+    {
+      "active": true,
+      "dispatcher_duration_seconds": null,
+      "end_time": null,
+      "jobid": 103,
+      "jobname": "kuro-import-manga-hourly",
+      "runid": null,
+      "schedule": "35 * * * *",
+      "start_time": null,
+      "status": null
+    },
+    {
+      "active": true,
+      "dispatcher_duration_seconds": null,
+      "end_time": null,
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "runid": null,
+      "schedule": "10 * * * *",
+      "start_time": null,
+      "status": null
+    }
+  ],
+  "observed_from": "2026-11-09T11:12:27.070437+00:00",
+  "scope_note": "Dispatcher completion is not asynchronous import completion; null runids mean no overlap yet."
+}

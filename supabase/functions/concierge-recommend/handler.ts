@@ -84,6 +84,8 @@ import {
 export interface RecommendPlatform {
   /** Client for this caller, or null when SUPABASE_URL / an API key env var is missing. */
   client(authHeader: string): SupabaseLike | null;
+  /** Service-role client ONLY for global accounting. Never receives the caller's Authorization. */
+  globalBudgetClient(): SupabaseLike | null;
   /** Environment lookup (read per request): SUPABASE_URL, GROQ_API_KEY, GROQ_MODEL. */
   env(name: "SUPABASE_URL" | "GROQ_API_KEY" | "GROQ_MODEL"): string | undefined;
   /** HTTP transport for Groq and concierge-retrieve-assist. */
@@ -186,7 +188,7 @@ export async function handleRecommend(req: Request, platform: RecommendPlatform)
         },
         {
           repo,
-          narrationBudget: supabaseNarrationBudget(client),
+          narrationBudget: supabaseNarrationBudget(client, platform.globalBudgetClient()),
           narrationProvider: (opts) => groqNarrate({ ...opts, fetch: platform.fetch }),
           groqApiKey: () => platform.env("GROQ_API_KEY"),
           groqModel: () => platform.env("GROQ_MODEL") ?? "openai/gpt-oss-20b",
