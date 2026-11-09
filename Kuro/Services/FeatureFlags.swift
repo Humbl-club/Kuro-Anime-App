@@ -58,6 +58,8 @@ final class FeatureFlags {
         foundationHydrated && seriesFoundationV1Enabled && evaluate("series_home_native_v1")
     }
     var personalizedNewToYouV1Enabled: Bool { evaluate("personalized_new_to_you_v1") }
+    /// W2: Profile > Export your list (and the export owner's own check before any request).
+    var libraryExportV1Enabled: Bool { evaluate("library_export_v1") }
     var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
 
     // MARK: - Init

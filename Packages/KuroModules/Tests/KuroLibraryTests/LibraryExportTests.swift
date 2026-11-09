@@ -60,6 +60,7 @@ struct LibraryExportTests {
 
         let defaults = complete
         #expect(defaults.organisationUnavailable == false)
+        #expect(defaults.trackingDetailUnavailable == false)
         #expect(defaults.malParts.isEmpty)
         #expect(defaults.listItemsOutsideLibrary == 0)
         #expect(defaults.failedFormats.isEmpty)
@@ -71,7 +72,8 @@ struct LibraryExportTests {
         #expect(input.customLists.isEmpty)
         #expect(input.organisationUnavailable == false)
         #expect(LibraryExportFormat.allCases.map(\.rawValue) == ["mal_xml", "csv", "json"])
-        #expect(LibraryExportGap.allCases.map(\.rawValue) == ["identity_unavailable", "organisation_unavailable"])
+        #expect(LibraryExportGap.allCases.map(\.rawValue) == ["identity_unavailable", "organisation_unavailable", "tracking_detail_unavailable"])
+        #expect(input.trackingDetailUnavailable == false)
         #expect(ExportCatalogueRow(title: nil, anilistId: nil, malId: 5).malId == 5)
     }
 
@@ -949,6 +951,36 @@ struct LibraryExportTests {
         #expect(limits.summary.notesAdjusted.count == 1 && limits.summary.datesOmitted.count == 1 && limits.summary.withoutMalId.count == 1)
         #expect(limits.summary.isComplete && limits.summary.gaps.isEmpty)
         #expect(try Self.jsonObject(limits.file("kuro-list-2026-11-09.json"))["complete"] as? Bool == true)
+    }
+
+    /// A library read without the fenced columns (`series_foundation_v1` off) holds no unit ids, progress labels,
+    /// volume progress or source fields. The JSON would otherwise say `complete: true` while every one of
+    /// those is unknown, so the service reports it as its own gap.
+    @Test func unreadTrackingDetailMakesTheExportIncompleteAndIsNamed() throws {
+        var input = Self.twoWithoutMalId()
+        input.trackingDetailUnavailable = true
+        let bundle = LibraryExport.build(input, formats: [.csv, .json], exportedAt: Self.now, timeZone: Self.berlin)
+        #expect(bundle.summary.trackingDetailUnavailable)
+        #expect(bundle.summary.gaps == [.trackingDetailUnavailable])
+        #expect(!bundle.summary.isComplete)
+        let object = try Self.jsonObject(bundle.file("kuro-list-2026-11-09.json"))
+        #expect(object["complete"] as? Bool == false)
+        #expect(object["gaps"] as? [String] == ["tracking_detail_unavailable"])
+        // The files themselves stay honest: unknown is null, never a made-up value.
+        let entries = try #require(object["entries"] as? [[String: Any]])
+        #expect(entries.allSatisfy { $0["unit_id"] is NSNull && $0["progress_label"] is NSNull })
+
+        // It combines with the other two causes; each stays visible.
+        var all = input
+        all.catalogue[MediaKey(kind: .anime, id: 1)] = nil
+        all.organisationUnavailable = true
+        let allBundle = LibraryExport.build(all, formats: [.json], exportedAt: Self.now, timeZone: Self.berlin)
+        #expect(allBundle.summary.gaps == [.identityUnavailable, .organisationUnavailable, .trackingDetailUnavailable])
+        #expect(try Self.jsonObject(allBundle.file("kuro-list-2026-11-09.json"))["gaps"] as? [String]
+                == ["identity_unavailable", "organisation_unavailable", "tracking_detail_unavailable"])
+
+        // Off by default: the other tests' complete exports stay complete.
+        #expect(LibraryExport.build(Self.twoWithoutMalId(), formats: [.json], exportedAt: Self.now, timeZone: Self.berlin).summary.isComplete)
     }
 
     @Test func buildProducesOnlyTheRequestedFormatsInAFixedOrder() throws {

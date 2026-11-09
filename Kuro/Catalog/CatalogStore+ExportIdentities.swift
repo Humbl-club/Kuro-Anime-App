@@ -27,9 +27,11 @@ extension CatalogStore {
     /// Public identity rows for `keys`: one `GET /rest/v1/{anime|manga}?select=id,anilist_id,mal_id,title_english,title_romaji,title_native&id=in.(…)`
     /// per at most `exportIdentityBatchSize` ids, anime first, sequential, ids ascending. A title the
     /// catalogue does not return is absent from the result. A failed batch leaves its own keys absent and
-    /// the remaining batches still run; this never throws. Checks `Task.isCancelled` before each batch and
-    /// returns what it has without sending further batches: cancellation is not a failed batch to skip
-    /// past (the caller's credential lease cancels this read on an account transition).
+    /// the remaining batches still run; this never throws. A transport-level failure (`URLError`: offline,
+    /// timeout, host unreachable) is different: it would repeat for every remaining batch, each one walking
+    /// through the SDK's retries, so the read stops there and returns what it has. Checks `Task.isCancelled`
+    /// before each batch and returns what it has without sending further batches: cancellation is not a
+    /// failed batch to skip past (the caller's credential lease cancels this read on an account transition).
     func exportIdentities(for keys: Set<MediaKey>) async -> [MediaKey: ExportCatalogueRow] {
         var found: [MediaKey: ExportCatalogueRow] = [:]
         for kind in [MediaKind.anime, MediaKind.manga] {
@@ -58,6 +60,7 @@ extension CatalogStore {
                     #if DEBUG
                     print("[CatalogStore] Export identity batch failed for \(kind.rawValue): \(error)")
                     #endif
+                    if error is URLError { return found }
                 }
             }
         }

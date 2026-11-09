@@ -60,6 +60,11 @@ public struct LibraryExportInput: Sendable {
     /// Set by the service when an organisation provider returned nil: JSON writes `tags` / `custom_lists` /
     /// `lists` as null instead of an empty collection.
     public var organisationUnavailable: Bool = false
+    /// Set by the service when the library was read without the fenced columns (`series_foundation_v1` off):
+    /// tracking-unit ids, progress labels, volume progress and the retained source fields are then unknown for
+    /// every entry, not absent. The files keep writing them as null; the summary reports the gap, so the
+    /// export never claims to be complete.
+    public var trackingDetailUnavailable: Bool = false
 
     /// Creates an export input. Everything after `catalogue` defaults to "nothing".
     public init(
@@ -67,13 +72,15 @@ public struct LibraryExportInput: Sendable {
         catalogue: [MediaKey: ExportCatalogueRow],
         tagsByKey: [MediaKey: [String]] = [:],
         customLists: [ExportCustomList] = [],
-        organisationUnavailable: Bool = false
+        organisationUnavailable: Bool = false,
+        trackingDetailUnavailable: Bool = false
     ) {
         self.entries = entries
         self.catalogue = catalogue
         self.tagsByKey = tagsByKey
         self.customLists = customLists
         self.organisationUnavailable = organisationUnavailable
+        self.trackingDetailUnavailable = trackingDetailUnavailable
     }
 }
 
@@ -135,6 +142,12 @@ public enum LibraryExportGap: String, Hashable, Sendable, CaseIterable {
     case identityUnavailable = "identity_unavailable"
     /// Tags / custom lists could not be loaded.
     case organisationUnavailable = "organisation_unavailable"
+    /// The library was read without the fenced columns, so tracking-unit ids, progress labels, volume
+    /// progress and the retained source fields are unknown. Summary copy: "Some tracking details (units and
+    /// import source fields) weren't loaded. Export again later to include them." / "Einige Tracking-Details
+    /// (Einheiten und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie
+    /// mitzunehmen."
+    case trackingDetailUnavailable = "tracking_detail_unavailable"
 }
 
 /// What an export contains and what it could not contain, for the summary the person sees after preparing.
@@ -157,6 +170,8 @@ public struct LibraryExportSummary: Equatable, Sendable {
     /// "Tags and lists couldn't be loaded. Export again when you're online to include them." / "Tags und
     /// Listen konnten nicht geladen werden. Exportiere erneut, wenn du online bist, um sie mitzunehmen."
     public var organisationUnavailable: Bool = false
+    /// The library was read without the fenced columns (see `LibraryExportInput.trackingDetailUnavailable`).
+    public var trackingDetailUnavailable: Bool = false
     /// MAL files per medium (1 = unsplit; > 1 = numbered parts).
     public var malParts: [MediaKind: Int] = [:]
     /// List items whose title is no longer in the library (JSON keeps them with `in_library` false; CSV has
@@ -169,12 +184,13 @@ public struct LibraryExportSummary: Equatable, Sendable {
     /// offer the files as the export the person asked for.
     public var failedFormats: [LibraryExportFormat] = []
 
-    /// The reasons the export is incomplete; empty = complete. Both can hold at once (offline: ids and
+    /// The reasons the export is incomplete; empty = complete. Several can hold at once (offline: ids and
     /// organisation missing).
     public var gaps: Set<LibraryExportGap> {
         var result: Set<LibraryExportGap> = []
         if !identityUnavailable.isEmpty { result.insert(.identityUnavailable) }
         if organisationUnavailable { result.insert(.organisationUnavailable) }
+        if trackingDetailUnavailable { result.insert(.trackingDetailUnavailable) }
         return result
     }
 
@@ -193,7 +209,8 @@ public struct LibraryExportSummary: Equatable, Sendable {
         organisationUnavailable: Bool = false,
         malParts: [MediaKind: Int] = [:],
         listItemsOutsideLibrary: Int = 0,
-        failedFormats: [LibraryExportFormat] = []
+        failedFormats: [LibraryExportFormat] = [],
+        trackingDetailUnavailable: Bool = false
     ) {
         self.entryCount = entryCount
         self.malExported = malExported
@@ -205,5 +222,6 @@ public struct LibraryExportSummary: Equatable, Sendable {
         self.malParts = malParts
         self.listItemsOutsideLibrary = listItemsOutsideLibrary
         self.failedFormats = failedFormats
+        self.trackingDetailUnavailable = trackingDetailUnavailable
     }
 }

@@ -36,6 +36,8 @@ import UIKit
 ///   plus `deviceIntelligence`, the single on-device FM service.
 /// - Support owner on that same client: `support` (the in-app contact form; account-scoped draft). The server-side list writers among
 ///   them reach the Library through one hook (`LibraryRefreshHook`), connected to `libraryActions`.
+/// - Export owner (W2): `libraryExport` (Profile > Export your list; account-scoped identity cache and files), built over
+///   `library`, `catalog` and the account coordinator, gated by the `library_export_v1` flag.
 /// `KuroApp` injects the view-facing owners into the environment.
 @MainActor
 final class AppComposition {
@@ -43,6 +45,8 @@ final class AppComposition {
 
     /// The app's object graph (built by `makeGraph`).
     let graph: AppGraph
+    /// Connectivity: the app shell's offline banner and the list export's offline decision read this one monitor.
+    let networkMonitor: NetworkMonitor
     /// Drains the deck signal outbox whenever the app returns to the foreground (app lifetime).
     private var foregroundSignalDrain: TasteForegroundDrain?
 
@@ -70,6 +74,8 @@ final class AppComposition {
     var deviceIntelligence: AppleFMService { graph.deviceIntelligence }
     /// The contact form (Profile > About > Contact us).
     var support: SupportStore { graph.support }
+    /// The list export (Profile > Export your list; account-scoped).
+    var libraryExport: LibraryExportService { graph.libraryExport }
     /// The runtime flags (the single instance; views read it from the environment).
     var flags: FeatureFlags { graph.flags }
     /// The transient banner (newest wins, auto-clear).
@@ -117,6 +123,9 @@ final class AppComposition {
         malRegistration = AppConfig.malNativeRegistration
         widgetDirectory = KuroAppGroup.widgetDirectory()
         #endif
+        let networkMonitor = NetworkMonitor()
+        var exportSeams = LibraryExportSeams()
+        exportSeams.isOnline = { networkMonitor.isConnected }
         let graph = Self.makeGraph(
             client: client,
             configError: configError,
@@ -130,9 +139,11 @@ final class AppComposition {
             userListChannels: SupabaseUserListChannelFactory(client: client),
             libraryRealtimeDebounce: LibraryRealtime.defaultRefreshDebounce,
             malRegistration: malRegistration,
-            widgetDirectory: widgetDirectory
+            widgetDirectory: widgetDirectory,
+            libraryExportSeams: exportSeams
         )
         self.graph = graph
+        self.networkMonitor = networkMonitor
         foregroundSignalDrain = graph.taste.installForegroundDrain()
         if widgetDirectory != nil {
             graph.widgets.startObserving()
@@ -192,7 +203,8 @@ final class AppComposition {
         malCredentials: any MALCredentialStore = KeychainMALCredentialStore(),
         widgetDirectory: URL? = nil,
         widgetReloader: any WidgetTimelineReloading = LiveWidgetTimelineReloader(),
-        widgetThumbnails: any WidgetThumbnailFetching = LiveWidgetThumbnailFetcher()
+        widgetThumbnails: any WidgetThumbnailFetching = LiveWidgetThumbnailFetcher(),
+        libraryExportSeams: LibraryExportSeams = LibraryExportSeams()
     ) -> AppGraph {
         let accountSession = AccountSessionCoordinator()
         let shell = makeShell(
@@ -231,6 +243,14 @@ final class AppComposition {
         )
         let collection = makeCollection(client: client, accountSession: accountSession)
         let support = makeSupport(client: client, accountSession: accountSession)
+        // W9 wires its tags and custom-lists providers into `libraryExportSeams` (tagsByKey / customLists) here.
+        let libraryExport = makeLibraryExport(
+            library: wiring.store,
+            catalog: publicData.catalog,
+            accountSession: accountSession,
+            flags: shell.flags,
+            seams: libraryExportSeams
+        )
         let home = HomeStore(client: client, accountSession: accountSession, library: wiring.store,
             outbox: progressOutbox,
             progressWritesEnabled: { shell.flags.seriesFoundationV1Enabled })
@@ -303,6 +323,7 @@ final class AppComposition {
                 clubs: clubs,
                 assistant: assistant,
                 support: support,
+                libraryExport: libraryExport,
                 widgets: widgets,
                 shell: shell
             )
@@ -332,6 +353,7 @@ final class AppComposition {
             taste: assistant.taste,
             deviceIntelligence: assistant.deviceIntelligence,
             support: support,
+            libraryExport: libraryExport,
             libraryHook: assistant.libraryHook,
             flags: shell.flags,
             banner: shell.banner,
@@ -367,7 +389,8 @@ final class AppComposition {
         progressOutbox: ProgressOutbox? = nil,
         widgetDirectory: URL? = nil,
         widgetReloader: any WidgetTimelineReloading = LiveWidgetTimelineReloader(),
-        widgetThumbnails: (any WidgetThumbnailFetching)? = nil
+        widgetThumbnails: (any WidgetThumbnailFetching)? = nil,
+        libraryExportSeams: LibraryExportSeams = LibraryExportSeams()
     ) -> AppGraph {
         makeGraph(
             client: client,
@@ -387,7 +410,8 @@ final class AppComposition {
             // Widget files only in a directory the test owns (never the App Group); no network images.
             widgetDirectory: widgetDirectory,
             widgetReloader: widgetReloader,
-            widgetThumbnails: widgetThumbnails ?? NoWidgetThumbnails()
+            widgetThumbnails: widgetThumbnails ?? NoWidgetThumbnails(),
+            libraryExportSeams: libraryExportSeams
         )
     }
 
@@ -396,7 +420,8 @@ final class AppComposition {
     /// account's Library refreshes are cancelled before anything else; the funnel rebinds/resets the
     /// store itself before this list runs), the Collection pages, the public-data owners (Discovery),
     /// the personal-data owners (Releases, Social, ProviderAvailability), Clubs, the assistant owners
-    /// (Imports, Concierge, Taste), Support (the contact draft), the Home Screen widget files (`widgets`:
+    /// (Imports, Concierge, Taste), Support (the contact draft), the list export (`libraryExport`: identity
+    /// cache and private files), the Home Screen widget files (`widgets`:
     /// snapshot + queued +1 of another account), the song preview player (stops playback) and the
     /// interaction telemetry LAST (the ending account's queued events are dropped before the funnel
     /// sets the new user id).
@@ -409,11 +434,13 @@ final class AppComposition {
         clubs: ClubsStore,
         assistant: AssistantOwners,
         support: SupportStore,
+        libraryExport: LibraryExportService,
         widgets: WidgetSnapshotWriter,
         shell: ShellOwners
     ) -> [any AccountScopedState] {
         [libraryActions, home, collection] + publicData.accountScopedStates
-            + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates + [support, widgets]
+            + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates
+            + [support, libraryExport, widgets]
             + [shell.songPreview, shell.interactionTelemetry]
     }
 
@@ -541,6 +568,35 @@ final class AppComposition {
         SupportStore(client: client, accountSession: accountSession)
     }
 
+    /// The list export owner (W2) over the Library, the catalogue and the account coordinator (it holds no
+    /// SDK client: the identity read goes through `catalog`, inside the account's credential lease).
+    /// `flags` gates the owner itself (`library_export_v1`, checked before any request) and tells it
+    /// whether the Library was read with the fenced columns (`series_foundation_v1`); `seams` carries
+    /// connectivity, the organisation providers and the test collaborators.
+    static func makeLibraryExport(
+        library: LibraryStore,
+        catalog: CatalogStore,
+        accountSession: AccountSessionCoordinator,
+        flags: FeatureFlags,
+        seams: LibraryExportSeams = LibraryExportSeams()
+    ) -> LibraryExportService {
+        LibraryExportService(
+            library: library,
+            catalog: catalog,
+            accountSession: accountSession,
+            isEnabled: { [weak flags] in flags?.libraryExportV1Enabled ?? false },
+            isOnline: seams.isOnline,
+            isTrackingDetailLoaded: { [weak flags] in flags?.seriesFoundationFenceEnabled() ?? false },
+            directory: seams.directory,
+            now: seams.now,
+            timeZone: seams.timeZone,
+            tagsByKey: seams.tagsByKey,
+            customLists: seams.customLists,
+            write: seams.write,
+            build: seams.build
+        )
+    }
+
     /// The Collection owner over `client` (the single SDK client; never a second one): the account's
     /// card pages and feed (account-scoped). The Collection change sink points at it once it exists
     /// (`LibraryChangeSinks.connect(releases:collection:imports:clubs:)`).
@@ -651,6 +707,8 @@ struct AppGraph {
     let deviceIntelligence: AppleFMService
     /// Support: the in-app contact form (account-scoped draft).
     let support: SupportStore
+    /// The list export (Profile > Export your list): identity cache and private files, account-scoped.
+    let libraryExport: LibraryExportService
     /// The single Library hook of the server-side list writers, connected to `libraryActions`.
     let libraryHook: LibraryRefreshHook
     let flags: FeatureFlags

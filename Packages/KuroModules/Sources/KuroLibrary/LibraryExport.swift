@@ -57,7 +57,8 @@ public enum LibraryExport {
     ) -> LibraryExportBundle {
         var summary = LibraryExportSummary(
             entryCount: input.entries.count, malExported: [:], withoutMalId: [], identityUnavailable: [],
-            notesAdjusted: [], datesOmitted: [], organisationUnavailable: input.organisationUnavailable
+            notesAdjusted: [], datesOmitted: [], organisationUnavailable: input.organisationUnavailable,
+            trackingDetailUnavailable: input.trackingDetailUnavailable
         )
         describeIdentity(of: input, in: &summary)
 
