@@ -143,10 +143,10 @@ public enum LibraryExportGap: String, Hashable, Sendable, CaseIterable {
     /// Tags / custom lists could not be loaded.
     case organisationUnavailable = "organisation_unavailable"
     /// The library was read without the fenced columns, so tracking-unit ids, progress labels, volume
-    /// progress and the retained source fields are unknown. Summary copy: "Some tracking details (units and
-    /// import source fields) weren't loaded. Export again later to include them." / "Einige Tracking-Details
-    /// (Einheiten und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie
-    /// mitzunehmen."
+    /// progress and the retained source fields are unknown. Summary copy (shipped in the app's
+    /// `LibraryExportCopy`): "Some tracking details (units, volume progress and import source fields) weren't
+    /// loaded. Export again later to include them." / "Einige Tracking-Details (Einheiten, Fortschritt pro
+    /// Band und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."
     case trackingDetailUnavailable = "tracking_detail_unavailable"
 }
 

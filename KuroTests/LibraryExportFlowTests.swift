@@ -17,7 +17,7 @@ import UIKit
 @testable import Kuro
 
 @MainActor
-@Suite("Library export: catalogue identity read and owner", .timeLimit(.minutes(1)))
+@Suite("Library export: catalogue identity read and owner", .serialized, .timeLimit(.minutes(1)))
 struct LibraryExportFlowTests {
     // MARK: - Helpers
 
@@ -739,11 +739,13 @@ extension LibraryExportFlowTests {
         organisationUnavailable: Bool = false,
         trackingDetailUnavailable: Bool = false,
         malParts: [MediaKind: Int] = [:],
-        listItemsOutsideLibrary: Int = 0
+        listItemsOutsideLibrary: Int = 0,
+        notesAdjusted: [ExportReportLine] = [],
+        datesOmitted: [ExportReportLine] = []
     ) -> LibraryExportSummary {
         LibraryExportSummary(
             entryCount: 10, malExported: [.anime: 8], withoutMalId: withoutMalId, identityUnavailable: identityUnavailable,
-            notesAdjusted: [], datesOmitted: [], organisationUnavailable: organisationUnavailable, malParts: malParts,
+            notesAdjusted: notesAdjusted, datesOmitted: datesOmitted, organisationUnavailable: organisationUnavailable, malParts: malParts,
             listItemsOutsideLibrary: listItemsOutsideLibrary, trackingDetailUnavailable: trackingDetailUnavailable
         )
     }
@@ -774,14 +776,14 @@ extension LibraryExportFlowTests {
         let four = (1...4).map { Self.reportLine("T\($0)", id: $0) }
         let identity = LibraryExportFlowTests.summary(identityUnavailable: four)
         #expect(LibraryExportCopy.summaryLines(identity, format: .json, german: false)
-                == ["4 titles could not be looked up offline; their ids are missing."])
+                == ["4 titles couldn't be looked up; their ids are missing."])
         #expect(LibraryExportCopy.summaryLines(identity, format: .json, german: true)
-                == ["4 Titel konnten offline nicht nachgeschlagen werden; ihre IDs fehlen."])
+                == ["4 Titel konnten nicht nachgeschlagen werden; ihre IDs fehlen."])
         let one = LibraryExportFlowTests.summary(identityUnavailable: [Self.reportLine("T")])
         #expect(LibraryExportCopy.summaryLines(one, format: .json, german: false)
-                == ["1 title could not be looked up offline; its id is missing."])
+                == ["1 title couldn't be looked up; its id is missing."])
         #expect(LibraryExportCopy.summaryLines(one, format: .json, german: true)
-                == ["1 Titel konnte offline nicht nachgeschlagen werden; seine ID fehlt."])
+                == ["1 Titel konnte nicht nachgeschlagen werden; seine ID fehlt."])
 
         let organisation = LibraryExportFlowTests.summary(organisationUnavailable: true)
         let organisationEN = LibraryExportCopy.summaryLines(organisation, format: .json, german: false)
@@ -791,7 +793,7 @@ extension LibraryExportFlowTests {
 
         let both = LibraryExportFlowTests.summary(identityUnavailable: four, organisationUnavailable: true)
         let bothLines = LibraryExportCopy.summaryLines(both, format: .csv, german: false)
-        #expect(bothLines.count == 2 && bothLines[0].hasPrefix("4 titles could not") && bothLines[1].hasPrefix("Tags and lists"))
+        #expect(bothLines.count == 2 && bothLines[0].hasPrefix("4 titles couldn't") && bothLines[1].hasPrefix("Tags and lists"))
 
         let parts = LibraryExportFlowTests.summary(malParts: [.anime: 3, .manga: 1])
         #expect(LibraryExportCopy.summaryLines(parts, format: .malXML, german: false)
@@ -826,6 +828,42 @@ extension LibraryExportFlowTests {
         #expect(LibraryExportCopy.failure(.disabled, german: true) == "Export ist noch nicht verfügbar.")
     }
 
+    @Test("A MAL file says when it changed or left out notes, or could not hold dates; CSV and JSON do not")
+    func exportCopyReportsAdjustedNotesAndOmittedDatesForMalOnly() {
+        let notes = (1...3).map { Self.reportLine("N\($0)", id: $0) }
+        let dates = (4...5).map { Self.reportLine("D\($0)", id: $0) }
+        let both = LibraryExportFlowTests.summary(notesAdjusted: notes, datesOmitted: dates)
+        #expect(LibraryExportCopy.summaryLines(both, format: .malXML, german: false) == [
+            "3 notes were changed or left out of the MAL file (too long, or with characters MAL can't store). They are complete in CSV and JSON.",
+            "2 titles have a start or finish date the MAL file can't hold. The dates are in CSV and JSON.",
+        ])
+        #expect(LibraryExportCopy.summaryLines(both, format: .malXML, german: true) == [
+            "3 Notizen wurden in der MAL-Datei geändert oder weggelassen (zu lang oder mit Zeichen, die MAL nicht speichert). In CSV und JSON sind sie vollständig.",
+            "2 Titel haben ein Start- oder Enddatum, das die MAL-Datei nicht aufnehmen kann. Die Daten stehen in CSV und JSON.",
+        ])
+        let single = LibraryExportFlowTests.summary(notesAdjusted: [Self.reportLine("N")], datesOmitted: [Self.reportLine("D", id: 2)])
+        #expect(LibraryExportCopy.summaryLines(single, format: .malXML, german: false) == [
+            "1 note was changed or left out of the MAL file (too long, or with characters MAL can't store). It is complete in CSV and JSON.",
+            "1 title has a start or finish date the MAL file can't hold. The date is in CSV and JSON.",
+        ])
+        #expect(LibraryExportCopy.summaryLines(single, format: .malXML, german: true) == [
+            "1 Notiz wurde in der MAL-Datei geändert oder weggelassen (zu lang oder mit Zeichen, die MAL nicht speichert). In CSV und JSON ist sie vollständig.",
+            "1 Titel hat ein Start- oder Enddatum, das die MAL-Datei nicht aufnehmen kann. Das Datum steht in CSV und JSON.",
+        ])
+        for format in [LibraryExportFormat.csv, .json] {
+            #expect(LibraryExportCopy.summaryLines(both, format: format, german: false).isEmpty)
+            #expect(LibraryExportCopy.summaryLines(both, format: format, german: true).isEmpty)
+        }
+        // Order inside a MAL summary: no MAL id, notes, dates, then the split into files.
+        let all = LibraryExportFlowTests.summary(
+            withoutMalId: [Self.reportLine("W", id: 9)], malParts: [.anime: 2], notesAdjusted: notes, datesOmitted: dates
+        )
+        let lines = LibraryExportCopy.summaryLines(all, format: .malXML, german: false)
+        #expect(lines.count == 4)
+        #expect(lines[0].hasPrefix("1 title has no MyAnimeList id") && lines[1].hasPrefix("3 notes")
+                && lines[2].hasPrefix("2 titles have a start or finish date") && lines[3].hasPrefix("Your anime list is in 2 files"))
+    }
+
     @Test("The tags-and-lists line is for CSV and JSON only: a MAL file never carries tags or lists")
     func exportCopyOmitsTagsAndListsLineForMalFile() {
         let organisation = LibraryExportFlowTests.summary(organisationUnavailable: true)
@@ -839,7 +877,7 @@ extension LibraryExportFlowTests {
             identityUnavailable: [Self.reportLine("T")], organisationUnavailable: true, trackingDetailUnavailable: true
         )
         let mal = LibraryExportCopy.summaryLines(all, format: .malXML, german: false)
-        #expect(mal.count == 2 && mal[0].hasPrefix("1 title could not") && mal[1].hasPrefix("Some tracking"))
+        #expect(mal.count == 2 && mal[0].hasPrefix("1 title couldn't") && mal[1].hasPrefix("Some tracking"))
         #expect(LibraryExportCopy.summaryLines(all, format: .json, german: false).count == 3)
     }
 
@@ -856,7 +894,7 @@ extension LibraryExportFlowTests {
         #expect(LibraryExportCopy.summaryLines(s, format: .json, german: false)
                 == ["Some tracking details (units, volume progress and import source fields) weren't loaded. Export again later to include them."])
         #expect(LibraryExportCopy.summaryLines(s, format: .json, german: true)
-                == ["Einige Tracking-Details (Fortschritt pro Band und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."])
+                == ["Einige Tracking-Details (Einheiten, Fortschritt pro Band und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."])
         // Order: identity, organisation, tracking detail.
         let all = LibraryExportFlowTests.summary(
             identityUnavailable: [Self.reportLine("T")], organisationUnavailable: true, trackingDetailUnavailable: true
@@ -927,10 +965,19 @@ extension LibraryExportFlowTests {
     /// Draws `view` in a window of `width` x `height` points at scale 1 and returns its RGBA bytes (row by row).
     static func renderedPixels<V: View>(_ view: V, width: Int, height: Int) async throws -> [UInt8] {
         let host = UIHostingController(rootView: view.frame(width: CGFloat(width), height: CGFloat(height)))
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: height))
+        host.safeAreaRegions = []
+        // Attached to the foreground window scene (a free-standing window draws nothing in some runs).
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        window.frame = CGRect(x: 0, y: 0, width: width, height: height)
         window.rootViewController = host
         window.isHidden = false
-        defer { window.isHidden = true; window.rootViewController = nil }
+        window.makeKey()
+        defer {
+            window.rootViewController?.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+        }
         host.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
         host.view.backgroundColor = .white
         host.view.setNeedsLayout()
@@ -964,9 +1011,7 @@ extension LibraryExportFlowTests {
         await fixture.service.export(.json)
         guard case .ready(let result) = fixture.service.state else { Issue.record("not ready: \(fixture.service.state)"); return }
         #expect(!result.files.isEmpty)
-        let monitor = NetworkMonitor()
-        try await Task.sleep(for: .milliseconds(300))     // the monitor's first path update has landed
-        monitor.isConnected = false                       // the offline band is part of the layout
+        let monitor = NetworkMonitor(fixedConnected: false)   // no path monitor: the offline band is part of the layout
 
         let width = 375, height = 2_600
         do {
@@ -978,7 +1023,6 @@ extension LibraryExportFlowTests {
                 .environment(monitor)
                 .environment(\.dynamicTypeSize, .accessibility3)
             let pixels = try await Self.renderedPixels(sheet, width: width, height: height)
-            #expect(!monitor.isConnected, "the offline band was meant to be on screen")
 
             func isInk(_ x: Int, _ y: Int) -> Bool {
                 let i = (y * width + x) * 4

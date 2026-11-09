@@ -102,23 +102,26 @@ nonisolated enum LibraryExportCopy {
     // MARK: Summary
 
     /// What the export lacks or changed, one sentence per fact, most important first: ids that could not be
-    /// looked up, tags and lists (CSV and JSON file), tracking details, titles without a MyAnimeList id
-    /// (MAL file), a medium split into several files (MAL file), list entries that left the library (CSV and
-    /// MAL file). Empty for a complete export with nothing to report.
+    /// looked up, tags and lists (CSV and JSON file), tracking details, titles without a MyAnimeList id,
+    /// notes the MAL file changed or left out, dates it could not hold, a medium split into several files
+    /// (all MAL file), list entries that left the library (CSV and MAL file). Empty for a complete export
+    /// with nothing to report.
     static func summaryLines(_ summary: LibraryExportSummary, format: LibraryExportFormat, german: Bool) -> [String] {
         var lines: [String] = []
 
         let unavailable = summary.identityUnavailable.count
         if unavailable > 0 {
             let n = number(unavailable, german: german)
+            // Neutral on purpose: offline is one reason, a failed lookup online is another (the sheet's
+            // offline band says which, when it is the first).
             if german {
                 lines.append(unavailable == 1
-                    ? "\(n) Titel konnte offline nicht nachgeschlagen werden; seine ID fehlt."
-                    : "\(n) Titel konnten offline nicht nachgeschlagen werden; ihre IDs fehlen.")
+                    ? "\(n) Titel konnte nicht nachgeschlagen werden; seine ID fehlt."
+                    : "\(n) Titel konnten nicht nachgeschlagen werden; ihre IDs fehlen.")
             } else {
                 lines.append(unavailable == 1
-                    ? "\(n) title could not be looked up offline; its id is missing."
-                    : "\(n) titles could not be looked up offline; their ids are missing.")
+                    ? "\(n) title couldn't be looked up; its id is missing."
+                    : "\(n) titles couldn't be looked up; their ids are missing.")
             }
         }
 
@@ -132,7 +135,7 @@ nonisolated enum LibraryExportCopy {
 
         if summary.trackingDetailUnavailable {
             lines.append(german
-                ? "Einige Tracking-Details (Fortschritt pro Band und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."
+                ? "Einige Tracking-Details (Einheiten, Fortschritt pro Band und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."
                 : "Some tracking details (units, volume progress and import source fields) weren't loaded. Export again later to include them.")
         }
 
@@ -148,6 +151,32 @@ nonisolated enum LibraryExportCopy {
                     lines.append(missing == 1
                         ? "\(n) title has no MyAnimeList id and is not in the MAL file. It is in CSV and JSON."
                         : "\(n) titles have no MyAnimeList id and are not in the MAL file. They are in CSV and JSON.")
+                }
+            }
+            let notes = summary.notesAdjusted.count
+            if notes > 0 {
+                let n = number(notes, german: german)
+                if german {
+                    lines.append(notes == 1
+                        ? "\(n) Notiz wurde in der MAL-Datei geändert oder weggelassen (zu lang oder mit Zeichen, die MAL nicht speichert). In CSV und JSON ist sie vollständig."
+                        : "\(n) Notizen wurden in der MAL-Datei geändert oder weggelassen (zu lang oder mit Zeichen, die MAL nicht speichert). In CSV und JSON sind sie vollständig.")
+                } else {
+                    lines.append(notes == 1
+                        ? "\(n) note was changed or left out of the MAL file (too long, or with characters MAL can't store). It is complete in CSV and JSON."
+                        : "\(n) notes were changed or left out of the MAL file (too long, or with characters MAL can't store). They are complete in CSV and JSON.")
+                }
+            }
+            let dates = summary.datesOmitted.count
+            if dates > 0 {
+                let n = number(dates, german: german)
+                if german {
+                    lines.append(dates == 1
+                        ? "\(n) Titel hat ein Start- oder Enddatum, das die MAL-Datei nicht aufnehmen kann. Das Datum steht in CSV und JSON."
+                        : "\(n) Titel haben ein Start- oder Enddatum, das die MAL-Datei nicht aufnehmen kann. Die Daten stehen in CSV und JSON.")
+                } else {
+                    lines.append(dates == 1
+                        ? "\(n) title has a start or finish date the MAL file can't hold. The date is in CSV and JSON."
+                        : "\(n) titles have a start or finish date the MAL file can't hold. The dates are in CSV and JSON.")
                 }
             }
             for kind in [MediaKind.anime, .manga] {
