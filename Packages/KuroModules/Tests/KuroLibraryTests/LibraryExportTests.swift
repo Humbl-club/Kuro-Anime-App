@@ -561,8 +561,10 @@ struct LibraryExportTests {
         #expect(try Self.jsonEntries(json).first?["tags"] as? [String] == ["=t0", "@u;=v", "plain"])
     }
 
-    /// For any mix of the delimiters, triggers and ordinary characters: the neutraliser only adds apostrophes,
-    /// and afterwards no trigger sits at the start of the text or right after `;`, TAB, CR or LF.
+    /// For any mix of the delimiters, quotes, triggers and ordinary characters: the neutraliser only adds
+    /// apostrophes, and afterwards no trigger sits at the start of the text or right after `;`, TAB, CR or LF
+    /// (looking through a run of quotes); through the CSV, a `;`-reader and a TAB-reader that honour a quote at
+    /// field start find no trigger-led field.
     @Test func csvSafeTextPropertyHoldsForGeneratedText() throws {
         let alphabet: [Unicode.Scalar] = [";", "\t", "\r", "\n", "=", "+", "-", "@", "a", "é", " ", ",", "\"", "日"]
         var state: UInt64 = 0x9E37_79B9_7F4A_7C15
@@ -582,14 +584,13 @@ struct LibraryExportTests {
             let safe = LibraryExport.csvSafeText(sample)
             // Only apostrophes were added (the alphabet has none).
             #expect(safe.unicodeScalars.filter { $0 != "'" }.elementsEqual(sample.unicodeScalars))
-            var previous: Unicode.Scalar?
+            // A segment starts at the first character and after each boundary; a run of quotes at its start is
+            // transparent, so the first character after the quotes must not be a trigger either.
+            var atSegmentStart = true
             for scalar in safe.unicodeScalars {
-                if triggers.contains(scalar) {
-                    // Not at the start (`previous == nil`) and not right after a boundary.
-                    let atSegmentStart = previous.map { boundaries.contains($0) } ?? true
-                    #expect(!atSegmentStart, "trigger at a segment start in \(safe.debugDescription)")
-                }
-                previous = scalar
+                if atSegmentStart, scalar == "\"" { continue }
+                if atSegmentStart { #expect(!triggers.contains(scalar), "trigger at a segment start in \(safe.debugDescription)") }
+                atSegmentStart = boundaries.contains(scalar)
             }
             // Text with nothing to guard comes back untouched (the same String, not a copy with changes).
             if safe.unicodeScalars.count == sample.unicodeScalars.count { #expect(safe == sample) }
@@ -600,10 +601,60 @@ struct LibraryExportTests {
             entries.append(Self.entry(.anime, index + 1, .current, progress: 1, rating: nil, notes: sample, repeatCount: 0, started: nil, finished: nil))
         }
         let file = try #require(LibraryExport.build(LibraryExportInput(entries: entries, catalogue: [:]), formats: [.csv], exportedAt: Self.now, timeZone: Self.berlin).files.first)
-        #expect(Self.naiveTriggerSegments(in: String(decoding: file.data.dropFirst(3), as: UTF8.self)).isEmpty)
+        let generatedText = String(decoding: file.data.dropFirst(3), as: UTF8.self)
+        #expect(Self.naiveTriggerSegments(in: generatedText).isEmpty)
+        #expect(Self.triggerLedFields(in: generatedText, delimiter: ";").isEmpty)
+        #expect(Self.triggerLedFields(in: generatedText, delimiter: "\t").isEmpty)
         let rows = try Self.csvRows(file)
         let notesColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "notes"))
         #expect(rows.dropFirst().map { $0[notesColumn] } == samples.map(LibraryExport.csvSafeText))
+    }
+
+    /// A `;`-reader that honours a quote at the start of its field (Python's `csv.reader(delimiter=";")`):
+    /// `a;"=1+1` is encoded `"a;""=1+1"`, and that reader unquotes the second field into `=1+1`. A run of quotes
+    /// at a segment start must not hide a trigger from the neutraliser.
+    @Test func csvHasNoFormulaTriggerForReadersThatHonourAQuoteAtFieldStart() throws {
+        let notes = [
+            "a;\"=1+1", "a;\"\"-2", "\"=x", "a;\"-2+3", "x\n\"=1", ";;\"@a", "\t\"\t=x", "a;\"\"\"=x", "a;\"b;\"=c",
+            "\"\"+1;\"\"@2", "a;\"", "\"", ";\";=x", "x;=1+1;y", "a\t@SUM", "q\"=x", "a;\" =x",
+        ]
+        var entries: [LibraryEntry] = []
+        var catalogue: [MediaKey: ExportCatalogueRow] = [:]
+        for (index, note) in notes.enumerated() {
+            let entry = Self.entry(.anime, index + 1, .current, progress: 1, rating: nil, notes: note, repeatCount: 0, started: nil, finished: nil)
+            entries.append(entry)
+            catalogue[entry.key] = Self.row(index % 2 == 0 ? "T;\"=\(index)" : "\"@t;\"-\(index)", mal: 100 + index)
+        }
+        let input = LibraryExportInput(entries: entries, catalogue: catalogue)
+        let file = try #require(LibraryExport.build(input, formats: [.csv], exportedAt: Self.now, timeZone: Self.berlin).files.first)
+        let text = String(decoding: file.data.dropFirst(3), as: UTF8.self)
+
+        // Both delimiters, quote honoured at field start: no field begins with a trigger.
+        #expect(Self.triggerLedFields(in: text, delimiter: ";").isEmpty)
+        #expect(Self.triggerLedFields(in: text, delimiter: "\t").isEmpty)
+        // And the earlier readers still find nothing.
+        #expect(Self.naiveTriggerSegments(in: text).isEmpty && Self.triggerSegments(in: text).isEmpty)
+
+        // The reader mimic is the real thing: on the plain RFC encoding of the repro it yields the trigger.
+        #expect(Self.triggerLedFields(in: RFC4180.row(["k", "a;\"=1+1"]), delimiter: ";").map { String($0.prefix(5)) } == ["=1+1\""])
+        #expect(Self.triggerLedFields(in: RFC4180.row(["k", "a;\"-2+3"]), delimiter: ";").map { String($0.prefix(5)) } == ["-2+3\""])
+        #expect(Self.quoteHonouringFields(in: "a;\"b\";\"\"\"c\"\r\nd;e\r\n", delimiter: ";") == [["a", "b", "\"c"], ["d", "e"]])
+        #expect(Self.quoteHonouringFields(in: "x,\"a;\"\"=1\";y\n", delimiter: ";") == [["x,\"a", "=1\"", "y"]])
+
+        // The strict RFC 4180 reader still returns the neutralised text, and only apostrophes were added.
+        let rows = try Self.csvRows(file)
+        let notesColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "notes"))
+        let titleColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "title"))
+        for (index, note) in notes.enumerated() {
+            let cell = rows[index + 1][notesColumn]
+            #expect(cell == LibraryExport.csvSafeText(note))
+            #expect(cell.unicodeScalars.filter { $0 != "'" }.elementsEqual(note.unicodeScalars))
+        }
+        #expect(rows[1][notesColumn] == "a;'\"=1+1" && rows[2][notesColumn] == "a;'\"\"-2" && rows[3][notesColumn] == "'\"=x")
+        #expect(rows[1][titleColumn] == "T;'\"=0" && rows[2][titleColumn] == "'\"@t;'\"-1")
+        // JSON keeps the exact text.
+        let json = try LibraryExport.build(input, formats: [.json], exportedAt: Self.now, timeZone: Self.berlin).file("kuro-list-2026-11-09.json")
+        #expect(try Self.jsonEntries(json).map { $0["notes"] as? String } == notes)
     }
 
     @Test func csvCellsFollowTheDocumentedValues() throws {
@@ -835,6 +886,19 @@ struct LibraryExportTests {
         #expect(LibraryExport.csvSafeText("a;'=x") == "a;'=x")                    // already led by an apostrophe
         #expect(LibraryExport.csvSafeText("é;=é 日本;@語") == "é;'=é 日本;'@語")     // multi-byte text around the insert
         #expect(LibraryExport.csvSafeText("日本=x") == "日本=x")
+        // A run of quotes at a segment start is transparent: the apostrophe goes in front of the quotes, so a
+        // `;`-reader that honours a quote at the start of its field never gets a field led by a trigger.
+        #expect(LibraryExport.csvSafeText("a;\"=1+1") == "a;'\"=1+1")
+        #expect(LibraryExport.csvSafeText("a;\"\"-2") == "a;'\"\"-2")
+        #expect(LibraryExport.csvSafeText("a;\"-2+3") == "a;'\"-2+3")
+        #expect(LibraryExport.csvSafeText("\"=x") == "'\"=x" && LibraryExport.csvSafeText("\"\"\"@x") == "'\"\"\"@x")
+        #expect(LibraryExport.csvSafeText("a\t\"+1") == "a\t'\"+1" && LibraryExport.csvSafeText("a\n\"\"=x") == "a\n'\"\"=x")
+        #expect(LibraryExport.csvSafeText(";;\"@a") == ";;'\"@a" && LibraryExport.csvSafeText(";\"\t") == ";'\"\t")
+        #expect(LibraryExport.csvSafeText("a;\";=x") == "a;\";'=x")                // the quote run ends at a boundary
+        // Not at a segment start, or not followed by a trigger: untouched.
+        #expect(LibraryExport.csvSafeText("a\"=x") == "a\"=x" && LibraryExport.csvSafeText("a;\"x") == "a;\"x")
+        #expect(LibraryExport.csvSafeText("\"x") == "\"x" && LibraryExport.csvSafeText(";\"") == ";\"" && LibraryExport.csvSafeText("\"\"") == "\"\"")
+        #expect(LibraryExport.csvSafeText("a;\" =x") == "a;\" =x" && LibraryExport.csvSafeText("a;\"'=x") == "a;\"'=x")
         // The neutraliser runs before quoting: a trigger inside a quoted cell is still prefixed.
         #expect(RFC4180.field(LibraryExport.csvSafeText("=a,b")) == "\"'=a,b\"")
     }
@@ -1074,6 +1138,94 @@ struct LibraryExportTests {
         entries.append(seventh)
         catalogue[seventh.key] = Self.row("=cmd", mal: 107)
         return LibraryExportInput(entries: entries, catalogue: catalogue)
+    }
+
+    /// The fields a reader with the semantics of Python's `csv.reader(delimiter: ...)` returns (non-strict,
+    /// doubled quotes): a quote opens a quoted field only at the START of a field, inside one a doubled quote is
+    /// a literal quote and the delimiter and line breaks are text, a lone closing quote followed by anything
+    /// else just ends the quoting. CR, LF and CRLF end a record outside quotes. This is what a semicolon-locale
+    /// spreadsheet does with this comma-delimited file: the line is one field up to the first `;`.
+    static func quoteHonouringFields(in text: String, delimiter: Unicode.Scalar) -> [[String]] {
+        enum State { case startRecord, startField, inField, inQuoted, quoteInQuoted, eatNewline }
+        var records: [[String]] = []
+        var record: [String] = []
+        var field = String.UnicodeScalarView()
+        var state = State.startRecord
+        func endField() {
+            record.append(String(field))
+            field = String.UnicodeScalarView()
+        }
+        func endRecord() {
+            records.append(record)
+            record = []
+        }
+        func isNewline(_ scalar: Unicode.Scalar) -> Bool { scalar == "\r" || scalar == "\n" }
+        func process(_ scalar: Unicode.Scalar) {
+            switch state {
+            case .eatNewline:
+                state = .startRecord
+                if scalar != "\n" { process(scalar) }
+            case .startRecord:
+                if isNewline(scalar) {
+                    state = scalar == "\r" ? .eatNewline : .startRecord
+                } else {
+                    state = .startField
+                    process(scalar)
+                }
+            case .startField:
+                if isNewline(scalar) {
+                    endField(); endRecord()
+                    state = scalar == "\r" ? .eatNewline : .startRecord
+                } else if scalar == "\"" {
+                    state = .inQuoted
+                } else if scalar == delimiter {
+                    endField()
+                } else {
+                    field.append(scalar)
+                    state = .inField
+                }
+            case .inField:
+                if isNewline(scalar) {
+                    endField(); endRecord()
+                    state = scalar == "\r" ? .eatNewline : .startRecord
+                } else if scalar == delimiter {
+                    endField()
+                    state = .startField
+                } else {
+                    field.append(scalar)
+                }
+            case .inQuoted:
+                if scalar == "\"" { state = .quoteInQuoted } else { field.append(scalar) }
+            case .quoteInQuoted:
+                if scalar == "\"" {
+                    field.append(scalar)
+                    state = .inQuoted
+                } else if scalar == delimiter {
+                    endField()
+                    state = .startField
+                } else if isNewline(scalar) {
+                    endField(); endRecord()
+                    state = scalar == "\r" ? .eatNewline : .startRecord
+                } else {
+                    field.append(scalar)
+                    state = .inField
+                }
+            }
+        }
+        for scalar in text.unicodeScalars { process(scalar) }
+        if state == .inField || state == .inQuoted || state == .quoteInQuoted || state == .startField {
+            endField(); endRecord()
+        }
+        return records
+    }
+
+    /// The fields `quoteHonouringFields` returns that begin with `=`, `+`, `-`, `@`, TAB or CR (the first twelve
+    /// characters of each, for a readable failure). Empty means no spreadsheet cell can start as a formula.
+    static func triggerLedFields(in text: String, delimiter: Unicode.Scalar) -> [String] {
+        quoteHonouringFields(in: text, delimiter: delimiter).flatMap { $0 }.compactMap { field in
+            guard let first = field.unicodeScalars.first, "=+-@\t\r".unicodeScalars.contains(first) else { return nil }
+            return String(field.prefix(12))
+        }
     }
 
     /// What a reader sees that ignores quotes: lines split at CR / LF, cells split at `;` and at TAB. The

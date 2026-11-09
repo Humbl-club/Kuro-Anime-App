@@ -85,7 +85,7 @@ public struct LibraryExportInput: Sendable {
 /// safe for spreadsheets; JSON keeps notes exactly." / "CSV wird für Tabellenprogramme abgesichert; JSON
 /// enthält Notizen unverändert." Concretely, the CSV writer puts an apostrophe in front of a note, title or tag
 /// text that a spreadsheet could run as a formula (`=`, `+`, `-`, `@`, TAB or CR at the start of a cell or
-/// right after a `;`, TAB or line break); the JSON file never changes text.
+/// right after a `;`, TAB or line break, also behind a run of quotes); the JSON file never changes text.
 public enum LibraryExportFormat: String, CaseIterable, Sendable {
     /// A MyAnimeList XML export, one file per medium (more when a medium must be split into parts).
     case malXML = "mal_xml"

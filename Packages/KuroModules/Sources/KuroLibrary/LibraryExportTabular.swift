@@ -22,12 +22,16 @@ import KuroCore
 // apps run a cell that starts with `=`, `+`, `-`, `@`, TAB or CR as a formula, and they also split a cell: a
 // spreadsheet in a semicolon locale (German Excel) cuts a CSV line at every `;` WITHOUT reading the quotes
 // (the quote is not at the start of its `;`-field), a tab-delimited reader cuts at TAB, and a reader that
-// ignores quotes cuts a record at every line break. Every cell therefore goes through
-// `LibraryExport.csvSafeText(_:)` before `csvField(_:)`, which writes a `'` in front of a formula trigger
-// (`=`, `+`, `-`, `@`, TAB, CR) that
-//   1. is the first character of the cell, or
-//   2. immediately follows a `;`, TAB, CR or LF inside the cell
-//      (`x;=1+1;y` is written `x;'=1+1;y`, `a<TAB>@SUM` is written `a<TAB>'@SUM`).
+// ignores quotes cuts a record at every line break. A `;`-reader that DOES honour a quote at the start of
+// its field (Python's `csv.reader(delimiter=";")`) unquotes `;""=1+1` into the field `=1+1`. Every cell
+// therefore goes through `LibraryExport.csvSafeText(_:)` before `csvField(_:)`, which writes a `'` in front of
+// a formula trigger (`=`, `+`, `-`, `@`, TAB, CR) at a segment start, where a segment starts
+//   1. at the first character of the cell, and
+//   2. immediately after a `;`, TAB, CR or LF inside the cell,
+// and any run of `"` right at the segment start counts as nothing: the `'` goes in front of the quotes
+// (`x;=1+1;y` is written `x;'=1+1;y`, `a<TAB>@SUM` is written `a<TAB>'@SUM`, `a;"=1+1` is written
+// `a;'"=1+1`, `"=x` is written `'"=x`), so the field a reader sees starts with `'`, never with a quote it could
+// strip or a trigger.
 // Rule 2 is why quoting alone is not enough: no segment any of those readers produces starts with a trigger.
 // Documented consequence: a note, title or tag that has such a character in those places reads back from the
 // CSV with an extra `'` there. The JSON file keeps the exact text and is the lossless format.
@@ -41,31 +45,48 @@ extension LibraryExport {
     ]
 
     /// CSV cell text made safe for spreadsheets: a `'` is written in front of every formula trigger (`=`, `+`,
-    /// `-`, `@`, TAB U+0009, CR U+000D) that is the first character of the value, or that immediately follows
-    /// a `;`, TAB, CR or LF inside it (OWASP CSV injection guidance, extended to the characters spreadsheet
-    /// readers split on). `"x;=1+1;y"` becomes `"x;'=1+1;y"`; `"a\t@SUM"` becomes `"a\t'@SUM"`.
+    /// `-`, `@`, TAB U+0009, CR U+000D) at a segment start, that is at the first character of the value and
+    /// right after a `;`, TAB, CR or LF inside it (OWASP CSV injection guidance, extended to the characters
+    /// spreadsheet readers split on). A run of `"` at a segment start is transparent: the `'` goes in front of
+    /// the quotes, because a reader that honours a quote at the start of its field would unquote `"=1+1` into
+    /// a field that starts with `=`. `"x;=1+1;y"` becomes `"x;'=1+1;y"`, `"a\t@SUM"` becomes `"a\t'@SUM"`,
+    /// `"a;\"=1+1"` becomes `"a;'\"=1+1"`, `"\"=x"` becomes `"'\"=x"`.
     ///
     /// Applied to every CSV cell, before `csvField` quoting. JSON never uses it. Characters are read as bytes,
     /// not `Character`s: `"\r\n"` is one `Character` and must still count as a leading CR and as a boundary.
-    /// Inserting an ASCII byte before another ASCII byte never splits a multi-byte UTF-8 sequence.
+    /// Inserting an ASCII byte before an ASCII byte never splits a multi-byte UTF-8 sequence.
     public static func csvSafeText(_ value: String) -> String {
         guard needsFormulaGuard(value) else { return value }
-        var bytes: [UInt8] = []
-        bytes.reserveCapacity(value.utf8.count + 4)
-        var previous: UInt8?
-        for byte in value.utf8 {
-            if isFormulaTrigger(byte), startsSegment(after: previous) { bytes.append(0x27) }
-            bytes.append(byte)
-            previous = byte
+        let bytes = Array(value.utf8)
+        var output: [UInt8] = []
+        output.reserveCapacity(bytes.count + 4)
+        var index = 0
+        var atSegmentStart = true
+        while index < bytes.count {
+            if atSegmentStart {
+                var probe = index
+                while probe < bytes.count, bytes[probe] == 0x22 { probe += 1 }
+                if probe < bytes.count, isFormulaTrigger(bytes[probe]) { output.append(0x27) }
+                output.append(contentsOf: bytes[index..<probe])
+                index = probe
+                atSegmentStart = false
+                if index == bytes.count { break }
+            }
+            let byte = bytes[index]
+            output.append(byte)
+            atSegmentStart = isSegmentBoundary(byte)
+            index += 1
         }
-        return String(decoding: bytes, as: UTF8.self)
+        return String(decoding: output, as: UTF8.self)
     }
 
-    /// `true` when `csvSafeText` would insert at least one `'` (a scan; no allocation).
+    /// `true` when `csvSafeText` might insert a `'`: a trigger at the start, after a boundary, or after a
+    /// quote (a scan; no allocation). It may say yes for text that comes out unchanged (`a"=x`), never no for
+    /// text that needs a guard.
     private static func needsFormulaGuard(_ value: String) -> Bool {
         var previous: UInt8?
         for byte in value.utf8 {
-            if isFormulaTrigger(byte), startsSegment(after: previous) { return true }
+            if isFormulaTrigger(byte), previous == nil || previous == 0x22 || isSegmentBoundary(previous ?? 0) { return true }
             previous = byte
         }
         return false
@@ -79,11 +100,10 @@ extension LibraryExport {
         }
     }
 
-    /// `true` at the start of the value (`nil`) and after `;`, TAB, CR or LF: where a spreadsheet reader that
-    /// splits on those characters starts a new cell or record.
-    private static func startsSegment(after previous: UInt8?) -> Bool {
-        guard let previous else { return true }
-        switch previous {
+    /// `;`, TAB, CR or LF: after one of these a spreadsheet reader that splits on them starts a new cell or
+    /// record.
+    private static func isSegmentBoundary(_ byte: UInt8) -> Bool {
+        switch byte {
         case 0x3B, 0x09, 0x0D, 0x0A: return true
         default: return false
         }
