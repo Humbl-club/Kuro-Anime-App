@@ -80,12 +80,19 @@ public struct LibraryExportInput: Sendable {
 // MARK: - Export output
 
 /// A file format the export can produce.
+///
+/// Copy for the summary or the sheet (wording for the UI to show later, through `KuroLocale`): "CSV is made
+/// safe for spreadsheets; JSON keeps notes exactly." / "CSV wird für Tabellenprogramme abgesichert; JSON
+/// enthält Notizen unverändert." Concretely, the CSV writer puts an apostrophe in front of a note, title or tag
+/// text that a spreadsheet could run as a formula (`=`, `+`, `-`, `@`, TAB or CR at the start of a cell or
+/// right after a `;`, TAB or line break); the JSON file never changes text.
 public enum LibraryExportFormat: String, CaseIterable, Sendable {
     /// A MyAnimeList XML export, one file per medium (more when a medium must be split into parts).
     case malXML = "mal_xml"
-    /// One CSV file with a documented header.
+    /// One CSV file with a documented header. Made safe for spreadsheets (see the type's copy note): text that
+    /// could run as a formula gets a leading apostrophe.
     case csv
-    /// One JSON file holding entries, tags and lists.
+    /// One JSON file holding entries, tags and lists. Keeps notes and titles exactly as written.
     case json
 }
 

@@ -4,9 +4,10 @@ import Foundation
 /// CR or a LF is enclosed in double quotes, and a double quote inside such a field is doubled; every record
 /// ends with CRLF).
 ///
-/// This type is only the transport encoding. It does not neutralise spreadsheet formulas (a cell starting
-/// with `=`, `+`, `-`, `@`, TAB or CR): `LibraryExport.csvSafeText(_:)` does that, and the export's CSV writer
-/// calls it before `field(_:)`.
+/// This type is only the transport encoding. It does not neutralise spreadsheet formulas (`=`, `+`, `-`, `@`,
+/// TAB or CR at the start of a cell or right after a `;`, TAB or line break inside it) and does not quote a
+/// cell for holding a `;` or TAB: `LibraryExport.csvSafeText(_:)` and the export's CSV writer do that, before
+/// and instead of `field(_:)`.
 public enum RFC4180 {
     private static let quote: UInt8 = 0x22
     private static let comma: UInt8 = 0x2C

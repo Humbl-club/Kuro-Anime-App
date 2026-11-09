@@ -480,8 +480,8 @@ struct LibraryExportTests {
         let file = try #require(LibraryExport.build(LibraryExportInput(entries: entries, catalogue: catalogue), formats: [.csv], exportedAt: Self.now, timeZone: Self.berlin).files.first)
         let text = String(decoding: file.data.dropFirst(3), as: UTF8.self)
 
-        // The two cells named in the review are written quoted, exactly.
-        #expect(text.contains("\"abc;=1+1\"") && text.contains("\"x\t@SUM(A1)\""))
+        // The two cells named in the review are written quoted, with the inner trigger neutralised.
+        #expect(text.contains("\"abc;'=1+1\"") && text.contains("\"x\t'@SUM(A1)\""))
         #expect(text.contains("\"Fate; Zero\""))
         // A cell with neither character stays unquoted (no gratuitous quoting).
         #expect(text.contains(",plain,") && text.contains(",Title 2,"))
@@ -491,15 +491,119 @@ struct LibraryExportTests {
         let notesColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "notes"))
         let titleColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "title"))
         #expect(rows.dropFirst().map { $0[notesColumn] } == [
-            "abc;=1+1", "x\t@SUM(A1)", "plain", ";=cmd", "a;b;-2;@x", "'\t@lead", "'=lead;=again",
+            "abc;'=1+1", "x\t'@SUM(A1)", "plain", ";'=cmd", "a;b;'-2;'@x", "'\t'@lead", "'=lead;'=again",
         ])
         #expect(rows[1][titleColumn] == "Fate; Zero")
 
-        // No `;` or TAB outside quotes, so no segment a ;- or tab-splitting reader sees starts with a trigger.
+        // No `;` or TAB outside quotes, so no segment a quote-aware ;- or tab-splitting reader sees starts with
+        // a trigger. (The next test checks readers that ignore the quotes.)
         #expect(Self.triggerSegments(in: text).isEmpty)
         // The check bites: the plain RFC encoder leaves `abc;=1+1` split-able.
         #expect(Self.triggerSegments(in: RFC4180.row(["k", "abc;=1+1"])) == ["=1+1"])
         #expect(Self.triggerSegments(in: RFC4180.row(["k", "x\t@SUM(A1)"])) == ["@SUM(A1)"])
+    }
+
+    /// Quoting cannot protect a reader that splits on `;` or TAB without reading quotes (German Excel: the
+    /// quote is not at the start of its `;`-field). The neutraliser itself must leave no formula trigger at the
+    /// start of any segment such a reader produces, in any cell and for any mix of the delimiters.
+    @Test func csvHasNoFormulaTriggerAfterAnyDelimiterForReadersThatIgnoreQuotes() throws {
+        let notes = [
+            "x;=1+1;y", "a\t@SUM(A1)", "abc;=HYPERLINK(\"http://x\";\"y\")", ";=cmd", "=a;=b;=c", "\t\t=x",
+            "line\n=x", "line\r\n+1", "q;\"=x\"", "a;-1;+2;@3", ";\t;=x", "ö;=ö\t=ä",
+        ]
+        var entries: [LibraryEntry] = []
+        var catalogue: [MediaKey: ExportCatalogueRow] = [:]
+        var tags: [MediaKey: [String]] = [:]
+        for (index, note) in notes.enumerated() {
+            let entry = Self.entry(.anime, index + 1, .current, progress: 1, rating: nil, notes: note, repeatCount: 0, started: nil, finished: nil)
+            entries.append(entry)
+            // Titles, list names and tags are cells too; the joined cells put "; " between their parts.
+            catalogue[entry.key] = Self.row(index % 2 == 0 ? "T;=\(index)" : "-\(index);@t", mal: 100 + index)
+            tags[entry.key] = ["=t\(index)", "@u;=v", "plain"]
+        }
+        let lists = [
+            ExportCustomList(id: UUID(), name: "=List;=One", createdAt: Self.epoch, items: entries.map(\.key)),
+            ExportCustomList(id: UUID(), name: "+Two", createdAt: Self.epoch, items: entries.map(\.key)),
+        ]
+        let input = LibraryExportInput(entries: entries, catalogue: catalogue, tagsByKey: tags, customLists: lists)
+        let file = try #require(LibraryExport.build(input, formats: [.csv], exportedAt: Self.now, timeZone: Self.berlin).files.first)
+        let text = String(decoding: file.data.dropFirst(3), as: UTF8.self)
+
+        // Naive readers: lines split at CR / LF, cells at `;` (a semicolon-locale reader) and at TAB, no quote
+        // handling.
+        #expect(Self.naiveTriggerSegments(in: text).isEmpty)
+        #expect(Self.triggerSegments(in: text).isEmpty)
+        // The check bites: the plain RFC encoder alone leaves such segments.
+        #expect(Self.naiveTriggerSegments(in: RFC4180.row(["k", "x;=1+1;y"])) == ["=1+1"])
+        #expect(Self.naiveTriggerSegments(in: RFC4180.row(["k", "a\t@SUM"])) == ["@SUM"])
+        #expect(Self.naiveTriggerSegments(in: RFC4180.row(["k", "line\n=x"])) == ["=x\""])
+        // A trigger one space after a delimiter does not start a segment (the "; " that joins tags is safe).
+        #expect(Self.naiveTriggerSegments(in: RFC4180.row(["k", "a; =x"])).isEmpty)
+
+        // The strict reader still reads every cell back: the neutralised text, with only apostrophes added.
+        let rows = try Self.csvRows(file)
+        let notesColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "notes"))
+        for (index, note) in notes.enumerated() {
+            let cell = rows[index + 1][notesColumn]
+            #expect(cell == LibraryExport.csvSafeText(note))
+            #expect(cell.unicodeScalars.filter { $0 != "'" }.elementsEqual(note.unicodeScalars.filter { $0 != "'" }))
+        }
+        // Titles, tags and list names are cells too: guarded at the start and after `;`, joined with "; ".
+        let titleColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "title"))
+        let tagsColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "tags"))
+        let listsColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "custom_lists"))
+        #expect(rows[1][titleColumn] == "T;'=0" && rows[2][titleColumn] == "'-1;'@t")
+        #expect(rows[1][tagsColumn] == "'=t0; @u;'=v; plain")
+        #expect(rows[1][listsColumn] == "'=List;'=One; +Two")
+        // JSON keeps every one of them exactly.
+        let json = try LibraryExport.build(input, formats: [.json], exportedAt: Self.now, timeZone: Self.berlin).file("kuro-list-2026-11-09.json")
+        #expect(try Self.jsonEntries(json).map { $0["notes"] as? String } == notes)
+        #expect(try Self.jsonEntries(json).first?["tags"] as? [String] == ["=t0", "@u;=v", "plain"])
+    }
+
+    /// For any mix of the delimiters, triggers and ordinary characters: the neutraliser only adds apostrophes,
+    /// and afterwards no trigger sits at the start of the text or right after `;`, TAB, CR or LF.
+    @Test func csvSafeTextPropertyHoldsForGeneratedText() throws {
+        let alphabet: [Unicode.Scalar] = [";", "\t", "\r", "\n", "=", "+", "-", "@", "a", "é", " ", ",", "\"", "日"]
+        var state: UInt64 = 0x9E37_79B9_7F4A_7C15
+        func next() -> Int {
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return Int(truncatingIfNeeded: state >> 33)
+        }
+        let triggers: Set<Unicode.Scalar> = ["=", "+", "-", "@", "\t", "\r"]
+        let boundaries: Set<Unicode.Scalar> = [";", "\t", "\r", "\n"]
+        var samples: [String] = []
+        for _ in 0..<3_000 {
+            var scalars = String.UnicodeScalarView()
+            for _ in 0..<(next() % 12) { scalars.append(alphabet[next() % alphabet.count]) }
+            samples.append(String(scalars))
+        }
+        for sample in samples {
+            let safe = LibraryExport.csvSafeText(sample)
+            // Only apostrophes were added (the alphabet has none).
+            #expect(safe.unicodeScalars.filter { $0 != "'" }.elementsEqual(sample.unicodeScalars))
+            var previous: Unicode.Scalar?
+            for scalar in safe.unicodeScalars {
+                if triggers.contains(scalar) {
+                    // Not at the start (`previous == nil`) and not right after a boundary.
+                    let atSegmentStart = previous.map { boundaries.contains($0) } ?? true
+                    #expect(!atSegmentStart, "trigger at a segment start in \(safe.debugDescription)")
+                }
+                previous = scalar
+            }
+            // Text with nothing to guard comes back untouched (the same String, not a copy with changes).
+            if safe.unicodeScalars.count == sample.unicodeScalars.count { #expect(safe == sample) }
+        }
+        // And through the CSV: a naive reader finds nothing, the strict reader reads the neutralised text back.
+        var entries: [LibraryEntry] = []
+        for (index, sample) in samples.enumerated() {
+            entries.append(Self.entry(.anime, index + 1, .current, progress: 1, rating: nil, notes: sample, repeatCount: 0, started: nil, finished: nil))
+        }
+        let file = try #require(LibraryExport.build(LibraryExportInput(entries: entries, catalogue: [:]), formats: [.csv], exportedAt: Self.now, timeZone: Self.berlin).files.first)
+        #expect(Self.naiveTriggerSegments(in: String(decoding: file.data.dropFirst(3), as: UTF8.self)).isEmpty)
+        let rows = try Self.csvRows(file)
+        let notesColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "notes"))
+        #expect(rows.dropFirst().map { $0[notesColumn] } == samples.map(LibraryExport.csvSafeText))
     }
 
     @Test func csvCellsFollowTheDocumentedValues() throws {
@@ -717,6 +821,20 @@ struct LibraryExportTests {
         #expect(LibraryExport.csvSafeText(" =x") == " =x" && LibraryExport.csvSafeText("x=") == "x=")
         #expect(LibraryExport.csvSafeText("=") == "'=" && LibraryExport.csvSafeText("'=x") == "'=x")
         #expect(LibraryExport.csvSafeText("\nx") == "\nx")
+        // A trigger right after `;`, TAB, CR or LF inside the text is guarded too (a ;-delimited reader starts a
+        // new cell there). Only an immediately following trigger counts.
+        #expect(LibraryExport.csvSafeText("x;=1+1;y") == "x;'=1+1;y")
+        #expect(LibraryExport.csvSafeText("a\t@SUM") == "a\t'@SUM")
+        #expect(LibraryExport.csvSafeText(";=x") == ";'=x" && LibraryExport.csvSafeText("a;+1;-2;@x") == "a;'+1;'-2;'@x")
+        #expect(LibraryExport.csvSafeText("a\n=x") == "a\n'=x" && LibraryExport.csvSafeText("a\r\n=x") == "a\r\n'=x")
+        #expect(LibraryExport.csvSafeText("a\r+x") == "a\r'+x")     // a CR mid-text is not at a segment start; the `+` after it is
+        #expect(LibraryExport.csvSafeText("a\t\t=x") == "a\t'\t'=x")
+        #expect(LibraryExport.csvSafeText(";;==") == ";;'==")
+        #expect(LibraryExport.csvSafeText("a; =x") == "a; =x" && LibraryExport.csvSafeText("a;x=1") == "a;x=1")
+        #expect(LibraryExport.csvSafeText("a;") == "a;" && LibraryExport.csvSafeText("a;b") == "a;b" && LibraryExport.csvSafeText(";") == ";")
+        #expect(LibraryExport.csvSafeText("a;'=x") == "a;'=x")                    // already led by an apostrophe
+        #expect(LibraryExport.csvSafeText("é;=é 日本;@語") == "é;'=é 日本;'@語")     // multi-byte text around the insert
+        #expect(LibraryExport.csvSafeText("日本=x") == "日本=x")
         // The neutraliser runs before quoting: a trigger inside a quoted cell is still prefixed.
         #expect(RFC4180.field(LibraryExport.csvSafeText("=a,b")) == "\"'=a,b\"")
     }
@@ -956,6 +1074,22 @@ struct LibraryExportTests {
         entries.append(seventh)
         catalogue[seventh.key] = Self.row("=cmd", mal: 107)
         return LibraryExportInput(entries: entries, catalogue: catalogue)
+    }
+
+    /// What a reader sees that ignores quotes: lines split at CR / LF, cells split at `;` and at TAB. The
+    /// segments that start with `=`, `+`, `-` or `@`, cut at the next comma for a short readable result. Empty
+    /// means nothing a spreadsheet would read as a formula.
+    static func naiveTriggerSegments(in text: String) -> [String] {
+        var offenders: [String] = []
+        let lines = text.split(omittingEmptySubsequences: false) { $0 == "\r" || $0 == "\n" || $0 == "\r\n" }
+        for line in lines {
+            for segment in line.split(omittingEmptySubsequences: false, whereSeparator: { $0 == ";" || $0 == "\t" }) {
+                if let first = segment.first, "=+-@".contains(first) {
+                    offenders.append(String(segment.prefix { $0 != "," }))
+                }
+            }
+        }
+        return offenders
     }
 
     /// The text a reader that splits on `;`, TAB or a record end sees at the start of each segment, when that

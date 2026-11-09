@@ -7,9 +7,7 @@ import KuroCore
 //
 // - UTF-8 with a byte order mark (EF BB BF) so spreadsheet apps read umlauts correctly.
 // - RFC 4180 records: CRLF line ends, a cell with a comma, quote, CR or LF in double quotes (`RFC4180.field`).
-//   This file additionally quotes every cell that holds a semicolon or a TAB (`csvField(_:)`): a spreadsheet
-//   in a semicolon locale (German Excel) or a tab-delimited reader splits an unquoted cell at those
-//   characters, and the second part would start with a formula trigger that `csvSafeText` never saw.
+//   This file additionally quotes every cell that holds a semicolon or a TAB (`csvField(_:)`).
 // - One header row, exactly `LibraryExport.csvHeader` (20 columns), then one row per library entry: anime
 //   before manga, then by Kuro id. List items whose title left the library have no row (they are in the JSON
 //   file and counted in the summary).
@@ -20,11 +18,19 @@ import KuroCore
 //   the stored text otherwise; `tags` and `custom_lists` join their values with "; ".
 // - `progress_label` and `unit_id` are the entry's tracking-unit identity exactly as stored, never inferred.
 //
-// Formula neutralisation: spreadsheet apps run a cell that starts with `=`, `+`, `-`, `@`, TAB or CR as a
-// formula. Every cell goes through `LibraryExport.csvSafeText(_:)` before `csvField(_:)`, which writes such a
-// cell with a leading `'`. Consequence, documented: a note that starts with one of those characters
-// reads back from the CSV with one extra leading `'`. The JSON file keeps the exact text and is the lossless
-// format.
+// Formula neutralisation (the CSV is made safe for spreadsheets; the JSON keeps notes exactly). Spreadsheet
+// apps run a cell that starts with `=`, `+`, `-`, `@`, TAB or CR as a formula, and they also split a cell: a
+// spreadsheet in a semicolon locale (German Excel) cuts a CSV line at every `;` WITHOUT reading the quotes
+// (the quote is not at the start of its `;`-field), a tab-delimited reader cuts at TAB, and a reader that
+// ignores quotes cuts a record at every line break. Every cell therefore goes through
+// `LibraryExport.csvSafeText(_:)` before `csvField(_:)`, which writes a `'` in front of a formula trigger
+// (`=`, `+`, `-`, `@`, TAB, CR) that
+//   1. is the first character of the cell, or
+//   2. immediately follows a `;`, TAB, CR or LF inside the cell
+//      (`x;=1+1;y` is written `x;'=1+1;y`, `a<TAB>@SUM` is written `a<TAB>'@SUM`).
+// Rule 2 is why quoting alone is not enough: no segment any of those readers produces starts with a trigger.
+// Documented consequence: a note, title or tag that has such a character in those places reads back from the
+// CSV with an extra `'` there. The JSON file keeps the exact text and is the lossless format.
 
 extension LibraryExport {
     /// The CSV header, in column order (20 columns).
@@ -34,16 +40,52 @@ extension LibraryExport {
         "custom_lists", "created_at", "updated_at",
     ]
 
-    /// CSV cell text with spreadsheet formula triggers neutralised: a value whose first character is `=`, `+`,
-    /// `-`, `@`, TAB (U+0009) or CR (U+000D) gets a leading `'` (OWASP CSV injection guidance).
+    /// CSV cell text made safe for spreadsheets: a `'` is written in front of every formula trigger (`=`, `+`,
+    /// `-`, `@`, TAB U+0009, CR U+000D) that is the first character of the value, or that immediately follows
+    /// a `;`, TAB, CR or LF inside it (OWASP CSV injection guidance, extended to the characters spreadsheet
+    /// readers split on). `"x;=1+1;y"` becomes `"x;'=1+1;y"`; `"a\t@SUM"` becomes `"a\t'@SUM"`.
     ///
-    /// Applied to every CSV cell, before `RFC4180.field` quoting. JSON never uses it. The first character is
-    /// read as a byte, not a `Character`: `"\r\n"` is one `Character` and must still count as a leading CR.
+    /// Applied to every CSV cell, before `csvField` quoting. JSON never uses it. Characters are read as bytes,
+    /// not `Character`s: `"\r\n"` is one `Character` and must still count as a leading CR and as a boundary.
+    /// Inserting an ASCII byte before another ASCII byte never splits a multi-byte UTF-8 sequence.
     public static func csvSafeText(_ value: String) -> String {
-        guard let first = value.utf8.first else { return value }
-        switch first {
-        case 0x3D, 0x2B, 0x2D, 0x40, 0x09, 0x0D: return "'" + value
-        default: return value
+        guard needsFormulaGuard(value) else { return value }
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(value.utf8.count + 4)
+        var previous: UInt8?
+        for byte in value.utf8 {
+            if isFormulaTrigger(byte), startsSegment(after: previous) { bytes.append(0x27) }
+            bytes.append(byte)
+            previous = byte
+        }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    /// `true` when `csvSafeText` would insert at least one `'` (a scan; no allocation).
+    private static func needsFormulaGuard(_ value: String) -> Bool {
+        var previous: UInt8?
+        for byte in value.utf8 {
+            if isFormulaTrigger(byte), startsSegment(after: previous) { return true }
+            previous = byte
+        }
+        return false
+    }
+
+    /// `=`, `+`, `-`, `@`, TAB, CR.
+    private static func isFormulaTrigger(_ byte: UInt8) -> Bool {
+        switch byte {
+        case 0x3D, 0x2B, 0x2D, 0x40, 0x09, 0x0D: return true
+        default: return false
+        }
+    }
+
+    /// `true` at the start of the value (`nil`) and after `;`, TAB, CR or LF: where a spreadsheet reader that
+    /// splits on those characters starts a new cell or record.
+    private static func startsSegment(after previous: UInt8?) -> Bool {
+        guard let previous else { return true }
+        switch previous {
+        case 0x3B, 0x09, 0x0D, 0x0A: return true
+        default: return false
         }
     }
 
@@ -65,7 +107,9 @@ extension LibraryExport {
         cells.map { csvField(csvSafeText($0)) }.joined(separator: ",") + "\r\n"
     }
 
-    /// One CSV cell: `RFC4180.field`, plus double quotes around a cell that holds a semicolon or a TAB.
+    /// One CSV cell: `RFC4180.field`, plus double quotes around a cell that holds a semicolon or a TAB (so a
+    /// reader that does honour quotes keeps the cell whole; a reader that does not is covered by
+    /// `csvSafeText`'s rule for a trigger after `;` or TAB).
     ///
     /// Kept here and not in `RFC4180.field`: that type is the plain RFC 4180 transport encoding (the unresolved
     /// -titles file of W4 shares it and its documented behaviour), while the semicolon and TAB rule is a
