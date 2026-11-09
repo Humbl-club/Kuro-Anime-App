@@ -3,7 +3,8 @@ import KuroCore
 
 /// The finished export: its files and what they do and do not contain.
 public struct LibraryExportBundle: Equatable, Sendable {
-    /// The files to write and share, in the order they were built (MAL anime, then MAL manga).
+    /// The files to write and share, in a fixed order: MAL anime (or its parts), MAL manga (or its parts), the
+    /// CSV, the JSON. Only the requested formats are present.
     public let files: [LibraryExportFile]
     /// What the export contains and what it could not contain.
     public let summary: LibraryExportSummary
@@ -17,15 +18,23 @@ public struct LibraryExportBundle: Equatable, Sendable {
 
 /// Builds a person's library export from values gathered by the app. Pure: no I/O, no clock, no locale.
 public enum LibraryExport {
-    /// Builds the files for `formats`.
+    /// Builds the files for `formats` and the summary of what they contain.
     ///
-    /// MAL XML: one file per medium that has at least one entry with a MAL id, or numbered parts when one
-    /// document would exceed what the importer accepts (see `malXML(_:kind:summary:)`).
+    /// - MAL XML: one file per medium that has at least one entry with a usable MAL id (see
+    ///   `malId(for:in:)`), or numbered parts when one document would exceed what the importer accepts (see
+    ///   `malXML(_:kind:summary:)`). A medium with none gets no file.
+    /// - CSV: one file with both media and every entry (see `csvHeader`).
+    /// - JSON: one file with every entry and every list.
+    ///
+    /// The summary is filled once, here. `identityUnavailable` (a library entry with no catalogue row),
+    /// `withoutMalId` (a catalogue row without a usable MAL id) and `listItemsOutsideLibrary` describe the
+    /// data and do not depend on the formats asked for; `malExported`, `malParts`, `notesAdjusted` and
+    /// `datesOmitted` describe the MAL files and are filled only when `.malXML` is requested.
     ///
     /// - Parameters:
     ///   - input: The library, catalogue identities and organisation to export.
     ///   - formats: The formats to produce.
-    ///   - exportedAt: The export moment, used for the file names.
+    ///   - exportedAt: The export moment: the file names' date (in `timeZone`) and the JSON `exported_at`.
     ///   - timeZone: The zone the file-name date is read in.
     public static func build(
         _ input: LibraryExportInput,
@@ -37,6 +46,8 @@ public enum LibraryExport {
             entryCount: input.entries.count, malExported: [:], withoutMalId: [], identityUnavailable: [],
             notesAdjusted: [], datesOmitted: [], organisationUnavailable: input.organisationUnavailable
         )
+        describeIdentity(of: input, in: &summary)
+
         var files: [LibraryExportFile] = []
         if formats.contains(.malXML) {
             for kind in [MediaKind.anime, .manga] {
@@ -49,6 +60,18 @@ public enum LibraryExport {
                     files.append(LibraryExportFile(name: name, data: data, contentType: "application/xml"))
                 }
             }
+        }
+        if formats.contains(.csv) {
+            files.append(LibraryExportFile(
+                name: fileName(.csv, kind: nil, exportedAt: exportedAt, timeZone: timeZone),
+                data: csv(input), contentType: "text/csv"
+            ))
+        }
+        if formats.contains(.json), let data = json(input, summary: summary, exportedAt: exportedAt) {
+            files.append(LibraryExportFile(
+                name: fileName(.json, kind: nil, exportedAt: exportedAt, timeZone: timeZone),
+                data: data, contentType: "application/json"
+            ))
         }
         return LibraryExportBundle(files: files, summary: summary)
     }
@@ -77,15 +100,59 @@ public enum LibraryExport {
         }
     }
 
+    /// The MAL id the MAL writer can use for `key`, or `nil`.
+    ///
+    /// `nil` when the catalogue has no row, the row has no MAL id, or the id is outside `1...Int32.max` (the
+    /// range the importer accepts). The MAL writer and the summary's `withoutMalId` both decide through this
+    /// function, so a title is always either written to a MAL file or reported, never neither.
+    static func malId(for key: MediaKey, in catalogue: [MediaKey: ExportCatalogueRow]) -> Int? {
+        guard let malId = catalogue[key]?.malId, (1...Int(Int32.max)).contains(malId) else { return nil }
+        return malId
+    }
+
+    /// The catalogue title for `key`, trimmed, or `nil` when the catalogue has no row or no title.
+    static func catalogueTitle(for key: MediaKey, in catalogue: [MediaKey: ExportCatalogueRow]) -> String? {
+        guard let title = catalogue[key]?.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty else {
+            return nil
+        }
+        return title
+    }
+
     /// The title an export shows for `key`: the catalogue title, else `"Untitled anime #<id>"` /
     /// `"Untitled manga #<id>"` (the wording the import review uses for an unresolved title).
     static func title(for key: MediaKey, in catalogue: [MediaKey: ExportCatalogueRow]) -> String {
-        if let title = catalogue[key]?.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
-            return title
-        }
+        if let title = catalogueTitle(for: key, in: catalogue) { return title }
         switch key.kind {
         case .anime: return "Untitled anime #\(key.id)"
         case .manga: return "Untitled manga #\(key.id)"
+        }
+    }
+
+    /// The entries in the order CSV and JSON list them: anime before manga, then by Kuro id.
+    static func sortedEntries(_ entries: [LibraryEntry]) -> [LibraryEntry] {
+        entries.sorted { lhs, rhs in
+            if lhs.key.kind != rhs.key.kind { return lhs.key.kind == .anime }
+            return lhs.key.id < rhs.key.id
+        }
+    }
+
+    /// Fills the summary fields that describe the input rather than a format: entries whose identity could
+    /// not be looked up, entries the catalogue knows but that have no usable MAL id, and list items whose
+    /// title is no longer in the library. Reports are in CSV order.
+    private static func describeIdentity(of input: LibraryExportInput, in summary: inout LibraryExportSummary) {
+        for entry in sortedEntries(input.entries) {
+            if input.catalogue[entry.key] == nil {
+                summary.identityUnavailable.append(reportLine(entry.key, in: input.catalogue))
+            } else if malId(for: entry.key, in: input.catalogue) == nil {
+                summary.withoutMalId.append(reportLine(entry.key, in: input.catalogue))
+            }
+        }
+        // Lists are exported only when the organisation loaded; counted per list item.
+        if !input.organisationUnavailable {
+            let libraryKeys = Set(input.entries.map(\.key))
+            summary.listItemsOutsideLibrary = input.customLists.reduce(0) { total, list in
+                total + list.items.filter { !libraryKeys.contains($0) }.count
+            }
         }
     }
 

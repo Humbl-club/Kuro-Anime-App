@@ -136,7 +136,8 @@ public struct LibraryExportSummary: Equatable, Sendable {
     public var entryCount: Int
     /// Entries written to MAL XML, per medium.
     public var malExported: [MediaKind: Int]
-    /// Entries with a catalogue row but no MAL id (kept in CSV and JSON, listed here).
+    /// Entries with a catalogue row but no usable MAL id: none, or one outside `1...Int32.max`, the range the
+    /// MAL writer and the importer accept (kept in CSV and JSON, listed here).
     public var withoutMalId: [ExportReportLine]
     /// Library entries with no catalogue row (offline / lookup failed). A list item outside the library
     /// without a row only exports title null and is not a gap.

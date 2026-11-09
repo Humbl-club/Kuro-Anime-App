@@ -133,7 +133,7 @@ extension LibraryExport {
     static func malXML(_ input: LibraryExportInput, kind: MediaKind, summary: inout LibraryExportSummary) -> [Data] {
         var candidates: [(entry: LibraryEntry, malId: Int)] = []
         for entry in input.entries where entry.key.kind == kind {
-            guard let malId = input.catalogue[entry.key]?.malId, (1...Int(Int32.max)).contains(malId) else { continue }
+            guard let malId = Self.malId(for: entry.key, in: input.catalogue) else { continue }
             candidates.append((entry, malId))
         }
         guard !candidates.isEmpty else { return [] }
