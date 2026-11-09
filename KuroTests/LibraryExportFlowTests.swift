@@ -10,8 +10,10 @@
 import Foundation
 import KuroCore
 import KuroLibrary
+import SwiftUI
 import Synchronization
 import Testing
+import UIKit
 @testable import Kuro
 
 @MainActor
@@ -720,6 +722,207 @@ extension LibraryExportFlowTests {
         let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: fixture.directory.path)) ?? []
         #expect(leftovers.isEmpty, "a per-export folder was recreated after sign-out: \(leftovers)")
         #expect(fixture.service.identityCache.isEmpty)
+        await fixture.tearDown()
+    }
+}
+
+// MARK: - Profile export sheet and copy (Task 6)
+
+extension LibraryExportFlowTests {
+    static func reportLine(_ title: String, id: Int = 1) -> ExportReportLine {
+        ExportReportLine(key: MediaKey(kind: .anime, id: id), title: title)
+    }
+
+    static func summary(
+        withoutMalId: [ExportReportLine] = [],
+        identityUnavailable: [ExportReportLine] = [],
+        organisationUnavailable: Bool = false,
+        trackingDetailUnavailable: Bool = false,
+        malParts: [MediaKind: Int] = [:],
+        listItemsOutsideLibrary: Int = 0
+    ) -> LibraryExportSummary {
+        LibraryExportSummary(
+            entryCount: 10, malExported: [.anime: 8], withoutMalId: withoutMalId, identityUnavailable: identityUnavailable,
+            notesAdjusted: [], datesOmitted: [], organisationUnavailable: organisationUnavailable, malParts: malParts,
+            listItemsOutsideLibrary: listItemsOutsideLibrary, trackingDetailUnavailable: trackingDetailUnavailable
+        )
+    }
+
+    @Test("Export copy is bilingual, counts titles and stays silent for a complete export")
+    func exportCopyIsBilingualAndCountsTitles() {
+        var s = LibraryExportFlowTests.summary(withoutMalId: [Self.reportLine("A", id: 1), Self.reportLine("B", id: 2)])
+        #expect(LibraryExportCopy.summaryLines(s, format: .malXML, german: false).first
+                == "2 titles have no MyAnimeList id and are not in the MAL file. They are in CSV and JSON.")
+        #expect(LibraryExportCopy.summaryLines(s, format: .malXML, german: true).first
+                == "2 Titel haben keine MyAnimeList-ID und fehlen in der MAL-Datei. Sie sind in CSV und JSON.")
+        s.withoutMalId = [Self.reportLine("A")]
+        #expect(LibraryExportCopy.summaryLines(s, format: .malXML, german: false).first
+                == "1 title has no MyAnimeList id and is not in the MAL file. It is in CSV and JSON.")
+        #expect(LibraryExportCopy.summaryLines(s, format: .malXML, german: true).first
+                == "1 Titel hat keine MyAnimeList-ID und fehlt in der MAL-Datei. Er ist in CSV und JSON.")
+        s.withoutMalId = []
+        #expect(LibraryExportCopy.summaryLines(s, format: .csv, german: false).isEmpty)
+        #expect(LibraryExportCopy.summaryLines(s, format: .malXML, german: true).isEmpty)
+        // CSV and JSON keep those titles, so they are not reported there.
+        s.withoutMalId = [Self.reportLine("A")]
+        #expect(LibraryExportCopy.summaryLines(s, format: .csv, german: false).isEmpty)
+        #expect(LibraryExportCopy.summaryLines(s, format: .json, german: true).isEmpty)
+    }
+
+    @Test("Export copy names each gap, the MAL split and list entries outside the library, identity first")
+    func exportCopyNamesEachGapAndSplit() {
+        let four = (1...4).map { Self.reportLine("T\($0)", id: $0) }
+        let identity = LibraryExportFlowTests.summary(identityUnavailable: four)
+        #expect(LibraryExportCopy.summaryLines(identity, format: .json, german: false)
+                == ["4 titles could not be looked up offline; their ids are missing."])
+        #expect(LibraryExportCopy.summaryLines(identity, format: .json, german: true)
+                == ["4 Titel konnten offline nicht nachgeschlagen werden; ihre IDs fehlen."])
+        let one = LibraryExportFlowTests.summary(identityUnavailable: [Self.reportLine("T")])
+        #expect(LibraryExportCopy.summaryLines(one, format: .json, german: false)
+                == ["1 title could not be looked up offline; its id is missing."])
+        #expect(LibraryExportCopy.summaryLines(one, format: .json, german: true)
+                == ["1 Titel konnte offline nicht nachgeschlagen werden; seine ID fehlt."])
+
+        let organisation = LibraryExportFlowTests.summary(organisationUnavailable: true)
+        let organisationEN = LibraryExportCopy.summaryLines(organisation, format: .json, german: false)
+        #expect(organisationEN == ["Tags and lists couldn't be loaded. Export again when you're online to include them."])
+        #expect(LibraryExportCopy.summaryLines(organisation, format: .json, german: true)
+                == ["Tags und Listen konnten nicht geladen werden. Exportiere erneut, wenn du online bist, um sie mitzunehmen."])
+
+        let both = LibraryExportFlowTests.summary(identityUnavailable: four, organisationUnavailable: true)
+        let bothLines = LibraryExportCopy.summaryLines(both, format: .csv, german: false)
+        #expect(bothLines.count == 2 && bothLines[0].hasPrefix("4 titles could not") && bothLines[1].hasPrefix("Tags and lists"))
+
+        let parts = LibraryExportFlowTests.summary(malParts: [.anime: 3, .manga: 1])
+        #expect(LibraryExportCopy.summaryLines(parts, format: .malXML, german: false)
+                == ["Your anime list is in 3 files so importers accept it. Import all 3."])
+        #expect(LibraryExportCopy.summaryLines(parts, format: .malXML, german: true)
+                == ["Deine Anime-Liste ist auf 3 Dateien verteilt, damit Importe sie annehmen. Importiere alle 3."])
+        let manga = LibraryExportFlowTests.summary(malParts: [.manga: 2])
+        #expect(LibraryExportCopy.summaryLines(manga, format: .malXML, german: false)
+                == ["Your manga list is in 2 files so importers accept it. Import all 2."])
+        #expect(LibraryExportCopy.summaryLines(manga, format: .malXML, german: true)
+                == ["Deine Manga-Liste ist auf 2 Dateien verteilt, damit Importe sie annehmen. Importiere alle 2."])
+        #expect(LibraryExportCopy.summaryLines(parts, format: .csv, german: false).isEmpty, "the split is a MAL-only fact")
+
+        let outside = LibraryExportFlowTests.summary(listItemsOutsideLibrary: 2)
+        #expect(LibraryExportCopy.summaryLines(outside, format: .csv, german: false)
+                == ["2 list entries are no longer in your library; they are in the JSON file."])
+        #expect(LibraryExportCopy.summaryLines(outside, format: .malXML, german: true)
+                == ["2 Listeneinträge sind nicht mehr in deiner Bibliothek; sie stehen in der JSON-Datei."])
+        let single = LibraryExportFlowTests.summary(listItemsOutsideLibrary: 1)
+        #expect(LibraryExportCopy.summaryLines(single, format: .csv, german: false)
+                == ["1 list entry is no longer in your library; it is in the JSON file."])
+        #expect(LibraryExportCopy.summaryLines(single, format: .csv, german: true)
+                == ["1 Listeneintrag ist nicht mehr in deiner Bibliothek; er steht in der JSON-Datei."])
+        #expect(LibraryExportCopy.summaryLines(outside, format: .json, german: false).isEmpty, "JSON holds them")
+
+        for failure in [LibraryExportFailure.disabled, .notLoaded, .signedOut, .writeFailed, .buildFailed] {
+            let en = LibraryExportCopy.failure(failure, german: false)
+            let de = LibraryExportCopy.failure(failure, german: true)
+            #expect(!en.isEmpty && !de.isEmpty && en != de, "\(failure)")
+        }
+        #expect(LibraryExportCopy.failure(.disabled, german: false) == "Export isn't available yet.")
+        #expect(LibraryExportCopy.failure(.disabled, german: true) == "Export ist noch nicht verfügbar.")
+    }
+
+    @Test("A library read without tracking detail says so, in both languages, for every format")
+    func exportCopyReportsMissingTrackingDetail() {
+        let s = LibraryExportFlowTests.summary(trackingDetailUnavailable: true)
+        for format in LibraryExportFormat.allCases {
+            let en = LibraryExportCopy.summaryLines(s, format: format, german: false)
+            let de = LibraryExportCopy.summaryLines(s, format: format, german: true)
+            #expect(en.count == 1 && de.count == 1 && en != de)
+            #expect(en.first?.contains("tracking details") == true)
+            #expect(de.first?.contains("Tracking-Details") == true)
+        }
+        // Order: identity, organisation, tracking detail.
+        let all = LibraryExportFlowTests.summary(
+            identityUnavailable: [Self.reportLine("T")], organisationUnavailable: true, trackingDetailUnavailable: true
+        )
+        let lines = LibraryExportCopy.summaryLines(all, format: .json, german: false)
+        #expect(lines.count == 3 && lines[0].hasPrefix("1 title") && lines[1].hasPrefix("Tags and lists") && lines[2].hasPrefix("Some tracking"))
+    }
+
+    @Test("Row, format and note copy is the agreed wording, and thousands follow the reader's locale")
+    func exportCopyFixedWording() {
+        #expect(LibraryExportCopy.rowTitle(german: false) == "Export your list")
+        #expect(LibraryExportCopy.rowTitle(german: true) == "Liste exportieren")
+        #expect(LibraryExportCopy.rowSubtitle(german: false) == "CSV, MyAnimeList or JSON. Free.")
+        #expect(LibraryExportCopy.rowSubtitle(german: true) == "CSV, MyAnimeList oder JSON. Kostenlos.")
+        #expect(LibraryExportFormat.allCases.map { LibraryExportCopy.formatTitle($0, german: false) }.sorted()
+                == ["Everything (JSON)", "MyAnimeList (XML)", "Spreadsheet (CSV)"])
+        #expect(LibraryExportFormat.allCases.map { LibraryExportCopy.formatTitle($0, german: true) }.sorted()
+                == ["Alles (JSON)", "MyAnimeList (XML)", "Tabelle (CSV)"])
+        #expect(LibraryExportCopy.offlineNote(german: false) == "You're offline. Your list exports; some catalogue ids may be missing.")
+        #expect(LibraryExportCopy.offlineNote(german: true) == "Du bist offline. Deine Liste wird exportiert; manche Katalog-IDs können fehlen.")
+        #expect(LibraryExportCopy.csvSafetyNote(german: false) == "CSV is made safe for spreadsheets; JSON keeps notes exactly.")
+        #expect(LibraryExportCopy.csvSafetyNote(german: true) == "CSV wird für Tabellenprogramme abgesichert; JSON enthält Notizen unverändert.")
+        for format in LibraryExportFormat.allCases {
+            #expect(!LibraryExportCopy.formatSubtitle(format, german: false).isEmpty)
+            #expect(LibraryExportCopy.formatSubtitle(format, german: false) != LibraryExportCopy.formatSubtitle(format, german: true))
+        }
+        let many = (1...1_234).map { Self.reportLine("T\($0)", id: $0) }
+        let s = LibraryExportFlowTests.summary(identityUnavailable: many)
+        #expect(LibraryExportCopy.summaryLines(s, format: .json, german: false).first?.hasPrefix("1,234 titles") == true)
+        #expect(LibraryExportCopy.summaryLines(s, format: .json, german: true).first?.hasPrefix("1.234 Titel") == true)
+    }
+
+    @Test("A request that built no file says so, and the sheet offers Share only when there is a file")
+    func exportSheetRulesOfferShareOnlyForFiles() async throws {
+        let files = [URL(fileURLWithPath: "/tmp/kuro-list.csv")]
+        let withFile = LibraryExportState.ready(LibraryExportResult(format: .csv, files: files, summary: Self.summary()))
+        let noFile = LibraryExportState.ready(LibraryExportResult(format: .malXML, files: [], summary: Self.summary()))
+        #expect(LibraryExportSheetRules.shareableFiles(in: withFile) == files)
+        #expect(LibraryExportSheetRules.shareableFiles(in: noFile).isEmpty)
+        for state in [LibraryExportState.idle, .preparing(.csv), .failed(.writeFailed)] {
+            #expect(LibraryExportSheetRules.shareableFiles(in: state).isEmpty)
+        }
+        #expect(!LibraryExportCopy.emptyResultNote(german: false).isEmpty)
+        #expect(LibraryExportCopy.emptyResultNote(german: false) != LibraryExportCopy.emptyResultNote(german: true))
+
+        // The real owner: a MAL export that has no MyAnimeList id to write is `.ready` with zero files.
+        let fixture = try ExportFixture(titles: 3, now: Self.nov9Noon)
+        try await fixture.signInAndLoad()
+        fixture.probe.online = false
+        await fixture.service.export(.malXML)
+        guard case .ready(let result) = fixture.service.state else { Issue.record("not ready: \(fixture.service.state)"); return }
+        #expect(result.files.isEmpty)
+        #expect(LibraryExportSheetRules.shareableFiles(in: fixture.service.state).isEmpty)
+        #expect(!LibraryExportCopy.summaryLines(result.summary, format: .malXML, german: false).isEmpty, "the summary says why")
+        await fixture.tearDown()
+    }
+
+    @Test("Changing the format drops a result made for another format, and a failure; never a run in flight")
+    func exportSheetRulesResetOnFormatChange() {
+        let csv = LibraryExportState.ready(LibraryExportResult(format: .csv, files: [], summary: Self.summary()))
+        #expect(LibraryExportSheetRules.dropsResult(in: csv, whenSelecting: .json))
+        #expect(!LibraryExportSheetRules.dropsResult(in: csv, whenSelecting: .csv))
+        #expect(LibraryExportSheetRules.dropsResult(in: .failed(.buildFailed), whenSelecting: .json))
+        #expect(!LibraryExportSheetRules.dropsResult(in: .idle, whenSelecting: .json))
+        #expect(!LibraryExportSheetRules.dropsResult(in: .preparing(.csv), whenSelecting: .json))
+    }
+
+    @Test("The ready sheet fits a 375 pt phone at the largest Dynamic Type size in German")
+    func exportSheetFitsPhoneWidthAtLargestTypeSizeInGerman() async throws {
+        let fixture = try ExportFixture(titles: 5, now: Self.nov9Noon)
+        try await fixture.signInAndLoad()
+        fixture.probe.online = false                      // identity + organisation lines: the longest German copy
+        fixture.probe.organisationAvailable = false
+        await fixture.service.export(.json)
+        guard case .ready(let result) = fixture.service.state else { Issue.record("not ready: \(fixture.service.state)"); return }
+        #expect(!result.files.isEmpty)
+
+        let savedCategory = KuroTypeScale.current.category
+        KuroTypeScale.current.update(.accessibility3)
+        defer { KuroTypeScale.current.update(category: savedCategory ?? .large) }
+        let sheet = LibraryExportSheet(german: true)
+            .environment(fixture.service)
+            .environment(NetworkMonitor())
+            .environment(\.dynamicTypeSize, .accessibility3)
+        let host = UIHostingController(rootView: sheet)
+        let size = host.sizeThatFits(in: CGSize(width: 375, height: CGFloat.greatestFiniteMagnitude))
+        #expect(size.width <= 375, "the sheet asks for \(size.width) pt")
         await fixture.tearDown()
     }
 }
