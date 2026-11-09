@@ -206,12 +206,17 @@ private enum MALDocument {
         var dateOmitted = false
 
         xml.open(isManga ? "manga" : "anime", indent: 1)
-        xml.number(isManga ? "series_mangadb_id" : "series_animedb_id", malId)
-        let title = LibraryExport.title(for: entry.key, in: catalogue)
-        let safeTitle = MALExportMapping.removingIllegalCharacters(title).text
-        // The title is informational (the parser reads the id); an absurdly long one is dropped, not allowed
-        // to make the parser reject the file.
-        if safeTitle.utf8.count <= MALExportMapping.notesByteLimit { xml.escaped("series_title", safeTitle) }
+        // Element names follow MAL's own export: manga rows use `manga_*`, anime rows `series_*`.
+        xml.number(isManga ? "manga_mangadb_id" : "series_animedb_id", malId)
+        // The title is informational (the parser reads the id). It is written only when the catalogue has one:
+        // the "Untitled ..." fallback belongs in the report lines, not in a file another service imports. An
+        // absurdly long title is dropped, not allowed to make the parser reject the file.
+        if let title = catalogue[entry.key]?.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            let safeTitle = MALExportMapping.removingIllegalCharacters(title).text
+            if safeTitle.utf8.count <= MALExportMapping.notesByteLimit {
+                xml.escaped(isManga ? "manga_title" : "series_title", safeTitle)
+            }
+        }
         if isManga, let volumes = entry.sourceMetadata?.volumesProgress {
             xml.number("my_read_volumes", count(volumes))
         }
@@ -219,7 +224,7 @@ private enum MALDocument {
 
         // Dates, repeat count: written only when the server values were read. With no source metadata they
         // are unknown, the elements are omitted and the parser marks them unavailable (import never clears).
-        if let metadata = entry.sourceMetadata {
+        if entry.datesKnown, let metadata = entry.sourceMetadata {
             for (name, raw) in [("my_start_date", metadata.startedRaw), ("my_finish_date", metadata.finishedRaw)] {
                 switch dateElement(raw) {
                 case .value(let text): xml.literal(name, text)
@@ -240,7 +245,7 @@ private enum MALDocument {
             xml.escaped("my_comments", note.text)
         }
 
-        if entry.sourceMetadata != nil {
+        if entry.datesKnown {
             xml.number(isManga ? "my_times_read" : "my_times_watched", count(entry.repeatCount))
         }
         // MAL's own spelling of the manga flag is "my_rereadingg".

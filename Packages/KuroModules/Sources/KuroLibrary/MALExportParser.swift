@@ -136,8 +136,7 @@ public enum MALExportParser {
 
         private func makeItem() throws -> MALExportItem {
             guard let medium else { throw MALExportError.malformed }
-            let idKey = medium == "anime" ? "series_animedb_id" : "series_mangadb_id"
-            guard let id = try number(idKey), id > 0, let rawStatus = fields["my_status"],
+            guard let id = try identifier(medium: medium), id > 0, let rawStatus = fields["my_status"],
                   let status = status(rawStatus, medium: medium) else { throw MALExportError.malformed }
             let progressKey = medium == "anime" ? "my_watched_episodes" : "my_read_chapters"
             let repeatKey = medium == "anime" ? "my_times_watched" : "my_times_read"
@@ -152,8 +151,23 @@ public enum MALExportParser {
                 progress: try number(progressKey), volumesProgress: try number("my_read_volumes"),
                 scoreRaw: score.flatMap { $0 == 0 ? nil : String($0) }, notes: emptyToNil(fields["my_comments"]),
                 repeatCount: try number(repeatKey), startedRaw: try date(fields["my_start_date"]),
-                finishedRaw: try date(fields["my_finish_date"]), sourceTitle: emptyToNil(fields["series_title"]),
+                finishedRaw: try date(fields["my_finish_date"]), sourceTitle: title(medium: medium),
                 unavailableFields: unavailable)
+        }
+        /// The row's MAL id. Anime rows use `series_animedb_id`. Real manga exports use `manga_mangadb_id`; the
+        /// older `series_mangadb_id` is still read. A row that carries both with different values is ambiguous
+        /// and rejects the file.
+        private func identifier(medium: String) throws -> Int? {
+            if medium == "anime" { return try number("series_animedb_id") }
+            let current = try number("manga_mangadb_id")
+            let legacy = try number("series_mangadb_id")
+            if let current, let legacy, current != legacy { throw MALExportError.malformed }
+            return current ?? legacy
+        }
+        /// The row's title: `manga_title` (else the older `series_title`) for manga, `series_title` for anime.
+        private func title(medium: String) -> String? {
+            if medium == "manga", let title = emptyToNil(fields["manga_title"]) { return title }
+            return emptyToNil(fields["series_title"])
         }
         private func number(_ key: String) throws -> Int? {
             guard let raw = fields[key] else { return nil }

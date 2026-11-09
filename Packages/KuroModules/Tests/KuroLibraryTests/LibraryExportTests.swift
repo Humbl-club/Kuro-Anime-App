@@ -338,6 +338,47 @@ struct LibraryExportTests {
         #expect(single.summary.malParts[.manga] == 1)
     }
 
+    /// MAL's own manga export names its id and title `manga_mangadb_id` / `manga_title`; the anime ones stay
+    /// `series_*`. No duplicate `series_*` element is written for manga.
+    @Test func mangaRowsUseMalsOwnElementNames() throws {
+        let manga = Self.entry(.manga, 1, .current, progress: 5, rating: nil, notes: nil, repeatCount: 0, started: nil, finished: nil, volumes: 2)
+        let anime = Self.entry(.anime, 1, .current, progress: 5, rating: nil, notes: nil, repeatCount: 0, started: nil, finished: nil)
+        let input = LibraryExportInput(
+            entries: [manga, anime],
+            catalogue: [manga.key: Self.row("Moon Ledger", mal: 41), anime.key: Self.row("Kaiju Diary", mal: 42)]
+        )
+        let bundle = LibraryExport.build(input, formats: [.malXML], exportedAt: Self.now, timeZone: Self.berlin)
+        let mangaXML = String(decoding: try #require(bundle.files.first { $0.name.contains("manga") }).data, as: UTF8.self)
+        let animeXML = String(decoding: try #require(bundle.files.first { $0.name.contains("anime") }).data, as: UTF8.self)
+        #expect(mangaXML.contains("<manga_mangadb_id>41</manga_mangadb_id>"))
+        #expect(mangaXML.contains("<manga_title>Moon Ledger</manga_title>"))
+        #expect(!mangaXML.contains("series_"))
+        #expect(animeXML.contains("<series_animedb_id>42</series_animedb_id>"))
+        #expect(animeXML.contains("<series_title>Kaiju Diary</series_title>"))
+        #expect(!animeXML.contains("manga_"))
+        let parsed = try MALExportParser.parse(try #require(bundle.files.first { $0.name.contains("manga") }).data)
+        #expect(parsed.map(\.externalId) == ["41"] && parsed.first?.sourceTitle == "Moon Ledger")
+    }
+
+    /// The "Untitled ..." fallback names a title in the report; it is never written into the file another
+    /// service imports.
+    @Test func missingCatalogueTitleOmitsTheTitleElementButKeepsTheReportFallback() throws {
+        let anime = Self.entry(.anime, 7, .current, progress: 1, rating: nil, notes: "bell\u{07}", repeatCount: 0, started: nil, finished: nil)
+        let manga = Self.entry(.manga, 9, .current, progress: 1, rating: nil, notes: "bell\u{07}", repeatCount: 0, started: nil, finished: nil)
+        let blank = Self.entry(.manga, 10, .current, progress: 1, rating: nil, notes: nil, repeatCount: 0, started: nil, finished: nil)
+        let input = LibraryExportInput(
+            entries: [anime, manga, blank],
+            catalogue: [anime.key: Self.row(nil, mal: 51), manga.key: Self.row(nil, mal: 52), blank.key: Self.row("   ", mal: 53)]
+        )
+        let bundle = LibraryExport.build(input, formats: [.malXML], exportedAt: Self.now, timeZone: Self.berlin)
+        for file in bundle.files {
+            let xml = String(decoding: file.data, as: UTF8.self)
+            #expect(!xml.contains("_title>") && !xml.contains("Untitled"))
+            #expect(try MALExportParser.parse(file.data).allSatisfy { $0.sourceTitle == nil })
+        }
+        #expect(bundle.summary.notesAdjusted.map(\.title) == ["Untitled anime #7", "Untitled manga #9"])
+    }
+
     // MARK: - Fixtures
 
     /// 2026-11-09 10:59:30 UTC, which is 11:59:30 in Europe/Berlin.
