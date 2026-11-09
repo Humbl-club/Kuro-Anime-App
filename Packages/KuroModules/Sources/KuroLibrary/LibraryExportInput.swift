@@ -110,7 +110,8 @@ public struct LibraryExportFile: Equatable, Sendable {
 public struct ExportReportLine: Equatable, Sendable {
     /// The title's identity.
     public let key: MediaKey
-    /// The catalogue title, or the fallback `"Anime #<id>"` / `"Manga #<id>"` when the catalogue has none.
+    /// The catalogue title, or the fallback `"Untitled anime #<id>"` / `"Untitled manga #<id>"` when the
+    /// catalogue has none (the wording the import review uses for an unresolved title).
     public let title: String
 
     /// Creates a report line.
