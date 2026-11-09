@@ -62,6 +62,7 @@ struct LibraryExportTests {
         #expect(defaults.organisationUnavailable == false)
         #expect(defaults.malParts.isEmpty)
         #expect(defaults.listItemsOutsideLibrary == 0)
+        #expect(defaults.failedFormats.isEmpty)
     }
 
     @Test func exportInputDefaultsAndFormatRawValues() {
@@ -462,6 +463,43 @@ struct LibraryExportTests {
         #expect(String(decoding: file.data.dropFirst(3).prefix(40), as: UTF8.self).hasPrefix("kind,kuro_id,anilist_id,mal_id,title,"))
         #expect(file.name == "kuro-list-2026-11-09.csv" && file.contentType == "text/csv")
         #expect(String(decoding: file.data, as: UTF8.self).hasSuffix("\r\n"))
+    }
+
+    /// German spreadsheet apps split CSV on `;` and tab-delimited readers split on TAB. A cell holding either is
+    /// quoted, so the second part of `abc;=1+1` is never an unquoted segment that starts with a formula trigger.
+    /// (`RFC4180.field` itself stays the plain RFC encoder: it leaves such a cell unquoted.)
+    @Test func csvQuotesEveryCellThatHoldsASemicolonOrTab() throws {
+        let notes = ["abc;=1+1", "x\t@SUM(A1)", "plain", ";=cmd", "a;b;-2;@x", "\t@lead", "=lead;=again"]
+        var entries: [LibraryEntry] = []
+        var catalogue: [MediaKey: ExportCatalogueRow] = [:]
+        for (index, note) in notes.enumerated() {
+            let entry = Self.entry(.anime, index + 1, .current, progress: 1, rating: nil, notes: note, repeatCount: 0, started: nil, finished: nil)
+            entries.append(entry)
+            catalogue[entry.key] = Self.row(index == 0 ? "Fate; Zero" : "Title \(index + 1)", mal: 100 + index)
+        }
+        let file = try #require(LibraryExport.build(LibraryExportInput(entries: entries, catalogue: catalogue), formats: [.csv], exportedAt: Self.now, timeZone: Self.berlin).files.first)
+        let text = String(decoding: file.data.dropFirst(3), as: UTF8.self)
+
+        // The two cells named in the review are written quoted, exactly.
+        #expect(text.contains("\"abc;=1+1\"") && text.contains("\"x\t@SUM(A1)\""))
+        #expect(text.contains("\"Fate; Zero\""))
+        // A cell with neither character stays unquoted (no gratuitous quoting).
+        #expect(text.contains(",plain,") && text.contains(",Title 2,"))
+
+        // The strict RFC 4180 reader returns the neutralised text exactly: only the cell-start rule changes it.
+        let rows = try Self.csvRows(file)
+        let notesColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "notes"))
+        let titleColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "title"))
+        #expect(rows.dropFirst().map { $0[notesColumn] } == [
+            "abc;=1+1", "x\t@SUM(A1)", "plain", ";=cmd", "a;b;-2;@x", "'\t@lead", "'=lead;=again",
+        ])
+        #expect(rows[1][titleColumn] == "Fate; Zero")
+
+        // No `;` or TAB outside quotes, so no segment a ;- or tab-splitting reader sees starts with a trigger.
+        #expect(Self.triggerSegments(in: text).isEmpty)
+        // The check bites: the plain RFC encoder leaves `abc;=1+1` split-able.
+        #expect(Self.triggerSegments(in: RFC4180.row(["k", "abc;=1+1"])) == ["=1+1"])
+        #expect(Self.triggerSegments(in: RFC4180.row(["k", "x\t@SUM(A1)"])) == ["@SUM(A1)"])
     }
 
     @Test func csvCellsFollowTheDocumentedValues() throws {
@@ -918,6 +956,29 @@ struct LibraryExportTests {
         entries.append(seventh)
         catalogue[seventh.key] = Self.row("=cmd", mal: 107)
         return LibraryExportInput(entries: entries, catalogue: catalogue)
+    }
+
+    /// The text a reader that splits on `;`, TAB or a record end sees at the start of each segment, when that
+    /// is a formula trigger. The scan toggles on every `"` (a delimiter inside quotes does not split); an
+    /// empty result means no unquoted delimiter is followed by a trigger. Returns the offending segments.
+    static func triggerSegments(in text: String) -> [String] {
+        var segments: [String] = []
+        var current = ""
+        var inQuotes = false
+        func endSegment() {
+            if let first = current.unicodeScalars.first, "=+-@\t\r".unicodeScalars.contains(first) { segments.append(current) }
+            current = ""
+        }
+        for scalar in text.unicodeScalars {
+            if scalar == "\"" { inQuotes.toggle() }
+            if !inQuotes, scalar == ";" || scalar == "\t" || scalar == "\r" || scalar == "\n" {
+                endSegment()
+            } else {
+                current.unicodeScalars.append(scalar)
+            }
+        }
+        endSegment()
+        return segments.map { String($0.prefix { $0 != "," && $0 != "\r" }) }
     }
 
     /// A CSV record as header name to value.

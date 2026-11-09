@@ -156,6 +156,12 @@ public struct LibraryExportSummary: Equatable, Sendable {
     /// no row for them).
     public var listItemsOutsideLibrary: Int = 0
 
+    /// Requested formats that could not be produced (their files are absent). Empty for real data: the JSON
+    /// object graph is built from JSON types only and checked before it is serialised. It is not a `gap`
+    /// (a gap describes data the files lack); a caller treats a non-empty list as a failed export and must not
+    /// offer the files as the export the person asked for.
+    public var failedFormats: [LibraryExportFormat] = []
+
     /// The reasons the export is incomplete; empty = complete. Both can hold at once (offline: ids and
     /// organisation missing).
     public var gaps: Set<LibraryExportGap> {
@@ -179,7 +185,8 @@ public struct LibraryExportSummary: Equatable, Sendable {
         datesOmitted: [ExportReportLine],
         organisationUnavailable: Bool = false,
         malParts: [MediaKind: Int] = [:],
-        listItemsOutsideLibrary: Int = 0
+        listItemsOutsideLibrary: Int = 0,
+        failedFormats: [LibraryExportFormat] = []
     ) {
         self.entryCount = entryCount
         self.malExported = malExported
@@ -190,5 +197,6 @@ public struct LibraryExportSummary: Equatable, Sendable {
         self.organisationUnavailable = organisationUnavailable
         self.malParts = malParts
         self.listItemsOutsideLibrary = listItemsOutsideLibrary
+        self.failedFormats = failedFormats
     }
 }

@@ -6,7 +6,10 @@ import KuroCore
 // The CSV file (written by `LibraryExport.csv(_:)`):
 //
 // - UTF-8 with a byte order mark (EF BB BF) so spreadsheet apps read umlauts correctly.
-// - RFC 4180 records (`RFC4180.row`): CRLF line ends, a cell with a comma, quote, CR or LF in double quotes.
+// - RFC 4180 records: CRLF line ends, a cell with a comma, quote, CR or LF in double quotes (`RFC4180.field`).
+//   This file additionally quotes every cell that holds a semicolon or a TAB (`csvField(_:)`): a spreadsheet
+//   in a semicolon locale (German Excel) or a tab-delimited reader splits an unquoted cell at those
+//   characters, and the second part would start with a formula trigger that `csvSafeText` never saw.
 // - One header row, exactly `LibraryExport.csvHeader` (20 columns), then one row per library entry: anime
 //   before manga, then by Kuro id. List items whose title left the library have no row (they are in the JSON
 //   file and counted in the summary).
@@ -18,8 +21,8 @@ import KuroCore
 // - `progress_label` and `unit_id` are the entry's tracking-unit identity exactly as stored, never inferred.
 //
 // Formula neutralisation: spreadsheet apps run a cell that starts with `=`, `+`, `-`, `@`, TAB or CR as a
-// formula. Every cell goes through `LibraryExport.csvSafeText(_:)` before `RFC4180.field(_:)`, which writes
-// such a cell with a leading `'`. Consequence, documented: a note that starts with one of those characters
+// formula. Every cell goes through `LibraryExport.csvSafeText(_:)` before `csvField(_:)`, which writes such a
+// cell with a leading `'`. Consequence, documented: a note that starts with one of those characters
 // reads back from the CSV with one extra leading `'`. The JSON file keeps the exact text and is the lossless
 // format.
 
@@ -47,13 +50,31 @@ extension LibraryExport {
     /// The CSV file's bytes: BOM, header, one row per entry.
     static func csv(_ input: LibraryExportInput) -> Data {
         let organisation = ExportOrganisation(input)
-        var text = RFC4180.row(csvHeader)
+        var text = csvRecord(csvHeader)
         for entry in sortedEntries(input.entries) {
-            text += RFC4180.row(csvCells(for: entry, input: input, organisation: organisation).map(csvSafeText))
+            text += csvRecord(csvCells(for: entry, input: input, organisation: organisation))
         }
         var data = Data([0xEF, 0xBB, 0xBF])
         data.append(contentsOf: text.utf8)
         return data
+    }
+
+    /// One CSV record: every cell neutralised (`csvSafeText`), then encoded (`csvField`), joined by commas and
+    /// ended by CRLF.
+    private static func csvRecord(_ cells: [String]) -> String {
+        cells.map { csvField(csvSafeText($0)) }.joined(separator: ",") + "\r\n"
+    }
+
+    /// One CSV cell: `RFC4180.field`, plus double quotes around a cell that holds a semicolon or a TAB.
+    ///
+    /// Kept here and not in `RFC4180.field`: that type is the plain RFC 4180 transport encoding (the unresolved
+    /// -titles file of W4 shares it and its documented behaviour), while the semicolon and TAB rule is a
+    /// spreadsheet-safety rule of this export. When `RFC4180.field` returns its input unchanged the value holds
+    /// no quote, comma, CR or LF, so wrapping it in quotes needs no escaping.
+    static func csvField(_ value: String) -> String {
+        let encoded = RFC4180.field(value)
+        guard encoded == value, value.utf8.contains(where: { $0 == 0x3B || $0 == 0x09 }) else { return encoded }
+        return "\"" + value + "\""
     }
 
     private static func csvCells(for entry: LibraryEntry, input: LibraryExportInput, organisation: ExportOrganisation) -> [String] {
@@ -108,9 +129,18 @@ extension LibraryExport {
 //   empty lists included, each with its items in manual order (`position` is the 1-based ordinal).
 
 extension LibraryExport {
-    /// The JSON file's bytes, or `nil` if serialisation fails (the object graph is built from JSON types
-    /// only, so it does not; `nil` means "no file" rather than a corrupt one).
-    static func json(_ input: LibraryExportInput, summary: LibraryExportSummary, exportedAt: Date) -> Data? {
+    /// The JSON file's bytes, or `nil` if serialisation fails. `build` records a `nil` in
+    /// `LibraryExportSummary.failedFormats`, so a requested file is never silently missing.
+    ///
+    /// The object graph is built from JSON types only (strings, integers, booleans, `NSNull`, arrays and
+    /// dictionaries) and checked with `JSONSerialization.isValidJSONObject` first, so neither step can fail
+    /// for real data; `serialise` is a parameter so a test can make the second step fail.
+    static func json(
+        _ input: LibraryExportInput,
+        summary: LibraryExportSummary,
+        exportedAt: Date,
+        serialise: (Any) throws -> Data
+    ) -> Data? {
         let organisation = ExportOrganisation(input)
         let libraryKeys = Set(input.entries.map(\.key))
 
@@ -133,13 +163,18 @@ extension LibraryExport {
             root["lists"] = NSNull()
         }
 
+        // Unreachable by construction (see above); a DEBUG build stops here so the bug is found, a release
+        // build reports the failed format instead of crashing an export.
         guard JSONSerialization.isValidJSONObject(root) else {
             assertionFailure("The library export built a value JSON cannot hold.")
             return nil
         }
-        return try? JSONSerialization.data(
-            withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        )
+        return try? serialise(root)
+    }
+
+    /// The production JSON serialiser: pretty printed, sorted keys, slashes unescaped.
+    static func serialiseJSON(_ root: Any) throws -> Data {
+        try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
     }
 
     private static func jsonEntry(_ entry: LibraryEntry, input: LibraryExportInput, organisation: ExportOrganisation) -> [String: Any] {

@@ -29,7 +29,8 @@ public enum LibraryExport {
     /// The summary is filled once, here. `identityUnavailable` (a library entry with no catalogue row),
     /// `withoutMalId` (a catalogue row without a usable MAL id) and `listItemsOutsideLibrary` describe the
     /// data and do not depend on the formats asked for; `malExported`, `malParts`, `notesAdjusted` and
-    /// `datesOmitted` describe the MAL files and are filled only when `.malXML` is requested.
+    /// `datesOmitted` describe the MAL files and are filled only when `.malXML` is requested. A requested format
+    /// that could not be produced is listed in `failedFormats`.
     ///
     /// - Parameters:
     ///   - input: The library, catalogue identities and organisation to export.
@@ -41,6 +42,18 @@ public enum LibraryExport {
         formats: Set<LibraryExportFormat>,
         exportedAt: Date,
         timeZone: TimeZone
+    ) -> LibraryExportBundle {
+        build(input, formats: formats, exportedAt: exportedAt, timeZone: timeZone, jsonSerialiser: serialiseJSON)
+    }
+
+    /// `build` with the JSON serialiser injectable, so a test can make serialisation fail. A requested format
+    /// that could not be produced is recorded in `summary.failedFormats` and its file is absent.
+    static func build(
+        _ input: LibraryExportInput,
+        formats: Set<LibraryExportFormat>,
+        exportedAt: Date,
+        timeZone: TimeZone,
+        jsonSerialiser: (Any) throws -> Data
     ) -> LibraryExportBundle {
         var summary = LibraryExportSummary(
             entryCount: input.entries.count, malExported: [:], withoutMalId: [], identityUnavailable: [],
@@ -67,11 +80,15 @@ public enum LibraryExport {
                 data: csv(input), contentType: "text/csv"
             ))
         }
-        if formats.contains(.json), let data = json(input, summary: summary, exportedAt: exportedAt) {
-            files.append(LibraryExportFile(
-                name: fileName(.json, kind: nil, exportedAt: exportedAt, timeZone: timeZone),
-                data: data, contentType: "application/json"
-            ))
+        if formats.contains(.json) {
+            if let data = json(input, summary: summary, exportedAt: exportedAt, serialise: jsonSerialiser) {
+                files.append(LibraryExportFile(
+                    name: fileName(.json, kind: nil, exportedAt: exportedAt, timeZone: timeZone),
+                    data: data, contentType: "application/json"
+                ))
+            } else {
+                summary.failedFormats.append(.json)
+            }
         }
         return LibraryExportBundle(files: files, summary: summary)
     }
