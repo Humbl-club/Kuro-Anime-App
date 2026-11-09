@@ -21,11 +21,14 @@ public struct LibraryChange: Sendable, Equatable {
     /// The account the change was made for; Undo is refused for any other account.
     public let account: AccountContext
 
-    /// A receipt-only progress patch does not change membership, filters or reminders.
+    /// A receipt-only progress patch does not change membership, filters or reminders. A change to the
+    /// repeat count or a date is not progress-only (dates are compared by value, not by spelling).
     public var isProgressOnly: Bool {
         guard kind == .updated, let previous, let current else { return false }
         return previous.lifecycleId == current.lifecycleId && previous.status == current.status
             && previous.rating == current.rating && previous.notes == current.notes && previous.verdict == current.verdict
+            && previous.repeatCount == current.repeatCount && previous.startedOn == current.startedOn
+            && previous.finishedOn == current.finishedOn
     }
 
     public init(

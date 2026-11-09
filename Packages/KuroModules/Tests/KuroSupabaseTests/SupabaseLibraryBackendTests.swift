@@ -55,8 +55,8 @@ private enum Rows {
     static let tableUserId = "6f1c2a9e-4b7d-4f1e-9a51-0c2d3e4f5a6b"
     static let account = AccountContext(userId: sessionUserId, generation: 1)
     static let date = Date(timeIntervalSince1970: 1_700_000_000)
-    static let animeColumns = "id,user_id,anime_id,list_type,progress,rating,notes,verdict,created_at,updated_at"
-    static let mangaColumns = "id,user_id,manga_id,list_type,progress,rating,notes,verdict,created_at,updated_at"
+    static let animeColumns = "id,user_id,anime_id,list_type,progress,rating,notes,verdict,created_at,updated_at,repeat_count,started_raw,finished_raw"
+    static let mangaColumns = "id,user_id,manga_id,list_type,progress,rating,notes,verdict,created_at,updated_at,repeat_count,started_raw,finished_raw"
 
     static func anime(
         _ mediaId: Int, rowId: Int = 1, listType: String = "WATCHING", progress: Int = 0,
@@ -124,7 +124,9 @@ struct SupabaseLibraryBackendRequestTests {
         #expect(result == LibraryWriteResult(
             entry: LibraryEntry(
                 key: MediaKey(kind: .anime, id: 42), rowId: 9, status: .current, progress: 5, rating: UserRating(value: 8),
-                notes: "kept", createdAt: Rows.date, updatedAt: Rows.date
+                notes: "kept", createdAt: Rows.date, updatedAt: Rows.date,
+                // The repeat count and dates are always selected, so they are known (here: not stored).
+                sourceMetadata: LibrarySourceMetadata()
             ),
             created: false
         ))
@@ -477,6 +479,150 @@ private final class RecordingFence: LibraryFenceTransport, @unchecked Sendable {
     }
 }
 
+@Suite("Library contract v2 mapping")
+struct SupabaseLibraryBackendV2Tests {
+    static let anime42 = MediaKey(kind: .anime, id: 42)
+
+    private static func partial(_ raw: String) throws -> PartialDate {
+        try #require(PartialDate(raw: raw))
+    }
+
+    private static func animeRow(
+        rowId: Int = 9, listType: String = "WATCHING", progress: Int = 0, notes: String? = nil,
+        repeatCount: Int? = nil, startedRaw: String? = nil, finishedRaw: String? = nil,
+        serverRevision: Int64? = nil, lifecycleId: UUID? = nil
+    ) -> LibraryRow {
+        LibraryRow(
+            id: rowId, userId: Rows.tableUserId, animeId: 42, listType: listType, progress: progress,
+            notes: notes, createdAt: Rows.date, updatedAt: Rows.date,
+            serverRevision: serverRevision, lifecycleId: lifecycleId,
+            repeatCount: repeatCount, startedRaw: startedRaw, finishedRaw: finishedRaw
+        )
+    }
+
+    @Test("The repeat count and both dates map to repeat_count, started_raw and finished_raw; clear is an explicit null")
+    func bodyMapsRepeatCountAndDates() throws {
+        let edit = LibraryEdit(repeatCount: .set(2), startedOn: .set(try Self.partial("2024-05")), finishedOn: .clear)
+        #expect(SupabaseLibraryBackend.body(for: edit, kind: .anime) == [
+            "repeat_count": .int(2), "started_raw": .string("2024-05"), "finished_raw": .null,
+        ])
+        #expect(SupabaseLibraryBackend.body(for: edit, kind: .manga) == [
+            "repeat_count": .int(2), "started_raw": .string("2024-05"), "finished_raw": .null,
+        ])
+        // A full date keeps its day; the year-only spelling is the bare year (never `2024-00-00`).
+        let full = LibraryEdit(startedOn: .set(try Self.partial("2024-05-07")), finishedOn: .set(try Self.partial("2024-00-00")))
+        #expect(SupabaseLibraryBackend.body(for: full, kind: .anime) == [
+            "started_raw": .string("2024-05-07"), "finished_raw": .string("2024"),
+        ])
+        #expect(SupabaseLibraryBackend.body(for: LibraryEdit(), kind: .anime).isEmpty)
+    }
+
+    @Test("A date-only edit sends exactly one PATCH carrying only the date column")
+    func dateOnlyEditIsOnePatch() async throws {
+        let transport = RecordingTransport([.success([Self.animeRow(repeatCount: 0, startedRaw: "2024-05-07")])])
+        let result = try await SupabaseLibraryBackend(transport: transport).edit(
+            LibraryEdit(startedOn: .set(try Self.partial("2024-05-07"))), key: Self.anime42, createIfMissing: nil,
+            mutationId: UUID(), baseRevision: nil, account: Rows.account
+        )
+        #expect(transport.requests.count == 1)
+        #expect(Rows.patchBody(transport.requests.first) == ["started_raw": .string("2024-05-07")])
+        #expect(result.entry.startedOn?.raw == "2024-05-07")
+        #expect(result.entry.finishedOn == nil)
+    }
+
+    @Test("With the fence off, every select still carries the repeat count and date columns")
+    func fenceOffSelectAlwaysCarriesDateColumns() async throws {
+        let transport = RecordingTransport([.success([]), .success([])])
+        _ = try await SupabaseLibraryBackend(transport: transport).fetchAll(for: Rows.account)
+        let columns = transport.requests.compactMap { request -> String? in
+            if case .select(let select) = request { return select.columns }
+            return nil
+        }
+        #expect(columns == [
+            "id,user_id,anime_id,list_type,progress,rating,notes,verdict,created_at,updated_at,repeat_count,started_raw,finished_raw",
+            "id,user_id,manga_id,list_type,progress,rating,notes,verdict,created_at,updated_at,repeat_count,started_raw,finished_raw",
+        ])
+    }
+
+    @Test("With the fence on, the date columns appear once and the fence columns follow")
+    func fenceOnSelectHasNoDuplicateColumns() async throws {
+        let transport = RecordingTransport([.success([]), .success([])])
+        _ = try await SupabaseLibraryBackend(
+            transport: transport, fence: RecordingFence(outcome: "applied"), fenceEnabled: { true }
+        ).fetchAll(for: Rows.account)
+        for request in transport.requests {
+            guard case .select(let select) = request else { continue }
+            let names = select.columns.split(separator: ",").map(String.init)
+            #expect(Set(names).count == names.count, "duplicate column in \(select.columns)")
+            for column in ["repeat_count", "started_raw", "finished_raw", "server_revision", "lifecycle_id"] {
+                #expect(names.contains(column))
+            }
+        }
+    }
+
+    @Test("A notes-only PATCH with the fence off keeps the stored dates, and an imported spelling parses by value")
+    func notesOnlyPatchKeepsDatesWithFenceOff() async throws {
+        let transport = RecordingTransport([.success([Self.animeRow(notes: "x", repeatCount: 2, startedRaw: "2024-00-00")])])
+        let result = try await SupabaseLibraryBackend(transport: transport).edit(
+            LibraryEdit(notes: .set("x")), key: Self.anime42, createIfMissing: nil,
+            mutationId: UUID(), baseRevision: nil, account: Rows.account
+        )
+        #expect(Rows.patchBody(transport.requests.first) == ["notes": .string("x")])
+        #expect(result.entry.startedOn == PartialDate(raw: "2024"))
+        #expect(result.entry.sourceMetadata?.startedRaw == "2024-00-00", "the stored spelling is kept, not rewritten")
+        #expect(result.entry.repeatCount == 2)
+        #expect(result.entry.finishedOn == nil)
+        #expect(result.entry.datesKnown)
+    }
+
+    @Test("With the fence off, an entry's source metadata holds only the repeat count and dates")
+    func fenceOffEntryCarriesOnlyTheThreeColumns() async throws {
+        let row = Self.animeRow(repeatCount: 3, startedRaw: "2024-05", finishedRaw: "2024-07-14")
+        let entries = try await SupabaseLibraryBackend(transport: RecordingTransport([.success([row]), .success([])]))
+            .fetchAll(for: Rows.account)
+        #expect(entries.first?.sourceMetadata == LibrarySourceMetadata(
+            repeatCount: 3, startedRaw: "2024-05", finishedRaw: "2024-07-14"
+        ))
+        #expect(entries.first?.repeatCount == 3)
+        #expect(entries.first?.startedOn?.precision == .month)
+        #expect(entries.first?.finishedOn?.raw == "2024-07-14")
+    }
+
+    @Test("A row whose date columns are null reads as known and empty")
+    func nullDatesReadAsKnownAndEmpty() async throws {
+        let entries = try await SupabaseLibraryBackend(
+            transport: RecordingTransport([.success([Self.animeRow(repeatCount: 0)]), .success([])])
+        ).fetchAll(for: Rows.account)
+        let entry = try #require(entries.first)
+        #expect(entry.datesKnown)
+        #expect(entry.startedOn == nil)
+        #expect(entry.finishedOn == nil)
+        #expect(entry.repeatCount == 0)
+    }
+
+    @Test("With the fence on, a status edit with a date goes through the receipt and the date rides a side PATCH")
+    func fenceOnStatusEditSendsDatesInSidePatch() async throws {
+        let life = UUID()
+        let current = Self.animeRow(listType: "PLANNING", repeatCount: 0, serverRevision: 4, lifecycleId: life)
+        let after = Self.animeRow(repeatCount: 0, startedRaw: "2026-03-02", serverRevision: 6, lifecycleId: life)
+        let transport = RecordingTransport([.success([current]), .success([after])])
+        let fence = RecordingFence(outcome: "applied")
+        let backend = SupabaseLibraryBackend(transport: transport, fence: fence, fenceEnabled: { true })
+
+        let result = try await backend.edit(
+            LibraryEdit(status: .set(.current), startedOn: .set(try Self.partial("2026-03-02"))),
+            key: Self.anime42, createIfMissing: nil, mutationId: UUID(), baseRevision: 4, account: Rows.account
+        )
+
+        #expect(fence.progress.count == 1)
+        #expect(fence.progress[0].status == "WATCHING")
+        #expect(fence.progress[0].position == nil)
+        #expect(transport.requests.count == 2)
+        #expect(Rows.patchBody(transport.requests.last) == ["started_raw": .string("2026-03-02")])
+        #expect(result.entry.startedOn?.raw == "2026-03-02")
+    }
+}
+
 @Test func importedMetadataProjectsOnlyBehindFencedColumns() async throws {
     let json = #"{"id":1,"user_id":"a","manga_id":7,"list_type":"READING","progress":8,"created_at":"2026-10-08T00:00:00Z","updated_at":"2026-10-08T00:00:00Z","server_revision":3,"lifecycle_id":"00000000-0000-0000-0000-000000000007","volumes_progress":2,"repeat_count":1,"score_raw":8.5,"score_scale":"POINT_10_DECIMAL","started_raw":"2024-00-00","entry_private":true,"source_custom_lists":["Favorites"]}"#
     let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
@@ -494,7 +640,12 @@ private final class RecordingFence: LibraryFenceTransport, @unchecked Sendable {
     if case .select(let request)? = enabled.requests.last { #expect(request.columns.contains("volumes_progress")) }
     let disabled = RecordingTransport([.success([]),.success([row])])
     let oldClient = try await SupabaseLibraryBackend(transport:disabled).fetchAll(for:Rows.account)
-    #expect(oldClient.first?.sourceMetadata == nil)
+    // With the fence off only the repeat count and dates are read; every other retained field stays nil.
+    #expect(oldClient.first?.sourceMetadata == LibrarySourceMetadata(repeatCount: 1, startedRaw: "2024-00-00"))
+    #expect(oldClient.first?.sourceMetadata?.scoreRaw == nil)
+    #expect(oldClient.first?.sourceMetadata?.volumesProgress == nil)
+    #expect(oldClient.first?.sourceMetadata?.isPrivate == nil)
+    #expect(oldClient.first?.sourceMetadata?.customLists == nil)
     if case .select(let request)? = disabled.requests.first { #expect(!request.columns.contains("score_raw")) }
 }
 

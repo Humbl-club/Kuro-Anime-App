@@ -20,8 +20,8 @@ struct PostgrestLibraryTransportTests {
     static let user = LifecycleFixtures.userA
     static let account = AccountContext(userId: user, generation: 1)
     static let anime42 = MediaKey(kind: .anime, id: 42)
-    static let animeColumns = "id,user_id,anime_id,list_type,progress,rating,notes,verdict,created_at,updated_at"
-    static let mangaColumns = "id,user_id,manga_id,list_type,progress,rating,notes,verdict,created_at,updated_at"
+    static let animeColumns = "id,user_id,anime_id,list_type,progress,rating,notes,verdict,created_at,updated_at,repeat_count,started_raw,finished_raw"
+    static let mangaColumns = "id,user_id,manga_id,list_type,progress,rating,notes,verdict,created_at,updated_at,repeat_count,started_raw,finished_raw"
     /// `2026-01-01T12:34:56.789012+00:00` / `2026-02-03T04:05:06.123456+00:00` (ListRowJSON).
     static let createdAt = Date(timeIntervalSince1970: 1_767_270_896.789012)
     static let updatedAt = Date(timeIntervalSince1970: 1_770_091_506.123456)
