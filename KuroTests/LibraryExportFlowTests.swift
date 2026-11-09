@@ -826,6 +826,23 @@ extension LibraryExportFlowTests {
         #expect(LibraryExportCopy.failure(.disabled, german: true) == "Export ist noch nicht verfügbar.")
     }
 
+    @Test("The tags-and-lists line is for CSV and JSON only: a MAL file never carries tags or lists")
+    func exportCopyOmitsTagsAndListsLineForMalFile() {
+        let organisation = LibraryExportFlowTests.summary(organisationUnavailable: true)
+        for german in [false, true] {
+            #expect(LibraryExportCopy.summaryLines(organisation, format: .malXML, german: german).isEmpty)
+            #expect(LibraryExportCopy.summaryLines(organisation, format: .csv, german: german).count == 1)
+            #expect(LibraryExportCopy.summaryLines(organisation, format: .json, german: german).count == 1)
+        }
+        // The other gaps stay for the MAL file; only the organisation line goes.
+        let all = LibraryExportFlowTests.summary(
+            identityUnavailable: [Self.reportLine("T")], organisationUnavailable: true, trackingDetailUnavailable: true
+        )
+        let mal = LibraryExportCopy.summaryLines(all, format: .malXML, german: false)
+        #expect(mal.count == 2 && mal[0].hasPrefix("1 title could not") && mal[1].hasPrefix("Some tracking"))
+        #expect(LibraryExportCopy.summaryLines(all, format: .json, german: false).count == 3)
+    }
+
     @Test("A library read without tracking detail says so, in both languages, for every format")
     func exportCopyReportsMissingTrackingDetail() {
         let s = LibraryExportFlowTests.summary(trackingDetailUnavailable: true)
@@ -836,6 +853,10 @@ extension LibraryExportFlowTests {
             #expect(en.first?.contains("tracking details") == true)
             #expect(de.first?.contains("Tracking-Details") == true)
         }
+        #expect(LibraryExportCopy.summaryLines(s, format: .json, german: false)
+                == ["Some tracking details (units, volume progress and import source fields) weren't loaded. Export again later to include them."])
+        #expect(LibraryExportCopy.summaryLines(s, format: .json, german: true)
+                == ["Einige Tracking-Details (Fortschritt pro Band und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."])
         // Order: identity, organisation, tracking detail.
         let all = LibraryExportFlowTests.summary(
             identityUnavailable: [Self.reportLine("T")], organisationUnavailable: true, trackingDetailUnavailable: true
@@ -857,7 +878,7 @@ extension LibraryExportFlowTests {
         #expect(LibraryExportCopy.offlineNote(german: false) == "You're offline. Your list exports; some catalogue ids may be missing.")
         #expect(LibraryExportCopy.offlineNote(german: true) == "Du bist offline. Deine Liste wird exportiert; manche Katalog-IDs können fehlen.")
         #expect(LibraryExportCopy.csvSafetyNote(german: false) == "CSV is made safe for spreadsheets; JSON keeps notes exactly.")
-        #expect(LibraryExportCopy.csvSafetyNote(german: true) == "CSV wird für Tabellenprogramme abgesichert; JSON enthält Notizen unverändert.")
+        #expect(LibraryExportCopy.csvSafetyNote(german: true) == "CSV wird für Tabellenprogramme entschärft; JSON enthält Notizen unverändert.")
         for format in LibraryExportFormat.allCases {
             #expect(!LibraryExportCopy.formatSubtitle(format, german: false).isEmpty)
             #expect(LibraryExportCopy.formatSubtitle(format, german: false) != LibraryExportCopy.formatSubtitle(format, german: true))
@@ -903,7 +924,38 @@ extension LibraryExportFlowTests {
         #expect(!LibraryExportSheetRules.dropsResult(in: .preparing(.csv), whenSelecting: .json))
     }
 
-    @Test("The ready sheet fits a 375 pt phone at the largest Dynamic Type size in German")
+    /// Draws `view` in a window of `width` x `height` points at scale 1 and returns its RGBA bytes (row by row).
+    static func renderedPixels<V: View>(_ view: V, width: Int, height: Int) async throws -> [UInt8] {
+        let host = UIHostingController(rootView: view.frame(width: CGFloat(width), height: CGFloat(height)))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: height))
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        host.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
+        host.view.backgroundColor = .white
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(500))
+        host.view.layoutIfNeeded()
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { _ in
+            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+        }
+        let cgImage = try #require(image.cgImage)
+        var data = [UInt8](repeating: 255, count: width * height * 4)
+        data.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(
+                data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return }
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        return data
+    }
+
+    @Test("The ready sheet's content stays inside its 20 pt side margins on a 375 pt phone at the largest Dynamic Type size in German")
     func exportSheetFitsPhoneWidthAtLargestTypeSizeInGerman() async throws {
         let fixture = try ExportFixture(titles: 5, now: Self.nov9Noon)
         try await fixture.signInAndLoad()
@@ -912,17 +964,46 @@ extension LibraryExportFlowTests {
         await fixture.service.export(.json)
         guard case .ready(let result) = fixture.service.state else { Issue.record("not ready: \(fixture.service.state)"); return }
         #expect(!result.files.isEmpty)
+        let monitor = NetworkMonitor()
+        try await Task.sleep(for: .milliseconds(300))     // the monitor's first path update has landed
+        monitor.isConnected = false                       // the offline band is part of the layout
 
-        let savedCategory = KuroTypeScale.current.category
-        KuroTypeScale.current.update(.accessibility3)
-        defer { KuroTypeScale.current.update(category: savedCategory ?? .large) }
-        let sheet = LibraryExportSheet(german: true)
-            .environment(fixture.service)
-            .environment(NetworkMonitor())
-            .environment(\.dynamicTypeSize, .accessibility3)
-        let host = UIHostingController(rootView: sheet)
-        let size = host.sizeThatFits(in: CGSize(width: 375, height: CGFloat.greatestFiniteMagnitude))
-        #expect(size.width <= 375, "the sheet asks for \(size.width) pt")
+        let width = 375, height = 2_600
+        do {
+            let savedCategory = KuroTypeScale.current.category
+            KuroTypeScale.current.update(.accessibility3)
+            defer { KuroTypeScale.current.update(category: savedCategory ?? .large) }
+            let sheet = LibraryExportSheet(german: true)
+                .environment(fixture.service)
+                .environment(monitor)
+                .environment(\.dynamicTypeSize, .accessibility3)
+            let pixels = try await Self.renderedPixels(sheet, width: width, height: height)
+            #expect(!monitor.isConnected, "the offline band was meant to be on screen")
+
+            func isInk(_ x: Int, _ y: Int) -> Bool {
+                let i = (y * width + x) * 4
+                return min(pixels[i], pixels[i + 1], pixels[i + 2]) < 250
+            }
+            func isDark(_ x: Int, _ y: Int) -> Bool {
+                let i = (y * width + x) * 4
+                return max(pixels[i], pixels[i + 1], pixels[i + 2]) < 80
+            }
+            // The page has 20 pt side margins. The right margin below the ✕ row (64 pt) and the whole left margin
+            // must stay empty: content wider than the phone shows up as ink there (a vertical ScrollView would
+            // hide it from a size query).
+            var rightMargin = 0, leftMargin = 0
+            for y in 64..<height { for x in 357..<width where isInk(x, y) { rightMargin += 1 } }
+            for y in 0..<height { for x in 0..<18 where isInk(x, y) { leftMargin += 1 } }
+            #expect(rightMargin == 0, "\(rightMargin) ink pixels in the right margin: content is wider than the phone")
+            #expect(leftMargin == 0, "\(leftMargin) ink pixels in the left margin: content is wider than the phone")
+
+            // Positive control: the render is not blank and reaches the Share capsule (about 50 rows of ink that
+            // span most of the page width), the lowest block before "Prepare again".
+            let inkInContent = (0..<height).reduce(0) { total, y in total + (20..<355).filter { isInk($0, y) }.count }
+            let capsuleRows = (0..<height).filter { y in (20..<355).filter { isDark($0, y) }.count >= 200 }.count
+            #expect(inkInContent > 2_000, "the render is blank")
+            #expect(capsuleRows >= 30, "the Share capsule was not rendered (\(capsuleRows) full-width dark rows)")
+        }
         await fixture.tearDown()
     }
 }

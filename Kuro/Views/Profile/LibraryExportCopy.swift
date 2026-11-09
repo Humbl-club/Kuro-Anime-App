@@ -70,7 +70,7 @@ nonisolated enum LibraryExportCopy {
     /// The footnote under a CSV result (not a summary line: a complete CSV export has no lines).
     static func csvSafetyNote(german: Bool) -> String {
         german
-            ? "CSV wird für Tabellenprogramme abgesichert; JSON enthält Notizen unverändert."
+            ? "CSV wird für Tabellenprogramme entschärft; JSON enthält Notizen unverändert."
             : "CSV is made safe for spreadsheets; JSON keeps notes exactly."
     }
 
@@ -102,9 +102,9 @@ nonisolated enum LibraryExportCopy {
     // MARK: Summary
 
     /// What the export lacks or changed, one sentence per fact, most important first: ids that could not be
-    /// looked up, tags and lists, tracking details, titles without a MyAnimeList id (MAL file), a medium
-    /// split into several files (MAL file), list entries that left the library (CSV and MAL file). Empty
-    /// for a complete export with nothing to report.
+    /// looked up, tags and lists (CSV and JSON file), tracking details, titles without a MyAnimeList id
+    /// (MAL file), a medium split into several files (MAL file), list entries that left the library (CSV and
+    /// MAL file). Empty for a complete export with nothing to report.
     static func summaryLines(_ summary: LibraryExportSummary, format: LibraryExportFormat, german: Bool) -> [String] {
         var lines: [String] = []
 
@@ -122,7 +122,9 @@ nonisolated enum LibraryExportCopy {
             }
         }
 
-        if summary.organisationUnavailable {
+        // Tags and lists are in the CSV and JSON files only; a MAL file never carries them, so "export again
+        // to include them" would promise something that format cannot hold.
+        if summary.organisationUnavailable, format != .malXML {
             lines.append(german
                 ? "Tags und Listen konnten nicht geladen werden. Exportiere erneut, wenn du online bist, um sie mitzunehmen."
                 : "Tags and lists couldn't be loaded. Export again when you're online to include them.")
@@ -130,7 +132,7 @@ nonisolated enum LibraryExportCopy {
 
         if summary.trackingDetailUnavailable {
             lines.append(german
-                ? "Einige Tracking-Details (Einheiten, Band-Fortschritt und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."
+                ? "Einige Tracking-Details (Fortschritt pro Band und Import-Quellfelder) wurden nicht geladen. Exportiere später erneut, um sie mitzunehmen."
                 : "Some tracking details (units, volume progress and import source fields) weren't loaded. Export again later to include them.")
         }
 

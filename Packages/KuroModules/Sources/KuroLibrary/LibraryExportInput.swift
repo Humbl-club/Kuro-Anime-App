@@ -89,7 +89,7 @@ public struct LibraryExportInput: Sendable {
 /// A file format the export can produce.
 ///
 /// Copy for the summary or the sheet (wording for the UI to show later, through `KuroLocale`): "CSV is made
-/// safe for spreadsheets; JSON keeps notes exactly." / "CSV wird für Tabellenprogramme abgesichert; JSON
+/// safe for spreadsheets; JSON keeps notes exactly." / "CSV wird für Tabellenprogramme entschärft; JSON
 /// enthält Notizen unverändert." Concretely, the CSV writer puts an apostrophe in front of a note, title or tag
 /// text that a spreadsheet could run as a formula (`=`, `+`, `-`, `@`, TAB or CR at the start of a cell or
 /// right after a `;`, TAB or line break, also behind a run of quotes); the JSON file never changes text.
