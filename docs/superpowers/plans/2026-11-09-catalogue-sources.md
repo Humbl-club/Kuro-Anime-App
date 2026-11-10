@@ -10,9 +10,29 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-09-catalogue-sources-design.md` (read §3, §4 and §6 before any task). Scenarios: `docs/superpowers/specs/2026-11-09-catalogue-sources/catalogue-sources.feature`.
 
+## Owner decision 2026-11-10: AniList stops early
+
+The owner chose to stop calling AniList before the replacement is built: "save images, then stop".
+- **Images:** covers and banners (anime and manga) are downloaded once into Storage by temporary `kuro-final-mirror-*` jobs. Character and staff photos are not, and the unsaved ones get a placeholder in the app.
+- **When the download finishes:**
+  - the four import jobs and `kuro-release-intake-airing-hourly` are disabled with `cron.alter_job(active := false)`;
+  - the nightly `mirror-images-*` jobs were already disabled on 2026-11-10;
+  - the temporary jobs are unscheduled.
+- **Never asked:** Kuro never asked AniList for permission.
+
+Consequences for this plan:
+- **What `anilist` mode means now:** the values frozen at the stop. The comparator compares against those values.
+- **Task 15 shrinks:** the importer skip work no longer protects against live overwrites. Its publish, snapshot and restore parts still apply.
+- **Task 17 Step 2 is done early.** Steps 3–5 still apply.
+- **Until then:**
+  - new titles stop until Task 15c runs in `insert` mode, which now has priority over report-only measurement;
+  - airing times freeze until Task 9 (gate L1);
+  - Task 13 decides covers for titles created after the stop.
+- **The owner rule below is superseded** where it says the schedules stay unchanged.
+
 ## Global Constraints
 
-- Owner rule:
+- Owner rule (superseded in part, see above):
   - The AniList job **schedules** (`kuro-import-anime-hourly`, `kuro-import-anime-weekly`, `kuro-import-manga-hourly`, `kuro-import-manga-weekly`, `kuro-release-intake-airing-hourly`, `mirror-images-*`) and `concierge-import-anilist` are not paused or rescheduled before Task 17.
   - The **code** of the importers, `release-intake` and `mirror-images` changes in Task 15 only, and only to skip switched groups. Deploying that change is an AniList-path deploy and needs the owner's explicit approval, separate from Task 17.
 - No hosted action without its own owner approval: no migration apply, function deploy, cron schedule, secret or flag change. Tasks prepare and test offline only. Read-only live queries (Management API `/database/query` with `read_only: true`) are allowed for the comparator.
@@ -36,7 +56,7 @@
 
 ## Gate dependencies
 
-- No gate needed: Tasks 1–8, 7b, 15, 15b, 15c (report mode) and 16.
+- No gate needed: Tasks 1–8, 7b, 15, 15b, 15c and 16. Task 15d also needs none, but its hosted apply waits for an app release, then owner approval.
 - Task 9 needs L1, Task 12 needs L2 and Task 13 needs L3.
 - Task 10's calibration step needs L4(c); without it, the index ships uncalibrated and the popularity gate decides.
 - Task 11 needs Q6 answered (AniDB in or out); it can start without AniDB.
@@ -481,6 +501,37 @@
 - [ ] **Step 2: Run them and confirm they fail.**
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run them and confirm they pass**, then **commit.**
+
+### Task 15d: AniList ids leave public reads
+
+Owner request 2026-11-10: keep `anilist_id` privately (it is the Wikidata/ANN crosswalk key), but no app read, public table read or RPC returns it.
+
+**Files:**
+- Create: `docs/catalogue-sources-2026-11/anilist-id-readers.md` (inventory)
+- Create: `supabase/prepared-migrations/20261112100500_anilist_id_private_v1.sql`, `supabase/tests/rls/126_anilist_id_private_v1.sql`
+- Modify: `Kuro/Catalog/CatalogColumns.swift` (character/staff/author embeds), `Kuro/Catalog/CatalogStore.swift:513` (studios), `Kuro/Catalog/CatalogCreditsModels.swift`, `Kuro/Catalog/CatalogVoiceModels.swift`, `Kuro/Catalog/CatalogStore+ExportIdentities.swift`, `Kuro/Views/DetailPages/ExternalLinksSection.swift` (AniList button removed; MAL stays), `Kuro/Views/Home/SeriesDetailViews.swift`, `Kuro/Views/Routing/NavigationFixture.swift`
+- Modify: `Packages/KuroModules/Sources/KuroLibrary/LibraryExportInput.swift`, `LibraryExportTabular.swift`, `Packages/KuroModules/Tests/KuroLibraryTests/LibraryExportTests.swift` (the Kuro CSV drops its AniList id column; MAL XML is unaffected, and it is the format AniList itself imports)
+
+**Interfaces:**
+- Live inventory, 2026-11-10:
+  - anon and authenticated can read `anilist_id` on 12 tables: `anime`, `manga`, `authors`, `chapters`, `characters`, `curated_rail_items`, `episodes`, `rag_entity_index`, `staff`, `studios`, `tags`, `volumes`;
+  - 6 matviews: `mv_{anime,manga}_{trending,top_rated,newly_added}`;
+  - RPCs whose result has AniList columns: `anime_cast_v1`, `character_voice_actors_v1`, `staff_voice_roles_v1`, `rag_retrieve_candidates`;
+  - invoker functions that read the column: `_is_blessed_canon`, `anime_cast_v1`, `character_voice_actors_v1`, `staff_voice_roles_v1`. A column revoke breaks these unless they stop reading it or become definer functions.
+- Grants: on each table, `REVOKE SELECT … FROM anon, authenticated`, then `GRANT SELECT (<every other column>)`. The test asserts the column list equals the table's columns minus `anilist_id`, so a later column cannot silently go ungranted unnoticed. Matviews are rebuilt without the column. Changed RPCs are DROP+CREATE with the same names and argument lists.
+- jsonb definer RPCs (`curated_rail_cards`, `discover_bundle`, `discover_section_page_v1`): the test asserts no `anilist_id` key in their output.
+- **Rollout order (load-bearing):**
+  1. Ship an app build that no longer reads the column.
+  2. The owner confirms older builds are retired.
+  3. Only then apply the migration. Applied first, the revoke breaks credits, voices and detail reads in older builds.
+
+- [ ] **Step 1: Write the inventory** from live read-only queries (`has_column_privilege`, `pg_get_function_result`, matview definitions) and `rg anilist Kuro Packages`. The inventory is the task's scope.
+- [ ] **Step 2: Write the failing tests:**
+  - DB `126`: anon/authenticated `has_column_privilege(..., 'anilist_id', 'SELECT')` is false on every listed table and matview; every listed RPC runs as anon and returns no AniList column or key; `_is_blessed_canon` and the voice RPCs still return the same rows as before.
+  - Swift: `CatalogColumnsTests/noSelectNamesAnilistId`; `ExternalLinksSection` renders MAL only; `LibraryExportTests/kuroCSVHasNoAniListColumn`.
+- [ ] **Step 3: Run them and confirm they fail.**
+- [ ] **Step 4: Implement** the app change and the prepared migration.
+- [ ] **Step 5: Run them and confirm they pass**, plus the DB harness, the package tests and the focused app suites. Then **commit.** The hosted apply follows the rollout order and needs owner approval.
 
 ### Task 16: Source credit on title pages
 
