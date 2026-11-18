@@ -8,6 +8,8 @@
 
 import Testing
 import Foundation
+import SwiftUI
+import UIKit
 import KuroCore
 @testable import Kuro
 
@@ -96,6 +98,18 @@ import KuroCore
         #expect(page2.count == 1)
         #expect(page2.first?.jsonObject?["p_cursor_id"] as? Int == 20)
         await harness.tearDown()
+    }
+
+    @Test func footnoteHasHeightOnlyWhenTitlesWereHidden() {
+        func fitted<V: View>(_ view: V) -> CGSize {
+            let host = UIHostingController(rootView: view
+                .environment(\.locale, Locale(identifier: "de_DE"))
+                .dynamicTypeSize(.accessibility3))
+            return host.sizeThatFits(in: CGSize(width: 375, height: CGFloat.greatestFiniteMagnitude))
+        }
+        let shown = fitted(SearchAdultFootnote(hiddenAdult: 1))
+        #expect(shown.height > 0 && shown.width <= 375)
+        #expect(fitted(SearchAdultFootnote(hiddenAdult: 0)).height == 0)
     }
 
     @Test func flagOffSendsNoRequest() async throws {
