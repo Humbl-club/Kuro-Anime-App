@@ -82,3 +82,6 @@
 
 # 2026-11-18 Concierge limiter bounds (prepared only; owner approval required; deploy the Edge Functions with the keyed IP bucket first or together).
 20261118140000_concierge_rate_limit_bounds_v1.sql
+
+# 2026-11-18 refresh queue hardening (prepared only; owner approval required).
+20261118150000_refresh_queue_hardening_v1.sql
