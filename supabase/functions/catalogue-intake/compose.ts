@@ -9,11 +9,13 @@
 //   review:adult     { reason } when the title needs the owner's eyes (adult today but no source says
 //                    so, or newly adult)
 //   relations        ComposedRelation[] (targets resolved through accepted links only)
+//   popularity, trending, average_score   Kuro popularity index (Task 10; source `kuro_index`)
 //   data_sources     distinct sources used, most fields first
 // Only accepted links feed a title (a Wikidata-only `proposed` ANN id is not used, link-trust rule 2).
 // An unchanged value or source writes nothing, so a second run makes no writes.
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import { composeAdult, DATE_TRIPLES, mapRelations, pick, PRECEDENCE, type RawRelation, type Source, type SourceValue } from "../_shared/catalogue/precedence.ts";
+import { popularityIndex, scoreIndex, trendingIndex } from "../_shared/catalogue/popularity.ts";
 import type { HandlerOutcome, RunContext } from "./context.ts";
 import { chunk, clampInt, cursorKey, readCursor, selectAll, stableStringify, WRITE_BATCH, writeCursor, type Medium } from "./store.ts";
 import { toRelations as annRelations, toSourceValues as annValues } from "./map_ann.ts";
@@ -120,6 +122,32 @@ export function composeTitle(
   return { fields, review };
 }
 
+type PageviewsPayload = { total365?: number; last30?: number; prev30?: number };
+
+/** Task 10: Kuro popularity fields for one title. Writes nothing when no input exists. Pure. */
+export function popularityFields(
+  t: TitleInputs,
+  pageviews: PageviewsPayload | undefined,
+  libraryAdds: number,
+): { field: string; value: unknown; source: string }[] {
+  const ann = t.records?.ann?.ratings ?? null;
+  const mu = t.records?.mangaupdates;
+  const annVotes = ann?.votes ?? 0;
+  const muVotes = mu?.ratingVotes ?? 0;
+  const out: { field: string; value: unknown; source: string }[] = [];
+  const hasInput = !!pageviews || annVotes + muVotes + libraryAdds > 0;
+  if (hasInput) {
+    out.push({ field: "popularity", value: popularityIndex({ views12m: pageviews?.total365 ?? 0, votes: annVotes + muVotes, libraryAdds }), source: "kuro_index" });
+  }
+  if (pageviews) out.push({ field: "trending", value: trendingIndex(pageviews.last30 ?? 0, pageviews.prev30 ?? 0), source: "kuro_index" });
+  const score = scoreIndex(
+    ann && ann.weighted !== null && ann.votes !== null ? { weighted: ann.weighted, votes: ann.votes } : undefined,
+    mu && mu.bayesianRating !== null && mu.ratingVotes !== null ? { bayesian: mu.bayesianRating, votes: mu.ratingVotes } : undefined,
+  );
+  if (score !== null) out.push({ field: "average_score", value: score, source: "kuro_index" });
+  return out;
+}
+
 export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: number[]): Promise<ComposeResult> {
   const result: ComposeResult = { titles: 0, written: 0, unchanged: 0, reviews: 0, removed: 0, composedIds: [] };
   const ids = [...new Set(mediaIds)];
@@ -140,6 +168,18 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
   for (const [source, keys] of keysBySource) {
     const rows = await readIn<{ source_key: string; payload: unknown }>(supabase, "catalogue_source_records", "source_key, payload", "source_key", [...new Set(keys)], { source, medium }, ["source_key"]);
     for (const r of rows) records.set(`${source}:${r.source_key}`, r.payload);
+  }
+
+  // Task 10 inputs: Wikimedia pageviews records (keyed by Kuro id) and per-title list-add counts.
+  // Only the title id of each list row is read, never the user id.
+  const pageviews = new Map<number, PageviewsPayload>();
+  for (const r of await readIn<{ source_key: string; payload: PageviewsPayload }>(supabase, "catalogue_source_records", "source_key, payload", "source_key", ids.map(String), { source: "pageviews", medium }, ["source_key"])) {
+    pageviews.set(Number(r.source_key), r.payload);
+  }
+  const idCol = medium === "anime" ? "anime_id" : "manga_id";
+  const libraryAdds = new Map<number, number>();
+  for (const r of await readIn<Record<string, number>>(supabase, `${medium}_user_lists`, `id, ${idCol}`, idCol, ids, {}, ["id"])) {
+    libraryAdds.set(r[idCol], (libraryAdds.get(r[idCol]) ?? 0) + 1);
   }
 
   // Per title: mapped values and raw relations from every linked source.
@@ -229,6 +269,7 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
       const composed = composeTitle(medium, t, resolve);
       review = composed.review;
       produced.push(...composed.fields);
+      produced.push(...popularityFields(t, pageviews.get(mediaId), libraryAdds.get(mediaId) ?? 0));
       const counts = new Map<string, number>();
       for (const f of composed.fields) if (f.source && f.source !== "today") for (const s of f.source.split(",")) counts.set(s, (counts.get(s) ?? 0) + 1);
       if (t.records) {

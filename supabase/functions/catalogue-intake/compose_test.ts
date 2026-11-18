@@ -46,7 +46,7 @@ Deno.test("writesDataSources", async () => {
   assert.deepEqual([...(ds?.value as string[])].sort(), ["ann", "wikidata"]);
   // ordered by number of fields used, most first
   const counts = new Map<string, number>();
-  for (const r of db.tables.catalogue_shadow_values) if (r.field !== "data_sources" && !String(r.field).startsWith("credits:proposed") && !String(r.field).startsWith("credits:review") && typeof r.source === "string") counts.set(r.source as string, (counts.get(r.source as string) ?? 0) + 1);
+  for (const r of db.tables.catalogue_shadow_values) if (r.field !== "data_sources" && !String(r.field).startsWith("credits:proposed") && !String(r.field).startsWith("credits:review") && typeof r.source === "string" && r.source !== "kuro_index") counts.set(r.source as string, (counts.get(r.source as string) ?? 0) + 1);
   const ordered = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([s]) => s);
   assert.deepEqual(ds?.value, ordered);
 });
@@ -161,4 +161,54 @@ Deno.test("composeWritesCreditsInShadowWithoutInsertingEntities", async () => {
   const again = await compose({ supabase: db.client }, "anime", [1]);
   assert.equal(again.written, 0, "second run writes nothing, credits included");
   assert.equal(db.opsOn("catalogue_shadow_values").length, before);
+});
+
+Deno.test("popularityFieldsAreShadowedFromPageviewsVotesAndListAdds", async () => {
+  const db = animeDb({ records: [rec("pageviews", "1", "anime", { total365: 120_000, last30: 5_100, prev30: 100 })] });
+  const votes = annRecord.ratings?.votes ?? 0;
+  db.tables.anime_user_lists = [
+    { id: 1, user_id: "u1", anime_id: 1 },
+    { id: 2, user_id: "u2", anime_id: 1 },
+    { id: 3, user_id: "u3", anime_id: 1 },
+    { id: 4, user_id: "u3", anime_id: 2 },
+  ];
+  await compose({ supabase: db.client }, "anime", [1]);
+  assert.equal(shadow(db, "popularity")?.value, 200 + votes + 150);
+  assert.equal(shadow(db, "popularity")?.source, "kuro_index");
+  assert.equal(shadow(db, "trending")?.value, 50);
+  // Only counts reach the shadow table: no user id is stored.
+  assert.ok(!JSON.stringify(db.tables.catalogue_shadow_values).includes("u1"));
+  const before = db.opsOn("catalogue_shadow_values").length;
+  const again = await compose({ supabase: db.client }, "anime", [1]);
+  assert.equal(again.written, 0);
+  assert.equal(db.opsOn("catalogue_shadow_values").length, before);
+});
+
+Deno.test("popularityScoreNeedsTwentyVotesAndTitleWithoutInputsGetsNoPopularity", async () => {
+  const lowVotes = { ...annRecord, ratings: { votes: 5, weighted: 8, bayesian: 8 } };
+  const db = animeDb({ records: [] });
+  db.tables.catalogue_source_records = db.tables.catalogue_source_records.map((r) => (r.source === "ann" ? { ...r, payload: lowVotes } : r));
+  await compose({ supabase: db.client }, "anime", [1]);
+  assert.equal(shadow(db, "average_score"), undefined, "5 votes give no score");
+  const enough = { ...annRecord, ratings: { votes: 40, weighted: 7.5, bayesian: 7 } };
+  db.tables.catalogue_source_records = db.tables.catalogue_source_records.map((r) => (r.source === "ann" ? { ...r, payload: enough } : r));
+  await compose({ supabase: db.client }, "anime", [1]);
+  assert.equal(shadow(db, "average_score")?.value, 75);
+  // A title with no pageviews, votes or list adds has no popularity field.
+  const bare = fakeSupabase({ tables: { anime: [{ id: 9, is_adult: false }], catalogue_id_links: [link("anime", 9, "wikidata", "Q9")], catalogue_source_records: [wd("Q9", "anime", { "label:en": ["X"] })] } });
+  await compose({ supabase: bare.client }, "anime", [9]);
+  assert.equal(shadow(bare, "popularity", 9), undefined);
+});
+
+Deno.test("mangaPopularityUsesMangaUpdatesVotesAndMangaListAdds", async () => {
+  const db = fakeSupabase({
+    tables: {
+      manga: [{ id: 5, is_adult: false }],
+      catalogue_id_links: [link("manga", 5, "mangaupdates", String(muRecord.seriesId))],
+      catalogue_source_records: [rec("mangaupdates", String(muRecord.seriesId), "manga", muRecord)],
+      manga_user_lists: [{ id: 1, user_id: "u1", manga_id: 5 }],
+    },
+  });
+  await compose({ supabase: db.client }, "manga", [5]);
+  assert.equal(shadow(db, "popularity", 5)?.value, (muRecord.ratingVotes ?? 0) + 50);
 });

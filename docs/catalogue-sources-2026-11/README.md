@@ -57,3 +57,9 @@ SUPABASE_SERVICE_ROLE_KEY=<service role key> \
 ```
 
 The project URL comes from `project_public.env` (`SUPABASE_URL` overrides it). `--sample N` (0..100, default 20) caps the disagreement samples per group and tier. The script prints only the output paths and one status line per group.
+
+## Popularity index (Task 10): shipped uncalibrated
+
+`popularityIndex` = `round(views12m/12 * 0.02 + votes * 1 + libraryAdds * 50)`, capped to a Postgres integer; `trendingIndex` = `round(max(0, last30 - prev30) / 100)`; `scoreIndex` = vote-weighted blend of ANN `weighted` and MangaUpdates `bayesian` (each x10), null below 20 combined votes. Compose writes `popularity`, `trending` and `average_score` shadow fields with source `kuro_index` (not counted in `data_sources`). Inputs: the `pageviews` source record, ANN/MangaUpdates vote counts and per-title list-add counts (only the title id of list rows is read).
+
+Calibration (plan Task 10 Step 4) was NOT done: comparing against AniList `popularity` needs gate L4(c), which is not granted. The coefficients above are the plan's starting values. The owner's Discover top-100 review decides whether they change.
