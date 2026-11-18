@@ -140,7 +140,7 @@ extension CollectionStore {
         return out
     }
 
-    private nonisolated static func media(from item: some MediaDisplayable) -> Media {
+    private static func media(from item: some MediaDisplayable) -> Media {
         Media(id: item.id, kind: item.kind, title: item.title, imageURL: item.imageURL, year: item.year,
               displayDescription: item.displayDescription, episodes: item.episodes, chapters: item.chapters,
               rating: item.rating, genres: item.genres, statusRaw: item.statusRaw, formatRaw: item.formatRaw,

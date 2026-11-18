@@ -31,7 +31,7 @@ Feature: One list entry per series
     When it is grouped and ungrouped
     Then every entry's id, status, progress and imported ids are identical to before
 
-  @swift:SeriesGroupingCollectionTests/expandShowsEverySeasonWithOwnStatus
+  @swift:SeriesGroupingFolioTests/expandShowsEverySeasonWithOwnStatus
   Scenario: Expanding a series
     Given a grouped row with 3 seasons
     When I expand it
