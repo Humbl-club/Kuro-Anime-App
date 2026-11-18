@@ -10,7 +10,8 @@
 //   timeBudgetMs  default 50_000 (5_000..140_000)
 // compose (Task 7) is local-DB only. publish (Task 15) writes the field groups whose mode is 'new'
 // (publish.ts). restore (Task 15) is the rollback of one group, payload { handler: 'restore', group },
-// medium not needed; it refuses a group that is still 'new' (restore.ts).
+// medium not needed; it refuses a group that is still 'new' (restore.ts). create (Task 15c) adds titles from allowed
+// sources: report mode (default) writes nothing, insert mode needs minYear (create.ts).
 // Lock: acquire_import_lock('catalogue-intake:<handler>', 900), released only when acquired.
 // Bookkeeping: import_runs (run_type 'catalogue_intake_<handler>'). Cursors: import_track_state
 // `catalogue-intake:<handler>:<medium>`, owned by each handler.
@@ -22,6 +23,7 @@ import { runCompose } from "./compose.ts";
 import { runMangaUpdates } from "./mangaupdates.ts";
 import { inMangaUpdatesQuietWindow } from "./cron_schedule.ts";
 import { runPageviews } from "./pageviews.ts";
+import { runCreate } from "./create.ts";
 import { runPublish } from "./publish.ts";
 import { restore } from "./restore.ts";
 import type { FieldGroup } from "../_shared/catalogue/field_groups.ts";
@@ -29,7 +31,7 @@ import { runWikidata } from "./wikidata.ts";
 
 export type { IntakeDeps } from "./context.ts";
 
-export const HANDLER_NAMES = ["wikidata", "ann", "mangaupdates", "pageviews", "compose", "publish", "restore"] as const;
+export const HANDLER_NAMES = ["wikidata", "ann", "mangaupdates", "pageviews", "compose", "publish", "restore", "create"] as const;
 export type HandlerName = (typeof HANDLER_NAMES)[number];
 
 /** Handlers with an implementation. Later tasks register theirs here. */
@@ -69,7 +71,10 @@ export async function run(payload: any, deps: IntakeDeps): Promise<Response> {
   if (medium !== "anime" && medium !== "manga") return json({ success: false, error: "medium must be 'anime' or 'manga'" }, 400);
   const allowed = MEDIA_FOR[handler];
   if (allowed && !allowed.includes(medium)) return json({ success: false, error: `${handler} serves ${allowed.join(", ")} only` }, 400);
-  const impl = HANDLERS[handler];
+  // create (Task 15c): payload { handler: 'create', medium, mode: 'report' (default) | 'insert', minYear }. Insert needs minYear.
+  const impl = handler === "create"
+    ? (ctx: RunContext) => runCreate(ctx, { mode: payload?.mode === "insert" ? "insert" : "report", minYear: payload?.minYear === undefined ? undefined : Number(payload.minYear) })
+    : HANDLERS[handler];
   if (!impl) return json({ success: false, error: `handler '${handler}' is not available yet` }, 501);
 
   const now = deps.now ?? Date.now;

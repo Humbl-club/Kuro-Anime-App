@@ -66,3 +66,5 @@
 # Catalogue Task 15b (browse visibility for list_only titles). Prepared only; 100401 is built on parked 1c and Discover usability: see its header.
 20261112100400_catalogue_visibility_v1.sql
 20261112100401_catalogue_visibility_discover_v1.sql
+# Catalogue Task 15c (transactional create of new titles from allowed sources). Prepared only.
+20261112100450_catalogue_create_v1.sql

@@ -128,3 +128,18 @@ Deno.test("restoreHandlerRefusesAGroupThatIsStillNew", async () => {
   assert.equal(res.status, 500);
   assert.match((await res.json()).error, /still 'new'/);
 });
+
+Deno.test("createHandlerDefaultsToReportAndInsertNeedsMinYear", async () => {
+  const groups = { catalogue_source_records: [{ source: "ann", source_key: "report:anime", medium: "anime", payload: { items: [{ id: 1, type: "TV", name: "Some Fresh Title Qx", vintage: "2026" }] } }], catalogue_id_links: [], anime: [] };
+  const db = fakeSupabase({ tables: groups });
+  const { deps } = build(db);
+  const ok = await handleRequest(request({ handler: "create", medium: "anime" }), { secret: "s3cret", buildDeps: () => deps });
+  const body = await ok.json();
+  assert.equal(ok.status, 200, JSON.stringify(body));
+  assert.equal(body.results.mode, "report");
+  assert.equal(body.results.wouldCreate, 1);
+  assert.equal(db.opsOn("anime").length, 0);
+  const bad = await handleRequest(request({ handler: "create", medium: "anime", mode: "insert" }), { secret: "s3cret", buildDeps: () => deps });
+  assert.equal(bad.status, 500);
+  assert.match((await bad.json()).error, /minYear/);
+});
