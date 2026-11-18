@@ -30,7 +30,7 @@ Deno.test("linksThroughHeldAniListId", async () => {
   const { db, deps, net } = setup([sparql(q123.results.bindings)]);
   const res = await wikidataCrosswalk(deps, "anime", [{ id: 7, anilist_id: 16498 }, { id: 8, anilist_id: 99999 }]);
   assert.equal(res.conflicts.length, 0);
-  assert.equal(res.linked, 2); // wikidata link + ANN id carried by the item
+  assert.equal(res.linked, 1); // only the Wikidata item itself; the ANN id it carries is proposed
   assert.equal(net.calls.length, 1);
 
   const record = db.tables.catalogue_source_records.find((r) => r.source === "wikidata");
@@ -48,7 +48,7 @@ Deno.test("linksThroughHeldAniListId", async () => {
     { kind: "anime", kuro_id: 7, source_key: "Q123", method: "wikidata", confidence: 1, status: "accepted" },
   );
   const ann = links.find((l) => l.source === "ann");
-  assert.deepEqual({ kuro_id: ann?.kuro_id, source_key: ann?.source_key, status: ann?.status, method: ann?.method }, { kuro_id: 7, source_key: "13592", status: "accepted", method: "wikidata" });
+  assert.deepEqual({ kuro_id: ann?.kuro_id, source_key: ann?.source_key, status: ann?.status, method: ann?.method }, { kuro_id: 7, source_key: "13592", status: "proposed", method: "wikidata" });
   // Kuro row 8 has no Wikidata item: nothing is written for it.
   assert.ok(!links.some((l) => l.kuro_id === 8));
 });
@@ -152,7 +152,9 @@ Deno.test("parsesLiveAnimeCapture", async () => {
   assert.equal(db.tables.catalogue_source_records.length, 3);
   const links = db.tables.catalogue_id_links;
   assert.equal(links.filter((l) => l.source === "wikidata").length, 3);
-  assert.deepEqual(links.filter((l) => l.source === "ann").map((l) => [l.kuro_id, l.source_key]).sort(), [[1, "14950"], [2, "17360"], [3, "13"]]);
+  const ann = links.filter((l) => l.source === "ann");
+  assert.deepEqual(ann.map((l) => [l.kuro_id, l.source_key]).sort(), [[1, "14950"], [2, "17360"], [3, "13"]]);
+  assert.ok(ann.every((l) => l.status === "proposed"));
   const bebop = db.tables.catalogue_source_records.find((r) => r.source_key === "Q101244908")!.payload as { props: Record<string, string[]> };
   assert.deepEqual(bebop.props["sitelink:jawiki"], ["カウボーイビバップ"]);
 });
@@ -164,5 +166,31 @@ Deno.test("parsesLiveMangaCaptureAndConvertsMangaUpdatesSlug", async () => {
   const mu = db.tables.catalogue_id_links.filter((l) => l.source === "mangaupdates");
   // "njeqwry" is Berserk's MangaUpdates slug; base 36 gives the API's numeric series id.
   assert.deepEqual(mu.map((l) => [l.kuro_id, l.source_key]).sort(), [[1, "51239621230"], [2, String(parseInt("pb8uwds", 36))]]);
+  assert.ok(mu.every((l) => l.status === "proposed" && l.method === "wikidata"));
   assert.ok(!db.tables.catalogue_id_links.some((l) => l.source === "ann"), "manga does not link ANN (anime handler only)");
+});
+
+Deno.test("wikidataDerivedAnnIdIsProposed", async () => {
+  const { db, deps } = setup([sparql(q123.results.bindings)]);
+  await wikidataCrosswalk(deps, "anime", [{ id: 7, anilist_id: 16498 }]);
+  const ann = db.tables.catalogue_id_links.filter((l) => l.source === "ann");
+  assert.equal(ann.length, 1);
+  assert.deepEqual({ status: ann[0].status, method: ann[0].method, decided: ann[0].decided_at }, { status: "proposed", method: "wikidata", decided: undefined });
+  // The Q-id found through our own AniList id stays accepted.
+  assert.equal(db.tables.catalogue_id_links.find((l) => l.source === "wikidata")?.status, "accepted");
+});
+
+Deno.test("changedWikidataItemDoesNotReplaceAcceptedLink", async () => {
+  const first = setup([sparql(q123.results.bindings)]);
+  await wikidataCrosswalk(first.deps, "anime", [{ id: 7, anilist_id: 16498 }]);
+  // Someone edits Wikidata: AniList id 16498 now sits on a different item Q999, which carries another ANN id.
+  const edited = [row("16498", "Q999", "P8729", "16498"), row("16498", "Q999", "P1985", "777")];
+  const second = setup([sparql(edited)], { catalogue_source_records: first.db.tables.catalogue_source_records, catalogue_id_links: first.db.tables.catalogue_id_links });
+  const res = await wikidataCrosswalk(second.deps, "anime", [{ id: 7, anilist_id: 16498 }]);
+  const links = second.db.tables.catalogue_id_links;
+  const accepted = links.filter((l) => l.status === "accepted");
+  assert.deepEqual(accepted.map((l) => [l.source, l.source_key]), [["wikidata", "Q123"]], "the existing accepted link stays");
+  assert.ok(links.some((l) => l.source === "wikidata" && l.source_key === "Q999" && l.status === "proposed"));
+  assert.ok(res.conflicts.some((c) => c.source === "wikidata" && c.reason === "title_already_linked_to_other_key"));
+  assert.equal(res.linked, 0);
 });

@@ -1,3 +1,15 @@
+// LINK TRUST RULES (Wikidata is openly editable; lead ruling 2026-11-18):
+//  1. The Q-id found by the reverse lookup on OUR AniList id (P8729/P8731) is `accepted`
+//     (method wikidata, confidence 1). A duplicate claim (two items for one title, or one item for
+//     two titles) links nothing: the candidates are stored `proposed` and reported as a conflict.
+//  2. ANN / MangaUpdates ids that only a Wikidata item carries (P1985, P11149) are stored as
+//     `proposed` (method wikidata). They become `accepted` only when the ANN / MangaUpdates
+//     matcher (title, year, format against the source's own record) agrees with the same key;
+//     a disagreement keeps them `proposed` and is listed as a conflict (ann.ts, mangaupdates.ts).
+//  3. Stability: a later run that finds a different Q-id or derived key for a title that already
+//     has an accepted link never replaces it. The existing link stays, the new candidate is written
+//     `proposed` and reported as a conflict (store.ts applyLinks).
+//
 // Wikidata crosswalk and facts (CC0). Finds the item for each Kuro title through the AniList id
 // Wikidata holds (P8729 anime, P8731 manga), keeps the raw item as a source record, and links the
 // title to the item and to the ANN / MangaUpdates ids the item carries.
@@ -220,10 +232,10 @@ async function persistBatch(
       // A single value only: several ANN / MangaUpdates ids on one item are ambiguous and stay in the raw record.
       if (medium === "anime") {
         const ann = item.props["P1985"] ?? [];
-        if (ann.length === 1 && /^\d+$/.test(ann[0])) candidates.push({ kuroId: kid, source: "ann", sourceKey: ann[0], method: "wikidata", confidence: 1, status: "accepted" });
+        if (ann.length === 1 && /^\d+$/.test(ann[0])) candidates.push({ kuroId: kid, source: "ann", sourceKey: ann[0], method: "wikidata", confidence: 1, status: "proposed" });
       } else {
         const mu = (item.props["P11149"] ?? []).map(muSeriesIdFromWikidata).filter((x): x is string => x !== null);
-        if (mu.length === 1) candidates.push({ kuroId: kid, source: "mangaupdates", sourceKey: mu[0], method: "wikidata", confidence: 1, status: "accepted" });
+        if (mu.length === 1) candidates.push({ kuroId: kid, source: "mangaupdates", sourceKey: mu[0], method: "wikidata", confidence: 1, status: "proposed" });
       }
     }
   }
