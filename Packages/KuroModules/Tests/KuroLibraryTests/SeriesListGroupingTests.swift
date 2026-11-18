@@ -131,6 +131,33 @@ private func library60() -> ([LibraryEntry], [MediaKey: SeriesMembership]) {
         }
     }
 
+    @Test func groupingTwoThousandEntriesWithinBudget() {
+        let statuses = ListStatus.allCases
+        let entries = (1...2_000).map { entry($0, statuses[$0 % statuses.count], $0 % 20, minutes: $0) }
+        var m: [MediaKey: SeriesMembership] = [:]
+        for id in 1...1_200 {
+            m[MediaKey(kind: .anime, id: id)] = member("S\((id - 1) / 3)", ordinal: (id - 1) % 3 + 1, sort: id)
+        }
+        _ = SeriesListGrouping.rows(entries, membership: m)
+        let clock = ContinuousClock()
+        var samples: [Duration] = []
+        var rows: [SeriesListRow] = []
+        for _ in 0..<7 { samples.append(clock.measure { rows = SeriesListGrouping.rows(entries, membership: m) }) }
+        let median = samples.sorted()[3]
+        #expect(rows.count == 800 + 400)
+        if let path = ProcessInfo.processInfo.environment["KURO_W6_BASELINE_OUT"] {
+            let ms = samples.map { Double($0.components.attoseconds) / 1e15 + Double($0.components.seconds) * 1000 }
+            let text = "samples_ms=\(ms.map { String(format: "%.3f", $0) }.joined(separator: ","))\n"
+                + "median_ms=\(String(format: "%.3f", Double(median.components.attoseconds) / 1e15))\n"
+            try? text.write(toFile: path, atomically: true, encoding: .utf8)
+        }
+        #if DEBUG
+        #expect(median <= SeriesListGrouping.proposedBudget * 10, "debug guard; the gate runs -c release")
+        #else
+        #expect(median <= SeriesListGrouping.proposedBudget, "median \(median)")
+        #endif
+    }
+
     @Test func advanceTargetIsAlwaysTheAnchor() {
         let (entries, m) = library60()
         for row in SeriesListGrouping.rows(entries, membership: m) {
