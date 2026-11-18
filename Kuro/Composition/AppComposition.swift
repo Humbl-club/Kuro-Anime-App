@@ -329,6 +329,8 @@ final class AppComposition {
         // W5: guest state + the one pending intent (not account-scoped: it holds no account data).
         let guest = GuestSession(identity: identity, flags: shell.flags, libraryActions: libraryActions,
                                  library: wiring.store, taste: assistant.taste, clubs: clubs, banner: shell.banner)
+        // Guests send no telemetry (D-W5-T default); the auth wall's own anonymous events are unchanged.
+        shell.interactionTelemetry.suppressesSending = { [weak guest] in guest?.isGuest == true }
         let libraryRealtime = LibraryRealtime(
             channels: userListChannels,
             accountSession: accountSession,
@@ -666,7 +668,7 @@ final class AppComposition {
         accountSession: AccountSessionCoordinator,
         library: LibraryStore
     ) -> PublicDataOwners {
-        let catalog = CatalogStore(client: client)
+        let catalog = CatalogStore(client: client, accountSession: accountSession)
         let discovery = DiscoveryStore(client: client, accountSession: accountSession, library: library)
         // "More like this" excludes the caller's own list: per account, cleared on every transition.
         let recommendations = RecommendationsReader(client: client, catalog: catalog, accountSession: accountSession)

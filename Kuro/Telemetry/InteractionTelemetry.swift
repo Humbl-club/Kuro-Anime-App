@@ -42,6 +42,10 @@ final class InteractionTelemetry: AccountScopedState {
     static let maxTrackedInteractions = 64
 
     /// `client`: the app's single SDK client; without one, events stay queued and are never sent.
+    /// W5: true while a guest browses (composition sets it): guests send no telemetry. The auth wall's own
+    /// anonymous events do not pass through here and are unchanged.
+    @ObservationIgnored var suppressesSending: @MainActor () -> Bool = { false }
+
     init(analytics: ConciergeAnalytics, client: SupabaseClient?) {
         self.analytics = analytics
         if let client { analytics.configure(client: client) }
@@ -67,6 +71,7 @@ final class InteractionTelemetry: AccountScopedState {
         startedAt: StartedAt? = nil,
         extra: [String: Any] = [:]
     ) {
+        if suppressesSending() { return }
         // An interaction that began under another account is never relabeled as this one's.
         if let startedAt, let began = interactionAttributions[startedAt], began != attributionGeneration {
             return
@@ -84,7 +89,8 @@ final class InteractionTelemetry: AccountScopedState {
     /// A raw event (the concierge surface's own events).
     @discardableResult
     func track(_ event: String, payload: [String: Any] = [:]) -> Task<Void, Never>? {
-        analytics.track(event, payload: payload)
+        if suppressesSending() { return nil }
+        return analytics.track(event, payload: payload)
     }
 
     /// The account new events are attributed to (session funnel); a signed-in id flushes the queue.

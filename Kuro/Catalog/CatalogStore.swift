@@ -24,8 +24,12 @@ final class CatalogStore: MemoryPressureTrimmable {
     /// detail selects do not name `data_sources`, a column that exists only after migration 20261112100000.
     @ObservationIgnored var sourceCreditEnabled: @MainActor () -> Bool = { false }
 
-    init(client: SupabaseClient?) {
+    /// The account coordinator: a guest (no current account) sends no `enqueue_media_relation_refresh` (W5).
+    @ObservationIgnored private let accountSession: AccountSessionCoordinator
+
+    init(client: SupabaseClient?, accountSession: AccountSessionCoordinator) {
         self.client = client
+        self.accountSession = accountSession
     }
 
     /// The SDK client, or `MissingSupabaseConfiguration` when the app has none.
@@ -892,6 +896,8 @@ final class CatalogStore: MemoryPressureTrimmable {
         mediaId: Int,
         reason: String
     ) async {
+        // W5: the RPC is not anonymous (it queues work); a guest never sends it.
+        guard accountSession.current != nil else { return }
         let key = "\(mediaType.uppercased())-\(mediaId)"
         if let last = mediaLadderRefreshEnqueueCooldown[key],
            Date().timeIntervalSince(last) < 12 * 60 * 60 {

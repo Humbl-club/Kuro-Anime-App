@@ -230,4 +230,102 @@ struct GuestModeTests {
         #expect(h.graph.guest.pendingIntent == nil)
         await h.tearDown()
     }
+
+    // MARK: Task 4: guests read only the allowlist
+
+    static func guestHarness() throws -> PublicDataHarness {
+        try PublicDataHarness(responder: { request in
+            switch request.resource {
+            case "feature_flags": return .json(Self.flagsOffJSON)
+            default: return .emptyArray
+            }
+        })
+    }
+
+    static func assertOnlyAllowlistedAnonymousReads(_ h: PublicDataHarness, sourceLocation: SourceLocation = #_sourceLocation) {
+        let resources = h.server.requests.compactMap(\.resource)
+        let outside = resources.filter { !GuestReadAllowlist.permits(resource: $0) }
+        #expect(outside.isEmpty, "a guest requested outside the allowlist: \(outside)", sourceLocation: sourceLocation)
+        #expect(h.server.requests.allSatisfy { $0.header("Authorization") == "Bearer \(StubSupabase.anonKey)" },
+                "a guest request carried a user credential", sourceLocation: sourceLocation)
+    }
+
+    @Test("Guests open title, character and season pages with public catalogue reads only")
+    func guestCanOpenTitleEntityAndSeasonPages() async throws {
+        let h = try Self.guestHarness()
+        let g = h.service
+        _ = try? await g.catalog.fetchAnimeById(154587)
+        _ = await g.catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: 154587)
+        _ = await g.catalog.fetchCast(forAnime: 154587)
+        _ = await g.catalog.fetchCharactersForAnime(animeId: 154587)
+        _ = await g.catalog.fetchStaffForAnime(animeId: 154587)
+        _ = await g.catalog.fetchStudiosForAnime(animeId: 154587)
+        _ = await g.catalog.fetchEpisodesPage(animeId: 154587, offset: 0, limit: 50)
+        _ = await g.catalog.fetchExternalLinks(mediaType: "ANIME", mediaId: 154587)
+        _ = await g.availability.resolveWatchLinks(animeId: 154587, originalLanguage: "ja", progress: nil)
+        _ = await g.releases.mediaSchedule(kind: .anime, id: 154587)
+        _ = await g.releases.themes(animeId: 154587)
+        _ = await g.recommendations.fetchSimilar(kind: .anime, id: 154587)
+        _ = try? await g.social.fetchFriendActivityForTitle(mediaType: "ANIME", mediaId: 154587)
+        await g.catalog.enqueueMediaRelationRefresh(mediaType: "ANIME", mediaId: 154587, reason: "probe")
+        // The character page and the season page (the title page of the prequel season).
+        _ = await g.catalog.fetchMediaByCharacter(characterId: 1)
+        _ = await g.catalog.fetchVoiceActors(forCharacter: 1)
+        _ = try? await g.catalog.fetchAnimeById(52991)
+        _ = await g.catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: 52991)
+
+        Self.assertOnlyAllowlistedAnonymousReads(h)
+        #expect(h.requests(to: "rpc/enqueue_media_relation_refresh").isEmpty)
+        #expect(h.requests(to: "rpc/fetch_friend_activity_for_title").isEmpty)
+        #expect(!h.requests(to: "rpc/get_media_ladder").isEmpty)
+        #expect(!h.requests(to: "rpc/character_voice_actors_v1").isEmpty)
+        #expect(!h.requests(to: "anime").isEmpty)
+        await h.tearDown()
+    }
+
+    static func driveGuestDiscoverBrowseAndSearch(_ g: AppGraph) async {
+        _ = await g.discovery.ensureDiscoverBundle()
+        _ = await g.discovery.fetchDailyFeature()
+        _ = await g.discovery.fetchBecauseYouRail()
+        _ = await g.discovery.fetchTonightShelf()
+        _ = await g.discovery.fetchRealmHiddenGem()
+        _ = await g.taste.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME")
+        _ = await g.taste.loadDiscoverHidden()
+        _ = await g.discovery.moodPage(.cozy, medium: .anime)
+        _ = await g.discovery.browseAnimePage(genre: nil, status: nil, minEpisodes: nil, maxEpisodes: nil, cursorInt: nil,
+                                              cursorDate: nil, cursorId: nil, limit: 24)
+        g.search.resetCombinedSearch(query: "Frieren")
+        await g.search.fetchNextCombinedSearchPage()
+        g.social.prefetchFriendCounts(items: [("ANIME", 1)])
+        await g.clubs.checkClubNotifications()
+        await g.outboundLinks.recordOutboundLink(mediaType: "ANIME", mediaId: 1, linkKind: "watch", provider: "x").value
+        g.discovery.recordRecentSearch("Frieren")
+    }
+
+    @Test("Guests browse Discover, Browse and Search with allowlisted reads only, and no personal request")
+    func guestDiscoverBrowseAndSearchReadOnlyTheAllowlist() async throws {
+        let h = try Self.guestHarness()
+        await Self.driveGuestDiscoverBrowseAndSearch(h.service)
+        // Let a detached friend-count prefetch (if any) reach the server before judging.
+        try await Task.sleep(for: .milliseconds(100))
+        Self.assertOnlyAllowlistedAnonymousReads(h)
+        #expect(h.requests(to: "rpc/fetch_daily_feature").isEmpty)
+        #expect(h.requests(to: "rpc/count_friends_tracking").isEmpty)
+        #expect(h.requests(to: "rpc/record_outbound_link").isEmpty)
+        #expect(h.requests(to: "concierge_events").isEmpty)
+        #expect(!h.requests(to: "rpc/discover_bundle").isEmpty)
+        await h.tearDown()
+    }
+
+    @Test("A guest writes no account-scoped device keys")
+    func guestBrowsingWritesNoAccountKeys() async throws {
+        let h = try Self.guestHarness()
+        let before = Set(h.defaults.dictionaryRepresentation().keys)
+        await Self.driveGuestDiscoverBrowseAndSearch(h.service)
+        let after = Set(h.defaults.dictionaryRepresentation().keys)
+        let added = after.subtracting(before)
+        #expect(added.allSatisfy { $0.hasPrefix("com.kuro.featureFlags") },
+                "a guest wrote account keys: \(added)")
+        await h.tearDown()
+    }
 }
