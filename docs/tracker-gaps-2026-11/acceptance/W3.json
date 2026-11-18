@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "workstream": "W3",
+  "testedCommit": "ed3bb539ccacd28e246cd3dfaaff621f48e8f2e1",
+  "recordedAt": "2026-11-18T14:30:52Z",
+  "runs": [
+    {
+      "id": "swift-1",
+      "layer": "swift",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=611AAFE0-3AE5-4C2C-8011-C7DA884CFE12' -parallel-testing-enabled NO -only-testing:KuroTests/ReleaseAlertOfferTests test",
+      "context": {
+        "kind": "simulator",
+        "simulator": "611AAFE0-3AE5-4C2C-8011-C7DA884CFE12"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/W3-swift.txt"
+    },
+    {
+      "id": "ui-1",
+      "layer": "ui",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=611AAFE0-3AE5-4C2C-8011-C7DA884CFE12' -parallel-testing-enabled NO -only-testing:KuroUITests/ReleaseAlertOfferUITests test",
+      "context": {
+        "kind": "simulator",
+        "simulator": "611AAFE0-3AE5-4C2C-8011-C7DA884CFE12"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/W3-ui.txt"
+    }
+  ],
+  "scenarios": [
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "Offer after adding an airing show",
+      "tag": "@swift:ReleaseAlertOfferTests/offerShownAfterSavingAiringTitleWithExactNextRelease",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "No offer without an exact time",
+      "tag": "@swift:ReleaseAlertOfferTests/noOfferForEstimatesDaysOrFinishedTitles",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "Accepting uses the existing bell",
+      "tag": "@swift:ReleaseAlertOfferTests/notifyMeUsesBellToggleOnly",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "Declining three times stops the offers",
+      "tag": "@swift:ReleaseAlertOfferTests/threeDeclinesStopOffersForTheAccount",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "Offer memory belongs to the account",
+      "tag": "@swift:ReleaseAlertOfferTests/offerStateIsClearedOnAccountSwitch",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "The visible page shows the offer, not the page that loaded last",
+      "tag": "@swift:ReleaseAlertOfferTests/offerFollowsTheVisiblePageNotAttachOrder",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "An offscreen page never receives the offer",
+      "tag": "@ui:ReleaseAlertOfferUITests/testOffscreenNeighbourPagesNeverShowTheOffer",
+      "result": "pass",
+      "run": "ui-1"
+    },
+    {
+      "feature": "W3-alerts.feature",
+      "scenario": "A page under a sheet does not show or use up the offer",
+      "tag": "@ui:ReleaseAlertOfferUITests/testJourneySheetOnTopHidesThePagerOfferUntilItCloses",
+      "result": "pass",
+      "run": "ui-1"
+    }
+  ],
+  "unresolvedGates": [
+    "W3-alerts.feature: Manga chapter alerts (needs decision D-B; scenarios written when decided): awaiting owner decision D-B"
+  ]
+}
