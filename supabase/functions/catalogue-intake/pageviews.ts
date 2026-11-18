@@ -8,7 +8,8 @@
 // (props sitelink:enwiki / sitelink:jawiki). Titles without an article store nothing.
 // Cursor `catalogue-intake:pageviews:<medium>`: { after_link } over accepted Wikidata link ids.
 // Refresh: weekly (a record older than 7 days is fetched again).
-import { isPoliteCleanStop, type PoliteClient } from "../_shared/polite_fetch.ts";
+import { PoliteFetchError, type PoliteClient } from "../_shared/polite_fetch.ts";
+import { classifyFailure, exhausted, type FailedItem, isItemRejection, noteFailedItem, readFailureCounts } from "./item_failures.ts";
 import { type HandlerOutcome, type RunContext } from "./context.ts";
 import { chunk, clampInt, cursorKey, readCursor, readExistingRecords, upsertRecords, writeCursor } from "./store.ts";
 
@@ -38,7 +39,7 @@ export type PageviewsDeps = { client: PoliteClient; nowMs: number; deadlineMs?: 
 export async function pageviewsFetch(
   deps: PageviewsDeps,
   articles: PageviewsArticle[],
-): Promise<{ results: PageviewsResult[]; requests: number; stoppedEarly?: "budget" | "rate_limited" }> {
+): Promise<{ results: PageviewsResult[]; requests: number; failed: FailedItem[]; errorKey?: string; stoppedEarly?: "budget" | "rate_limited" | "source_error" }> {
   const endMs = deps.nowMs - DAY_MS;
   const end = ymd(endMs);
   const start = ymd(endMs - 364 * DAY_MS);
@@ -50,24 +51,45 @@ export async function pageviewsFetch(
   const agg = new Map<string, PageviewsResult & { done: number }>();
   const results: PageviewsResult[] = [];
   let requests = 0;
-  let stoppedEarly: "budget" | "rate_limited" | undefined;
+  let stoppedEarly: "budget" | "rate_limited" | "source_error" | undefined;
+  const failed: FailedItem[] = [];
+  const failedKeys = new Set<string>();
+  let errorKey: string | undefined;
 
   for (const a of articles) {
+    if (failedKeys.has(a.mediaKey)) continue; // one article of this title already failed: the title stores nothing
     let items: { timestamp?: unknown; views?: unknown }[] = [];
     try {
       const res = await deps.client.request(pageviewsUrl(a.project, a.title, start, end), {}, deps.deadlineMs);
       requests++;
       if (res.status === 404) {
         items = [];
+      } else if (isItemRejection(res.status)) {
+        // The article itself is rejected (400 and the like): that title is recorded as failed and the run goes on.
+        failedKeys.add(a.mediaKey);
+        noteFailedItem(failed, a.mediaKey, `http ${res.status} for ${a.project}`);
+        continue;
       } else if (res.status !== 200) {
-        throw new Error(`pageviews http ${res.status}`);
+        throw new PoliteFetchError("http", `pageviews http ${res.status}`, res.status);
       } else {
         const raw = (res.json as { items?: unknown } | null)?.items;
         items = Array.isArray(raw) ? raw : [];
       }
     } catch (e) {
-      if (isPoliteCleanStop(e)) {
+      const action = classifyFailure(e);
+      if (action === "clean") {
         stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
+        break;
+      }
+      if (action === "skip") {
+        failedKeys.add(a.mediaKey);
+        noteFailedItem(failed, a.mediaKey, `unreadable response for ${a.project}`);
+        continue;
+      }
+      if (action === "stop") {
+        // 5xx / timeout after retries: stop the run; the caller counts this title's failure.
+        stoppedEarly = "source_error";
+        errorKey = a.mediaKey;
         break;
       }
       throw e;
@@ -86,7 +108,7 @@ export async function pageviewsFetch(
       results.push({ mediaKey: cur.mediaKey, total365: cur.total365, last30: cur.last30, prev30: cur.prev30 });
     }
   }
-  return { results, requests, stoppedEarly };
+  return { results, requests, failed, errorKey, stoppedEarly };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -99,13 +121,15 @@ type WikidataLink = { id: number; kuro_id: number; source_key: string };
 export async function runPageviews(ctx: RunContext): Promise<HandlerOutcome> {
   const medium = ctx.medium;
   const key = cursorKey("pageviews", medium);
-  const cursor = (await readCursor<{ after_link?: number }>(ctx.supabase, key)) ?? {};
+  const cursor = (await readCursor<{ after_link?: number; fails?: Record<string, number> }>(ctx.supabase, key)) ?? {};
   let afterLink = cursor.after_link ?? 0;
+  const fails = readFailureCounts(cursor);
+  const failedItems: FailedItem[] = [];
   const maxTitles = clampInt(ctx.limit, PAGEVIEWS_DEFAULT_TITLES, 1, 1000);
   const nowMs = ctx.now();
   const nowIso = new Date(nowMs).toISOString();
-  const stats = { requests: 0, titles_stored: 0, skipped_fresh: 0, no_article: 0, pass_completed: false };
-  let stoppedEarly: "budget" | "rate_limited" | undefined;
+  const stats = { requests: 0, titles_stored: 0, skipped_fresh: 0, no_article: 0, items_failed: 0, pass_completed: false };
+  let stoppedEarly: "budget" | "rate_limited" | "source_error" | undefined;
   let considered = 0;
   let guard = 0;
 
@@ -148,6 +172,12 @@ export async function runPageviews(ctx: RunContext): Promise<HandlerOutcome> {
         stats.skipped_fresh++;
         continue;
       }
+      if (exhausted(fails, String(l.kuro_id))) {
+        // Failed MAX_ITEM_FAILURES consecutive runs: skipped (recorded) so it cannot block the pass.
+        stats.items_failed++;
+        noteFailedItem(failedItems, String(l.kuro_id), "skipped_after_repeated_failures");
+        continue;
+      }
       const p = props.get(String(l.source_key)) ?? {};
       const en = p["sitelink:enwiki"]?.[0];
       const ja = p["sitelink:jawiki"]?.[0];
@@ -161,6 +191,10 @@ export async function runPageviews(ctx: RunContext): Promise<HandlerOutcome> {
 
     const fetched = await pageviewsFetch({ client: ctx.clients.pageviews, nowMs, deadlineMs: ctx.deadlineMs }, articles);
     stats.requests += fetched.requests;
+    stats.items_failed += fetched.failed.length;
+    failedItems.push(...fetched.failed.slice(0, Math.max(0, 20 - failedItems.length)));
+    for (const r of fetched.results) delete fails[r.mediaKey];
+    if (fetched.errorKey !== undefined) fails[fetched.errorKey] = (fails[fetched.errorKey] ?? 0) + 1;
     if (fetched.results.length > 0) {
       await upsertRecords(
         ctx.supabase,
@@ -188,6 +222,8 @@ export async function runPageviews(ctx: RunContext): Promise<HandlerOutcome> {
     afterLink = links[links.length - 1].id;
   }
 
-  await writeCursor(ctx.supabase, key, medium, { after_link: afterLink }, stats, stoppedEarly ? `stopped_early:${stoppedEarly}` : null, nowIso);
-  return { results: stats, stoppedEarly };
+  // A finished pass forgets the failure counts (a skipped title gets three fresh tries next pass).
+  const nextFails = stats.pass_completed ? {} : fails;
+  await writeCursor(ctx.supabase, key, medium, { after_link: afterLink, fails: nextFails }, { ...stats, failed_items: failedItems }, stoppedEarly ? `stopped_early:${stoppedEarly}` : null, nowIso);
+  return { results: { ...stats, failed_items: failedItems }, stoppedEarly };
 }

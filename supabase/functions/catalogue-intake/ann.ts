@@ -5,14 +5,19 @@
 //
 // Flow of one run (cursor `catalogue-intake:ann:anime`: { match_after_id, fetch_after_link,
 // match_done_for_report }):
-//  1. the title report (one request, cached as record `report:anime`, refreshed weekly);
+//  1. the title report (one request, cached as record `report:anime`, refreshed weekly). A fresh cached report is
+//     identified by its stored hash and fetched_at only; its multi-MB payload is read only when matching is pending;
 //  2. matching: Kuro titles without an accepted ANN link are scored against the report. A unique
 //     match >= 0.92 is accepted (method title_match); ambiguous ones are proposed. A Wikidata-derived
 //     proposed ANN id is promoted only when the matcher picks the same key; a different pick keeps
 //     both proposed and lists a conflict (link trust rule 2, see wikidata.ts);
 //  3. records: accepted ANN links are fetched 50 ids per request (missing or older than a week).
 // No XML regexes: parsing uses _shared/catalogue/xml.ts. ANN plot text is deliberately not stored.
-import { isPoliteCleanStop, type PoliteClient } from "../_shared/polite_fetch.ts";
+// One bad item never stalls the run (item_failures.ts): a batch ANN rejects (4xx) or cannot parse is bisected down to
+// the failing id, which is recorded and skipped; a 5xx / timeout stops the run and counts against that page, and a
+// page that failed three consecutive runs is skipped (recorded).
+import { PoliteFetchError, type PoliteClient } from "../_shared/polite_fetch.ts";
+import { classifyFailure, exhausted, type FailedItem, isItemRejection, noteFailedItem, readFailureCounts } from "./item_failures.ts";
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import { normaliseTitle, titleTokens } from "../_shared/catalogue/normalise_title.ts";
 import { childrenNamed, firstChild, parseXml, type XmlNode } from "../_shared/catalogue/xml.ts";
@@ -25,7 +30,9 @@ import {
   cursorKey,
   type LinkCandidate,
   readCursor,
+  payloadHash,
   readExistingRecords,
+  selectAll,
   upsertRecords,
   writeCursor,
 } from "./store.ts";
@@ -296,26 +303,66 @@ export type AnnFetchDeps = {
 export async function annFetch(
   deps: AnnFetchDeps,
   ids: number[],
-): Promise<{ records: AnnRecord[]; requests: number; missing: string[]; stoppedEarly?: "budget" | "rate_limited" }> {
-  const out = { records: [] as AnnRecord[], requests: 0, missing: [] as string[], stoppedEarly: undefined as "budget" | "rate_limited" | undefined };
-  for (const batch of chunk(ids, ANN_BATCH)) {
-    let text: string;
+): Promise<{ records: AnnRecord[]; requests: number; missing: string[]; failed: FailedItem[]; errorIds?: number[]; stoppedEarly?: "budget" | "rate_limited" | "source_error" }> {
+  const out = {
+    records: [] as AnnRecord[],
+    requests: 0,
+    missing: [] as string[],
+    failed: [] as FailedItem[],
+    errorIds: undefined as number[] | undefined,
+    stoppedEarly: undefined as "budget" | "rate_limited" | "source_error" | undefined,
+  };
+  // One request for a group of ids. A group ANN rejects or that cannot be parsed is bisected until the single bad id
+  // is found, so one poisoned id cannot hide the 49 good ones next to it.
+  const attempt = async (group: number[]): Promise<void> => {
+    let text = "";
+    let rejected: string | null = null;
     try {
-      const res = await deps.client.request(`${ANN_API}?anime=${batch.join("/")}`, {}, deps.deadlineMs);
-      if (res.status !== 200) throw new Error(`ann http ${res.status}`);
-      text = res.text ?? "";
+      const res = await deps.client.request(`${ANN_API}?anime=${group.join("/")}`, {}, deps.deadlineMs);
+      if (res.status === 200) text = res.text ?? "";
+      else if (isItemRejection(res.status)) rejected = `http ${res.status}`;
+      else throw new PoliteFetchError("http", `ann http ${res.status}`, res.status);
     } catch (e) {
-      if (isPoliteCleanStop(e)) {
+      const action = classifyFailure(e);
+      if (action === "clean") {
         out.stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
-        break;
+        return;
       }
-      throw e;
+      if (action === "stop") {
+        out.stoppedEarly = "source_error";
+        out.errorIds = group;
+        return;
+      }
+      if (action === "skip") rejected = "unreadable response";
+      else throw e;
     }
     out.requests++;
-    const parsed = parseAnnApi(text);
-    await deps.onBatch?.(parsed.records, batch);
+    let parsed: ReturnType<typeof parseAnnApi> | null = null;
+    if (rejected === null) {
+      try {
+        parsed = parseAnnApi(text);
+      } catch {
+        rejected = "unreadable XML";
+      }
+    }
+    if (rejected !== null || parsed === null) {
+      if (group.length === 1) {
+        noteFailedItem(out.failed, `ann:${group[0]}`, rejected ?? "unreadable XML");
+        return;
+      }
+      const mid = Math.ceil(group.length / 2);
+      await attempt(group.slice(0, mid));
+      if (out.stoppedEarly) return;
+      await attempt(group.slice(mid));
+      return;
+    }
+    await deps.onBatch?.(parsed.records, group);
     out.records.push(...parsed.records);
     out.missing.push(...parsed.missing);
+  };
+  for (const batch of chunk(ids, ANN_BATCH)) {
+    await attempt(batch);
+    if (out.stoppedEarly) break;
   }
   return out;
 }
@@ -323,7 +370,7 @@ export async function annFetch(
 // ---------------------------------------------------------------------------------------------
 // Handler run
 
-type AnnCursor = { match_after_id?: number; fetch_after_link?: number; match_done_for_report?: string | null };
+type AnnCursor = { match_after_id?: number; fetch_after_link?: number; match_done_for_report?: string | null; fails?: Record<string, number> };
 
 const KURO_COLUMNS = "id, title_english, title_romaji, title_native, title_synonyms, start_date_year, format";
 
@@ -341,15 +388,14 @@ function kuroTitles(row: Record<string, unknown>): AnnKuroTitle {
 async function readLinks(supabase: SupabaseLike, ids: number[], status: "accepted" | "proposed"): Promise<{ kuro_id: number; source_key: string; method: string }[]> {
   const out: { kuro_id: number; source_key: string; method: string }[] = [];
   for (const part of chunk(ids, 500)) {
-    const { data, error } = await supabase
-      .from("catalogue_id_links")
-      .select("kuro_id, source_key, method")
-      .eq("kind", "anime")
-      .eq("source", "ann")
-      .eq("status", status)
-      .in("kuro_id", part);
-    if (error) throw new Error(`catalogue_id_links read failed: ${error.message ?? error}`);
-    out.push(...data);
+    // A title can hold several proposed links, so this read pages past the 1,000-row cap.
+    out.push(
+      ...(await selectAll<{ kuro_id: number; source_key: string; method: string }>(
+        () => supabase.from("catalogue_id_links").select("kuro_id, source_key, method").eq("kind", "anime").eq("source", "ann").eq("status", status).in("kuro_id", part),
+        ["id"],
+        "catalogue_id_links",
+      )),
+    );
   }
   return out;
 }
@@ -362,6 +408,8 @@ export async function runAnn(ctx: RunContext): Promise<HandlerOutcome> {
     fetch_after_link: cursor.fetch_after_link ?? 0,
     match_done_for_report: cursor.match_done_for_report ?? null,
   };
+  const fails = readFailureCounts(cursor);
+  const failedItems: FailedItem[] = [];
   const nowMs = ctx.now();
   const nowIso = new Date(nowMs).toISOString();
   const results: Record<string, number | boolean | string | null> = {
@@ -374,39 +422,74 @@ export async function runAnn(ctx: RunContext): Promise<HandlerOutcome> {
     records_written: 0,
     requests: 0,
     missing_ids: 0,
+    items_failed: 0,
   };
-  let stoppedEarly: "budget" | "rate_limited" | undefined;
+  let stoppedEarly: "budget" | "rate_limited" | "source_error" | undefined;
   const conflicts: Conflict[] = [];
 
-  // 1. Report (cached, weekly).
+  // 1. Report (cached, weekly). Freshness and version come from fetched_at and the stored hash alone; the payload
+  //    (several MB) is downloaded from the database only when matching actually needs it.
   const { data: cachedReport, error: reportError } = await ctx.supabase
     .from("catalogue_source_records")
-    .select("payload, fetched_at")
+    .select("payload_hash, fetched_at")
     .eq("source", "ann")
     .eq("source_key", "report:anime")
     .eq("medium", "anime")
     .maybeSingle();
   if (reportError) throw new Error(`ann report read failed: ${reportError.message ?? reportError}`);
-  let reportRows: AnnReportRow[] | null = (cachedReport?.payload as { items?: AnnReportRow[] } | undefined)?.items ?? null;
-  let reportFetchedAt: string | null = cachedReport?.fetched_at ?? null;
-  const reportFresh = reportFetchedAt !== null && nowMs - Date.parse(reportFetchedAt) < WEEK_MS;
-  if (!reportRows || !reportFresh) {
-    try {
-      const res = await ctx.clients.ann.request(ANN_REPORT_URL, {}, ctx.deadlineMs);
-      if (res.status !== 200) throw new Error(`ann report http ${res.status}`);
-      reportRows = parseAnnReport(res.text ?? "");
-      results.requests = (results.requests as number) + 1;
-      await upsertRecords(ctx.supabase, [{ source: "ann", sourceKey: "report:anime", medium: "anime", payload: { items: reportRows }, licence: ANN_LICENCE }], nowIso, { touch: true });
-      reportFetchedAt = nowIso;
-      results.report_fetched = true;
-    } catch (e) {
-      if (!isPoliteCleanStop(e)) throw e;
-      stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
+  let reportVersion: string | null = cachedReport?.payload_hash ?? null;
+  const reportFetchedAt: string | null = cachedReport?.fetched_at ?? null;
+  let reportRows: AnnReportRow[] | null = null;
+  const reportFresh = reportVersion !== null && reportFetchedAt !== null && nowMs - Date.parse(reportFetchedAt) < WEEK_MS;
+  if (!reportFresh) {
+    if (exhausted(fails, "report")) {
+      // The report failed three consecutive runs: skipped (recorded); matching uses the cached copy if there is one.
+      results.items_failed = (results.items_failed as number) + 1;
+      noteFailedItem(failedItems, "report", "skipped_after_repeated_failures");
+    } else {
+      try {
+        const res = await ctx.clients.ann.request(ANN_REPORT_URL, {}, ctx.deadlineMs);
+        if (isItemRejection(res.status)) {
+          results.items_failed = (results.items_failed as number) + 1;
+          noteFailedItem(failedItems, "report", `http ${res.status}`);
+        } else if (res.status !== 200) {
+          throw new PoliteFetchError("http", `ann report http ${res.status}`, res.status);
+        } else {
+          reportRows = parseAnnReport(res.text ?? "");
+          results.requests = (results.requests as number) + 1;
+          await upsertRecords(ctx.supabase, [{ source: "ann", sourceKey: "report:anime", medium: "anime", payload: { items: reportRows }, licence: ANN_LICENCE }], nowIso, { touch: true });
+          reportVersion = await payloadHash({ items: reportRows });
+          results.report_fetched = true;
+          delete fails.report;
+        }
+      } catch (e) {
+        const action = classifyFailure(e);
+        if (action === "clean") stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
+        else if (action === "skip") {
+          // An unreadable report is the item's own fault: recorded, and the run goes on without it.
+          results.items_failed = (results.items_failed as number) + 1;
+          noteFailedItem(failedItems, "report", "unreadable response");
+        } else if (action === "stop") {
+          fails.report = (fails.report ?? 0) + 1;
+          stoppedEarly = "source_error";
+        } else throw e;
+      }
     }
   }
 
   // 2. Matching, once per report version.
-  if (reportRows && !stoppedEarly && next.match_done_for_report !== reportFetchedAt) {
+  if (reportVersion !== null && !stoppedEarly && next.match_done_for_report !== reportVersion) {
+    if (!reportRows) {
+      const { data: full, error: fullError } = await ctx.supabase
+        .from("catalogue_source_records")
+        .select("payload")
+        .eq("source", "ann")
+        .eq("source_key", "report:anime")
+        .eq("medium", "anime")
+        .maybeSingle();
+      if (fullError) throw new Error(`ann report read failed: ${fullError.message ?? fullError}`);
+      reportRows = (full?.payload as { items?: AnnReportRow[] } | undefined)?.items ?? null;
+    }
     const limit = clampInt(ctx.limit, 3000, 1, 5000);
     const rows = await readKuroRows<Record<string, unknown> & { id: number }>(ctx.supabase, "anime", KURO_COLUMNS, next.match_after_id ?? 0, limit);
     const ids = rows.map((r) => r.id);
@@ -416,7 +499,7 @@ export async function runAnn(ctx: RunContext): Promise<HandlerOutcome> {
       if (l.method !== "wikidata") continue;
       (wikidataKeys.get(l.kuro_id) ?? wikidataKeys.set(l.kuro_id, new Set()).get(l.kuro_id)!).add(String(l.source_key));
     }
-    const match = annMatch(rows.filter((r) => !linked.has(r.id)).map(kuroTitles), reportRows);
+    const match = annMatch(rows.filter((r) => !linked.has(r.id)).map(kuroTitles), reportRows ?? []);
 
     let corroborated = 0;
     const candidates: LinkCandidate[] = [];
@@ -439,7 +522,7 @@ export async function runAnn(ctx: RunContext): Promise<HandlerOutcome> {
     results.proposed = applied.proposed;
     if (rows.length < limit) {
       next.match_after_id = 0;
-      next.match_done_for_report = reportFetchedAt;
+      next.match_done_for_report = reportVersion;
     } else {
       next.match_after_id = rows[rows.length - 1].id;
     }
@@ -463,6 +546,19 @@ export async function runAnn(ctx: RunContext): Promise<HandlerOutcome> {
       break;
     }
     const keys = page.map((p: { source_key: string }) => String(p.source_key));
+    const pageKey = `page:${next.fetch_after_link ?? 0}`;
+    if (exhausted(fails, pageKey)) {
+      // This page failed three consecutive runs (server errors): skipped, recorded, and the pass moves on.
+      results.items_failed = (results.items_failed as number) + keys.length;
+      noteFailedItem(failedItems, pageKey, "skipped_after_repeated_failures");
+      delete fails[pageKey];
+      if (page.length < ANN_BATCH) {
+        next.fetch_after_link = 0;
+        break;
+      }
+      next.fetch_after_link = page[page.length - 1].id;
+      continue;
+    }
     const existing = await readExistingRecords(ctx.supabase, "ann", "anime", keys);
     const need = keys.filter((k: string) => {
       const e = existing.get(k);
@@ -488,10 +584,14 @@ export async function runAnn(ctx: RunContext): Promise<HandlerOutcome> {
       results.requests = (results.requests as number) + fetched.requests;
       results.records_fetched = (results.records_fetched as number) + fetched.records.length;
       results.missing_ids = (results.missing_ids as number) + fetched.missing.length;
+      results.items_failed = (results.items_failed as number) + fetched.failed.length;
+      for (const f of fetched.failed) noteFailedItem(failedItems, f.key, f.reason);
       if (fetched.stoppedEarly) {
         stoppedEarly = fetched.stoppedEarly;
+        if (fetched.stoppedEarly === "source_error") fails[pageKey] = (fails[pageKey] ?? 0) + 1;
         break; // the page is retried next run: the cursor stays before it
       }
+      delete fails[pageKey];
     }
     if (page.length < ANN_BATCH) {
       next.fetch_after_link = 0;
@@ -501,6 +601,7 @@ export async function runAnn(ctx: RunContext): Promise<HandlerOutcome> {
   }
 
   results.conflicts = conflicts.length;
-  await writeCursor(ctx.supabase, key, "anime", next as Record<string, unknown>, results, stoppedEarly ? `stopped_early:${stoppedEarly}` : null, nowIso);
-  return { results: { ...results, conflict_sample: conflicts.slice(0, 20) }, stoppedEarly };
+  next.fails = fails;
+  await writeCursor(ctx.supabase, key, "anime", next as Record<string, unknown>, { ...results, failed_items: failedItems }, stoppedEarly ? `stopped_early:${stoppedEarly}` : null, nowIso);
+  return { results: { ...results, failed_items: failedItems, conflict_sample: conflicts.slice(0, 20) }, stoppedEarly };
 }

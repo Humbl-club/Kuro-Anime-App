@@ -89,7 +89,7 @@ const mangaRow = (id: number, title: string, year = 1989) => ({
   id, title_english: title, title_romaji: null, title_native: null, title_synonyms: [], start_date_year: year, format: "MANGA", country_of_origin: "JP",
 });
 
-function ctxFor(db: ReturnType<typeof fakeSupabase>, responses: Response[], over: { deadlineMs?: number; spacing?: number; limit?: number; clockLog?: number[] } = {}) {
+function ctxFor(db: ReturnType<typeof fakeSupabase>, responses: Response[], over: { deadlineMs?: number; spacing?: number; limit?: number; clockLog?: number[]; tick?: number } = {}) {
   let t = 0;
   const log = over.clockLog ?? [];
   const net = queuedFetch(responses);
@@ -97,7 +97,9 @@ function ctxFor(db: ReturnType<typeof fakeSupabase>, responses: Response[], over
     log.push(t);
     return net.fetch(input, init);
   }) as typeof globalThis.fetch;
-  const client = createSourceClient("mangaupdates", new PoliteLimiter(over.spacing ?? 1_100), { fetch, sleep: (ms) => { t += ms; return Promise.resolve(); }, now: () => t, random: () => 0 });
+  const tick = over.tick ?? 0;
+  const clock = () => NOW + t;
+  const client = createSourceClient("mangaupdates", new PoliteLimiter(over.spacing ?? 1_100), { fetch, sleep: (ms) => { t += ms; return Promise.resolve(); }, now: clock, random: () => 0 });
   const other = createSourceClient("wikidata", new PoliteLimiter(0), { fetch: net.fetch });
   return {
     net,
@@ -106,8 +108,11 @@ function ctxFor(db: ReturnType<typeof fakeSupabase>, responses: Response[], over
       clients: { wikidata: other, ann: other, mangaupdates: client, pageviews: other },
       medium: "manga" as const,
       limit: over.limit,
-      deadlineMs: over.deadlineMs ?? 50_000,
-      now: () => NOW,
+      deadlineMs: NOW + (over.deadlineMs ?? 50_000),
+      now: () => {
+        t += tick; // a test clock that advances on every read (per-title deadline test)
+        return clock();
+      },
     },
   };
 }
@@ -130,24 +135,48 @@ const wdProposed = (kuro: number, key: string) => ({ id: 1, kind: "manga", kuro_
 
 Deno.test("muMatchCorroboratesWikidataIdAndAccepts", async () => {
   const db = fakeSupabase({ tables: { manga: [mangaRow(1, "Berserk")], catalogue_id_links: [wdProposed(1, String(BERSERK_ID))] } });
-  const { ctx, net } = ctxFor(db, [json(seriesBerserk)]);
+  const { ctx, net } = ctxFor(db, [json(searchBerserk), json(seriesBerserk)]);
   const out = await runMangaUpdates(ctx);
-  assert.equal(net.calls.length, 1, "the proposed key is checked against its own record: one GET, no search");
-  assert.equal(net.calls[0].url, `https://api.mangaupdates.com/v1/series/${BERSERK_ID}`);
+  assert.equal(net.calls[0].url, "https://api.mangaupdates.com/v1/series/search", "Task 5's own search matching decides");
   assert.equal(db.tables.catalogue_id_links.length, 1);
   assert.equal(db.tables.catalogue_id_links[0].status, "accepted");
   assert.equal(out.results.corroborated, 1);
+  assert.equal(out.results.conflicts, 0);
+  // The accepted link's record is then fetched by the records phase.
+  assert.equal(net.calls[1].url, `https://api.mangaupdates.com/v1/series/${BERSERK_ID}`);
 });
 
 Deno.test("muMatchDisagreesKeepsProposedAndListsConflict", async () => {
   const db = fakeSupabase({ tables: { manga: [mangaRow(1, "Totally Different Title", 2001)], catalogue_id_links: [wdProposed(1, String(BERSERK_ID))] } });
-  const { ctx } = ctxFor(db, [json(seriesBerserk)]);
+  const { ctx } = ctxFor(db, [json(searchBerserk)]);
   const out = await runMangaUpdates(ctx);
   assert.equal(db.tables.catalogue_id_links.length, 1);
   assert.equal(db.tables.catalogue_id_links[0].status, "proposed");
   assert.equal(out.results.conflicts, 1);
   assert.equal((out.results.conflict_sample as { reason: string }[])[0].reason, "wikidata_id_disagrees_with_title_match");
-  assert.ok(db.tables.catalogue_source_records.some((r) => r.source_key === String(BERSERK_ID)), "the raw record is still retained");
+});
+
+Deno.test("wikidataIdIsNeverAcceptedBySingleRecordScore", async () => {
+  // Wikidata names series 999 for Berserk. The record at 999 would score perfectly on its own, but the search
+  // matching picks the real Berserk id: both stay proposed, nothing is accepted, and a conflict is listed.
+  const other = { ...seriesBerserk, series_id: 999 };
+  const db = fakeSupabase({ tables: { manga: [mangaRow(1, "Berserk")], catalogue_id_links: [wdProposed(1, "999")] } });
+  const { ctx, net } = ctxFor(db, [json(searchBerserk), json(other)]);
+  const out = await runMangaUpdates(ctx);
+  const links = db.tables.catalogue_id_links;
+  assert.equal(links.filter((l) => l.status === "accepted").length, 0, "no accepted link");
+  assert.deepEqual(links.map((l) => [l.source_key, l.status]).sort(), [[String(BERSERK_ID), "proposed"], ["999", "proposed"]]);
+  assert.equal(out.results.conflicts, 1);
+  assert.equal(net.calls.length, 1, "no record is fetched for a link that is not accepted");
+});
+
+Deno.test("wikidataIdStaysProposedWhenTheSearchIsAmbiguous", async () => {
+  const hit = (id: number) => ({ record: { series_id: id, title: "Twin", year: "2010", type: "Manga" }, hit_title: "Twin" });
+  const db = fakeSupabase({ tables: { manga: [mangaRow(1, "Twin", 2010)], catalogue_id_links: [wdProposed(1, "5")] } });
+  const { ctx } = ctxFor(db, [json({ results: [hit(5), hit(6)] })]);
+  const out = await runMangaUpdates(ctx);
+  assert.equal(db.tables.catalogue_id_links.filter((l) => l.status === "accepted").length, 0);
+  assert.equal(out.results.conflicts, 1);
 });
 
 Deno.test("budgetStopKeepsCursor", async () => {
@@ -178,4 +207,91 @@ Deno.test("sharedSpacingAtLeast1100ms", async () => {
   await runMangaUpdates(ctx);
   assert.equal(times.length, 3);
   for (let i = 1; i < times.length; i++) assert.ok(times[i] - times[i - 1] >= 1_100, `gap ${times[i] - times[i - 1]} ms`);
+});
+
+// ---- deadline per title and one bad item (review 2026-11-18) ------------------------------------------
+
+const searchEmpty = () => json({ results: [] });
+const cursorOf = (db: ReturnType<typeof fakeSupabase>) => (db.tables.import_track_state[0].last_results as { cursor: { after_id: number; fetch_after_link: number; fails?: Record<string, number> } }).cursor;
+
+Deno.test("deadlineIsCheckedPerTitleEvenWithoutARequest", async () => {
+  // Six titles that already have an accepted link need no request; the clock moves 1 ms per read and the
+  // budget runs out after three titles, so the walk must stop there instead of scanning the whole page.
+  const rows = [1, 2, 3, 4, 5, 6].map((i) => mangaRow(i, `Title ${i}`));
+  const accepted = rows.map((r, i) => ({ id: i + 1, kind: "manga", kuro_id: r.id, source: "mangaupdates", source_key: String(100 + i), method: "title_match", confidence: 1, status: "accepted" }));
+  const db = fakeSupabase({ tables: { manga: rows, catalogue_id_links: accepted } });
+  const { ctx } = ctxFor(db, [], { deadlineMs: 3.5, tick: 1 });
+  const out = await runMangaUpdates(ctx);
+  assert.equal(out.stoppedEarly, "budget");
+  assert.equal(cursorOf(db).after_id, 2, "stopped after the last title walked inside the budget (the clock read for title 3 crossed it)");
+});
+
+Deno.test("aSearchRejectedWith4xxIsRecordedAndTheWalkAdvances", async () => {
+  const db = fakeSupabase({ tables: { manga: [mangaRow(1, "Bad One"), mangaRow(2, "Good Two")] } });
+  const { ctx, net } = ctxFor(db, [json({}, 400), searchEmpty()]);
+  const out = await runMangaUpdates(ctx);
+  assert.equal(out.stoppedEarly, undefined);
+  assert.equal(net.calls.length, 2, "title 2 was searched after title 1 failed");
+  assert.equal(out.results.items_failed, 1);
+  assert.deepEqual(out.results.failed_items, [{ key: "m:1", reason: "http 400" }]);
+  assert.equal(cursorOf(db).after_id, 0, "the pass finished");
+});
+
+Deno.test("anUnreadableSearchBodyIsRecordedAndSkipped", async () => {
+  const db = fakeSupabase({ tables: { manga: [mangaRow(1, "Bad One"), mangaRow(2, "Good Two")] } });
+  const { ctx } = ctxFor(db, [new Response("<html>oops", { status: 200 }), searchEmpty()]);
+  const out = await runMangaUpdates(ctx);
+  assert.equal(out.results.items_failed, 1);
+  assert.equal(out.stoppedEarly, undefined);
+});
+
+Deno.test("aServerErrorStopsTheRunAndIsCountedAgainstTheTitle", async () => {
+  const db = fakeSupabase({ tables: { manga: [mangaRow(1, "Bad One"), mangaRow(2, "Good Two")] } });
+  const { ctx } = ctxFor(db, [json({}, 502), json({}, 502), json({}, 502)]);
+  const out = await runMangaUpdates(ctx);
+  assert.equal(out.stoppedEarly, "source_error");
+  const c = cursorOf(db);
+  assert.equal(c.after_id, 0, "the cursor stays before the failing title");
+  assert.deepEqual(c.fails, { "m:1": 1 });
+});
+
+Deno.test("aTitleThatFailedThreeRunsInARowIsSkippedAndRecorded", async () => {
+  const db = fakeSupabase({
+    tables: {
+      manga: [mangaRow(1, "Bad One"), mangaRow(2, "Good Two")],
+      import_track_state: [{ track_key: "catalogue-intake:mangaupdates:manga", last_results: { cursor: { after_id: 0, fetch_after_link: 0, fails: { "m:1": 3 } } } }],
+    },
+  });
+  const { ctx, net } = ctxFor(db, [searchEmpty()]);
+  const out = await runMangaUpdates(ctx);
+  assert.equal(net.calls.length, 1, "title 1 is not searched again");
+  assert.deepEqual(out.results.failed_items, [{ key: "m:1", reason: "skipped_after_repeated_failures" }]);
+  assert.equal(out.stoppedEarly, undefined);
+});
+
+Deno.test("aRecordFetchRejectedWith4xxDoesNotBlockTheOtherRecords", async () => {
+  const accepted = [{ id: 1, kind: "manga", kuro_id: 1, source: "mangaupdates", source_key: "111", method: "title_match", confidence: 1, status: "accepted" }, { id: 2, kind: "manga", kuro_id: 2, source: "mangaupdates", source_key: String(BERSERK_ID), method: "title_match", confidence: 1, status: "accepted" }];
+  const db = fakeSupabase({ tables: { manga: [mangaRow(1, "A"), mangaRow(2, "Berserk")], catalogue_id_links: accepted } });
+  const { ctx } = ctxFor(db, [json({}, 400), json(seriesBerserk)]);
+  const out = await runMangaUpdates(ctx);
+  assert.equal(out.stoppedEarly, undefined);
+  assert.equal(out.results.records_fetched, 1);
+  assert.deepEqual(out.results.failed_items, [{ key: "f:111", reason: "http 400" }]);
+});
+
+Deno.test("aRecordFetchServerErrorStopsAndCountsThenIsSkippedAfterThreeRuns", async () => {
+  const accepted = [{ id: 1, kind: "manga", kuro_id: 1, source: "mangaupdates", source_key: "111", method: "title_match", confidence: 1, status: "accepted" }, { id: 2, kind: "manga", kuro_id: 2, source: "mangaupdates", source_key: String(BERSERK_ID), method: "title_match", confidence: 1, status: "accepted" }];
+  const tables = { manga: [mangaRow(1, "A"), mangaRow(2, "Berserk")], catalogue_id_links: accepted };
+  const db = fakeSupabase({ tables });
+  const first = await runMangaUpdates(ctxFor(db, [json({}, 500), json({}, 500), json({}, 500)]).ctx);
+  assert.equal(first.stoppedEarly, "source_error");
+  assert.deepEqual(cursorOf(db).fails, { "f:111": 1 });
+  // Two more failing runs, then the series is skipped and the next record is fetched.
+  await runMangaUpdates(ctxFor(db, [json({}, 500), json({}, 500), json({}, 500)]).ctx);
+  await runMangaUpdates(ctxFor(db, [json({}, 500), json({}, 500), json({}, 500)]).ctx);
+  assert.deepEqual(cursorOf(db).fails, { "f:111": 3 });
+  const fourth = await runMangaUpdates(ctxFor(db, [json(seriesBerserk)]).ctx);
+  assert.equal(fourth.stoppedEarly, undefined);
+  assert.equal(fourth.results.records_fetched, 1);
+  assert.deepEqual(fourth.results.failed_items, [{ key: "f:111", reason: "skipped_after_repeated_failures" }]);
 });

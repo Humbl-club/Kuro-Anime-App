@@ -7,12 +7,16 @@
 //  1. matching, at most half the request budget: manga rows without an accepted MangaUpdates link
 //     are searched by title (POST /v1/series/search, perpage 10) and scored with the same rule as
 //     ANN (accept >= 0.92 with runner-up < 0.80, else propose). A Wikidata-derived proposed id is
-//     checked against its own record (one GET); a good match promotes it, a poor one keeps it
-//     proposed and lists a conflict (link trust rule 2, see wikidata.ts);
+//     accepted ONLY when this same search matching (with its runner-up margin) picks the same key;
+//     on any disagreement both stay proposed and a conflict is listed (link trust rule 2, see
+//     wikidata.ts). A single-record score never accepts a Wikidata-derived id;
 //  2. records: accepted links without a record, or older than 30 days, are fetched
 //     (GET /v1/series/{id}).
 // MangaUpdates descriptions, images and scanlation release data are deliberately not stored.
-import { isPoliteCleanStop, PoliteFetchError, type PoliteClient } from "../_shared/polite_fetch.ts";
+// One bad item never stalls the run (item_failures.ts): a per-item 4xx or unreadable body is recorded and skipped,
+// a 5xx / timeout stops the run, and an item that failed three consecutive runs is skipped (recorded).
+import { PoliteFetchError, type PoliteClient } from "../_shared/polite_fetch.ts";
+import { classifyFailure, exhausted, type FailedItem, isItemRejection, noteFailedItem, readFailureCounts } from "./item_failures.ts";
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import { normaliseTitle, titleTokens } from "../_shared/catalogue/normalise_title.ts";
 import { ACCEPT_SCORE, jaccard, PROPOSE_FLOOR, RUNNER_UP_MAX } from "./ann.ts";
@@ -26,6 +30,7 @@ import {
   type LinkCandidate,
   readCursor,
   readExistingRecords,
+  selectAll,
   upsertRecords,
   writeCursor,
 } from "./store.ts";
@@ -191,8 +196,15 @@ export type MuFetchDeps = { client: PoliteClient; deadlineMs?: number; onRecord?
 export async function muFetch(
   deps: MuFetchDeps,
   seriesIds: number[],
-): Promise<{ records: MuRecord[]; missing: string[]; requests: number; stoppedEarly?: "budget" | "rate_limited" }> {
-  const out = { records: [] as MuRecord[], missing: [] as string[], requests: 0, stoppedEarly: undefined as "budget" | "rate_limited" | undefined };
+): Promise<{ records: MuRecord[]; missing: string[]; failed: FailedItem[]; errorId?: number; requests: number; stoppedEarly?: "budget" | "rate_limited" | "source_error" }> {
+  const out = {
+    records: [] as MuRecord[],
+    missing: [] as string[],
+    failed: [] as FailedItem[],
+    errorId: undefined as number | undefined,
+    requests: 0,
+    stoppedEarly: undefined as "budget" | "rate_limited" | "source_error" | undefined,
+  };
   for (const id of seriesIds) {
     try {
       const res = await deps.client.request(`${MU_API}/series/${id}`, {}, deps.deadlineMs);
@@ -201,7 +213,12 @@ export async function muFetch(
         out.missing.push(String(id));
         continue;
       }
-      if (res.status !== 200) throw new Error(`mangaupdates http ${res.status}`);
+      if (isItemRejection(res.status)) {
+        // This series itself is rejected (400 and the like): recorded as failed, the rest still run.
+        noteFailedItem(out.failed, `f:${id}`, `http ${res.status}`);
+        continue;
+      }
+      if (res.status !== 200) throw new PoliteFetchError("http", `mangaupdates http ${res.status}`, res.status);
       const rec = parseMuSeries(res.json);
       if (!rec) {
         out.missing.push(String(id));
@@ -210,8 +227,18 @@ export async function muFetch(
       await deps.onRecord?.(rec);
       out.records.push(rec);
     } catch (e) {
-      if (isPoliteCleanStop(e)) {
+      const action = classifyFailure(e);
+      if (action === "clean") {
         out.stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
+        break;
+      }
+      if (action === "skip") {
+        noteFailedItem(out.failed, `f:${id}`, "unreadable response");
+        continue;
+      }
+      if (action === "stop") {
+        out.stoppedEarly = "source_error";
+        out.errorId = id;
         break;
       }
       throw e;
@@ -223,7 +250,7 @@ export async function muFetch(
 // ---------------------------------------------------------------------------------------------
 // Handler run
 
-type MuCursor = { after_id?: number; fetch_after_link?: number };
+type MuCursor = { after_id?: number; fetch_after_link?: number; fails?: Record<string, number> };
 const KURO_COLUMNS = "id, title_english, title_romaji, title_native, title_synonyms, start_date_year, format, country_of_origin";
 const MATCH_PAGE = 40;
 const FETCH_PAGE = 20;
@@ -244,15 +271,14 @@ function kuroManga(row: Record<string, unknown>): MuKuro {
 async function readLinks(supabase: SupabaseLike, ids: number[], status: "accepted" | "proposed"): Promise<{ kuro_id: number; source_key: string; method: string }[]> {
   const out: { kuro_id: number; source_key: string; method: string }[] = [];
   for (const part of chunk(ids, 500)) {
-    const { data, error } = await supabase
-      .from("catalogue_id_links")
-      .select("kuro_id, source_key, method")
-      .eq("kind", "manga")
-      .eq("source", "mangaupdates")
-      .eq("status", status)
-      .in("kuro_id", part);
-    if (error) throw new Error(`catalogue_id_links read failed: ${error.message ?? error}`);
-    out.push(...data);
+    // A title can hold several proposed links, so this read pages past the 1,000-row cap.
+    out.push(
+      ...(await selectAll<{ kuro_id: number; source_key: string; method: string }>(
+        () => supabase.from("catalogue_id_links").select("kuro_id, source_key, method").eq("kind", "manga").eq("source", "mangaupdates").eq("status", status).in("kuro_id", part),
+        ["id"],
+        "catalogue_id_links",
+      )),
+    );
   }
   return out;
 }
@@ -261,12 +287,14 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
   const key = cursorKey("mangaupdates", "manga");
   const cursor: MuCursor = (await readCursor<MuCursor>(ctx.supabase, key)) ?? {};
   const next: MuCursor = { after_id: cursor.after_id ?? 0, fetch_after_link: cursor.fetch_after_link ?? 0 };
+  const fails = readFailureCounts(cursor);
+  const failedItems: FailedItem[] = [];
   const nowMs = ctx.now();
   const nowIso = new Date(nowMs).toISOString();
   const maxRequests = clampInt(ctx.limit, 40, 1, MAX_REQUESTS);
   const matchBudget = Math.ceil(maxRequests / 2);
-  const results: Record<string, number> = { requests: 0, matched: 0, corroborated: 0, proposed: 0, conflicts: 0, searched: 0, records_fetched: 0, records_written: 0, missing_ids: 0 };
-  let stoppedEarly: "budget" | "rate_limited" | undefined;
+  const results: Record<string, number> = { requests: 0, matched: 0, corroborated: 0, proposed: 0, conflicts: 0, searched: 0, records_fetched: 0, records_written: 0, missing_ids: 0, items_failed: 0 };
+  let stoppedEarly: "budget" | "rate_limited" | "source_error" | undefined;
   const conflicts: Conflict[] = [];
   const persistRecord = async (r: MuRecord) => {
     const w = await upsertRecords(ctx.supabase, [{ source: "mangaupdates", sourceKey: String(r.seriesId), medium: "manga", payload: r, licence: MU_LICENCE }], nowIso, { touch: true });
@@ -287,33 +315,66 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
     let corroborated = 0;
     for (const row of rows) {
       if (results.requests >= matchBudget) break;
+      // The deadline is checked per title, not only inside a request.
+      if (ctx.now() >= ctx.deadlineMs) {
+        stoppedEarly = "budget";
+        break;
+      }
       const kuro = kuroManga(row);
+      const failKey = `m:${row.id}`;
       try {
         if (linked.has(row.id) || kuro.titles.length === 0) {
           // nothing to do
-        } else if (wikidataKeys.has(row.id)) {
-          const wdKey = wikidataKeys.get(row.id)!;
-          const rec = await recordFor(ctx, wdKey, nowMs, results, persistRecord);
-          const hit: MuHit | null = rec ? { seriesId: rec.seriesId, titles: [rec.title, ...rec.associated], year: rec.year, type: rec.type } : null;
-          const score = hit ? muScore(kuro, hit) : 0;
-          if (hit && score >= ACCEPT_SCORE) {
-            corroborated++;
-            candidates.push({ kuroId: row.id, source: "mangaupdates", sourceKey: wdKey, method: "wikidata", confidence: Math.round(score * 1000) / 1000, status: "accepted" });
-          } else {
-            conflicts.push({ kind: "manga", source: "mangaupdates", sourceKey: wdKey, kuroIds: [row.id], reason: "wikidata_id_disagrees_with_title_match" });
-          }
+        } else if (exhausted(fails, failKey)) {
+          // Failed three consecutive runs: skipped (recorded) so it cannot block the pass.
+          results.items_failed++;
+          noteFailedItem(failedItems, failKey, "skipped_after_repeated_failures");
         } else {
           const res = await ctx.clients.mangaupdates.request(`${MU_API}/series/search`, { method: "POST", body: { search: kuro.titles[0], perpage: 10 } }, ctx.deadlineMs);
           results.requests++;
           results.searched++;
-          if (res.status !== 200) throw new Error(`mangaupdates http ${res.status}`);
-          const m = muMatch(kuro, parseMuSearch(res.json));
-          candidates.push(...m.accepted, ...m.proposed);
+          if (isItemRejection(res.status)) {
+            results.items_failed++;
+            noteFailedItem(failedItems, failKey, `http ${res.status}`);
+          } else if (res.status !== 200) {
+            throw new PoliteFetchError("http", `mangaupdates http ${res.status}`, res.status);
+          } else {
+            delete fails[failKey];
+            const m = muMatch(kuro, parseMuSearch(res.json));
+            const wdKey = wikidataKeys.get(row.id);
+            const pick = m.accepted[0];
+            if (wdKey === undefined) {
+              candidates.push(...m.accepted, ...m.proposed);
+            } else if (pick && pick.sourceKey === wdKey) {
+              // The Wikidata-derived id is accepted only because this search matching, with its runner-up margin, picked it too.
+              corroborated++;
+              candidates.push({ ...pick, method: "wikidata" });
+            } else {
+              // Disagreement (a different pick, or no confident pick): both stay proposed and a conflict is listed.
+              conflicts.push({ kind: "manga", source: "mangaupdates", sourceKey: wdKey, kuroIds: [row.id], reason: "wikidata_id_disagrees_with_title_match" });
+              candidates.push(...m.accepted.map((c) => ({ ...c, status: "proposed" as const })), ...m.proposed);
+            }
+          }
         }
       } catch (e) {
-        if (!isPoliteCleanStop(e)) throw e;
-        stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
-        break;
+        const action = classifyFailure(e);
+        if (action === "clean") {
+          stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
+          break;
+        }
+        if (action === "skip") {
+          results.items_failed++;
+          noteFailedItem(failedItems, failKey, "unreadable response");
+          lastProcessed = row.id;
+          continue;
+        }
+        if (action === "stop") {
+          // 5xx / timeout after retries: stop the run and count it against this title; three runs in a row skip it.
+          fails[failKey] = (fails[failKey] ?? 0) + 1;
+          stoppedEarly = "source_error";
+          break;
+        }
+        throw e;
       }
       lastProcessed = row.id;
     }
@@ -353,23 +414,31 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
     }
     const keys = page.map((p: { source_key: string }) => String(p.source_key));
     const existing = await readExistingRecords(ctx.supabase, "mangaupdates", "manga", keys);
-    const need = keys
-      .filter((k: string) => {
-        const e = existing.get(k);
-        return !e || !e.fetched_at || nowMs - Date.parse(e.fetched_at) >= MONTH_MS;
-      })
+    const stale = (k: string) => {
+      const e = existing.get(k);
+      return !e || !e.fetched_at || nowMs - Date.parse(e.fetched_at) >= MONTH_MS;
+    };
+    const needAll: string[] = [];
+    for (const k of keys.filter(stale)) {
+      if (exhausted(fails, `f:${k}`)) {
+        results.items_failed++;
+        noteFailedItem(failedItems, `f:${k}`, "skipped_after_repeated_failures");
+      } else needAll.push(k);
+    }
+    const need = needAll
       .map(Number)
       .filter((n: number) => Number.isSafeInteger(n) && n > 0)
       .slice(0, Math.max(0, maxRequests - results.requests));
-    const complete = need.length === keys.filter((k: string) => {
-      const e = existing.get(k);
-      return !e || !e.fetched_at || nowMs - Date.parse(e.fetched_at) >= MONTH_MS;
-    }).length;
+    const complete = need.length === needAll.length;
     if (need.length > 0) {
       const f = await muFetch({ client: ctx.clients.mangaupdates, deadlineMs: ctx.deadlineMs, onRecord: persistRecord }, need);
       results.requests += f.requests;
       results.records_fetched += f.records.length;
       results.missing_ids += f.missing.length;
+      results.items_failed += f.failed.length;
+      for (const x of f.failed) noteFailedItem(failedItems, x.key, x.reason);
+      for (const r of f.records) delete fails[`f:${r.seriesId}`];
+      if (f.errorId !== undefined) fails[`f:${f.errorId}`] = (fails[`f:${f.errorId}`] ?? 0) + 1;
       if (f.stoppedEarly) {
         stoppedEarly = f.stoppedEarly;
         break;
@@ -384,32 +453,7 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
   }
 
   results.conflicts = conflicts.length;
-  await writeCursor(ctx.supabase, key, "manga", next as Record<string, unknown>, results, stoppedEarly ? `stopped_early:${stoppedEarly}` : null, nowIso);
-  return { results: { ...results, conflict_sample: conflicts.slice(0, 20) }, stoppedEarly };
-}
-
-/** The record for a series id: the stored one when fresh, else one GET (which is stored). */
-async function recordFor(
-  ctx: RunContext,
-  seriesId: string,
-  nowMs: number,
-  results: Record<string, number>,
-  persist: (r: MuRecord) => Promise<void>,
-): Promise<MuRecord | null> {
-  const { data, error } = await ctx.supabase
-    .from("catalogue_source_records")
-    .select("payload, fetched_at")
-    .eq("source", "mangaupdates")
-    .eq("medium", "manga")
-    .eq("source_key", seriesId)
-    .maybeSingle();
-  if (error) throw new Error(`catalogue_source_records read failed: ${error.message ?? error}`);
-  if (data?.payload && data.fetched_at && nowMs - Date.parse(data.fetched_at) < MONTH_MS) return data.payload as MuRecord;
-  const id = Number(seriesId);
-  if (!Number.isSafeInteger(id) || id <= 0) return null;
-  const f = await muFetch({ client: ctx.clients.mangaupdates, deadlineMs: ctx.deadlineMs, onRecord: persist }, [id]);
-  results.requests += f.requests;
-  results.records_fetched += f.records.length;
-  if (f.stoppedEarly) throw new PoliteFetchError(f.stoppedEarly, "source stop");
-  return f.records[0] ?? null;
+  next.fails = fails;
+  await writeCursor(ctx.supabase, key, "manga", next as Record<string, unknown>, { ...results, failed_items: failedItems }, stoppedEarly ? `stopped_early:${stoppedEarly}` : null, nowIso);
+  return { results: { ...results, failed_items: failedItems, conflict_sample: conflicts.slice(0, 20) }, stoppedEarly };
 }

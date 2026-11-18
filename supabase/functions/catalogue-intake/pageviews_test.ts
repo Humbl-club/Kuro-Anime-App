@@ -74,9 +74,12 @@ Deno.test("sumsBothProjects", async () => {
   assert.deepEqual(out.results, [{ mediaKey: "3", total365: 22, last30: 16, prev30: 2 }]);
 });
 
-Deno.test("serverErrorIsNotZeros", async () => {
+Deno.test("rejectedArticleIsRecordedFailedNeverZeros", async () => {
   const { client: c } = client([json({}, 400)]);
-  await assert.rejects(() => pageviewsFetch({ client: c, nowMs: NOW }, [{ mediaKey: "1", project: "en.wikipedia", title: "X" }]), /pageviews http 400/);
+  const out = await pageviewsFetch({ client: c, nowMs: NOW }, [{ mediaKey: "1", project: "en.wikipedia", title: "X" }]);
+  assert.deepEqual(out.results, [], "a rejected title stores nothing (not zeros)");
+  assert.deepEqual(out.failed.map((f) => f.key), ["1"]);
+  assert.equal(out.stoppedEarly, undefined, "a per-item 4xx does not stop the run");
 });
 
 Deno.test("stopMidWayReturnsOnlyCompletedTitles", async () => {
@@ -136,4 +139,74 @@ Deno.test("runStoresOneRecordPerKuroTitleAndSkipsFreshOnes", async () => {
   const out2 = await runPageviews(again.ctx);
   assert.equal(again.net.calls.length, 0);
   assert.equal(out2.results.titles_stored, 0);
+});
+
+// ---- one bad item must not stall the handler (review 2026-11-18) ------------------------------------
+
+const links3 = [wikidataLink(1, 11, "Q1"), wikidataLink(2, 12, "Q2"), wikidataLink(3, 13, "Q3")];
+const recs3 = [wdRecord("Q1", { "sitelink:enwiki": ["A"] }), wdRecord("Q2", { "sitelink:enwiki": ["B"] }), wdRecord("Q3", { "sitelink:enwiki": ["C"] })];
+const ok = () => json({ items: [{ timestamp: "2026111700", views: 3 }] });
+const cursorOf = (db: ReturnType<typeof fakeSupabase>) => (db.tables.import_track_state.find((r) => r.track_key === "catalogue-intake:pageviews:manga")?.last_results as { cursor: { after_link: number; fails?: Record<string, number> } }).cursor;
+
+Deno.test("oneRejectedTitleDoesNotStallTheRun", async () => {
+  const db = fakeSupabase({ tables: { catalogue_id_links: links3, catalogue_source_records: recs3 } });
+  const { ctx } = ctxFor(db, [json({}, 400), ok(), ok()]);
+  const out = await runPageviews(ctx);
+  assert.equal(out.stoppedEarly, undefined);
+  assert.equal(out.results.titles_stored, 2);
+  assert.equal(out.results.items_failed, 1);
+  assert.deepEqual((out.results.failed_items as { key: string }[]).map((f) => f.key), ["11"]);
+  assert.ok(!db.tables.catalogue_source_records.some((r) => r.source === "pageviews" && r.source_key === "11"));
+  assert.equal(cursorOf(db).after_link, 0, "the pass finished");
+});
+
+Deno.test("unreadableBodyIsAFailedItemNotAStall", async () => {
+  const db = fakeSupabase({ tables: { catalogue_id_links: links3, catalogue_source_records: recs3 } });
+  const { ctx } = ctxFor(db, [new Response("<html>not json", { status: 200 }), ok(), ok()]);
+  const out = await runPageviews(ctx);
+  assert.equal(out.results.titles_stored, 2);
+  assert.equal(out.results.items_failed, 1);
+});
+
+Deno.test("serverErrorStopsTheRunAndCountsTheFailureAgainstTheItem", async () => {
+  const db = fakeSupabase({ tables: { catalogue_id_links: links3, catalogue_source_records: recs3 } });
+  const { ctx, net } = ctxFor(db, [json({}, 503), json({}, 503), json({}, 503)]);
+  const out = await runPageviews(ctx);
+  assert.equal(out.stoppedEarly, "source_error");
+  assert.equal(net.calls.length, 3, "the polite client retried twice, then the run stopped");
+  assert.equal(out.results.titles_stored, 0);
+  const cur = cursorOf(db);
+  assert.equal(cur.after_link, 0, "the cursor stays before the page");
+  assert.deepEqual(cur.fails, { "11": 1 });
+});
+
+Deno.test("anItemThatFailedThreeRunsInARowIsSkippedAndRecorded", async () => {
+  const db = fakeSupabase({
+    tables: {
+      catalogue_id_links: links3,
+      catalogue_source_records: recs3,
+      import_track_state: [{ track_key: "catalogue-intake:pageviews:manga", last_results: { cursor: { after_link: 0, fails: { "11": 3 } } } }],
+    },
+  });
+  const { ctx, net } = ctxFor(db, [ok(), ok()]);
+  const out = await runPageviews(ctx);
+  assert.equal(net.calls.length, 2, "title 11 is not requested again");
+  assert.equal(out.stoppedEarly, undefined);
+  assert.equal(out.results.titles_stored, 2);
+  assert.deepEqual(out.results.failed_items, [{ key: "11", reason: "skipped_after_repeated_failures" }]);
+  assert.deepEqual(cursorOf(db).fails, {}, "a finished pass forgets the counts");
+});
+
+Deno.test("aSuccessClearsTheItemsFailureCount", async () => {
+  const db = fakeSupabase({
+    tables: {
+      catalogue_id_links: links3,
+      catalogue_source_records: recs3,
+      import_track_state: [{ track_key: "catalogue-intake:pageviews:manga", last_results: { cursor: { after_link: 0, fails: { "11": 2, "99": 1 } } } }],
+    },
+  });
+  const { ctx } = ctxFor(db, [ok(), json({}, 503), json({}, 503), json({}, 503)]);
+  const out = await runPageviews(ctx);
+  assert.equal(out.stoppedEarly, "source_error");
+  assert.deepEqual(cursorOf(db).fails, { "99": 1, "12": 1 }, "11 succeeded (cleared), 12 failed once");
 });
