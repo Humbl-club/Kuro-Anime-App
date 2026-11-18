@@ -84,6 +84,18 @@ select tests.eq('relation: a processing row is untouched (status, reason, retry_
   (select status || '/' || reason || '/' || retry_count || '/' || (last_attempt_at is not null)::text
    from public.media_relation_refresh_queue where media_type = 'MANGA' and media_id = 1290002),
   'processing/detail_open/2/true');
+-- a crashed worker that left a row in 'processing' for > 30 minutes is reclaimed on the next enqueue
+set local session_replication_role = replica;
+update public.media_relation_refresh_queue
+   set updated_at = now() - interval '31 minutes'
+ where media_type = 'MANGA' and media_id = 1290002;
+set local session_replication_role = origin;
+select tests.as_user(tests.uid(1291));
+select public.enqueue_media_relation_refresh('MANGA', 1290002, 'discover_primary');
+select tests.reset();
+select tests.eq('relation: a stale (>30m) processing row from a crashed worker is reclaimed',
+  (select status || '/' || reason from public.media_relation_refresh_queue where media_type = 'MANGA' and media_id = 1290002),
+  'pending/discover_primary');
 update public.media_relation_refresh_queue set status = 'ok' where media_type = 'MANGA' and media_id = 1290002;
 select tests.as_user(tests.uid(1291));
 select public.enqueue_media_relation_refresh('MANGA', 1290002, 'discover_primary');
@@ -151,15 +163,43 @@ select tests.eq('relation: another user has their own bucket',
 select tests.ok('availability: authenticated + service_role execute; anon and PUBLIC do not',
   has_function_privilege('authenticated', 'public.enqueue_media_availability_refresh(text,integer,text)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.enqueue_media_availability_refresh(text,integer,text)', 'EXECUTE')
-  and not has_function_privilege('anon', 'public.enqueue_media_availability_refresh(text,integer,text)', 'EXECUTE'));
-select tests.ok('relation: authenticated + service_role execute; anon does not',
+  and not has_function_privilege('anon', 'public.enqueue_media_availability_refresh(text,integer,text)', 'EXECUTE')
+  and not exists (
+    select 1 from pg_proc p, aclexplode(p.proacl) a
+    where p.oid = 'public.enqueue_media_availability_refresh(text,integer,text)'::regprocedure and a.grantee = 0));
+select tests.ok('relation: authenticated + service_role execute; anon and PUBLIC do not',
   has_function_privilege('authenticated', 'public.enqueue_media_relation_refresh(text,integer,text)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.enqueue_media_relation_refresh(text,integer,text)', 'EXECUTE')
-  and not has_function_privilege('anon', 'public.enqueue_media_relation_refresh(text,integer,text)', 'EXECUTE'));
+  and not has_function_privilege('anon', 'public.enqueue_media_relation_refresh(text,integer,text)', 'EXECUTE')
+  and not exists (
+    select 1 from pg_proc p, aclexplode(p.proacl) a
+    where p.oid = 'public.enqueue_media_relation_refresh(text,integer,text)'::regprocedure and a.grantee = 0));
 select tests.as_anon();
+select tests.denied('anon cannot call the availability enqueue',
+  $q$select public.enqueue_media_availability_refresh('ANIME', 1290001, 'detail_open')$q$);
 select tests.denied('anon cannot call the relation enqueue',
   $q$select public.enqueue_media_relation_refresh('ANIME', 1290001, 'detail_open')$q$);
 select tests.reset();
+
+-- defense in depth: an explicit anon grant before migration is revoked, and non-service_role with null uid is still rate-limited
+grant execute on function public.enqueue_media_availability_refresh(text,integer,text) to anon;
+select tests.as_anon();
+create temp table t129_anon_rl on commit drop as
+  select n, public.enqueue_media_availability_refresh('ANIME', 1290001, 'on_demand') as r from generate_series(1, 32) n;
+select tests.eq('defense in depth: null-uid non-service_role caller is still rate-limited at 30/5m',
+  (select count(*) filter (where r->>'error' = 'rate_limited') from t129_anon_rl), 2::bigint);
+select tests.reset();
+revoke execute on function public.enqueue_media_availability_refresh(text,integer,text) from anon;
+
+-- service_role is exempt from the per-user rate limit
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+create temp table t129_svc_rl on commit drop as
+  select n, public.enqueue_media_availability_refresh('ANIME', 1290001, 'scheduled') as r from generate_series(1, 32) n;
+select tests.reset();
+select tests.eq('service_role is exempt from the 30/5m per-user rate limit',
+  (select count(*) filter (where (r->>'success')::boolean) from t129_svc_rl), 32::bigint);
+
 select tests.ok('both are SECURITY DEFINER with search_path = public, extensions',
   (select bool_and(p.prosecdef and exists (select 1 from unnest(p.proconfig) c where c = 'search_path=public, extensions'))
    from pg_proc p where p.oid in ('public.enqueue_media_availability_refresh(text,integer,text)'::regprocedure,

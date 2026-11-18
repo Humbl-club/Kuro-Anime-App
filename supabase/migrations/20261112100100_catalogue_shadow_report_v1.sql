@@ -75,6 +75,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = public, extensions
+set statement_timeout = '60s'
 as $$
 declare
   _sample integer;

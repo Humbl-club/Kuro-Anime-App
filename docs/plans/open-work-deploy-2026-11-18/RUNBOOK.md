@@ -1,8 +1,11 @@
-# Hosted steps waiting for permission (2026-11-18)
+# Hosted steps (2026-11-18; Part A executed 2026-11-19)
 
-Everything below is built, tested locally and merged (or on `kuro/tracker-gaps`). On 2026-11-18 the
-session's permission layer refused production writes (migration apply, Edge deploy). Nothing below
-has been run. Each step lists what it does, its risk and how it is verified. Run them in this order.
+Everything below is built, tested locally and merged (or on `kuro/tracker-gaps`). **Part A
+(A0–A7) was applied/deployed 2026-11-19** under owner instruction to execute the handoff; receipts
+live beside this file (`applied-*.json`, `final-state.json`, `a6-shadow-runs.json`,
+`a7-cron-scheduled.json`, first comparator reports under `docs/catalogue-sources-2026-11/runs/`).
+**Part B and C are still waiting.** Each remaining step lists what it does, its risk and how it is
+verified. Run them in this order.
 
 To let Claude run them: allow the hosted actions in Claude Code's permission settings for this
 project (Management API `/database/query` with `read_only: false` and `supabase functions deploy`),

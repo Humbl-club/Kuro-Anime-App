@@ -1,0 +1,22 @@
+{
+  "search_titles": {
+    "status": 200,
+    "body": "[{\"media_type\":\"ANIME\",\"media_id\":14,\"variant_type\":\"english\",\"title_raw\":\"Naruto\",\"score\":1,\"year\":2002,\"format\":\"TV\",\"cover_image_medium\":\"https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/14/cover_medium.jpg\"}, \n {\"media_type\":\"ANIME\",\"media_id\":14,\"variant_type\":\"romaji\",\"title_raw\":\"NARUTO\",\"score\":1,\"year\":2002,\"format\":\"TV\",\"cover_image_medium\":\"https://bkdifroms"
+  },
+  "discover_bundle": {
+    "status": 200,
+    "body": "{\"anime\": {\"classics\": [{\"id\": 11, \"format\": \"TV\", \"genres\": [\"Action\", \"Adventure\", \"Comedy\", \"Drama\", \"Fantasy\"], \"status\": \"RELEASING\", \"trending\": 305, \"favourites\": 110609, \"popularity\": 767664, \"season_year\": 1999, \"banner_image\": \"https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/11/banner.jpg\", \"title_native\": \"ONE PIECE\", \"title_romaji\": \"ONE PIECE\", \"average_s"
+  },
+  "normalize_title": {
+    "status": 200,
+    "body": "\"naruto\""
+  },
+  "contact_submit_invalid": {
+    "status": 400,
+    "body": "{\"error\":\"invalid\",\"fields\":[\"email\"]}"
+  },
+  "concierge_parse_anon": {
+    "status": 200,
+    "body": "{\"success\":true,\"userId\":null,\"items\":[{\"raw\":\"watching Naruto\",\"normalized\":\"Naruto\",\"parsed\":{\"mediaTypeHint\":\"ANIME\",\"status\":\"WATCHING\",\"progressEpisodes\":null,\"progressChapters\":null,\"progressVolumes\":null,\"progressTotal\":null,\"progressUnit\":null,\"seasonNumber\":null,\"episodeInSeason\":null,\"caughtUp\":null,\"lastEpisode\":null,\"completed\":null,\"yearMention\":null,\"rating\":null},\"ambiguity\":null,\"c"
+  }
+}

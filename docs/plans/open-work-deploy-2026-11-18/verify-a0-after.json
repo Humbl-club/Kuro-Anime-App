@@ -1,0 +1,50 @@
+{
+  "anon_count": 20,
+  "anon_fns": [
+    "anime_cast_v1(integer,text,integer)",
+    "browse_anime_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)",
+    "browse_manga_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)",
+    "character_voice_actors_v1(integer,text)",
+    "check_concierge_rate_limit(text,text,integer,integer,integer)",
+    "discover_bundle(integer,integer)",
+    "discover_mood_v1(text,text,integer,integer)",
+    "discover_section_page_v1(text,text,text,text,text,text,integer,integer)",
+    "get_manga_chapter_status(integer)",
+    "get_media_ladder(text,integer)",
+    "media_franchise_ids_v1(integer[],integer[])",
+    "media_release_schedule_v1(text,integer,integer)",
+    "media_similar_v1(text,integer,integer)",
+    "media_themes_v1(integer)",
+    "normalize_title(text)",
+    "recommend_ids_similar_to_seeds(text,integer[],integer,boolean)",
+    "search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)",
+    "search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)",
+    "search_titles(text,text,integer)",
+    "staff_voice_roles_v1(integer,integer)"
+  ],
+  "flag": [
+    {
+      "flag_name": "guest_browsing_v1",
+      "enabled": false,
+      "rollout_percentage": 0
+    }
+  ],
+  "refresh_candidates": [
+    {
+      "auth_can": false,
+      "svc_can": true,
+      "anon_can": false
+    }
+  ],
+  "anon_default_acl_rows": [
+    {
+      "role": "supabase_admin",
+      "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}"
+    }
+  ],
+  "public_exec_count": [
+    {
+      "c": 0
+    }
+  ]
+}

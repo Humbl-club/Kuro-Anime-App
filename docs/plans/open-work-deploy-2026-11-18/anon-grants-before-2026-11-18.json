@@ -1,0 +1,31 @@
+{
+  "captured_at": "2026-11-18T22:55:00Z",
+  "project": "bkdifromsqxkndnllmdj",
+  "seven_day_edge_logs_audit": {
+    "window": "2026-11-11T23:00:00Z..2026-11-18T23:00:00Z",
+    "legitimate_anon_rpc_outside_allowlist": 0,
+    "observed_non_allowlist_rpcs": [
+      "acquire_import_lock (service_role Deno)",
+      "release_import_lock (service_role Deno)",
+      "get_manga_chapter_enrich_candidates (service_role Deno)",
+      "get_manga_match_quality_metrics (service_role Deno)",
+      "upsert_release_events_v1 (service_role Deno)",
+      "upsert_theme_links_v1 (service_role Python series_enrichment_worker)",
+      "upsert_theme_apple_matches_v1 (service_role Python series_enrichment_worker)",
+      "curated_rail_cards (node audit script, 2026-11-18)"
+    ]
+  },
+  "anon_exec_before_count": 110,
+  "public_exec_before_count": 54,
+  "guest_browsing_v1_before": null,
+  "default_acl_before": [
+    {
+      "role": "postgres",
+      "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "role": "supabase_admin",
+      "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}"
+    }
+  ]
+}

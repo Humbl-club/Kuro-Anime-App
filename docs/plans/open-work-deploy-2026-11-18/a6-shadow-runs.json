@@ -1,0 +1,162 @@
+{
+  "wikidata:anime": {
+    "status": 200,
+    "elapsed_s": 2.53,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "rows": 50,
+      "completed_rows": 50,
+      "queries": 1,
+      "linked": 46,
+      "proposed": 47,
+      "conflicts": 3,
+      "records_written": 49,
+      "items_failed": 0,
+      "failed_items": "list:0",
+      "pass_completed": false,
+      "conflict_sample": "list:3"
+    }
+  },
+  "wikidata:manga": {
+    "status": 200,
+    "elapsed_s": 2.82,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "rows": 50,
+      "completed_rows": 50,
+      "queries": 1,
+      "linked": 50,
+      "proposed": 50,
+      "conflicts": 0,
+      "records_written": 50,
+      "items_failed": 0,
+      "failed_items": "list:0",
+      "pass_completed": false,
+      "conflict_sample": "list:0"
+    }
+  },
+  "ann:anime": {
+    "status": 200,
+    "elapsed_s": 14.12,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "report_fetched": true,
+      "matched": 0,
+      "corroborated": 13,
+      "proposed": 3,
+      "conflicts": 0,
+      "records_fetched": 13,
+      "records_written": 13,
+      "requests": 2,
+      "missing_ids": 0,
+      "items_failed": 0,
+      "failed_items": "list:0",
+      "conflict_sample": "list:0"
+    }
+  },
+  "mangaupdates:manga": {
+    "status": 200,
+    "elapsed_s": 24.64,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "requests": 20,
+      "matched": 0,
+      "corroborated": 10,
+      "proposed": 0,
+      "conflicts": 0,
+      "searched": 10,
+      "records_fetched": 10,
+      "records_written": 10,
+      "missing_ids": 0,
+      "items_failed": 0,
+      "failed_items": "list:0",
+      "conflict_sample": "list:0"
+    }
+  },
+  "pageviews:anime": {
+    "status": 200,
+    "elapsed_s": 13.92,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "requests": 29,
+      "titles_stored": 17,
+      "skipped_fresh": 0,
+      "no_article": 8,
+      "items_failed": 0,
+      "pass_completed": false,
+      "failed_items": "list:0"
+    }
+  },
+  "pageviews:manga": {
+    "status": 200,
+    "elapsed_s": 21.66,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "requests": 48,
+      "titles_stored": 24,
+      "skipped_fresh": 0,
+      "no_article": 1,
+      "items_failed": 0,
+      "pass_completed": false,
+      "failed_items": "list:0"
+    }
+  },
+  "compose:anime": {
+    "status": 200,
+    "elapsed_s": 5.76,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "titles": 46,
+      "written": 627,
+      "unchanged": 0,
+      "reviews": 0,
+      "removed": 0,
+      "pass_completed": true
+    }
+  },
+  "compose:manga": {
+    "status": 200,
+    "elapsed_s": 1.98,
+    "success": true,
+    "skipped": null,
+    "reason": null,
+    "error": null,
+    "stoppedEarly": null,
+    "results": {
+      "titles": 50,
+      "written": 566,
+      "unchanged": 0,
+      "reviews": 0,
+      "removed": 0,
+      "pass_completed": true
+    }
+  }
+}

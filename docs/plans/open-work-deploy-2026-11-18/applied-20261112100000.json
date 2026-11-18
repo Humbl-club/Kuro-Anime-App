@@ -1,0 +1,22 @@
+{
+  "migration": {
+    "version": "20261112100000",
+    "name": "catalogue_sources_v1",
+    "file": "supabase/prepared-migrations/20261112100000_catalogue_sources_v1.sql",
+    "md5": "9bf86eabd6f22ddadcbbd1998e1fc325",
+    "sha256": "b9dd31aa0f33c5cd84a77fc2d16e64859dec4e436936941ca2b54963e7639624",
+    "bytes": 11716
+  },
+  "started_at": "2026-11-18T23:13:10.376189+00:00",
+  "finished_at": "2026-11-18T23:13:10.899606+00:00",
+  "api_result": [],
+  "verify": [
+    {
+      "version": "20261112100000",
+      "name": "catalogue_sources_v1",
+      "n": 1,
+      "s1_md5": "9bf86eabd6f22ddadcbbd1998e1fc325",
+      "s1_len": 11716
+    }
+  ]
+}

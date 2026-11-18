@@ -2354,6 +2354,13 @@ The second batch went into the main branch after every test passed (1,259 app te
 ### 18 November 2026 (late) — Every tracker feature is built
 Tags and custom lists went into the main branch. Guest browsing (looking around without an account) is now built too, switched off. While building it we found that signed-out visitors can currently call around 110 server functions (most refuse because they check sign-in, but it is wider than it should be); the prepared fix narrows that to 23 safe ones. Smaller fixes landed as well (Undo no longer overwrites a title you re-added on another phone).
 
+### 19 November 2026 — First production steps from the runbook are live
+With your go-ahead, the safe “no visible change” steps ran on the live servers:
+- Signed-out visitors can no longer call the wide set of server functions; only the small allowlist remains. Guest browsing itself is still switched off.
+- Concierge rate limits now use secret-keyed IP buckets, and the background refresh queues no longer accept arbitrary titles or reasons.
+- The new catalogue shadow tables are live, the intake function is deployed, the first small source runs finished, and the scheduled jobs that keep shadow data fresh are on. Nothing from the new sources is shown to users yet; AniList values stay published until you approve each later step.
+Still waiting on you: App Store Connect agreement (TestFlight), the product/legal decisions in the handoff, approval for the production load test, and each visible Part B step.
+
 
 
 

@@ -1,0 +1,22 @@
+{
+  "migration": {
+    "version": "20261118150000",
+    "name": "refresh_queue_hardening_v1",
+    "file": "supabase/prepared-migrations/20261118150000_refresh_queue_hardening_v1.sql",
+    "md5": "bdf4f35f105aa88ca5b154cae483692f",
+    "sha256": "0a19d8d89d329d92eb9fed07940d9434c23bebe8883100cf0b927967105bc22e",
+    "bytes": 8527
+  },
+  "started_at": "2026-11-18T23:12:48.441037+00:00",
+  "finished_at": "2026-11-18T23:12:48.911440+00:00",
+  "api_result": [],
+  "verify": [
+    {
+      "version": "20261118150000",
+      "name": "refresh_queue_hardening_v1",
+      "n": 1,
+      "s1_md5": "bdf4f35f105aa88ca5b154cae483692f",
+      "s1_len": 8527
+    }
+  ]
+}

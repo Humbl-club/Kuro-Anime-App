@@ -1,0 +1,22 @@
+{
+  "migration": {
+    "version": "20261118110000",
+    "name": "guest_anon_allowlist_v1",
+    "file": "supabase/prepared-migrations/20261118110000_guest_anon_allowlist_v1.sql",
+    "md5": "4643efadfdac38e643a935ec2c20cf84",
+    "sha256": "7e52e05de787bd459dc811edab2fffa942fa68e22f28ca1405d38c11671b4d35",
+    "bytes": 10942
+  },
+  "started_at": "2026-11-18T23:11:52.277902+00:00",
+  "finished_at": "2026-11-18T23:11:52.918846+00:00",
+  "api_result": [],
+  "verify": [
+    {
+      "version": "20261118110000",
+      "name": "guest_anon_allowlist_v1",
+      "n": 1,
+      "s1_md5": "4643efadfdac38e643a935ec2c20cf84",
+      "s1_len": 10942
+    }
+  ]
+}

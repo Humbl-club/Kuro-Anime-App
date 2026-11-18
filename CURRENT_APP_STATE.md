@@ -20175,6 +20175,15 @@ PR #14 merged to `main` (W9 tags/custom lists dark, W9/W4 review fixes, handoff 
 ### Change Log — 18 November 2026 (latest): PR #15; security hardening prepared
 PR #15 merged to `main` (`d498841`) after serial KuroTests 1,358/1,358, full DB 68 files / 2,075, gates. Contents: W5 guest browsing (dark), handoff fixes, and prepared security hardening — `20261118110000` anon EXECUTE allowlist (110 → 22; two independent reviews; live read-only pre-checks recorded), `20261118140000` keyed Concierge rate limits (all 8 callers HMAC the IP; deploy the functions before the migration), `20261118150000` refresh-queue bounds; `20261112100401` no longer grants anon. Runbook A0–A0c lead the hosted order. Nothing applied (production writes refused by the session permission layer).
 
+### Change Log — 19 November 2026: Runbook Part A live (security + catalogue shadow)
+Owner instruction to execute the open-work handoff. Hosted on `bkdifromsqxkndnllmdj` via Management API atomic applies (exact `statements[1]` md5) and `supabase functions deploy`:
+- **A0** `20261118110000_guest_anon_allowlist_v1`: anon EXECUTE 110 → **20** (W4 v2 search pages absent); `guest_browsing_v1` inserted disabled; `get_provider_availability_refresh_candidates` service-only; PUBLIC function EXECUTE count 0. Smoke: allowlisted `search_titles` / `discover_bundle` / `normalize_title` 200; revoked enqueue/config 401; contact-submit validation and anonymous parse OK.
+- **A0b/A1** Deployed 8 Concierge functions (parse 52, apply 31, undo 22, recommend 58, resolve 21, import-anilist 10, retrieve-assist 13, retrieve-feedback 9; all `verify_jwt` true) then `20261118140000_concierge_rate_limit_bounds_v1`. Limiter rejects raw IP / unknown kind; keyed buckets and contact/parse paths OK.
+- **A0c** `20261118150000_refresh_queue_hardening_v1` (with review hardening: stale processing reclaim, non-service rate limit, explicit anon revoke on both enqueue RPCs). Local test 129: 32 assertions PASS.
+- **A2–A4** `20261112100000` / `100100` / `100200`: six service-only catalogue tables + comparator/tag map; all cutover groups `anilist`; anon still 20 after each apply.
+- **A5–A7** `catalogue-intake` v1 (`verify_jwt` false, `IMPORT_SECRET`); first shadow runs wrote source/link/shadow rows; first comparator reports at `docs/catalogue-sources-2026-11/runs/2026-11-18-{anime,manga}-first-shadow.{json,md}` (gates mostly fail/insufficient on the small first sample — expected); 18 `catalogue-intake-*` cron jobs active.
+Receipts: `docs/plans/open-work-deploy-2026-11-18/`. **Not live:** Runbook Part B (visible flags/migrations), TestFlight (App Store Connect agreement), load qualification. Feature flags for tracker work remain off.
+
 
 
 

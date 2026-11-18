@@ -1769,6 +1769,9 @@ All on `kuro/tracker-gaps`, local only. W3a locally accepted (`acceptance/W3.jso
 ### Change Log — 18 November 2026 (evening): PR #12; W10; catalogue 10–11 and 15d
 PR #12 merged to main. W10 Up next landed (dark). Catalogue 10–11 (uncalibrated popularity; tags pending owner map review) and 15d (app side done; migration waits for old builds to retire). Concierge gimmick-focus fix needs a deploy.
 
+### Change Log — 19 November 2026: Open-work Runbook Part A applied/deployed
+Owner-authorized hosted Part A complete on project `bkdifromsqxkndnllmdj`: guest anon allowlist, Concierge HMAC limiter (8 functions deployed) + SQL bounds, refresh-queue hardening, catalogue shadow tables + comparator/tag map, `catalogue-intake` v1 deployed and scheduled, first shadow comparator reports written. Part B / TestFlight / load qualification / owner product-legal gates remain open. Receipts under `docs/plans/open-work-deploy-2026-11-18/`.
+
 
 
 

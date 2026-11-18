@@ -1,0 +1,188 @@
+{
+  "history_tail": [
+    {
+      "version": "20261110100000",
+      "name": "search_titles_param_v1"
+    },
+    {
+      "version": "20261112100000",
+      "name": "catalogue_sources_v1"
+    },
+    {
+      "version": "20261112100100",
+      "name": "catalogue_shadow_report_v1"
+    },
+    {
+      "version": "20261112100200",
+      "name": "catalogue_tag_sources_v1"
+    },
+    {
+      "version": "20261118110000",
+      "name": "guest_anon_allowlist_v1"
+    },
+    {
+      "version": "20261118140000",
+      "name": "concierge_rate_limit_bounds_v1"
+    },
+    {
+      "version": "20261118150000",
+      "name": "refresh_queue_hardening_v1"
+    }
+  ],
+  "anon_count": [
+    {
+      "c": 20
+    }
+  ],
+  "guest_flag": [
+    {
+      "flag_name": "guest_browsing_v1",
+      "enabled": false,
+      "rollout_percentage": 0
+    }
+  ],
+  "catalogue_tables": [
+    {
+      "relname": "catalogue_cutover"
+    },
+    {
+      "relname": "catalogue_id_links"
+    },
+    {
+      "relname": "catalogue_rollback_snapshots"
+    },
+    {
+      "relname": "catalogue_shadow_values"
+    },
+    {
+      "relname": "catalogue_source_records"
+    },
+    {
+      "relname": "catalogue_tag_source_map"
+    },
+    {
+      "relname": "catalogue_units"
+    }
+  ],
+  "shadow_counts": [
+    {
+      "source_records": 164,
+      "id_links": 303,
+      "shadow_values": 1193
+    }
+  ],
+  "cron": [
+    {
+      "jobname": "catalogue-intake-ann-anime",
+      "schedule": "10,40 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-compose-anime",
+      "schedule": "55 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-compose-manga",
+      "schedule": "56 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-create-manga",
+      "schedule": "20 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-a",
+      "schedule": "*/2 0-2,5-23 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-b",
+      "schedule": "0-28/2 3 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-c",
+      "schedule": "22-58/2 4 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-new-a",
+      "schedule": "7,37 0-2,5-23 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-new-b",
+      "schedule": "7 3 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-new-c",
+      "schedule": "37 4 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-anime-initial",
+      "schedule": "0-50/10 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-anime-weekly",
+      "schedule": "0-50/10 0-11 * * 0",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-manga-initial",
+      "schedule": "5-55/10 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-manga-weekly",
+      "schedule": "5-55/10 0-11 * * 0",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-publish-anime",
+      "schedule": "58 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-publish-manga",
+      "schedule": "59 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-wikidata-anime",
+      "schedule": "0,30 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-wikidata-manga",
+      "schedule": "15,45 * * * *",
+      "active": true
+    }
+  ],
+  "functions": [
+    {
+      "slug": "contact-submit",
+      "version": 3,
+      "verify_jwt": false
+    },
+    {
+      "slug": "concierge-recommend",
+      "version": 58,
+      "verify_jwt": true
+    },
+    {
+      "slug": "catalogue-intake",
+      "version": 1,
+      "verify_jwt": false
+    },
+    {
+      "slug": "concierge-parse",
+      "version": 52,
+      "verify_jwt": true
+    }
+  ]
+}
