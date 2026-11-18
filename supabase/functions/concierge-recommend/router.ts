@@ -737,6 +737,7 @@ export function inferCategories(text: string): string[] {
   return uniq(out);
 }
 
+/** Kuro tag ids (tags.id): 350 Isekai, 1023 Reincarnation, 358 Female / 9154 Male / 18064 Mixed Gender Harem. */
 export function inferGimmickTagIds(text: string): number[] {
   const t = text.toLowerCase();
   const ids: number[] = [];
