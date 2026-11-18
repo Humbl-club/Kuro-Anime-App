@@ -527,9 +527,10 @@ begin
     v_room := greatest(0, least(2000 - v_have, 10000 - v_acct));
     select coalesce(max(i.position), 0) into v_base from public.custom_list_items i where i.list_id = v_list.id;
     with src as (
-      select distinct on (x.medium, x.media_id) x.medium, x.media_id, x.ord
-      from jsonb_to_recordset(v_entry -> 'items') with ordinality as x(medium text, media_id integer, ord bigint)
-      order by x.medium, x.media_id, x.ord),
+      select distinct on (x.el ->> 'medium', (x.el ->> 'media_id')::integer)
+             x.el ->> 'medium' as medium, (x.el ->> 'media_id')::integer as media_id, x.ord
+      from jsonb_array_elements(v_entry -> 'items') with ordinality as x(el, ord)
+      order by x.el ->> 'medium', (x.el ->> 'media_id')::integer, x.ord),
     ok as (
       select s.medium, s.media_id, s.ord
       from src s
