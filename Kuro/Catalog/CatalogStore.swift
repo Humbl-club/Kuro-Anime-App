@@ -1,5 +1,6 @@
 import Foundation
 import KuroCore
+import KuroLibrary
 import Observation
 
 #if canImport(Supabase)
@@ -28,6 +29,12 @@ final class CatalogStore: MemoryPressureTrimmable {
         guard let client else { throw MissingSupabaseConfiguration() }
         return client
     }
+
+    // Reviewed series membership (W6; see CatalogStore+SeriesMembership.swift). Public data: survives
+    // sign-out. `seriesMembershipCheckedAt` also remembers titles without membership (24 h).
+    var seriesMembershipVersion = 0
+    var seriesMembershipStore: [MediaKey: SeriesMembership] = [:]
+    @ObservationIgnored var seriesMembershipCheckedAt: [MediaKey: Date] = [:]
 
     // Detail caches: cards/grids only carry minimal fields; we fetch full details by id on demand.
     var animeDetailCache: [Int: Anime] = [:]
@@ -94,6 +101,7 @@ final class CatalogStore: MemoryPressureTrimmable {
     func trimCachesForMemoryPressure() {
         animeCardCache.removeAll()
         mangaCardCache.removeAll()
+        seriesMembershipCheckedAt.removeAll()   // the small public membership map itself stays
         animeCastCache.removeAll()
         characterVoiceActorsCache.removeAll()
         staffVoiceRolesCache.removeAll()
