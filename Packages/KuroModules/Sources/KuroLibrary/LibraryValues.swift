@@ -291,10 +291,19 @@ public struct LibraryEdit: Sendable, Equatable {
         )
         if entry.datesKnown {
             edit.repeatCount = .set(entry.repeatCount)
-            edit.startedOn = entry.startedOn.map { .set($0) } ?? .clear
-            edit.finishedOn = entry.finishedOn.map { .set($0) } ?? .clear
+            edit.startedOn = restoredDate(entry.startedOn, raw: entry.sourceMetadata?.startedRaw)
+            edit.finishedOn = restoredDate(entry.finishedOn, raw: entry.sourceMetadata?.finishedRaw)
         }
         return edit
+    }
+
+    /// How to put a previous date back. A parsed date is set; a missing or blank stored value is cleared; a
+    /// stored text that `PartialDate` cannot parse (an imported oddity) is left alone, never overwritten
+    /// with null.
+    private static func restoredDate(_ parsed: PartialDate?, raw: String?) -> FieldChange<PartialDate> {
+        if let parsed { return .set(parsed) }
+        guard let raw, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return .clear }
+        return .unchanged
     }
 
     /// A compensating edit that moves only the fields that differ between `current` and `previous`
@@ -310,10 +319,45 @@ public struct LibraryEdit: Sendable, Equatable {
         if current.verdict != previous.verdict { edit.verdict = previous.verdict.map { .set($0) } ?? .clear }
         if previous.datesKnown {
             if current.repeatCount != previous.repeatCount { edit.repeatCount = .set(previous.repeatCount) }
-            if current.startedOn != previous.startedOn { edit.startedOn = previous.startedOn.map { .set($0) } ?? .clear }
-            if current.finishedOn != previous.finishedOn { edit.finishedOn = previous.finishedOn.map { .set($0) } ?? .clear }
+            if current.startedOn != previous.startedOn {
+                edit.startedOn = restoredDate(previous.startedOn, raw: previous.sourceMetadata?.startedRaw)
+            }
+            if current.finishedOn != previous.finishedOn {
+                edit.finishedOn = restoredDate(previous.finishedOn, raw: previous.sourceMetadata?.finishedRaw)
+            }
         }
         return edit
+    }
+}
+
+extension LibraryEdit {
+    /// The edit plus auto-filled dates: status to `.current` fills `startedOn`, to `.completed` fills
+    /// `finishedOn`, only when the status actually changes (`current?.status != new`, or `creating`), the edit
+    /// leaves that date `.unchanged`, and the date is empty: creating, or `current.datesKnown` and the stored
+    /// raw is nil or blank. Never when the raw exists but does not parse, never for `.repeating`, never when
+    /// the dates are unknown. `current` must be the confirmed entry, not the optimistic projection.
+    package func fillingEmptyDates(current: LibraryEntry?, creating: Bool, today: PartialDate)
+        -> (edit: LibraryEdit, autoFilled: Bool) {
+        guard case .set(let new) = status, new == .current || new == .completed else { return (self, false) }
+        if !creating {
+            guard let current, current.status != new else { return (self, false) }
+        }
+        func isEmpty(_ raw: (LibrarySourceMetadata) -> String?) -> Bool {
+            if creating { return true }
+            guard let current, current.datesKnown, let metadata = current.sourceMetadata else { return false }
+            guard let value = raw(metadata) else { return true }
+            return value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        var filled = self
+        switch new {
+        case .current where startedOn.isUnchanged && isEmpty({ $0.startedRaw }):
+            filled.startedOn = .set(today)
+        case .completed where finishedOn.isUnchanged && isEmpty({ $0.finishedRaw }):
+            filled.finishedOn = .set(today)
+        default:
+            return (self, false)
+        }
+        return (filled, true)
     }
 }
 

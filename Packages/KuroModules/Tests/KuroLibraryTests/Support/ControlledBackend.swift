@@ -156,8 +156,13 @@ final class RecordingSink: LibraryChangeSink {
 /// Runs `body` with a fresh harness; when the test is cancelled (time limit) every outstanding
 /// backend call and wait is released so the test fails instead of hanging.
 @MainActor
-func withHarness(_ body: (Harness) async throws -> Void) async throws {
-    let harness = Harness()
+func withHarness(
+    now: Date = Fixture.now,
+    calendar: Calendar = .autoupdatingCurrent,
+    dateAutofill: Bool = false,
+    _ body: (Harness) async throws -> Void
+) async throws {
+    let harness = Harness(now: now, calendar: calendar, dateAutofill: dateAutofill)
     let abandonment = harness.abandonment
     try await withTaskCancellationHandler {
         try await body(harness)
@@ -176,9 +181,12 @@ final class Harness {
     let store: LibraryStore
     private var calls: AsyncStream<ControlledBackend.Call>.Iterator
 
-    init() {
+    init(now: Date = Fixture.now, calendar: Calendar = .autoupdatingCurrent, dateAutofill: Bool = false) {
         backend = ControlledBackend(abandonment: abandonment)
-        store = LibraryStore(backend: backend, sinks: [sink], now: { Fixture.now })
+        store = LibraryStore(
+            backend: backend, sinks: [sink], now: { now },
+            calendar: calendar, dateAutofillEnabled: { dateAutofill }
+        )
         calls = backend.calls.makeAsyncIterator()
         sink.store = store
     }

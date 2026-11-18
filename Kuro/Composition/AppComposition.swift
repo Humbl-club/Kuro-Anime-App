@@ -213,7 +213,11 @@ final class AppComposition {
             flags: flags,
             interactionTelemetry: interactionTelemetry
         )
-        let wiring = makeLibrary(backend: libraryBackend)
+        let wiring = makeLibrary(
+            backend: libraryBackend,
+            dateAutofillEnabled: { [flags] in flags.libraryDateAutofillV1Enabled },
+            credentialLease: AccountSessionLibraryLease(accountSession: accountSession)
+        )
         let publicData = makePublicData(client: client, accountSession: accountSession, library: wiring.store)
         let personalData = makePersonalData(
             client: client,
@@ -672,9 +676,28 @@ final class AppComposition {
 
     /// A store over `backend` with the Releases, Collection, Concierge and Clubs sinks; connect the
     /// sinks to their owners once those exist.
-    static func makeLibrary(backend: any LibraryBackend) -> (store: LibraryStore, sinks: LibraryChangeSinks) {
+    static func makeLibrary(
+        backend: any LibraryBackend,
+        dateAutofillEnabled: @escaping @MainActor () -> Bool = { false },
+        credentialLease: (any LibraryCredentialLease)? = nil
+    ) -> (store: LibraryStore, sinks: LibraryChangeSinks) {
         let sinks = LibraryChangeSinks()
-        return (LibraryStore(backend: backend, sinks: sinks.all), sinks)
+        return (LibraryStore(backend: backend, sinks: sinks.all, dateAutofillEnabled: dateAutofillEnabled,
+                             credentialLease: credentialLease), sinks)
+    }
+}
+
+/// Runs the Library's auto-filled date leg inside the account's credential lease
+/// (`AccountSessionCoordinator.withCredentialLease`), so a switch before dispatch sends nothing.
+@MainActor
+struct AccountSessionLibraryLease: LibraryCredentialLease {
+    let accountSession: AccountSessionCoordinator
+
+    func withLease<T: Sendable>(
+        for account: AccountContext,
+        _ operation: @escaping @MainActor @Sendable () async throws -> T
+    ) async throws -> T {
+        try await accountSession.withCredentialLease(for: account, operation)
     }
 }
 

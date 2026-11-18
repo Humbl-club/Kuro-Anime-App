@@ -15,6 +15,16 @@ import Observation
 /// - `loadState` says whether the projection holds the bound account's rows yet: until a refresh of
 ///   the current binding has published, a title missing from the projection is UNKNOWN, not untracked
 ///   (`entry(for: LibraryKnowledgeQuery)`).
+/// Runs one private request inside the credential lease of an account. It throws (for example
+/// `CancellationError`) when that account is no longer current, and then the request is not sent.
+public protocol LibraryCredentialLease: Sendable {
+    @MainActor
+    func withLease<T: Sendable>(
+        for account: AccountContext,
+        _ operation: @escaping @MainActor @Sendable () async throws -> T
+    ) async throws -> T
+}
+
 @MainActor
 @Observable
 public final class LibraryStore: LibraryReading, LibraryWriting {
@@ -46,6 +56,9 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     @ObservationIgnored private let backend: any LibraryBackend
     @ObservationIgnored private let sinks: [any LibraryChangeSink]
     @ObservationIgnored private let now: @Sendable () -> Date
+    @ObservationIgnored private let calendar: Calendar
+    @ObservationIgnored private let dateAutofillEnabled: @MainActor () -> Bool
+    @ObservationIgnored private let credentialLease: (any LibraryCredentialLease)?
 
     /// Tail of the FIFO chain per key.
     @ObservationIgnored private var queues: [MediaKey: Task<Void, Never>] = [:]
@@ -66,11 +79,17 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     public init(
         backend: any LibraryBackend,
         sinks: [any LibraryChangeSink] = [],
-        now: @escaping @Sendable () -> Date = { Date() }
+        now: @escaping @Sendable () -> Date = { Date() },
+        calendar: Calendar = .autoupdatingCurrent,
+        dateAutofillEnabled: @escaping @MainActor () -> Bool = { false },
+        credentialLease: (any LibraryCredentialLease)? = nil
     ) {
         self.backend = backend
         self.sinks = sinks
         self.now = now
+        self.calendar = calendar
+        self.dateAutofillEnabled = dateAutofillEnabled
+        self.credentialLease = credentialLease
     }
 
     // MARK: Account binding
@@ -258,15 +277,39 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     }
 
     public func apply(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil) async -> LibraryOutcome {
+        await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: true)
+    }
+
+    /// `fillsEmptyDates` is `false` for Undo, which must restore exactly and never fill. The release switch is
+    /// read once, here, before the optimistic projection and before any backend call.
+    func apply(_ original: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus?,
+               fillsEmptyDates: Bool) async -> LibraryOutcome {
         guard !importUndoKeys.contains(key) else { return .failed(.retryable(message: "This title is being changed by an import. Try again after Apply or Undo finishes.")) }
-        if let error = edit.validationError { return .failed(error) }
+        if let error = original.validationError { return .failed(error) }
+        var edit = original
+        var autoFilled = false
+        if fillsEmptyDates, original.touchesStatus, dateAutofillEnabled() {
+            let projected = entry(for: key)
+            // Dates are judged on the confirmed row, never on the optimistic projection: a cached row that
+            // received an optimistic edit still has unknown dates. A pending optimistic date counts as present.
+            var confirmed = progressBaseline(for: key)
+            if var row = confirmed, let projected {
+                row.status = projected.status
+                if let raw = projected.sourceMetadata?.startedRaw, !raw.isBlank { row.sourceMetadata?.startedRaw = raw }
+                if let raw = projected.sourceMetadata?.finishedRaw, !raw.isBlank { row.sourceMetadata?.finishedRaw = raw }
+                confirmed = row
+            }
+            let creating = projected == nil && createIfMissing != nil
+            (edit, autoFilled) = original.fillingEmptyDates(
+                current: confirmed, creating: creating, today: PartialDate.day(of: now(), in: calendar))
+        }
         if (edit.touchesProgress || edit.touchesStatus), progressAvailable,
            let row = entry(for: key), let lifecycle = row.lifecycleId, row.revision != nil,
            let lease = currentLease() {
             // Reserve the online fields before the first suspension. Admit progress immediately,
             // so a later +1 computes from this action even while its notes PATCH is in flight.
             let patch = edit.patchBodyOmittingProgress
-            let patchTask = patch.isEmpty ? nil : issue(.edit(patch, createIfMissing: nil), on: key)
+            let patchTask = patch.isEmpty ? nil : issue(.edit(patch, createIfMissing: nil), on: key, leased: autoFilled)
             let position: Int
             if case .set(let value) = edit.progress { position = value } else { position = row.progress }
             let outcome = await applyDurableProgress(edit, position: position, to: key)
@@ -274,7 +317,10 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
             guard holds(lease) else { return .failed(.notAuthenticated) }
             guard entry(for: key)?.lifecycleId == lifecycle else { return .failed(.notFound) }
             if case .failed = outcome { return outcome }
-            if case .failed(let error) = patchOutcome {
+            // A failed leg that only carried the auto-filled date is best effort: the durable change stands and
+            // the date was already dropped from the projection when the mutation settled.
+            let ownPatchIsEmpty = original.patchBodyOmittingProgress.isEmpty
+            if case .failed(let error) = patchOutcome, !(autoFilled && ownPatchIsEmpty) {
                 return .failed(.retryable(message: "Progress is saved on this device; other fields could not be saved: \(error)"))
             }
             guard let change = outcome.change else { return outcome }
@@ -297,12 +343,14 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
             return await remove(change.key)
         case .removed:
             guard let previous = change.previous else { return .failed(.conflict(server: nil)) }
-            return await apply(.restoring(previous), to: change.key, createIfMissing: previous.status)
+            return await apply(.restoring(previous), to: change.key, createIfMissing: previous.status,
+                               fillsEmptyDates: false)
         case .updated:
             guard let previous = change.previous, let current = change.current else {
                 return .failed(.conflict(server: change.current))
             }
-            return await apply(.reverting(current, to: previous), to: change.key, createIfMissing: nil)
+            return await apply(.reverting(current, to: previous), to: change.key, createIfMissing: nil,
+                               fillsEmptyDates: false)
         }
     }
 
@@ -314,9 +362,9 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
 
     /// Registers a key reservation synchronously. Mixed durable/online actions must register the
     /// online leg before any disk suspension, without creating another writer or FIFO.
-    private func issue(_ intent: MutationIntent, on key: MediaKey) -> Task<LibraryOutcome, Never> {
+    private func issue(_ intent: MutationIntent, on key: MediaKey, leased: Bool = false) -> Task<LibraryOutcome, Never> {
         guard let lease = currentLease() else { return Task { .failed(.notAuthenticated) } }
-        let mutation = PendingMutation(id: UUID(), intent: intent, issuedAt: now())
+        let mutation = PendingMutation(id: UUID(), intent: intent, issuedAt: now(), leased: leased)
         var state = inFlight[key] ?? KeyMutations(confirmed: entries[key], pending: [])
         state.pending.append(mutation)
         inFlight[key] = state
@@ -360,14 +408,21 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
                     settle(mutation, on: key, .keepBase)
                     return .applied(change(.updated, base, base))
                 }
-                let result = try await backend.edit(
-                    edit,
-                    key: key,
-                    createIfMissing: createIfMissing,
-                    mutationId: mutation.id,
-                    baseRevision: base?.revision,
-                    account: context
-                )
+                let backend = self.backend
+                let baseRevision = base?.revision
+                let send: @MainActor @Sendable () async throws -> LibraryWriteResult = {
+                    try await backend.edit(
+                        edit, key: key, createIfMissing: createIfMissing,
+                        mutationId: mutation.id, baseRevision: baseRevision, account: context
+                    )
+                }
+                let result: LibraryWriteResult
+                if mutation.leased, let credentialLease {
+                    // The auto-filled date leg is a new private request: it runs inside the account's lease.
+                    result = try await credentialLease.withLease(for: context, send)
+                } else {
+                    result = try await send()
+                }
                 guard holds(lease) else { return .failed(.notAuthenticated) }
                 if result.created {
                     applied = change(.added, nil, result.entry)
@@ -470,6 +525,8 @@ private struct PendingMutation: Sendable {
     let id: UUID
     let intent: MutationIntent
     let issuedAt: Date
+    /// The request runs inside the account's credential lease (the auto-filled date leg).
+    var leased = false
 }
 
 private struct KeyMutations {
@@ -481,4 +538,8 @@ private struct KeyMutations {
             mutation.intent.project(entry, key: key, at: mutation.issuedAt)
         }
     }
+}
+
+private extension String {
+    var isBlank: Bool { trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 }

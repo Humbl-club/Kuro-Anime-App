@@ -60,6 +60,8 @@ final class FeatureFlags {
     var personalizedNewToYouV1Enabled: Bool { evaluate("personalized_new_to_you_v1") }
     /// W2: Profile > Export your list (and the export owner's own check before any request).
     var libraryExportV1Enabled: Bool { evaluate("library_export_v1") }
+    /// F2: a status change fills an empty start/finish date. Absent `feature_flags` row = off (0 %).
+    var libraryDateAutofillV1Enabled: Bool { evaluate("library_date_autofill_v1") }
     var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
 
     // MARK: - Init
