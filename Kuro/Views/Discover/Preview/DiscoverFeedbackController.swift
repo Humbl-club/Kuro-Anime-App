@@ -190,33 +190,37 @@ private struct DiscoverFeedbackHost: ViewModifier {
             .environment(plans)
             .environment(feedback)
             .overlay(alignment: .bottom) {
-                if let toast = feedback.toast {
-                    DiscoverFeedbackToastView(
-                        message: toast.message,
-                        actionTitle: toast.action.map { _ in DiscoverMenuCopy.addAsCompleted(german: german) },
-                        actionSpoken: DiscoverMenuCopy.addAsCompletedSpoken(german: german),
-                        showsUndo: toast.receipt != nil,
-                        german: german,
-                        onAction: {
-                            guard case .addAsCompleted(let key)? = toast.action,
-                                  let request = feedback.completedRequest(for: key, telemetry: telemetry) else { return }
-                            routes.presentTrackingEditor(request)
-                        },
-                        onUndo: { feedback.undo(taste: taste, german: german, telemetry: telemetry) },
-                        onDismiss: { feedback.dismiss() })
-                        .id(toast.id)
-                        .transition(.opacity)
-                        .onAppear {
-                            let spoken = toast.receipt != nil ? DiscoverMenuCopy.hiddenAnnouncement(german: german) : toast.message
-                            AccessibilityNotification.Announcement(spoken).post()
-                        }
-                } else if let toast = plans.toast {
-                    TastePlanToastView(toast: toast, german: german,
-                                       onUndo: { plans.undo(library: library, actions: actions, german: german) },
-                                       onDismiss: { plans.dismiss() })
-                        .id(toast.id)
-                        .transition(.opacity)
-                        .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+                // The release alert offer (W3a) shares this foot slot, above the toast.
+                ReleaseAlertOfferStack(hasToast: feedback.toast != nil || plans.toast != nil) {
+                    if let toast = feedback.toast {
+                        DiscoverFeedbackToastView(
+                            message: toast.message,
+                            actionTitle: toast.action.map { _ in DiscoverMenuCopy.addAsCompleted(german: german) },
+                            actionSpoken: DiscoverMenuCopy.addAsCompletedSpoken(german: german),
+                            showsUndo: toast.receipt != nil,
+                            german: german,
+                            onAction: {
+                                guard case .addAsCompleted(let key)? = toast.action,
+                                      let request = feedback.completedRequest(for: key, telemetry: telemetry) else { return }
+                                routes.presentTrackingEditor(request)
+                            },
+                            onUndo: { feedback.undo(taste: taste, german: german, telemetry: telemetry) },
+                            onDismiss: { feedback.dismiss() })
+                            .id(toast.id)
+                            .transition(.opacity)
+                            .onAppear {
+                                let spoken = toast.receipt != nil ? DiscoverMenuCopy.hiddenAnnouncement(german: german) : toast.message
+                                AccessibilityNotification.Announcement(spoken).post()
+                            }
+                    } else if let toast = plans.toast {
+                        TastePlanToastView(toast: toast, german: german,
+                                           onUndo: { plans.undo(library: library, actions: actions, german: german) },
+                                           onDismiss: { plans.dismiss() })
+                            .id(toast.id)
+                            .transition(.opacity)
+                            .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+                    }
+            
                 }
             }
             .kuroAnimation(KuroMotion.contact, value: DiscoverToastSlot.visible(feedback: feedback.toast?.id, plan: plans.toast?.id))

@@ -157,9 +157,21 @@ final class ReleasesStore: AccountScopedState {
     /// A plan was skipped because the Library had not loaded yet; its load re-plans once.
     @ObservationIgnored var awaitsLibraryLoadForReleaseNotifications = false
 
+    // MARK: Release alert offer state (W3a; methods in ReleasesStore+AlertOffer.swift)
+
+    /// The offer shown with the save confirmation (at most one; newest wins). Cleared on every account transition.
+    var pendingAlertOffer: ReleaseAlertOffer? = nil
+    /// The host that first drew the pending offer (UI identity, not account data).
+    var alertOfferBoundHost: UUID? = nil
+    @ObservationIgnored var alertOfferTask: Task<Void, Never>? = nil
+    /// Writers that save without a confirmation on screen (Folio batch, widget +1) raise this while they run.
+    @ObservationIgnored var alertOfferSuppression = 0
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {
+        alertOfferTask?.cancel()
+        alertOfferTask = nil
         libraryChangeTask?.cancel()
         libraryChangeTask = nil
         releaseNotificationTask?.cancel()
@@ -189,6 +201,9 @@ final class ReleasesStore: AccountScopedState {
         mutedReleaseNotificationKeys = []
         allowedReleaseNotificationKeys = []
         hasCommittedReleaseNotifications = false
+        pendingAlertOffer = nil
+        alertOfferBoundHost = nil
+        alertOfferSuppression = 0
     }
 
     func removeDeletedAccountData(userId: String) async throws {
@@ -334,6 +349,8 @@ final class ReleasesStore: AccountScopedState {
     /// projection did not hold, loses its countdown and upcoming rows (and any retired reminder left).
     func libraryDidChange(_ change: LibraryChange) {
         guard accountSession.isCurrent(change.account), !change.isProgressOnly else { return }
+        // Runs on every path below (manga and skipped refreshes return early), after `libraryChangeTask` is set.
+        defer { considerAlertOffer(change) }
         // Membership or status changed: the account's schedule is re-read on its next load, and what
         // notifies (watching / reading only) is re-planned.
         scheduleMembershipDidChange(change)

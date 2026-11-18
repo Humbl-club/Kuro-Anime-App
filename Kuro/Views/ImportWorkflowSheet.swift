@@ -43,7 +43,8 @@ struct ImportWorkflowSheet: View {
             case .new: return item.disposition == .new
             case .existing: return item.disposition == .existing
             case .changes: return item.disposition == .changes
-            case .needsReview: return [.unmatched, .conflict, .invalid, .sourceChanged].contains(item.disposition)
+            case .needsReview:
+                return [.unmatched, .conflict, .invalid, .sourceChanged].contains(item.disposition) && !item.isAdultNotListed
             }
         }
     }
@@ -138,6 +139,13 @@ struct ImportWorkflowSheet: View {
                 .monospacedDigit()
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("import.saved.counts")
+            if let adultLine = ImportCopy.adultCountLine(job.counts.adultNotListed, german: german) {
+                Text(adultLine)
+                    .font(.kuroBody()).foregroundStyle(Color.kuroInk)
+                    .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("import.adult.count")
+            }
             if job.phase == .undone || job.phase == .undoing {
                 let sameActiveJob = imports.activeImport?.jobId == job.jobId
                 let reverted = sameActiveJob ? imports.importUndoReverted : (model.manifest?.undoReverted ?? 0)
@@ -231,6 +239,22 @@ struct ImportWorkflowSheet: View {
                     Task { await model.reviewUnresolved() }
                 }
                 .disabled(model.busy || imports.importBusy)
+            }
+            if model.items.contains(where: ImportUnresolvedFile.isUnresolved) {
+                ShareLink(
+                    item: ImportUnresolvedFile(items: model.items, fileName: ImportUnresolvedFile.fileName(on: Date())),
+                    preview: SharePreview(ImportUnresolvedFile.fileName(on: Date()))
+                ) {
+                    Text(ImportCopy.unresolvedFileAction(german: g))
+                        .font(.kuroMeta(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .underline(true, color: Color.kuroInk)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+                .accessibilityIdentifier("import.unresolved.share")
             }
             textAction(g ? "Status und Bibliothek aktualisieren" : "Refresh status and Library") {
                 Task { await model.refreshPresentation() }
@@ -349,9 +373,14 @@ struct ImportWorkflowSheet: View {
         let g = german
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             Text(item.title).font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2).foregroundStyle(Color.kuroInk).fixedSize(horizontal: false, vertical: true)
-            Text("\(ImportCopy.medium(item.medium, german: g)) · \(ImportCopy.disposition(item.disposition, german: g))")
-                .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22)).foregroundStyle(Color.kuroMuted)
-            if let detail = item.detail { Text(detail).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
+            if item.isAdultNotListed {
+                Text("\(ImportCopy.medium(item.medium, german: g)) · \(ImportCopy.adultRowLabel(german: g))")
+                    .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22)).foregroundStyle(Color.kuroMuted)
+            } else {
+                Text("\(ImportCopy.medium(item.medium, german: g)) · \(ImportCopy.disposition(item.disposition, german: g))")
+                    .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22)).foregroundStyle(Color.kuroMuted)
+            }
+            if let detail = item.detail, !item.isAdultNotListed { Text(detail).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
             if let undo = item.undoDisposition { Text((g ? "Rückgängig: " : "Undo: ") + undo).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
             if job.phase == .reviewing {
                 if item.current == nil {
@@ -390,7 +419,7 @@ struct ImportWorkflowSheet: View {
                         .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if item.disposition == .unmatched, item.mediaId == nil {
+                if item.disposition == .unmatched, item.mediaId == nil, !item.isAdultNotListed {
                     textAction(g ? "Einem Katalogtitel zuordnen" : "Match to a catalogue title") { matchingItem = item }
                         .disabled(model.busy || imports.importBusy)
                 }

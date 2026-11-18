@@ -166,7 +166,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 297 app Swift files, 44 package Swift files and 254 SQL migrations are in the repo today.
+**Current inventory:** 303 app Swift files, 44 package Swift files and 254 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2338,6 +2338,14 @@ Prepared on this machine only, nothing changed on the live service. Search on th
 
 ### 10 November 2026 — Faster Search is live
 With your go-ahead the latency changes went live. Search on the Anime and Manga pages is faster on the live service: much faster for common words (for example "monster" went from about 130 ms to 18 ms), a quarter to a third faster for many titles, unchanged for others, and a few milliseconds slower when nothing matches. The Concierge title lookup turned out to be fine already on the live service (the slowness was only on the test copy); the first version of the change made it slower for 13 minutes and was corrected, so it is now as fast as before and always returns tied results in the same order. The Concierge no longer waits for its own log writes. The "Newly added" Discover change was not applied: the permission system stopped it. A check also showed that very old test builds (before 31 October) still read the two tables that change would remove. Details: docs/plans/latency-deploy-2026-11-10/README.md.
+
+### 18 November 2026 — Finishing the open work
+All open work now sits in one plan (docs/plans/2026-11-18-open-work-master-plan.md). The finished but uncommitted work from earlier sessions is saved, and a big merge went into the main branch after the full test run passed (1,204 app tests). Since then: a check that every planned feature scenario has a real test, a load-test setup that can measure each new feature separately, the last pieces of "Export your list" (still switched off; it waits for an approved load test and a check on a real phone), and the first two catalogue-replacement steps (new tables prepared, not live). TestFlight build 26 is built but Apple refused the upload because an agreement in App Store Connect needs to be accepted by the account holder.
+
+### 18 November 2026 (later) — More of the plan built (nothing live yet)
+Built and tested on the working branch, nothing switched on: dates and rewatch count in the edit sheet (with several fixes after an independent review so Undo never loses or invents a date), an offer to turn on release alerts right after you save a title you're watching, a quiet "18+ titles hidden" note in Search, and most of the new catalogue pipeline that will replace AniList (reading Wikidata, Anime News Network, MangaUpdates and Wikipedia, combining them carefully, and adding new titles). New titles still need decisions from you (from which year to add titles) and approval to switch things on in production.
+
+
 
 ### 10 November 2026 — Kuro no longer downloads anything from AniList
 You decided to stop using AniList now and keep what we already have.

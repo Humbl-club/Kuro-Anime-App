@@ -62,13 +62,11 @@ struct VoiceRoleAnime {
 /// `anime_cast_v1` row.
 nonisolated struct AnimeCastRow: Decodable, Sendable {
     let characterId: Int
-    let characterAnilistId: Int?
     let characterNameFull: String?
     let characterNameNative: String?
     let characterImageLarge: String?
     let role: String?
     let staffId: Int?
-    let staffAnilistId: Int?
     let staffNameFull: String?
     let staffNameNative: String?
     let staffImageLarge: String?
@@ -76,13 +74,11 @@ nonisolated struct AnimeCastRow: Decodable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case characterId = "character_id"
-        case characterAnilistId = "character_anilist_id"
         case characterNameFull = "character_name_full"
         case characterNameNative = "character_name_native"
         case characterImageLarge = "character_image_large"
         case role
         case staffId = "staff_id"
-        case staffAnilistId = "staff_anilist_id"
         case staffNameFull = "staff_name_full"
         case staffNameNative = "staff_name_native"
         case staffImageLarge = "staff_image_large"
@@ -93,11 +89,11 @@ nonisolated struct AnimeCastRow: Decodable, Sendable {
 extension AnimeCastRow {
     @MainActor
     var member: CastMember {
-        let character = Character(id: characterId, anilistId: characterAnilistId, nameFull: characterNameFull,
+        let character = Character(id: characterId, nameFull: characterNameFull,
                                   nameNative: characterNameNative, imageLarge: characterImageLarge,
                                   description: nil, gender: nil, age: nil)
         let voice = staffId.map {
-            Staff(id: $0, anilistId: staffAnilistId, nameFull: staffNameFull, nameNative: staffNameNative,
+            Staff(id: $0, nameFull: staffNameFull, nameNative: staffNameNative,
                   imageLarge: staffImageLarge, description: nil, primaryOccupations: nil)
         }
         return CastMember(character: character, role: role ?? "SUPPORTING", voiceActor: voice,
@@ -108,7 +104,6 @@ extension AnimeCastRow {
 /// `character_voice_actors_v1` row.
 nonisolated struct CharacterVoiceActorRow: Decodable, Sendable {
     let staffId: Int
-    let anilistId: Int?
     let nameFull: String?
     let nameNative: String?
     let imageLarge: String?
@@ -117,7 +112,6 @@ nonisolated struct CharacterVoiceActorRow: Decodable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case staffId = "staff_id"
-        case anilistId = "anilist_id"
         case nameFull = "name_full"
         case nameNative = "name_native"
         case imageLarge = "image_large"
@@ -130,7 +124,7 @@ extension CharacterVoiceActorRow {
     @MainActor
     var credit: VoiceActorCredit {
         VoiceActorCredit(
-            staff: Staff(id: staffId, anilistId: anilistId, nameFull: nameFull, nameNative: nameNative,
+            staff: Staff(id: staffId, nameFull: nameFull, nameNative: nameNative,
                          imageLarge: imageLarge, description: nil, primaryOccupations: nil),
             language: language ?? CatalogVoiceContract.defaultLanguage,
             animeIds: animeIds ?? [])
@@ -140,7 +134,6 @@ extension CharacterVoiceActorRow {
 /// `staff_voice_roles_v1` row.
 nonisolated struct StaffVoiceRoleRow: Decodable, Sendable {
     let characterId: Int
-    let characterAnilistId: Int?
     let characterNameFull: String?
     let characterNameNative: String?
     let characterImageLarge: String?
@@ -157,7 +150,6 @@ nonisolated struct StaffVoiceRoleRow: Decodable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case characterId = "character_id"
-        case characterAnilistId = "character_anilist_id"
         case characterNameFull = "character_name_full"
         case characterNameNative = "character_name_native"
         case characterImageLarge = "character_image_large"
@@ -177,7 +169,7 @@ extension StaffVoiceRoleRow {
     @MainActor
     var voiceRole: VoiceRole {
         VoiceRole(
-            character: Character(id: characterId, anilistId: characterAnilistId, nameFull: characterNameFull,
+            character: Character(id: characterId, nameFull: characterNameFull,
                                  nameNative: characterNameNative, imageLarge: characterImageLarge,
                                  description: nil, gender: nil, age: nil),
             role: role ?? "SUPPORTING",
@@ -221,9 +213,9 @@ struct RPCStaffVoiceRolesParams: Encodable, Sendable {
 // MARK: - Fixtures (UI renders and tests; never shipped)
 
 enum CatalogVoiceFixtures {
-    static let hanazawa = Staff(id: 95_185, anilistId: 95_185, nameFull: "Kana Hanazawa", nameNative: "花澤香菜",
+    static let hanazawa = Staff(id: 95_185, nameFull: "Kana Hanazawa", nameNative: "花澤香菜",
                                 imageLarge: nil, description: nil, primaryOccupations: ["Voice Actor"])
-    static let kaji = Staff(id: 95_672, anilistId: 95_672, nameFull: "Yuuki Kaji", nameNative: "梶裕貴",
+    static let kaji = Staff(id: 95_672, nameFull: "Yuuki Kaji", nameNative: "梶裕貴",
                             imageLarge: nil, description: nil, primaryOccupations: ["Voice Actor"])
 
     /// A cast of four: two MAIN with voice actors, one SUPPORTING with, one BACKGROUND without.
@@ -231,7 +223,7 @@ enum CatalogVoiceFixtures {
         [
             CastMember(character: character(1, "Eren Yeager", "エレン・イェーガー"), role: "MAIN", voiceActor: kaji, language: "JAPANESE"),
             CastMember(character: character(2, "Mikasa Ackerman", "ミカサ・アッカーマン"), role: "MAIN",
-                       voiceActor: Staff(id: 95_014, anilistId: 95_014, nameFull: "Yui Ishikawa", nameNative: "石川由依",
+                       voiceActor: Staff(id: 95_014, nameFull: "Yui Ishikawa", nameNative: "石川由依",
                                          imageLarge: nil, description: nil, primaryOccupations: nil), language: "JAPANESE"),
             CastMember(character: character(3, "Historia Reiss", "ヒストリア・レイス"), role: "SUPPORTING", voiceActor: hanazawa, language: "JAPANESE"),
             CastMember(character: character(4, "Garrison Soldier", nil), role: "BACKGROUND", voiceActor: nil, language: nil),
@@ -254,7 +246,7 @@ enum CatalogVoiceFixtures {
     }
 
     private static func character(_ id: Int, _ name: String, _ native: String?) -> Character {
-        Character(id: id, anilistId: id, nameFull: name, nameNative: native, imageLarge: nil,
+        Character(id: id, nameFull: name, nameNative: native, imageLarge: nil,
                   description: nil, gender: nil, age: nil)
     }
 }

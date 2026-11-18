@@ -276,11 +276,11 @@ struct DetailMangaSnapshotTests {
                                              format: "TV", rating: nil, reasonLabel: nil, sourceAuthorName: nil)
         content.characters = [("Power", 180), ("Aki Hayakawa", 182), ("Makima", 181)]
             .enumerated().map { index, item in
-                (character: Character(id: index + 1, anilistId: nil, nameFull: item.0, nameNative: nil,
+                (character: Character(id: index + 1, nameFull: item.0, nameNative: nil,
                                       imageLarge: artURL("detail-character-\(item.1).png"), description: nil, gender: nil, age: nil),
                  role: "MAIN")
             }
-        content.authors = [(author: Author(id: 1, anilistId: nil, nameFull: "Tatsuki Fujimoto", nameNative: nil, imageLarge: nil,
+        content.authors = [(author: Author(id: 1, nameFull: "Tatsuki Fujimoto", nameNative: nil, imageLarge: nil,
                                            description: nil), role: "Story & Art")]
         content.chapters = (24...33).map { chapter($0) }
         content.readLinks = [ProviderSheetItem(id: "mp", title: "MANGA Plus by SHUEISHA",

@@ -116,18 +116,18 @@ struct NavigationEvidenceTests {
 
     private static func content() -> AnimeDetailContent {
         var content = AnimeDetailContent()
-        content.studios = [Studio(id: 1, anilistId: nil, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
+        content.studios = [Studio(id: 1, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
         content.songs = (1...6).map { ThemeSong(kind: $0 % 2 == 0 ? .ending : .opening, sequence: $0, title: "Song \($0)",
                                                 artist: "Artist \($0)", episodes: "1–12") }
         content.characters = (1...4).map { index in
-            (character: Character(id: index, anilistId: nil, nameFull: "Character \(index)", nameNative: nil, imageLarge: nil,
+            (character: Character(id: index, nameFull: "Character \(index)", nameNative: nil, imageLarge: nil,
                                   description: nil, gender: nil, age: nil), role: "MAIN")
         }
         return content
     }
 
     private static func character() -> Character {
-        Character(id: 1, anilistId: nil, nameFull: "Character 1", nameNative: "キャラ", imageLarge: nil,
+        Character(id: 1, nameFull: "Character 1", nameNative: "キャラ", imageLarge: nil,
                   description: nil, gender: "Female", age: "17")
     }
 

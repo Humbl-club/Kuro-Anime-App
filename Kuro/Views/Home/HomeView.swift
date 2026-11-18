@@ -117,7 +117,10 @@ struct HomeView: View {
         // Outside the scroll view, so the new-account block's Plan toast sits at the screen foot.
         .tastePlanHost(plans)
         // The +1 toast, in the same slot: one result toast on Home at a time.
-        .overlay(alignment: .bottom) { progressToast }
+        .overlay(alignment: .bottom) {
+            // The release alert offer (W3a) shares this foot slot, above the toast.
+            ReleaseAlertOfferStack(hasToast: progressToasts.toast != nil || plans.toast != nil) { progressToast }
+        }
         .kuroAnimation(KuroMotion.contact, value: progressToasts.toast?.id)
         .onChange(of: plans.toast?.id) { _, id in if id != nil { progressToasts.dismiss() } }
         .onChange(of: home.medium) { _, _ in progressToasts.dismiss() }

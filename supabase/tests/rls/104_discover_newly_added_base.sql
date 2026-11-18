@@ -1,7 +1,8 @@
 -- 104_discover_newly_added_base.sql
--- Prepared 20261109200200_discover_newly_added_base_v1.sql (NOT deployed): the Discover
--- "Newly added" rails read anime / manga directly; the two full-copy snapshot matviews are
--- dropped; refresh_discover_matviews_v1() refreshes the four remaining ones.
+-- Originally written for backend latency step 1c (20261109200200, now SUPERSEDED and a no-op). It now targets the
+-- two files that carry 1c's change: 20261112100401_catalogue_visibility_discover_v1.sql (discover_bundle's
+-- "Newly added" rails read anime / manga directly) and 20261112100500_anilist_id_private_v1.sql (the two full-copy
+-- snapshot matviews are dropped; refresh_discover_matviews_v1() refreshes the four remaining ones).
 -- Differential: the frozen pre-change body (fixtures/104_discover_bundle_baseline.sql) runs
 -- against snapshot matviews rebuilt from the same rows inside this transaction (the state right
 -- after a 01:30 refresh); its whole jsonb must equal the new function's. Then freshness: a row

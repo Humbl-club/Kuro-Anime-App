@@ -47,6 +47,10 @@ create unique index if not exists catalogue_id_links_accepted_source_key_uq
   on public.catalogue_id_links (source, source_key, kind) where status = 'accepted';
 create unique index if not exists catalogue_id_links_accepted_kuro_uq
   on public.catalogue_id_links (kind, kuro_id, source) where status = 'accepted';
+-- A proposed link is unique per (kind, kuro_id, source, source_key): a repeated or concurrent run
+-- cannot pile up duplicate proposals (applyLinks treats 23505 as "already there").
+create unique index if not exists catalogue_id_links_proposed_uq
+  on public.catalogue_id_links (kind, kuro_id, source, source_key) where status = 'proposed';
 -- Delete cleanup and lookups by Kuro row.
 create index if not exists catalogue_id_links_kuro_idx on public.catalogue_id_links (kind, kuro_id);
 
@@ -116,21 +120,25 @@ as $$
 declare
   _found boolean;
 begin
+  -- FOR KEY SHARE on the target row: a concurrent DELETE of that row (which takes the stronger
+  -- lock) waits until this insert commits, and its AFTER DELETE cleanup then sees and removes the
+  -- new link. Without it the check could pass, the row be deleted and cleaned, and an orphan link commit.
   if new.kind = 'anime' then
-    select exists (select 1 from public.anime where id = new.kuro_id) into _found;
+    perform 1 from public.anime where id = new.kuro_id for key share;
   elsif new.kind = 'manga' then
-    select exists (select 1 from public.manga where id = new.kuro_id) into _found;
+    perform 1 from public.manga where id = new.kuro_id for key share;
   elsif new.kind = 'staff' then
-    select exists (select 1 from public.staff where id = new.kuro_id) into _found;
+    perform 1 from public.staff where id = new.kuro_id for key share;
   elsif new.kind = 'studio' then
-    select exists (select 1 from public.studios where id = new.kuro_id) into _found;
+    perform 1 from public.studios where id = new.kuro_id for key share;
   elsif new.kind = 'character' then
-    select exists (select 1 from public.characters where id = new.kuro_id) into _found;
+    perform 1 from public.characters where id = new.kuro_id for key share;
   elsif new.kind = 'author' then
-    select exists (select 1 from public.authors where id = new.kuro_id) into _found;
+    perform 1 from public.authors where id = new.kuro_id for key share;
   else
-    _found := false;
+    perform 1 where false;
   end if;
+  _found := found;
   if not _found then
     raise exception 'catalogue_id_links: % % does not exist', new.kind, new.kuro_id
       using errcode = 'foreign_key_violation';
@@ -139,7 +147,9 @@ begin
 end;
 $$;
 
--- Deleting a title/entity removes its links (any status). User list rows are not touched here.
+-- Deleting a title/entity removes its links (any status). Deleting an anime/manga also removes its
+-- shadow values and rollback snapshots (they are keyed (medium, media_id) with no foreign key, so
+-- nothing else would). User list rows are not touched here (their own foreign keys decide).
 create or replace function public.catalogue_id_links_cleanup_anime()
 returns trigger
 language plpgsql
@@ -147,6 +157,8 @@ set search_path = public, extensions
 as $$
 begin
   delete from public.catalogue_id_links where kind = 'anime' and kuro_id = old.id;
+  delete from public.catalogue_shadow_values where medium = 'anime' and media_id = old.id;
+  delete from public.catalogue_rollback_snapshots where medium = 'anime' and media_id = old.id;
   return old;
 end;
 $$;
@@ -158,6 +170,8 @@ set search_path = public, extensions
 as $$
 begin
   delete from public.catalogue_id_links where kind = 'manga' and kuro_id = old.id;
+  delete from public.catalogue_shadow_values where medium = 'manga' and media_id = old.id;
+  delete from public.catalogue_rollback_snapshots where medium = 'manga' and media_id = old.id;
   return old;
 end;
 $$;

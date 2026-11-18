@@ -135,7 +135,7 @@ struct SongsEntitiesAfterSnapshotTests {
                                                  limit: EntityPageLayout.voiceRoleLimit)
         await capture(Self.journey(.staff(Self.nakamura), graph: world.graph), width: 390, height: 1_900,
                       name: "entity-staff-voice-390", settle: 2_200)
-        let director = Staff(id: 5_001, anilistId: 5_001, nameFull: "Sunghoo Park", nameNative: "朴性厚", imageLarge: nil,
+        let director = Staff(id: 5_001, nameFull: "Sunghoo Park", nameNative: "朴性厚", imageLarge: nil,
                              description: "Director and storyboard artist.", primaryOccupations: ["Director", "Storyboard"])
         world.graph.catalog.seedFixtureVoiceRoles(staffId: director.id, roles: [],
                                                  limit: EntityPageLayout.voiceRoleLimit)
@@ -151,7 +151,7 @@ struct SongsEntitiesAfterSnapshotTests {
         await Self.seedArtwork()
         let world = try Self.world()
         await Self.signIn(world)
-        let mappa = Studio(id: 569, anilistId: 569, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)
+        let mappa = Studio(id: 569, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)
         await capture(Self.journey(.studio(mappa), graph: world.graph), width: 390, height: 1_500,
                       name: "entity-studio-390", settle: 2_200)
         await capture(Self.journey(.studio(mappa), graph: world.graph), width: 320, height: 1_500,
@@ -161,7 +161,7 @@ struct SongsEntitiesAfterSnapshotTests {
             await capture(Self.journey(EntityYearPage.page(studioName: "MAPPA", group: busy), graph: world.graph),
                           width: 390, height: 900, name: "entity-studio-year-390", settle: 1_600)
         }
-        let author = Author(id: 7_001, anilistId: 7_001, nameFull: "Gege Akutami", nameNative: "芥見下々", imageLarge: nil,
+        let author = Author(id: 7_001, nameFull: "Gege Akutami", nameNative: "芥見下々", imageLarge: nil,
                             description: "Manga artist.")
         await capture(Self.journey(.author(author), graph: world.graph), width: 390, height: 1_200,
                       name: "entity-author-390", settle: 2_200)
@@ -431,12 +431,12 @@ struct SongsEntitiesAfterSnapshotTests {
 
     // MARK: Fixtures: people and works
 
-    static let nakamura = Staff(id: 95_084, anilistId: 95_084, nameFull: "Yuuichi Nakamura", nameNative: "中村悠一",
+    static let nakamura = Staff(id: 95_084, nameFull: "Yuuichi Nakamura", nameNative: "中村悠一",
                                 imageLarge: nil, description: nil, primaryOccupations: ["Voice Actor"])
 
     static func character(_ id: Int, _ name: String, _ native: String?, image: String?, description: String?,
                           gender: String?, age: String?) -> Character {
-        Character(id: id, anilistId: id, nameFull: name, nameNative: native, imageLarge: image,
+        Character(id: id, nameFull: name, nameNative: native, imageLarge: image,
                   description: description, gender: gender, age: age)
     }
 

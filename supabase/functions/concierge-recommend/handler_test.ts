@@ -347,3 +347,15 @@ Deno.test("waitUntil: failing store writes (swallowed by the repository) neither
   assertEquals(handed.length, 1);
   assertEquals(await settled(handed[0]), "done");
 });
+
+Deno.test("gimmick focus: an isekai prompt focuses Kuro tag 350 directly and never reads tags.anilist_id", async () => {
+  // inferGimmickTagIds returns Kuro tag ids (350 Isekai, 1023 Reincarnation, 358/9154/18064 harem; live tags
+  // read-only 2026-11-18). They were looked up as AniList ids, which matched nothing, so the focus was always empty.
+  const fake = world();
+  const { res } = await recommend(fake, { text: `${PROMPT} isekai` });
+  assertEquals(res.status, 200);
+  const focus = fake.rpcCalls("recommend_ids_premium").map((a) => a.p_focus_tag_ids);
+  assertEquals(focus.length > 0, true);
+  assertEquals(focus.every((f) => JSON.stringify(f) === JSON.stringify([350])), true);
+  assertEquals(fake.reads("tags"), 0, "tags.anilist_id is no longer read (catalogue Task 15d revokes it)");
+});

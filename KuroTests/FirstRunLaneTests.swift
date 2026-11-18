@@ -105,6 +105,15 @@ struct FirstRunLaneTests {
         #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, notes: "  ")) == .unplan)
         #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, rating: 8)) == .edit)
         #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, progress: 2)) == .edit)
+        // A repeat count or a date makes a plan more than bare (judged on the stored raw, so an unparseable
+        // imported date also counts); known-empty and unknown (cached) metadata stay bare.
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, sourceMetadata: LibrarySourceMetadata(repeatCount: 1))) == .edit)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, sourceMetadata: LibrarySourceMetadata(startedRaw: "2024-05"))) == .edit)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, sourceMetadata: LibrarySourceMetadata(finishedRaw: "2024"))) == .edit)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, sourceMetadata: LibrarySourceMetadata(startedRaw: "not-a-date"))) == .edit)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, sourceMetadata: LibrarySourceMetadata(repeatCount: 0))) == .unplan)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, sourceMetadata: LibrarySourceMetadata(repeatCount: 0, startedRaw: "  "))) == .unplan)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, sourceMetadata: nil)) == .unplan)
         for status in [ListStatus.current, .completed, .paused, .dropped] {
             #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: status)) == .edit)
         }
@@ -125,6 +134,10 @@ struct FirstRunLaneTests {
         let started = [E.entry(.anime, 1, status: .planning), E.entry(.anime, 3, status: .planning, progress: 1)]
         #expect(!HomeShelfPolicy.onlyBarePlans(started))
         #expect(!HomeShelfPolicy.onlyBarePlans([E.entry(.anime, 1, status: .planning, rating: 8)]))
+        // A dated plan (a start date set in the editor) is started too.
+        let dated = [E.entry(.anime, 1, status: .planning),
+                     E.entry(.anime, 4, status: .planning, sourceMetadata: LibrarySourceMetadata(startedRaw: "2026-11-09"))]
+        #expect(!HomeShelfPolicy.onlyBarePlans(dated))
         #expect(!HomeShelfPolicy.onlyBarePlans([E.entry(.anime, 1, status: .current)]))
         // So the block gives way while latched, even though the shelf scene is not "in progress".
         #expect(!HomeShelfPolicy.showsNewAccount(latched: true, onlyPlannedTitles: HomeShelfPolicy.onlyBarePlans(started),
@@ -212,6 +225,37 @@ struct FirstRunLaneTests {
         #expect(edited == [43])
         #expect(backend.writeCalls.count == writes, "a plan with notes is never removed from Taste")
         #expect(service.library.entry(for: noted.key)?.notes == "with Sam")
+        await harness.settleSinks()
+        await harness.tearDown()
+    }
+
+    @Test("Plan-key Undo never removes a plan that has since gained a date or a repeat count")
+    func planUndoKeepsADatedPlan() async throws {
+        let backend = FakeLibraryBackend()
+        let harness = try FacadeHarness(backend: backend)
+        let service = harness.service
+        await harness.signIn()
+        let plans = TastePlanController()
+        let edits: [(Int, LibraryEdit)] = [
+            (42, LibraryEdit(startedOn: .set(try #require(PartialDate(raw: "2026-11-09"))))),
+            (43, LibraryEdit(repeatCount: .set(1))),
+        ]
+        for (id, edit) in edits {
+            let card = try TasteCard(anime: Self.animeCard(id, title: "Title \(id)"))
+            await plans.tap(card, library: service.library, actions: service.libraryActions, routes: .unhandled, german: false)?.value
+            #expect(plans.toast?.undo != nil)
+            let outcome = await service.libraryActions.apply(edit, to: card.key, createIfMissing: nil)
+            #expect(outcome.error == nil)
+
+            let writes = backend.writeCalls.count
+            let undo = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+            #expect(undo == nil)
+            #expect(backend.writeCalls.count == writes, "Undo wrote for \(id): \(backend.writeCalls)")
+            #expect(backend.writeCalls.last != .remove(card.key))
+            #expect(service.library.entry(for: card.key)?.status == .planning)
+        }
+        #expect(service.library.entry(for: MediaKey(kind: .anime, id: 42))?.startedOn?.raw == "2026-11-09")
+        #expect(service.library.entry(for: MediaKey(kind: .anime, id: 43))?.repeatCount == 1)
         await harness.settleSinks()
         await harness.tearDown()
     }

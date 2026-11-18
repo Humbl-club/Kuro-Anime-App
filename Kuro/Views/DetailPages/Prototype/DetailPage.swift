@@ -572,13 +572,16 @@ struct DetailToastOverlay: ViewModifier {
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
-            if let toast {
-                KuroToast(toast: toast)
-                    .padding(.horizontal, 13)
-                    .padding(.bottom, 12)
-                    // Reduce Motion / Low Power: a fade, no slide.
-                    .transition(KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
-                                ? .move(edge: .bottom).combined(with: .opacity) : .opacity)
+            // The release alert offer (W3a) shares this foot slot, above the toast.
+            ReleaseAlertOfferStack(hasToast: toast != nil) {
+                if let toast {
+                    KuroToast(toast: toast)
+                        .padding(.horizontal, 13)
+                        .padding(.bottom, 12)
+                        // Reduce Motion / Low Power: a fade, no slide.
+                        .transition(KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
+                                    ? .move(edge: .bottom).combined(with: .opacity) : .opacity)
+                }
             }
         }
     }

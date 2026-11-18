@@ -1,0 +1,406 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination "platform=iOS Simulator,id=2A1D0DFE-CE8D-4C90-B57B-CD025E16AF64" -parallel-testing-enabled NO "-only-testing:KuroTests/LibraryExportFlowTests" test
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.5.1
+  swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.3.2
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.7.0
+  swift-crypto: https://github.com/apple/swift-crypto.git @ 3.15.1
+  KuroModules: /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a99ec2a88f6af47f8/Packages/KuroModules @ local
+  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.5.0
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.54.1
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.0.6
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (40 targets)
+    Target 'KuroUITests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'KuroTests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'Kuro' in project 'Kuro'
+        ➜ Explicit dependency on target 'KuroWidgets' in project 'Kuro'
+        ➜ Explicit dependency on target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroWidgetSupport-product' in project 'KuroModules'
+    Target 'KuroSupabase-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Crypto-product' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'swift-crypto_Crypto' in project 'swift-crypto' (no dependencies)
+    Target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay' (no dependencies)
+    Target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'HTTPTypes' in project 'swift-http-types' (no dependencies)
+    Target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'ConcurrencyExtras' in project 'swift-concurrency-extras'
+    Target 'ConcurrencyExtras' in project 'swift-concurrency-extras' (no dependencies)
+    Target 'KuroWidgets' in project 'Kuro'
+        ➜ Explicit dependency on target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroWidgetSupport-product' in project 'KuroModules'
+    Target 'KuroWidgetSupport-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroWidgetSupport' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroWidgetSupport' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore' in project 'KuroModules' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a99ec2a88f6af47f8/Kuro.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-cqzgaulwvrlxfaccphkwsoefsnft/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-cqzgaulwvrlxfaccphkwsoefsnft/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+note: Disabling hardened runtime with ad-hoc codesigning. (in target 'Kuro' from project 'Kuro')
+Test Suite 'Selected tests' started at 2026-11-18 14:11:26.209.
+Test Suite 'KuroTests.xctest' started at 2026-11-18 14:11:26.209.
+Test Suite 'KuroTests.xctest' passed at 2026-11-18 14:11:26.209.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-18 14:11:26.209.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64-apple-ios17.0-simulator
+◇ Suite "Library export: catalogue identity read and owner" started.
+◇ Test "The lookup sends at most 500 ids per GET, per medium, and never filters adult titles" started.
+✔ Test "The lookup sends at most 500 ids per GET, per medium, and never filters adult titles" passed after 0.043 seconds.
+◇ Test "A cancelled caller sends no further batch" started.
+✔ Test "A cancelled caller sends no further batch" passed after 0.013 seconds.
+◇ Test "A failed batch leaves only its own keys absent; titles fall back English, romaji, native; blanks are nil" started.
+[CatalogStore] Export identity batch failed for anime: PostgrestError(detail: nil, hint: nil, code: Optional("PGRST100"), message: "rejected")
+✔ Test "A failed batch leaves only its own keys absent; titles fall back English, romaji, native; blanks are nil" passed after 0.015 seconds.
+◇ Test "A transport failure stops the remaining batches; a rejected batch does not" started.
+2026-11-18 14:11:26.308648+0100 Kuro[31177:23405796] [Default] Task <4C75185E-34AB-4F3B-A396-9519EE7C6EFE>.<1> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <4C75185E-34AB-4F3B-A396-9519EE7C6EFE>.<1>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <4C75185E-34AB-4F3B-A396-9519EE7C6EFE>.<1>}
+2026-11-18 14:11:27.315114+0100 Kuro[31177:23405796] [Default] Task <D0639DF2-EFFB-4E4A-8E35-D827694F0D06>.<2> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <D0639DF2-EFFB-4E4A-8E35-D827694F0D06>.<2>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <D0639DF2-EFFB-4E4A-8E35-D827694F0D06>.<2>}
+2026-11-18 14:11:29.328942+0100 Kuro[31177:23405794] [Default] Task <27DDE150-2B9F-44E8-BD96-9A59563B11AB>.<3> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <27DDE150-2B9F-44E8-BD96-9A59563B11AB>.<3>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <27DDE150-2B9F-44E8-BD96-9A59563B11AB>.<3>}
+2026-11-18 14:11:33.346649+0100 Kuro[31177:23405668] [Default] Task <41F4B479-4A1C-4A8B-9F63-0E6A59928717>.<4> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <41F4B479-4A1C-4A8B-9F63-0E6A59928717>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <41F4B479-4A1C-4A8B-9F63-0E6A59928717>.<4>}
+[CatalogStore] Export identity batch failed for anime: Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <41F4B479-4A1C-4A8B-9F63-0E6A59928717>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <41F4B479-4A1C-4A8B-9F63-0E6A59928717>.<4>}
+✔ Test "A transport failure stops the remaining batches; a rejected batch does not" passed after 7.054 seconds.
+◇ Test "An empty key set sends no request" started.
+✔ Test "An empty key set sends no request" passed after 0.006 seconds.
+◇ Test "A signed-in account's CSV export is written with complete file protection and named for the day" started.
+2026-11-18 14:11:33.409797+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 3.1ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "A signed-in account's CSV export is written with complete file protection and named for the day" passed after 0.066 seconds.
+◇ Test "A 2,000-title library exports in all three formats from cached identities; durations are recorded" started.
+2026-11-18 14:11:33.452755+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 1.1ms - ok 0
+[FeatureFlags] refreshed 0 flags
+BASELINE export malXML 2000 titles: 0.055644167 seconds
+BASELINE export csv 2000 titles: 0.0420255 seconds
+BASELINE export json 2000 titles: 0.093924833 seconds
+✔ Test "A 2,000-title library exports in all three formats from cached identities; durations are recorded" passed after 0.382 seconds.
+◇ Test "Offline, the export is decided before any lookup: cached identities are used, the rest is reported as unavailable, tags and lists as unavailable" started.
+2026-11-18 14:11:33.838522+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 1.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "Offline, the export is decided before any lookup: cached identities are used, the rest is reported as unavailable, tags and lists as unavailable" passed after 0.042 seconds.
+◇ Test "Only keys the cache lacks are requested" started.
+2026-11-18 14:11:33.876957+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 1.2ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "Only keys the cache lacks are requested" passed after 0.050 seconds.
+◇ Test "A transport failure while online stops the lookup after its first batch and reports every id as unavailable" started.
+2026-11-18 14:11:33.949417+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.7ms - ok 0
+[FeatureFlags] refreshed 0 flags
+2026-11-18 14:11:33.959117+0100 Kuro[31177:23405880] [Default] Task <D9967EBA-9226-4384-B434-71446131FB40>.<7> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <D9967EBA-9226-4384-B434-71446131FB40>.<7>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <D9967EBA-9226-4384-B434-71446131FB40>.<7>}
+2026-11-18 14:11:34.962233+0100 Kuro[31177:23405672] [Default] Task <795DD4EE-8D15-424C-94EA-4DA1A7BE2788>.<8> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <795DD4EE-8D15-424C-94EA-4DA1A7BE2788>.<8>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <795DD4EE-8D15-424C-94EA-4DA1A7BE2788>.<8>}
+2026-11-18 14:11:36.966974+0100 Kuro[31177:23405676] [Default] Task <467F04F8-A20E-4EE3-B820-95165BD4DB5B>.<9> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <467F04F8-A20E-4EE3-B820-95165BD4DB5B>.<9>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <467F04F8-A20E-4EE3-B820-95165BD4DB5B>.<9>}
+2026-11-18 14:11:40.980629+0100 Kuro[31177:23405676] [Default] Task <3E7B0EF4-886F-4218-AA42-DF317AF63826>.<10> finished with error [-1009] Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <3E7B0EF4-886F-4218-AA42-DF317AF63826>.<10>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <3E7B0EF4-886F-4218-AA42-DF317AF63826>.<10>}
+[CatalogStore] Export identity batch failed for anime: Error Domain=NSURLErrorDomain Code=-1009 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <3E7B0EF4-886F-4218-AA42-DF317AF63826>.<10>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <3E7B0EF4-886F-4218-AA42-DF317AF63826>.<10>}
+✔ Test "A transport failure while online stops the lookup after its first batch and reports every id as unavailable" passed after 7.091 seconds.
+◇ Test "The export is refused until the Library holds the account's rows" started.
+2026-11-18 14:11:41.015471+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 1.0ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "The export is refused until the Library holds the account's rows" passed after 0.024 seconds.
+◇ Test "Signed out, the export fails as signed out and sends nothing" started.
+✔ Test "Signed out, the export fails as signed out and sends nothing" passed after 0.012 seconds.
+◇ Test "An account switch during the identity lookup publishes nothing, deletes the files, caches nothing and never sends the old library with the new credential" started.
+2026-11-18 14:11:41.048498+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.5ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "An account switch during the identity lookup publishes nothing, deletes the files, caches nothing and never sends the old library with the new credential" passed after 0.020 seconds.
+◇ Test "Deleting the account removes the cached identities and the export directory" started.
+2026-11-18 14:11:41.068774+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "Deleting the account removes the cached identities and the export directory" passed after 0.022 seconds.
+◇ Test "Dismissing deletes the folder and returns to idle; so does sign-out" started.
+2026-11-18 14:11:41.091758+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.7ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "Dismissing deletes the folder and returns to idle; so does sign-out" passed after 0.025 seconds.
+◇ Test "A cancelled caller leaves no files, no cache and no state behind" started.
+2026-11-18 14:11:41.120048+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "A cancelled caller leaves no files, no cache and no state behind" passed after 0.023 seconds.
+◇ Test "The release flag is checked before any request, provider call or file" started.
+2026-11-18 14:11:41.142053+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "The release flag is checked before any request, provider call or file" passed after 0.020 seconds.
+◇ Test "The lookup is leased: A's library ids are never dispatched once the SDK holds B's credentials" started.
+2026-11-18 14:11:41.164872+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.7ms - ok 0
+[FeatureFlags] refreshed 0 flags
+2026-11-18 14:11:41.185028+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+2026-11-18 14:11:41.191409+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.4ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "The lookup is leased: A's library ids are never dispatched once the SDK holds B's credentials" passed after 0.050 seconds.
+◇ Test "A requested format that could not be built is a failed export: no file is published" started.
+2026-11-18 14:11:41.212953+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "A requested format that could not be built is a failed export: no file is published" passed after 0.021 seconds.
+◇ Test "A write that fails leaves nothing behind and reports the failure" started.
+2026-11-18 14:11:41.234202+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+[LibraryExportService] Writing the export failed: Error Domain=NSCocoaErrorDomain Code=640 "The file couldn’t be saved because there isn’t enough space."
+✔ Test "A write that fails leaves nothing behind and reports the failure" passed after 0.029 seconds.
+◇ Test "List items outside the library are part of the lookup and keep their title in the JSON" started.
+2026-11-18 14:11:41.266255+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.7ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "List items outside the library are part of the lookup and keep their title in the JSON" passed after 0.031 seconds.
+◇ Test "A Library read without the fenced columns is reported as a gap; with them the export is complete" started.
+2026-11-18 14:11:41.298433+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.7ms - ok 0
+[FeatureFlags] refreshed 0 flags
+2026-11-18 14:11:41.325175+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.8ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "A Library read without the fenced columns is reported as a gap; with them the export is complete" passed after 0.057 seconds.
+◇ Test "A superseded run's detached work never deletes the export that replaced it, and writes nothing" started.
+2026-11-18 14:11:41.353764+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.5ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "A superseded run's detached work never deletes the export that replaced it, and writes nothing" passed after 0.022 seconds.
+◇ Test "Signing out while a build is blocked: once it is released it writes nothing and leaves no folder" started.
+2026-11-18 14:11:41.376254+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "Signing out while a build is blocked: once it is released it writes nothing and leaves no folder" passed after 0.021 seconds.
+◇ Test "Export copy is bilingual, counts titles and stays silent for a complete export" started.
+✔ Test "Export copy is bilingual, counts titles and stays silent for a complete export" passed after 0.001 seconds.
+◇ Test "Export copy names each gap, the MAL split and list entries outside the library, identity first" started.
+✔ Test "Export copy names each gap, the MAL split and list entries outside the library, identity first" passed after 0.001 seconds.
+◇ Test "A MAL file says when it changed or left out notes, or could not hold dates; CSV and JSON do not" started.
+✔ Test "A MAL file says when it changed or left out notes, or could not hold dates; CSV and JSON do not" passed after 0.001 seconds.
+◇ Test "The tags-and-lists line is for CSV and JSON only: a MAL file never carries tags or lists" started.
+✔ Test "The tags-and-lists line is for CSV and JSON only: a MAL file never carries tags or lists" passed after 0.001 seconds.
+◇ Test "A library read without tracking detail says so, in both languages, for every format" started.
+✔ Test "A library read without tracking detail says so, in both languages, for every format" passed after 0.001 seconds.
+◇ Test "Row, format and note copy is the agreed wording, and thousands follow the reader's locale" started.
+✔ Test "Row, format and note copy is the agreed wording, and thousands follow the reader's locale" passed after 0.001 seconds.
+◇ Test "A request that built no file says so, and the sheet offers Share only when there is a file" started.
+2026-11-18 14:11:41.400412+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.5ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "A request that built no file says so, and the sheet offers Share only when there is a file" passed after 0.018 seconds.
+◇ Test "Changing the format drops a result made for another format, and a failure; never a run in flight" started.
+✔ Test "Changing the format drops a result made for another format, and a failure; never a run in flight" passed after 0.001 seconds.
+◇ Test "The ready sheet's content stays inside its 20 pt side margins on a 375 pt phone at the largest Dynamic Type size in German" started.
+2026-11-18 14:11:41.424885+0100 Kuro[31177:23405472] [perf] rpc.collection_feed_page 0.6ms - ok 0
+[FeatureFlags] refreshed 0 flags
+✔ Test "The ready sheet's content stays inside its 20 pt side margins on a 375 pt phone at the largest Dynamic Type size in German" passed after 0.967 seconds.
+✔ Suite "Library export: catalogue identity read and owner" passed after 16.146 seconds.
+✔ Test run with 33 tests in 1 suite passed after 16.147 seconds.
+2026-11-18 14:11:42.671 xcodebuild[30767:23403568] [MT] IDETestOperationsObserverDebug: 20.068 elapsed -- Testing started completed.
+2026-11-18 14:11:42.671 xcodebuild[30767:23403568] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-18 14:11:42.671 xcodebuild[30767:23403568] [MT] IDETestOperationsObserverDebug: 20.068 sec, +20.068 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/max/Library/Developer/Xcode/DerivedData/Kuro-cqzgaulwvrlxfaccphkwsoefsnft/Logs/Test/Test-Kuro-2026.11.18_14-11-17-+0100.xcresult
+
+** TEST SUCCEEDED **
+
+Testing started

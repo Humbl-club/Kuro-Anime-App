@@ -174,9 +174,17 @@ final class ImportWorkflowPresentation {
         }
     }
 
+    /// Items "Review unresolved titles in a new import" re-stages: unmatched, conflict and
+    /// source-changed items minus 18+ titles (re-staging them would only produce the same result).
+    nonisolated static func unresolvedRetryIds(_ items: [ImportReviewItem]) -> Set<String> {
+        Set(items.filter {
+            [.unmatched, .conflict, .sourceChanged].contains($0.disposition) && !$0.isAdultNotListed
+        }.map(\.id))
+    }
+
     func reviewUnresolved() async {
         guard let job, job.isTerminal else { return }
-        let ids = Set(items.filter { [.unmatched, .conflict, .sourceChanged].contains($0.disposition) }.map(\.id))
+        let ids = Self.unresolvedRetryIds(items)
         guard !ids.isEmpty else { return }
         await perform { origin in
             let result = try await self.imports.prepareImportReviewRetry(jobId: job.jobId, itemIds: ids)

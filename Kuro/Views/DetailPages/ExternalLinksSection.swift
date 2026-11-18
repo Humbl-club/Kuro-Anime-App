@@ -1,25 +1,29 @@
 import SwiftUI
 
 // MARK: - External Links Section for Media Detail Views
-// Shows optional reference links (AniList/MAL), separate from legal watch/read actions.
+// Shows optional reference links (MAL), separate from legal watch/read actions.
 
 struct ExternalLinksSection: View {
-    let anilistId: Int
+    /// The Kuro id of the title (outbound-link telemetry; AniList ids are private).
+    let mediaId: Int
     let malId: Int?
     let mediaType: String // "anime" or "manga"
 
-    private var anilistURL: URL? {
-        URL(string: "https://anilist.co/\(mediaType)/\(anilistId)")
+    /// One reference link.
+    struct Reference: Equatable {
+        let title: String
+        let url: URL
     }
 
-    private var malURL: URL? {
-        guard let malId else { return nil }
-        return URL(string: "https://myanimelist.net/\(mediaType)/\(malId)")
+    /// The reference links of a title: MyAnimeList only (catalogue Task 15d removed AniList).
+    static func references(malId: Int?, mediaType: String) -> [Reference] {
+        guard let malId, let url = URL(string: "https://myanimelist.net/\(mediaType)/\(malId)") else { return [] }
+        return [Reference(title: "MyAnimeList", url: url)]
     }
 
     var body: some View {
-        let hasAnyLink = anilistURL != nil || malURL != nil
-        if hasAnyLink {
+        let links = Self.references(malId: malId, mediaType: mediaType)
+        if !links.isEmpty {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 EditorialLayout.divider()
 
@@ -29,11 +33,8 @@ struct ExternalLinksSection: View {
                     .foregroundColor(.kuroInkQuiet)
 
                 HStack(spacing: 12) {
-                    if let url = anilistURL {
-                        ExternalLinkButton(title: "AniList", url: url, mediaType: mediaType, mediaId: anilistId)
-                    }
-                    if let url = malURL {
-                        ExternalLinkButton(title: "MyAnimeList", url: url, mediaType: mediaType, mediaId: anilistId)
+                    ForEach(links, id: \.title) { link in
+                        ExternalLinkButton(title: link.title, url: link.url, mediaType: mediaType, mediaId: mediaId)
                     }
                 }
             }

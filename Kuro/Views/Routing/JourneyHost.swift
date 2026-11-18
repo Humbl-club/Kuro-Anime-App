@@ -230,10 +230,12 @@ struct JourneyHost: View {
         NavigationStack(path: $navigator.path) {
             JourneyPageView(page: navigator.root)
                 .environment(\.kuroJourney, navigator.context(isPushed: false))
+                .environment(\.kuroJourneyPageID, navigator.root.id)
                 .background(KuroInteractivePopEnabler { navigator.navigationController = $0 })
                 .navigationDestination(for: JourneyPage.self) { page in
                     JourneyPageView(page: page)
                         .environment(\.kuroJourney, navigator.context(isPushed: true))
+                        .environment(\.kuroJourneyPageID, page.id)
                 }
         }
         .environment(\.kuroRoutes, navigator.routes)

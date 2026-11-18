@@ -12,6 +12,7 @@ import {
 } from "./mirror_repository.ts";
 import { MIRROR_CONCURRENCY, runMirrorImages, type MirrorPayload } from "./mirror_run.ts";
 import type { MirrorStorage } from "./mirror_storage.ts";
+import { FIELD_GROUP_NAMES, type FieldGroup, type Mode } from "../_shared/catalogue/field_groups.ts";
 
 const SUPABASE_URL = "https://project.supabase.co";
 const SOURCE = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx7.jpg";
@@ -315,4 +316,78 @@ Deno.test("a catalog window mirrors once with bounded concurrency onto derived m
     { mediaType: "ANIME" as MediaType, offset: 20, limit: 6 },
   );
   assertEquals(repository.calls.filter((call) => call.op === "release").map((call) => call.detail), ["mirror-images:ANIME:20"]);
+});
+
+// ---- Task 15: a switched images group is written by catalogue publish, not by the AniList-image mirror ----
+
+function withModes(repo: ReturnType<typeof memoryRepo>, modes: Partial<Record<FieldGroup, Mode>> | Error) {
+  return Object.assign(repo, {
+    cutoverModes: () => {
+      if (modes instanceof Error) return Promise.reject(modes);
+      return Promise.resolve(Object.fromEntries(FIELD_GROUP_NAMES.map((g) => [g, modes[g] ?? "anilist"])) as Record<FieldGroup, Mode>);
+    },
+  });
+}
+
+async function runMirror(repository: MirrorRepository, mediaTypes: string[]) {
+  const fetched: string[] = [];
+  const res = await runMirrorImages({
+    repository,
+    storage: storage(),
+    fetch: (input) => {
+      fetched.push(input);
+      return Promise.resolve(new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { "content-type": "image/jpeg" } }));
+    },
+    now: () => Date.now(),
+    supabaseUrl: SUPABASE_URL,
+    payload: { bucket: "media", mediaTypes, limit: 5, offset: 0 },
+  });
+  return { res, body: await res.json(), fetched };
+}
+
+Deno.test("switchedImagesNotRewritten: with images new, anime and manga covers are not fetched, uploaded or rewritten", async () => {
+  const repo = withModes(memoryRepo([row(7, SOURCE)]), { images: "new" });
+  const { res, body, fetched } = await runMirror(repo, ["ANIME", "MANGA"]);
+  assertEquals(res.status, 200);
+  assertEquals(fetched, []);
+  assertEquals(repo.rows.get(7)?.cover_image_large, SOURCE);
+  assertEquals(repo.calls.filter((call) => call.op === "window" || call.op === "update" || call.op === "state"), []);
+  assertEquals(body.results.anime, 0);
+  assertEquals(body.results.manga, 0);
+});
+
+Deno.test("switchedImagesNotRewritten: the priority queue skips anime and manga rows as well", async () => {
+  const repo = withModes(memoryRepo([row(7, SOURCE)]), { images: "new" });
+  let liveReads = 0;
+  repo.pendingPriority = () => Promise.resolve([{ media_type: "ANIME" as MediaType, media_id: 7, asset_key: "cover_image_large" }]);
+  repo.liveRows = () => {
+    liveReads++;
+    return Promise.resolve([row(7, SOURCE)]);
+  };
+  const { fetched } = await runMirror(repo, ["ANIME"]);
+  assertEquals(fetched, []);
+  assertEquals(liveReads, 0);
+  assertEquals(repo.calls.filter((call) => call.op === "update"), []);
+});
+
+Deno.test("switchedImagesNotRewritten: characters and staff photos are not part of the images group and still mirror", async () => {
+  const repo = withModes(memoryRepo([{ id: 3, image_large: SOURCE } as CatalogRow]), { images: "new" });
+  const { fetched } = await runMirror(repo, ["CHARACTER"]);
+  assertEquals(fetched.length, 1);
+});
+
+Deno.test("images in shadow mode are still mirrored by this job", async () => {
+  const repo = withModes(memoryRepo([row(7, SOURCE)]), { images: "shadow" });
+  const { fetched } = await runMirror(repo, ["ANIME"]);
+  assertEquals(fetched.length, 1);
+});
+
+Deno.test("modeReadFailureFailsRun: an unreadable switch fails the run before any fetch or write", async () => {
+  const repo = withModes(memoryRepo([row(7, SOURCE)]), new Error("permission denied"));
+  const { res, body, fetched } = await runMirror(repo, ["ANIME"]);
+  assertEquals(res.status, 500);
+  assertEquals(String(body.error).includes("permission denied"), true);
+  assertEquals(fetched, []);
+  assertEquals(repo.calls.some((call) => call.op === "update"), false);
+  assertEquals(repo.calls.some((call) => call.op === "release"), true);
 });

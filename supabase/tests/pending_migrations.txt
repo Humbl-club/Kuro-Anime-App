@@ -53,7 +53,20 @@
 # 2026-11-09 backend latency plan (docs/plans/2026-11-09-backend-latency-plan.md). Owner approved
 # deployment 2026-11-10: 20261109200000 (1a), 20261109200100 (1b) and the fix-forward
 # 20261110100000 are applied with exact history and promoted byte-identically to supabase/migrations.
-# Still pending: 1c, PARKED 2026-11-18 (no benefit while imports are off; matview drop folded into
-# catalogue Task 15d). Tests: 104 (+99).
-20261109200200_discover_newly_added_base_v1.sql
+# 1c (20261109200200) is SUPERSEDED 2026-11-18 by 20261112100500 (catalogue Task 15d): the file is a no-op and is not listed. Tests: 104 (+99).
 20261112100000_catalogue_sources_v1.sql
+20261112100100_catalogue_shadow_report_v1.sql
+
+# 2026-11-18 W4 (prepared only; owner approval required to deploy)
+20261118100000_search_hidden_adult_v1.sql
+# Catalogue Task 15 (single writer per group: transactional publish/restore, relation reader source filter). Prepared only.
+20261112100150_catalogue_publish_v1.sql
+# Catalogue Task 15b (browse visibility for list_only titles). Prepared only; 100401 is built on parked 1c and Discover usability: see its header.
+20261112100400_catalogue_visibility_v1.sql
+20261112100401_catalogue_visibility_discover_v1.sql
+# Catalogue Task 15c (transactional create of new titles from allowed sources). Prepared only.
+20261112100450_catalogue_create_v1.sql
+# Catalogue Task 11 (tag source map, tags.description_kuro/retired_at, service-only reader). Prepared only; the 430 descriptions are a later data file.
+20261112100200_catalogue_tag_sources_v1.sql
+# Catalogue Task 15d (AniList ids leave public reads: column grants, matviews rebuilt, newly-added matviews dropped, voice RPCs). Prepared only; rollout order is load-bearing (app build, owner confirms old builds retired, then apply). Requires 100401.
+20261112100500_anilist_id_private_v1.sql

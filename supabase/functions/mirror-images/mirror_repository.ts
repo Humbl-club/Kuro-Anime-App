@@ -11,6 +11,8 @@
 //   - acquireLock maps an RPC error or exception to "unavailable" (the run proceeds, fail-open as
 //     before) and never to "acquired": only a lock this run actually took is released.
 
+import { type FieldGroup, type Mode, readCutoverModes } from "../_shared/catalogue/field_groups.ts";
+
 export type MediaType = "ANIME" | "MANGA" | "CHARACTER" | "STAFF";
 export const MEDIA_TYPES: readonly MediaType[] = ["ANIME", "MANGA", "CHARACTER", "STAFF"];
 
@@ -53,6 +55,11 @@ export type LockOutcome = "acquired" | "busy" | "unavailable";
 export type DbError = { message: string; code?: string } | null;
 
 export interface MirrorRepository {
+  /**
+   * Per-group cutover switch (public.catalogue_cutover), read once per run. THROWS on an unreadable switch
+   * (fail closed). Optional only so older test doubles still type-check; the production repository always has it.
+   */
+  cutoverModes?(): Promise<Record<FieldGroup, Mode>>;
   startRun(payload: unknown, startedAtIso: string): Promise<number | null>;
   finishRun(runId: number | null, status: string, results: Record<string, number>, message: string | null, finishedAtIso: string, durationMs: number): Promise<void>;
   acquireLock(key: string, ttlSeconds: number): Promise<LockOutcome>;
@@ -74,6 +81,7 @@ export type SupabaseLike = any;
 
 export function createMirrorRepository(supabase: SupabaseLike): MirrorRepository {
   return {
+    cutoverModes: () => readCutoverModes(supabase),
     async startRun(payload, startedAtIso) {
       try {
         const { data, error } = await supabase

@@ -92,9 +92,10 @@ enum CatalogColumns {
 
     // MARK: Credits (inline sections; entity descriptions are not shown, so never fetched)
 
-    static let characterEmbed = "characters(id, anilist_id, name_full, name_native, image_large, gender, age)"
-    static let staffEmbed = "staff(id, anilist_id, name_full, name_native, image_large, primary_occupations)"
-    static let authorEmbed = "authors(id, anilist_id, name_full, name_native, image_large)"
+    static let characterEmbed = "characters(id, name_full, name_native, image_large, gender, age)"
+    static let staffEmbed = "staff(id, name_full, name_native, image_large, primary_occupations)"
+    static let studioEmbed = "studios(id, name, is_animation_studio, site_url, favourites)"
+    static let authorEmbed = "authors(id, name_full, name_native, image_large)"
 
     /// Row bound for an inline credits read. The importers keep 10 characters and 10 staff per title
     /// (`perPage: 10`), so the bound never changes what is shown; it only caps a pathological title.

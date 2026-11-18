@@ -522,7 +522,7 @@ private struct SeriesCast: View {
     let items:[SeriesDetailBundle.Cast]
     var body:some View {
         CastSection(characters:items.map { person in
-            (character:Character(id:person.id,anilistId:nil,nameFull:person.name,nameNative:nil,imageLarge:person.imageURL,
+            (character:Character(id:person.id,nameFull:person.name,nameNative:nil,imageLarge:person.imageURL,
               description:person.description,gender:nil,age:nil),role:person.role ?? "SUPPORTING")
         })
     }
@@ -532,13 +532,13 @@ private struct SeriesPrincipals: View {
     let items:[SeriesDetailBundle.Principal]
     var body:some View {
         ProductionSection(studios:items.filter{$0.kind=="studio"}.map {
-            Studio(id:$0.id,anilistId:nil,name:$0.name,isAnimationStudio:true,siteUrl:nil,favourites:nil)
+            Studio(id:$0.id,name:$0.name,isAnimationStudio:true,siteUrl:nil,favourites:nil)
         },staffItems:items.filter{$0.kind=="staff"}.map {
-            (staff:Staff(id:$0.id,anilistId:nil,nameFull:$0.name,nameNative:nil,imageLarge:$0.imageURL,
+            (staff:Staff(id:$0.id,nameFull:$0.name,nameNative:nil,imageLarge:$0.imageURL,
                          description:$0.description,primaryOccupations:nil),role:$0.role ?? "")
         })
         MangaProductionSection(authorItems:items.filter{$0.kind=="author"}.map {
-            (author:Author(id:$0.id,anilistId:nil,nameFull:$0.name,nameNative:nil,imageLarge:$0.imageURL,description:$0.description),role:$0.role ?? "")
+            (author:Author(id:$0.id,nameFull:$0.name,nameNative:nil,imageLarge:$0.imageURL,description:$0.description),role:$0.role ?? "")
         })
     }
 }

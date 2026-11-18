@@ -29,6 +29,10 @@ const MAX_BYTES: Record<CatalogueSource, number> = {
   pageviews: 1024 * 1024,
 };
 
+// Per-request timeout. WDQS: one 500-id query with the real query shape measured 2.7 s and 2.7 MB on 2026-11-18
+// (fixtures/README.md); 45 s leaves ~16x headroom for a cold or busy server and stays under WDQS's own 60 s limit.
+export const TIMEOUT_MS: Partial<Record<CatalogueSource, number>> = { wikidata: 45_000 };
+
 export function createSourceClient(source: CatalogueSource, limiter: PoliteLimiter, deps: SourceClientDeps = {}): PoliteClient {
   return createPoliteClient({
     ...deps,
@@ -36,5 +40,6 @@ export function createSourceClient(source: CatalogueSource, limiter: PoliteLimit
     userAgent: CATALOGUE_USER_AGENT,
     responseType: source === "ann" ? "text" : "json",
     maxBytes: deps.maxBytes ?? MAX_BYTES[source],
+    timeoutMs: deps.timeoutMs ?? TIMEOUT_MS[source],
   });
 }

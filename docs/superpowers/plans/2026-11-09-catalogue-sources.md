@@ -161,6 +161,8 @@ Consequences for this plan:
 - [ ] **Step 4: Run the tests and confirm they pass** with `deno test`.
 - [ ] **Step 5: Commit.**
 
+**Lead amendment 2026-11-18 (link trust, implemented in `cf82f90`/`ff5f621`):** Wikidata is openly editable. (1) The Q-id found by the reverse lookup on our own AniList id is `accepted`; a duplicate claim links nothing (stored `proposed`, conflict). (2) ANN/MangaUpdates ids that come only from a Wikidata item are `proposed` (`method='wikidata'`) and become `accepted` only when Task 4/5's own matching picks the same key; disagreement keeps both `proposed` with conflict `wikidata_id_disagrees_with_title_match`. (3) A later run that finds a different key for a title with an accepted link never replaces it: the new candidate is `proposed`, conflict `title_already_linked_to_other_key`. Other implementation notes: cursors live in `import_track_state` (`track_key` `catalogue-intake:<handler>:<medium>`, preset column `catalog_backfill`, read only by key); WDQS queries are POSTed as `application/sparql-query` with one UNION branch per property; MangaUpdates P11149 base-36 slugs are converted to numeric series ids; serial pageviews make ≈200 calls per 50 s run, about half the spec §3.1 figure (update the table before scheduling).
+
 ### Task 4: Anime News Network matching and records (anime long tail)
 
 **Files:**

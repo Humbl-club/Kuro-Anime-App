@@ -295,6 +295,41 @@ struct CompositionGraphTests {
         }
         store.tearDown()
     }
+
+    /// The edit the Library backend recorded for one creating status change, with the date-fill flag
+    /// switched by `launchArguments` (absent row = off; the DEBUG override stands in for the server flag).
+    private static func recordedCreatingEdit(launchArguments: [String]) async throws -> LibraryEdit {
+        let store = try TestDefaults()
+        defer { store.tearDown() }
+        let backend = FakeLibraryBackend()
+        let graph = AppComposition.testingGraph(
+            testingUserDefaults: store.defaults,
+            notificationCenter: FakeNotificationCenter(),
+            client: StubSupabase.makeClient(server: StubServer()),
+            libraryBackend: backend,
+            flags: FeatureFlags(userDefaults: store.defaults, launchArguments: launchArguments)
+        )
+        await graph.session.applySession(userId: LifecycleFixtures.userA, email: "a@example.com")
+        await graph.libraryActions.libraryRefreshTask?.value
+        let key = MediaKey(kind: .anime, id: 4242)
+        _ = await graph.libraryActions.apply(LibraryEdit(status: .set(.current)), to: key, createIfMissing: .current)
+        for call in backend.writeCalls {
+            if case .edit(let edit, _, _) = call { return edit }
+        }
+        throw LibraryError.unavailable(message: "the backend recorded no edit")
+    }
+
+    @Test("The date-fill rule follows library_date_autofill_v1: off sends no date, on sends a start date")
+    func dateAutofillFollowsTheServerFlag() async throws {
+        let off = try await Self.recordedCreatingEdit(launchArguments: [])
+        #expect(off.startedOn == .unchanged)
+
+        let on = try await Self.recordedCreatingEdit(launchArguments: ["--ff-on=library_date_autofill_v1"])
+        guard case .set = on.startedOn else {
+            Issue.record("expected a filled start date with the flag on, got \(on.startedOn)")
+            return
+        }
+    }
 }
 
 // MARK: - Session funnel through the real SDK auth client
@@ -375,7 +410,8 @@ struct SessionSDKHarness {
         responder: @escaping StubServer.Responder,
         libraryBackend: any LibraryBackend = FakeLibraryBackend(),
         flags: FeatureFlags? = nil,
-        exportSeams: LibraryExportSeams = LibraryExportSeams()
+        exportSeams: LibraryExportSeams = LibraryExportSeams(),
+        libraryBackendOverClient: ((SupabaseClient) -> any LibraryBackend)? = nil
     ) throws {
         server = StubServer()
         server.respond(with: responder)
@@ -392,7 +428,7 @@ struct SessionSDKHarness {
             testingUserDefaults: defaults,
             notificationCenter: FakeNotificationCenter(),
             client: client,
-            libraryBackend: libraryBackend,
+            libraryBackend: libraryBackendOverClient?(client) ?? libraryBackend,
             userListChannels: channels,
             flags: flags,
             progressOutbox: outbox,

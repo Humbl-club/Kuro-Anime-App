@@ -1,6 +1,19 @@
 // Anime catalog mapping. AniList media becomes anime rows plus episodes, studios,
 // tags, characters, staff and source-owned relations. Manga mapping is separate.
 import { writeWithMALConflict } from "../_shared/catalog_identity.ts";
+import { columnsOwnedByNew, type FieldGroup, groupIsAniListOwned, type Mode } from "../_shared/catalogue/field_groups.ts";
+
+/** Cutover modes (public.catalogue_cutover). Absent = every group still on AniList (direct callers and old tests). */
+export type CutoverModes = Record<FieldGroup, Mode>;
+
+/** Drops the columns of every group switched to 'new': catalogue publish is their only writer. Synopsis state follows its description. */
+export function withoutNewGroupColumns(row: Record<string, unknown>, owned: Set<string>): Record<string, unknown> {
+  if (owned.size === 0) return row;
+  const out = { ...row };
+  for (const column of owned) delete out[column];
+  if (owned.has('description')) delete out.synopsis_enhanced_state;
+  return out;
+}
 
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
 
@@ -128,7 +141,10 @@ const EXISTING_ANIME_COLUMNS =
   'id, updated_at_anilist, episodes, duration, next_episode_number, next_airing_at, description, mal_id, cover_image_large, cover_image_medium, banner_image';
 
 // deno-lint-ignore no-explicit-any
-export async function processAnimeItem(supabase: any, anime: any, results: any, includeRelations: boolean, includeEpisodes: boolean, forceRefresh: boolean, includeVoiceActors = false) {
+export async function processAnimeItem(supabase: any, anime: any, results: any, includeRelations: boolean, includeEpisodes: boolean, forceRefresh: boolean, includeVoiceActors = false, modes?: CutoverModes) {
+  const owned = modes ? columnsOwnedByNew('anime', modes) : new Set<string>();
+  // A linked table is written only while AniList owns its group (public.catalogue_cutover).
+  const owns = (group: FieldGroup) => !modes || groupIsAniListOwned(group, modes);
   const updatedAtAnilist = anime.updatedAt ? new Date(anime.updatedAt * 1000).toISOString() : null;
   const derivedEpisodes =
     anime.episodes ??
@@ -160,6 +176,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
       const dur = anime.duration ?? existing.duration;
       patch.total_duration = dur ? derivedEpisodes * dur : null;
     }
+    for (const column of owned) delete patch[column];
     if (Object.keys(patch).length === 0) return;
     patch.last_synced_at = new Date().toISOString();
     const { error: updateError } = await supabase.from('anime').update(patch).eq('id', existing.id);
@@ -220,7 +237,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     // of the SET list).
     const { anilist_id: _anilistId, ...rest } = animeData;
     const { error: animeError } = await writeWithMALConflict('anime', (omitMalId) => {
-      const payload = preserveExistingColumns(rest, existing);
+      const payload = withoutNewGroupColumns(preserveExistingColumns(rest, existing), owned);
       if (omitMalId) delete payload.mal_id;
       return supabase.from('anime').update(payload).eq('id', existing.id);
     }, results, { anilistId: anime.id, malId: anime.idMal });
@@ -228,7 +245,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     insertedAnime = { id: existing.id };
   } else {
     const { data, error: animeError } = await writeWithMALConflict('anime', (omitMalId) => {
-      const payload: Record<string, unknown> = { ...animeData };
+      const payload: Record<string, unknown> = withoutNewGroupColumns({ ...animeData }, owned);
       if (omitMalId) delete payload.mal_id;
       return supabase.from('anime').upsert(payload, { onConflict: 'anilist_id' }).select('id').single();
     }, results, { anilistId: anime.id, malId: anime.idMal });
@@ -238,7 +255,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
   results.anime++;
 
   // External links (watch on...) from AniList externalLinks
-  if (Array.isArray(anime.externalLinks) && anime.externalLinks.length > 0) {
+  if (owns('links') && Array.isArray(anime.externalLinks) && anime.externalLinks.length > 0) {
     for (const link of anime.externalLinks) {
       const url = link?.url;
       if (!url || typeof url !== 'string' || !url.startsWith('http')) continue;
@@ -257,7 +274,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     }
   }
 
-  if (includeEpisodes && anime.streamingEpisodes && anime.streamingEpisodes.length > 0) {
+  if (owns('episodes') && includeEpisodes && anime.streamingEpisodes && anime.streamingEpisodes.length > 0) {
     const { error: episodeDeleteError } = await supabase.from('episodes').delete().eq('anime_id', insertedAnime.id);
     if (noteOptionalFailure(results, episodeDeleteError, 'episodes delete error:')) {
       // Leave existing episode rows in place when the delete did not succeed.
@@ -282,7 +299,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     }
   }
   // Studios
-  if (includeRelations && anime.studios?.nodes) {
+  if (owns('credits') && includeRelations && anime.studios?.nodes) {
     for (const studio of anime.studios.nodes) {
       const { data: st, error: e } = await supabase
         .from('studios')
@@ -296,7 +313,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     }
   }
   // Tags
-  if (includeRelations && anime.tags) {
+  if (owns('tags') && includeRelations && anime.tags) {
     for (const tag of anime.tags) {
       const { data: tg, error: e } = await supabase
         .from('tags')
@@ -310,7 +327,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     }
   }
   // Characters
-  if (includeRelations && anime.characters?.nodes && anime.characters?.edges) {
+  if (owns('credits') && includeRelations && anime.characters?.nodes && anime.characters?.edges) {
     for (let i = 0; i < anime.characters.nodes.length; i++) {
       const char = anime.characters.nodes[i];
       const edge = anime.characters.edges[i];
@@ -330,7 +347,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     }
   }
   // Staff
-  if (includeRelations && anime.staff?.nodes && anime.staff?.edges) {
+  if (owns('credits') && includeRelations && anime.staff?.nodes && anime.staff?.edges) {
     for (let i = 0; i < anime.staff.nodes.length; i++) {
       const person = anime.staff.nodes[i];
       const edge = anime.staff.edges[i];
@@ -346,7 +363,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     }
   }
 
-  if (includeRelations) {
+  if (owns('relations') && includeRelations) {
     await replaceMediaRelationsForSource(supabase, 'ANIME', insertedAnime.id, anime.relations?.edges, results);
   }
 }

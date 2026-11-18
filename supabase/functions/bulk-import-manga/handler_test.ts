@@ -4,6 +4,7 @@
 // Run: deno test --no-prompt supabase/functions/bulk-import-manga/handler_test.ts
 import { strict as assert } from "node:assert";
 import { run } from "./handler.ts";
+import { FIELD_GROUP_NAMES } from "../_shared/catalogue/field_groups.ts";
 
 type Row = Record<string, unknown>;
 
@@ -15,7 +16,18 @@ class Db {
   lockErrorMessage = "lock rpc failed";
   // Consumed by the first matching primary upsert so a replay can persist that row.
   failUpsert: { table: string; anilistId: number; message: string } | null = null;
+  // The importer reads public.catalogue_cutover once per run (Task 15). Default: every group on AniList.
+  cutoverError: string | null = null;
   private seq = 1;
+
+  constructor() {
+    this.setModes({});
+  }
+
+  /** Cutover switch: groups not named stay in mode 'anilist'. */
+  setModes(modes: Record<string, string>) {
+    this.tables.catalogue_cutover = FIELD_GROUP_NAMES.map((g) => ({ field_group: g, mode: modes[g] ?? "anilist" }));
+  }
 
   rows(table: string): Row[] {
     return this.tables[table] ?? [];
@@ -34,6 +46,10 @@ class Db {
     const exec = () => {
       const rows = (db.tables[table] ??= []);
       const matches = (row: Row) => filters.every(([k, v]) => row[k] === v);
+      if (action === "select" && table === "catalogue_cutover") {
+        if (db.cutoverError) return { data: null, error: { message: db.cutoverError } };
+        return { data: rows.filter(matches), error: null };
+      }
       if (action === "select") {
         const found = rows.filter(matches);
         return { data: found[0] ?? null, error: null };
@@ -571,4 +587,88 @@ Deno.test("character age: only a plain whole number is stored (AniList ages are 
   for (const raw of ["17-18", "16+", "15 (Past) 18 (Present)", "", null, undefined, "abc", 1.5, -3, "99999999999"]) {
     assert.equal(characterAge(raw), null, `"${raw}" is not a plain age`);
   }
+});
+
+// ---- Task 15: a field group that is switched to 'new' is written by catalogue publish, not here ----
+
+const CHANGED = { ...cursorRunPayload(), useCursor: false };
+
+function seededManga(id: number, extra: Row = {}): Row {
+  return {
+    id: 1,
+    anilist_id: id,
+    updated_at_anilist: new Date(1 * 1000).toISOString(),
+    title_english: "Kuro English",
+    format: "ONE_SHOT",
+    chapters: 3,
+    description: "Kuro synopsis",
+    ...extra,
+  };
+}
+
+Deno.test("cutOverGroupColumnsNotWritten: manga changed payload leaves the columns of a new group alone", async () => {
+  const db = new Db();
+  db.setModes({ titles: "new", facts: "shadow", synopsis: "new" });
+  db.seed("manga", [seededManga(2100)]);
+  const item = { ...media(2100), updatedAt: 2, description: "Anilist synopsis" };
+  const res = await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(res.status, 200);
+  const row = db.rows("manga")[0];
+  assert.equal(row.title_english, "Kuro English");
+  assert.equal(row.description, "Kuro synopsis");
+  assert.equal(row.format, "MANGA", "facts is in shadow mode, so AniList still writes it");
+});
+
+Deno.test("cutOverGroupColumnsNotWritten: facts new keeps chapters, volumes and the status", async () => {
+  const db = new Db();
+  db.setModes({ facts: "new" });
+  db.seed("manga", [seededManga(2101, { status: "RELEASING", volumes: 1 })]);
+  await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([{ ...media(2101), updatedAt: 2 }]) });
+  const row = db.rows("manga")[0];
+  assert.equal(row.format, "ONE_SHOT");
+  assert.equal(row.status, "RELEASING");
+  assert.equal(row.chapters, 3);
+  assert.equal(row.volumes, 1);
+});
+
+Deno.test("unchangedPayloadPathWritesNothing: manga has no unchanged-path column write to drop", async () => {
+  const db = new Db();
+  db.setModes({ episodes: "new", facts: "new" });
+  db.seed("manga", [seededManga(2102, { updated_at_anilist: new Date(1_700_000_000 * 1000).toISOString(), last_synced_at: "2026-01-01T00:00:00.000Z" })]);
+  await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([media(2102)]) });
+  assert.equal(db.rows("manga")[0].last_synced_at, "2026-01-01T00:00:00.000Z");
+});
+
+Deno.test("linkedTablesSkippedPerGroup: manga credits, links, episodes placeholders and relations are skipped, tags still written", async () => {
+  const db = new Db();
+  db.setModes({ links: "new", credits: "new", relations: "new", episodes: "new" });
+  db.seed("media_relations", [{ from_media_type: "MANGA", from_media_id: 1, source: "anilist", relation_type: "SEQUEL", to_media_type: "MANGA", to_media_id: 2 }]);
+  const item = {
+    ...media(2103),
+    externalLinks: [{ site: "MU", url: "https://mu.example/x" }],
+    tags: [{ id: 9, name: "Isekai", rank: 60 }],
+    characters: { nodes: [{ id: 5, name: { full: "A" } }], edges: [{ role: "MAIN" }] },
+    staff: { nodes: [{ id: 6, name: { full: "B" } }], edges: [{ role: "Story" }] },
+    relations: { edges: [] },
+  };
+  const payload = { ...CHANGED, includeRelations: true, includeChapters: true, includeVolumes: true, lightweight: false };
+  const res = await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal((await res.json()).results.errors, 0);
+  assert.equal(db.rows("external_links").length, 0);
+  assert.equal(db.rows("chapters").length + db.rows("volumes").length, 0);
+  assert.equal(db.rows("authors").length + db.rows("manga_authors").length + db.rows("characters").length + db.rows("manga_characters").length + db.rows("staff").length + db.rows("manga_staff").length, 0);
+  assert.equal(db.rows("media_relations").length, 1);
+  assert.equal(db.rows("manga_tags").length, 1);
+});
+
+Deno.test("modeReadFailureFailsPage: an unreadable switch writes nothing and does not advance the cursor", async () => {
+  const db = new Db();
+  db.cutoverError = "permission denied";
+  db.seed("import_state", [{ media_type: "MANGA", last_page: 4 }]);
+  const res = await run({ ...cursorRunPayload() }, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([media(2104)]) });
+  assert.equal(res.status, 500);
+  assert.match((await res.json()).error, /catalogue_cutover unreadable/);
+  assert.equal(db.rows("manga").length, 0);
+  assert.equal(cursor(db), 4);
+  assert.equal(db.lockHeld.size, 0);
 });

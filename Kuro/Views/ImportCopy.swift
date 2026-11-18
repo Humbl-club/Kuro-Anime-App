@@ -88,6 +88,22 @@ enum ImportCopy {
             : "\(counts.added) added · \(counts.updated) updated · \(counts.unchanged) kept · \(counts.needsReview) to review · \(counts.pending) pending"
     }
 
+    /// W4: the row label for a title Kuro does not list because it is 18+.
+    static func adultRowLabel(german: Bool) -> String {
+        german ? "18+ — nicht in Kuro gelistet" : "18+ — not listed in Kuro"
+    }
+
+    /// W4: the summary line counting those titles separately; `nil` when there are none.
+    static func adultCountLine(_ count: Int, german: Bool) -> String? {
+        guard count > 0 else { return nil }
+        return adultRowLabel(german: german) + ": \(count)"
+    }
+
+    /// W4: the share action for the unresolved-titles file.
+    static func unresolvedFileAction(german: Bool) -> String {
+        german ? "Offene Titel als Datei sichern" : "Save the unresolved titles"
+    }
+
     static func close(german: Bool) -> String { german ? "Schließen" : "Close" }
 
     /// A failure in the reader's language. Free text from the server stays as sent.

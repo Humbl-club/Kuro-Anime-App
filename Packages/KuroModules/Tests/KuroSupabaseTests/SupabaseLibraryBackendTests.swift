@@ -517,6 +517,41 @@ struct SupabaseLibraryBackendV2Tests {
         #expect(SupabaseLibraryBackend.body(for: LibraryEdit(), kind: .anime).isEmpty)
     }
 
+    @Test("A verbatim date is carried exactly, also unparseable text, and wins over the parsed date")
+    func verbatimDatesAreCarriedAndWin() throws {
+        let verbatim = LibraryEdit(startedRawVerbatim: "2019-05-00", finishedRawVerbatim: "not-a-date")
+        #expect(SupabaseLibraryBackend.body(for: verbatim, kind: .anime) == [
+            "started_raw": .string("2019-05-00"), "finished_raw": .string("not-a-date"),
+        ])
+        let both = LibraryEdit(
+            startedOn: .set(try Self.partial("2024-05-07")), finishedOn: .clear,
+            startedRawVerbatim: "2019-05-00", finishedRawVerbatim: "garbled")
+        for kind in [MediaKind.anime, MediaKind.manga] {
+            #expect(SupabaseLibraryBackend.body(for: both, kind: kind) == [
+                "started_raw": .string("2019-05-00"), "finished_raw": .string("garbled"),
+            ])
+        }
+    }
+
+    @Test("With the fence on, the side PATCH carries the verbatim dates and the receipt RPC takes the status")
+    func fenceOnSidePatchCarriesVerbatimDates() async throws {
+        let life = UUID()
+        let current = Self.animeRow(listType: "PLANNING", serverRevision: 4, lifecycleId: life)
+        let after = Self.animeRow(listType: "WATCHING", serverRevision: 5, lifecycleId: life)
+        let patched = Self.animeRow(listType: "WATCHING", repeatCount: 0, startedRaw: "2019-05-00", finishedRaw: "not-a-date",
+                                    serverRevision: 6, lifecycleId: life)
+        let transport = RecordingTransport([.success([current]), .success([after]), .success([patched])])
+        let fence = RecordingFence(outcome: "applied")
+        let backend = SupabaseLibraryBackend(transport: transport, fence: fence, fenceEnabled: { true })
+        let edit = LibraryEdit(status: .set(.current), startedRawVerbatim: "2019-05-00", finishedRawVerbatim: "not-a-date")
+        _ = try await backend.edit(edit, key: Self.anime42, createIfMissing: nil, mutationId: UUID(), baseRevision: 4,
+                                   account: Rows.account)
+        #expect(fence.progress.count == 1, "the status goes through the receipt RPC")
+        #expect(Rows.patchBody(transport.requests.last) == [
+            "started_raw": .string("2019-05-00"), "finished_raw": .string("not-a-date"),
+        ])
+    }
+
     @Test("A date-only edit sends exactly one PATCH carrying only the date column")
     func dateOnlyEditIsOnePatch() async throws {
         let transport = RecordingTransport([.success([Self.animeRow(repeatCount: 0, startedRaw: "2024-05-07")])])

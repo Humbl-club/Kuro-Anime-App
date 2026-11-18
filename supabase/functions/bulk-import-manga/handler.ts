@@ -41,6 +41,7 @@ import {
   type TrackPresetName,
 } from "../bulk-import-anime/tracks.ts";
 import { isCleanStop, pastAniListPageDepth } from "../_shared/anilist_client.ts";
+import { readCutoverModes } from "../_shared/catalogue/field_groups.ts";
 
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
@@ -248,6 +249,8 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
       });
     }
     lockAcquired = true;
+    // Read the per-group cutover switch once per run; an unreadable switch throws (fail closed) before any write.
+    const modes = await readCutoverModes(supabase);
     let lastProcessed = startPage - 1;
     let processedPages = 0;
     const timeBudgetMs = payload?.timeBudgetMs ?? 55_000;
@@ -295,7 +298,8 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
               includeVolumes,
               forceRefresh,
               maxPlaceholderChapters,
-              maxPlaceholderVolumes
+              maxPlaceholderVolumes,
+              modes
             );
           } catch (e) {
             console.error(e);

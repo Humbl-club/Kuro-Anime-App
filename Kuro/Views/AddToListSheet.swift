@@ -14,6 +14,8 @@ struct AddToListSheet: View {
     /// The status a title that is not on the list starts at (`TrackingEditorRequest.initialStatus`).
     /// The baseline stays the plain Planned draft, so a preset counts as unsaved input (N7 guard).
     var initialStatus: ListStatus? = nil
+    /// Test seam: renders the editor in one language regardless of the device (nil = the device language).
+    var forcedGerman: Bool? = nil
     /// Status, progress, score (1...10, 0 = unrated) and notes as the editor shows them.
     @State private var draft = TrackingDraft(entry: nil)
     /// The draft as the editor was filled: anything else is unsaved input (N7).
@@ -42,7 +44,12 @@ struct AddToListSheet: View {
         (draft.status == .current || draft.status == .completed || draft.status == .repeating) && maxProgress > 0
     }
 
-    private var german: Bool { KuroLocale.isGerman }
+    private var german: Bool { forcedGerman ?? KuroLocale.isGerman }
+
+    /// The repeat count shows for a finished or repeated title, or whenever it already holds a value.
+    private var showsRepeat: Bool {
+        draft.status == .completed || draft.status == .repeating || draft.repeatCount > 0
+    }
 
     private var progressUnitLabel: String {
         switch (mediaType == "manga", german) {
@@ -127,6 +134,18 @@ struct AddToListSheet: View {
                     EditorialLayout.divider()
                         .padding(.horizontal, KuroSpacing.lg)
 
+                    SpreadDatesSection(startedOn: $draft.startedOn, finishedOn: $draft.finishedOn, known: draft.datesKnown, german: german)
+
+                    EditorialLayout.divider()
+                        .padding(.horizontal, KuroSpacing.lg)
+
+                    if showsRepeat {
+                        SpreadRepeatSection(count: $draft.repeatCount, known: draft.datesKnown, medium: media.kind, german: german)
+
+                        EditorialLayout.divider()
+                            .padding(.horizontal, KuroSpacing.lg)
+                    }
+
                     SpreadNotesSection(notes: $draft.notes, german: german)
 
                     Color.clear.frame(height: KuroSpacing.xl)
@@ -174,8 +193,23 @@ struct AddToListSheet: View {
             // realtime hints): fill the editor from it without a network round trip.
             let entry = library.entry(for: media.libraryKey)
             isExistingEntry = entry != nil
-            baseline = TrackingDraft(entry: entry)
-            draft = TrackingDraft(entry: entry, initialStatus: entry == nil ? initialStatus : nil)
+            let loaded = library.loadState == .loaded
+            baseline = TrackingDraft(entry: entry, projectionLoaded: loaded)
+            draft = TrackingDraft(entry: entry, initialStatus: entry == nil ? initialStatus : nil, projectionLoaded: loaded)
+        }
+        .onChange(of: library.entry(for: media.libraryKey)?.datesKnown ?? false) { _, known in
+            // The stored dates arrived after the editor opened on a cached row: unlock them without touching
+            // anything the user already typed.
+            guard known, !draft.datesKnown, let entry = library.entry(for: media.libraryKey) else { return }
+            draft.adoptDates(from: entry)
+            baseline.adoptDates(from: entry)
+        }
+        .onChange(of: library.loadState) { _, state in
+            // The rows arrived while the editor was open on an untracked title: it is new, unlock its dates.
+            guard state == .loaded else { return }
+            let entry = library.entry(for: media.libraryKey)
+            draft.adoptLoadedProjection(entry: entry)
+            baseline.adoptLoadedProjection(entry: entry)
         }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected, saveError == offlineMutationMessage {
@@ -505,6 +539,109 @@ private struct SpreadScoreSection: View {
             @unknown default: break
             }
         }
+    }
+}
+
+// MARK: - Dates Section
+
+/// Started / Finished: two rows; tapping one expands an inline picker (never a sheet over the sheet).
+private struct SpreadDatesSection: View {
+    @Binding var startedOn: PartialDate?
+    @Binding var finishedOn: PartialDate?
+    /// `false`: the stored dates were never read, so the rows say so and cannot be edited.
+    let known: Bool
+    let german: Bool
+    private enum Field { case started, finished }
+    @State private var expanded: Field?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            row(.started, title: TrackingDateCopy.started(german: german), value: $startedOn)
+            EditorialLayout.divider()
+            row(.finished, title: TrackingDateCopy.finished(german: german), value: $finishedOn)
+        }
+        .padding(.horizontal, KuroSpacing.lg)
+        .padding(.vertical, KuroSpacing.sm)
+    }
+
+    private func row(_ field: Field, title: String, value: Binding<PartialDate?>) -> some View {
+        VStack(spacing: KuroSpacing.sm) {
+            Button {
+                withAnimation(KuroAnimation.fast) { expanded = expanded == field ? nil : field }
+                KuroAccessibility.impactHaptic(.light)
+            } label: {
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        Text(title).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                        Spacer(minLength: KuroSpacing.md)
+                        valueText(value.wrappedValue)
+                    }
+                    VStack(alignment: .leading, spacing: KuroSpacing.xs) {
+                        Text(title).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                        valueText(value.wrappedValue)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!known)
+            .accessibilityLabel(known ? TrackingDateCopy.rowLabel(title, value.wrappedValue, german: german)
+                                      : "\(title), \(TrackingDateCopy.unknown(german: german).lowercased())")
+            .accessibilityAddTraits(expanded == field ? [.isSelected] : [])
+
+            if known, expanded == field {
+                PartialDatePicker(value: value, label: title, german: german)
+                if value.wrappedValue != nil {
+                    Button {
+                        value.wrappedValue = nil
+                        KuroAccessibility.impactHaptic(.light)
+                    } label: {
+                        Text(TrackingDateCopy.clear(german: german))
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .overlay(Capsule().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(KuroPressStyle())
+                }
+            }
+        }
+    }
+
+    private func valueText(_ date: PartialDate?) -> some View {
+        Text(!known ? TrackingDateCopy.unknown(german: german)
+             : date.map { TrackingDateCopy.display($0, german: german) } ?? TrackingDateCopy.noDate(german: german))
+            .font(.kuroMeta())
+            .foregroundStyle(date == nil || !known ? Color.kuroInkQuiet : Color.kuroInkSecondary)
+            .multilineTextAlignment(.trailing)
+    }
+}
+
+// MARK: - Repeat Section
+
+private struct SpreadRepeatSection: View {
+    @Binding var count: Int
+    /// `false`: the stored count was never read; it is shown as unknown and cannot be changed.
+    let known: Bool
+    let medium: MediaKind
+    let german: Bool
+
+    var body: some View {
+        let label = known ? TrackingDateCopy.repeatCount(count, medium: medium, german: german)
+            : TrackingDateCopy.unknown(german: german)
+        Stepper(value: $count, in: 0...LibraryEdit.maxRepeatCount) {
+            Text(label)
+                .font(.kuroTitle())
+                .foregroundStyle(known ? Color.kuroInk : Color.kuroInkQuiet)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .disabled(!known)
+        .accessibilityLabel(label)
+        .padding(.horizontal, KuroSpacing.lg)
+        .padding(.vertical, KuroSpacing.md)
+        .frame(minHeight: 44)
     }
 }
 

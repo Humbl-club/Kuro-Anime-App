@@ -40,6 +40,7 @@ import {
   type TrackPresetName,
 } from "./tracks.ts";
 import { isCleanStop, pastAniListPageDepth } from "../_shared/anilist_client.ts";
+import { readCutoverModes } from "../_shared/catalogue/field_groups.ts";
 
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
@@ -242,6 +243,9 @@ export async function run(payload: any, deps: AnimeImportDeps): Promise<Response
       });
     }
     lockAcquired = true;
+    // Read the per-group cutover switch once per run. An unreadable switch throws (fail closed): the run
+    // errors before any page is fetched or written, and the cursor stays where it was.
+    const modes = await readCutoverModes(supabase);
     let lastProcessed = startPage - 1;
     const timeBudgetMs = payload?.timeBudgetMs ?? 55_000; // typical function budget safety
     const t0 = Date.now();
@@ -287,7 +291,7 @@ export async function run(payload: any, deps: AnimeImportDeps): Promise<Response
           const chunk = anime.slice(bi, bi + ITEM_BATCH_SIZE);
           await Promise.all(chunk.map(async (item: any) => {
             try {
-              await processAnimeItem(supabase, item, results, includeRelations, includeEpisodes, forceRefresh, includeVoiceActors);
+              await processAnimeItem(supabase, item, results, includeRelations, includeEpisodes, forceRefresh, includeVoiceActors, modes);
             } catch (e) {
               console.error(e);
               results.errors++;

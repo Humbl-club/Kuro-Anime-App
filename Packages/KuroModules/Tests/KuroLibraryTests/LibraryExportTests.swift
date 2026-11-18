@@ -74,7 +74,7 @@ struct LibraryExportTests {
         #expect(LibraryExportFormat.allCases.map(\.rawValue) == ["mal_xml", "csv", "json"])
         #expect(LibraryExportGap.allCases.map(\.rawValue) == ["identity_unavailable", "organisation_unavailable", "tracking_detail_unavailable"])
         #expect(input.trackingDetailUnavailable == false)
-        #expect(ExportCatalogueRow(title: nil, anilistId: nil, malId: 5).malId == 5)
+        #expect(ExportCatalogueRow(title: nil, malId: 5).malId == 5)
     }
 
     // MARK: - MAL XML
@@ -450,19 +450,29 @@ struct LibraryExportTests {
         #expect(jsonIds == [0, -5, Int(Int32.max) + 1, Int(Int32.max), 1, nil])
     }
 
+    /// Task 15d: AniList ids are private; neither export file carries them.
+    @Test func kuroCSVHasNoAniListColumn() throws {
+        #expect(!LibraryExport.csvHeader.contains("anilist_id"))
+        let bundle = LibraryExport.build(Self.idsTagsListsInput(), formats: [.json, .csv], exportedAt: Self.now, timeZone: Self.berlin)
+        let csv = String(decoding: try bundle.file("kuro-list-2026-11-09.csv").data, as: UTF8.self)
+        #expect(!csv.lowercased().contains("anilist"))
+        let entry = try #require(try Self.jsonEntries(bundle.file("kuro-list-2026-11-09.json")).first)
+        #expect(entry["anilist_id"] == nil)
+    }
+
     @Test func csvHasDocumentedHeaderAndEscapesText() throws {
         let note = "first, \"quoted\"\r\nsecond line"
         let file = try #require(LibraryExport.build(Self.single(notes: note), formats: [.csv], exportedAt: Self.now, timeZone: Self.berlin).files.first)
         let rows = try Self.csvRows(file)
         #expect(rows[0] == LibraryExport.csvHeader)
-        #expect(LibraryExport.csvHeader.first == "kind" && LibraryExport.csvHeader.count == 20)
-        #expect(LibraryExport.csvHeader.joined(separator: ",") == "kind,kuro_id,anilist_id,mal_id,title,status,progress,progress_label,unit_id,volumes_progress,rating,verdict,repeat_count,started_on,finished_on,notes,tags,custom_lists,created_at,updated_at")
+        #expect(LibraryExport.csvHeader.first == "kind" && LibraryExport.csvHeader.count == 19)
+        #expect(LibraryExport.csvHeader.joined(separator: ",") == "kind,kuro_id,mal_id,title,status,progress,progress_label,unit_id,volumes_progress,rating,verdict,repeat_count,started_on,finished_on,notes,tags,custom_lists,created_at,updated_at")
         let notesColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "notes"))
         #expect(rows[1][notesColumn] == note)
-        #expect(rows[1].count == 20)
+        #expect(rows[1].count == 19)
         // UTF-8 BOM first, CRLF records, the header row is unquoted.
         #expect(Array(file.data.prefix(3)) == [0xEF, 0xBB, 0xBF])
-        #expect(String(decoding: file.data.dropFirst(3).prefix(40), as: UTF8.self).hasPrefix("kind,kuro_id,anilist_id,mal_id,title,"))
+        #expect(String(decoding: file.data.dropFirst(3).prefix(40), as: UTF8.self).hasPrefix("kind,kuro_id,mal_id,title,"))
         #expect(file.name == "kuro-list-2026-11-09.csv" && file.contentType == "text/csv")
         #expect(String(decoding: file.data, as: UTF8.self).hasSuffix("\r\n"))
     }
@@ -674,8 +684,8 @@ struct LibraryExportTests {
         let input = LibraryExportInput(
             entries: [manga, unknown, simple],
             catalogue: [
-                manga.key: ExportCatalogueRow(title: "Moon Ledger", anilistId: 77, malId: nil),
-                simple.key: ExportCatalogueRow(title: "Alpha", anilistId: 11, malId: 101),
+                manga.key: ExportCatalogueRow(title: "Moon Ledger", malId: nil),
+                simple.key: ExportCatalogueRow(title: "Alpha", malId: 101),
             ],
             tagsByKey: [manga.key: ["a", "b; c"]],
             customLists: [
@@ -691,7 +701,7 @@ struct LibraryExportTests {
         #expect(rows.dropFirst().map { $0[0] + ":" + $0[1] } == ["anime:1", "anime:3", "manga:5"])
         let first = Self.cells(rows[1]), second = Self.cells(rows[2]), third = Self.cells(rows[3])
 
-        #expect(first["anilist_id"] == "11" && first["mal_id"] == "101" && first["title"] == "Alpha")
+        #expect(first["mal_id"] == "101" && first["title"] == "Alpha")
         #expect(first["status"] == "COMPLETED" && first["progress"] == "12" && first["rating"] == "7")
         #expect(first["verdict"] == "" && first["notes"] == "" && first["tags"] == "" && first["custom_lists"] == "Later")
         #expect(first["repeat_count"] == "0" && first["started_on"] == "2024" && first["finished_on"] == "2024-05-07")
@@ -699,11 +709,11 @@ struct LibraryExportTests {
         #expect(first["created_at"] == "2023-11-14T22:13:20Z" && first["updated_at"] == "2023-11-14T22:13:20Z")
 
         // No catalogue row: ids and title are empty; no source metadata: nothing invented.
-        #expect(second["anilist_id"] == "" && second["mal_id"] == "" && second["title"] == "")
+        #expect(second["mal_id"] == "" && second["title"] == "")
         #expect(second["status"] == "PLANNING" && second["progress"] == "0" && second["rating"] == "")
         #expect(second["repeat_count"] == "" && second["started_on"] == "" && second["finished_on"] == "" && second["volumes_progress"] == "")
 
-        #expect(third["kind"] == "manga" && third["anilist_id"] == "77" && third["mal_id"] == "" && third["title"] == "Moon Ledger")
+        #expect(third["kind"] == "manga" && third["mal_id"] == "" && third["title"] == "Moon Ledger")
         #expect(third["status"] == "REPEATING" && third["progress"] == "14" && third["verdict"] == "MASTERPIECE" && third["rating"] == "9")
         #expect(third["progress_label"] == "Vol 2" && third["unit_id"] == unit.uuidString.lowercased() && third["volumes_progress"] == "2")
         #expect(third["repeat_count"] == "2")
@@ -742,7 +752,7 @@ struct LibraryExportTests {
         let entries = try Self.jsonEntries(json)
         let entry = try #require(entries.first)
         #expect(entry["kind"] as? String == "anime")
-        #expect(entry["kuro_id"] as? Int == 42 && entry["anilist_id"] as? Int == 9253 && entry["mal_id"] as? Int == 9253)
+        #expect(entry["kuro_id"] as? Int == 42 && entry["mal_id"] as? Int == 9253)
         #expect(entry["title"] as? String == "Frieren")
         #expect(entry["status"] as? String == "COMPLETED" && entry["progress"] as? Int == 28)
         #expect(entry["progress_label"] as? String == "S2 E5")
@@ -761,7 +771,7 @@ struct LibraryExportTests {
         #expect(source["private"] as? Bool == false && source["hidden_from_status_lists"] as? Bool == true)
         #expect(source["list_options"] as? String == "{\"a\":1}")
         #expect(Set(entry.keys) == [
-            "kind", "kuro_id", "anilist_id", "mal_id", "title", "status", "progress", "progress_label", "unit_id",
+            "kind", "kuro_id", "mal_id", "title", "status", "progress", "progress_label", "unit_id",
             "volumes_progress", "rating", "verdict", "notes", "repeat_count", "started_on", "finished_on", "tags",
             "custom_lists", "source", "created_at", "updated_at",
         ])
@@ -769,7 +779,7 @@ struct LibraryExportTests {
         // inferred), empty cells in CSV.
         let second = entries[1]
         #expect(second["unit_id"] is NSNull && second["progress_label"] is NSNull)
-        #expect(second["anilist_id"] is NSNull && second["mal_id"] is NSNull && second["title"] is NSNull)
+        #expect(second["mal_id"] is NSNull && second["title"] is NSNull)
         #expect((second["tags"] as? [String])?.isEmpty == true && (second["custom_lists"] as? [String])?.isEmpty == true)
         let csvRows = try Self.csvRows(bundle.file("kuro-list-2026-11-09.csv"))
         let unitColumn = try #require(LibraryExport.csvHeader.firstIndex(of: "unit_id"))
@@ -1017,7 +1027,7 @@ struct LibraryExportTests {
     static let berlin = TimeZone(identifier: "Europe/Berlin") ?? TimeZone(secondsFromGMT: 3_600) ?? .gmt
 
     static func row(_ title: String?, mal: Int?) -> ExportCatalogueRow {
-        ExportCatalogueRow(title: title, anilistId: nil, malId: mal)
+        ExportCatalogueRow(title: title, malId: mal)
     }
 
     /// An entry whose `sourceMetadata` carries the given repeat count, dates and volumes.
@@ -1060,7 +1070,7 @@ struct LibraryExportTests {
                 )
                 entries.append(entry)
                 catalogue[entry.key] = ExportCatalogueRow(
-                    title: id == 3 ? "Tom & Jerry <\"3\">" : "Title \(id)", anilistId: 500 + id,
+                    title: id == 3 ? "Tom & Jerry <\"3\">" : "Title \(id)",
                     malId: (kind == .anime ? 1_000 : 2_000) + id
                 )
             }
@@ -1078,7 +1088,7 @@ struct LibraryExportTests {
             let kuroId = count + 1 - index
             let entry = Self.entry(kind, kuroId, .completed, progress: 12, rating: 7, notes: note, repeatCount: 1, started: "2024-03-05", finished: nil, volumes: kind == .manga ? 2 : nil)
             entries.append(entry)
-            catalogue[entry.key] = ExportCatalogueRow(title: "Title \(index)", anilistId: nil, malId: index)
+            catalogue[entry.key] = ExportCatalogueRow(title: "Title \(index)", malId: index)
         }
         return LibraryExportInput(entries: entries, catalogue: catalogue)
     }
@@ -1130,7 +1140,7 @@ struct LibraryExportTests {
         )
         return LibraryExportInput(
             entries: [rich, plain],
-            catalogue: [rich.key: ExportCatalogueRow(title: "Frieren", anilistId: 9253, malId: 9253)],
+            catalogue: [rich.key: ExportCatalogueRow(title: "Frieren", malId: 9253)],
             tagsByKey: [rich.key: ["slow burn", "rewatch"]],
             customLists: [ExportCustomList(id: Self.listId, name: "Comfort", createdAt: Date(timeIntervalSince1970: 1_790_812_800), items: [rich.key])]
         )

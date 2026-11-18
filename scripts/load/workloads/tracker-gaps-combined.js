@@ -8,5 +8,7 @@ module.exports = Object.freeze({
   baseRps: 20,
   profiles: Object.freeze({
     "status-with-date-fill": 0.4, // F3.1d
+    "export-mal-id-lookup": 0.2, // W2
+    "search-with-hidden-adult-count": 1, // W4
   }),
 });

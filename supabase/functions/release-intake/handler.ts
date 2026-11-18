@@ -22,6 +22,7 @@ import {
   releaseImportLock,
   startImportRun,
 } from "../bulk-import-anime/persistence.ts";
+import { groupIsAniListOwned, readCutoverModes } from "../_shared/catalogue/field_groups.ts";
 import { runAiringWindow } from "./airing.ts";
 import { type MangaDexLinkReader, runMangaReleases } from "./manga.ts";
 
@@ -76,6 +77,9 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
   }
 
   try {
+    // One read of the per-group cutover switch per run; an unreadable switch throws (fail closed) before
+    // any provider request or write.
+    const modes = await readCutoverModes(supabase);
     let results: Record<string, unknown>;
     if (mode === "airing") {
       results = await runAiringWindow(supabase, deps.anilist, {
@@ -86,6 +90,7 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
         dryRun,
         deadlineMs,
         nowMs: startedMs,
+        writeNextAiring: groupIsAniListOwned("episodes", modes),
       });
     } else {
       const ids = Array.isArray(payload?.mangaIds)
@@ -101,6 +106,7 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
         dryRun,
         deadlineMs,
         nowMs: startedMs,
+        writeVolumes: groupIsAniListOwned("facts", modes),
       });
     }
     const { sampleRows, ...summary } = results as Record<string, unknown> & { sampleRows?: unknown };

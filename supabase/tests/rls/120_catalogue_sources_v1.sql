@@ -169,6 +169,17 @@ select tests.eq('proposed and rejected links do not collide with the accepted on
     ('anime', 1200001, 'ann', '100', 'title_match', 'proposed'),
     ('anime', 1200001, 'ann', '100', 'title_match', 'rejected'),
     ('anime', 1200001, 'ann', '101', 'title_match', 'proposed')$$), 3::bigint);
+do $$
+begin
+  begin
+    insert into catalogue_id_links (kind, kuro_id, source, source_key, method, status)
+      values ('anime', 1200001, 'ann', '101', 'title_match', 'proposed');
+  exception when unique_violation then
+    raise notice 'TEST ok: duplicate proposed link for (kind, kuro_id, source, source_key) -> SQLSTATE %', sqlstate;
+    return;
+  end;
+  raise exception 'TEST FAIL: a duplicate proposed link was allowed';
+end $$;
 select tests.eq('another source may link the same anime',
   tests.affected($$insert into catalogue_id_links (kind, kuro_id, source, source_key, method, status)
     values ('anime', 1200001, 'wikidata', 'Q42', 'wikidata', 'accepted')$$), 1::bigint);
@@ -176,29 +187,73 @@ select tests.eq('the same source key under another kind is a different link',
   tests.affected($$insert into catalogue_id_links (kind, kuro_id, source, source_key, method, status)
     values ('manga', 1200001, 'ann', '100', 'title_match', 'accepted')$$), 1::bigint);
 
--- ---- 7. delete cleanup removes links only ------------------------------------------
-insert into catalogue_shadow_values (medium, media_id, field, value, source)
-  values ('anime', 1200001, 'format', '"TV"', 'ann');
+-- ---- 7. delete cleanup (exercised as service_role, the role the importers run as) ----------------
+-- The user list rows of the deleted anime and of the other anime. The existing list foreign key
+-- decides what happens to the deleted title's own rows; the catalogue triggers must not touch the
+-- other title's rows.
+create temp table list_fk as
+  select coalesce((select confdeltype::text from pg_constraint
+                    where conrelid = 'public.anime_user_lists'::regclass and contype = 'f'
+                      and confrelid = 'public.anime'::regclass limit 1), 'none') as del;
+grant select on list_fk to public;
+insert into catalogue_shadow_values (medium, media_id, field, value, source) values
+  ('anime', 1200001, 'format', '"TV"', 'ann'),
+  ('anime', 1200001, 'review:adult', '{"reason":"x"}', 'composer'),
+  ('anime', 1200002, 'format', '"OVA"', 'ann'),
+  ('manga', 1200001, 'format', '"MANGA"', 'mangaupdates');
+insert into catalogue_rollback_snapshots (field_group, medium, media_id, payload, taken_at) values
+  ('facts', 'anime', 1200001, '{"format":"TV"}', now()),
+  ('titles', 'anime', 1200001, '{}', now()),
+  ('facts', 'manga', 1200001, '{}', now());
+
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+set local role service_role;
+-- service_role can insert a link (the existence trigger takes FOR KEY SHARE on the target row)
+insert into catalogue_id_links (kind, kuro_id, source, source_key, method, status) values ('anime', 1200002, 'wikidata', 'Q88', 'title_match', 'proposed');
 delete from public.anime where id = 1200001;
-select tests.eq('deleting an anime removes its links (every status)',
+reset role;
+
+select tests.eq('service_role could insert a link on an existing target',
+  (select count(*) from catalogue_id_links where source_key = 'Q88'), 1::bigint);
+delete from catalogue_id_links where source_key = 'Q88';
+select tests.eq('deleting an anime removes its links (every status), as service_role',
   (select count(*) from catalogue_id_links where kind = 'anime' and kuro_id = 1200001), 0::bigint);
 select tests.eq('links of the other anime stay',
   (select count(*) from catalogue_id_links where kind = 'anime' and kuro_id = 1200002), 1::bigint);
 select tests.eq('manga links with the same numeric id stay',
   (select count(*) from catalogue_id_links where kind = 'manga' and kuro_id = 1200001), 2::bigint);
-select tests.eq('user list rows of the other anime are untouched',
-  (select progress from public.anime_user_lists where anime_id = 1200002), 2);
+select tests.eq('deletedTitleRemovesShadowRows: the deleted anime has no shadow rows left',
+  (select count(*) from catalogue_shadow_values where medium = 'anime' and media_id = 1200001), 0::bigint);
+select tests.eq('deletedTitleRemovesShadowRows: the deleted anime has no rollback snapshots left',
+  (select count(*) from catalogue_rollback_snapshots where medium = 'anime' and media_id = 1200001), 0::bigint);
+select tests.eq('shadow rows of the other anime and of the manga with the same numeric id stay',
+  (select count(*) from catalogue_shadow_values where (medium, media_id) in (('anime', 1200002), ('manga', 1200001))), 2::bigint);
+select tests.eq('snapshots of the manga with the same numeric id stay',
+  (select count(*) from catalogue_rollback_snapshots where medium = 'manga' and media_id = 1200001), 1::bigint);
+select tests.eq('the deleted title''s own list row follows the existing foreign key (cascade removes it, otherwise it stays)',
+  (select count(*) from public.anime_user_lists where anime_id = 1200001),
+  case when (select del from list_fk) = 'c' then 0::bigint else 1::bigint end);
+select tests.eq('the other anime''s list row is untouched (user, anime, progress)',
+  (select count(*) from public.anime_user_lists where anime_id = 1200002 and user_id = tests.uid(1200)::text and progress = 2), 1::bigint);
 select tests.eq('the source record of the deleted title stays (records are not title-keyed)',
   (select count(*) from catalogue_source_records where source_key = 'Q1' and medium = 'anime'), 1::bigint);
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+set local role service_role;
 delete from public.manga where id = 1200001;
+reset role;
 select tests.eq('deleting a manga removes its manga links only',
   (select count(*) from catalogue_id_links where kind = 'manga' and kuro_id = 1200001), 0::bigint);
+select tests.eq('deleting a manga removes its shadow rows and snapshots',
+  (select count(*) from catalogue_shadow_values where medium = 'manga' and media_id = 1200001)
+  + (select count(*) from catalogue_rollback_snapshots where medium = 'manga' and media_id = 1200001), 0::bigint);
 select tests.eq('staff / studio / character / author links stay until their own row goes',
   (select count(*) from catalogue_id_links where kind in ('staff','studio','character','author')), 4::bigint);
+set local role service_role;
 delete from public.staff where id = 1200001;
 delete from public.studios where id = 1200001;
 delete from public.characters where id = 1200001;
 delete from public.authors where id = 1200001;
+reset role;
 select tests.eq('deleting an entity row removes its links',
   (select count(*) from catalogue_id_links where kind in ('staff','studio','character','author')), 0::bigint);
 

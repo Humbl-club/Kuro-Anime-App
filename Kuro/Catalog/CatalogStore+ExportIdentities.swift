@@ -6,7 +6,7 @@ import KuroLibrary
 import Supabase
 
 // MARK: - Export identities (public data, W2 list export)
-// The list export needs each library title's AniList / MyAnimeList ids and display title. They live in
+// The list export needs each library title's MyAnimeList id and display title. They live in
 // the public `anime` / `manga` tables (policy "Public read access"; `mal_id` is UNIQUE, `id` is the
 // primary key), so this is one plain GET per batch of at most `exportIdentityBatchSize` ids, in the
 // Browse load class. No adult filter: the export is the owner's own list.
@@ -22,9 +22,9 @@ extension CatalogStore {
     nonisolated static let exportIdentityBatchSize = 500
 
     /// The columns an identity row needs.
-    nonisolated static let exportIdentityColumns = "id,anilist_id,mal_id,title_english,title_romaji,title_native"
+    nonisolated static let exportIdentityColumns = "id,mal_id,title_english,title_romaji,title_native"
 
-    /// Public identity rows for `keys`: one `GET /rest/v1/{anime|manga}?select=id,anilist_id,mal_id,title_english,title_romaji,title_native&id=in.(…)`
+    /// Public identity rows for `keys`: one `GET /rest/v1/{anime|manga}?select=id,mal_id,title_english,title_romaji,title_native&id=in.(…)`
     /// per at most `exportIdentityBatchSize` ids, anime first, sequential, ids ascending. A title the
     /// catalogue does not return is absent from the result. A failed batch leaves its own keys absent and
     /// the remaining batches still run; this never throws. A transport-level failure (`URLError`: offline,
@@ -71,7 +71,6 @@ extension CatalogStore {
 /// One `anime` / `manga` identity row as PostgREST returns it.
 private nonisolated struct ExportIdentityRow: Decodable {
     let id: Int
-    let anilistId: Int?
     let malId: Int?
     let titleEnglish: String?
     let titleRomaji: String?
@@ -79,7 +78,6 @@ private nonisolated struct ExportIdentityRow: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case anilistId = "anilist_id"
         case malId = "mal_id"
         case titleEnglish = "title_english"
         case titleRomaji = "title_romaji"
@@ -91,7 +89,7 @@ private nonisolated struct ExportIdentityRow: Decodable {
         let title = [titleEnglish, titleRomaji, titleNative]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { !$0.isEmpty }
-        return ExportCatalogueRow(title: title, anilistId: anilistId, malId: malId)
+        return ExportCatalogueRow(title: title, malId: malId)
     }
 }
 

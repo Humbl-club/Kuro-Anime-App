@@ -61,7 +61,7 @@ struct TastePicksView: View {
             .scrollDisabled(false)
             .background(TastePageContent.canvas(for: medium).ignoresSafeArea())
         }
-        .tastePlanHost(plans)
+        .tastePlanHost(plans, offerSlot: true)
         .task {
             startedAsNewAccount = nil
             latchNewAccount()
@@ -591,9 +591,9 @@ nonisolated enum FirstFavouritePicks {
 // MARK: - Plan key rule (pure) and write
 
 /// What one tap on a story card's Plan key does: plan a title that is not on the list, take a bare
-/// plan off again (planned, no progress, no notes, rating or verdict: nothing a removal would lose),
-/// or open the list editor for anything else (another status, or a plan the user has since added to;
-/// never removed from here).
+/// plan off again (planned, no progress, no notes, rating, verdict, repeat count or dates: nothing a
+/// removal would lose), or open the list editor for anything else (another status, or a plan the user
+/// has since added to; never removed from here).
 nonisolated enum TastePlanAction: Equatable {
     case plan, unplan, edit
 
@@ -608,6 +608,11 @@ nonisolated enum TastePlanAction: Equatable {
             && (entry.notes?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             && entry.rating == nil
             && entry.verdict == nil
+            && entry.repeatCount == 0
+            // Judged on the stored raw, not on `startedOn`: an unparseable imported raw has no parsed date
+            // but is still something a removal would lose. A cached row (no metadata) stays bare.
+            && (entry.sourceMetadata?.startedRaw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && (entry.sourceMetadata?.finishedRaw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
 }
 
@@ -855,6 +860,9 @@ struct TastePlanToastView: View {
 /// the modified view (put it outside the page's ScrollView so the toast stays put).
 struct TastePlanHost: ViewModifier {
     let controller: TastePlanController
+    /// Taste's own page draws the release alert offer in this slot (W3a); other pages (detail, Home)
+    /// register another foot slot for it and keep the default.
+    var offerSlot: Bool = false
 
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var actions
@@ -865,22 +873,31 @@ struct TastePlanHost: ViewModifier {
         content
             .environment(controller)
             .overlay(alignment: .bottom) {
-                if let toast = controller.toast {
-                    TastePlanToastView(toast: toast, german: german,
-                                       onUndo: { controller.undo(library: library, actions: actions, german: german) },
-                                       onDismiss: { controller.dismiss() })
-                        .id(toast.id)
-                        .transition(.opacity)
-                        .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+                if offerSlot {
+                    ReleaseAlertOfferStack(hasToast: controller.toast != nil) { toastView(german: german) }
+                } else {
+                    toastView(german: german)
                 }
             }
             .kuroAnimation(KuroMotion.contact, value: controller.toast?.id)
     }
+
+    @ViewBuilder
+    private func toastView(german: Bool) -> some View {
+        if let toast = controller.toast {
+            TastePlanToastView(toast: toast, german: german,
+                               onUndo: { controller.undo(library: library, actions: actions, german: german) },
+                               onDismiss: { controller.dismiss() })
+                .id(toast.id)
+                .transition(.opacity)
+                .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+        }
+    }
 }
 
 extension View {
-    func tastePlanHost(_ controller: TastePlanController) -> some View {
-        modifier(TastePlanHost(controller: controller))
+    func tastePlanHost(_ controller: TastePlanController, offerSlot: Bool = false) -> some View {
+        modifier(TastePlanHost(controller: controller, offerSlot: offerSlot))
     }
 }
 

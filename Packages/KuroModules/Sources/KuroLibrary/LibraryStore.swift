@@ -15,6 +15,16 @@ import Observation
 /// - `loadState` says whether the projection holds the bound account's rows yet: until a refresh of
 ///   the current binding has published, a title missing from the projection is UNKNOWN, not untracked
 ///   (`entry(for: LibraryKnowledgeQuery)`).
+/// Runs one private request inside the credential lease of an account. It throws (for example
+/// `CancellationError`) when that account is no longer current, and then the request is not sent.
+public protocol LibraryCredentialLease: Sendable {
+    @MainActor
+    func withLease<T: Sendable>(
+        for account: AccountContext,
+        _ operation: @escaping @MainActor @Sendable () async throws -> T
+    ) async throws -> T
+}
+
 @MainActor
 @Observable
 public final class LibraryStore: LibraryReading, LibraryWriting {
@@ -46,6 +56,9 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     @ObservationIgnored private let backend: any LibraryBackend
     @ObservationIgnored private let sinks: [any LibraryChangeSink]
     @ObservationIgnored private let now: @Sendable () -> Date
+    @ObservationIgnored private let calendar: Calendar
+    @ObservationIgnored private let dateAutofillEnabled: @MainActor () -> Bool
+    @ObservationIgnored private let credentialLease: (any LibraryCredentialLease)?
 
     /// Tail of the FIFO chain per key.
     @ObservationIgnored private var queues: [MediaKey: Task<Void, Never>] = [:]
@@ -66,11 +79,17 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     public init(
         backend: any LibraryBackend,
         sinks: [any LibraryChangeSink] = [],
-        now: @escaping @Sendable () -> Date = { Date() }
+        now: @escaping @Sendable () -> Date = { Date() },
+        calendar: Calendar = .autoupdatingCurrent,
+        dateAutofillEnabled: @escaping @MainActor () -> Bool = { false },
+        credentialLease: (any LibraryCredentialLease)? = nil
     ) {
         self.backend = backend
         self.sinks = sinks
         self.now = now
+        self.calendar = calendar
+        self.dateAutofillEnabled = dateAutofillEnabled
+        self.credentialLease = credentialLease
     }
 
     // MARK: Account binding
@@ -258,15 +277,56 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     }
 
     public func apply(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil) async -> LibraryOutcome {
+        // A verbatim date is restore-only: a user-facing write never carries one.
+        if edit.startedRawVerbatim != nil { return .failed(.invalidValue(field: "startedRawVerbatim")) }
+        if edit.finishedRawVerbatim != nil { return .failed(.invalidValue(field: "finishedRawVerbatim")) }
+        return await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: true)
+    }
+
+    /// An Undo or restore: sends exactly `edit` and never fills a date, whatever the projection holds. Every
+    /// Undo the app shows that goes through an edit (removal Undo, +1 Undo) uses this, never `apply`.
+    public func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil,
+                        account: AccountContext) async -> LibraryOutcome {
+        // Never restore one account's row onto another account's projection.
+        guard account == context else { return .failed(.notAuthenticated) }
+        return await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: false)
+    }
+
+    /// `fillsEmptyDates` is `false` for Undo, which must restore exactly and never fill. The release switch is
+    /// read once, here, before the optimistic projection and before any backend call.
+    func apply(_ original: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus?,
+               fillsEmptyDates: Bool) async -> LibraryOutcome {
         guard !importUndoKeys.contains(key) else { return .failed(.retryable(message: "This title is being changed by an import. Try again after Apply or Undo finishes.")) }
-        if let error = edit.validationError { return .failed(error) }
+        if let error = original.validationError { return .failed(error) }
+        var edit = original
+        var autoFilled = false
+        if fillsEmptyDates, original.touchesStatus, dateAutofillEnabled() {
+            let projected = entry(for: key)
+            // Dates are judged on the confirmed row, never on the optimistic projection: a cached row that
+            // received an optimistic edit still has unknown dates. A pending optimistic date counts as present.
+            var confirmed = progressBaseline(for: key)
+            if var row = confirmed, let projected {
+                row.status = projected.status
+                if let raw = projected.sourceMetadata?.startedRaw, !raw.isBlank { row.sourceMetadata?.startedRaw = raw }
+                if let raw = projected.sourceMetadata?.finishedRaw, !raw.isBlank { row.sourceMetadata?.finishedRaw = raw }
+                confirmed = row
+            }
+            // "Creating" is only known once the account's rows are loaded: while the projection is loading,
+            // failed or unbound, a missing row may exist on the server with dates this device has not read.
+            let creating = projected == nil && createIfMissing != nil && loadState == .loaded
+            (edit, autoFilled) = original.fillingEmptyDates(
+                current: confirmed, creating: creating, today: PartialDate.day(of: now(), in: calendar))
+        }
         if (edit.touchesProgress || edit.touchesStatus), progressAvailable,
            let row = entry(for: key), let lifecycle = row.lifecycleId, row.revision != nil,
            let lease = currentLease() {
             // Reserve the online fields before the first suspension. Admit progress immediately,
             // so a later +1 computes from this action even while its notes PATCH is in flight.
-            let patch = edit.patchBodyOmittingProgress
+            // The caller's own online fields go out now. An auto-filled date is a separate best-effort leg that
+            // is only dispatched after the durable status intent is accepted (below), never ahead of it.
+            let patch = original.patchBodyOmittingProgress
             let patchTask = patch.isEmpty ? nil : issue(.edit(patch, createIfMissing: nil), on: key)
+            let fillLeg = autoFilled ? edit.dateFillLeg(comparedTo: original) : nil
             let position: Int
             if case .set(let value) = edit.progress { position = value } else { position = row.progress }
             let outcome = await applyDurableProgress(edit, position: position, to: key)
@@ -274,14 +334,33 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
             guard holds(lease) else { return .failed(.notAuthenticated) }
             guard entry(for: key)?.lifecycleId == lifecycle else { return .failed(.notFound) }
             if case .failed = outcome { return outcome }
+            // A failed leg that only carried the auto-filled date is best effort: the durable change stands and
+            // the date was already dropped from the projection when the mutation settled.
             if case .failed(let error) = patchOutcome {
                 return .failed(.retryable(message: "Progress is saved on this device; other fields could not be saved: \(error)"))
+            }
+            if let fillLeg, fillLegStillApplies(fillLeg, key: key) {
+                // The durable intent is committed. The fill is best effort: a failed leg keeps the status and the
+                // projection drops the date when the mutation settles.
+                _ = await issue(.edit(fillLeg, createIfMissing: nil), on: key, leased: true).value
+                guard holds(lease) else { return .failed(.notAuthenticated) }
+                guard entry(for: key)?.lifecycleId == lifecycle else { return .failed(.notFound) }
             }
             guard let change = outcome.change else { return outcome }
             return .applied(LibraryChange(key: key, kind: .updated, previous: row,
                 current: entry(for: key), mutationId: change.mutationId, account: lease.context))
         }
         return await enqueue(.edit(edit, createIfMissing: createIfMissing), on: key)
+    }
+
+    /// The fill leg still applies when the date it would write is still empty: a date the user (or another
+    /// writer) set between the durable acceptance and this dispatch is never overwritten.
+    private func fillLegStillApplies(_ leg: LibraryEdit, key: MediaKey) -> Bool {
+        guard let metadata = entry(for: key)?.sourceMetadata else { return false }
+        func empty(_ raw: String?) -> Bool { raw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true }
+        if !leg.startedOn.isUnchanged, !empty(metadata.startedRaw) { return false }
+        if !leg.finishedOn.isUnchanged, !empty(metadata.finishedRaw) { return false }
+        return true
     }
 
     public func remove(_ key: MediaKey) async -> LibraryOutcome {
@@ -297,12 +376,14 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
             return await remove(change.key)
         case .removed:
             guard let previous = change.previous else { return .failed(.conflict(server: nil)) }
-            return await apply(.restoring(previous), to: change.key, createIfMissing: previous.status)
+            return await apply(.restoring(previous), to: change.key, createIfMissing: previous.status,
+                               fillsEmptyDates: false)
         case .updated:
             guard let previous = change.previous, let current = change.current else {
                 return .failed(.conflict(server: change.current))
             }
-            return await apply(.reverting(current, to: previous), to: change.key, createIfMissing: nil)
+            return await apply(.reverting(current, to: previous), to: change.key, createIfMissing: nil,
+                               fillsEmptyDates: false)
         }
     }
 
@@ -314,9 +395,9 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
 
     /// Registers a key reservation synchronously. Mixed durable/online actions must register the
     /// online leg before any disk suspension, without creating another writer or FIFO.
-    private func issue(_ intent: MutationIntent, on key: MediaKey) -> Task<LibraryOutcome, Never> {
+    private func issue(_ intent: MutationIntent, on key: MediaKey, leased: Bool = false) -> Task<LibraryOutcome, Never> {
         guard let lease = currentLease() else { return Task { .failed(.notAuthenticated) } }
-        let mutation = PendingMutation(id: UUID(), intent: intent, issuedAt: now())
+        let mutation = PendingMutation(id: UUID(), intent: intent, issuedAt: now(), leased: leased)
         var state = inFlight[key] ?? KeyMutations(confirmed: entries[key], pending: [])
         state.pending.append(mutation)
         inFlight[key] = state
@@ -360,14 +441,21 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
                     settle(mutation, on: key, .keepBase)
                     return .applied(change(.updated, base, base))
                 }
-                let result = try await backend.edit(
-                    edit,
-                    key: key,
-                    createIfMissing: createIfMissing,
-                    mutationId: mutation.id,
-                    baseRevision: base?.revision,
-                    account: context
-                )
+                let backend = self.backend
+                let baseRevision = base?.revision
+                let send: @MainActor @Sendable () async throws -> LibraryWriteResult = {
+                    try await backend.edit(
+                        edit, key: key, createIfMissing: createIfMissing,
+                        mutationId: mutation.id, baseRevision: baseRevision, account: context
+                    )
+                }
+                let result: LibraryWriteResult
+                if mutation.leased, let credentialLease {
+                    // The auto-filled date leg is a new private request: it runs inside the account's lease.
+                    result = try await credentialLease.withLease(for: context, send)
+                } else {
+                    result = try await send()
+                }
                 guard holds(lease) else { return .failed(.notAuthenticated) }
                 if result.created {
                     applied = change(.added, nil, result.entry)
@@ -470,6 +558,8 @@ private struct PendingMutation: Sendable {
     let id: UUID
     let intent: MutationIntent
     let issuedAt: Date
+    /// The request runs inside the account's credential lease (the auto-filled date leg).
+    var leased = false
 }
 
 private struct KeyMutations {
@@ -481,4 +571,8 @@ private struct KeyMutations {
             mutation.intent.project(entry, key: key, at: mutation.issuedAt)
         }
     }
+}
+
+private extension String {
+    var isBlank: Bool { trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 }

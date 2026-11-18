@@ -35,7 +35,6 @@ export type RagSeed = SeedOverride & { entityId: string | null };
 export interface CatalogRepository {
   conciergeConfig(): Promise<Row>;
   /** AniList tag ids -> internal tag ids (no query for an empty list). */
-  tagIdsForAnilistIds(anilistIds: number[]): Promise<number[]>;
   editorialTagBoosts(): Promise<Row[] | null>;
   featureFlagEnabled(flagName: string, userId: string, market: string): Promise<boolean>;
   /** The caller's five most frequent list genres (Hentai/Ecchi/Kids ignored). */
@@ -83,14 +82,6 @@ export function supabaseCatalogRepository(deps: CatalogRepositoryDeps): CatalogR
     async conciergeConfig() {
       const { data } = await client.rpc("get_concierge_config");
       return data;
-    },
-
-    async tagIdsForAnilistIds(anilistIds) {
-      const ids = uniq(anilistIds).filter((x) => Number.isFinite(x) && x > 0);
-      if (!ids.length) return [];
-      const { data, error } = await client.from("tags").select("id,anilist_id").in("anilist_id", ids);
-      if (error || !Array.isArray(data)) return [];
-      return uniq(data.map((r: Row) => Number(r.id)).filter((x: number) => Number.isFinite(x) && x > 0));
     },
 
     async editorialTagBoosts() {

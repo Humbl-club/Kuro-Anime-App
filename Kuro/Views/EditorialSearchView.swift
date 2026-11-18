@@ -166,10 +166,12 @@ struct EditorialSearchView: View {
                     .fill(Color.kuroHairline)
                     .frame(height: 1)
 
-                if let transientBannerMessage = banner.message {
-                    KuroTransientBanner(message: transientBannerMessage)
-                        .padding(.horizontal, gutter)
-                        .padding(.vertical, KuroDesignSpacing.sm)
+                ReleaseAlertOfferStack(hasToast: banner.message != nil) {
+                    if let transientBannerMessage = banner.message {
+                        KuroTransientBanner(message: transientBannerMessage)
+                            .padding(.horizontal, gutter)
+                            .padding(.vertical, KuroDesignSpacing.sm)
+                    }
                 }
 
                 ScrollView(.vertical, showsIndicators: false) {
@@ -251,16 +253,20 @@ struct EditorialSearchView: View {
             )
             .padding(.horizontal, gutter)
         } else if results.isEmpty {
-            SearchNoResultsState(
-                title: Self.noResultsTitle(
-                    query: trimmedQuery,
-                    refinements: availableRefinements.filter { selectedRefinements.contains($0) },
-                    german: KuroLocale.isGerman
-                ),
-                hasRefinements: !selectedRefinements.isEmpty,
-                gutter: gutter,
-                onClearRefinements: { selectedRefinements = [] }
-            )
+            VStack(alignment: .leading, spacing: 0) {
+                SearchNoResultsState(
+                    title: Self.noResultsTitle(
+                        query: trimmedQuery,
+                        refinements: availableRefinements.filter { selectedRefinements.contains($0) },
+                        german: KuroLocale.isGerman
+                    ),
+                    hasRefinements: !selectedRefinements.isEmpty,
+                    gutter: gutter,
+                    onClearRefinements: { selectedRefinements = [] }
+                )
+                SearchAdultFootnote(hiddenAdult: search.hiddenAdultCount)
+                    .padding(.horizontal, gutter)
+            }
         } else {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(results.enumerated()), id: \.element.id) { index, item in
@@ -281,6 +287,8 @@ struct EditorialSearchView: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(KuroLocale.text("Loading more", "Lädt weitere"))
                 }
+                SearchAdultFootnote(hiddenAdult: search.hiddenAdultCount)
+                    .padding(.horizontal, gutter)
             }
             .padding(.top, KuroDesignSpacing.xs)
         }

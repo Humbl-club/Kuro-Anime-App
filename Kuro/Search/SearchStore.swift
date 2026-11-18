@@ -60,6 +60,18 @@ final class SearchStore {
     /// Last search failure (owner-local; not the Library write channel).
     var errorMessage: String? = nil
 
+    /// W4: how many 18+ titles the current query matched but Search does not list (page 1 only;
+    /// anime and manga are summed in the combined scope). Always 0 while `adultNoticeEnabled()` is
+    /// false or v2 is not deployed.
+    private(set) var hiddenAdultAnime = 0
+    private(set) var hiddenAdultManga = 0
+    var hiddenAdultCount: Int { hiddenAdultAnime + hiddenAdultManga }
+    /// `search_adult_notice_v1` (composition-configured). Off: no v2 request is ever sent.
+    @ObservationIgnored var adultNoticeEnabled: @MainActor () -> Bool = { false }
+    /// When v2 last answered "not deployed"; v2 is not asked again for `undeployedRetryInterval`.
+    @ObservationIgnored private var searchV2UndeployedAt: Date? = nil
+    nonisolated static let undeployedRetryInterval: TimeInterval = DiscoveryStore.discoverUndeployedRetryInterval
+
     /// Bumped by every reset: a page or refresh started for an earlier query never publishes.
     @ObservationIgnored private var queryGeneration = 0
     /// The page or refresh load in flight for the current query; a reset cancels it.
@@ -114,6 +126,8 @@ final class SearchStore {
         inFlight?.cancel()
         inFlight = nil
         isSearching = false
+        hiddenAdultAnime = 0
+        hiddenAdultManga = 0
     }
 
     /// Runs `load` for the current query as the owner's in-flight load. A reset cancels it, and so
@@ -156,7 +170,7 @@ final class SearchStore {
     private func loadNextSearchPage(query trimmedQuery: String, generation: Int) async {
         do {
             if searchMode == .manga {
-                let page = try await fetchSearchMangaPage(
+                let result = try await loadMangaPage(
                     query: trimmedQuery,
                     filters: currentSearchFilters,
                     cursorRank: searchCursorMangaRank,
@@ -165,6 +179,8 @@ final class SearchStore {
                     limit: searchPageSize
                 )
                 guard generation == queryGeneration else { return }
+                let page = result.cards
+                if let hidden = result.hiddenAdult { hiddenAdultManga = hidden }
                 searchMangaItems.append(contentsOf: page)
                 hasMoreSearch = page.count == searchPageSize
                 if let last = page.last {
@@ -173,7 +189,7 @@ final class SearchStore {
                     searchCursorMangaId = last.id
                 }
             } else {
-                let page = try await fetchSearchAnimePage(
+                let result = try await loadAnimePage(
                     query: trimmedQuery,
                     filters: currentSearchFilters,
                     cursorRank: searchCursorAnimeRank,
@@ -182,6 +198,8 @@ final class SearchStore {
                     limit: searchPageSize
                 )
                 guard generation == queryGeneration else { return }
+                let page = result.cards
+                if let hidden = result.hiddenAdult { hiddenAdultAnime = hidden }
                 searchAnimeItems.append(contentsOf: page)
                 hasMoreSearch = page.count == searchPageSize
                 if let last = page.last {
@@ -221,9 +239,9 @@ final class SearchStore {
         let mangaCursor = (rank: searchCursorMangaRank, popularity: searchCursorMangaPopularity, id: searchCursorMangaId)
         let pageSize = searchPageSize
 
-        async let animeResult: Result<[AnimeCard], Error>? = loadAnime
+        async let animeResult: Result<SearchStore.PageResult<AnimeCard>, Error>? = loadAnime
             ? Self.capture {
-                try await self.fetchSearchAnimePage(
+                try await self.loadAnimePage(
                     query: trimmedQuery,
                     filters: filters,
                     cursorRank: animeCursor.rank,
@@ -233,9 +251,9 @@ final class SearchStore {
                 )
             }
             : nil
-        async let mangaResult: Result<[MangaCard], Error>? = loadManga
+        async let mangaResult: Result<SearchStore.PageResult<MangaCard>, Error>? = loadManga
             ? Self.capture {
-                try await self.fetchSearchMangaPage(
+                try await self.loadMangaPage(
                     query: trimmedQuery,
                     filters: filters,
                     cursorRank: mangaCursor.rank,
@@ -250,7 +268,9 @@ final class SearchStore {
 
         var failure: Error?
         switch anime {
-        case .success(let page):
+        case .success(let result):
+            let page = result.cards
+            if let hidden = result.hiddenAdult { hiddenAdultAnime = hidden }
             searchAnimeItems.append(contentsOf: page)
             hasMoreSearchAnime = page.count == pageSize
             if let last = page.last {
@@ -262,7 +282,9 @@ final class SearchStore {
         case nil: break
         }
         switch manga {
-        case .success(let page):
+        case .success(let result):
+            let page = result.cards
+            if let hidden = result.hiddenAdult { hiddenAdultManga = hidden }
             searchMangaItems.append(contentsOf: page)
             hasMoreSearchManga = page.count == pageSize
             if let last = page.last {
@@ -317,7 +339,7 @@ final class SearchStore {
                 searchCursorAnimeRank = nil
                 searchCursorAnimePopularity = nil
                 searchCursorAnimeId = nil
-                let page = try await fetchSearchAnimePage(
+                let result = try await loadAnimePage(
                     query: trimmedQuery,
                     filters: currentSearchFilters,
                     cursorRank: nil,
@@ -326,6 +348,8 @@ final class SearchStore {
                     limit: searchPageSize
                 )
                 guard generation == queryGeneration else { return }
+                let page = result.cards
+                hiddenAdultAnime = result.hiddenAdult ?? 0
                 searchAnimeItems = page
                 hasMoreSearch = page.count == searchPageSize
                 if let last = page.last {
@@ -337,7 +361,7 @@ final class SearchStore {
                 searchCursorMangaRank = nil
                 searchCursorMangaPopularity = nil
                 searchCursorMangaId = nil
-                let page = try await fetchSearchMangaPage(
+                let result = try await loadMangaPage(
                     query: trimmedQuery,
                     filters: currentSearchFilters,
                     cursorRank: nil,
@@ -346,6 +370,8 @@ final class SearchStore {
                     limit: searchPageSize
                 )
                 guard generation == queryGeneration else { return }
+                let page = result.cards
+                hiddenAdultManga = result.hiddenAdult ?? 0
                 searchMangaItems = page
                 hasMoreSearch = page.count == searchPageSize
                 if let last = page.last {
@@ -365,7 +391,7 @@ final class SearchStore {
                 // Both first pages in parallel (all-or-error, as before).
                 let filters = currentSearchFilters
                 let pageSize = searchPageSize
-                async let animeFirst = fetchSearchAnimePage(
+                async let animeFirst = loadAnimePage(
                     query: trimmedQuery,
                     filters: filters,
                     cursorRank: nil,
@@ -373,7 +399,7 @@ final class SearchStore {
                     cursorId: nil,
                     limit: pageSize
                 )
-                async let mangaFirst = fetchSearchMangaPage(
+                async let mangaFirst = loadMangaPage(
                     query: trimmedQuery,
                     filters: filters,
                     cursorRank: nil,
@@ -381,8 +407,12 @@ final class SearchStore {
                     cursorId: nil,
                     limit: pageSize
                 )
-                let (animePage, mangaPage) = try await (animeFirst, mangaFirst)
+                let (animeResult, mangaResult) = try await (animeFirst, mangaFirst)
                 guard generation == queryGeneration else { return }
+                let animePage = animeResult.cards
+                let mangaPage = mangaResult.cards
+                hiddenAdultAnime = animeResult.hiddenAdult ?? 0
+                hiddenAdultManga = mangaResult.hiddenAdult ?? 0
                 searchAnimeItems = animePage
                 searchMangaItems = mangaPage
                 hasMoreSearchAnime = animePage.count == searchPageSize
@@ -413,6 +443,93 @@ final class SearchStore {
             print("❌ search refresh: \(error)")
             #endif
         }
+    }
+
+    // MARK: - Owner paging: v2 first page (W4) with v1 fallback
+
+    /// A page plus the hidden-18+ count (`nil` when v2 was not asked or carried no count).
+    struct PageResult<Card: Sendable>: Sendable {
+        let cards: [Card]
+        let hiddenAdult: Int?
+    }
+
+    /// First pages (no cursor) of the owner's own paging ask v2 while the flag is on and v2 is not
+    /// remembered as undeployed; page 2+ and every external caller stay on v1.
+    private func useSearchV2(cursorId: Int?, now: Date = Date()) -> Bool {
+        guard cursorId == nil, adultNoticeEnabled() else { return false }
+        guard let at = searchV2UndeployedAt else { return true }
+        if now.timeIntervalSince(at) < Self.undeployedRetryInterval { return false }
+        searchV2UndeployedAt = nil
+        return true
+    }
+
+    private func loadAnimePage(
+        query: String, filters: SearchFilters?, cursorRank: Double?, cursorPopularity: Int?, cursorId: Int?, limit: Int
+    ) async throws -> PageResult<AnimeCard> {
+        if useSearchV2(cursorId: cursorId) {
+            do {
+                let client = try requiredClient()
+                let params = RPCSearchAnimePageParams(
+                    p_query: query, p_limit: max(1, min(50, limit)),
+                    p_cursor_rank: cursorRank, p_cursor_popularity: cursorPopularity, p_cursor_id: cursorId,
+                    p_trending: filters?.trending ?? false, p_new_season: filters?.newSeason ?? false,
+                    p_classics: filters?.classics ?? false, p_hidden_gems: filters?.hiddenGems ?? false,
+                    p_airing_only: filters?.airingOnly ?? false, p_season: filters?.seasonName, p_season_year: filters?.seasonYear
+                )
+                let perf = KuroPerf.begin("rpc.search_anime_page_v2")
+                let page: SearchPageV2<AnimeCard>
+                do {
+                    page = try await client.rpc("search_anime_page_v2", params: params).execute().value
+                    KuroPerf.end(perf, message: "ok \(page.items.count)")
+                } catch {
+                    KuroPerf.end(perf, message: "error")
+                    throw error
+                }
+                return PageResult(cards: page.items, hiddenAdult: page.hiddenAdult)
+            } catch {
+                guard ReleaseFailure.classify(error) == .notDeployed else { throw error }
+                searchV2UndeployedAt = Date()
+            }
+        }
+        let cards = try await fetchSearchAnimePage(
+            query: query, filters: filters, cursorRank: cursorRank,
+            cursorPopularity: cursorPopularity, cursorId: cursorId, limit: limit
+        )
+        return PageResult(cards: cards, hiddenAdult: nil)
+    }
+
+    private func loadMangaPage(
+        query: String, filters: SearchFilters?, cursorRank: Double?, cursorPopularity: Int?, cursorId: Int?, limit: Int
+    ) async throws -> PageResult<MangaCard> {
+        if useSearchV2(cursorId: cursorId) {
+            do {
+                let client = try requiredClient()
+                let params = RPCSearchMangaPageParams(
+                    p_query: query, p_limit: max(1, min(50, limit)),
+                    p_cursor_rank: cursorRank, p_cursor_popularity: cursorPopularity, p_cursor_id: cursorId,
+                    p_trending: filters?.trending ?? false, p_new_season: filters?.newSeason ?? false,
+                    p_classics: filters?.classics ?? false, p_hidden_gems: filters?.hiddenGems ?? false
+                )
+                let perf = KuroPerf.begin("rpc.search_manga_page_v2")
+                let page: SearchPageV2<MangaCard>
+                do {
+                    page = try await client.rpc("search_manga_page_v2", params: params).execute().value
+                    KuroPerf.end(perf, message: "ok \(page.items.count)")
+                } catch {
+                    KuroPerf.end(perf, message: "error")
+                    throw error
+                }
+                return PageResult(cards: page.items, hiddenAdult: page.hiddenAdult)
+            } catch {
+                guard ReleaseFailure.classify(error) == .notDeployed else { throw error }
+                searchV2UndeployedAt = Date()
+            }
+        }
+        let cards = try await fetchSearchMangaPage(
+            query: query, filters: filters, cursorRank: cursorRank,
+            cursorPopularity: cursorPopularity, cursorId: cursorId, limit: limit
+        )
+        return PageResult(cards: cards, hiddenAdult: nil)
     }
 
     // MARK: - Search pages (stateless transport; also used by the club rail search sheet)

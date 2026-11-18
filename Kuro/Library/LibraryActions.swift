@@ -308,6 +308,14 @@ final class LibraryActions: AccountScopedState {
     /// stale or forged request can never do more than the +1 the user could make in the app now.
     /// No banner, no Undo receipt (Home's and Collection's Undo paths stay untouched).
     func advanceQueuedProgress(_ key: MediaKey, to target: Int, lifecycleId: UUID?, cap: Int?) async -> QueuedAdvanceOutcome {
+        // No save confirmation is on screen for a widget +1, so it must not raise a release alert offer (W3a).
+        guard let releases else { return await performQueuedAdvance(key, to: target, lifecycleId: lifecycleId, cap: cap) }
+        return await releases.withAlertOffersSuppressed {
+            await self.performQueuedAdvance(key, to: target, lifecycleId: lifecycleId, cap: cap)
+        }
+    }
+
+    private func performQueuedAdvance(_ key: MediaKey, to target: Int, lifecycleId: UUID?, cap: Int?) async -> QueuedAdvanceOutcome {
         guard let context = accountSession.current else { return .notReady }
         guard let entry = library.entry(for: key) else {
             return library.loadState == .loaded ? .untracked : .notReady
@@ -358,6 +366,14 @@ final class LibraryActions: AccountScopedState {
     /// a missing entry is never created).
     func apply(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus?) async -> LibraryOutcome {
         await library.apply(edit, to: key, createIfMissing: createIfMissing)
+    }
+
+    /// Every Undo/restore that goes through an edit (removal Undo, +1 Undo): sends exactly `edit` and never
+    /// fills a date, whatever the switch or the projection says. `apply` is for user-initiated writes.
+    /// `account` is the account the Undo was offered for; the store refuses it once another account is bound.
+    func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus?,
+                 account: AccountContext) async -> LibraryOutcome {
+        await library.restore(edit, to: key, createIfMissing: createIfMissing, account: account)
     }
 
     /// Removes the title (idempotent: removing an untracked title is applied). The change sinks drop it

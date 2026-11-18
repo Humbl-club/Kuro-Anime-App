@@ -153,9 +153,11 @@ struct EditorialCollectionView: View {
             .background(Color.kuroCanvasPage)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: KuroDesignSpacing.sm) {
-                    if let notice {
-                        FolioNoticeBar(notice: notice) { performNoticeAction() }
-                            .transition(.opacity)
+                    ReleaseAlertOfferStack(hasToast: notice != nil) {
+                        if let notice {
+                            FolioNoticeBar(notice: notice) { performNoticeAction() }
+                                .transition(.opacity)
+                        }
                     }
                     if isSelecting && !selectedKeys.isEmpty {
                         FolioBatchBar(count: selectedKeys.count, medium: medium,
@@ -659,8 +661,11 @@ struct EditorialCollectionView: View {
         guard let context = activeAccount else { return }
         let keys = selectedItemKeys()
         guard !keys.isEmpty else { return }
-        let outcomes = await collection.applyBatchStatusChange(target.listStatus, to: keys, visibleFilter: feedStatus) { edit, key, create in
-            await libraryActions.apply(edit, to: key, createIfMissing: create)
+        // A batch has no single save confirmation: no release alert offer for any of its titles (W3a).
+        let outcomes = await releases.withAlertOffersSuppressed {
+            await collection.applyBatchStatusChange(target.listStatus, to: keys, visibleFilter: feedStatus) { edit, key, create in
+                await libraryActions.apply(edit, to: key, createIfMissing: create)
+            }
         }
         guard collection.accountSession.isCurrent(context), mountedAccount != nil else { return }
         let updated = outcomes.filter { $0.change != nil }.count

@@ -2,7 +2,8 @@
 // and volume placeholders, authors, tags, characters, staff and source-owned
 // relations. Anime mapping stays in bulk-import-anime; the row shapes differ.
 
-import { characterAge, preserveExistingColumns } from "../bulk-import-anime/mapping.ts";
+import { characterAge, type CutoverModes, preserveExistingColumns, withoutNewGroupColumns } from "../bulk-import-anime/mapping.ts";
+import { columnsOwnedByNew, type FieldGroup, groupIsAniListOwned } from "../_shared/catalogue/field_groups.ts";
 import { writeWithMALConflict } from "../_shared/catalog_identity.ts";
 
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
@@ -28,8 +29,12 @@ export async function processMangaItem(
   includeVolumes: boolean,
   forceRefresh: boolean,
   maxPlaceholderChapters: number,
-  maxPlaceholderVolumes: number
+  maxPlaceholderVolumes: number,
+  modes?: CutoverModes
 ) {
+  // Columns and linked tables of a group switched to 'new' belong to catalogue publish (Task 15).
+  const owned = modes ? columnsOwnedByNew('manga', modes) : new Set<string>();
+  const owns = (group: FieldGroup) => !modes || groupIsAniListOwned(group, modes);
   const updatedAtAnilist = manga.updatedAt ? new Date(manga.updatedAt * 1000).toISOString() : null;
   const { data: existing, error: existingError } = await supabase
     .from('manga')
@@ -95,7 +100,7 @@ export async function processMangaItem(
     // of the SET list; mirrored images and unchanged description/synopsis state are kept).
     const { anilist_id: _anilistId, ...rest } = writable;
     const { error: mangaError } = await writeWithMALConflict('manga', (omitMalId) => {
-      const payload = preserveExistingColumns(rest, existing);
+      const payload = withoutNewGroupColumns(preserveExistingColumns(rest, existing), owned);
       if (omitMalId) delete payload.mal_id;
       return supabase.from('manga').update(payload).eq('id', existing.id);
     }, results, { anilistId: manga.id, malId: manga.idMal });
@@ -103,7 +108,7 @@ export async function processMangaItem(
     insertedManga = { id: existing.id };
   } else {
     const { data, error: mangaError } = await writeWithMALConflict('manga', (omitMalId) => {
-      const payload = { ...writable };
+      const payload = withoutNewGroupColumns({ ...writable }, owned);
       if (omitMalId) delete payload.mal_id;
       return supabase.from('manga').upsert(payload, { onConflict: 'anilist_id' }).select('id').single();
     }, results, { anilistId: manga.id, malId: manga.idMal });
@@ -113,7 +118,7 @@ export async function processMangaItem(
   results.manga++;
 
   // External links (read on...) from AniList externalLinks
-  if (Array.isArray(manga.externalLinks) && manga.externalLinks.length > 0) {
+  if (owns('links') && Array.isArray(manga.externalLinks) && manga.externalLinks.length > 0) {
     for (const link of manga.externalLinks) {
       const url = link?.url;
       if (!url || typeof url !== 'string' || !url.startsWith('http')) continue;
@@ -134,7 +139,7 @@ export async function processMangaItem(
   // Chapters
   // AniList does not provide per-chapter rows; only materialize placeholders when explicitly requested.
   // Never delete existing rows here because chapter enrichment owns canonical chapter coverage.
-  if (includeChapters && maxPlaceholderChapters > 0 && manga.chapters && manga.chapters > 0) {
+  if (owns('episodes') && includeChapters && maxPlaceholderChapters > 0 && manga.chapters && manga.chapters > 0) {
     const { count: existingCount, error: countError } = await supabase
       .from('chapters')
       .select('*', { count: 'exact', head: true })
@@ -152,7 +157,7 @@ export async function processMangaItem(
   // Volumes
   // AniList does not provide per-volume rows; only materialize placeholders when explicitly requested.
   // Never delete existing rows here because downstream enrichment can provide richer data.
-  if (includeVolumes && maxPlaceholderVolumes > 0 && manga.volumes && manga.volumes > 0) {
+  if (owns('episodes') && includeVolumes && maxPlaceholderVolumes > 0 && manga.volumes && manga.volumes > 0) {
     const { count: existingCount, error: countError } = await supabase
       .from('volumes')
       .select('*', { count: 'exact', head: true })
@@ -168,7 +173,7 @@ export async function processMangaItem(
   }
 
   // Authors (from staff nodes)
-  if (includeRelations && manga.staff?.nodes && manga.staff?.edges) {
+  if (owns('credits') && includeRelations && manga.staff?.nodes && manga.staff?.edges) {
     for (let i = 0; i < manga.staff.nodes.length; i++) {
       const person = manga.staff.nodes[i];
       const edge = manga.staff.edges[i];
@@ -185,7 +190,7 @@ export async function processMangaItem(
   }
 
   // Tags
-  if (includeRelations && manga.tags) {
+  if (owns('tags') && includeRelations && manga.tags) {
     for (const tag of manga.tags) {
       const { data: tg, error: e } = await supabase
         .from('tags')
@@ -200,7 +205,7 @@ export async function processMangaItem(
   }
 
   // Characters
-  if (includeRelations && manga.characters?.nodes && manga.characters?.edges) {
+  if (owns('credits') && includeRelations && manga.characters?.nodes && manga.characters?.edges) {
     for (let i = 0; i < manga.characters.nodes.length; i++) {
       const char = manga.characters.nodes[i];
       const edge = manga.characters.edges[i];
@@ -217,7 +222,7 @@ export async function processMangaItem(
   }
 
   // Staff (editors/publishers/etc.)
-  if (includeRelations && manga.staff?.nodes && manga.staff?.edges) {
+  if (owns('credits') && includeRelations && manga.staff?.nodes && manga.staff?.edges) {
     for (let i = 0; i < manga.staff.nodes.length; i++) {
       const person = manga.staff.nodes[i];
       const edge = manga.staff.edges[i];
@@ -233,7 +238,7 @@ export async function processMangaItem(
     }
   }
 
-  if (includeRelations) {
+  if (owns('relations') && includeRelations) {
     await replaceMediaRelationsForSource(supabase, 'MANGA', insertedManga.id, manga.relations?.edges, results);
   }
 }

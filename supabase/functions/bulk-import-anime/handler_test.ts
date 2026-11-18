@@ -4,6 +4,7 @@
 // Run: deno test --no-prompt supabase/functions/bulk-import-anime/handler_test.ts
 import { strict as assert } from "node:assert";
 import { run } from "./handler.ts";
+import { FIELD_GROUP_NAMES } from "../_shared/catalogue/field_groups.ts";
 
 type Row = Record<string, unknown>;
 
@@ -15,7 +16,18 @@ class Db {
   lockErrorMessage = "lock rpc failed";
   // Consumed by the first matching primary upsert so a replay can persist that row.
   failUpsert: { table: string; anilistId: number; message: string } | null = null;
+  // The importer reads public.catalogue_cutover once per run (Task 15). Default: every group on AniList.
+  cutoverError: string | null = null;
   private seq = 1;
+
+  constructor() {
+    this.setModes({});
+  }
+
+  /** Cutover switch: groups not named stay in mode 'anilist'. */
+  setModes(modes: Record<string, string>) {
+    this.tables.catalogue_cutover = FIELD_GROUP_NAMES.map((g) => ({ field_group: g, mode: modes[g] ?? "anilist" }));
+  }
 
   rows(table: string): Row[] {
     return this.tables[table] ?? [];
@@ -34,6 +46,10 @@ class Db {
     const exec = () => {
       const rows = (db.tables[table] ??= []);
       const matches = (row: Row) => filters.every(([k, v]) => row[k] === v);
+      if (action === "select" && table === "catalogue_cutover") {
+        if (db.cutoverError) return { data: null, error: { message: db.cutoverError } };
+        return { data: rows.filter(matches), error: null };
+      }
       if (action === "select") {
         const found = rows.filter(matches);
         return { data: found[0] ?? null, error: null };
@@ -901,4 +917,127 @@ Deno.test("backfill runbook: scheduleSafe caps pagesPerBatch at 2 (a larger valu
   const body = await res.json();
   assert.deepEqual(pages, [7, 8]);
   assert.equal(body.nextStartPage, 9);
+});
+
+// ---- Task 15: a field group that is switched to 'new' is written by catalogue publish, not here ----
+
+const CHANGED = { ...cursorRunPayload(), useCursor: false };
+
+function seededTitle(id: number, extra: Row = {}): Row {
+  return {
+    id: 1,
+    anilist_id: id,
+    updated_at_anilist: new Date(1 * 1000).toISOString(),
+    title_english: "Kuro English",
+    title_romaji: "Kuro Romaji",
+    format: "OVA",
+    episodes: 3,
+    next_episode_number: 2,
+    next_airing_at: new Date(1_800_000_000 * 1000).toISOString(),
+    description: "Kuro synopsis",
+    cover_image_large: "https://kuro.example/c.jpg",
+    ...extra,
+  };
+}
+
+Deno.test("cutOverGroupColumnsNotWritten: a changed payload leaves the columns of a new group alone", async () => {
+  const db = new Db();
+  db.setModes({ titles: "new", synopsis: "new", images: "shadow" });
+  db.seed("anime", [seededTitle(1100)]);
+  const item = { ...media(1100), updatedAt: 2, title: { romaji: "Anilist Romaji", english: "Anilist English" }, description: "Anilist synopsis", coverImage: { large: "https://s4.anilist.co/x.jpg" } };
+  const res = await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(res.status, 200);
+  const row = db.rows("anime")[0];
+  assert.equal(row.title_english, "Kuro English");
+  assert.equal(row.title_romaji, "Kuro Romaji");
+  assert.equal(row.description, "Kuro synopsis");
+  assert.equal(row.format, "TV", "a group still on AniList is written");
+  assert.equal(row.cover_image_large, "https://s4.anilist.co/x.jpg", "a group in shadow mode is still AniList-written");
+});
+
+Deno.test("cutOverGroupColumnsNotWritten: a new title is inserted without the columns of a new group", async () => {
+  const db = new Db();
+  db.setModes({ titles: "new", popularity: "new" });
+  const item = { ...media(1101), popularity: 500, averageScore: 80 };
+  await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  const row = db.rows("anime").find((r) => r.anilist_id === 1101);
+  assert.ok(row, "the row is still inserted");
+  assert.equal(row?.title_english, undefined);
+  assert.equal(row?.popularity, undefined);
+  assert.equal(row?.format, "TV");
+});
+
+Deno.test("unchangedPayloadPathSkipsEpisodesGroup: no update when only the next episode moved", async () => {
+  const db = new Db();
+  db.setModes({ episodes: "new" });
+  const airing = 1_800_000_000;
+  db.seed("anime", [seededTitle(1102, { updated_at_anilist: new Date(1_700_000_000 * 1000).toISOString(), episodes: 12, last_synced_at: "2026-01-01T00:00:00.000Z" })]);
+  const item = { ...media(1102), nextAiringEpisode: { episode: 9, airingAt: airing + 999_999 } };
+  await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  const row = db.rows("anime")[0];
+  assert.equal(row.next_episode_number, 2);
+  assert.equal(row.last_synced_at, "2026-01-01T00:00:00.000Z", "no update was sent");
+});
+
+Deno.test("unchangedPayloadPathSkipsFactsEpisodeCount: the derived episode count is not written for a new facts group", async () => {
+  const db = new Db();
+  db.setModes({ facts: "new" });
+  db.seed("anime", [seededTitle(1103, { updated_at_anilist: new Date(1_700_000_000 * 1000).toISOString(), episodes: 3, next_episode_number: 5, next_airing_at: new Date(1_800_000_000 * 1000).toISOString() })]);
+  const item = { ...media(1103), episodes: 12, nextAiringEpisode: { episode: 5, airingAt: 1_800_000_000 } };
+  await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(db.rows("anime")[0].episodes, 3);
+  assert.equal(db.rows("anime")[0].total_duration, undefined);
+});
+
+Deno.test("unchanged payload path still writes the groups AniList owns", async () => {
+  const db = new Db();
+  db.setModes({ facts: "new" });
+  db.seed("anime", [seededTitle(1104, { updated_at_anilist: new Date(1_700_000_000 * 1000).toISOString() })]);
+  const item = { ...media(1104), nextAiringEpisode: { episode: 9, airingAt: 1_800_000_500 } };
+  await run(CHANGED, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(db.rows("anime")[0].next_episode_number, 9);
+});
+
+Deno.test("linkedTablesSkippedPerGroup: links new skips external_links while tags on anilist still writes", async () => {
+  const db = new Db();
+  db.setModes({ links: "new", credits: "new", relations: "new", episodes: "new" });
+  const item = {
+    ...media(1105),
+    externalLinks: [{ site: "Crunchyroll", url: "https://cr.example/x" }],
+    streamingEpisodes: [{ title: "Episode 1", url: "https://cr.example/e1" }],
+    tags: [{ id: 9, name: "Isekai", rank: 60 }],
+    studios: { nodes: [{ id: 4, name: "Studio" }] },
+    characters: { nodes: [{ id: 5, name: { full: "A" } }], edges: [{ role: "MAIN" }] },
+    staff: { nodes: [{ id: 6, name: { full: "B" } }], edges: [{ role: "Director" }] },
+    relations: { edges: [{ relationType: "SEQUEL", node: { id: 1105, type: "ANIME" } }] },
+  };
+  db.seed("media_relations", [{ from_media_type: "ANIME", from_media_id: 1, source: "anilist", relation_type: "SEQUEL", to_media_type: "ANIME", to_media_id: 2 }]);
+  const payload = { ...CHANGED, includeRelations: true, includeEpisodes: true, lightweight: false };
+  const res = await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal((await res.json()).results.errors, 0);
+  assert.equal(db.rows("external_links").length, 0);
+  assert.equal(db.rows("episodes").length, 0);
+  assert.equal(db.rows("studios").length + db.rows("anime_studios").length + db.rows("characters").length + db.rows("anime_characters").length + db.rows("staff").length + db.rows("anime_staff").length, 0);
+  assert.equal(db.rows("media_relations").length, 1, "the anilist relation rows are neither replaced nor deleted");
+  assert.equal(db.rows("anime_tags").length, 1, "tags is still on AniList");
+});
+
+Deno.test("linkedTablesSkippedPerGroup: with every group on AniList the linked tables are written as before", async () => {
+  const db = new Db();
+  const item = { ...media(1106), externalLinks: [{ site: "X", url: "https://cr.example/y" }], tags: [{ id: 9, name: "Isekai", rank: 60 }] };
+  await run({ ...CHANGED, includeRelations: true, lightweight: false }, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(db.rows("external_links").length, 1);
+  assert.equal(db.rows("anime_tags").length, 1);
+});
+
+Deno.test("modeReadFailureFailsPage: an unreadable switch writes nothing and does not advance the cursor", async () => {
+  const db = new Db();
+  db.cutoverError = "permission denied";
+  db.seed("import_state", [{ media_type: "ANIME", last_page: 4 }]);
+  const res = await run({ ...cursorRunPayload() }, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([media(1107)]) });
+  assert.equal(res.status, 500);
+  assert.match((await res.json()).error, /catalogue_cutover unreadable/);
+  assert.equal(db.rows("anime").length, 0);
+  assert.equal(cursor(db), 4);
+  assert.equal(db.lockHeld.size, 0, "the lock is still released");
 });

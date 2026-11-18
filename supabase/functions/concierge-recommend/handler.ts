@@ -274,10 +274,11 @@ async function runRecommendInner(r: RecommendRequest, deps: RecommendDeps, defer
   const mediaType = inferMediaType(text, r.scope);
   const state: RunState = { seedQuery: inferSeedQuery(text), seedOverride: null, ragAssistUsed: false, ragSeedEntityId: null };
 
-  // Config, tag mapping and editorial tag boosts are independent.
-  const [conciergeCfg, focusTagIds, tagBoosts] = await Promise.all([
+  // inferGimmickTagIds already yields Kuro tag ids; no AniList-id lookup (tags.anilist_id is not a public read).
+  const focusTagIds = gimmickTagIds;
+  // Config and editorial tag boosts are independent.
+  const [conciergeCfg, tagBoosts] = await Promise.all([
     repo.conciergeConfig(),
-    repo.tagIdsForAnilistIds(gimmickTagIds),
     repo.editorialTagBoosts(),
   ]);
 

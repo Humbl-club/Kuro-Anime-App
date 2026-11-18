@@ -549,10 +549,15 @@ struct ImportsContractTests {
         imports.conciergeParseCache["concierge_parse|\(Self.userB)|seed"] = .init(
             value: try LifecycleFixtures.decode(ConciergeParseResponse.self, Self.parseJSON), storedAt: Date()
         )
+        // The switch cancels the lease task synchronously, but URLSession tears the transfer down (stopLoading,
+        // which records the stop) asynchronously. Wait for that actual signal BEFORE releasing the held answer;
+        // otherwise a fast gate-open delivers the answer first and no stop is ever recorded (flaky).
+        let stopped = await harness.server.waitForStop { $0.path == call.path }
+        #expect(stopped.path == call.path, "A's write is a credential lease of A: the switch cancels it (F33)")
         hold.gate.open()
 
         await #expect(throws: CancellationError.self) { try await lateWrite.value }
-        #expect(harness.server.stoppedRequests.contains { $0.path == call.path }, "A's write is a credential lease of A: the switch cancels it (F33)")
+        #expect(harness.server.stoppedRequests.contains { $0.path == call.path })
         await service.libraryActions.libraryRefreshTask?.value
         #expect(harness.fetchAllCount == 2, "no refresh for A's write")
         #expect(imports.conciergeParseCache.count == 1, "B's parse cache is not dropped")

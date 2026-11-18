@@ -7,10 +7,21 @@
 import { strict as assert } from "node:assert";
 import { AniListLimiter, createAniListClient } from "../_shared/anilist_client.ts";
 import { createPoliteClient, PoliteLimiter } from "../_shared/polite_fetch.ts";
-import { queryFake } from "../_shared/test_query_fake.ts";
+import { queryFake as baseQueryFake, type FakeOptions } from "../_shared/test_query_fake.ts";
+import { FIELD_GROUP_NAMES } from "../_shared/catalogue/field_groups.ts";
 import { run } from "./handler.ts";
 import { decodeMuSlug, dedupeReleases, isMuSeriesPage, muSeriesUrl, parseChapterNumber, parseVolumeCount } from "./manga.ts";
 import type { ReleaseEventRow } from "./contract.ts";
+
+// The run reads public.catalogue_cutover once (Task 15, fail closed). Existing tests keep every group on
+// AniList by default; a test names the groups it switches.
+function cutoverRows(modes: Record<string, string> = {}) {
+  return FIELD_GROUP_NAMES.map((g) => ({ field_group: g, mode: modes[g] ?? "anilist" }));
+}
+function queryFake(opts: FakeOptions & { modes?: Record<string, string> } = {}) {
+  const { modes, ...rest } = opts;
+  return baseQueryFake({ ...rest, tables: { catalogue_cutover: cutoverRows(modes), ...(rest.tables ?? {}) } });
+}
 
 const NOW = Date.parse("2026-11-01T10:00:00Z");
 const NOW_S = Math.floor(NOW / 1000);
@@ -576,4 +587,81 @@ Deno.test("manga: releasing titles with a verified MangaDex link come before unl
   assert.equal(out.results.candidates, 3);
   assert.deepEqual(dexIds, ["dex-9"], "the linked title is in the first batch");
   assert.equal(out.results.unmapped, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Task 15: single writer per group
+// ---------------------------------------------------------------------------
+
+Deno.test("airingUpdateSkippedWhenEpisodesNew: release events are still recorded, anime.next_* is not written", async () => {
+  const locks = { held: new Set<string>() };
+  const fake = queryFake({
+    modes: { episodes: "new" },
+    tables: { anime: [{ id: 10, anilist_id: 966, status: "RELEASING", next_episode_number: 1308, next_airing_at: new Date((NOW_S - 3600) * 1000).toISOString() }] },
+    rpc: lockRpc(locks),
+  });
+  const c = clients([
+    airingPage([{ id: 409393, airingAt: NOW_S - 3600, episode: 1308, mediaId: 966, media: { id: 966, status: "RELEASING", nextAiringEpisode: { episode: 1309, airingAt: NOW_S + 6 * 86400 } } }], false),
+  ]);
+  const res = await run({ mode: "airing", staleSweep: false }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve(null) });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(writtenRows(fake).length, 1, "the release event is still recorded");
+  assert.equal(fake.calls.filter((call) => call.kind === "update" && call.table === "anime").length, 0);
+  assert.equal(fake.tables.anime[0].next_episode_number, 1308);
+  assert.equal(out.results.animePatched, 0);
+});
+
+Deno.test("airingUpdateSkippedWhenEpisodesNew: the stale sweep does not patch either", async () => {
+  const locks = { held: new Set<string>() };
+  const fake = queryFake({
+    modes: { episodes: "new" },
+    tables: { anime: [{ id: 10, anilist_id: 966, status: "RELEASING", popularity: 9, next_episode_number: 5, next_airing_at: new Date((NOW_S - 86400) * 1000).toISOString() }] },
+    rpc: lockRpc(locks),
+  });
+  const c = clients([
+    airingPage([], false),
+    { body: { data: { Page: { media: [{ id: 966, nextAiringEpisode: { id: 7, episode: 6, airingAt: NOW_S + 86400 } }] } } } },
+  ]);
+  const res = await run({ mode: "airing", staleSweep: true }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve(null) });
+  assert.equal(res.status, 200);
+  assert.equal(fake.calls.filter((call) => call.kind === "update" && call.table === "anime").length, 0);
+});
+
+Deno.test("airing: with episodes still on AniList the patch is written as before", async () => {
+  const locks = { held: new Set<string>() };
+  const fake = queryFake({
+    modes: { episodes: "shadow" },
+    tables: { anime: [{ id: 10, anilist_id: 966, status: "RELEASING", next_episode_number: 1308, next_airing_at: new Date((NOW_S - 3600) * 1000).toISOString() }] },
+    rpc: lockRpc(locks),
+  });
+  const c = clients([
+    airingPage([{ id: 409393, airingAt: NOW_S - 3600, episode: 1308, mediaId: 966, media: { id: 966, status: "RELEASING", nextAiringEpisode: { episode: 1309, airingAt: NOW_S + 6 * 86400 } } }], false),
+  ]);
+  await run({ mode: "airing", staleSweep: false }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve(null) });
+  assert.equal(fake.tables.anime[0].next_episode_number, 1309);
+});
+
+Deno.test("modeReadFailureFailsRun: an unreadable switch fails closed with no provider request and no write", async () => {
+  const locks = { held: new Set<string>() };
+  const fake = baseQueryFake({ tables: { anime: [{ id: 10, anilist_id: 966 }] }, tableErrors: { catalogue_cutover: "permission denied" }, rpc: lockRpc(locks) });
+  const c = clients([]);
+  const res = await run({ mode: "airing", staleSweep: false }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve(null) });
+  assert.equal(res.status, 500);
+  assert.match((await res.json()).error, /catalogue_cutover unreadable/);
+  assert.equal(c.anilistSeen.length, 0);
+  assert.equal(fake.calls.filter((call) => (call.kind === "update" || call.kind === "upsert") && call.table === "anime").length, 0);
+  assert.equal(fake.rpcCalls("upsert_release_events_v1").length, 0);
+  assert.equal(locks.held.size, 0);
+});
+
+Deno.test("manga: the volume count is not written while the facts group is new", async () => {
+  const { fake } = mangaFake();
+  fake.tables.catalogue_cutover = cutoverRows({ facts: "new" });
+  const c = clients([], [{ body: ONE_PIECE_SERIES }, { body: weeklyReleases("2026-10-25", 10, 1196) }]);
+  const res = await run({ mode: "manga" }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve({ al: "30013", mu: "pb8uwds" }) });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(out.results.processed, 1, "the title was processed");
+  assert.equal(fake.tables.manga[0].volumes, null);
 });

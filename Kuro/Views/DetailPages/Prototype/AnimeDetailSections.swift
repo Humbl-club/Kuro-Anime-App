@@ -363,8 +363,8 @@ struct AnimeDetailPage: View {
                             titleVisibility: .visible, presenting: pendingRemoval) { removed in
             Button(DetailRemoval.confirmAction(german: german), role: .destructive) { remove(removed) }
             Button(KuroLocale.text("Cancel", "Abbrechen"), role: .cancel) {}
-        } message: { _ in
-            Text(DetailRemoval.confirmMessage(kind: .anime, german: german))
+        } message: { removed in
+            Text(DetailRemoval.confirmMessage(kind: .anime, entry: removed, german: german))
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(title: KuroLocale.text("Watch on", "Ansehen bei"),
@@ -574,8 +574,8 @@ struct AnimeDetailPage: View {
             let outcome: LibraryOutcome
             if change.kind == .added {
                 outcome = await libraryActions.remove(key)
-            } else if let edit = DetailAdvance.undoEdit(change) {
-                outcome = await libraryActions.apply(edit, to: key, createIfMissing: nil)
+            } else if let edit = DetailAdvance.undoEdit(change, projection: entry) {
+                outcome = await DetailAdvance.undo(edit, key, account: change.account, actions: libraryActions)
             } else {
                 return
             }
@@ -622,7 +622,7 @@ struct AnimeDetailPage: View {
         guard entry == nil else { return }
         let key = anime.libraryKey
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = await libraryActions.apply(DetailRemoval.restoreEdit(removed), to: key, createIfMissing: removed.status)
+            let outcome = await DetailRemoval.undo(removed, key, account: ticket.account, actions: libraryActions)
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
                                      title: outcome.error == nil ? KuroLocale.text("Back in your list.", "Wieder in deiner Liste.")

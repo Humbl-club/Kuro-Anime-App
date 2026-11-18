@@ -208,7 +208,7 @@ struct LibraryEditV2Tests {
         let known = Self.entry(LibrarySourceMetadata(repeatCount: 2, startedRaw: "2024-05", finishedRaw: nil))
         let restored = LibraryEdit.restoring(known)
         #expect(restored.repeatCount == .set(2))
-        #expect(restored.startedOn == .set(try Self.date("2024-05")))
+        #expect(restored.startedRawVerbatim == "2024-05")
         #expect(restored.finishedOn == .clear)
 
         let unknown = LibraryEdit.restoring(Self.entry(nil))
@@ -295,5 +295,562 @@ struct LibraryEditV2Tests {
             _ = await undo.value
             #expect(h.store.entry(for: Self.key)?.startedOn?.raw == "2024-05")
         }
+    }
+
+    // MARK: Date fill (Task F2.3)
+
+    /// 2026-03-01T23:30:00Z: still the 1st in UTC, already the 2nd in Berlin.
+    private static let nearMidnight = Date(timeIntervalSince1970: 1_772_407_800)
+
+    private static func calendar(_ zone: String) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: zone) ?? .gmt
+        return calendar
+    }
+
+    private static let berlin = calendar("Europe/Berlin")
+    private static let utc = calendar("UTC")
+
+    /// Loads `seeded`, applies `edit` and returns the request the backend received.
+    private static func request(
+        _ h: Harness, seeded: LibraryEntry, edit: LibraryEdit
+    ) async throws -> (call: ControlledBackend.Call, sent: LibraryEdit, outcome: Task<LibraryOutcome, Never>) {
+        try await h.load([seeded])
+        let pending = Task { await h.store.apply(edit, to: key) }
+        let call = try await h.nextCall()
+        guard case .edit(let sent, _, _) = call.request else {
+            Issue.record("expected an edit request, got \(call.request)")
+            throw LibraryError.unavailable(message: "not an edit")
+        }
+        return (call, sent, pending)
+    }
+
+    @Test("Moving a title to Watching fills an empty start date with today; Undo restores both without refilling",
+          .timeLimit(.minutes(1)))
+    func statusChangeFillsEmptyDatesWithUndo() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            let seeded = Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning)
+            try await h.load([seeded])
+
+            let pending = Task { await h.store.apply(LibraryEdit(status: .set(.current)), to: Self.key) }
+            let call = try await h.nextCall()
+            guard case .edit(let sent, _, _) = call.request else {
+                Issue.record("expected an edit request, got \(call.request)")
+                return
+            }
+            #expect(sent.status == .set(.current))
+            #expect(sent.startedOn == .set(try Self.date("2026-03-02")))
+            #expect(sent.finishedOn == .unchanged)
+
+            let filled = Self.entry(
+                LibrarySourceMetadata(repeatCount: 0, startedRaw: "2026-03-02"), status: .current, updatedAt: Fixture.now
+            )
+            call.answer(.write(LibraryWriteResult(entry: filled, created: false)))
+            let change = try #require(await pending.value.change)
+            #expect(h.store.entry(for: Self.key)?.startedOn?.raw == "2026-03-02")
+
+            let undo = Task { await h.store.undo(change) }
+            let undoCall = try await h.nextCall()
+            #expect(undoCall.request == .edit(
+                LibraryEdit(status: .set(.planning), startedOn: .clear), createIfMissing: nil, baseRevision: nil
+            ))
+            undoCall.answer(.write(LibraryWriteResult(
+                entry: Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning, updatedAt: Fixture.now),
+                created: false
+            )))
+            _ = await undo.value
+            #expect(h.store.entry(for: Self.key)?.status == .planning)
+            #expect(h.store.entry(for: Self.key)?.startedOn == nil)
+        }
+    }
+
+    @Test("Completing fills only the finish date", .timeLimit(.minutes(1)))
+    func completedFillsFinishNotStart() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            let r = try await Self.request(h, seeded: Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .current),
+                                           edit: LibraryEdit(status: .set(.completed)))
+            #expect(r.sent.finishedOn == .set(try Self.date("2026-03-02")))
+            #expect(r.sent.startedOn == .unchanged)
+            r.call.answer(.failure(.retryable(message: "end of test")))
+            _ = await r.outcome.value
+        }
+    }
+
+    @Test("Undo never fills dates: it restores the status and clears only the date the fill added",
+          .timeLimit(.minutes(1)))
+    func undoNeverFillsDates() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            let r = try await Self.request(h, seeded: Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .current),
+                                           edit: LibraryEdit(status: .set(.completed)))
+            r.call.answer(.write(LibraryWriteResult(
+                entry: Self.entry(LibrarySourceMetadata(repeatCount: 0, finishedRaw: "2026-03-02"),
+                                  status: .completed, updatedAt: Fixture.now),
+                created: false
+            )))
+            let change = try #require(await r.outcome.value.change)
+
+            let undo = Task { await h.store.undo(change) }
+            let undoCall = try await h.nextCall()
+            guard case .edit(let sent, _, _) = undoCall.request else {
+                Issue.record("expected an edit request, got \(undoCall.request)")
+                return
+            }
+            // Going back to Watching must not fill a start date, although the start date is empty.
+            #expect(sent.status == .set(.current))
+            #expect(sent.finishedOn == .clear)
+            #expect(sent.startedOn == .unchanged)
+            undoCall.answer(.failure(.retryable(message: "end of test")))
+            _ = await undo.value
+        }
+    }
+
+    @Test("The fill uses the injected calendar: the same instant is the 1st in UTC", .timeLimit(.minutes(1)))
+    func fillUsesInjectedCalendarNearMidnight() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.utc, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            let r = try await Self.request(h, seeded: Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning),
+                                           edit: LibraryEdit(status: .set(.current)))
+            #expect(r.sent.startedOn == .set(try Self.date("2026-03-01")))
+            r.call.answer(.failure(.retryable(message: "end of test")))
+            _ = await r.outcome.value
+        }
+    }
+
+    @Test("Unknown, unparseable or unchanged-status dates are never filled", .timeLimit(.minutes(1)),
+          arguments: [
+              (nil as LibrarySourceMetadata?, ListStatus.planning),
+              (LibrarySourceMetadata(repeatCount: 0, startedRaw: "not-a-date"), ListStatus.planning),
+              (LibrarySourceMetadata(repeatCount: 0), ListStatus.current),
+          ])
+    func unknownOrUnparseableDatesAreNeverFilled(metadata: LibrarySourceMetadata?, status: ListStatus) async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            let r = try await Self.request(h, seeded: Self.entry(metadata, status: status),
+                                           edit: LibraryEdit(status: .set(.current)))
+            #expect(r.sent.startedOn == .unchanged)
+            #expect(r.sent.finishedOn == .unchanged)
+            r.call.answer(.failure(.retryable(message: "end of test")))
+            _ = await r.outcome.value
+        }
+    }
+
+    @Test("A cached row that first gets an optimistic notes edit stays unknown, so a later status change fills nothing",
+          .timeLimit(.minutes(1)))
+    func optimisticNotesEditDoesNotMakeDatesKnownForTheFill() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            try await h.load([Self.entry(nil, status: .planning)])
+
+            let notes = Task { await h.store.apply(LibraryEdit(notes: .set("hi")), to: Self.key) }
+            let notesCall = try await h.nextCall()
+            let status = Task { await h.store.apply(LibraryEdit(status: .set(.current)), to: Self.key) }
+            await h.waitUntil { h.store.entry(for: Self.key)?.status == .current }
+            #expect(h.store.entry(for: Self.key)?.datesKnown == false)
+
+            var answered = Self.entry(nil, status: .planning, updatedAt: Fixture.now)
+            answered.notes = "hi"
+            notesCall.answer(.write(LibraryWriteResult(entry: answered, created: false)))
+            _ = await notes.value
+            let statusCall = try await h.nextCall()
+            guard case .edit(let sent, _, _) = statusCall.request else {
+                Issue.record("expected an edit request, got \(statusCall.request)")
+                return
+            }
+            #expect(sent.startedOn == .unchanged)
+            statusCall.answer(.failure(.retryable(message: "end of test")))
+            _ = await status.value
+        }
+    }
+
+    @Test("A date the user has just set, still in flight, is not overwritten by the fill", .timeLimit(.minutes(1)))
+    func pendingOptimisticDateBeatsFill() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            try await h.load([Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning)])
+
+            let manualDate = try Self.date("2020")
+            let manual = Task { await h.store.apply(LibraryEdit(startedOn: .set(manualDate)), to: Self.key) }
+            let manualCall = try await h.nextCall()
+            let status = Task { await h.store.apply(LibraryEdit(status: .set(.current)), to: Self.key) }
+            await h.waitUntil { h.store.entry(for: Self.key)?.status == .current }
+
+            manualCall.answer(.failure(.retryable(message: "lost")))
+            _ = await manual.value
+            let statusCall = try await h.nextCall()
+            guard case .edit(let sent, _, _) = statusCall.request else {
+                Issue.record("expected an edit request, got \(statusCall.request)")
+                return
+            }
+            // While the manual date was pending the fill saw it; nothing was auto-added.
+            #expect(sent.startedOn == .unchanged)
+            statusCall.answer(.failure(.retryable(message: "end of test")))
+            _ = await status.value
+        }
+    }
+
+    @Test("Creating a title as Watching fills its start date", .timeLimit(.minutes(1)))
+    func creatingAsWatchingFillsStart() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            try await h.load([])
+            let pending = Task {
+                await h.store.apply(LibraryEdit(status: .set(.current)), to: Self.key, createIfMissing: .current)
+            }
+            let call = try await h.nextCall()
+            guard case .edit(let sent, let create, _) = call.request else {
+                Issue.record("expected an edit request, got \(call.request)")
+                return
+            }
+            #expect(create == .current)
+            #expect(sent.startedOn == .set(try Self.date("2026-03-02")))
+            call.answer(.failure(.retryable(message: "end of test")))
+            _ = await pending.value
+        }
+    }
+
+    @Test("A date named by the edit beats the fill", .timeLimit(.minutes(1)))
+    func explicitDateBeatsFill() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            let edit = LibraryEdit(status: .set(.current), startedOn: .set(try Self.date("2020")))
+            let r = try await Self.request(h, seeded: Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning),
+                                           edit: edit)
+            #expect(r.sent.startedOn == .set(try Self.date("2020")))
+            r.call.answer(.failure(.retryable(message: "end of test")))
+            _ = await r.outcome.value
+        }
+    }
+
+    @Test("Flag off: a status change adds no date leg; a hand-edited date is still one normal write",
+          .timeLimit(.minutes(1)))
+    func flagOffSendsNoRequest() async throws {
+        // Fence off: the single PATCH carries no date.
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin) { h in
+            h.signIn(Fixture.userA)
+            let r = try await Self.request(h, seeded: Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning),
+                                           edit: LibraryEdit(status: .set(.current)))
+            #expect(r.sent.startedOn == .unchanged)
+            r.call.answer(.failure(.retryable(message: "end of test")))
+            _ = await r.outcome.value
+        }
+
+        // Fence on: one durable mutation, zero PATCH calls, then one normal write for a hand-edited date.
+        let h = try await DurableDateHarness(autofill: false)
+        defer { h.close() }
+        let outcome = await h.store.apply(LibraryEdit(status: .set(.current)), to: h.key)
+        #expect(outcome.change != nil)
+        try await h.waitUntil { h.sender.calls.count == 1 }
+        #expect(h.sender.calls[0].count == 1)
+        #expect(h.sender.calls[0][0].status == "CURRENT")
+        #expect(h.backend.edits.isEmpty)
+        #expect(h.store.entry(for: h.key)?.startedOn == nil)
+
+        let manual = try Self.date("2024-05")
+        _ = await h.store.apply(LibraryEdit(startedOn: .set(manual)), to: h.key)
+        #expect(h.backend.edits == [LibraryEdit(startedOn: .set(manual))])
+    }
+
+    @Test("Fence on: the fill is a second leg; a failed leg keeps the durable status and drops the date",
+          .timeLimit(.minutes(1)))
+    func offlineDurableStatusChangeStillAppliesWithoutDateFill() async throws {
+        let h = try await DurableDateHarness(autofill: true)
+        defer { h.close() }
+        h.backend.failure = .retryable(message: "offline")
+        let outcome = await h.store.apply(LibraryEdit(status: .set(.current)), to: h.key)
+        #expect(outcome.change != nil, "the durable status change is the outcome; the fill is best effort")
+        #expect(outcome.error == nil)
+        #expect(h.store.entry(for: h.key)?.status == .current)
+        #expect(h.store.entry(for: h.key)?.startedOn == nil)
+        #expect(h.backend.edits.count == 1)
+        #expect(h.backend.edits.first?.startedOn == .set(try Self.date("2026-03-02")))
+        #expect(h.lease.calls == 1, "the added leg runs inside the credential lease")
+    }
+
+    @Test("Fence on: a caller's own notes failing still reports the old retryable message", .timeLimit(.minutes(1)))
+    func failedOwnPatchLegStillReportsRetryable() async throws {
+        let h = try await DurableDateHarness(autofill: true)
+        defer { h.close() }
+        h.backend.failure = .retryable(message: "offline")
+        let outcome = await h.store.apply(LibraryEdit(status: .set(.current), notes: .set("n")), to: h.key)
+        guard case .failed(.retryable(let message)) = outcome else {
+            Issue.record("expected a retryable failure, got \(outcome)")
+            return
+        }
+        #expect(message.hasPrefix("Progress is saved on this device; other fields could not be saved:"))
+    }
+
+    @Test("A lease that refuses (account switched) sends no date leg and keeps the status", .timeLimit(.minutes(1)))
+    func refusedLeaseSendsNoDateLeg() async throws {
+        let h = try await DurableDateHarness(autofill: true)
+        defer { h.close() }
+        h.lease.refuses = true
+        let outcome = await h.store.apply(LibraryEdit(status: .set(.current)), to: h.key)
+        #expect(outcome.change != nil)
+        #expect(h.backend.edits.isEmpty)
+        #expect(h.store.entry(for: h.key)?.startedOn == nil)
+    }
+
+    // MARK: F2 review fixes
+
+    @Test("Undo of a removal (restore) never fills a date, even with the switch on and an empty projection",
+          .timeLimit(.minutes(1)))
+    func restoreNeverFillsDates() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            let account = h.signIn(Fixture.userA)
+            try await h.load([])
+            let removed = Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .current)
+            let restore = LibraryEdit.restoring(removed)
+            let pending = Task { await h.store.restore(restore, to: Self.key, createIfMissing: removed.status, account: account) }
+            let call = try await h.nextCall()
+            guard case .edit(let sent, _, _) = call.request else {
+                Issue.record("expected an edit request, got \(call.request)")
+                return
+            }
+            #expect(sent == restore, "restore sent something other than exactly what it was given: \(sent)")
+            #expect(sent.startedOn != .set(try Self.date("2026-03-02")))
+            call.answer(.failure(.retryable(message: "end of test")))
+            _ = await pending.value
+        }
+    }
+
+    @Test("restoring carries the repeat count and every date's raw text exactly, also an unparseable one")
+    func restoringCarriesRawDatesVerbatim() throws {
+        let removed = Self.entry(LibrarySourceMetadata(repeatCount: 3, startedRaw: "2019-05-00", finishedRaw: "not-a-date"))
+        let restore = LibraryEdit.restoring(removed)
+        #expect(restore.repeatCount == .set(3))
+        #expect(restore.startedRawVerbatim == "2019-05-00")
+        #expect(restore.finishedRawVerbatim == "not-a-date")
+        let rebuilt = Self.entry(nil).applying(restore, at: Fixture.now)
+        #expect(rebuilt.sourceMetadata?.startedRaw == "2019-05-00")
+        #expect(rebuilt.sourceMetadata?.finishedRaw == "not-a-date")
+        #expect(rebuilt.sourceMetadata?.repeatCount == 3)
+        #expect(!restore.isEmpty && restore.touchesDatesOrRepeat)
+        #expect(restore.patchBodyOmittingProgress.finishedRawVerbatim == "not-a-date")
+    }
+
+    @Test("A verbatim raw date must be non-empty after trimming and at most 32 characters",
+          arguments: ["", "   ", "\n", String(repeating: "x", count: 33)])
+    func verbatimDatesAreValidated(raw: String) {
+        #expect(LibraryEdit(startedRawVerbatim: raw).validationError == .invalidValue(field: "startedRawVerbatim"))
+        #expect(LibraryEdit(finishedRawVerbatim: raw).validationError == .invalidValue(field: "finishedRawVerbatim"))
+        #expect(LibraryEdit(startedRawVerbatim: "not-a-date").validationError == nil)
+        #expect(LibraryEdit(finishedRawVerbatim: String(repeating: "x", count: 32)).validationError == nil)
+    }
+
+    @Test("A verbatim date is a restore-only field: the user-facing apply refuses it and sends nothing",
+          .timeLimit(.minutes(1)))
+    func applyRefusesVerbatimDates() async throws {
+        try await withHarness { h in
+            h.signIn(Fixture.userA)
+            try await h.load([Self.entry(LibrarySourceMetadata(repeatCount: 0))])
+            let outcome = await h.store.apply(LibraryEdit(startedRawVerbatim: "2019-05-00"), to: Self.key)
+            #expect(outcome == .failed(.invalidValue(field: "startedRawVerbatim")))
+            #expect(h.store.entry(for: Self.key)?.sourceMetadata?.startedRaw == nil)
+        }
+    }
+
+    @Test("fillingEmptyDates treats a verbatim date as present", arguments: [true, false])
+    func verbatimDateCountsAsPresent(creating: Bool) throws {
+        let today = try Self.date("2026-03-02")
+        let current = creating ? nil : Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning)
+        let started = LibraryEdit(status: .set(.current), startedRawVerbatim: "not-a-date")
+            .fillingEmptyDates(current: current, creating: creating, today: today)
+        #expect(!started.autoFilled && started.edit.startedOn == .unchanged)
+        let finished = LibraryEdit(status: .set(.completed), finishedRawVerbatim: "2019-05-00")
+            .fillingEmptyDates(current: current, creating: creating, today: today)
+        #expect(!finished.autoFilled && finished.edit.finishedOn == .unchanged)
+    }
+
+    @Test("restore with a stale account is refused and sends nothing", .timeLimit(.minutes(1)))
+    func restoreIsBoundToTheCallersAccount() async throws {
+        try await withHarness { h in
+            let a = h.signIn(Fixture.userA)
+            try await h.load([])
+            h.signIn(Fixture.userB)
+            try await h.load([])
+            let removed = Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .current)
+            let outcome = await h.store.restore(.restoring(removed), to: Self.key, createIfMissing: removed.status, account: a)
+            #expect(outcome == .failed(.notAuthenticated))
+            #expect(h.store.entry(for: Self.key) == nil)
+        }
+    }
+
+    @Test("While the projection is not loaded, a status change to Completed never fills a date",
+          .timeLimit(.minutes(1)), arguments: [false, true])
+    func unloadedProjectionNeverFills(failedLoad: Bool) async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            if failedLoad {
+                let refresh = Task { try await h.store.refresh() }
+                let call = try await h.nextCall()
+                call.answer(.failure(.retryable(message: "offline")))
+                _ = try? await refresh.value
+                #expect(h.store.loadState == .failed)
+            } else {
+                #expect(h.store.loadState == .notLoaded)
+            }
+            let pending = Task {
+                await h.store.apply(LibraryEdit(status: .set(.completed)), to: Self.key, createIfMissing: .completed)
+            }
+            let call = try await h.nextCall()
+            guard case .edit(let sent, _, _) = call.request else {
+                Issue.record("expected an edit request, got \(call.request)")
+                return
+            }
+            #expect(sent.finishedOn == .unchanged, "a date was filled while the title was unknown: \(sent)")
+            #expect(sent.startedOn == .unchanged)
+            call.answer(.failure(.retryable(message: "end of test")))
+            _ = await pending.value
+        }
+    }
+
+    @Test("Fence on: the date leg is dispatched only after the durable status intent is committed",
+          .timeLimit(.minutes(1)))
+    func dateLegFollowsTheDurableIntent() async throws {
+        let h = try await DurableDateHarness(autofill: true)
+        defer { h.close() }
+        h.sender.failing = true
+        var pendingStatusAtDispatch: [String?] = []
+        h.backend.onEdit = { [store = h.store, key = h.key] _ in
+            pendingStatusAtDispatch.append(store.pendingProgress(for: key)?.status)
+        }
+        _ = await h.store.apply(LibraryEdit(status: .set(.current)), to: h.key)
+        #expect(h.backend.edits.count == 1)
+        #expect(pendingStatusAtDispatch.map { $0?.lowercased() } == ["current"], "the date PATCH went out before the durable intent existed")
+    }
+
+    // MARK: Unparseable stored dates (ruling carried from F2.2)
+
+    @Test("Restoring or reverting over an unparseable stored date never writes null; a blank one clears")
+    func unparseableStoredDateIsNeverOverwrittenWithNull() throws {
+        let unparseable = Self.entry(LibrarySourceMetadata(repeatCount: 0, startedRaw: "not-a-date", finishedRaw: "  "))
+        let restored = LibraryEdit.restoring(unparseable)
+        #expect(restored.startedOn == .unchanged)
+        #expect(restored.startedRawVerbatim == "not-a-date", "re-creating a row carries the raw text through")
+        #expect(restored.finishedOn == .clear, "a blank value means no date")
+
+        let current = Self.entry(LibrarySourceMetadata(repeatCount: 0, startedRaw: "2025", finishedRaw: "2025"))
+        let reverted = LibraryEdit.reverting(current, to: unparseable)
+        #expect(reverted.startedOn == .unchanged)
+        #expect(reverted.finishedOn == .clear)
+    }
+
+    // MARK: fillingEmptyDates (pure)
+
+    @Test("fillingEmptyDates: repeating fills nothing, and an unchanged status fills nothing")
+    func repeatingAndSameStatusFillNothing() throws {
+        let today = try Self.date("2026-03-02")
+        let known = Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .completed)
+        let repeating = LibraryEdit(status: .set(.repeating)).fillingEmptyDates(current: known, creating: false, today: today)
+        #expect(!repeating.autoFilled)
+        #expect(repeating.edit == LibraryEdit(status: .set(.repeating)))
+        let same = LibraryEdit(status: .set(.completed)).fillingEmptyDates(current: known, creating: false, today: today)
+        #expect(!same.autoFilled)
+    }
+}
+
+// MARK: - Fence-on harness for the date leg
+
+@MainActor
+private final class DurableDateHarness {
+    let key = MediaKey(kind: .anime, id: 1)
+    let account = AccountContext(userId: "account-a", generation: 1)
+    let url: URL
+    let box: ProgressOutbox
+    let store: LibraryStore
+    let sender = RecordingSender()
+    let backend: ScriptedPatchBackend
+    let lease = CountingLease()
+
+    init(autofill: Bool) async throws {
+        url = FileManager.default.temporaryDirectory.appendingPathComponent("kuro-datefill-\(UUID()).sqlite")
+        box = try ProgressOutbox(path: url.path)
+        let row = LibraryEntry(
+            key: key, rowId: 1, status: .planning, progress: 0, createdAt: .distantPast, updatedAt: .distantPast,
+            revision: 1, lifecycleId: UUID(), sourceMetadata: LibrarySourceMetadata(repeatCount: 0)
+        )
+        backend = ScriptedPatchBackend(row: row)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Berlin") ?? .gmt
+        store = LibraryStore(
+            backend: backend, now: { Date(timeIntervalSince1970: 1_772_407_800) },
+            calendar: calendar, dateAutofillEnabled: { autofill }, credentialLease: lease
+        )
+        store.bind(account)
+        try await store.refresh()
+        let sender = sender
+        store.configureProgress(outbox: box) { items, _ in try await sender.send(items) }
+    }
+
+    func close() {
+        store.cancelProgressWork()
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    func waitUntil(_ predicate: @MainActor () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while !predicate() {
+            if ContinuousClock.now > deadline { throw LibraryError.unavailable(message: "Expected transition did not occur") }
+            await Task.yield()
+        }
+    }
+}
+
+@MainActor
+private final class RecordingSender {
+    var calls: [[ProgressIntent]] = []
+    var failing = false
+    func send(_ items: [ProgressIntent]) async throws -> [LibraryProgressReceipt] {
+        calls.append(items)
+        if failing { throw LibraryError.retryable(message: "offline") }
+        return items.map {
+            LibraryProgressReceipt(mutationId: $0.mutationId, outcome: "applied", position: $0.position,
+                                   revision: ($0.baseRevision ?? 0) + 1)
+        }
+    }
+}
+
+@MainActor
+private final class ScriptedPatchBackend: LibraryBackend {
+    var row: LibraryEntry
+    var edits: [LibraryEdit] = []
+    var failure: LibraryError?
+    var onEdit: ((LibraryEdit) -> Void)?
+    init(row: LibraryEntry) { self.row = row }
+    func fetchAll(for account: AccountContext) async throws -> [LibraryEntry] { [row] }
+    func insertIfMissing(_ key: MediaKey, status: ListStatus, account: AccountContext) async throws -> LibraryWriteResult {
+        throw LibraryError.unavailable(message: "Unexpected insert")
+    }
+    func edit(_ edit: LibraryEdit, key: MediaKey, createIfMissing: ListStatus?, mutationId: UUID,
+              baseRevision: Int64?, account: AccountContext) async throws -> LibraryWriteResult {
+        edits.append(edit)
+        onEdit?(edit)
+        if let failure { throw failure }
+        if case .set(let date) = edit.startedOn {
+            var metadata = row.sourceMetadata ?? LibrarySourceMetadata()
+            metadata.startedRaw = date.raw
+            row.sourceMetadata = metadata
+        }
+        row.revision = (row.revision ?? 0) + 1
+        return LibraryWriteResult(entry: row, created: false)
+    }
+    func remove(_ key: MediaKey, account: AccountContext) async throws {
+        throw LibraryError.unavailable(message: "Unexpected remove")
+    }
+}
+
+@MainActor
+private final class CountingLease: LibraryCredentialLease {
+    var calls = 0
+    var refuses = false
+    func withLease<T: Sendable>(
+        for account: AccountContext, _ operation: @escaping @MainActor @Sendable () async throws -> T
+    ) async throws -> T {
+        calls += 1
+        if refuses { throw CancellationError() }
+        return try await operation()
     }
 }

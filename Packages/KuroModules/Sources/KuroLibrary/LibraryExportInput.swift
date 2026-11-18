@@ -3,22 +3,19 @@ import KuroCore
 
 // MARK: - Export input
 
-/// What the catalogue knows about one title, for an export: its display title and its AniList / MyAnimeList
-/// ids. Read from the public `anime` / `manga` tables by the app and handed to the exporter as a value.
+/// What the catalogue knows about one title, for an export: its display title and its MyAnimeList
+/// id (AniList ids are private since catalogue Task 15d). Read from the public `anime` / `manga` tables by the app and handed to the exporter as a value.
 public struct ExportCatalogueRow: Equatable, Sendable {
     /// The English title, else the romaji title, else the native title, trimmed; `nil` when the catalogue
     /// row has none of them.
     public var title: String?
-    /// The title's AniList id, when the catalogue has one.
-    public var anilistId: Int?
     /// The title's MyAnimeList id, when the catalogue has one. `nil` means the title has no MAL id and
     /// cannot be written to a MAL file.
     public var malId: Int?
 
     /// Creates a catalogue row.
-    public init(title: String?, anilistId: Int?, malId: Int?) {
+    public init(title: String?, malId: Int?) {
         self.title = title
-        self.anilistId = anilistId
         self.malId = malId
     }
 }

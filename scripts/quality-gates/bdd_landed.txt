@@ -1,0 +1,5 @@
+# Feature files whose scenarios must all resolve to existing tests (F1, spec section 4).
+# One basename per line; add a feature here in the commit that lands its workstream.
+W2-export.feature
+W4-adult-notice.feature
+W3-alerts.feature

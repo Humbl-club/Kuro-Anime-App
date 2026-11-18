@@ -22,19 +22,19 @@ private enum DataLaneJSON {
     static let serverError = StubResponse.json(#"{"code":"XX000","message":"boom","details":null,"hint":null}"#, status: 500)
 
     static let castRows = StubResponse.json("""
-        [{"character_id":1,"character_anilist_id":40,"character_name_full":"Eren Yeager","character_name_native":"エレン",
-          "character_image_large":null,"role":"MAIN","staff_id":7,"staff_anilist_id":95672,"staff_name_full":"Yuuki Kaji",
+        [{"character_id":1,"character_name_full":"Eren Yeager","character_name_native":"エレン",
+          "character_image_large":null,"role":"MAIN","staff_id":7,"staff_name_full":"Yuuki Kaji",
           "staff_name_native":"梶裕貴","staff_image_large":"https://s4.anilist.co/v.jpg","language":"JAPANESE"},
-         {"character_id":2,"character_anilist_id":41,"character_name_full":"Extra","character_name_native":null,
-          "character_image_large":null,"role":"BACKGROUND","staff_id":null,"staff_anilist_id":null,"staff_name_full":null,
+         {"character_id":2,"character_name_full":"Extra","character_name_native":null,
+          "character_image_large":null,"role":"BACKGROUND","staff_id":null,"staff_name_full":null,
           "staff_name_native":null,"staff_image_large":null,"language":null}]
         """)
 
     /// `anime_characters` embed rows, one with a numeric age (the integer column).
     static let characterJoins = StubResponse.json("""
-        [{"role":"BACKGROUND","characters":{"id":3,"anilist_id":3,"name_full":"Background Guy","name_native":null,"image_large":null,"gender":null,"age":null}},
-         {"role":"MAIN","characters":{"id":1,"anilist_id":1,"name_full":"Hero","name_native":null,"image_large":null,"gender":"Male","age":17}},
-         {"role":"SUPPORTING","characters":{"id":2,"anilist_id":2,"name_full":"Friend","name_native":null,"image_large":null,"gender":null,"age":"16"}}]
+        [{"role":"BACKGROUND","characters":{"id":3,"name_full":"Background Guy","name_native":null,"image_large":null,"gender":null,"age":null}},
+         {"role":"MAIN","characters":{"id":1,"name_full":"Hero","name_native":null,"image_large":null,"gender":"Male","age":17}},
+         {"role":"SUPPORTING","characters":{"id":2,"name_full":"Friend","name_native":null,"image_large":null,"gender":null,"age":"16"}}]
         """)
 
     static func similarAnimeRows(_ ids: [Int]) -> StubResponse {
@@ -98,7 +98,7 @@ struct CastAndVoiceActorTests {
         let cast = await catalog.fetchCast(forAnime: 990_200)
         #expect(cast.map(\.character.nameFull) == ["Eren Yeager", "Extra"])
         #expect(cast.first?.voiceActor?.nameFull == "Yuuki Kaji")
-        #expect(cast.first?.voiceActor?.anilistId == 95_672)
+        #expect(cast.first?.voiceActor?.id == 7)
         #expect(cast.first?.language == "JAPANESE")
         #expect(cast.last?.voiceActor == nil)
         #expect(cast.last?.language == nil)
@@ -153,7 +153,7 @@ struct CastAndVoiceActorTests {
         let harness = try PublicDataHarness { request in
             switch request.resource {
             case "rpc/character_voice_actors_v1":
-                return .json(#"[{"staff_id":7,"anilist_id":95672,"name_full":"Yuuki Kaji","name_native":"梶裕貴","image_large":null,"language":"JAPANESE","anime_ids":[1,2]}]"#)
+                return .json(#"[{"staff_id":7,"name_full":"Yuuki Kaji","name_native":"梶裕貴","image_large":null,"language":"JAPANESE","anime_ids":[1,2]}]"#)
             case "rpc/staff_voice_roles_v1": return DataLaneJSON.pgrst202
             default: return .emptyArray
             }
@@ -172,7 +172,7 @@ struct CastAndVoiceActorTests {
     @Test("staff_voice_roles_v1 row maps to a voice role with its anime card fields")
     func voiceRoleRowMapping() throws {
         let row = try JSONDecoder().decode(StaffVoiceRoleRow.self, from: Data("""
-            {"character_id":1,"character_anilist_id":40,"character_name_full":"Eren","character_name_native":null,
+            {"character_id":1,"character_name_full":"Eren","character_name_native":null,
              "character_image_large":null,"role":"MAIN","language":"JAPANESE","anime_id":990042,"title_english":null,
              "title_romaji":"Shingeki no Kyojin","title_native":"進撃の巨人","cover_image_large":null,"format":"TV",
              "season_year":null,"start_date_year":2013}

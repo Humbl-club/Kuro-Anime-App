@@ -67,12 +67,13 @@ final class FakeLibraryBackend: LibraryBackend {
 
     static func entry(
         _ kind: MediaKind, _ id: Int, rowId: Int = 1, status: ListStatus = .current, progress: Int = 0,
-        rating: Int? = nil, notes: String? = nil, verdict: Verdict? = nil
+        rating: Int? = nil, notes: String? = nil, verdict: Verdict? = nil,
+        sourceMetadata: LibrarySourceMetadata? = nil
     ) -> LibraryEntry {
         LibraryEntry(
             key: MediaKey(kind: kind, id: id), rowId: rowId, status: status, progress: progress,
             rating: rating.flatMap { UserRating(value: $0) }, notes: notes, verdict: verdict,
-            createdAt: date, updatedAt: date
+            createdAt: date, updatedAt: date, sourceMetadata: sourceMetadata
         )
     }
 
@@ -172,5 +173,24 @@ final class FakeLibraryBackend: LibraryBackend {
         case .clear: entry.verdict = nil
         case .unchanged: break
         }
+        // Like `LibraryEdit.applying`: metadata is created only when the edit names one of these fields,
+        // so a plain edit never turns unknown dates into known-empty ones.
+        guard !(edit.repeatCount == .unchanged && edit.startedOn == .unchanged && edit.finishedOn == .unchanged
+                && edit.startedRawVerbatim == nil && edit.finishedRawVerbatim == nil) else { return }
+        var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
+        if case .set(let count) = edit.repeatCount { metadata.repeatCount = count }
+        switch edit.startedOn {
+        case .set(let date): metadata.startedRaw = date.raw
+        case .clear: metadata.startedRaw = nil
+        case .unchanged: break
+        }
+        switch edit.finishedOn {
+        case .set(let date): metadata.finishedRaw = date.raw
+        case .clear: metadata.finishedRaw = nil
+        case .unchanged: break
+        }
+        if let raw = edit.startedRawVerbatim { metadata.startedRaw = raw }
+        if let raw = edit.finishedRawVerbatim { metadata.finishedRaw = raw }
+        entry.sourceMetadata = metadata
     }
 }
