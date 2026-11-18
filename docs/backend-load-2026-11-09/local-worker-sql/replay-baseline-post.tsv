@@ -1,0 +1,33 @@
+PASS	20260807000000_baseline_capture_v1.sql	BASELINE	
+FAIL	20260807010000_leftover_repairs_v1.sql	POST	ERROR:  function public.delete_user_concierge_data(text) does not exist
+FAIL	20260810120000_clubs_trust_flags_promote_100.sql	POST	ERROR:  relation "public.feature_flags" does not exist
+FAIL	20261005120000_club_members_role_column_guard.sql	POST	ERROR:  relation "public.club_members" does not exist
+FAIL	20261005120100_club_rails_insert_admin_only.sql	POST	ERROR:  relation "public.club_rails" does not exist
+PASS	20261005120200_toggle_comment_reaction_visibility.sql	POST	
+FAIL	20261005130000_import_apply_undo_transactions.sql	POST	ERROR:  import_apply_undo_transactions: a prerequisite table is missing (import_sessions, import_session_items, anime_user_lists, manga_user_lists, taste_import_context)
+FAIL	20261005140000_account_deletion_write_barrier.sql	POST	ERROR:  relation "public.club_analytics" does not exist
+FAIL	20261005150000_club_membership_lifecycle_and_privacy.sql	POST	ERROR:  relation "public.clubs" does not exist
+FAIL	20261005160000_club_realtime_signals.sql	POST	ERROR:  relation "public.clubs" does not exist
+PASS	20261005170000_user_lists_view_security_invoker.sql	POST	
+PASS	20261005180000_list_user_id_canonical_case.sql	POST	
+FAIL	20261006120000_import_sessions_select_only.sql	POST	ERROR:  relation "public.import_sessions" does not exist
+FAIL	20261007040000_series_home_foundation_v1.sql	POST	ERROR:  relation "public.club_members" does not exist
+FAIL	20261007120000_feature_flag_overrides.sql	POST	ERROR:  relation "public.feature_flags" does not exist
+FAIL	20261007130000_series_account_lifecycle.sql	POST	ERROR:  relation "public.library_import_jobs" does not exist
+FAIL	20261008100000_import_status_fence_preserves_units.sql	POST	ERROR:  relation "public.mutation_receipts" does not exist
+FAIL	20261008110000_import_review_recovery_v2.sql	POST	ERROR:  relation "public.library_import_jobs" does not exist
+FAIL	20261101000000_release_schedule_and_themes_v2.sql	POST	ERROR:  relation "public.release_events" does not exist
+FAIL	20261101010000_perf_hotpaths.sql	POST	ERROR:  relation "public.media_relations" does not exist
+FAIL	20261101010100_perf_drop_duplicate_indexes.sql	POST	ERROR:  MISSING_PREREQUISITE: apply 20261101010000_perf_hotpaths.sql first
+FAIL	20261101020000_bridge_identity_fix.sql	POST	ERROR:  relation "public.catalogue_units" does not exist
+PASS	20261101030000_auth_hardening.sql	POST	
+PASS	20261102100000_contact_messages.sql	POST	
+PASS	20261103100000_character_voice_actors_v1.sql	POST	
+PASS	20261103100100_media_similar_v1.sql	POST	
+FAIL	20261103100200_theme_links_apple_v1.sql	POST	ERROR:  relation "public.theme_links" does not exist
+PASS	20261104100000_discover_usability_v1.sql	POST	
+PASS	20261104100100_discover_mood_perf_v1.sql	POST	
+FAIL	20261108120159_review_security_v1.sql	POST	ERROR:  Missing required function: public.upsert_rec_edges(jsonb)
+PASS	20261108120211_catalog_intake_schedule_v1.sql	POST	
+FAIL	20261109001251_load_hotpaths_v1.sql	POST	ERROR:  function public.discover_bundle(integer, integer) does not exist
+FAIL	20261109003243_taste_worker_latency_v1.sql	POST	ERROR:  function public.recompute_user_taste_profile(uuid) does not exist

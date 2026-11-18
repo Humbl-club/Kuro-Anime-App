@@ -1,0 +1,26 @@
+{
+  "started_at": "2026-11-09T11:09:20.378935+00:00",
+  "profiles": [
+    {
+      "name": "r12-warmup-5rps",
+      "exit_code": 1,
+      "pass": false,
+      "started_at": "2026-11-09T11:09:20.403Z",
+      "finished_at": "2026-11-09T11:10:20.238Z",
+      "output": "r12-warmup-5rps.json"
+    }
+  ],
+  "complete": false,
+  "prior_failed_sequences": [
+    "capacity-sequence.json",
+    "capacity-sequence-r2.json",
+    "capacity-sequence-r3.json",
+    "capacity-sequence-r5.json",
+    "capacity-sequence-r7.json",
+    "capacity-sequence-r8.json",
+    "capacity-sequence-r9.json",
+    "capacity-sequence-r10.json",
+    "capacity-sequence-r11.json"
+  ],
+  "finished_at": "2026-11-09T11:10:20.244572+00:00"
+}

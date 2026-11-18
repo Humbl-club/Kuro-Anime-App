@@ -1,0 +1,334 @@
+{
+  "approval": "Explicit user reply: Approve reviewed production plan",
+  "auth": {
+    "external_apple_enabled": false,
+    "jwt_exp": 3600,
+    "mailer_autoconfirm": true,
+    "password_hibp_enabled": true,
+    "password_min_length": 8,
+    "security_captcha_enabled": false,
+    "site_url": "kuro://auth/callback",
+    "uri_allow_list": "kuro://auth/callback"
+  },
+  "backup_metadata": {
+    "latest": [
+      {
+        "inserted_at": "2026-11-04T05:49:40.522Z",
+        "is_physical_backup": true,
+        "status": "COMPLETED"
+      },
+      {
+        "inserted_at": "2026-11-03T05:49:47.402Z",
+        "is_physical_backup": true,
+        "status": "COMPLETED"
+      },
+      {
+        "inserted_at": "2026-11-02T05:49:33.793Z",
+        "is_physical_backup": true,
+        "status": "COMPLETED"
+      }
+    ],
+    "reported_backups": 8
+  },
+  "checked_at": "2026-11-09T13:43:28.419521+00:00",
+  "cron": [
+    {
+      "active": true,
+      "jobid": 15,
+      "jobname": "kuro-import-runs-retention",
+      "schedule": "10 1 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 16,
+      "jobname": "concierge_housekeeping_daily",
+      "schedule": "0 4 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 18,
+      "jobname": "rag-cache-cleanup",
+      "schedule": "15 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 30,
+      "jobname": "cleanup-cron-history",
+      "schedule": "0 5 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 35,
+      "jobname": "manga-source-review-auto-expire-daily",
+      "schedule": "20 4 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "schedule": "* * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 43,
+      "jobname": "outbound-link-ledger-retention",
+      "schedule": "40 4 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 44,
+      "jobname": "taste-tag-vectors-refresh",
+      "schedule": "50 3 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 45,
+      "jobname": "taste-tag-stats-decay",
+      "schedule": "10 4 * * 0",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 51,
+      "jobname": "realm-tier-refresh",
+      "schedule": "50 4 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 87,
+      "jobname": "realm-similar-drive-5m",
+      "schedule": "*/5 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 99,
+      "jobname": "realm-membership-refresh",
+      "schedule": "30 4 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 100,
+      "jobname": "realm-affinity-refresh",
+      "schedule": "40 4 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 101,
+      "jobname": "kuro-import-anime-hourly",
+      "schedule": "5 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 102,
+      "jobname": "kuro-import-anime-weekly",
+      "schedule": "0 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 103,
+      "jobname": "kuro-import-manga-hourly",
+      "schedule": "35 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "schedule": "10 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 106,
+      "jobname": "mirror-images-anime-manga-0",
+      "schedule": "0 2 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 107,
+      "jobname": "mirror-images-anime-manga-200",
+      "schedule": "15 2 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 108,
+      "jobname": "mirror-images-anime-manga-400",
+      "schedule": "30 2 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 109,
+      "jobname": "mirror-images-character",
+      "schedule": "45 2 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 110,
+      "jobname": "mirror-images-staff",
+      "schedule": "0 3 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 111,
+      "jobname": "manga-chapter-enrich-nightly-sweep",
+      "schedule": "35 3 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 112,
+      "jobname": "manga-chapter-enrich-15m",
+      "schedule": "*/15 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 114,
+      "jobname": "kuro-refresh-matviews",
+      "schedule": "30 1 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 115,
+      "jobname": "realm-similar-nightly",
+      "schedule": "10 5 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 116,
+      "jobname": "kuro-release-intake-airing-hourly",
+      "schedule": "25 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 117,
+      "jobname": "kuro-release-intake-manga-daily",
+      "schedule": "50 3 * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 119,
+      "jobname": "contact-messages-retention",
+      "schedule": "50 4 * * *",
+      "username": "postgres"
+    }
+  ],
+  "frozen_hashes_verified": true,
+  "functions": [
+    {
+      "slug": "bulk-import-anime",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 87
+    },
+    {
+      "slug": "bulk-import-manga",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 85
+    },
+    {
+      "slug": "concierge-parse",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 49
+    },
+    {
+      "slug": "concierge-recommend",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 55
+    },
+    {
+      "slug": "concierge-resolve",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 20
+    }
+  ],
+  "manifest_sha256": "104df5ecd86f2a6ef5fd5b4127ef5f98ae3112d57f7ed95d7b66c3787547565b",
+  "materialized_views": [
+    {
+      "relkind": "m",
+      "relname": "media_realm_membership"
+    },
+    {
+      "relkind": "m",
+      "relname": "mv_anime_top_rated"
+    },
+    {
+      "relkind": "m",
+      "relname": "mv_anime_trending"
+    },
+    {
+      "relkind": "m",
+      "relname": "mv_manga_top_rated"
+    },
+    {
+      "relkind": "m",
+      "relname": "mv_manga_trending"
+    }
+  ],
+  "new_objects_absent": true,
+  "pool": {
+    "db_extra_search_path": "public, extensions",
+    "db_pool": 3,
+    "db_pool_acquisition_timeout": 10,
+    "db_pool_max_idletime": 30,
+    "db_pool_max_lifetime": 1800,
+    "db_schema": "public,graphql_public",
+    "max_rows": 1000
+  },
+  "postmaster_started_at": "2026-08-04 19:53:25.02166+00",
+  "prior_history": [
+    {
+      "md5": "e923bd9396dc42deb595ff0329bcdac4",
+      "name": "review_security_v1",
+      "version": "20261108120159"
+    },
+    {
+      "md5": "0e7343d4a5e9878a1bd788f2ea7ac609",
+      "name": "catalog_intake_schedule_v1",
+      "version": "20261108120211"
+    },
+    {
+      "md5": "a315c1be8c8eb61846bede5d4baa3420",
+      "name": "load_hotpaths_v1",
+      "version": "20261109001251"
+    },
+    {
+      "md5": "61e43c0a4a57988d5e1072686c7d9d66",
+      "name": "taste_worker_latency_v1",
+      "version": "20261109003243"
+    },
+    {
+      "md5": "5f578178e696822ac8155c52e2bcc77d",
+      "name": "parent_unit_lookup_v1",
+      "version": "20261109100800"
+    }
+  ],
+  "project": "ACTIVE_HEALTHY"
+}

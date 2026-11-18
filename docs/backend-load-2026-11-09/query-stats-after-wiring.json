@@ -1,0 +1,74 @@
+[
+  {
+    "calls": 235,
+    "label": "WITH pgrst_source AS (SELECT pgrst_call.pgrst_scalar FROM (SELECT $1 AS json_data) pgrst_payload, LATERAL (SELECT \"p_limit\", \"p_hours\" FROM json_to_record(pgrst_payload.json_data) AS _(\"p_limit\" integer, \"p_hours\" integer) LIMIT $4) pgrst_body , LATERAL (SELEC",
+    "max_exec_time": 7638.246797,
+    "mean_exec_time": 724.84135766383,
+    "queryid": "5099827848241975764",
+    "rows": 235,
+    "shared_blks_hit": 3939581,
+    "shared_blks_read": 713397,
+    "temp_blks_written": 0,
+    "total_exec_time": 170337.719051
+  },
+  {
+    "calls": 6,
+    "label": "select public.refresh_discover_matviews_v1()",
+    "max_exec_time": 25539.427495,
+    "mean_exec_time": 22118.244157,
+    "queryid": "592028405430749256",
+    "rows": 6,
+    "shared_blks_hit": 1552796,
+    "shared_blks_read": 174802,
+    "temp_blks_written": 123595,
+    "total_exec_time": 132709.464942
+  },
+  {
+    "calls": 1469033,
+    "label": "select set_config('search_path', $1, true), set_config('role', $2, true), set_config('request.jwt.claims', $3, true), set_config('request.method', $4, true), set_config('request.path', $5, true), set_config('request.headers', $6, true), set_config('request.coo",
+    "max_exec_time": 65.272315,
+    "mean_exec_time": 0.0355308957994772,
+    "queryid": "-7821780334453251234",
+    "rows": 1469033,
+    "shared_blks_hit": 322768,
+    "shared_blks_read": 163,
+    "temp_blks_written": 0,
+    "total_exec_time": 52196.058448996
+  },
+  {
+    "calls": 180,
+    "label": "WITH pgrst_source AS (SELECT \"pgrst_call\".* FROM (SELECT $1 AS json_data) pgrst_payload, LATERAL (SELECT \"p_sort\", \"p_limit\" FROM json_to_record(pgrst_payload.json_data) AS _(\"p_sort\" text, \"p_limit\" integer) LIMIT $4) pgrst_body , LATERAL \"public\".\"browse_ani",
+    "max_exec_time": 4163.454247,
+    "mean_exec_time": 262.356733816667,
+    "queryid": "9018964049468386471",
+    "rows": 180,
+    "shared_blks_hit": 1000482,
+    "shared_blks_read": 44,
+    "temp_blks_written": 0,
+    "total_exec_time": 47224.212087
+  },
+  {
+    "calls": 125,
+    "label": "WITH pgrst_source AS (SELECT pgrst_call.pgrst_scalar FROM (SELECT $1 AS json_data) pgrst_payload, LATERAL (SELECT \"p_limit\", \"p_hours\" FROM json_to_record(pgrst_payload.json_data) AS _(\"p_limit\" integer, \"p_hours\" integer) LIMIT $4) pgrst_body , LATERAL (SELEC",
+    "max_exec_time": 2216.491643,
+    "mean_exec_time": 362.853571848,
+    "queryid": "5099827848241975764",
+    "rows": 125,
+    "shared_blks_hit": 447377,
+    "shared_blks_read": 31511,
+    "temp_blks_written": 0,
+    "total_exec_time": 45356.696481
+  },
+  {
+    "calls": 94,
+    "label": "WITH pgrst_source AS (SELECT \"pgrst_call\".* FROM (SELECT $1 AS json_data) pgrst_payload, LATERAL (SELECT \"p_sort\", \"p_limit\" FROM json_to_record(pgrst_payload.json_data) AS _(\"p_sort\" text, \"p_limit\" integer) LIMIT $4) pgrst_body , LATERAL \"public\".\"browse_ani",
+    "max_exec_time": 2823.390727,
+    "mean_exec_time": 234.117456010638,
+    "queryid": "9018964049468386471",
+    "rows": 94,
+    "shared_blks_hit": 519907,
+    "shared_blks_read": 383,
+    "temp_blks_written": 0,
+    "total_exec_time": 22007.040865
+  }
+]

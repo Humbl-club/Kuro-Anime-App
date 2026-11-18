@@ -1,0 +1,10 @@
+{
+  "checked_at": "2026-11-09T11:01:10.409042+00:00",
+  "configuration_mutated": false,
+  "db_pool": 3,
+  "default_interface": "en0",
+  "physical_port": "Ethernet",
+  "project_status": "ACTIVE_HEALTHY",
+  "traffic_deadline_and_gates_changed": false,
+  "user_confirmation": "connected"
+}

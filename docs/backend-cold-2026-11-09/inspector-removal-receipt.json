@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "readback": {
+    "extension_exists": false,
+    "schema_exists": false
+  },
+  "receipt_proven_ownership": true,
+  "removed_at": "2026-11-09T14:09:24.449405+00:00",
+  "restrict_only": true,
+  "source_sha256": "83869402e69635f01a9db0c5e271e7224d609f028470d764033d9d20d635bba4"
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "anon": false,
+    "authenticated": false,
+    "proname": "check_email_exists",
+    "service_role": true
+  },
+  {
+    "anon": false,
+    "authenticated": false,
+    "proname": "llm_global_budget_finalize",
+    "service_role": true
+  },
+  {
+    "anon": false,
+    "authenticated": false,
+    "proname": "llm_global_budget_reserve",
+    "service_role": true
+  },
+  {
+    "anon": false,
+    "authenticated": false,
+    "proname": "rate_limit_hit",
+    "service_role": true
+  },
+  {
+    "anon": false,
+    "authenticated": false,
+    "proname": "upsert_rec_edges",
+    "service_role": true
+  }
+]

@@ -1,0 +1,52 @@
+{
+  "status": "DEPLOYED_VERIFIED_SPECIFIED_WARMED_WORKLOAD_PASSED",
+  "function": "concierge-recommend",
+  "production_version_before": 54,
+  "verify_jwt": true,
+  "changed_runtime_file": "supabase/functions/concierge-recommend/catalog_repository.ts",
+  "changed_runtime_sha256": "49b88d972cec80199a86ef58bca6cf0f17fb5d77300d50af918484c9ad7af92b",
+  "baseline_runtime_sha256": "22ace7dc146ec8581af758e9b77450c775fc60d146c1fc77f689d15ddf3540b9",
+  "files": [
+    {
+      "path": "supabase/functions/_shared/rate_limit_gate.ts",
+      "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+      "sha256": "49b88d972cec80199a86ef58bca6cf0f17fb5d77300d50af918484c9ad7af92b"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/curated_copy.ts",
+      "sha256": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/handler.ts",
+      "sha256": "f70117167f7292b6f9ac317a01ecd62db04aef950d771e311eea846f9fcf3824"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/index.ts",
+      "sha256": "4792b3d7cec776723bd6d77ecdf06dd690146187a40b884b2615f5e85c3bd6ed"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/narration.ts",
+      "sha256": "0cbe95a6aeaf2be35641d9c018db6f524a785e10e5b190666c6f6476e541dd1a"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/rail_policy.ts",
+      "sha256": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/router.ts",
+      "sha256": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921"
+    }
+  ],
+  "focused_tests": 26,
+  "complete_response_comparisons": 36,
+  "before_premium_rpc_calls": 276,
+  "after_premium_rpc_calls": 120,
+  "capacity_verdict": "NOT_QUALIFIED_R13_LARGE_RECOMMENDATION_LIMIT_FAILED",
+  "deployed_version": 55,
+  "capacity_result": "REPORT.md",
+  "capacity_sequence": "capacity-sequence-r15.json",
+  "cold_call_gap_retained": true
+}

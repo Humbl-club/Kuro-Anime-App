@@ -1,0 +1,86 @@
+{
+  "concierge-parse": [
+    {
+      "path": "supabase/functions/_shared/alias_normalization.ts",
+      "same_as_v_before": true,
+      "sha256": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673"
+    },
+    {
+      "path": "supabase/functions/_shared/normalization.ts",
+      "same_as_v_before": true,
+      "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+    },
+    {
+      "path": "supabase/functions/_shared/rate_limit_gate.ts",
+      "same_as_v_before": true,
+      "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "path": "supabase/functions/concierge-parse/handler.ts",
+      "same_as_v_before": false,
+      "sha256": "b9af72613a0744b57e23f46c0364bf3410b8fb3e226724dd0d0faf6ac50b09ee"
+    },
+    {
+      "path": "supabase/functions/concierge-parse/index.ts",
+      "same_as_v_before": false,
+      "sha256": "f99f1023879e014785462d939ad9ef62faa55643bb087e843cebb39a9f520bf1"
+    },
+    {
+      "path": "supabase/functions/concierge-parse/parse_repository.ts",
+      "same_as_v_before": true,
+      "sha256": "248dacd964388c905f6924b2d8219fd6cc63496cb8e6b79e0b6d40b661c72c41"
+    },
+    {
+      "path": "supabase/functions/concierge-parse/rules.ts",
+      "same_as_v_before": true,
+      "sha256": "9750d2134cb72944d0593974b3cd269a3ec3ce8840ee332c479321bc55ed27e9"
+    },
+    {
+      "path": "supabase/functions/concierge-parse/search_plan.ts",
+      "same_as_v_before": true,
+      "sha256": "f6ed30f6306074d5a63195cc7a5546106a9fb6a63bdff371e899d8ed74019276"
+    }
+  ],
+  "concierge-recommend": [
+    {
+      "path": "supabase/functions/_shared/rate_limit_gate.ts",
+      "same_as_v_before": true,
+      "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+      "same_as_v_before": true,
+      "sha256": "49b88d972cec80199a86ef58bca6cf0f17fb5d77300d50af918484c9ad7af92b"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/curated_copy.ts",
+      "same_as_v_before": true,
+      "sha256": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/handler.ts",
+      "same_as_v_before": false,
+      "sha256": "ce19e94302f6d82344e12e457f2da31888af45007127390e1325427fd7bf09de"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/index.ts",
+      "same_as_v_before": false,
+      "sha256": "70aa8c11ca8f5d783558521bc4940ea07dca6db0398a073a67746ffcfd5e1945"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/narration.ts",
+      "same_as_v_before": true,
+      "sha256": "0cbe95a6aeaf2be35641d9c018db6f524a785e10e5b190666c6f6476e541dd1a"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/rail_policy.ts",
+      "same_as_v_before": true,
+      "sha256": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141"
+    },
+    {
+      "path": "supabase/functions/concierge-recommend/router.ts",
+      "same_as_v_before": true,
+      "sha256": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921"
+    }
+  ]
+}

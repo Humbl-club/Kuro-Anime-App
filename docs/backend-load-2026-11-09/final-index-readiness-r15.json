@@ -1,0 +1,127 @@
+{
+  "checked_at": "2026-11-09T12:22:24.966151+00:00",
+  "expected": 20,
+  "indexes": [
+    {
+      "definition": "CREATE INDEX idx_anime_load_created_v1 ON public.anime USING btree (created_at DESC NULLS LAST, id DESC)",
+      "name": "idx_anime_load_created_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_popular_v1 ON public.anime USING btree (COALESCE(popularity, 0) DESC, id DESC)",
+      "name": "idx_anime_load_popular_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_score_v1 ON public.anime USING btree (COALESCE(average_score, 0) DESC, id DESC)",
+      "name": "idx_anime_load_score_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_blob_v1 ON public.anime USING gin (catalogue_search_blob_v1(title_english, title_romaji, title_native) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_blob_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_english_v1 ON public.anime USING gin (lower(COALESCE(title_english, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_english_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_fts_v1 ON public.anime USING gin (to_tsvector('simple'::regconfig, catalogue_search_blob_v1(title_english, title_romaji, title_native)))",
+      "name": "idx_anime_load_title_fts_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_native_v1 ON public.anime USING gin (lower(COALESCE(title_native, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_native_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_romaji_v1 ON public.anime USING gin (lower(COALESCE(title_romaji, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_romaji_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_trending_v1 ON public.anime USING btree (COALESCE(trending, 0) DESC, id DESC)",
+      "name": "idx_anime_load_trending_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_chapters_manga_parent_v1 ON public.chapters USING btree (manga_id)",
+      "name": "idx_chapters_manga_parent_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_episodes_anime_parent_v1 ON public.episodes USING btree (anime_id)",
+      "name": "idx_episodes_anime_parent_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_created_v1 ON public.manga USING btree (created_at DESC NULLS LAST, id DESC)",
+      "name": "idx_manga_load_created_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_popular_v1 ON public.manga USING btree (COALESCE(popularity, 0) DESC, id DESC)",
+      "name": "idx_manga_load_popular_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_score_v1 ON public.manga USING btree (COALESCE(average_score, 0) DESC, id DESC)",
+      "name": "idx_manga_load_score_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_blob_v1 ON public.manga USING gin (catalogue_search_blob_v1(title_english, title_romaji, title_native) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_blob_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_english_v1 ON public.manga USING gin (lower(COALESCE(title_english, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_english_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_fts_v1 ON public.manga USING gin (to_tsvector('simple'::regconfig, catalogue_search_blob_v1(title_english, title_romaji, title_native)))",
+      "name": "idx_manga_load_title_fts_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_native_v1 ON public.manga USING gin (lower(COALESCE(title_native, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_native_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_romaji_v1 ON public.manga USING gin (lower(COALESCE(title_romaji, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_romaji_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_trending_v1 ON public.manga USING btree (COALESCE(trending, 0) DESC, id DESC)",
+      "name": "idx_manga_load_trending_v1",
+      "ready": true,
+      "valid": true
+    }
+  ],
+  "passed": true
+}

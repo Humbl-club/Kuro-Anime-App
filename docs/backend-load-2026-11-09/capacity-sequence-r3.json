@@ -1,0 +1,27 @@
+{
+  "started_at": "2026-11-09T09:22:30.630779+00:00",
+  "profiles": [
+    {
+      "name": "r3-warmup-5rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T09:22:30.658Z",
+      "finished_at": "2026-11-09T09:23:30.525Z",
+      "output": "r3-warmup-5rps.json"
+    },
+    {
+      "name": "r3-soak-20rps",
+      "exit_code": 1,
+      "pass": false,
+      "started_at": "2026-11-09T09:23:30.574Z",
+      "finished_at": "2026-11-09T09:25:12.984Z",
+      "output": "r3-soak-20rps.json"
+    }
+  ],
+  "complete": false,
+  "prior_failed_sequences": [
+    "capacity-sequence.json",
+    "capacity-sequence-r2.json"
+  ],
+  "finished_at": "2026-11-09T09:25:13.037938+00:00"
+}

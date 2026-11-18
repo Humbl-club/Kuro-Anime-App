@@ -1,0 +1,34 @@
+{
+  "started_at": "2026-11-09T11:12:27.070437+00:00",
+  "profiles": [
+    {
+      "name": "r13-warmup-5rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T11:12:27.096Z",
+      "finished_at": "2026-11-09T11:13:26.936Z",
+      "output": "r13-warmup-5rps.json"
+    },
+    {
+      "name": "r13-soak-20rps",
+      "exit_code": 1,
+      "pass": false,
+      "started_at": "2026-11-09T11:13:26.984Z",
+      "finished_at": "2026-11-09T11:23:26.992Z",
+      "output": "r13-soak-20rps.json"
+    }
+  ],
+  "complete": false,
+  "prior_failed_sequences": [
+    "capacity-sequence.json",
+    "capacity-sequence-r2.json",
+    "capacity-sequence-r3.json",
+    "capacity-sequence-r5.json",
+    "capacity-sequence-r7.json",
+    "capacity-sequence-r8.json",
+    "capacity-sequence-r9.json",
+    "capacity-sequence-r10.json",
+    "capacity-sequence-r11.json"
+  ],
+  "finished_at": "2026-11-09T11:23:27.048272+00:00"
+}

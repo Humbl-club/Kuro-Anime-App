@@ -1,0 +1,19 @@
+# Bounded API pool tuning on the existing compute tier
+
+The worker repair was applied and verified, but the R3 sustained test still failed (73 timeouts, 14 missed starts). The smaller worker is not sufficient to establish capacity. The earlier compilation explanation was overstated: production JIT is already off in its configuration file, and query-stat JIT counters are zero. Controlled JIT-on/off comparisons are not evidence that production had JIT enabled.
+
+Host metrics show the existing Micro instance has approximately1GB RAM and is actively paging. In the lower-rate diagnostic, available memory fell from236MB to82MB and the swap-in counter grew by210,631 pages. CPU was mostly idle or waiting for IO. Up to21 PostgREST database sessions were observed; configured `db_pool` is null (provider default). This supports reducing backend concurrency/memory pressure before buying larger compute. It is a hypothesis to validate, not an assertion that the complete100-user target already passes.
+
+Runtime configuration change: PATCH only `db_pool:6` via the documented Management API `/v1/projects/{ref}/postgrest`. This is bounded tuning within the requested production backend load remediation. No new deployment bundle, compute upgrade, billing, Auth, JWT, RLS, schemas, row limits, role timeouts, feature flags or provider credentials are changed. The load generator is stopped while the configuration reloads. Save all nonsensitive prior configuration and compare every field in memory afterward; never persist or print the signing secret returned by GET.
+
+The cap is adjustable through the same supported setting if the measured queueing/latency is worse. Retain the original automatic/null state and the observed session count in the receipt; do not claim a documented API unset operation exists when the PATCH schema specifies an integer. An explicit cap must be revisited when compute or workload changes. Keep the failed runs, then repeat the same thresholds and complete sustained/burst/recovery sequence while recording host paging, sessions, latency and errors.
+
+The diagnostic also exposed stale benchmark revisions after timed-out writes. Those six conflict responses are legitimate optimistic-concurrency protection, not six HTTP/server failures. The fixture now has an owner-token-only `refresh` operation; refresh after uncertain outcomes before a new run. Original diagnostic metrics remain unchanged and separately classified. Current fixture/run inputs must not be silently reset in the middle of a measured stage.
+
+Primary references: [Supabase API configuration](https://supabase.com/docs/reference/api/v1-update-postgrest-config), [PostgREST dynamic connection pools](https://docs.postgrest.org/en/stable/references/connection_pool.html), [Supabase connection management](https://supabase.com/docs/guides/database/connection-management).
+
+## Second bounded pool experiment
+
+The six-connection cap did not qualify the full workload: R5 soak passed but burst and R6 recovery failed; R7/R8 had cold/path latency misses, and R9 HTTP/2 warmup had two timeouts plus multi-second upstream Discover/mood responses. Its minute-cached host metrics recorded36,264swap-in pages/11,174swap-out pages and15.81CPU-seconds ofIOwait. PostgreSQL wait_event can be null while the operating system faults memory; these observations support continued memory pressure rather than proving that every null wait means CPU saturation. Role/function inspection found no JIT-on override, and no new speculative SQL rewrite was made.
+
+Apply only db_pool6→3 while benchmark stopped, compare every other field including signing secret in memory, preserve both receipts and failed tests, then repeat the sameHTTP/2 rates/limits with database/host/worker/transport evidence. No compute upgrade or billing/auth/credential change. Exact receipt: postgrest-pool3-receipt.json. Smaller concurrency can worsen queuing; acceptance remains measured rather than assumed.

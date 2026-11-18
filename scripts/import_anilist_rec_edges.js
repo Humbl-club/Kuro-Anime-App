@@ -20,7 +20,7 @@
                 each popularity.desc).
 
   Env:
-    KURO_TEST_JWT        Bearer token (test account) for the upsert_rec_edges RPC.
+    SUPABASE_SERVICE_ROLE_KEY  Server-only credential for the upsert_rec_edges RPC.
                          Required for a real import; NOT required for --dry-run.
     SUPABASE_URL         Optional override; default parsed from Config/Shared.xcconfig.
     SUPABASE_ANON_KEY    Optional override; default parsed from Config/Shared.xcconfig.
@@ -38,7 +38,7 @@
       Progress is written only after the covering RPC flush succeeds.
 
   Run (lead, tonight):
-    KURO_TEST_JWT=<test-account-jwt> node scripts/import_anilist_rec_edges.js
+    SUPABASE_SERVICE_ROLE_KEY=<server-only-key> node scripts/import_anilist_rec_edges.js
 */
 
 const fs = require('fs');
@@ -498,9 +498,9 @@ async function run(config, jwt, pool, { limit, offset }) {
 async function main() {
   const args = parseArgs();
   const config = loadSupabaseConfig();
-  const jwt = process.env.KURO_TEST_JWT;
+  const jwt = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!args.dryRun && !jwt) {
-    throw new Error('Missing KURO_TEST_JWT env var (bearer token for upsert_rec_edges). Only --dry-run works without it.');
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var (server-only recommendation writer). Only --dry-run works without it.');
   }
 
   const pool = await fetchPool(config);

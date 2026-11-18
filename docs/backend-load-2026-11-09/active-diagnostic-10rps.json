@@ -1,0 +1,37 @@
+[
+  {
+    "active": [
+      {
+        "age_seconds": 1.966178,
+        "application_name": "postgrest",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "recommend_ids_premium"
+        ],
+        "leader_pid": null,
+        "pid": 775843,
+        "query_sha256": "342a61169486258bdec4aa1f1842cf5e29c61388ab91a2baef1f081b6c4f9597",
+        "state": "active",
+        "wait_event": "DataFileRead",
+        "wait_event_type": "IO"
+      },
+      {
+        "age_seconds": 0.113903,
+        "application_name": "postgrest",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "search_manga_page"
+        ],
+        "leader_pid": null,
+        "pid": 775838,
+        "query_sha256": "c9912f5507c97b8254c8931bdb98fc4470bc7e94aa3a7448d3adbc90da7b17e6",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      }
+    ],
+    "at": "2026-11-09T09:34:35.509614+00:00"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "result": [
+    {
+      "attributes_type": "Map(String, String)",
+      "source": "function_logs"
+    },
+    {
+      "attributes_type": "Map(String, String)",
+      "source": "function_edge_logs"
+    }
+  ]
+}

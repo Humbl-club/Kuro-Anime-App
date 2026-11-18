@@ -1,0 +1,73 @@
+{
+  "checked_at": "2026-11-09T12:24:12.119169+00:00",
+  "git_commit": "146e5492f4e79cbd1686f070a098ee9f3464795b",
+  "branch": "codex/review-remediation-20261108",
+  "dirty_tree_preserved": true,
+  "checks": [
+    {
+      "check": "check_docs_current_state.sh",
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "check": "check_secrets.sh",
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "check": "check_migrations.sh",
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "check": "workload-source-sha256.json",
+      "hashes_verified": 8,
+      "passed": true
+    },
+    {
+      "check": "recommend-fanout-deployment-manifest.json",
+      "hashes_verified": 8,
+      "passed": true
+    },
+    {
+      "check": "public evidence secret-pattern scan",
+      "passed": true
+    },
+    {
+      "check": "git diff --check",
+      "passed": true
+    },
+    {
+      "check": "all five exact cohorts cleaned, latest workload tokens absent",
+      "passed": true
+    }
+  ],
+  "canonical_sql_files": 250,
+  "cleanup_accounts": 500,
+  "cleanup_clubs": 25,
+  "cleanup_application_checks_per_cohort": [
+    41,
+    41,
+    41,
+    41,
+    41
+  ],
+  "current_pool": 3,
+  "recommend_version": 55,
+  "overall_capacity": "SPECIFIED_WARMED_WORKLOAD_PASS_COLD_CALL_GAPS_RETAINED",
+  "node_focused_tests": {
+    "passed": 19,
+    "new_run": false,
+    "note": "Previously passed tests; unchanged eight source/test hashes independently verified again."
+  },
+  "recommend_tests": {
+    "passed": 26,
+    "full_response_comparisons": 36,
+    "new_run": false
+  },
+  "passed": true,
+  "independent_review": "independent-review-r15.json",
+  "independent_review_actionable_findings": 0,
+  "final_documentation_check_after_review": "PASS; shared policy/16routes/Claude adapter and inventories293/33/250",
+  "final_review_artifacts_secret_scan": "PASS"
+}

@@ -1,0 +1,8 @@
+{
+  "checked_at": "2026-11-09T12:06:35.648785+00:00",
+  "db_pool": 3,
+  "default_interface": "en0",
+  "purpose": "One steady-state characterization after preserved R14 cold-call gate failure; no further retries planned.",
+  "recommend_version": 55,
+  "unchanged_gates": true
+}

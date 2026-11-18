@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-10T09:45:46.963049+00:00",
+  "functions": [
+    {
+      "slug": "concierge-parse",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 51
+    },
+    {
+      "slug": "concierge-recommend",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 57
+    }
+  ]
+}

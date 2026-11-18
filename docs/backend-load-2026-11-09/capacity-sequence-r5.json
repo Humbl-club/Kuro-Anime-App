@@ -1,0 +1,35 @@
+{
+  "started_at": "2026-11-09T09:50:28.553339+00:00",
+  "profiles": [
+    {
+      "name": "r5-warmup-5rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T09:50:28.579Z",
+      "finished_at": "2026-11-09T09:51:28.458Z",
+      "output": "r5-warmup-5rps.json"
+    },
+    {
+      "name": "r5-soak-20rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T09:51:28.491Z",
+      "finished_at": "2026-11-09T10:01:28.560Z",
+      "output": "r5-soak-20rps.json"
+    },
+    {
+      "name": "r5-spike-40rps",
+      "exit_code": 1,
+      "pass": false,
+      "started_at": "2026-11-09T10:01:28.631Z",
+      "finished_at": "2026-11-09T10:02:28.717Z",
+      "output": "r5-spike-40rps.json"
+    }
+  ],
+  "complete": false,
+  "prior_failed_sequences": [
+    "capacity-sequence.json",
+    "capacity-sequence-r2.json"
+  ],
+  "finished_at": "2026-11-09T10:02:28.734180+00:00"
+}

@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-11-09T12:56:19.557812+00:00",
+  "functions": [
+    {
+      "jwt": true,
+      "slug": "concierge-parse",
+      "source_entries_verified": 8,
+      "version": 49
+    },
+    {
+      "jwt": true,
+      "slug": "concierge-recommend",
+      "source_entries_verified": 8,
+      "version": 55
+    }
+  ],
+  "new_fixture_accounts_created": 0,
+  "persistent_remote_changes": false,
+  "pool": 3,
+  "project_status": "ACTIVE_HEALTHY",
+  "selected_auth_unchanged": true,
+  "state": [
+    {
+      "inspector_installed": 0,
+      "new_indexes": 0,
+      "new_migration_applied": 0,
+      "postmaster_started_at": "2026-08-04 19:53:25.02166+00"
+    }
+  ]
+}

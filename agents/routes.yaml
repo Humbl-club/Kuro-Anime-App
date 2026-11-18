@@ -1,0 +1,517 @@
+{
+  "schema_version": 2,
+  "format": "JSON-compatible YAML 1.2; parsed with Python stdlib json, no runtime dependencies.",
+  "authority": [
+    "AGENTS.md",
+    "docs/modules/README.md",
+    "docs/documentation-surface-map.md"
+  ],
+  "profiles": {
+    "discovery": {
+      "require": "Bounded, cited source discovery; no design or mutation; escalate missing/contradictory ownership."
+    },
+    "implementation": {
+      "require": "Confirmed owners, explicit scope and independently checkable acceptance behavior."
+    },
+    "high_assurance": {
+      "require": "Lead-owned judgment for ambiguity/security/lifecycle/recovery; focused independent review where permitted."
+    },
+    "verification": {
+      "require": "Exact inspected local commands, real exit codes/logs and actual executed test counts."
+    },
+    "review": {
+      "require": "Independent evidence-based review against user intent and failure scenarios; no author conclusions."
+    }
+  },
+  "checks": {
+    "policy": {
+      "sources": [
+        "scripts/agents/policy.py",
+        "scripts/agents/test_policy.py"
+      ],
+      "command_template": "python3 scripts/agents/policy.py --check",
+      "proves": "Route/schema/reference/adapter behavior only; no model or app execution."
+    },
+    "docs": {
+      "sources": [
+        "scripts/quality-gates/check_docs_current_state.sh"
+      ],
+      "command_template": "bash scripts/quality-gates/check_docs_current_state.sh",
+      "proves": "Current inventory markers and shared-policy validation."
+    },
+    "architecture": {
+      "sources": [
+        "scripts/quality-gates/check_architecture.sh"
+      ],
+      "command_template": "bash scripts/quality-gates/check_architecture.sh",
+      "proves": "Selected source boundaries, not runtime or complete architecture proof."
+    },
+    "package_progress": {
+      "sources": [
+        "Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift",
+        "Packages/KuroModules/Tests/KuroLibraryTests/LibraryStoreTests.swift"
+      ],
+      "command_template": "swift test --package-path Packages/KuroModules --filter LibraryProgressOwnerTests",
+      "proves": "Focused host Library progress behavior; add the owner tests affected by the diff."
+    },
+    "native_library": {
+      "sources": [
+        "KuroTests/LibraryHTTPContractTests.swift",
+        "KuroTests/LibraryViewActionsTests.swift"
+      ],
+      "command_template": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=<verified-owned-UUID>' test -only-testing:KuroTests/LibraryHTTPContractTests",
+      "proves": "Selected SDK/client contract on a verified owned simulator, not hosted writes."
+    },
+    "native_identity": {
+      "sources": [
+        "KuroTests/AccountLifecycleTests.swift",
+        "KuroTests/IdentityCompositionTests.swift"
+      ],
+      "command_template": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=<verified-owned-UUID>' test -only-testing:KuroTests/StaleUserListsCompletionTests -only-testing:KuroTests/PrivateStateResetTests",
+      "proves": "Selected stale-completion/account reset cases; select other changed lifecycle suites explicitly."
+    },
+    "native_discovery": {
+      "sources": [
+        "KuroTests/DiscoverUsabilityDataTests.swift"
+      ],
+      "command_template": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=<verified-owned-UUID>' test -only-testing:KuroTests/DiscoverFeedbackStoreTests -only-testing:KuroTests/DiscoverReadersTests",
+      "proves": "Selected Discover/Taste data cases, not device visual acceptance."
+    },
+    "native_owned": {
+      "sources": [
+        "KuroTests",
+        "scripts/quality-gates/ios_verify_helpers.sh"
+      ],
+      "command_template": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=<verified-owned-UUID>' test -only-testing:KuroTests/<actual-suite-struct>",
+      "proves": "Only named suites that actually execute; discover suite symbols before selecting."
+    },
+    "edge_owned": {
+      "sources": [
+        "supabase/functions"
+      ],
+      "command_template": "deno test --no-prompt <inspected-offline-test-files>",
+      "proves": "Owned offline Deno contracts; inspect permissions/config first; no production or paid provider calls."
+    },
+    "db_owned": {
+      "sources": [
+        "supabase/tests/README.md",
+        "scripts/db/run_local_db_tests.sh"
+      ],
+      "command_template": "bash scripts/db/run_local_db_tests.sh <documented-focused-selection>",
+      "proves": "Disposable local fixture assertions, not full migration replay or hosted parity. Read harness usage first."
+    },
+    "navigation": {
+      "sources": [
+        "scripts/quality-gates/check_navigation.sh",
+        "KuroTests/JourneyPolicyTests.swift"
+      ],
+      "command_template": "bash scripts/quality-gates/check_navigation.sh",
+      "proves": "Source navigation contract checks; add affected native tests/device journey when behavior changes."
+    },
+    "performance_evidence": {
+      "sources": [
+        "CURRENT_APP_STATE.md",
+        "scripts/load_test_backend.js"
+      ],
+      "command_template": "Read latest dated capacity/latency receipts via CURRENT_APP_STATE.md; do not start a load test by default.",
+      "proves": "Existing workload-specific evidence only. New hosted qualification requires authorization."
+    },
+    "release_evidence": {
+      "sources": [
+        "fastlane/RELEASE_PIPELINE.md"
+      ],
+      "command_template": "Read the exact-candidate release runbook; no archive/upload/deploy implied.",
+      "proves": "Release procedure and missing evidence, not release qualification."
+    }
+  },
+  "routes": [
+    {
+      "id": "policy",
+      "paths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "agents/**",
+        ".claude/**",
+        "scripts/agents/**",
+        "scripts/quality-gates/check_docs_current_state.*",
+        "docs/documentation-surface-map.md",
+        "docs/agent-policy/**"
+      ],
+      "sources": [
+        "AGENTS.md",
+        "agents/README.md"
+      ],
+      "checks": [
+        "policy",
+        "docs"
+      ],
+      "profile": "implementation",
+      "contract": "Shared policy is canonical; validate adapters, references, unknown-path handling and historical-source rejection. Preserve preexisting working-tree changes."
+    },
+    {
+      "id": "library_progress",
+      "paths": [
+        "Kuro/Library/**",
+        "Packages/KuroModules/Sources/KuroLibrary/**",
+        "Packages/KuroModules/Sources/KuroSupabase/**",
+        "Packages/KuroModules/Tests/KuroLibraryTests/**",
+        "Packages/KuroModules/Tests/KuroSupabaseTests/**",
+        "Kuro/Composition/PostgrestLibraryTransport.swift",
+        "KuroTests/Library*.swift"
+      ],
+      "sources": [
+        "Kuro/Library/LibraryActions.swift",
+        "Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift",
+        "Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift",
+        "Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift",
+        "Kuro/Home/HomeStore.swift",
+        "Kuro/Collection/CollectionStore+Lists.swift",
+        "Kuro/Widgets/WidgetIntentInbox.swift",
+        "Kuro/Composition/PostgrestLibraryTransport.swift",
+        "Kuro/Composition/AppComposition.swift"
+      ],
+      "checks": [
+        "package_progress",
+        "native_library",
+        "architecture"
+      ],
+      "profile": "high_assurance",
+      "contract": "Library owns tracking. Trace mounted Home/Collection/widget callers through the actual LibraryStore progress APIs/outbox and transport, not an assumed universal LibraryActions path. Resolve Identity for account-switch reasoning. For server claims use --rpc for the client RPC and its relevant internal callees, inspect every later candidate in canonical/prepared SQL, and distinguish local source from deployment evidence. Prove replay/lost-response safety, rapid edits, revision conflicts, persisted recovery and account isolation for affected paths. Use the exact package command template with --package-path. Trace the composition-configured sender: HomeStore configures the actual Library outbox send/credential-lease closure; the general PostgrestLibraryTransport path has separate fencing/gating. Existence or construction alone is not proof a path is enabled."
+    },
+    {
+      "id": "identity",
+      "paths": [
+        "Kuro/Identity/**",
+        "Kuro/Composition/**",
+        "Packages/KuroModules/Sources/KuroCore/**",
+        "Packages/KuroModules/Tests/KuroCoreTests/**",
+        "KuroTests/AccountLifecycleTests.swift",
+        "KuroTests/IdentityCompositionTests.swift",
+        "supabase/functions/delete-account/**",
+        "supabase/functions/auth-callback/**"
+      ],
+      "sources": [
+        "Kuro/Identity/SessionController.swift",
+        "Kuro/Identity/AuthService.swift",
+        "Packages/KuroModules/Sources/KuroCore/AccountSession.swift",
+        "Kuro/Composition/AppComposition.swift",
+        "Kuro/Composition/AccountScopedState.swift"
+      ],
+      "checks": [
+        "native_identity",
+        "architecture"
+      ],
+      "profile": "high_assurance",
+      "contract": "Trace credential leases, current account generations, private-state registration, cancellation and deletion ordering. Independently review authorization/lifecycle changes. No credential or hosted mutation is implied."
+    },
+    {
+      "id": "discover_taste",
+      "paths": [
+        "Kuro/Discovery/**",
+        "Kuro/Taste/**",
+        "Kuro/Views/Discover/**",
+        "Kuro/Views/Taste/**",
+        "KuroTests/Discover*.swift",
+        "KuroTests/DU*.swift",
+        "KuroTests/Taste*.swift",
+        "Kuro/Models/DiscoverBundle.swift"
+      ],
+      "sources": [
+        "Kuro/Discovery/DiscoveryStore.swift",
+        "Kuro/Discovery/DiscoveryStore+Usability.swift",
+        "Kuro/Taste/TasteStore.swift",
+        "Kuro/Taste/TasteStore+DiscoverFeedback.swift",
+        "docs/superpowers/specs/2026-11-04-discover-usability-design.md"
+      ],
+      "checks": [
+        "native_discovery",
+        "architecture"
+      ],
+      "profile": "implementation",
+      "contract": "Trace mounted Discover/Taste callers and current RPCs; preserve durable feedback/Undo, account scope, franchise dedupe, filters, paging and R1-R8. Add Library route for tracking changes and DB route for RPC changes."
+    },
+    {
+      "id": "catalog_search",
+      "paths": [
+        "Kuro/Catalog/**",
+        "Kuro/Search/**",
+        "Kuro/Views/Search/**",
+        "Kuro/Views/DetailPages/**",
+        "KuroTests/PublicDataHTTPContractTests.swift"
+      ],
+      "sources": [
+        "Kuro/Catalog/CatalogStore.swift",
+        "Kuro/Search/SearchStore.swift",
+        "docs/modules/detail-pages.md"
+      ],
+      "checks": [
+        "native_owned",
+        "architecture"
+      ],
+      "profile": "implementation",
+      "contract": "Confirm mounted detail/search owner and request token. Follow actual query/RPC to latest schema and check paging, filters, cache keys, cancellations and bounded query plans when changed."
+    },
+    {
+      "id": "home_collection_releases",
+      "paths": [
+        "Kuro/Home/**",
+        "Kuro/Collection/**",
+        "Kuro/Releases/**",
+        "Kuro/Views/Home/**",
+        "Kuro/Views/Collection/**",
+        "KuroWidgets/**",
+        "KuroWidgetViews/**",
+        "Packages/KuroModules/Sources/KuroWidgetSupport/**",
+        "KuroTests/Home*.swift",
+        "KuroTests/Collection*.swift",
+        "KuroTests/Release*.swift",
+        "KuroTests/*Widget*.swift",
+        "Kuro/Widgets/**"
+      ],
+      "sources": [
+        "Kuro/Home/HomeStore.swift",
+        "Kuro/Collection/CollectionStore.swift",
+        "Kuro/Releases/ReleasesStore.swift",
+        "docs/modules/README.md"
+      ],
+      "checks": [
+        "native_owned",
+        "architecture"
+      ],
+      "profile": "implementation",
+      "contract": "Home/Collection consume Library tracking. Confirm account/permission-scoped snapshots, widget/reminder lifecycle, real release provenance and empty/offline recovery. Add Library/Identity routes when crossing those contracts."
+    },
+    {
+      "id": "clubs_social_providers",
+      "paths": [
+        "Kuro/Clubs/**",
+        "Kuro/Social/**",
+        "Kuro/Providers/**",
+        "Kuro/Views/Clubs/**",
+        "KuroTests/Club*.swift",
+        "KuroTests/Clubs*.swift"
+      ],
+      "sources": [
+        "Kuro/Clubs/ClubsStore.swift",
+        "Kuro/Social/SocialActivityStore.swift",
+        "Kuro/Providers/ProviderAvailabilityStore.swift"
+      ],
+      "checks": [
+        "native_owned",
+        "db_owned",
+        "architecture"
+      ],
+      "profile": "high_assurance",
+      "contract": "Check membership/grants/RLS and revocation, Realtime account ownership and private cache invalidation. A cached provider or dependent upstream is not fresh availability or an independent fallback."
+    },
+    {
+      "id": "imports_concierge",
+      "paths": [
+        "Kuro/Imports/**",
+        "Kuro/Concierge/**",
+        "Kuro/Views/Concierge/**",
+        "Kuro/Views/Profile/**",
+        "KuroTests/Import*.swift",
+        "KuroTests/Concierge*.swift",
+        "supabase/functions/concierge-*/**",
+        "Packages/KuroModules/Sources/KuroLibrary/*Import*",
+        "Packages/KuroModules/Sources/KuroLibrary/*MAL*",
+        "Packages/KuroModules/Tests/KuroLibraryTests/Import*.swift"
+      ],
+      "sources": [
+        "Kuro/Imports/ImportsService.swift",
+        "Kuro/Concierge/ConciergeStore.swift",
+        "Kuro/Concierge/ConciergeRouting.swift",
+        "Packages/KuroModules/Sources/KuroLibrary/LibraryImportWorkflow.swift",
+        "docs/plans/2026-10-08-import-library-home-completion.md"
+      ],
+      "checks": [
+        "native_owned",
+        "edge_owned",
+        "architecture"
+      ],
+      "profile": "high_assurance",
+      "contract": "Preserve source fields, review decisions, apply/resume/Undo, bounded provider pagination and Library admission. Trace parser/recommendation/RPC contracts; classification remains deterministic/on-device, Groq optional narration. Never use a live import as an offline check."
+    },
+    {
+      "id": "database",
+      "paths": [
+        "supabase/migrations/**",
+        "supabase/prepared-migrations/**",
+        "supabase/tests/**",
+        "scripts/db/**"
+      ],
+      "sources": [
+        "supabase/tests/README.md",
+        "supabase/tests/pending_migrations.txt",
+        "docs/modules/sql-function-index.md"
+      ],
+      "checks": [
+        "db_owned"
+      ],
+      "profile": "high_assurance",
+      "contract": "Generated SQL index and pending list are navigation hints. Trace exact current client/Edge callers and latest function definition, grants/RLS, constraints, NULLs, query plans, replay and deletion. Applied SQL is immutable; no deployment/history repair without exact authorization."
+    },
+    {
+      "id": "edge_functions",
+      "paths": [
+        "supabase/functions/**"
+      ],
+      "sources": [
+        "docs/modules/edge-functions.md",
+        "supabase/functions/_shared"
+      ],
+      "checks": [
+        "edge_owned"
+      ],
+      "profile": "high_assurance",
+      "contract": "Read actual handler and shared dependencies plus callers. Check acting identity, grants, budgets, cancellation/deadlines, untrusted input, provider fallback and error contracts. Test only inspected offline files; deployment needs authorization."
+    },
+    {
+      "id": "catalog_intake",
+      "paths": [
+        "scripts/import*",
+        "scripts/*enrichment*",
+        "scripts/*safety*",
+        "scripts/*anilist*",
+        "scripts/*manga*",
+        "supabase/functions/bulk-import-*/**",
+        "supabase/functions/manga-*/**",
+        "supabase/functions/release-intake/**",
+        "supabase/functions/mirror-images/**"
+      ],
+      "sources": [
+        "docs/modules/operations.md",
+        "supabase/functions/bulk-import-anime/index.ts",
+        "supabase/functions/bulk-import-manga/index.ts",
+        "supabase/functions/release-intake/index.ts",
+        "scripts/series_enrichment_worker.py"
+      ],
+      "checks": [
+        "edge_owned",
+        "db_owned"
+      ],
+      "profile": "high_assurance",
+      "contract": "Find actual scheduled caller, upstream IDs/mapping and writer RPC. Preserve raw inputs/cursors, shared provider budget, independent fallback semantics, exclusive leases and idempotent recovery. Local worker scripts may write production: inspect before running."
+    },
+    {
+      "id": "navigation_ui",
+      "paths": [
+        "Kuro/Views/**",
+        "Kuro/Design/**",
+        "Kuro/ContentView.swift",
+        "Kuro/KuroApp.swift",
+        "KuroTests/*Navigation*.swift",
+        "KuroTests/*Journey*.swift",
+        "KuroTests/*Routing*.swift",
+        "KuroTests/Nav*.swift"
+      ],
+      "sources": [
+        "Kuro/Views/Routing/KuroRoutes.swift",
+        "Kuro/Composition/AppComposition.swift",
+        "Kuro/Design/KuroDesignSystem.swift",
+        "docs/superpowers/specs/2026-11-02-navigation-contract-design.md"
+      ],
+      "checks": [
+        "navigation",
+        "native_owned",
+        "architecture"
+      ],
+      "profile": "implementation",
+      "contract": "Confirm mounted view and typed route from composition, not an unused alternative. Preserve pager gate, journey/tool boundaries, back/close, accessibility and adaptive tokens. Add capability routes for state/data effects."
+    },
+    {
+      "id": "performance",
+      "paths": [
+        "scripts/load/**",
+        "scripts/load_test*",
+        "docs/backend-load-*/**",
+        "docs/backend-cold-*/**"
+      ],
+      "sources": [
+        "CURRENT_APP_STATE.md",
+        "scripts/load_test_backend.js",
+        "docs/modules/operations.md"
+      ],
+      "checks": [
+        "performance_evidence"
+      ],
+      "profile": "high_assurance",
+      "contract": "Read latest workload, subgroup sample counts, cold misses and uncompleted burst/recovery. 100 active users is a target, not measured adoption. Distinguish HTTP/native/provider timings. Never launch hosted load or fixtures under read-only/local authorization."
+    },
+    {
+      "id": "release",
+      "paths": [
+        "fastlane/**",
+        "Config/**",
+        "Kuro.xcodeproj/**",
+        "Info.plist",
+        "Kuro/Kuro.entitlements",
+        ".github/workflows/**"
+      ],
+      "sources": [
+        "fastlane/RELEASE_PIPELINE.md",
+        "Config/Shared.xcconfig",
+        "Info.plist"
+      ],
+      "checks": [
+        "release_evidence"
+      ],
+      "profile": "high_assurance",
+      "contract": "Inspect current pipeline/signing and exact candidate evidence. Never infer deployment, credentials, signing-provider changes, archive/export or TestFlight authority from the existence of a command."
+    },
+    {
+      "id": "infrastructure",
+      "paths": [
+        "Packages/KuroModules/Package.swift",
+        "Kuro/Infrastructure/**",
+        "Kuro/Services/**",
+        "Kuro/Telemetry/**"
+      ],
+      "sources": [
+        "Packages/KuroModules/Package.swift",
+        "Kuro/Infrastructure/Retry.swift",
+        "Kuro/Infrastructure/TimedCache.swift",
+        "Kuro/Services/FeatureFlags.swift",
+        "Kuro/Services/ImagePipeline.swift",
+        "Kuro/Services/AppleFMService.swift",
+        "Kuro/Telemetry/InteractionTelemetry.swift"
+      ],
+      "checks": [
+        "native_owned",
+        "architecture"
+      ],
+      "profile": "high_assurance",
+      "contract": "Trace actual consumers before shared-helper changes. Preserve retry/idempotency boundaries, account-keyed caches, image request dedup, flag defaults, FM fallback and bounded private telemetry. A helper change may require multiple capability routes; do not enable flags or send provider/telemetry traffic as a local check."
+    },
+    {
+      "id": "support",
+      "paths": [
+        "Kuro/Support/**",
+        "supabase/functions/contact-submit/**",
+        "KuroTests/SupportContactTests.swift"
+      ],
+      "sources": [
+        "Kuro/Support/SupportStore.swift",
+        "supabase/functions/contact-submit/index.ts",
+        "KuroTests/SupportContactTests.swift"
+      ],
+      "checks": [
+        "native_owned",
+        "edge_owned"
+      ],
+      "profile": "high_assurance",
+      "contract": "Trace form/consent, authenticated admission, server validation/rate limits and downstream notification. Source inspection and offline tests do not authorize submitting a real contact message or sending email."
+    }
+  ],
+  "unmapped": "Discovery required: confirm owner/callers/specification before editing; do not silently fall back to a low-capability model.",
+  "handoff_required": [
+    "task_and_expected_behavior",
+    "confirmed_owner_and_callers",
+    "applicable_routes_and_sources",
+    "allowed_files_and_preexisting_changes",
+    "account_permission_and_environment_scope",
+    "required_checks_and_evidence",
+    "escalation_conditions"
+  ]
+}

@@ -1,5 +1,6 @@
 // Anime catalog mapping. AniList media becomes anime rows plus episodes, studios,
 // tags, characters, staff and source-owned relations. Manga mapping is separate.
+import { writeWithMALConflict } from "../_shared/catalog_identity.ts";
 
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
 
@@ -218,13 +219,21 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     // Existing row: an UPDATE by id with only the columns that may change (anilist_id stays out
     // of the SET list).
     const { anilist_id: _anilistId, ...rest } = animeData;
-    const { error: animeError } = await supabase.from('anime').update(preserveExistingColumns(rest, existing)).eq('id', existing.id);
+    const { error: animeError } = await writeWithMALConflict('anime', (omitMalId) => {
+      const payload = preserveExistingColumns(rest, existing);
+      if (omitMalId) delete payload.mal_id;
+      return supabase.from('anime').update(payload).eq('id', existing.id);
+    }, results, { anilistId: anime.id, malId: anime.idMal });
     if (animeError) throw animeError;
     insertedAnime = { id: existing.id };
   } else {
-    const { data, error: animeError } = await supabase.from('anime').upsert(animeData, { onConflict: 'anilist_id' }).select('id').single();
+    const { data, error: animeError } = await writeWithMALConflict('anime', (omitMalId) => {
+      const payload: Record<string, unknown> = { ...animeData };
+      if (omitMalId) delete payload.mal_id;
+      return supabase.from('anime').upsert(payload, { onConflict: 'anilist_id' }).select('id').single();
+    }, results, { anilistId: anime.id, malId: anime.idMal });
     if (animeError) throw animeError;
-    insertedAnime = data;
+    insertedAnime = data as { id: number };
   }
   results.anime++;
 

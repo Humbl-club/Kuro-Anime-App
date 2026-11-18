@@ -125,6 +125,43 @@ struct ImagePipelineKeyTests {
         #expect(ImagePipeline.pixelBuckets.last == ImagePipeline.maxDecodePixelSize)
     }
 
+    @Test("Images still hosted on AniList are never requested (owner decision 2026-11-10)")
+    func aniListHostedImagesAreBlocked() throws {
+        let blocked = [
+            "https://s4.anilist.co/file/anilistcdn/character/large/b40-1.png",
+            "https://S4.AniList.co/file/anilistcdn/media/manga/cover/large/bx30013.jpg",
+            "https://img.anilist.co/x.jpg",
+            "http://anilist.co/x.jpg",
+        ]
+        for raw in blocked {
+            #expect(ImagePipeline.isBlockedSource(try #require(URL(string: raw))), "\(raw)")
+        }
+        let allowed = [
+            "https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/anime/1/cover_large.jpg",
+            "https://notanilist.co/x.jpg",
+            "https://anilist.co.example.com/x.jpg",
+        ]
+        for raw in allowed {
+            #expect(!ImagePipeline.isBlockedSource(try #require(URL(string: raw))), "\(raw)")
+        }
+        #expect(!ImagePipeline.isBlockedSource(url))
+    }
+
+    @Test("A blocked image resolves to nil without touching the network")
+    func blockedImageLoadsNothing() async throws {
+        let url = try #require(URL(string: "https://s4.anilist.co/file/anilistcdn/staff/large/n95185.png"))
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ImageBlockFailingProtocol.self]
+        let pipeline = ImagePipeline(session: URLSession(configuration: configuration),
+                                     urlCache: URLCache(memoryCapacity: 0, diskCapacity: 0))
+        ImageBlockFailingProtocol.requests = 0
+        let image = await pipeline.image(url: url, maxPixelSize: 180)
+        await pipeline.prefetch(urls: [url])
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(image == nil)
+        #expect(ImageBlockFailingProtocol.requests == 0)
+    }
+
     @Test("The key carries the decode size: a thumbnail and a hero of one URL never share an entry")
     func keysCarrySize() {
         let thumb = ImagePipeline.cacheKey(url: url, bucket: 180)
@@ -536,3 +573,15 @@ struct DataLaneImageDownloadTests {
     }
 }
 #endif
+
+/// Counts and fails every request: a blocked image must never reach it.
+final class ImageBlockFailingProtocol: URLProtocol {
+    nonisolated(unsafe) static var requests = 0
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        Self.requests += 1
+        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+    }
+    override func stopLoading() {}
+}

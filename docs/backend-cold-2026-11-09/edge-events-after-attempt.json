@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-11-09T14:09:12.080293+00:00",
+  "events": [],
+  "fields_restricted_to_platform_boot_execution_metadata": true,
+  "limit": 2000,
+  "possibly_truncated": false,
+  "request_headers_bodies_user_logs_excluded": true,
+  "sources": [
+    "function_logs",
+    "function_edge_logs"
+  ],
+  "window_end": "2026-11-09T14:09:12.080293+00:00",
+  "window_start": "2026-11-09T13:56:16.710905+00:00"
+}

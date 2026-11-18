@@ -1,0 +1,11 @@
+[
+  {
+    "calls": 9227,
+    "max_exec_time": 30917.761649,
+    "mean_exec_time": 33.5160973340198,
+    "shared_blks_hit": 3676142,
+    "shared_blks_read": 9144,
+    "temp_blks_written": 6154,
+    "total_exec_time": 309253.030100999
+  }
+]

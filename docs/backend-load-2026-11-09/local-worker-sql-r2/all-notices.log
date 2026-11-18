@@ -1,0 +1,12 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:9: NOTICE:  TEST ok: background taste worker and math run without JIT; source math remains present
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:13: NOTICE:  TEST ok: worker remains server-only for anonymous and authenticated callers
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:25: WARNING:  recompute_user_taste_profile failed for 10300000-0000-0000-0000-000000000002: controlled poison
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:26: NOTICE:  TEST ok: one drain processes exactly five eligible accounts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:27: NOTICE:  TEST ok: FIFO leaves the three newest accounts pending
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:29: NOTICE:  TEST ok: poison account records an error without blocking later accounts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/103_taste_worker_latency.sql:31: NOTICE:  TEST ok: next bounded drain clears the remaining backlog
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/103_taste_worker_latency.sql:25: NOTICE:  TEST ok: worker skipped the locked oldest row and processed five other rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/103_taste_worker_latency.sql:27: NOTICE:  TEST ok: locked row is still pending
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/103_taste_worker_latency.sql:31: NOTICE:  TEST ok: released row is processed on the next drain
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/103_taste_worker_latency.sql:40: NOTICE:  TEST ok: new signal waits for the claimed queue row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/103_taste_worker_latency.sql:44: NOTICE:  TEST ok: new signal survives the prior processed stamp

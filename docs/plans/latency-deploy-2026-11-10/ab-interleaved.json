@@ -1,0 +1,62 @@
+{
+  "at": "2026-11-10T10:01:17.922150+00:00",
+  "cases": {
+    "search_anime_page frieren": {
+      "change_pct": -10.4,
+      "new_median_ms": 34.48,
+      "old_median_ms": 38.49
+    },
+    "search_anime_page naruto": {
+      "change_pct": -28.7,
+      "new_median_ms": 50.79,
+      "old_median_ms": 71.2
+    },
+    "search_anime_page one piece": {
+      "change_pct": -0.5,
+      "new_median_ms": 35.51,
+      "old_median_ms": 35.7
+    },
+    "search_anime_page xyzzyq": {
+      "change_pct": 10.6,
+      "new_median_ms": 18.02,
+      "old_median_ms": 16.29
+    },
+    "search_manga_page berserk": {
+      "change_pct": 31.3,
+      "new_median_ms": 76.21,
+      "old_median_ms": 58.04
+    },
+    "search_manga_page frieren": {
+      "change_pct": -22.6,
+      "new_median_ms": 72.24,
+      "old_median_ms": 93.28
+    },
+    "search_manga_page one piece": {
+      "change_pct": -16.3,
+      "new_median_ms": 76.51,
+      "old_median_ms": 91.37
+    },
+    "search_manga_page xyzzyq": {
+      "change_pct": 8.8,
+      "new_median_ms": 39.0,
+      "old_median_ms": 35.84
+    },
+    "search_titles attack on titan": {
+      "change_pct": -4.2,
+      "new_median_ms": 17.29,
+      "old_median_ms": 18.05
+    },
+    "search_titles naruto": {
+      "change_pct": 2.0,
+      "new_median_ms": 18.63,
+      "old_median_ms": 18.26
+    },
+    "search_titles xyzzyq": {
+      "change_pct": 13.1,
+      "new_median_ms": 5.83,
+      "old_median_ms": 5.16
+    }
+  },
+  "method": "EXPLAIN ANALYZE execution time; old = pre-deploy definition as a session-temporary function; alternated per repetition",
+  "reps": 6
+}

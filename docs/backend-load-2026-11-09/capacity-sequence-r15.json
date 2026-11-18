@@ -1,0 +1,50 @@
+{
+  "started_at": "2026-11-09T12:06:39.935105+00:00",
+  "profiles": [
+    {
+      "name": "r15-warmup-5rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T12:06:39.963Z",
+      "finished_at": "2026-11-09T12:07:39.799Z",
+      "output": "r15-warmup-5rps.json"
+    },
+    {
+      "name": "r15-soak-20rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T12:07:39.835Z",
+      "finished_at": "2026-11-09T12:17:39.846Z",
+      "output": "r15-soak-20rps.json"
+    },
+    {
+      "name": "r15-spike-40rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T12:17:39.931Z",
+      "finished_at": "2026-11-09T12:18:39.943Z",
+      "output": "r15-spike-40rps.json"
+    },
+    {
+      "name": "r15-recovery-20rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T12:18:39.988Z",
+      "finished_at": "2026-11-09T12:20:10.035Z",
+      "output": "r15-recovery-20rps.json"
+    }
+  ],
+  "complete": true,
+  "prior_failed_sequences": [
+    "capacity-sequence.json",
+    "capacity-sequence-r2.json",
+    "capacity-sequence-r3.json",
+    "capacity-sequence-r5.json",
+    "capacity-sequence-r7.json",
+    "capacity-sequence-r8.json",
+    "capacity-sequence-r9.json",
+    "capacity-sequence-r10.json",
+    "capacity-sequence-r11.json"
+  ],
+  "finished_at": "2026-11-09T12:20:10.052109+00:00"
+}

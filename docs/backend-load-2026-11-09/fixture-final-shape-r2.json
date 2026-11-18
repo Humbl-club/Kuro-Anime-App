@@ -1,0 +1,25 @@
+{
+  "accounts": 100,
+  "checked_at": "2026-11-09T09:18:50.565474+00:00",
+  "club_members": 50,
+  "clubs": 5,
+  "distinct_accounts": 100,
+  "fresh_run": true,
+  "groups": {
+    "0": 20,
+    "100": 25,
+    "2000": 5,
+    "25": 50
+  },
+  "rows": [
+    {
+      "medium": "anime",
+      "rows": 9650
+    },
+    {
+      "medium": "manga",
+      "rows": 4100
+    }
+  ],
+  "total_rows": 13750
+}

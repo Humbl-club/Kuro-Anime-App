@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-11-09T13:07:30.695841+00:00",
+  "status": "PREPARED_VERIFIED_REVIEWED_PENDING_PRODUCTION_APPROVAL",
+  "live_cold_capacity": "UNPROVEN",
+  "native_sql_assertions_passed": 79,
+  "existing_differential_cases_passed": 74,
+  "focused_sql_assertions_passed": 5,
+  "read_only_counterbalanced_live_cases": 14,
+  "node_tests_passed": 27,
+  "cache_inspection_assertions_passed": 8,
+  "policy_tests_passed": 30,
+  "policy_gate": "PASS",
+  "documentation_gate": "PASS after reconciling concurrent35package count; initial failure retained",
+  "migration_gate": "PASS; applied immutable source checks retained",
+  "secrets_gate": "PASS plus public-artifact pattern scan",
+  "whitespace_gate": "PASS",
+  "reviewed_manifest_hashes_match": true,
+  "archived8_source_hashes_match": true,
+  "independent_review": "PASS_PREPARED_ONLY",
+  "production_state": [
+    {
+      "applied": 0,
+      "indexes": 0,
+      "inspector": 0
+    }
+  ],
+  "live_functions": [
+    {
+      "slug": "concierge-parse",
+      "version": 49,
+      "verify_jwt": true
+    },
+    {
+      "slug": "concierge-recommend",
+      "version": 55,
+      "verify_jwt": true
+    }
+  ],
+  "new_fixture_accounts": 0,
+  "production_restart_performed": false,
+  "app_swift": 293,
+  "package_swift": 35,
+  "canonical_migrations": 250,
+  "prepared_migration": "20261109123758",
+  "branch": "kuro/tracker-gaps",
+  "commit": "5a80c1e176d566a19bf0ffd713aa52b053f2eaf7",
+  "concurrent_git_changes_preserved": true
+}

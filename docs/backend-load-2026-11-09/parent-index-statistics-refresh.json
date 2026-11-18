@@ -1,0 +1,26 @@
+{
+  "before": [
+    {
+      "last_analyze": null,
+      "last_autoanalyze": "2026-11-08 16:00:19.248995+00",
+      "n_dead_tup": 0,
+      "n_live_tup": 51320,
+      "relname": "episodes"
+    },
+    {
+      "last_analyze": null,
+      "last_autoanalyze": null,
+      "n_dead_tup": 0,
+      "n_live_tup": 8261,
+      "relname": "chapters"
+    }
+  ],
+  "checked_at": "2026-11-09T10:13:50.938049+00:00",
+  "columns_analyzed": [
+    "episodes.anime_id",
+    "episodes.number",
+    "chapters.manga_id",
+    "chapters.number"
+  ],
+  "purpose": "Refresh planner statistics for approved parent indexes, no row or permission changes."
+}

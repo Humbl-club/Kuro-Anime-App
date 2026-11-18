@@ -1,0 +1,14 @@
+{
+  "status": "DEPLOYED_VERIFIED_SPECIFIED_WARMED_WORKLOAD_PASSED",
+  "migration": "supabase/migrations/20261109100800_parent_unit_lookup_v1.sql",
+  "sha256": "57e8b11dba091808cac9aebdc7fb7ac71831e1f727d4ba4cb19cbf53d292ec58",
+  "indexes": [
+    "idx_episodes_anime_parent_v1",
+    "idx_chapters_manga_parent_v1"
+  ],
+  "local_assertions": 10,
+  "capacity_verdict": "NOT_QUALIFIED",
+  "capacity_result": "REPORT.md",
+  "capacity_sequence": "capacity-sequence-r15.json",
+  "cold_call_gap_retained": true
+}

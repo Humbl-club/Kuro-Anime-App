@@ -1,0 +1,177 @@
+{
+  "checked_at": "2026-11-08T23:53:24.066115+00:00",
+  "checks": [
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 401,
+      "latency_ms": 103,
+      "name": "anon denied upsert_rec_edges",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 401,
+      "latency_ms": 83,
+      "name": "anon denied rate_limit_hit",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 401,
+      "latency_ms": 108,
+      "name": "anon denied llm_global_budget_reserve",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 401,
+      "latency_ms": 80,
+      "name": "anon denied llm_global_budget_finalize",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 401,
+      "latency_ms": 87,
+      "name": "anon denied check_email_exists",
+      "passed": true
+    },
+    {
+      "details": {
+        "error_code": "weak_password",
+        "weak_password_reasons": [
+          "length",
+          "pwned"
+        ]
+      },
+      "http_status": 422,
+      "latency_ms": 250,
+      "name": "auth rejects minimum_length",
+      "passed": true
+    },
+    {
+      "details": {
+        "error_code": "weak_password",
+        "weak_password_reasons": [
+          "pwned"
+        ]
+      },
+      "http_status": 422,
+      "latency_ms": 118,
+      "name": "auth rejects breached_password",
+      "passed": true
+    },
+    {
+      "http_status": 200,
+      "latency_ms": 349,
+      "name": "create bounded temporary test account",
+      "passed": true
+    },
+    {
+      "http_status": 200,
+      "latency_ms": 324,
+      "name": "valid password sign-in",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 403,
+      "latency_ms": 108,
+      "name": "authenticated denied upsert_rec_edges",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 403,
+      "latency_ms": 78,
+      "name": "authenticated denied rate_limit_hit",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 403,
+      "latency_ms": 84,
+      "name": "authenticated denied llm_global_budget_reserve",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 403,
+      "latency_ms": 91,
+      "name": "authenticated denied llm_global_budget_finalize",
+      "passed": true
+    },
+    {
+      "details": {
+        "code": "42501"
+      },
+      "http_status": 403,
+      "latency_ms": 78,
+      "name": "authenticated denied check_email_exists",
+      "passed": true
+    },
+    {
+      "details": {
+        "item_count": 1,
+        "verified_identity_matches": true
+      },
+      "http_status": 200,
+      "latency_ms": 1451,
+      "name": "authenticated parser returns candidates",
+      "passed": true
+    },
+    {
+      "details": {
+        "item_count": 13,
+        "narrated": false
+      },
+      "http_status": 200,
+      "latency_ms": 1943,
+      "name": "deterministic recommendations remain available",
+      "passed": true
+    },
+    {
+      "http_status": 200,
+      "latency_ms": 815,
+      "name": "dormant resolve authenticates without provider work",
+      "passed": true
+    },
+    {
+      "http_status": 401,
+      "latency_ms": 781,
+      "name": "bulk-import-anime rejects missing import secret",
+      "passed": true
+    },
+    {
+      "http_status": 401,
+      "latency_ms": 871,
+      "name": "bulk-import-manga rejects missing import secret",
+      "passed": true
+    }
+  ],
+  "emails_sent": false,
+  "provider_calls_requested": false,
+  "temporary_account_cleanup": {
+    "passed": true,
+    "path": "delete-account",
+    "readback_status": 404
+  }
+}

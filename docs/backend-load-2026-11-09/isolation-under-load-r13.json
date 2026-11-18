@@ -1,0 +1,66 @@
+{
+  "checked_at": "2026-11-09T11:13:56.976876+00:00",
+  "checks": [
+    {
+      "http_status": 200,
+      "latency_ms": 117.98,
+      "name": "owner can read own seeded library",
+      "passed": true
+    },
+    {
+      "http_status": 200,
+      "latency_ms": 90.78,
+      "name": "outsider cannot read another library during load",
+      "passed": true
+    },
+    {
+      "http_status": 400,
+      "latency_ms": 92.9,
+      "name": "nonmember club bundle refused during load",
+      "passed": true
+    },
+    {
+      "http_status": 200,
+      "latency_ms": 76.95,
+      "name": "actual club owner still receives bundle",
+      "passed": true
+    },
+    {
+      "name": "five existing privileged RPC revokes preserved",
+      "passed": true
+    }
+  ],
+  "effective_grants": [
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "check_email_exists(text)",
+      "server": true
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "llm_global_budget_finalize(integer,integer)",
+      "server": true
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "llm_global_budget_reserve(integer,integer,integer)",
+      "server": true
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "rate_limit_hit(text,integer)",
+      "server": true
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "upsert_rec_edges(jsonb)",
+      "server": true
+    }
+  ],
+  "passed": true
+}

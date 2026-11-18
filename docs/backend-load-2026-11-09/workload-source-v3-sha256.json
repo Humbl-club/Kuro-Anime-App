@@ -1,0 +1,26 @@
+[
+  {
+    "path": "scripts/load/backend_fixture.js",
+    "sha256": "38fb3352107a771fd2a06f6ac62f45e2db3a99dc52bc801959b48a05766f4750"
+  },
+  {
+    "path": "scripts/load/backend_fixture.test.js",
+    "sha256": "a74289b7f40353e670aa24520ac784c36d4c7265e9b05f4ddc75e977c371f8ce"
+  },
+  {
+    "path": "scripts/load/backend_runner.test.js",
+    "sha256": "4fb73f975bff648a7eb4a44d617f502c623227351bfa8fada0ba0c24aa98bd1b"
+  },
+  {
+    "path": "scripts/load/backend_workload.js",
+    "sha256": "48fd6ff315bd7f5cabb78622a17c49ccfd3ac23b4a5683b3ed733d881046ae9e"
+  },
+  {
+    "path": "scripts/load/backend_workload.test.js",
+    "sha256": "9a4f4b2f0dc22666adc28a43ce139398f369e3af735dfa0e2bb157f23d2217c1"
+  },
+  {
+    "path": "scripts/load_test_backend.js",
+    "sha256": "b167968ba5554bac41d2e9521a791417b3a2cde26c9ebbfa562e5de859f1f0a3"
+  }
+]

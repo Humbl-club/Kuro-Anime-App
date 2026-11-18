@@ -1,0 +1,63 @@
+{
+  "started_after_cold_attempt_aborted": true,
+  "purpose": "Bounded post-deployment functional smoke only; neither cold state nor capacity proof. Concurrent fixture cleanup continues.",
+  "ordinary_fixture_jwt": true,
+  "paid_narration": false,
+  "requests": [
+    {
+      "kind": "search",
+      "sequence": 0,
+      "checked_at": "2026-11-09T14:10:57.151Z",
+      "status": 200,
+      "semantic_pass": true,
+      "error_code": null,
+      "ms": 1632.9
+    },
+    {
+      "kind": "search",
+      "sequence": 1,
+      "checked_at": "2026-11-09T14:10:59.785Z",
+      "status": 200,
+      "semantic_pass": true,
+      "error_code": null,
+      "ms": 621.85
+    },
+    {
+      "kind": "discover",
+      "sequence": 2,
+      "checked_at": "2026-11-09T14:11:01.410Z",
+      "status": 200,
+      "semantic_pass": true,
+      "error_code": null,
+      "ms": 658.85
+    },
+    {
+      "kind": "mood",
+      "sequence": 4,
+      "checked_at": "2026-11-09T14:11:03.072Z",
+      "status": 200,
+      "semantic_pass": true,
+      "error_code": null,
+      "ms": 890.54
+    },
+    {
+      "kind": "parse",
+      "sequence": 5,
+      "checked_at": "2026-11-09T14:11:04.963Z",
+      "status": 200,
+      "semantic_pass": true,
+      "error_code": null,
+      "ms": 1490.74
+    },
+    {
+      "kind": "recommend",
+      "sequence": 7,
+      "checked_at": "2026-11-09T14:11:07.456Z",
+      "status": 200,
+      "semantic_pass": true,
+      "error_code": null,
+      "ms": 1765.4
+    }
+  ],
+  "pass": true
+}

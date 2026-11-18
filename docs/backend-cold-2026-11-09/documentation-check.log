@@ -1,0 +1,5 @@
+=== Current-State Docs Check ===
+
+FAIL
+- CURRENT_APP_STATE inventory missing expected text: **Current repo inventory:** 293 app Swift files in `/Kuro`; 35 package Swift files in `/Packages`; 250 SQL migrations in `/supabase/migrations`.
+- CURRENT_APP_STATE_PLAIN inventory missing expected text: **Current inventory:** 293 app Swift files, 35 package Swift files and 250 SQL migrations are in the repo today.

@@ -1,0 +1,5 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/fixtures/00_platform_stub.sql:42: NOTICE:  role "authenticator" has already been granted membership in role "anon" by role "postgres"
+psql:/Users/max/Kuro-Anime-App/supabase/tests/fixtures/00_platform_stub.sql:42: NOTICE:  role "authenticator" has already been granted membership in role "authenticated" by role "postgres"
+psql:/Users/max/Kuro-Anime-App/supabase/tests/fixtures/00_platform_stub.sql:42: NOTICE:  role "authenticator" has already been granted membership in role "service_role" by role "postgres"
+psql:/Users/max/Kuro-Anime-App/supabase/tests/fixtures/00_platform_stub.sql:173: WARNING:  "wal_level" is insufficient to publish logical changes
+HINT:  Set "wal_level" to "logical" before creating subscriptions.

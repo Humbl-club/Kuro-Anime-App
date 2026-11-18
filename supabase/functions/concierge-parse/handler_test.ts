@@ -4,7 +4,7 @@
 // and the F31 alias compatibility path.
 import { assertEquals } from "jsr:@std/assert@1";
 import { legacyApplyAliasKey, normalizeAliasKey } from "../_shared/alias_normalization.ts";
-import { type FakeOptions, queryFake } from "../_shared/test_query_fake.ts";
+import { type FakeOptions, queryFake, type RpcReply } from "../_shared/test_query_fake.ts";
 import { handleParse } from "./handler.ts";
 
 const USER = "6f1c1b0e-0000-4000-8000-000000000001";
@@ -192,4 +192,93 @@ Deno.test("F31: a strong-key alias wins over a legacy-key alias for the same lin
     { text: AOT_LINE },
   );
   assertEquals(body.items[0].candidates[0].media_id, 77001);
+});
+
+// --- Step 1d: best-effort writes (parse feedback, run log) leave the response critical path ----------------
+function gate() {
+  let open!: () => void;
+  const opened = new Promise<void>((r) => (open = r));
+  return { opened, open };
+}
+
+const settled = async (p: Promise<unknown>, ms = 200) => {
+  let timer: number | undefined;
+  try {
+    return await Promise.race([p.then(() => "done", () => "rejected"), new Promise((r) => (timer = setTimeout(() => r("pending"), ms)))]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+function parseRaw(opts: FakeOptions, waitUntil?: (p: Promise<unknown>) => void) {
+  const fake = queryFake(opts);
+  const res = handleParse(
+    new Request("http://local/concierge-parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer test", "x-forwarded-for": "203.0.113.7" },
+      body: JSON.stringify({ text: "Frieren completed" }),
+    }),
+    { client: () => fake.client, waitUntil },
+  );
+  return { fake, res };
+}
+
+const noHits = { data: [], error: null };
+const feedbackOn = { data: { parse_feedback: { enabled: true, low_confidence_score: 0.99 } }, error: null };
+const worldOpts = (rpc: Record<string, RpcReply> = {}): FakeOptions => ({
+  user: { id: USER },
+  rpc: { check_concierge_rate_limit: ALLOWED, search_titles: noHits, get_concierge_config: feedbackOn, ...rpc },
+});
+
+Deno.test("waitUntil: the response resolves while writes are pending; the one handed promise issues the same calls", async () => {
+  const base = await parse(worldOpts(), { text: "Frieren completed" });
+  const expectedRuns = base.fake.rpcCalls("log_concierge_run");
+  const expectedFeedback = base.fake.rpcCalls("log_concierge_parse_feedback");
+  assertEquals(expectedRuns.length, 1);
+  assertEquals(expectedFeedback.length, 1);
+
+  const g = gate();
+  const handed: Promise<unknown>[] = [];
+  const { fake, res } = parseRaw(
+    worldOpts({
+      log_concierge_run: async () => { await g.opened; return { data: null, error: null }; },
+      log_concierge_parse_feedback: async () => { await g.opened; return { data: null, error: null }; },
+    }),
+    (p) => handed.push(p),
+  );
+  const response = await res;
+  assertEquals(response.status, 200);
+  assertEquals(handed.length, 1);
+  assertEquals(await settled(handed[0]), "pending");
+  g.open();
+  await handed[0];
+  assertEquals(fake.rpcCalls("log_concierge_run"), expectedRuns);
+  assertEquals(fake.rpcCalls("log_concierge_parse_feedback"), expectedFeedback);
+});
+
+Deno.test("without waitUntil every best-effort write has completed when the handler returns", async () => {
+  const g = gate();
+  const { fake, res } = parseRaw(worldOpts({ log_concierge_run: async () => { await g.opened; return { data: null, error: null }; } }));
+  let returned = false;
+  const run = res.then((r) => { returned = true; return r; });
+  assertEquals(await settled(run), "pending");
+  assertEquals(returned, false);
+  g.open();
+  assertEquals((await run).status, 200);
+  assertEquals(fake.rpcCalls("log_concierge_run").length, 1);
+  assertEquals(fake.rpcCalls("log_concierge_parse_feedback").length, 1);
+});
+
+Deno.test("waitUntil: failing store writes (swallowed by the repository) neither fail the response nor reject the handed promise", async () => {
+  const handed: Promise<unknown>[] = [];
+  const { res } = parseRaw(
+    worldOpts({
+      log_concierge_run: () => { throw new Error("log down"); },
+      log_concierge_parse_feedback: () => { throw new Error("feedback down"); },
+    }),
+    (p) => handed.push(p),
+  );
+  assertEquals((await res).status, 200);
+  assertEquals(handed.length, 1);
+  assertEquals(await settled(handed[0]), "done");
 });

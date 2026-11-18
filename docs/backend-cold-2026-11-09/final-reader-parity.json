@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-11-09T14:14:56.362434+00:00",
+  "readers": [
+    {
+      "body_sha256": "42edd3de8ce0442475908d56ca52e3b8bb0a2cbb8d0c6d875d36d3c6a6ef6d92",
+      "proconfig": [
+        "search_path=public, extensions"
+      ],
+      "signature": "_discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)"
+    },
+    {
+      "body_sha256": "0690d7e14847fe408e92270d8291bb63de5732e7217b9c95fae35d29c693b0f5",
+      "proconfig": [
+        "search_path=public, extensions"
+      ],
+      "signature": "catalogue_search_blob_v1(text,text,text)"
+    },
+    {
+      "body_sha256": "139a283c8217742c6e1d3d35e05112568f4f34ad0d9d03e6c68eff6f00a322a6",
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "discover_bundle(integer,integer)"
+    },
+    {
+      "body_sha256": "5be81dd333d7476b2e8deda539d2da11b9e0953b4e982bd02c90b834e8942aff",
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "discover_mood_v1(text,text,integer,integer)"
+    },
+    {
+      "body_sha256": "aab5463c104ca2f7b7a32964d1a8918266fcd34a193916e9a0c6b70388482927",
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off",
+        "pg_trgm.similarity_threshold=0.35"
+      ],
+      "signature": "search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)"
+    },
+    {
+      "body_sha256": "0d7dd4f7395bce3d236151de620e8cc14587eb610adca7589222f35f8cedf36b",
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off",
+        "pg_trgm.similarity_threshold=0.35"
+      ],
+      "signature": "search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)"
+    }
+  ],
+  "six_bodies_signatures_returns_acl_security_unchanged": true
+}

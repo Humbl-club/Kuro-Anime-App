@@ -1,0 +1,10 @@
+{
+  "bundle_sha256": "7eb31039b4d7715558b0fa36d904a08632878cac2c14ed3fef4c21ac4bcd85fd",
+  "checked_at": "2026-11-09T11:38:24.579172+00:00",
+  "deployed_bundle_matches_previous_verified_v54": true,
+  "mutation_performed": false,
+  "slug": "concierge-recommend",
+  "status": "ACTIVE",
+  "verify_jwt": true,
+  "version": 54
+}

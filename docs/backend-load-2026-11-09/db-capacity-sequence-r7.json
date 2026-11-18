@@ -1,0 +1,90 @@
+{
+  "profile": "capacity-sequence-r7",
+  "samples": [
+    {
+      "active": 1,
+      "blks_hit": 22699095095,
+      "blks_read": 233411451,
+      "checked_at": "2026-11-09 10:14:58.793461+00",
+      "connections": 15,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "1.194411",
+      "temp_bytes": 8108091454356
+    },
+    {
+      "active": 1,
+      "blks_hit": 22699418413,
+      "blks_read": 233446044,
+      "checked_at": "2026-11-09 10:15:09.191587+00",
+      "connections": 16,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0.380659",
+      "temp_bytes": 8108108740780
+    },
+    {
+      "active": 0,
+      "blks_hit": 22699516874,
+      "blks_read": 233447285,
+      "checked_at": "2026-11-09 10:15:19.548805+00",
+      "connections": 15,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108108740780
+    },
+    {
+      "active": 1,
+      "blks_hit": 22699573374,
+      "blks_read": 233449095,
+      "checked_at": "2026-11-09 10:15:30.288378+00",
+      "connections": 15,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "-0.004873",
+      "temp_bytes": 8108108740780
+    },
+    {
+      "active": 0,
+      "blks_hit": 22699691991,
+      "blks_read": 233451564,
+      "checked_at": "2026-11-09 10:15:40.757355+00",
+      "connections": 15,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108108740780
+    },
+    {
+      "active": 0,
+      "blks_hit": 22699764119,
+      "blks_read": 233451781,
+      "checked_at": "2026-11-09 10:15:51.13419+00",
+      "connections": 15,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108108740780
+    },
+    {
+      "active": 1,
+      "blks_hit": 22699795895,
+      "blks_read": 233451944,
+      "checked_at": "2026-11-09 10:16:04.592118+00",
+      "connections": 16,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "-0.007234",
+      "temp_bytes": 8108116884908
+    }
+  ],
+  "stopped": false
+}

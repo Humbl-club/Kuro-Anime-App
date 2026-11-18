@@ -1,0 +1,225 @@
+{
+  "authorization": "Owner approved exact additional migration in chat",
+  "finished_at": "2026-11-09T00:22:06.150231+00:00",
+  "functions": [
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "browse_anime_page",
+      "prosecdef": true,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "browse_anime_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)",
+      "source_sha256": "93ce2569055cfd0fb7b19019a582d597d179e220f98b7cda15eb086a46727a9f"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "browse_manga_page",
+      "prosecdef": true,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "browse_manga_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)",
+      "source_sha256": "71fe3f1f40a64e78036cdbea0205324bc980054bb3d918557392be80329e6e7e"
+    },
+    {
+      "grants": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "catalogue_search_blob_v1",
+      "prosecdef": false,
+      "settings": [
+        "search_path=public, extensions"
+      ],
+      "signature": "catalogue_search_blob_v1(text,text,text)",
+      "source_sha256": "0690d7e14847fe408e92270d8291bb63de5732e7217b9c95fae35d29c693b0f5"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "discover_bundle",
+      "prosecdef": true,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "discover_bundle(integer,integer)",
+      "source_sha256": "139a283c8217742c6e1d3d35e05112568f4f34ad0d9d03e6c68eff6f00a322a6"
+    },
+    {
+      "grants": "{postgres=X/postgres,service_role=X/postgres,anon=X/postgres,authenticated=X/postgres}",
+      "proname": "discover_mood_v1",
+      "prosecdef": true,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "discover_mood_v1(text,text,integer,integer)",
+      "source_sha256": "5be81dd333d7476b2e8deda539d2da11b9e0953b4e982bd02c90b834e8942aff"
+    },
+    {
+      "grants": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "home_bundle_v1",
+      "prosecdef": false,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "home_bundle_v1(text,text,integer,integer,integer,text)",
+      "source_sha256": "519ecc8e4ff88b15310ae5227193abf4ba495bbff206f1f3867d4a5bab94c666"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "search_anime_page",
+      "prosecdef": true,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off",
+        "pg_trgm.similarity_threshold=0.3"
+      ],
+      "signature": "search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)",
+      "source_sha256": "aab5463c104ca2f7b7a32964d1a8918266fcd34a193916e9a0c6b70388482927"
+    },
+    {
+      "grants": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "search_manga_page",
+      "prosecdef": true,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off",
+        "pg_trgm.similarity_threshold=0.3"
+      ],
+      "signature": "search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)",
+      "source_sha256": "0d7dd4f7395bce3d236151de620e8cc14587eb610adca7589222f35f8cedf36b"
+    },
+    {
+      "grants": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "proname": "series_detail_bundle_v1",
+      "prosecdef": false,
+      "settings": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "signature": "series_detail_bundle_v1(text,integer,uuid,text)",
+      "source_sha256": "de8762ece7bd4336a31712c9473f50bf75ed0d93e293fb5c7a1248dc1ba8f1ab"
+    }
+  ],
+  "indexes": [
+    {
+      "bytes": 704512,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_created_v1"
+    },
+    {
+      "bytes": 507904,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_popular_v1"
+    },
+    {
+      "bytes": 507904,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_score_v1"
+    },
+    {
+      "bytes": 8675328,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_title_blob_v1"
+    },
+    {
+      "bytes": 1548288,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_title_english_v1"
+    },
+    {
+      "bytes": 4071424,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_title_fts_v1"
+    },
+    {
+      "bytes": 6103040,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_title_native_v1"
+    },
+    {
+      "bytes": 2637824,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_title_romaji_v1"
+    },
+    {
+      "bytes": 507904,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_anime_load_trending_v1"
+    },
+    {
+      "bytes": 1327104,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_created_v1"
+    },
+    {
+      "bytes": 958464,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_popular_v1"
+    },
+    {
+      "bytes": 958464,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_score_v1"
+    },
+    {
+      "bytes": 17653760,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_title_blob_v1"
+    },
+    {
+      "bytes": 2367488,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_title_english_v1"
+    },
+    {
+      "bytes": 8503296,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_title_fts_v1"
+    },
+    {
+      "bytes": 11984896,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_title_native_v1"
+    },
+    {
+      "bytes": 4915200,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_title_romaji_v1"
+    },
+    {
+      "bytes": 958464,
+      "indisready": true,
+      "indisvalid": true,
+      "relname": "idx_manga_load_trending_v1"
+    }
+  ],
+  "live_differential_cases": 34,
+  "migration": {
+    "md5": "a315c1be8c8eb61846bede5d4baa3420",
+    "name": "load_hotpaths_v1",
+    "version": "20261109001251"
+  },
+  "same_snapshot_matches": true,
+  "sha256": "cba0a3317bd9c3b4002fffbdef0958e21781728a04412bb194fb4c14709777a6",
+  "started_at": "2026-11-09T00:21:39.009231+00:00"
+}

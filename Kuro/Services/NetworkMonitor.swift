@@ -19,6 +19,12 @@ final class NetworkMonitor {
         startMonitoring()
     }
 
+    /// A monitor frozen at `isConnected`: it never starts the path monitor, so nothing changes the state
+    /// behind the caller's back (KuroTests, renders).
+    init(fixedConnected isConnected: Bool) {
+        self.isConnected = isConnected
+    }
+
     private func startMonitoring() {
         monitor.pathUpdateHandler = { path in
             let connected = path.status == .satisfied

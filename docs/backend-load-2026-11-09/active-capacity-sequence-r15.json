@@ -1,0 +1,67 @@
+[
+  {
+    "active": [
+      {
+        "age_seconds": -0.006101,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "series_detail_bundle_v1"
+        ],
+        "leader_pid": null,
+        "pid": 789579,
+        "query_sha256": "ffa7951a87331aa394d766722de8739db303e1a31c6ec7d1f76337f9c9108f34",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 0.044113,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "search_anime_page"
+        ],
+        "leader_pid": null,
+        "pid": 789581,
+        "query_sha256": "88205e0b03053352e3deb5d64afc088d3859cf9f964b268201fb662ad6b82451",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 3.581446,
+        "application_name": "pg_cron",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "drain_taste_recompute_queue"
+        ],
+        "leader_pid": null,
+        "pid": 790545,
+        "query_sha256": "6071a2252c0b516a5a5c0eb78e4d905e685834ec7aac35b903046a44e2551a90",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": -0.007298,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "curated_rail_cards"
+        ],
+        "leader_pid": null,
+        "pid": 789575,
+        "query_sha256": "6302972781ef748eb98e9b7e095737cfaf384e357dac4b6b29b46c3b34339c66",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      }
+    ],
+    "at": "2026-11-09T12:13:03.763783+00:00"
+  }
+]

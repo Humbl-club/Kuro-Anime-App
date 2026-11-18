@@ -1,0 +1,52 @@
+[
+  {
+    "active": [
+      {
+        "age_seconds": 3.417258,
+        "application_name": "pg_cron",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "rebuild_media_similar_titles"
+        ],
+        "leader_pid": null,
+        "pid": 785392,
+        "query_sha256": "4f4fddef8051c96d16cfd6089e1fd1af364e53af8dd015a0bf4618642acb7bb1",
+        "state": "active",
+        "wait_event": "DataFileRead",
+        "wait_event_type": "IO"
+      },
+      {
+        "age_seconds": 3.448166,
+        "application_name": "pg_cron",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "drain_taste_recompute_queue"
+        ],
+        "leader_pid": null,
+        "pid": 785389,
+        "query_sha256": "6071a2252c0b516a5a5c0eb78e4d905e685834ec7aac35b903046a44e2551a90",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      },
+      {
+        "age_seconds": 0.093158,
+        "application_name": "PostgREST 14.5",
+        "backend_type": "client backend",
+        "blockers": [],
+        "function_references": [
+          "get_manga_chapter_enrich_candidates"
+        ],
+        "leader_pid": null,
+        "pid": 784660,
+        "query_sha256": "6cb395dbfd34b9f40f2f2870316aab1e047b08cd3d3210a57be588e0c4666311",
+        "state": "active",
+        "wait_event": null,
+        "wait_event_type": null
+      }
+    ],
+    "at": "2026-11-09T11:15:03.996466+00:00"
+  }
+]

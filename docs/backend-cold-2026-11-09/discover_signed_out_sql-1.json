@@ -1,0 +1,40 @@
+{
+  "Execution Time": 57.581,
+  "Plan": {
+    "Actual Loops": 1,
+    "Actual Rows": 1,
+    "Actual Startup Time": 57.561,
+    "Actual Total Time": 57.562,
+    "Async Capable": false,
+    "Local Dirtied Blocks": 0,
+    "Local Hit Blocks": 0,
+    "Local Read Blocks": 0,
+    "Local Written Blocks": 0,
+    "Node Type": "Result",
+    "Parallel Aware": false,
+    "Plan Rows": 1,
+    "Plan Width": 32,
+    "Shared Dirtied Blocks": 0,
+    "Shared Hit Blocks": 5627,
+    "Shared Read Blocks": 0,
+    "Shared Written Blocks": 0,
+    "Startup Cost": 0,
+    "Temp Read Blocks": 0,
+    "Temp Written Blocks": 0,
+    "Total Cost": 0.26
+  },
+  "Planning": {
+    "Local Dirtied Blocks": 0,
+    "Local Hit Blocks": 0,
+    "Local Read Blocks": 0,
+    "Local Written Blocks": 0,
+    "Shared Dirtied Blocks": 0,
+    "Shared Hit Blocks": 0,
+    "Shared Read Blocks": 0,
+    "Shared Written Blocks": 0,
+    "Temp Read Blocks": 0,
+    "Temp Written Blocks": 0
+  },
+  "Planning Time": 0.015,
+  "Triggers": []
+}

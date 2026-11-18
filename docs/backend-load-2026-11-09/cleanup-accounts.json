@@ -1,0 +1,506 @@
+{
+  "accountsRemoved": 100,
+  "cleanup": [
+    {
+      "accountIndex": 99,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 98,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 97,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 96,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 95,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 94,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 93,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 92,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 91,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 90,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 89,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 88,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 87,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 86,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 85,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 84,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 83,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 82,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 81,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 80,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 79,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 78,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 77,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 76,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 75,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 74,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 73,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 72,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 71,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 70,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 69,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 68,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 67,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 66,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 65,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 64,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 63,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 62,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 61,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 60,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 59,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 58,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 57,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 56,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 55,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 54,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 53,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 52,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 51,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 50,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 49,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 48,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 47,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 46,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 45,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 44,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 43,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 42,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 41,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 40,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 39,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 38,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 37,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 36,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 35,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 34,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 33,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 32,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 31,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 30,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 29,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 28,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 27,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 26,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 25,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 24,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 23,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 22,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 21,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 20,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 19,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 18,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 17,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 16,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 15,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 14,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 13,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 12,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 11,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 10,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 9,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 8,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 7,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 6,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 5,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 4,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 3,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 2,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 1,
+      "authAbsent": true,
+      "route": "delete-account"
+    },
+    {
+      "accountIndex": 0,
+      "authAbsent": true,
+      "route": "delete-account"
+    }
+  ],
+  "runId": "kuro-load-20261109T000917604Z-4ee05f8f"
+}

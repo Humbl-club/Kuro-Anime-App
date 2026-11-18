@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import re
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,7 +22,7 @@ MIGRATION_COUNT = len(list((ROOT / "supabase" / "migrations").glob("*.sql")))
 
 CURRENT_APP_STATE = (ROOT / "CURRENT_APP_STATE.md").read_text()
 CURRENT_APP_STATE_PLAIN = (ROOT / "CURRENT_APP_STATE_PLAIN.md").read_text()
-CLAUDE = (ROOT / "CLAUDE.md").read_text()
+AGENTS = (ROOT / "AGENTS.md").read_text()
 SQL_REPORT = (ROOT / "archive" / "SQL_COMPATIBILITY_REPORT.md").read_text()
 KNOWLEDGE_INDEX = (ROOT / "KNOWLEDGE" / "INDEX.md").read_text()
 DOC_MAP = ROOT / "docs" / "documentation-surface-map.md"
@@ -45,9 +45,9 @@ checks = [
         CURRENT_APP_STATE_PLAIN,
     ),
     (
-        "CLAUDE file map count",
-        f"### iOS app — {APP_SWIFT_COUNT} Swift files in `Kuro/`",
-        CLAUDE,
+        "AGENTS shared routing entry point",
+        "python3 scripts/agents/policy.py --paths",
+        AGENTS,
     ),
     (
         "SQL report historical disclaimer",
@@ -66,9 +66,6 @@ for label, needle, haystack in checks:
     if needle not in haystack:
         failures.append(f"{label} missing expected text: {needle}")
 
-if re.search(r"### iOS app — 67 Swift files in `Kuro/`", CLAUDE):
-    failures.append("CLAUDE still contains stale 67-file count")
-
 if not DOC_MAP.exists():
     failures.append("docs/documentation-surface-map.md is missing")
 
@@ -80,6 +77,23 @@ if failures:
     for failure in failures:
         print(f"- {failure}")
     sys.exit(1)
+
+policy_result = subprocess.run(
+    [sys.executable, str(ROOT / "scripts" / "agents" / "policy.py"), "--check"],
+    check=False,
+)
+if policy_result.returncode != 0:
+    sys.exit(policy_result.returncode)
+
+# The complete Kuro checkout checks its optional adapter explicitly. A portable
+# shared-policy export with neither Claude entry point does not depend on Claude.
+if (ROOT / "CLAUDE.md").exists() or (ROOT / ".claude" / "adapter.json").exists():
+    adapter_result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "agents" / "policy.py"), "--check-claude"],
+        check=False,
+    )
+    if adapter_result.returncode != 0:
+        sys.exit(adapter_result.returncode)
 
 print("PASS")
 print(f"- app_swift={APP_SWIFT_COUNT}")

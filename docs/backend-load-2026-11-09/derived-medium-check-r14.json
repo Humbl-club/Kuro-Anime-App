@@ -1,0 +1,101 @@
+{
+  "method": "Immutable measured requestFor selects manga when sequence%3==0, anime otherwise; progress always anime. Explicit recorded medium is cross-checked. Same predeclared endpoint limits, every sample including errors retained. No raw sample changed.",
+  "reports": [
+    {
+      "stage": "r14-warmup-5rps",
+      "raw_sha256": "b8aeee64338e13e9a8d13bb67b3bec550998c34cc7eee97b6ed284c9d07a320f",
+      "groups": [
+        {
+          "route_and_medium": "browse:anime",
+          "requests": 42,
+          "errors": 0,
+          "p95_ms": 80.76,
+          "p95_limit_ms": 750,
+          "pass": true
+        },
+        {
+          "route_and_medium": "browse:manga",
+          "requests": 22,
+          "errors": 0,
+          "p95_ms": 71.25,
+          "p95_limit_ms": 750,
+          "pass": true
+        },
+        {
+          "route_and_medium": "detail:anime",
+          "requests": 36,
+          "errors": 0,
+          "p95_ms": 122.56,
+          "p95_limit_ms": 1200,
+          "pass": true
+        },
+        {
+          "route_and_medium": "detail:manga",
+          "requests": 21,
+          "errors": 0,
+          "p95_ms": 96.93,
+          "p95_limit_ms": 1200,
+          "pass": true
+        },
+        {
+          "route_and_medium": "home:anime",
+          "requests": 39,
+          "errors": 0,
+          "p95_ms": 100.59,
+          "p95_limit_ms": 1200,
+          "pass": true
+        },
+        {
+          "route_and_medium": "home:manga",
+          "requests": 20,
+          "errors": 0,
+          "p95_ms": 71.39,
+          "p95_limit_ms": 1200,
+          "pass": true
+        },
+        {
+          "route_and_medium": "mood:anime",
+          "requests": 18,
+          "errors": 0,
+          "p95_ms": 1514.75,
+          "p95_limit_ms": 1500,
+          "pass": false
+        },
+        {
+          "route_and_medium": "mood:manga",
+          "requests": 12,
+          "errors": 0,
+          "p95_ms": 984.64,
+          "p95_limit_ms": 1500,
+          "pass": true
+        },
+        {
+          "route_and_medium": "progress:anime",
+          "requests": 12,
+          "errors": 0,
+          "p95_ms": 98.76,
+          "p95_limit_ms": 750,
+          "pass": true
+        },
+        {
+          "route_and_medium": "search:anime",
+          "requests": 28,
+          "errors": 0,
+          "p95_ms": 142.36,
+          "p95_limit_ms": 750,
+          "pass": true
+        },
+        {
+          "route_and_medium": "search:manga",
+          "requests": 13,
+          "errors": 0,
+          "p95_ms": 942.57,
+          "p95_limit_ms": 750,
+          "pass": false
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "passed": false
+}

@@ -1,0 +1,5 @@
+{
+  "password_min_length": 8,
+  "password_hibp_enabled": true,
+  "site_url": "kuro://auth/callback"
+}

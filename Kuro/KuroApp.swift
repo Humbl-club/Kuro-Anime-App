@@ -32,6 +32,7 @@ struct KuroApp: App {
     @State private var taste = AppComposition.shared.taste
     @State private var deviceIntelligence = AppComposition.shared.deviceIntelligence
     @State private var support = AppComposition.shared.support
+    @State private var libraryExport = AppComposition.shared.libraryExport
     @State private var banner = AppComposition.shared.banner
     @State private var flags = AppComposition.shared.flags
     @State private var interactionTelemetry = AppComposition.shared.interactionTelemetry
@@ -40,7 +41,7 @@ struct KuroApp: App {
     @State private var songPreview = AppComposition.shared.songPreview
     @State private var widgets = AppComposition.shared.widgets
     @State private var notificationLinks = AppComposition.shared.notificationLinks
-    @State private var networkMonitor = NetworkMonitor()
+    @State private var networkMonitor = AppComposition.shared.networkMonitor
     @State private var pendingDeepLink: DeepLink? = nil
     @Environment(\.scenePhase) private var scenePhase
 
@@ -81,6 +82,7 @@ struct KuroApp: App {
                 .environment(taste)
                 .environment(deviceIntelligence)
                 .environment(support)
+                .environment(libraryExport)
                 .environment(banner)
                 .environment(flags)
                 .environment(interactionTelemetry)

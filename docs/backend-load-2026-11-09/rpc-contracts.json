@@ -1,0 +1,74 @@
+[
+  {
+    "arguments": "p_mutations jsonb",
+    "proname": "apply_progress_mutations_v1",
+    "prosecdef": true,
+    "result": "jsonb"
+  },
+  {
+    "arguments": "p_genre text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_min_episodes integer DEFAULT NULL::integer, p_max_episodes integer DEFAULT NULL::integer, p_sort text DEFAULT 'popular'::text, p_cursor_int integer DEFAULT NULL::integer, p_cursor_ts timestamp with time zone DEFAULT NULL::timestamp with time zone, p_cursor_id integer DEFAULT NULL::integer, p_limit integer DEFAULT 60, p_min_year integer DEFAULT NULL::integer, p_max_year integer DEFAULT NULL::integer, p_format text DEFAULT NULL::text",
+    "proname": "browse_anime_page",
+    "prosecdef": true,
+    "result": "TABLE(id integer, title_english text, title_romaji text, title_native text, cover_image_large text, cover_image_medium text, banner_image text, format text, status text, episode_count integer, season_year integer, start_date_year integer, average_score integer, popularity integer, trending integer, favourites integer, genres text[], created_at timestamp with time zone)"
+  },
+  {
+    "arguments": "p_genre text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_min_chapters integer DEFAULT NULL::integer, p_max_chapters integer DEFAULT NULL::integer, p_sort text DEFAULT 'popular'::text, p_cursor_int integer DEFAULT NULL::integer, p_cursor_ts timestamp with time zone DEFAULT NULL::timestamp with time zone, p_cursor_id integer DEFAULT NULL::integer, p_limit integer DEFAULT 60, p_min_year integer DEFAULT NULL::integer, p_max_year integer DEFAULT NULL::integer, p_format text DEFAULT NULL::text",
+    "proname": "browse_manga_page",
+    "prosecdef": true,
+    "result": "TABLE(id integer, title_english text, title_romaji text, title_native text, cover_image_large text, cover_image_medium text, format text, status text, chapter_count integer, start_date_year integer, average_score integer, popularity integer, trending integer, favourites integer, genres text[], created_at timestamp with time zone)"
+  },
+  {
+    "arguments": "p_limit integer DEFAULT 30, p_hours integer DEFAULT 24",
+    "proname": "discover_bundle",
+    "prosecdef": true,
+    "result": "jsonb"
+  },
+  {
+    "arguments": "p_mood text, p_media_type text DEFAULT 'ANIME'::text, p_limit integer DEFAULT 24, p_offset integer DEFAULT 0",
+    "proname": "discover_mood_v1",
+    "prosecdef": true,
+    "result": "TABLE(media_type text, rank integer, id integer, title_english text, title_romaji text, title_native text, cover_image_large text, cover_image_medium text, banner_image text, format text, status text, episode_count integer, chapter_count integer, volumes integer, season_year integer, start_date_year integer, average_score integer, popularity integer, trending integer, favourites integer, genres text[], created_at timestamp with time zone, franchise_id integer, list_status text, reason_media_id integer, reason_title text)"
+  },
+  {
+    "arguments": "p_club_id uuid",
+    "proname": "fetch_club_bundle_loading",
+    "prosecdef": true,
+    "result": "jsonb"
+  },
+  {
+    "arguments": "",
+    "proname": "fetch_my_clubs_loading",
+    "prosecdef": true,
+    "result": "jsonb"
+  },
+  {
+    "arguments": "p_medium text, p_locale text DEFAULT 'en'::text, p_window_days integer DEFAULT 7, p_active_limit integer DEFAULT 12, p_event_limit integer DEFAULT 20, p_cursor text DEFAULT NULL::text",
+    "proname": "home_bundle_v1",
+    "prosecdef": false,
+    "result": "jsonb"
+  },
+  {
+    "arguments": "p_media_type text, p_media_id integer, p_action text",
+    "proname": "record_taste_deck_signal",
+    "prosecdef": true,
+    "result": "jsonb"
+  },
+  {
+    "arguments": "p_query text, p_limit integer DEFAULT 30, p_cursor_rank double precision DEFAULT NULL::double precision, p_cursor_popularity integer DEFAULT NULL::integer, p_cursor_id integer DEFAULT NULL::integer, p_trending boolean DEFAULT false, p_new_season boolean DEFAULT false, p_classics boolean DEFAULT false, p_hidden_gems boolean DEFAULT false, p_airing_only boolean DEFAULT false, p_season text DEFAULT NULL::text, p_season_year integer DEFAULT NULL::integer",
+    "proname": "search_anime_page",
+    "prosecdef": true,
+    "result": "TABLE(id integer, title_english text, title_romaji text, title_native text, cover_image_large text, cover_image_medium text, banner_image text, format text, status text, episode_count integer, season_year integer, start_date_year integer, average_score integer, popularity integer, trending integer, favourites integer, genres text[], created_at timestamp with time zone, rank double precision)"
+  },
+  {
+    "arguments": "p_query text, p_limit integer DEFAULT 30, p_cursor_rank double precision DEFAULT NULL::double precision, p_cursor_popularity integer DEFAULT NULL::integer, p_cursor_id integer DEFAULT NULL::integer, p_trending boolean DEFAULT false, p_new_season boolean DEFAULT false, p_classics boolean DEFAULT false, p_hidden_gems boolean DEFAULT false",
+    "proname": "search_manga_page",
+    "prosecdef": true,
+    "result": "TABLE(id integer, title_english text, title_romaji text, title_native text, cover_image_large text, cover_image_medium text, format text, status text, chapter_count integer, start_date_year integer, average_score integer, popularity integer, trending integer, favourites integer, genres text[], created_at timestamp with time zone, rank double precision)"
+  },
+  {
+    "arguments": "p_medium text, p_media_id integer, p_section_id uuid DEFAULT NULL::uuid, p_locale text DEFAULT 'en'::text",
+    "proname": "series_detail_bundle_v1",
+    "prosecdef": false,
+    "result": "jsonb"
+  }
+]

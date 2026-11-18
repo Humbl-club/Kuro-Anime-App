@@ -1,0 +1,41 @@
+{
+  "changed_fields": {
+    "custom_oauth_max_providers": {
+      "after": 32767,
+      "before": 3
+    },
+    "password_hibp_enabled": {
+      "after": true,
+      "before": false
+    },
+    "password_min_length": {
+      "after": 8,
+      "before": 6
+    },
+    "site_url": {
+      "after": "kuro://auth/callback",
+      "before": " kuro://auth/callback"
+    }
+  },
+  "checked_at": "2026-11-08T23:52:31.149722+00:00",
+  "exception": {
+    "after": 32767,
+    "before": 3,
+    "custom_oauth_enabled": false,
+    "field": "custom_oauth_max_providers",
+    "plan_change_requested": false,
+    "restore_attempt": "PATCH ignored; field appears in GET but is absent from documented PATCH schema"
+  },
+  "other_mutable_settings_unchanged": true,
+  "requested_settings_verified": true,
+  "settings": {
+    "external_apple_enabled": false,
+    "jwt_exp": 3600,
+    "mailer_autoconfirm": true,
+    "password_hibp_enabled": true,
+    "password_min_length": 8,
+    "security_captcha_enabled": false,
+    "site_url": "kuro://auth/callback",
+    "uri_allow_list": "kuro://auth/callback"
+  }
+}

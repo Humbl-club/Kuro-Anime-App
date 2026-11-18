@@ -1,0 +1,2298 @@
+{
+  "schemaVersion": 1,
+  "byLibrarySize": {
+    "0": {
+      "offered": 25,
+      "completed": 25,
+      "dropped": 0,
+      "errors": 14,
+      "errorRate": 0.56,
+      "achievedRps": 1.7358821615142186,
+      "successRps": 0.7637881510662562,
+      "p95": 8001.8,
+      "endpoints": {
+        "home": {
+          "requests": 8,
+          "success": 4,
+          "errors": 4,
+          "p50": 5331.11,
+          "p95": 8001.13,
+          "p99": 8001.13,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 4,
+            "200": 4
+          },
+          "pass": false
+        },
+        "browse": {
+          "requests": 6,
+          "success": 2,
+          "errors": 4,
+          "p50": 8000.23,
+          "p95": 8001.28,
+          "p99": 8001.28,
+          "p95Target": 750,
+          "statuses": {
+            "0": 4,
+            "200": 2
+          },
+          "pass": false
+        },
+        "search": {
+          "requests": 3,
+          "success": 2,
+          "errors": 1,
+          "p50": 6072.85,
+          "p95": 8002.31,
+          "p99": 8002.31,
+          "p95Target": 750,
+          "statuses": {
+            "0": 1,
+            "200": 2
+          },
+          "pass": false
+        },
+        "detail": {
+          "requests": 2,
+          "success": 2,
+          "errors": 0,
+          "p50": 1060.48,
+          "p95": 1331.72,
+          "p99": 1331.72,
+          "p95Target": 1200,
+          "statuses": {
+            "200": 2
+          },
+          "pass": false
+        },
+        "mood": {
+          "requests": 2,
+          "success": 0,
+          "errors": 2,
+          "p50": 8001.1,
+          "p95": 8001.67,
+          "p99": 8001.67,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 2
+          },
+          "pass": false
+        },
+        "clubs": {
+          "requests": 3,
+          "success": 1,
+          "errors": 2,
+          "p50": 8001.06,
+          "p95": 8001.45,
+          "p99": 8001.45,
+          "p95Target": 750,
+          "statuses": {
+            "0": 2,
+            "200": 1
+          },
+          "pass": false
+        },
+        "discover": {
+          "requests": 1,
+          "success": 0,
+          "errors": 1,
+          "p50": 8001.8,
+          "p95": 8001.8,
+          "p99": 8001.8,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 1
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "25": {
+      "offered": 59,
+      "completed": 59,
+      "dropped": 0,
+      "errors": 33,
+      "errorRate": 0.559322033898305,
+      "achievedRps": 4.096681901173556,
+      "successRps": 1.8053174479747873,
+      "p95": 8001.81,
+      "endpoints": {
+        "home": {
+          "requests": 10,
+          "success": 5,
+          "errors": 5,
+          "p50": 7821.67,
+          "p95": 8001.81,
+          "p99": 8001.81,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 5,
+            "200": 5
+          },
+          "pass": false
+        },
+        "browse": {
+          "requests": 15,
+          "success": 5,
+          "errors": 10,
+          "p50": 8000.67,
+          "p95": 8002,
+          "p99": 8002,
+          "p95Target": 750,
+          "statuses": {
+            "0": 10,
+            "200": 5
+          },
+          "pass": false
+        },
+        "search": {
+          "requests": 5,
+          "success": 1,
+          "errors": 4,
+          "p50": 8000.83,
+          "p95": 8001.48,
+          "p99": 8001.48,
+          "p95Target": 750,
+          "statuses": {
+            "0": 4,
+            "200": 1
+          },
+          "pass": false
+        },
+        "detail": {
+          "requests": 18,
+          "success": 10,
+          "errors": 8,
+          "p50": 5165.7,
+          "p95": 8001.16,
+          "p99": 8001.16,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 8,
+            "200": 10
+          },
+          "pass": false
+        },
+        "mood": {
+          "requests": 5,
+          "success": 2,
+          "errors": 3,
+          "p50": 7999.85,
+          "p95": 8001.99,
+          "p99": 8001.99,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 3,
+            "200": 2
+          },
+          "pass": false
+        },
+        "clubs": {
+          "requests": 1,
+          "success": 1,
+          "errors": 0,
+          "p50": 4908.84,
+          "p95": 4908.84,
+          "p99": 4908.84,
+          "p95Target": 750,
+          "statuses": {
+            "200": 1
+          },
+          "pass": false
+        },
+        "discover": {
+          "requests": 2,
+          "success": 0,
+          "errors": 2,
+          "p50": 8000.48,
+          "p95": 8000.56,
+          "p99": 8000.56,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 2
+          },
+          "pass": false
+        },
+        "progress": {
+          "requests": 2,
+          "success": 2,
+          "errors": 0,
+          "p50": 1733.04,
+          "p95": 4215.34,
+          "p99": 4215.34,
+          "p95Target": 750,
+          "statuses": {
+            "200": 2
+          },
+          "pass": false
+        },
+        "parse": {
+          "requests": 1,
+          "success": 0,
+          "errors": 1,
+          "p50": 7999.66,
+          "p95": 7999.66,
+          "p99": 7999.66,
+          "p95Target": 2500,
+          "statuses": {
+            "0": 1
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "100": {
+      "offered": 29,
+      "completed": 29,
+      "dropped": 0,
+      "errors": 17,
+      "errorRate": 0.5862068965517241,
+      "achievedRps": 2.0136233073564935,
+      "successRps": 0.8332234375268249,
+      "p95": 8001.25,
+      "endpoints": {
+        "home": {
+          "requests": 1,
+          "success": 1,
+          "errors": 0,
+          "p50": 7273.16,
+          "p95": 7273.16,
+          "p99": 7273.16,
+          "p95Target": 1200,
+          "statuses": {
+            "200": 1
+          },
+          "pass": false
+        },
+        "browse": {
+          "requests": 4,
+          "success": 2,
+          "errors": 2,
+          "p50": 1152.44,
+          "p95": 8001.17,
+          "p99": 8001.17,
+          "p95Target": 750,
+          "statuses": {
+            "0": 2,
+            "200": 2
+          },
+          "pass": false
+        },
+        "search": {
+          "requests": 7,
+          "success": 4,
+          "errors": 3,
+          "p50": 7633.77,
+          "p95": 8000.98,
+          "p99": 8000.98,
+          "p95Target": 750,
+          "statuses": {
+            "0": 3,
+            "200": 4
+          },
+          "pass": false
+        },
+        "detail": {
+          "requests": 5,
+          "success": 1,
+          "errors": 4,
+          "p50": 7999.71,
+          "p95": 8001.25,
+          "p99": 8001.25,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 4,
+            "200": 1
+          },
+          "pass": false
+        },
+        "mood": {
+          "requests": 4,
+          "success": 1,
+          "errors": 3,
+          "p50": 8000.53,
+          "p95": 8000.87,
+          "p99": 8000.87,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 3,
+            "200": 1
+          },
+          "pass": false
+        },
+        "clubs": {
+          "requests": 5,
+          "success": 3,
+          "errors": 2,
+          "p50": 7890.34,
+          "p95": 8000.68,
+          "p99": 8000.68,
+          "p95Target": 750,
+          "statuses": {
+            "0": 2,
+            "200": 3
+          },
+          "pass": false
+        },
+        "discover": {
+          "requests": 2,
+          "success": 0,
+          "errors": 2,
+          "p50": 8000.88,
+          "p95": 8001.87,
+          "p99": 8001.87,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 2
+          },
+          "pass": false
+        },
+        "recommend": {
+          "requests": 1,
+          "success": 0,
+          "errors": 1,
+          "p50": 8000.83,
+          "p95": 8000.83,
+          "p99": 8000.83,
+          "p95Target": 2500,
+          "statuses": {
+            "0": 1
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "2000": {
+      "offered": 6,
+      "completed": 6,
+      "dropped": 0,
+      "errors": 3,
+      "errorRate": 0.5,
+      "achievedRps": 0.41661171876341246,
+      "successRps": 0.20830585938170623,
+      "p95": 8001.51,
+      "endpoints": {
+        "home": {
+          "requests": 1,
+          "success": 1,
+          "errors": 0,
+          "p50": 5167.71,
+          "p95": 5167.71,
+          "p99": 5167.71,
+          "p95Target": 1200,
+          "statuses": {
+            "200": 1
+          },
+          "pass": false
+        },
+        "browse": {
+          "requests": 1,
+          "success": 1,
+          "errors": 0,
+          "p50": 261.49,
+          "p95": 261.49,
+          "p99": 261.49,
+          "p95Target": 750,
+          "statuses": {
+            "200": 1
+          },
+          "pass": true
+        },
+        "mood": {
+          "requests": 4,
+          "success": 1,
+          "errors": 3,
+          "p50": 8000.08,
+          "p95": 8001.51,
+          "p99": 8001.51,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 3,
+            "200": 1
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    }
+  },
+  "byMedium": {
+    "manga": {
+      "offered": 17,
+      "completed": 17,
+      "dropped": 0,
+      "errors": 7,
+      "errorRate": 0.4117647058823529,
+      "achievedRps": 1.1803998698296687,
+      "successRps": 0.6943528646056875,
+      "p95": 8001.25,
+      "endpoints": {
+        "home": {
+          "requests": 6,
+          "success": 5,
+          "errors": 1,
+          "p50": 3922.42,
+          "p95": 8001.13,
+          "p99": 8001.13,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 1,
+            "200": 5
+          },
+          "pass": false
+        },
+        "detail": {
+          "requests": 11,
+          "success": 5,
+          "errors": 6,
+          "p50": 7999.6,
+          "p95": 8001.25,
+          "p99": 8001.25,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 6,
+            "200": 5
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "anime": {
+      "offered": 28,
+      "completed": 28,
+      "dropped": 0,
+      "errors": 14,
+      "errorRate": 0.5,
+      "achievedRps": 1.9441880208959248,
+      "successRps": 0.9720940104479624,
+      "p95": 8001.41,
+      "endpoints": {
+        "home": {
+          "requests": 14,
+          "success": 6,
+          "errors": 8,
+          "p50": 8000.23,
+          "p95": 8001.81,
+          "p99": 8001.81,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 8,
+            "200": 6
+          },
+          "pass": false
+        },
+        "detail": {
+          "requests": 14,
+          "success": 8,
+          "errors": 6,
+          "p50": 5165.7,
+          "p95": 8001.16,
+          "p99": 8001.16,
+          "p95Target": 1200,
+          "statuses": {
+            "0": 6,
+            "200": 8
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "ANIME": {
+      "offered": 10,
+      "completed": 10,
+      "dropped": 0,
+      "errors": 8,
+      "errorRate": 0.8,
+      "achievedRps": 0.6943528646056875,
+      "successRps": 0.1388705729211375,
+      "p95": 8001.99,
+      "endpoints": {
+        "mood": {
+          "requests": 10,
+          "success": 2,
+          "errors": 8,
+          "p50": 8000.11,
+          "p95": 8001.99,
+          "p99": 8001.99,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 8,
+            "200": 2
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "MANGA": {
+      "offered": 5,
+      "completed": 5,
+      "dropped": 0,
+      "errors": 3,
+      "errorRate": 0.6,
+      "achievedRps": 0.34717643230284373,
+      "successRps": 0.1388705729211375,
+      "p95": 8001.51,
+      "endpoints": {
+        "mood": {
+          "requests": 5,
+          "success": 2,
+          "errors": 3,
+          "p50": 8000.59,
+          "p95": 8001.51,
+          "p99": 8001.51,
+          "p95Target": 1500,
+          "statuses": {
+            "0": 3,
+            "200": 2
+          },
+          "pass": false
+        }
+      },
+      "pass": false
+    }
+  },
+  "runId": "kuro-load-20261109T091536890Z-9db74b13",
+  "startedAt": "2026-11-09T10:04:22.444Z",
+  "finishedAt": "2026-11-09T10:04:36.847Z",
+  "target": "https://bkdifromsqxkndnllmdj.supabase.co",
+  "config": {
+    "production": true,
+    "rps": 20,
+    "duration": 90,
+    "vus": 100,
+    "maxRequests": 20000,
+    "seed": 20261109,
+    "stopFile": "/Users/max/.codex/release-runs/kuro-load-20261109-r2/STOP"
+  },
+  "elapsedSeconds": 14.401899249999998,
+  "distinctAccounts": 100,
+  "accountPool": 100,
+  "weights": {
+    "home": 20,
+    "browse": 20,
+    "search": 15,
+    "detail": 20,
+    "mood": 8,
+    "clubs": 5,
+    "discover": 5,
+    "progress": 5,
+    "parse": 1,
+    "recommend": 1
+  },
+  "summary": {
+    "offered": 162,
+    "completed": 119,
+    "dropped": 43,
+    "errors": 67,
+    "errorRate": 0.5630252100840336,
+    "achievedRps": 8.26279908880768,
+    "successRps": 3.6106348959495747,
+    "p95": 8001.8,
+    "endpoints": {
+      "home": {
+        "requests": 20,
+        "success": 11,
+        "errors": 9,
+        "p50": 7273.16,
+        "p95": 8001.41,
+        "p99": 8001.81,
+        "p95Target": 1200,
+        "statuses": {
+          "0": 9,
+          "200": 11
+        },
+        "pass": false
+      },
+      "browse": {
+        "requests": 26,
+        "success": 10,
+        "errors": 16,
+        "p50": 8000.57,
+        "p95": 8001.28,
+        "p99": 8002,
+        "p95Target": 750,
+        "statuses": {
+          "0": 16,
+          "200": 10
+        },
+        "pass": false
+      },
+      "search": {
+        "requests": 15,
+        "success": 7,
+        "errors": 8,
+        "p50": 8000.07,
+        "p95": 8002.31,
+        "p99": 8002.31,
+        "p95Target": 750,
+        "statuses": {
+          "0": 8,
+          "200": 7
+        },
+        "pass": false
+      },
+      "detail": {
+        "requests": 25,
+        "success": 13,
+        "errors": 12,
+        "p50": 7694.57,
+        "p95": 8001.16,
+        "p99": 8001.25,
+        "p95Target": 1200,
+        "statuses": {
+          "0": 12,
+          "200": 13
+        },
+        "pass": false
+      },
+      "mood": {
+        "requests": 15,
+        "success": 4,
+        "errors": 11,
+        "p50": 8000.53,
+        "p95": 8001.99,
+        "p99": 8001.99,
+        "p95Target": 1500,
+        "statuses": {
+          "0": 11,
+          "200": 4
+        },
+        "pass": false
+      },
+      "clubs": {
+        "requests": 9,
+        "success": 5,
+        "errors": 4,
+        "p50": 7890.34,
+        "p95": 8001.45,
+        "p99": 8001.45,
+        "p95Target": 750,
+        "statuses": {
+          "0": 4,
+          "200": 5
+        },
+        "pass": false
+      },
+      "discover": {
+        "requests": 5,
+        "success": 0,
+        "errors": 5,
+        "p50": 8000.88,
+        "p95": 8001.87,
+        "p99": 8001.87,
+        "p95Target": 1500,
+        "statuses": {
+          "0": 5
+        },
+        "pass": false
+      },
+      "progress": {
+        "requests": 2,
+        "success": 2,
+        "errors": 0,
+        "p50": 1733.04,
+        "p95": 4215.34,
+        "p99": 4215.34,
+        "p95Target": 750,
+        "statuses": {
+          "200": 2
+        },
+        "pass": false
+      },
+      "parse": {
+        "requests": 1,
+        "success": 0,
+        "errors": 1,
+        "p50": 7999.66,
+        "p95": 7999.66,
+        "p99": 7999.66,
+        "p95Target": 2500,
+        "statuses": {
+          "0": 1
+        },
+        "pass": false
+      },
+      "recommend": {
+        "requests": 1,
+        "success": 0,
+        "errors": 1,
+        "p50": 8000.83,
+        "p95": 8000.83,
+        "p99": 8000.83,
+        "p95Target": 2500,
+        "statuses": {
+          "0": 1
+        },
+        "pass": false
+      }
+    },
+    "pass": false
+  },
+  "stopReason": "rolling error/latency safety stop",
+  "maxInFlight": 96,
+  "droppedBusy": 43,
+  "generator": {
+    "eventLoopP99Ms": 21.921791,
+    "cpuUserMs": 490.501,
+    "cpuSystemMs": 132.705,
+    "maxStartLagMs": 1.68,
+    "rssBytes": 111984640
+  },
+  "windows": [],
+  "samples": [
+    {
+      "kind": "clubs",
+      "sequence": 2,
+      "medium": null,
+      "variant": null,
+      "ms": 664.68,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 564,
+      "startLagMs": -0.42,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 4,
+      "medium": null,
+      "variant": "popular",
+      "ms": 606.46,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 22473,
+      "startLagMs": -0.42,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 9,
+      "medium": "manga",
+      "variant": null,
+      "ms": 760.74,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 1985,
+      "startLagMs": -0.22,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 3,
+      "medium": "manga",
+      "variant": null,
+      "ms": 1060.48,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 7377,
+      "startLagMs": 0.41,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 19,
+      "medium": null,
+      "variant": "newlyAdded",
+      "ms": 261.49,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 18887,
+      "startLagMs": -0.19,
+      "librarySize": 2000
+    },
+    {
+      "kind": "detail",
+      "sequence": 18,
+      "medium": "manga",
+      "variant": null,
+      "ms": 311.82,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 3306,
+      "startLagMs": 0.03,
+      "librarySize": 100
+    },
+    {
+      "kind": "detail",
+      "sequence": 7,
+      "medium": "anime",
+      "variant": null,
+      "ms": 866.11,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 5370,
+      "startLagMs": -0.17,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 5,
+      "medium": "anime",
+      "variant": null,
+      "ms": 966.49,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 6109,
+      "startLagMs": -0.39,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 16,
+      "medium": null,
+      "variant": "popular",
+      "ms": 426.75,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 22473,
+      "startLagMs": -0.57,
+      "librarySize": 100
+    },
+    {
+      "kind": "detail",
+      "sequence": 13,
+      "medium": "anime",
+      "variant": null,
+      "ms": 647.24,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 5701,
+      "startLagMs": 1.5,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 12,
+      "medium": "manga",
+      "variant": null,
+      "ms": 1302.61,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 2221,
+      "startLagMs": 0.67,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 15,
+      "medium": null,
+      "variant": "newlyAdded",
+      "ms": 1152.44,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 20066,
+      "startLagMs": 1.12,
+      "librarySize": 100
+    },
+    {
+      "kind": "detail",
+      "sequence": 25,
+      "medium": "anime",
+      "variant": null,
+      "ms": 1026.77,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 22715,
+      "startLagMs": -0.09,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 41,
+      "medium": "anime",
+      "variant": null,
+      "ms": 369.67,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 359,
+      "startLagMs": 0.77,
+      "librarySize": 0
+    },
+    {
+      "kind": "progress",
+      "sequence": 28,
+      "medium": null,
+      "variant": null,
+      "ms": 1733.04,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 128,
+      "startLagMs": 1.36,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 60,
+      "medium": "manga",
+      "variant": null,
+      "ms": 169.03,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 377,
+      "startLagMs": -0.68,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 61,
+      "medium": null,
+      "variant": "trending",
+      "ms": 266.07,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 23224,
+      "startLagMs": -0.21,
+      "librarySize": 0
+    },
+    {
+      "kind": "detail",
+      "sequence": 66,
+      "medium": "manga",
+      "variant": null,
+      "ms": 3057.14,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 3629,
+      "startLagMs": 1.08,
+      "librarySize": 25
+    },
+    {
+      "kind": "clubs",
+      "sequence": 29,
+      "medium": null,
+      "variant": null,
+      "ms": 4908.84,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 490,
+      "startLagMs": -0.37,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 17,
+      "medium": null,
+      "variant": "Fate",
+      "ms": 5508.33,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 23750,
+      "startLagMs": 1.28,
+      "librarySize": 100
+    },
+    {
+      "kind": "search",
+      "sequence": 34,
+      "medium": null,
+      "variant": "Attack",
+      "ms": 4659.96,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 22287,
+      "startLagMs": 0.09,
+      "librarySize": 100
+    },
+    {
+      "kind": "browse",
+      "sequence": 10,
+      "medium": null,
+      "variant": "topRated",
+      "ms": 5859.94,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 23001,
+      "startLagMs": 0.26,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 64,
+      "medium": "anime",
+      "variant": null,
+      "ms": 3160.2,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 25480,
+      "startLagMs": 0.27,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 51,
+      "medium": null,
+      "variant": "One",
+      "ms": 5108.18,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 18247,
+      "startLagMs": 0.93,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 0,
+      "medium": null,
+      "variant": "Naruto",
+      "ms": 8002.31,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.01,
+      "librarySize": 0
+    },
+    {
+      "kind": "mood",
+      "sequence": 1,
+      "medium": "ANIME",
+      "variant": "cozy",
+      "ms": 8001.1,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.47,
+      "librarySize": 0
+    },
+    {
+      "kind": "home",
+      "sequence": 59,
+      "medium": "anime",
+      "variant": null,
+      "ms": 5167.71,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 8545,
+      "startLagMs": 0.9,
+      "librarySize": 2000
+    },
+    {
+      "kind": "detail",
+      "sequence": 6,
+      "medium": "manga",
+      "variant": null,
+      "ms": 7999.6,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.44,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 141,
+      "medium": "manga",
+      "variant": null,
+      "ms": 1331.72,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 9390,
+      "startLagMs": 1.36,
+      "librarySize": 0
+    },
+    {
+      "kind": "discover",
+      "sequence": 8,
+      "medium": null,
+      "variant": null,
+      "ms": 8000.48,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.87,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 90,
+      "medium": "manga",
+      "variant": null,
+      "ms": 3922.42,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 2222,
+      "startLagMs": 0.39,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 11,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8001.81,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.9,
+      "librarySize": 25
+    },
+    {
+      "kind": "progress",
+      "sequence": 87,
+      "medium": null,
+      "variant": null,
+      "ms": 4215.34,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 128,
+      "startLagMs": 0.5,
+      "librarySize": 25
+    },
+    {
+      "kind": "recommend",
+      "sequence": 14,
+      "medium": null,
+      "variant": null,
+      "ms": 8000.83,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.45,
+      "librarySize": 100
+    },
+    {
+      "kind": "discover",
+      "sequence": 20,
+      "medium": null,
+      "variant": null,
+      "ms": 8001.8,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.82,
+      "librarySize": 0
+    },
+    {
+      "kind": "home",
+      "sequence": 21,
+      "medium": "manga",
+      "variant": null,
+      "ms": 8001.13,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.09,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 22,
+      "medium": null,
+      "variant": "topRated",
+      "ms": 8001.28,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.49,
+      "librarySize": 0
+    },
+    {
+      "kind": "home",
+      "sequence": 23,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.85,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.17,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 24,
+      "medium": null,
+      "variant": "popular",
+      "ms": 8000.67,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.01,
+      "librarySize": 25
+    },
+    {
+      "kind": "mood",
+      "sequence": 26,
+      "medium": "ANIME",
+      "variant": "intense",
+      "ms": 8001.99,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -1.14,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 27,
+      "medium": "manga",
+      "variant": null,
+      "ms": 8000.39,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.44,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 86,
+      "medium": "anime",
+      "variant": null,
+      "ms": 5062.7,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 11126,
+      "startLagMs": 0.88,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 83,
+      "medium": "anime",
+      "variant": null,
+      "ms": 5331.11,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 359,
+      "startLagMs": 0.38,
+      "librarySize": 0
+    },
+    {
+      "kind": "detail",
+      "sequence": 30,
+      "medium": "manga",
+      "variant": null,
+      "ms": 8000.66,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.42,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 31,
+      "medium": null,
+      "variant": "One",
+      "ms": 8000.88,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.08,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 32,
+      "medium": null,
+      "variant": "popular",
+      "ms": 8000.67,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.55,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 33,
+      "medium": null,
+      "variant": "trending",
+      "ms": 8001.24,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.18,
+      "librarySize": 25
+    },
+    {
+      "kind": "clubs",
+      "sequence": 35,
+      "medium": null,
+      "variant": null,
+      "ms": 8000.68,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.57,
+      "librarySize": 100
+    },
+    {
+      "kind": "detail",
+      "sequence": 36,
+      "medium": "manga",
+      "variant": null,
+      "ms": 7999.68,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.52,
+      "librarySize": 100
+    },
+    {
+      "kind": "home",
+      "sequence": 84,
+      "medium": "manga",
+      "variant": null,
+      "ms": 5636.68,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 2222,
+      "startLagMs": 0.13,
+      "librarySize": 25
+    },
+    {
+      "kind": "mood",
+      "sequence": 37,
+      "medium": "ANIME",
+      "variant": "cozy",
+      "ms": 8000.87,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.13,
+      "librarySize": 100
+    },
+    {
+      "kind": "search",
+      "sequence": 38,
+      "medium": null,
+      "variant": "Love",
+      "ms": 8000.98,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.6,
+      "librarySize": 100
+    },
+    {
+      "kind": "mood",
+      "sequence": 39,
+      "medium": "MANGA",
+      "variant": "short",
+      "ms": 8001.2,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.18,
+      "librarySize": 2000
+    },
+    {
+      "kind": "home",
+      "sequence": 40,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.39,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.56,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 42,
+      "medium": null,
+      "variant": "topRated",
+      "ms": 8000.23,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.83,
+      "librarySize": 0
+    },
+    {
+      "kind": "home",
+      "sequence": 57,
+      "medium": "manga",
+      "variant": null,
+      "ms": 7273.16,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 5996,
+      "startLagMs": 0.17,
+      "librarySize": 100
+    },
+    {
+      "kind": "search",
+      "sequence": 81,
+      "medium": null,
+      "variant": "One",
+      "ms": 6072.85,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 18247,
+      "startLagMs": 0.65,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 43,
+      "medium": null,
+      "variant": "newlyAdded",
+      "ms": 8000.42,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.67,
+      "librarySize": 0
+    },
+    {
+      "kind": "parse",
+      "sequence": 44,
+      "medium": null,
+      "variant": null,
+      "ms": 7999.66,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.47,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 45,
+      "medium": "manga",
+      "variant": null,
+      "ms": 8000.92,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.35,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 46,
+      "medium": null,
+      "variant": "topRated",
+      "ms": 8000.75,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.46,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 47,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.79,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.27,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 104,
+      "medium": "anime",
+      "variant": null,
+      "ms": 5165.7,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 7507,
+      "startLagMs": 0.02,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 48,
+      "medium": null,
+      "variant": "popular",
+      "ms": 8000.89,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.4,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 49,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8001.16,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.01,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 50,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.34,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.48,
+      "librarySize": 25
+    },
+    {
+      "kind": "mood",
+      "sequence": 52,
+      "medium": "ANIME",
+      "variant": "cozy",
+      "ms": 7999.85,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.63,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 53,
+      "medium": null,
+      "variant": "Berserk",
+      "ms": 8001.48,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.18,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 54,
+      "medium": "manga",
+      "variant": null,
+      "ms": 8001.25,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.13,
+      "librarySize": 100
+    },
+    {
+      "kind": "detail",
+      "sequence": 55,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.89,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.24,
+      "librarySize": 100
+    },
+    {
+      "kind": "discover",
+      "sequence": 56,
+      "medium": null,
+      "variant": null,
+      "ms": 8000.88,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.29,
+      "librarySize": 100
+    },
+    {
+      "kind": "clubs",
+      "sequence": 98,
+      "medium": null,
+      "variant": null,
+      "ms": 5913.49,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 2,
+      "startLagMs": 0.21,
+      "librarySize": 100
+    },
+    {
+      "kind": "home",
+      "sequence": 161,
+      "medium": "anime",
+      "variant": null,
+      "ms": 2780.89,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 359,
+      "startLagMs": 0.85,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 58,
+      "medium": null,
+      "variant": "topRated",
+      "ms": 8000.92,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.57,
+      "librarySize": 100
+    },
+    {
+      "kind": "home",
+      "sequence": 62,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.23,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.42,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 63,
+      "medium": null,
+      "variant": "newlyAdded",
+      "ms": 8000.88,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.35,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 65,
+      "medium": null,
+      "variant": "trending",
+      "ms": 8001.22,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.25,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 67,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.6,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.14,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 68,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8001.13,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.52,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 69,
+      "medium": null,
+      "variant": "trending",
+      "ms": 8001.03,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.3,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 70,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8001.41,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.68,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 71,
+      "medium": null,
+      "variant": "newlyAdded",
+      "ms": 8001.01,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.92,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 72,
+      "medium": null,
+      "variant": "Frieren",
+      "ms": 8000.83,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.52,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 73,
+      "medium": null,
+      "variant": "trending",
+      "ms": 8002,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.81,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 74,
+      "medium": "anime",
+      "variant": null,
+      "ms": 7999.71,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.35,
+      "librarySize": 100
+    },
+    {
+      "kind": "browse",
+      "sequence": 75,
+      "medium": null,
+      "variant": "newlyAdded",
+      "ms": 8001.17,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.14,
+      "librarySize": 100
+    },
+    {
+      "kind": "mood",
+      "sequence": 76,
+      "medium": "ANIME",
+      "variant": "cozy",
+      "ms": 8000.53,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.41,
+      "librarySize": 100
+    },
+    {
+      "kind": "search",
+      "sequence": 77,
+      "medium": null,
+      "variant": "Fate",
+      "ms": 8000.07,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.57,
+      "librarySize": 100
+    },
+    {
+      "kind": "mood",
+      "sequence": 78,
+      "medium": "MANGA",
+      "variant": "short",
+      "ms": 8000.59,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.5,
+      "librarySize": 100
+    },
+    {
+      "kind": "mood",
+      "sequence": 79,
+      "medium": "ANIME",
+      "variant": "cozy",
+      "ms": 8000.08,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.46,
+      "librarySize": 2000
+    },
+    {
+      "kind": "mood",
+      "sequence": 80,
+      "medium": "ANIME",
+      "variant": "intense",
+      "ms": 8001.67,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.78,
+      "librarySize": 0
+    },
+    {
+      "kind": "mood",
+      "sequence": 105,
+      "medium": "MANGA",
+      "variant": "short",
+      "ms": 6780.65,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 21233,
+      "startLagMs": -0.01,
+      "librarySize": 25
+    },
+    {
+      "kind": "mood",
+      "sequence": 93,
+      "medium": "MANGA",
+      "variant": "short",
+      "ms": 7409.78,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 21358,
+      "startLagMs": 0.21,
+      "librarySize": 25
+    },
+    {
+      "kind": "clubs",
+      "sequence": 82,
+      "medium": null,
+      "variant": null,
+      "ms": 8001.06,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.1,
+      "librarySize": 0
+    },
+    {
+      "kind": "clubs",
+      "sequence": 134,
+      "medium": null,
+      "variant": null,
+      "ms": 5520.2,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 564,
+      "startLagMs": 0.71,
+      "librarySize": 100
+    },
+    {
+      "kind": "home",
+      "sequence": 107,
+      "medium": "anime",
+      "variant": null,
+      "ms": 6871.48,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 6406,
+      "startLagMs": -0.46,
+      "librarySize": 25
+    },
+    {
+      "kind": "browse",
+      "sequence": 112,
+      "medium": null,
+      "variant": "popular",
+      "ms": 6620.46,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 22473,
+      "startLagMs": 0.75,
+      "librarySize": 25
+    },
+    {
+      "kind": "home",
+      "sequence": 88,
+      "medium": "anime",
+      "variant": null,
+      "ms": 7821.67,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 6405,
+      "startLagMs": 1.07,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 85,
+      "medium": null,
+      "variant": "Dragon",
+      "ms": 8000.61,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.53,
+      "librarySize": 25
+    },
+    {
+      "kind": "detail",
+      "sequence": 92,
+      "medium": "anime",
+      "variant": null,
+      "ms": 7694.57,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 6127,
+      "startLagMs": 1.16,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 94,
+      "medium": null,
+      "variant": "Attack",
+      "ms": 7633.77,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 22287,
+      "startLagMs": 0.35,
+      "librarySize": 100
+    },
+    {
+      "kind": "browse",
+      "sequence": 102,
+      "medium": null,
+      "variant": "topRated",
+      "ms": 7274.54,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 18772,
+      "startLagMs": -0.53,
+      "librarySize": 0
+    },
+    {
+      "kind": "browse",
+      "sequence": 89,
+      "medium": null,
+      "variant": "trending",
+      "ms": 8000.57,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.46,
+      "librarySize": 25
+    },
+    {
+      "kind": "mood",
+      "sequence": 91,
+      "medium": "ANIME",
+      "variant": "cozy",
+      "ms": 8000.11,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.64,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 118,
+      "medium": null,
+      "variant": "Love",
+      "ms": 6722.02,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 23505,
+      "startLagMs": 0.44,
+      "librarySize": 100
+    },
+    {
+      "kind": "browse",
+      "sequence": 129,
+      "medium": null,
+      "variant": "trending",
+      "ms": 6296.63,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 18346,
+      "startLagMs": 1.44,
+      "librarySize": 25
+    },
+    {
+      "kind": "clubs",
+      "sequence": 95,
+      "medium": null,
+      "variant": null,
+      "ms": 7999.97,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.56,
+      "librarySize": 100
+    },
+    {
+      "kind": "browse",
+      "sequence": 125,
+      "medium": null,
+      "variant": "trending",
+      "ms": 6503.27,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 22918,
+      "startLagMs": -0.39,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 96,
+      "medium": null,
+      "variant": "Haikyuu",
+      "ms": 8000.97,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.83,
+      "librarySize": 100
+    },
+    {
+      "kind": "discover",
+      "sequence": 97,
+      "medium": null,
+      "variant": null,
+      "ms": 8001.87,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -0.32,
+      "librarySize": 100
+    },
+    {
+      "kind": "mood",
+      "sequence": 99,
+      "medium": "MANGA",
+      "variant": "short",
+      "ms": 8001.51,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": -1.1,
+      "librarySize": 2000
+    },
+    {
+      "kind": "clubs",
+      "sequence": 103,
+      "medium": null,
+      "variant": null,
+      "ms": 8001.45,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.28,
+      "librarySize": 0
+    },
+    {
+      "kind": "home",
+      "sequence": 109,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.8,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.61,
+      "librarySize": 25
+    },
+    {
+      "kind": "mood",
+      "sequence": 119,
+      "medium": "ANIME",
+      "variant": "intense",
+      "ms": 7529.98,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 21564,
+      "startLagMs": 0.97,
+      "librarySize": 2000
+    },
+    {
+      "kind": "mood",
+      "sequence": 116,
+      "medium": "ANIME",
+      "variant": "intense",
+      "ms": 7722.26,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 21981,
+      "startLagMs": 0.51,
+      "librarySize": 100
+    },
+    {
+      "kind": "clubs",
+      "sequence": 115,
+      "medium": null,
+      "variant": null,
+      "ms": 7890.34,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 489,
+      "startLagMs": 0.25,
+      "librarySize": 100
+    },
+    {
+      "kind": "home",
+      "sequence": 113,
+      "medium": "anime",
+      "variant": null,
+      "ms": 8000.82,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 0.38,
+      "librarySize": 25
+    },
+    {
+      "kind": "search",
+      "sequence": 160,
+      "medium": null,
+      "variant": "Naruto",
+      "ms": 5928.09,
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 15665,
+      "startLagMs": 1.68,
+      "librarySize": 0
+    },
+    {
+      "kind": "discover",
+      "sequence": 128,
+      "medium": null,
+      "variant": null,
+      "ms": 8000.56,
+      "status": 0,
+      "ok": false,
+      "error": "timeout",
+      "bytes": 0,
+      "startLagMs": 1.27,
+      "librarySize": 25
+    }
+  ]
+}

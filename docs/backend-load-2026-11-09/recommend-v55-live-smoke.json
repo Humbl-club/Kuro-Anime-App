@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-11-09T12:02:43.148221+00:00",
+  "ordinary_user_tokens_only": true,
+  "passed": true,
+  "samples": [
+    {
+      "http_status": 200,
+      "items": 18,
+      "library_size": 0,
+      "ms": 1956.17,
+      "narrated": false,
+      "sets": 2,
+      "success": true,
+      "upstream_ms": 1852.0
+    },
+    {
+      "http_status": 200,
+      "items": 15,
+      "library_size": 2000,
+      "ms": 1920.17,
+      "narrated": false,
+      "sets": 2,
+      "success": true,
+      "upstream_ms": 1845.0
+    },
+    {
+      "http_status": 200,
+      "items": 15,
+      "library_size": 2000,
+      "ms": 1225.75,
+      "narrated": false,
+      "sets": 2,
+      "success": true,
+      "upstream_ms": 1019.0
+    }
+  ],
+  "version": 55
+}

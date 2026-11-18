@@ -6,18 +6,22 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleParse } from "./handler.ts";
 
+// Guarded lookup: the global exists only on the Edge runtime (absent in local deno check/test).
+const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+const waitUntil = typeof edgeRuntime?.waitUntil === "function" ? edgeRuntime.waitUntil.bind(edgeRuntime) : undefined;
+
 serve((req) =>
   handleParse(req, {
     // Env is read per request, exactly as before the split.
     client(authHeader: string) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
       const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY");
-      const supabaseService = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      const supabaseKey = supabaseAnon ?? supabaseService;
+      const supabaseKey = supabaseAnon;
       if (!supabaseUrl || !supabaseKey) return null;
       return createClient(supabaseUrl, supabaseKey, {
         global: { headers: authHeader ? { Authorization: authHeader } : {} },
       });
     },
+    waitUntil,
   })
 );

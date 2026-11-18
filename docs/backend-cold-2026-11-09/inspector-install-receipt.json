@@ -1,0 +1,50 @@
+{
+  "actual_client_namespace_denials": 4,
+  "created_by_this_approved_experiment": true,
+  "eviction_calls": 0,
+  "extension": {
+    "anon_create": false,
+    "anon_usage": false,
+    "anon_view": false,
+    "authenticated_create": false,
+    "authenticated_usage": false,
+    "authenticated_view": false,
+    "extversion": "1.5",
+    "owner": "supabase_admin",
+    "schema": "kuro_cold_inspection"
+  },
+  "function_acls": [
+    {
+      "anon_execute_acl": false,
+      "authenticated_execute_acl": false,
+      "proname": "pg_buffercache_pages",
+      "signature": "kuro_cold_inspection.pg_buffercache_pages()"
+    },
+    {
+      "anon_execute_acl": false,
+      "authenticated_execute_acl": false,
+      "proname": "pg_buffercache_summary",
+      "signature": "kuro_cold_inspection.pg_buffercache_summary()"
+    },
+    {
+      "anon_execute_acl": false,
+      "authenticated_execute_acl": false,
+      "proname": "pg_buffercache_usage_counts",
+      "signature": "kuro_cold_inspection.pg_buffercache_usage_counts()"
+    },
+    {
+      "anon_execute_acl": true,
+      "authenticated_execute_acl": true,
+      "proname": "pg_buffercache_evict",
+      "signature": "kuro_cold_inspection.pg_buffercache_evict(integer)"
+    }
+  ],
+  "installed_at": "2026-11-09T13:52:35.277428+00:00",
+  "managed_platform_adaptation": "inspector-private-schema-adaptation.json",
+  "must_remove_extension_and_private_schema_after_attempt": true,
+  "not_in_data_api_or_extra_search_path": true,
+  "pre_restart_cached_blocks": 30700,
+  "read_metadata_works": true,
+  "retained_eviction_execute_acl_not_callable_by_clients": true,
+  "was_absent_before": true
+}

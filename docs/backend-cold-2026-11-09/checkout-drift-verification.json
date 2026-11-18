@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-11-09T13:06:36.209504+00:00",
+  "branch_now": "kuro/tracker-gaps",
+  "commit_now": "5a80c1e176d566a19bf0ffd713aa52b053f2eaf7",
+  "prior_branch": "codex/review-remediation-20261108",
+  "concurrent_checkout_changes_preserved": true,
+  "reviewed_sql_inspector_gate_hashes_match": true,
+  "workload_hashes_match": true,
+  "edge_source_entries_match": 16,
+  "app_swift": 293,
+  "package_swift": 35,
+  "canonical_sql": 250,
+  "deployment_authorized": false
+}

@@ -1,0 +1,71 @@
+{
+  "samples": [
+    {
+      "at": "2026-11-09T10:17:40.990834+00:00",
+      "auth_health": {
+        "ms": 201.56,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 218.09,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:17:51.242010+00:00",
+      "auth_health": {
+        "ms": 94.45,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 153.92,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:18:01.434196+00:00",
+      "auth_health": {
+        "ms": 1785.06,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 1836.22,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:18:13.300948+00:00",
+      "auth_health": {
+        "ms": 125.75,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 150.67,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:18:23.487590+00:00",
+      "auth_health": {
+        "ms": 155.23,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 175.18,
+        "status": 200
+      }
+    },
+    {
+      "at": "2026-11-09T10:18:33.696600+00:00",
+      "auth_health": {
+        "ms": 106.74,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 139.09,
+        "status": 200
+      }
+    }
+  ],
+  "scope": "Independent HTTPS control requests; no library/database workload, no automatic traffic retries. R7 controls alongside unchanged load; inspect numeric upstream timing to distinguish API/network delay."
+}

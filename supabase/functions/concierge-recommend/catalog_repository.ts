@@ -62,6 +62,23 @@ export type CatalogRepositoryDeps = {
 
 export function supabaseCatalogRepository(deps: CatalogRepositoryDeps): CatalogRepository {
   const { client } = deps;
+  // This factory is created for one verified caller/request. Primary and secondary rails
+  // can ask for identical candidates; share successful reads without a cross-request cache.
+  const candidateReads = new Map<string, Promise<CandidateRow[]>>();
+  const readCandidates = (key: string, load: () => Promise<CandidateRow[]>): Promise<CandidateRow[]> => {
+    const shared = candidateReads.get(key);
+    if (shared) {
+      // A secondary rail retains its independent attempt if another rail's read failed.
+      // This never makes more upstream attempts than the original independent reads.
+      return shared.catch(() => load());
+    }
+    const pending = load();
+    candidateReads.set(key, pending);
+    void pending.catch(() => {
+      if (candidateReads.get(key) === pending) candidateReads.delete(key);
+    });
+    return pending;
+  };
   return {
     async conciergeConfig() {
       const { data } = await client.rpc("get_concierge_config");
@@ -203,20 +220,24 @@ export function supabaseCatalogRepository(deps: CatalogRepositoryDeps): CatalogR
     },
 
     async premiumCandidates(mt, pCategories, allowGimmicks, focusTagIds) {
-      const { data: ids, error } = await client.rpc("recommend_ids_premium", {
+      const args = {
         p_media_type: mt,
         p_categories: pCategories && pCategories.length ? pCategories : null,
         p_limit: 50,
         p_allow_gimmicks: allowGimmicks,
         p_focus_tag_ids: focusTagIds.length ? focusTagIds : null,
+      };
+      const rows = await readCandidates(JSON.stringify(args), async () => {
+        const { data: ids, error } = await client.rpc("recommend_ids_premium", args);
+        if (error) throw error;
+        return (Array.isArray(ids) ? ids : []).map((r: Row) => ({
+          media_id: Number(r.media_id),
+          match_count: r.match_count ?? r.overlap_count ?? 0,
+          score: r.score ?? null,
+        }));
       });
-      if (error) throw error;
-      const rows = Array.isArray(ids) ? ids : [];
-      return rows.map((r: Row) => ({
-        media_id: Number(r.media_id),
-        match_count: r.match_count ?? r.overlap_count ?? 0,
-        score: r.score ?? null,
-      }));
+      // Callers still receive independent arrays/rows, as they did before sharing the read.
+      return rows.map((r) => ({ ...r }));
     },
 
     async similarCandidates(mt, seedId, allowGimmicks) {

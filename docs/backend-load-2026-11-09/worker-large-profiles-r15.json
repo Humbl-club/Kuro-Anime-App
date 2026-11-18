@@ -1,0 +1,8 @@
+{
+  "checked_at": "2026-11-09T12:13:35.055082+00:00",
+  "first_computed_at": "2026-11-09 12:13:00.115896+00",
+  "large_fixture_accounts": 5,
+  "large_profiles_computed_after_queue": 5,
+  "last_computed_at": "2026-11-09 12:13:00.115896+00",
+  "passed": true
+}

@@ -261,7 +261,7 @@ struct CompositionGraphTests {
     static func expectedAccountScopedStates(_ g: AppGraph) -> [ObjectIdentifier] {
         let owners: [any AccountScopedState] = [
             g.libraryActions, g.home, g.collection, g.discovery, g.recommendations, g.releases, g.social, g.availability,
-            g.clubs, g.imports, g.concierge, g.taste, g.support, g.widgets, g.songPreview, g.interactionTelemetry,
+            g.clubs, g.imports, g.concierge, g.taste, g.support, g.libraryExport, g.widgets, g.songPreview, g.interactionTelemetry,
         ]
         return owners.map { ObjectIdentifier($0) }
     }
@@ -371,7 +371,12 @@ struct SessionSDKHarness {
     var session: SessionController { graph.session }
     var identity: IdentityStore { graph.identity }
 
-    init(responder: @escaping StubServer.Responder, libraryBackend: any LibraryBackend = FakeLibraryBackend()) throws {
+    init(
+        responder: @escaping StubServer.Responder,
+        libraryBackend: any LibraryBackend = FakeLibraryBackend(),
+        flags: FeatureFlags? = nil,
+        exportSeams: LibraryExportSeams = LibraryExportSeams()
+    ) throws {
         server = StubServer()
         server.respond(with: responder)
         storage = InMemoryAuthStorage()
@@ -389,7 +394,9 @@ struct SessionSDKHarness {
             client: client,
             libraryBackend: libraryBackend,
             userListChannels: channels,
-            progressOutbox: outbox
+            flags: flags,
+            progressOutbox: outbox,
+            libraryExportSeams: exportSeams
         )
     }
 

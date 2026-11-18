@@ -1,0 +1,34 @@
+{
+  "finished_at": "2026-11-09T09:15:20.581556+00:00",
+  "grants": [
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "drain_taste_recompute_queue()",
+      "server": true
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "name": "recompute_user_taste_profile(uuid)",
+      "server": true
+    }
+  ],
+  "job": {
+    "active": true,
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "schedule": "* * * * *",
+    "username": "postgres"
+  },
+  "job_other_properties_preserved": true,
+  "math_body_unchanged": true,
+  "migration": {
+    "md5": "61e43c0a4a57988d5e1072686c7d9d66",
+    "name": "taste_worker_latency_v1",
+    "version": "20261109003243"
+  },
+  "sha256": "5ff1e8e3d0523e3b821e6a4933215a888417054b4b36afdcbae903f1851b0b96",
+  "started_at": "2026-11-09T09:15:18.043468+00:00",
+  "worker_source_matches": true
+}

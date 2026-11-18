@@ -1,0 +1,39 @@
+{
+  "result": [
+    {
+      "keys": [
+        "boot_time",
+        "deployment_id",
+        "event_type",
+        "execution_id",
+        "function_id",
+        "level",
+        "project",
+        "project_ref",
+        "region",
+        "request_id",
+        "served_by",
+        "timestamp",
+        "version"
+      ],
+      "source": "function_logs"
+    },
+    {
+      "keys": [
+        "deployment_id",
+        "event_type",
+        "execution_id",
+        "function_id",
+        "level",
+        "project",
+        "project_ref",
+        "region",
+        "request_id",
+        "served_by",
+        "timestamp",
+        "version"
+      ],
+      "source": "function_logs"
+    }
+  ]
+}

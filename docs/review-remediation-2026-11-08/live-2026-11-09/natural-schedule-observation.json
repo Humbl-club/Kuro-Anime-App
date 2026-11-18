@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-11-09T00:00:25.614828+00:00",
+  "runs": [
+    {
+      "finished_at": "2026-11-09 00:00:25.485+00",
+      "id": 43619,
+      "media_type": "ANIME",
+      "results": {
+        "anime": 10,
+        "characters": 100,
+        "episodes": 399,
+        "errors": 0,
+        "relationships": 654,
+        "staff": 100,
+        "studios": 67,
+        "tags": 316,
+        "voiceActors": 112
+      },
+      "run_type": "heavy",
+      "started_at": "2026-11-09 00:00:02.701+00",
+      "status": "success",
+      "track_key": "anime:scheduled:heavy:catalog_backfill"
+    }
+  ]
+}

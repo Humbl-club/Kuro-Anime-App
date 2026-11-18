@@ -1,0 +1,16 @@
+{
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "file_sha256": "4eca243d5e12ba0364413759f01b1cab70a2957be8ae1318d3dcbbee732d0661",
+  "finished_at": "2026-11-10T09:42:57.520221+00:00",
+  "migration": {
+    "md5": "ca911998c379eb337fc410f8a6da7b1a",
+    "name": "search_staged_v1",
+    "version": "20261109200000"
+  },
+  "session_prerequisite": "select extensions.similarity('a','b');",
+  "started_at": "2026-11-10T09:42:56.637014+00:00"
+}

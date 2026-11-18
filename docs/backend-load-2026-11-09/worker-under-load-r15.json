@@ -1,0 +1,1776 @@
+{
+  "cron_runs": [
+    {
+      "duration_seconds": "0.3582",
+      "end_time": "2026-11-09 12:07:00.413767+00",
+      "runid": 99942,
+      "start_time": "2026-11-09 12:07:00.055604+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.3503",
+      "end_time": "2026-11-09 12:08:00.402609+00",
+      "runid": 99943,
+      "start_time": "2026-11-09 12:08:00.052261+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.2548",
+      "end_time": "2026-11-09 12:09:00.320257+00",
+      "runid": 99944,
+      "start_time": "2026-11-09 12:09:00.065439+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.2474",
+      "end_time": "2026-11-09 12:10:00.561674+00",
+      "runid": 99945,
+      "start_time": "2026-11-09 12:10:00.314311+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.2722",
+      "end_time": "2026-11-09 12:11:00.344461+00",
+      "runid": 99948,
+      "start_time": "2026-11-09 12:11:00.072292+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.5967",
+      "end_time": "2026-11-09 12:12:01.030692+00",
+      "runid": 99949,
+      "start_time": "2026-11-09 12:12:00.434029+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "5.5078",
+      "end_time": "2026-11-09 12:13:05.62326+00",
+      "runid": 99950,
+      "start_time": "2026-11-09 12:13:00.115459+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.4506",
+      "end_time": "2026-11-09 12:14:00.536549+00",
+      "runid": 99951,
+      "start_time": "2026-11-09 12:14:00.085953+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.5191",
+      "end_time": "2026-11-09 12:15:00.804445+00",
+      "runid": 99952,
+      "start_time": "2026-11-09 12:15:00.285346+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.4196",
+      "end_time": "2026-11-09 12:16:00.657756+00",
+      "runid": 99956,
+      "start_time": "2026-11-09 12:16:00.238138+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.4395",
+      "end_time": "2026-11-09 12:17:00.534921+00",
+      "runid": 99957,
+      "start_time": "2026-11-09 12:17:00.095444+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.4801",
+      "end_time": "2026-11-09 12:18:00.568106+00",
+      "runid": 99958,
+      "start_time": "2026-11-09 12:18:00.088011+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.2425",
+      "end_time": "2026-11-09 12:19:00.343687+00",
+      "runid": 99959,
+      "start_time": "2026-11-09 12:19:00.101203+00",
+      "status": "succeeded"
+    },
+    {
+      "duration_seconds": "0.5319",
+      "end_time": "2026-11-09 12:20:00.574581+00",
+      "runid": 99960,
+      "start_time": "2026-11-09 12:20:00.042677+00",
+      "status": "succeeded"
+    }
+  ],
+  "observations": [
+    {
+      "checked_at": "2026-11-09T12:06:41.304339+00:00",
+      "profile_computation_batches": [],
+      "queue": {
+        "errors": 0,
+        "pending": 55,
+        "processed": 25
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:07:02.499726+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 50,
+        "processed": 30
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:07:23.653271+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 50,
+        "processed": 30
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:07:44.858844+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 50,
+        "processed": 30
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:08:05.901365+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 70,
+        "processed": 10
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:08:27.080658+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 70,
+        "processed": 10
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:08:48.169195+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 70,
+        "processed": 10
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:09:09.204612+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 65,
+        "processed": 15
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:09:30.396217+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 65,
+        "processed": 15
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:09:51.549715+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 65,
+        "processed": 15
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:10:12.570546+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 60,
+        "processed": 20
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:10:33.569960+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 60,
+        "processed": 20
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:10:54.604161+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 60,
+        "processed": 20
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:11:15.699282+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 55,
+        "processed": 25
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:11:36.853568+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 55,
+        "processed": 25
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:11:58.479878+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 55,
+        "processed": 25
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:12:19.614061+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 50,
+        "processed": 30
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:12:40.697377+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 50,
+        "processed": 30
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:13:01.815106+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 50,
+        "processed": 30
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:13:22.909519+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 45,
+        "processed": 35
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:13:43.968387+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 45,
+        "processed": 35
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:14:05.197478+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 40,
+        "processed": 40
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:14:26.210229+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 40,
+        "processed": 40
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:14:47.348132+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 40,
+        "processed": 40
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:15:08.383801+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 35,
+        "processed": 45
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:15:29.482664+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 35,
+        "processed": 45
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:15:50.505689+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 35,
+        "processed": 45
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:16:11.532159+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 30,
+        "processed": 50
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:16:32.601648+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 30,
+        "processed": 50
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:16:53.797821+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 30,
+        "processed": 50
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:17:15.173652+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 25,
+        "processed": 55
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:17:36.247482+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 25,
+        "processed": 55
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:17:57.322211+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 25,
+        "processed": 55
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:18:19.135141+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:18:00.088717+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 20,
+        "processed": 60
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:18:40.158954+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:18:00.088717+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 20,
+        "processed": 60
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:19:01.179809+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:18:00.088717+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:19:00.101616+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 15,
+        "processed": 65
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:19:22.534979+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:18:00.088717+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:19:00.101616+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 15,
+        "processed": 65
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:19:43.578865+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:18:00.088717+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:19:00.101616+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 15,
+        "processed": 65
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:20:04.656486+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:18:00.088717+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:19:00.101616+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:20:00.043047+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 10,
+        "processed": 70
+      }
+    },
+    {
+      "checked_at": "2026-11-09T12:20:25.709700+00:00",
+      "profile_computation_batches": [
+        {
+          "computed_at": "2026-11-09 12:07:00.056096+00",
+          "profiles": 1
+        },
+        {
+          "computed_at": "2026-11-09 12:07:56.113587+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:08:00.052682+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:09:00.065823+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:10:00.323206+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:11:00.079375+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:12:00.434423+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:13:00.115896+00",
+          "profiles": 4
+        },
+        {
+          "computed_at": "2026-11-09 12:14:00.084139+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:15:00.319387+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:16:00.238582+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:17:00.095879+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:18:00.088717+00",
+          "profiles": 3
+        },
+        {
+          "computed_at": "2026-11-09 12:19:00.101616+00",
+          "profiles": 5
+        },
+        {
+          "computed_at": "2026-11-09 12:20:00.043047+00",
+          "profiles": 5
+        }
+      ],
+      "queue": {
+        "errors": 0,
+        "pending": 10,
+        "processed": 67
+      }
+    }
+  ],
+  "observed_from": "2026-11-09T12:06:39.955771+00:00"
+}

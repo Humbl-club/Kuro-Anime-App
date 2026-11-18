@@ -1,0 +1,14 @@
+[
+  {
+    "anon": false,
+    "authenticated": false,
+    "function": "drain_taste_recompute_queue()",
+    "server": true
+  },
+  {
+    "anon": false,
+    "authenticated": false,
+    "function": "recompute_user_taste_profile(uuid)",
+    "server": true
+  }
+]

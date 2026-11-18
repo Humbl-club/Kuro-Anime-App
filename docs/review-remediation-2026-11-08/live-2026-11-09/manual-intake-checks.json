@@ -1,0 +1,89 @@
+[
+  {
+    "job": "kuro-import-anime-hourly",
+    "launch": [
+      {
+        "triggered_at": "2026-11-08 23:54:20.69338+00"
+      }
+    ],
+    "run": {
+      "finished_at": "2026-11-08 23:54:25.572+00",
+      "id": 43616,
+      "media_type": "ANIME",
+      "message": null,
+      "results": {
+        "anime": 50,
+        "characters": 0,
+        "episodes": 0,
+        "errors": 0,
+        "relationships": 0,
+        "staff": 0,
+        "studios": 0,
+        "tags": 0,
+        "voiceActors": 0
+      },
+      "run_type": "core",
+      "started_at": "2026-11-08 23:54:20.808+00",
+      "status": "success",
+      "track_key": "anime:scheduled:light:popularity_core"
+    }
+  },
+  {
+    "job": "kuro-import-manga-weekly",
+    "launch": [
+      {
+        "triggered_at": "2026-11-08 23:54:27.719101+00"
+      }
+    ],
+    "run": {
+      "finished_at": "2026-11-08 23:54:33.29+00",
+      "id": 43617,
+      "media_type": "MANGA",
+      "message": null,
+      "results": {
+        "authors": 37,
+        "chapters": 0,
+        "characters": 45,
+        "errors": 0,
+        "manga": 10,
+        "relationships": 263,
+        "staff": 37,
+        "tags": 111,
+        "volumes": 0
+      },
+      "run_type": "heavy",
+      "started_at": "2026-11-08 23:54:27.886+00",
+      "status": "success",
+      "track_key": "manga:scheduled:heavy:airing_or_releasing"
+    }
+  },
+  {
+    "job": "kuro-import-manga-hourly",
+    "launch": [
+      {
+        "triggered_at": "2026-11-08 23:54:36.223834+00"
+      }
+    ],
+    "run": {
+      "finished_at": "2026-11-08 23:54:42.302+00",
+      "id": 43618,
+      "media_type": "MANGA",
+      "message": null,
+      "results": {
+        "authors": 0,
+        "chapters": 0,
+        "characters": 0,
+        "errors": 0,
+        "manga": 50,
+        "relationships": 0,
+        "staff": 0,
+        "tags": 0,
+        "volumes": 0
+      },
+      "run_type": "core",
+      "started_at": "2026-11-08 23:54:36.423+00",
+      "status": "success",
+      "track_key": "manga:scheduled:light:popularity_core"
+    }
+  }
+]

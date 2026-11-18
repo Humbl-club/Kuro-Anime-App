@@ -1,0 +1,564 @@
+{
+  "scope": "OFFLINE planned routing only. No requests sent; synthetic zero timing values are NOT performance evidence.",
+  "realTraffic": false,
+  "offered": 12000,
+  "endpointLibraryGroups": [
+    {
+      "key": "home/0",
+      "count": 617
+    },
+    {
+      "key": "home/25",
+      "count": 1174
+    },
+    {
+      "key": "home/100",
+      "count": 586
+    },
+    {
+      "key": "home/2000",
+      "count": 122
+    },
+    {
+      "key": "browse/0",
+      "count": 489
+    },
+    {
+      "key": "browse/25",
+      "count": 1206
+    },
+    {
+      "key": "browse/100",
+      "count": 578
+    },
+    {
+      "key": "browse/2000",
+      "count": 120
+    },
+    {
+      "key": "search/0",
+      "count": 369
+    },
+    {
+      "key": "search/25",
+      "count": 901
+    },
+    {
+      "key": "search/100",
+      "count": 439
+    },
+    {
+      "key": "search/2000",
+      "count": 96
+    },
+    {
+      "key": "detail/0",
+      "count": 455
+    },
+    {
+      "key": "detail/25",
+      "count": 1197
+    },
+    {
+      "key": "detail/100",
+      "count": 599
+    },
+    {
+      "key": "detail/2000",
+      "count": 103
+    },
+    {
+      "key": "mood/0",
+      "count": 182
+    },
+    {
+      "key": "mood/25",
+      "count": 510
+    },
+    {
+      "key": "mood/100",
+      "count": 275
+    },
+    {
+      "key": "mood/2000",
+      "count": 61
+    },
+    {
+      "key": "clubs/0",
+      "count": 128
+    },
+    {
+      "key": "clubs/25",
+      "count": 296
+    },
+    {
+      "key": "clubs/100",
+      "count": 156
+    },
+    {
+      "key": "clubs/2000",
+      "count": 35
+    },
+    {
+      "key": "discover/0",
+      "count": 117
+    },
+    {
+      "key": "discover/25",
+      "count": 290
+    },
+    {
+      "key": "discover/100",
+      "count": 151
+    },
+    {
+      "key": "discover/2000",
+      "count": 32
+    },
+    {
+      "key": "progress/25",
+      "count": 314
+    },
+    {
+      "key": "progress/100",
+      "count": 153
+    },
+    {
+      "key": "progress/2000",
+      "count": 21
+    },
+    {
+      "key": "parse/0",
+      "count": 22
+    },
+    {
+      "key": "parse/25",
+      "count": 52
+    },
+    {
+      "key": "parse/100",
+      "count": 37
+    },
+    {
+      "key": "parse/2000",
+      "count": 7
+    },
+    {
+      "key": "recommend/0",
+      "count": 21
+    },
+    {
+      "key": "recommend/25",
+      "count": 60
+    },
+    {
+      "key": "recommend/100",
+      "count": 26
+    },
+    {
+      "key": "recommend/2000",
+      "count": 3
+    }
+  ],
+  "jointRouteLibraryGroups": [
+    {
+      "key": "home:anime/0",
+      "count": 395
+    },
+    {
+      "key": "home:anime/25",
+      "count": 788
+    },
+    {
+      "key": "home:anime/100",
+      "count": 395
+    },
+    {
+      "key": "home:anime/2000",
+      "count": 80
+    },
+    {
+      "key": "home:manga/0",
+      "count": 222
+    },
+    {
+      "key": "home:manga/25",
+      "count": 386
+    },
+    {
+      "key": "home:manga/100",
+      "count": 191
+    },
+    {
+      "key": "home:manga/2000",
+      "count": 42
+    },
+    {
+      "key": "browse:anime/0",
+      "count": 312
+    },
+    {
+      "key": "browse:anime/25",
+      "count": 791
+    },
+    {
+      "key": "browse:anime/100",
+      "count": 383
+    },
+    {
+      "key": "browse:anime/2000",
+      "count": 83
+    },
+    {
+      "key": "browse:manga/0",
+      "count": 177
+    },
+    {
+      "key": "browse:manga/25",
+      "count": 415
+    },
+    {
+      "key": "browse:manga/100",
+      "count": 195
+    },
+    {
+      "key": "browse:manga/2000",
+      "count": 37
+    },
+    {
+      "key": "search:anime/0",
+      "count": 249
+    },
+    {
+      "key": "search:anime/25",
+      "count": 622
+    },
+    {
+      "key": "search:anime/100",
+      "count": 280
+    },
+    {
+      "key": "search:anime/2000",
+      "count": 65
+    },
+    {
+      "key": "search:manga/0",
+      "count": 120
+    },
+    {
+      "key": "search:manga/25",
+      "count": 279
+    },
+    {
+      "key": "search:manga/100",
+      "count": 159
+    },
+    {
+      "key": "search:manga/2000",
+      "count": 31
+    },
+    {
+      "key": "detail:anime/0",
+      "count": 326
+    },
+    {
+      "key": "detail:anime/25",
+      "count": 796
+    },
+    {
+      "key": "detail:anime/100",
+      "count": 407
+    },
+    {
+      "key": "detail:anime/2000",
+      "count": 65
+    },
+    {
+      "key": "detail:manga/0",
+      "count": 129
+    },
+    {
+      "key": "detail:manga/25",
+      "count": 401
+    },
+    {
+      "key": "detail:manga/100",
+      "count": 192
+    },
+    {
+      "key": "detail:manga/2000",
+      "count": 38
+    },
+    {
+      "key": "mood:anime:short/0",
+      "count": 35
+    },
+    {
+      "key": "mood:anime:short/25",
+      "count": 109
+    },
+    {
+      "key": "mood:anime:short/100",
+      "count": 65
+    },
+    {
+      "key": "mood:anime:short/2000",
+      "count": 12
+    },
+    {
+      "key": "mood:anime:cozy/0",
+      "count": 50
+    },
+    {
+      "key": "mood:anime:cozy/25",
+      "count": 109
+    },
+    {
+      "key": "mood:anime:cozy/100",
+      "count": 60
+    },
+    {
+      "key": "mood:anime:cozy/2000",
+      "count": 14
+    },
+    {
+      "key": "mood:anime:intense/0",
+      "count": 34
+    },
+    {
+      "key": "mood:anime:intense/25",
+      "count": 108
+    },
+    {
+      "key": "mood:anime:intense/100",
+      "count": 61
+    },
+    {
+      "key": "mood:anime:intense/2000",
+      "count": 14
+    },
+    {
+      "key": "mood:manga:short/0",
+      "count": 25
+    },
+    {
+      "key": "mood:manga:short/25",
+      "count": 57
+    },
+    {
+      "key": "mood:manga:short/100",
+      "count": 34
+    },
+    {
+      "key": "mood:manga:short/2000",
+      "count": 7
+    },
+    {
+      "key": "mood:manga:cozy/0",
+      "count": 17
+    },
+    {
+      "key": "mood:manga:cozy/25",
+      "count": 55
+    },
+    {
+      "key": "mood:manga:cozy/100",
+      "count": 28
+    },
+    {
+      "key": "mood:manga:cozy/2000",
+      "count": 10
+    },
+    {
+      "key": "mood:manga:intense/0",
+      "count": 21
+    },
+    {
+      "key": "mood:manga:intense/25",
+      "count": 72
+    },
+    {
+      "key": "mood:manga:intense/100",
+      "count": 27
+    },
+    {
+      "key": "mood:manga:intense/2000",
+      "count": 4
+    },
+    {
+      "key": "clubs:list/0",
+      "count": 94
+    },
+    {
+      "key": "clubs:list/25",
+      "count": 217
+    },
+    {
+      "key": "clubs:list/100",
+      "count": 123
+    },
+    {
+      "key": "clubs:list/2000",
+      "count": 30
+    },
+    {
+      "key": "clubs:bundle/0",
+      "count": 34
+    },
+    {
+      "key": "clubs:bundle/25",
+      "count": 79
+    },
+    {
+      "key": "clubs:bundle/100",
+      "count": 33
+    },
+    {
+      "key": "clubs:bundle/2000",
+      "count": 5
+    },
+    {
+      "key": "discover/0",
+      "count": 117
+    },
+    {
+      "key": "discover/25",
+      "count": 290
+    },
+    {
+      "key": "discover/100",
+      "count": 151
+    },
+    {
+      "key": "discover/2000",
+      "count": 32
+    },
+    {
+      "key": "progress:anime/25",
+      "count": 314
+    },
+    {
+      "key": "progress:anime/100",
+      "count": 153
+    },
+    {
+      "key": "progress:anime/2000",
+      "count": 21
+    },
+    {
+      "key": "parse/0",
+      "count": 22
+    },
+    {
+      "key": "parse/25",
+      "count": 52
+    },
+    {
+      "key": "parse/100",
+      "count": 37
+    },
+    {
+      "key": "parse/2000",
+      "count": 7
+    },
+    {
+      "key": "recommend/0",
+      "count": 21
+    },
+    {
+      "key": "recommend/25",
+      "count": 60
+    },
+    {
+      "key": "recommend/100",
+      "count": 26
+    },
+    {
+      "key": "recommend/2000",
+      "count": 3
+    }
+  ],
+  "first1200RouteCoverage": [
+    {
+      "key": "home:anime",
+      "count": 181
+    },
+    {
+      "key": "home:manga",
+      "count": 90
+    },
+    {
+      "key": "browse:anime",
+      "count": 166
+    },
+    {
+      "key": "browse:manga",
+      "count": 87
+    },
+    {
+      "key": "search:anime",
+      "count": 119
+    },
+    {
+      "key": "search:manga",
+      "count": 64
+    },
+    {
+      "key": "detail:anime",
+      "count": 147
+    },
+    {
+      "key": "detail:manga",
+      "count": 74
+    },
+    {
+      "key": "mood:anime:short",
+      "count": 27
+    },
+    {
+      "key": "mood:anime:cozy",
+      "count": 23
+    },
+    {
+      "key": "mood:anime:intense",
+      "count": 21
+    },
+    {
+      "key": "mood:manga:short",
+      "count": 6
+    },
+    {
+      "key": "mood:manga:cozy",
+      "count": 17
+    },
+    {
+      "key": "mood:manga:intense",
+      "count": 7
+    },
+    {
+      "key": "clubs:list",
+      "count": 43
+    },
+    {
+      "key": "clubs:bundle",
+      "count": 15
+    },
+    {
+      "key": "discover",
+      "count": 44
+    },
+    {
+      "key": "progress:anime",
+      "count": 47
+    },
+    {
+      "key": "parse",
+      "count": 14
+    },
+    {
+      "key": "recommend",
+      "count": 8
+    }
+  ],
+  "missingMandatoryGroups": []
+}

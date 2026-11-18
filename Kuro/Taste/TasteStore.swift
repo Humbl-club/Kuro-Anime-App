@@ -26,8 +26,11 @@ import UIKit
 //   a newer action replacing the older one and 'retract' deleting it, so a newer signal for a card
 //   replaces its queued one; a superseded signal is never delivered after its successor (also when it
 //   was in flight: results are applied by entry token, never by card);
-// - bounded: at most `maxPendingSignals` entries (the oldest is dropped) and `maxDeliveryAttempts`
-//   failed attempts per entry (then dropped); `signalsNeedAttention` is raised after
+// - bounded: at most `maxPendingSignals` ephemeral deck hints and `maxDurableSignals` persisted
+//   Discover answers. Ephemeral hints stop after `maxDeliveryAttempts`; durable answers keep
+//   retrying on foreground (backoff capped at 5 minutes, storage lifetime 30 days). Restoring an
+//   account restores its delivery queue, including Undo, without replaying an acknowledged signal.
+//   `signalsNeedAttention` is raised after
 //   `attentionAfterFailures` failures of an entry or any drop, and lowered when a delivery empties
 //   the queue (one outage = one banner);
 // - delivery is serial (one drain at a time; a second trigger joins it), in queue order; a failed
@@ -42,6 +45,8 @@ final class TasteStore: AccountScopedState {
     static let maxPendingSignals = 50
     /// Failed attempts after which an entry is dropped.
     static let maxDeliveryAttempts = 5
+    /// Durable Discover answers share the existing hidden-memory bound.
+    static let maxDurableSignals = DiscoverHiddenMemory.overlayCapacity
     /// Failed attempts of one entry after which the deck shows its "didn't save" banner.
     static let attentionAfterFailures = 3
     /// Backoff of the first retry (doubles per further failure).
@@ -58,6 +63,63 @@ final class TasteStore: AccountScopedState {
         var failures: Int
         /// Earliest time of the next non-forced attempt.
         var notBefore: Date
+        let durable: Bool
+        let createdAt: Date
+
+        init(token: Int, card: MediaKey, action: TasteDeckAction, failures: Int, notBefore: Date,
+             durable: Bool = false, createdAt: Date = Date()) {
+            self.token = token
+            self.card = card
+            self.action = action
+            self.failures = failures
+            self.notBefore = notBefore
+            self.durable = durable
+            self.createdAt = createdAt
+        }
+    }
+
+    private struct StoredSignal: Codable {
+        let medium: String
+        let mediaId: Int
+        let action: TasteDeckAction
+        let createdAt: Date
+    }
+    @ObservationIgnored private var outboxAccount: String?
+
+    private static func outboxKey(_ userId: String) -> String { "kuro.taste.pending.\(userId.lowercased())" }
+
+    /// Restore delivery work as well as its visible overlay. Never replay another account's work.
+    func restoreSignalOutbox() {
+        guard let context = accountSession.current else { return }
+        let account = context.userId.lowercased()
+        guard outboxAccount != account else { return }
+        outboxAccount = account
+        guard let data = defaults.data(forKey: Self.outboxKey(account)),
+              let stored = try? JSONDecoder().decode([StoredSignal].self, from: data) else { return }
+        let acknowledged = Self.readDiscoverMemory(defaults: defaults, userId: account)?.overlay ?? []
+        for entry in stored.suffix(Self.maxDurableSignals) {
+            guard now().timeIntervalSince(entry.createdAt) <= DiscoverHiddenMemory.overlayLifetime,
+                  let card = Self.cardKey(mediaType: entry.medium, mediaId: entry.mediaId),
+                  !pendingSignals.contains(where: { $0.card == card }),
+                  !acknowledged.contains(where: {
+                      $0.ref.key == card && $0.acknowledged == true &&
+                      ($0.deliveryAction ?? $0.state?.deckAction ?? .retract) == entry.action
+                  }) else { continue }
+            nextSignalToken += 1
+            pendingSignals.append(PendingSignal(token: nextSignalToken, card: card, action: entry.action,
+                failures: 0, notBefore: now(), durable: true, createdAt: entry.createdAt))
+        }
+        persistSignalOutbox()
+    }
+
+    private func persistSignalOutbox() {
+        guard let context = accountSession.current, outboxAccount == context.userId.lowercased() else { return }
+        let stored = pendingSignals.filter(\.durable).map {
+            StoredSignal(medium: $0.card.kind.rawValue, mediaId: $0.card.id, action: $0.action, createdAt: $0.createdAt)
+        }
+        let key = Self.outboxKey(context.userId)
+        if stored.isEmpty { defaults.removeObject(forKey: key) }
+        else if let data = try? JSONEncoder().encode(stored) { defaults.set(data, forKey: key) }
     }
 
     /// The app's single SDK client (shared by every owner); nil when the configuration is
@@ -139,6 +201,7 @@ final class TasteStore: AccountScopedState {
 
     func clearPrivateState() {
         pendingSignals = []
+        outboxAccount = nil
         signalsNeedAttention = false
         // Discover answers: the in-memory copy only. The device copy of each account survives
         // sign-out (like recent searches) and is removed by `removeDeletedAccountData`.
@@ -151,6 +214,11 @@ final class TasteStore: AccountScopedState {
 
     /// Confirmed account deletion: removes the deleted account's Discover answers from this device.
     func removeDeletedAccountData(userId: String) async throws {
+        defaults.removeObject(forKey: Self.outboxKey(userId))
+        if outboxAccount == userId.lowercased() {
+            pendingSignals = []
+            outboxAccount = nil
+        }
         // The account's "New since your last visit" ledger (Discover §5.8) lives in the same store.
         DiscoverVisitLedger.remove(defaults: defaults, userId: userId)
         guard let key = DiscoverHiddenMemory.storageKey(userId: userId) else { return }
@@ -291,17 +359,22 @@ final class TasteStore: AccountScopedState {
     /// delivery task. A queued signal for the same card is replaced. Nothing is queued while signed
     /// out or for a media type other than anime/manga (the RPC rejects those, a retry cannot succeed).
     @discardableResult
-    func submitSignal(mediaType: String, mediaId: Int, action: TasteDeckAction) -> Task<Void, Never>? {
+    func submitSignal(mediaType: String, mediaId: Int, action: TasteDeckAction, durable: Bool = false) -> Task<Void, Never>? {
         guard accountSession.current != nil, let card = Self.cardKey(mediaType: mediaType, mediaId: mediaId) else {
             return nil
         }
+        restoreSignalOutbox()
         pendingSignals.removeAll { $0.card == card }
-        if pendingSignals.count >= Self.maxPendingSignals {
-            pendingSignals.removeFirst(pendingSignals.count - Self.maxPendingSignals + 1)
+        let capacity = durable ? Self.maxDurableSignals : Self.maxPendingSignals
+        if pendingSignals.filter({ $0.durable == durable }).count >= capacity,
+           let oldest = pendingSignals.firstIndex(where: { $0.durable == durable }) {
+            pendingSignals.remove(at: oldest)
             signalsNeedAttention = true
         }
         nextSignalToken += 1
-        pendingSignals.append(PendingSignal(token: nextSignalToken, card: card, action: action, failures: 0, notBefore: now()))
+        pendingSignals.append(PendingSignal(token: nextSignalToken, card: card, action: action, failures: 0,
+            notBefore: now(), durable: durable, createdAt: now()))
+        persistSignalOutbox()
         return drainSignalOutbox()
     }
 
@@ -309,6 +382,7 @@ final class TasteStore: AccountScopedState {
     /// (foreground, deck appear) retries every entry now instead of waiting for its backoff.
     @discardableResult
     func drainSignalOutbox(force: Bool = false) -> Task<Void, Never>? {
+        restoreSignalOutbox()
         if force { waiveBackoff() }
         if let drainTask { return drainTask }
         guard let context = accountSession.current, !pendingSignals.isEmpty else { return nil }
@@ -378,7 +452,11 @@ final class TasteStore: AccountScopedState {
     /// Applies one delivery result to the entry it was made for (a superseded or cleared entry is gone).
     private func settle(_ token: Int, delivered: Bool) {
         guard let index = pendingSignals.firstIndex(where: { $0.token == token }) else { return }
+        defer { persistSignalOutbox() }
         if delivered {
+            if pendingSignals[index].durable {
+                acknowledgeDiscoverDelivery(key: pendingSignals[index].card, action: pendingSignals[index].action)
+            }
             pendingSignals.remove(at: index)
             if pendingSignals.isEmpty {
                 signalsNeedAttention = false
@@ -393,10 +471,11 @@ final class TasteStore: AccountScopedState {
         if failures >= Self.attentionAfterFailures {
             signalsNeedAttention = true
         }
-        if failures >= Self.maxDeliveryAttempts {
+        if failures >= Self.maxDeliveryAttempts && !pendingSignals[index].durable {
             pendingSignals.remove(at: index)
         } else {
-            pendingSignals[index].notBefore = now().addingTimeInterval(retryBaseDelay * pow(2, Double(failures - 1)))
+            pendingSignals[index].failures = min(failures, Self.maxDeliveryAttempts)
+            pendingSignals[index].notBefore = now().addingTimeInterval(min(300, retryBaseDelay * pow(2, Double(min(failures, 8) - 1))))
         }
     }
 

@@ -160,7 +160,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY");
     const supabaseService = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const supabaseKey = supabaseAnon ?? supabaseService;
+    const supabaseKey = supabaseAnon;
     if (!supabaseUrl || !supabaseKey) {
       return json({ error: "Missing SUPABASE_URL or a Supabase API key env (SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY)" }, { status: 500 });
     }
@@ -224,7 +224,10 @@ serve(async (req) => {
       packed.reduce((sum, it) => sum + it.raw.length + JSON.stringify(it.options).length + JSON.stringify(it.parsed ?? {}).length, 0);
     const reserveTokens = Math.min(8000, Math.max(120, Math.ceil(promptChars / 4) + maxCompletion));
 
-    const budget = await withResolveBudget(client, reserveTokens, model, async () => {
+    const globalBudgetClient = supabaseService
+      ? createClient(supabaseUrl, supabaseService, { auth: { persistSession: false, autoRefreshToken: false } })
+      : null;
+    const budget = await withResolveBudget(client, globalBudgetClient, reserveTokens, model, async () => {
       const answer = await groqResolve({ apiKey: groqKey, model, items: packed });
       return { value: answer, actualTokens: answer.usageTotal ?? reserveTokens };
     });

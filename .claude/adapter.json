@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "workers": {
+    "Explore": {
+      "file": ".claude/agents/Explore.md",
+      "profile": "discovery",
+      "model": "haiku",
+      "effort": "low",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ]
+    },
+    "kuro-implementer": {
+      "file": ".claude/agents/kuro-implementer.md",
+      "profile": "implementation",
+      "model": "sonnet",
+      "effort": "medium",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ]
+    },
+    "kuro-runner": {
+      "file": ".claude/agents/kuro-runner.md",
+      "profile": "verification",
+      "model": "haiku",
+      "effort": "low",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ]
+    },
+    "kuro-reviewer": {
+      "file": ".claude/agents/kuro-reviewer.md",
+      "profile": "review",
+      "model": "opus",
+      "effort": "high",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ]
+    }
+  },
+  "settings": ".claude/settings.json",
+  "main_model": "Use the actual available model at the capability needed; do not assume or force a global Opus default."
+}

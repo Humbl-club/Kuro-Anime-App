@@ -1,0 +1,14 @@
+{
+  "at": "2026-11-09T13:44:16.814184+00:00",
+  "error": "42501 permission denied to set parameter pg_trgm.similarity_threshold",
+  "load_started": false,
+  "outcome": "ATOMIC_ROLLBACK",
+  "restart_performed": false,
+  "state_after": [
+    {
+      "applied": 0,
+      "indexes": 0,
+      "inspector": 0
+    }
+  ]
+}

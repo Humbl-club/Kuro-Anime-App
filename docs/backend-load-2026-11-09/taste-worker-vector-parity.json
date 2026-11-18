@@ -1,0 +1,22 @@
+{
+  "all_writes_rolled_back": true,
+  "checked_at": "2026-11-09T00:34:56.901954+00:00",
+  "comparisons": [
+    {
+      "library_size": 0,
+      "vector_exact_match": true
+    },
+    {
+      "library_size": 25,
+      "vector_exact_match": true
+    },
+    {
+      "library_size": 100,
+      "vector_exact_match": true
+    },
+    {
+      "library_size": 2000,
+      "vector_exact_match": true
+    }
+  ]
+}

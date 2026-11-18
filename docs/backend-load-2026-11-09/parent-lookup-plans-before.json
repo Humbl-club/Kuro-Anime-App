@@ -1,0 +1,133 @@
+{
+  "cases": [
+    {
+      "matched_rows": 291,
+      "parent_id": 244,
+      "plan": {
+        "Execution Time": 10.609,
+        "Plan": {
+          "Actual Loops": 1,
+          "Actual Rows": 291,
+          "Actual Startup Time": 5.35,
+          "Actual Total Time": 10.522,
+          "Alias": "episodes",
+          "Async Capable": false,
+          "Filter": "(anime_id = 244)",
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Node Type": "Seq Scan",
+          "Parallel Aware": false,
+          "Plan Rows": 294,
+          "Plan Width": 4,
+          "Relation Name": "episodes",
+          "Rows Removed by Filter": 51470,
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 2170,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Startup Cost": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0,
+          "Total Cost": 2811.5
+        },
+        "Planning": {
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 119,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0
+        },
+        "Planning Time": 0.525,
+        "Triggers": []
+      },
+      "table": "episodes"
+    },
+    {
+      "matched_rows": 1968,
+      "parent_id": 9460,
+      "plan": {
+        "Execution Time": 44.762,
+        "Plan": {
+          "Actual Loops": 1,
+          "Actual Rows": 1968,
+          "Actual Startup Time": 16.414,
+          "Actual Total Time": 44.589,
+          "Async Capable": false,
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Node Type": "Gather",
+          "Parallel Aware": false,
+          "Plan Rows": 2353,
+          "Plan Width": 4,
+          "Plans": [
+            {
+              "Actual Loops": 2,
+              "Actual Rows": 984,
+              "Actual Startup Time": 12.399,
+              "Actual Total Time": 32.514,
+              "Alias": "chapters",
+              "Async Capable": false,
+              "Filter": "(manga_id = 9460)",
+              "Local Dirtied Blocks": 0,
+              "Local Hit Blocks": 0,
+              "Local Read Blocks": 0,
+              "Local Written Blocks": 0,
+              "Node Type": "Seq Scan",
+              "Parallel Aware": true,
+              "Parent Relationship": "Outer",
+              "Plan Rows": 1384,
+              "Plan Width": 4,
+              "Relation Name": "chapters",
+              "Rows Removed by Filter": 314122,
+              "Shared Dirtied Blocks": 0,
+              "Shared Hit Blocks": 6551,
+              "Shared Read Blocks": 0,
+              "Shared Written Blocks": 0,
+              "Startup Cost": 0,
+              "Temp Read Blocks": 0,
+              "Temp Written Blocks": 0,
+              "Total Cost": 11184.83,
+              "Workers": []
+            }
+          ],
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 6551,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Single Copy": false,
+          "Startup Cost": 1000,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0,
+          "Total Cost": 12420.13,
+          "Workers Launched": 1,
+          "Workers Planned": 1
+        },
+        "Planning": {
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 119,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0
+        },
+        "Planning Time": 0.521,
+        "Triggers": []
+      },
+      "table": "chapters"
+    }
+  ],
+  "checked_at": "2026-11-09T10:07:19.822579+00:00"
+}

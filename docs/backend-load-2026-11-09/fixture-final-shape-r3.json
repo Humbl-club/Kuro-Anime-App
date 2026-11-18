@@ -1,0 +1,16 @@
+{
+  "accounts": 100,
+  "anime_rows": 9650,
+  "checked_at": "2026-11-09T10:14:47.559646+00:00",
+  "clubs": 5,
+  "every_actual_library_matches_declared": true,
+  "library_counts": {
+    "0": 20,
+    "100": 25,
+    "2000": 5,
+    "25": 50
+  },
+  "manga_rows": 4100,
+  "members": 50,
+  "total_rows": 13750
+}

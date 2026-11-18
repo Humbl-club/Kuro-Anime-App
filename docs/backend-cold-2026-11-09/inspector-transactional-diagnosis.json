@@ -1,0 +1,55 @@
+{
+  "at": "2026-11-09T13:44:48.410455+00:00",
+  "result": {
+    "functions": [
+      {
+        "acl": "{supabase_admin=X/supabase_admin,postgres=X*/supabase_admin,pg_monitor=X/supabase_admin}",
+        "anon": false,
+        "authenticated": false,
+        "name": "pg_buffercache_pages()"
+      },
+      {
+        "acl": "{supabase_admin=X/supabase_admin,postgres=X*/supabase_admin,pg_monitor=X/supabase_admin}",
+        "anon": false,
+        "authenticated": false,
+        "name": "pg_buffercache_summary()"
+      },
+      {
+        "acl": "{supabase_admin=X/supabase_admin,postgres=X*/supabase_admin,pg_monitor=X/supabase_admin}",
+        "anon": false,
+        "authenticated": false,
+        "name": "pg_buffercache_usage_counts()"
+      },
+      {
+        "acl": "{=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X*/supabase_admin}",
+        "anon": true,
+        "authenticated": true,
+        "name": "pg_buffercache_evict(integer)"
+      }
+    ],
+    "monitor_membership": [
+      {
+        "monitor": false,
+        "role": "anon",
+        "stats": false
+      },
+      {
+        "monitor": false,
+        "role": "authenticated",
+        "stats": false
+      },
+      {
+        "monitor": false,
+        "role": "service_role",
+        "stats": false
+      },
+      {
+        "monitor": true,
+        "role": "postgres",
+        "stats": true
+      }
+    ],
+    "view_acl": "{supabase_admin=arwdDxtm/supabase_admin,postgres=a*r*w*d*D*x*t*m*/supabase_admin,pg_monitor=r/supabase_admin}"
+  },
+  "rolled_back": true
+}

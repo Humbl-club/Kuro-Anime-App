@@ -1,0 +1,534 @@
+{
+  "ack_error_http": [],
+  "ack_error_type": "JSONDecodeError",
+  "first_ready_observed_at": "2026-11-09T14:08:14.324913+00:00",
+  "health_query_adaptation": "Removed timeout_ms query parameter rejected by provider validation",
+  "maintenance_measurement_boundary": "Observation start timestamp; time of health/cache responses was not separately persisted. Exact outage duration not established.",
+  "maintenance_observation_seconds": 63.157366,
+  "new_postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+  "polls": [
+    {
+      "checked_at": "2026-11-09T14:07:12.921837+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:15.068398+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:17.202198+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:19.379229+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:21.532935+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:23.692803+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:25.847340+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:28.026877+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:30.215668+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:32.536376+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:34.731427+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:36.977930+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:39.137549+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:41.352818+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:43.538135+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:45.748724+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:47.938965+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:50.248197+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:52.409306+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:54.572022+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:56.739538+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:07:58.922996+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:08:01.103153+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:08:03.294091+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:08:05.484342+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:08:07.690792+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:08:09.860576+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:08:12.043070+00:00",
+      "error_type": "RuntimeError",
+      "http": [
+        "400"
+      ]
+    },
+    {
+      "checked_at": "2026-11-09T14:08:14.324913+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:17.336112+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:20.320467+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:23.147445+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:25.928198+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:28.762559+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:31.551356+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:34.563356+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:37.260252+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:39.902429+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:43.619252+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:46.523050+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 727
+    },
+    {
+      "checked_at": "2026-11-09T14:08:49.283011+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 744
+    },
+    {
+      "checked_at": "2026-11-09T14:08:52.033257+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 744
+    },
+    {
+      "checked_at": "2026-11-09T14:08:54.695723+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 744
+    },
+    {
+      "checked_at": "2026-11-09T14:08:57.468648+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 744
+    },
+    {
+      "checked_at": "2026-11-09T14:09:00.347213+00:00",
+      "error_type": "ValueError",
+      "health": [
+        {
+          "healthy": true,
+          "name": "auth",
+          "status": "ACTIVE_HEALTHY"
+        },
+        {
+          "healthy": true,
+          "name": "rest",
+          "status": "ACTIVE_HEALTHY"
+        }
+      ],
+      "http": [],
+      "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+      "public_cached_blocks": 2331
+    }
+  ],
+  "ready": true,
+  "reconciliation": "No restart resend. Readiness receipt reconciled after Python3.9 rejected historic five-digit fractional/+00 timestamp.",
+  "request_count": 1,
+  "requested_at": "2026-11-09T14:07:11.167547+00:00"
+}

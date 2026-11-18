@@ -1,0 +1,157 @@
+{
+  "checked_at": "2026-11-09T14:10:17.927464+00:00",
+  "expected": 25,
+  "indexes": [
+    {
+      "definition": "CREATE INDEX idx_anime_load_created_v1 ON public.anime USING btree (created_at DESC NULLS LAST, id DESC)",
+      "name": "idx_anime_load_created_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_popular_v1 ON public.anime USING btree (COALESCE(popularity, 0) DESC, id DESC)",
+      "name": "idx_anime_load_popular_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_score_v1 ON public.anime USING btree (COALESCE(average_score, 0) DESC, id DESC)",
+      "name": "idx_anime_load_score_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_blob_v1 ON public.anime USING gin (catalogue_search_blob_v1(title_english, title_romaji, title_native) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_blob_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_english_v1 ON public.anime USING gin (lower(COALESCE(title_english, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_english_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_fts_v1 ON public.anime USING gin (to_tsvector('simple'::regconfig, catalogue_search_blob_v1(title_english, title_romaji, title_native)))",
+      "name": "idx_anime_load_title_fts_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_native_v1 ON public.anime USING gin (lower(COALESCE(title_native, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_native_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_title_romaji_v1 ON public.anime USING gin (lower(COALESCE(title_romaji, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_anime_load_title_romaji_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_anime_load_trending_v1 ON public.anime USING btree (COALESCE(trending, 0) DESC, id DESC)",
+      "name": "idx_anime_load_trending_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_chapters_manga_parent_v1 ON public.chapters USING btree (manga_id)",
+      "name": "idx_chapters_manga_parent_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_episodes_anime_parent_v1 ON public.episodes USING btree (anime_id)",
+      "name": "idx_episodes_anime_parent_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_created_v1 ON public.manga USING btree (created_at DESC NULLS LAST, id DESC)",
+      "name": "idx_manga_load_created_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_popular_v1 ON public.manga USING btree (COALESCE(popularity, 0) DESC, id DESC)",
+      "name": "idx_manga_load_popular_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_score_v1 ON public.manga USING btree (COALESCE(average_score, 0) DESC, id DESC)",
+      "name": "idx_manga_load_score_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_blob_v1 ON public.manga USING gin (catalogue_search_blob_v1(title_english, title_romaji, title_native) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_blob_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_english_v1 ON public.manga USING gin (lower(COALESCE(title_english, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_english_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_fts_v1 ON public.manga USING gin (to_tsvector('simple'::regconfig, catalogue_search_blob_v1(title_english, title_romaji, title_native)))",
+      "name": "idx_manga_load_title_fts_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_native_v1 ON public.manga USING gin (lower(COALESCE(title_native, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_native_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_title_romaji_v1 ON public.manga USING gin (lower(COALESCE(title_romaji, ''::text)) extensions.gin_trgm_ops)",
+      "name": "idx_manga_load_title_romaji_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_manga_load_trending_v1 ON public.manga USING btree (COALESCE(trending, 0) DESC, id DESC)",
+      "name": "idx_manga_load_trending_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_mv_anime_score_cold_v1 ON public.mv_anime_top_rated USING btree (COALESCE(average_score, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (COALESCE(format, ''::text) <> ALL (ARRAY['SPECIAL'::text, 'MUSIC'::text, 'TV_SHORT'::text])))",
+      "name": "idx_mv_anime_score_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_mv_anime_trending_cold_v1 ON public.mv_anime_trending USING btree (COALESCE(trending, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (COALESCE(format, ''::text) <> ALL (ARRAY['SPECIAL'::text, 'MUSIC'::text, 'TV_SHORT'::text])))",
+      "name": "idx_mv_anime_trending_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_mv_manga_score_cold_v1 ON public.mv_manga_top_rated USING btree (COALESCE(average_score, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))))",
+      "name": "idx_mv_manga_score_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_mv_manga_trending_cold_v1 ON public.mv_manga_trending USING btree (COALESCE(trending, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))))",
+      "name": "idx_mv_manga_trending_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "definition": "CREATE INDEX idx_realm_mood_cold_v1 ON public.media_realm_membership USING btree (media_type, realm, media_id) INCLUDE (weight) WHERE (weight >= (0.25)::double precision)",
+      "name": "idx_realm_mood_cold_v1",
+      "ready": true,
+      "valid": true
+    }
+  ],
+  "passed": true
+}

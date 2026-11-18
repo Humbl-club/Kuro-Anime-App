@@ -1,0 +1,45 @@
+{
+  "checked_at": "2026-11-09T14:18:45.320275+00:00",
+  "status": "DEPLOYED_VERIFIED_CLEANED_COLD_CAPACITY_UNQUALIFIED",
+  "cold_capacity_passed": false,
+  "workload_load_starts": 0,
+  "restart_count": 1,
+  "checks": {
+    "documentation": true,
+    "policy": true,
+    "secrets": true,
+    "migrations": true,
+    "reviewed_sources_and_inspector_harness_hashes": true,
+    "archived_eight_source_hashes": true,
+    "whitespace": true,
+    "local_reproduction_syntax": true,
+    "canonical_local_runner_path": true
+  },
+  "service_health": [
+    {
+      "name": "auth",
+      "healthy": true,
+      "status": "ACTIVE_HEALTHY"
+    },
+    {
+      "name": "rest",
+      "healthy": true,
+      "status": "ACTIVE_HEALTHY"
+    }
+  ],
+  "source_entries_checked": 30,
+  "local_test_reruns": "No unchanged native SQL/27Node/full app suites rerun; frozen source hashes match earlier passing receipts. Changed local reproduction path syntax/existence verified.",
+  "migration_warning": "Newly staged canonical migration detected as modified relative to HEAD; exact source SHA/stored statement MD5 and checksums match. No applied bytes altered.",
+  "independent_review": "independent-review-execution.json accuracy-only PASS",
+  "preapproval_history": "final-verification.json is13:07preapproval-only; not current production state. REPORT-PREPARED.md/DEPLOYMENT-AS-APPROVED.md/approved-manifest-snapshot.json are historical.",
+  "live_state": "final-live-state-cold1.json",
+  "all_fixture_cleanup": "cleanup-verification-all-six-cohorts.json",
+  "application_inventory": {
+    "app_swift": 294,
+    "package_swift": 44,
+    "canonical_sql": 251
+  },
+  "git_branch": "kuro/tracker-gaps",
+  "unrelated_changes_preserved": true,
+  "committed_pushed_released": false
+}

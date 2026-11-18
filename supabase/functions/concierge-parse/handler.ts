@@ -41,6 +41,11 @@ import {
 export interface ParsePlatform {
   /** Client for this caller, or null when SUPABASE_URL / an API key env var is missing. */
   client(authHeader: string): SupabaseLike | null;
+  /**
+   * Optional background-task hook (Edge runtime `EdgeRuntime.waitUntil`). When present, best-effort log
+   * writes finish after the response; when absent they complete before the handler returns.
+   */
+  waitUntil?: (p: Promise<unknown>) => void;
 }
 
 function json(res: unknown, init: ResponseInit = {}) {
@@ -89,11 +94,13 @@ type LineContext = {
   scope: unknown;
   limitPerItem: number;
   feedback: { enabled: boolean; lowScore: number };
+  /** Queues a best-effort write on the request's serial chain. */
+  defer: (task: () => Promise<unknown>) => void;
 };
 
 /** One parsed line: alias lookup, title search (+ denoised pass), feedback, existing-entry read. */
 async function runLine(item: ParsedItem, ctx: LineContext) {
-  const { repo, userId, limitPerItem } = ctx;
+  const { repo, userId, limitPerItem, defer } = ctx;
   try {
     const mediaType = lineMediaType(ctx.scope, item);
 
@@ -133,15 +140,17 @@ async function runLine(item: ParsedItem, ctx: LineContext) {
     if (ctx.feedback.enabled) {
       const log = feedbackLogFor(finalCandidates, ctx.feedback.lowScore);
       if (log) {
-        await repo.logParseFeedback({
-          raw: item.raw,
-          normalized: item.normalized,
-          aliasNorm: normalizeAliasKey(item.raw),
-          bestScore: log.bestScore,
-          candidatesCount: finalCandidates.length,
-          topMediaType: log.top?.media_type ?? null,
-          topMediaId: log.top?.media_id ?? null,
-        });
+        defer(() =>
+          repo.logParseFeedback({
+            raw: item.raw,
+            normalized: item.normalized,
+            aliasNorm: normalizeAliasKey(item.raw),
+            bestScore: log.bestScore,
+            candidatesCount: finalCandidates.length,
+            topMediaType: log.top?.media_type ?? null,
+            topMediaId: log.top?.media_id ?? null,
+          })
+        );
       }
     }
 
@@ -235,11 +244,24 @@ export async function handleParse(req: Request, platform: ParsePlatform): Promis
 
   const parsed: ParsedItem[] = itemsRaw.map((raw) => parseLine(raw, clarification));
 
-  // Lines are independent (each searches a different title), so they run in parallel.
-  const outItems = await Promise.all(parsed.map((item) => runLine(item, { repo, userId, scope, limitPerItem, feedback })));
+  // Best-effort writes share one serial chain (tail never rejects): handed once to waitUntil when provided,
+  // otherwise awaited before returning.
+  let tail: Promise<unknown> = Promise.resolve();
+  const defer = (task: () => Promise<unknown>) => {
+    tail = tail.then(task).catch(() => {});
+  };
 
-  // Lightweight run logging (best-effort; table is RLS-deny by default for users).
-  if (userId) await repo.logRun(text.length, outItems.length);
+  let outItems: Awaited<ReturnType<typeof runLine>>[];
+  try {
+    // Lines are independent (each searches a different title), so they run in parallel.
+    outItems = await Promise.all(parsed.map((item) => runLine(item, { repo, userId, scope, limitPerItem, feedback, defer })));
+
+    // Lightweight run logging (best-effort; table is RLS-deny by default for users).
+    if (userId) defer(() => repo.logRun(text.length, outItems.length));
+  } finally {
+    if (platform.waitUntil) platform.waitUntil(tail);
+    else await tail;
+  }
 
   return json({ success: true, userId, items: outItems });
 }

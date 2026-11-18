@@ -1,0 +1,58 @@
+[
+  {
+    "cursor": {
+      "mode": "updated_watermark",
+      "preset": "airing_or_releasing",
+      "query_version": "updated_at_desc+status_releasing:v2",
+      "sweep_top": 1794179037,
+      "watermark": null
+    },
+    "last_page": 1,
+    "media_type": "ANIME",
+    "state": "success",
+    "track_key": "anime:scheduled:heavy:airing_or_releasing",
+    "updated_at": "2026-11-08 23:53:57.59+00"
+  },
+  {
+    "cursor": {
+      "mode": "page",
+      "preset": "popularity_core",
+      "query_version": "popularity_desc:v1",
+      "sweep_top": null,
+      "watermark": null
+    },
+    "last_page": 2,
+    "media_type": "ANIME",
+    "state": "success",
+    "track_key": "anime:scheduled:light:popularity_core",
+    "updated_at": "2026-11-08 23:54:25.551+00"
+  },
+  {
+    "cursor": {
+      "mode": "updated_watermark",
+      "preset": "airing_or_releasing",
+      "query_version": "updated_at_desc+status_releasing:v2",
+      "sweep_top": 1794182008,
+      "watermark": null
+    },
+    "last_page": 1,
+    "media_type": "MANGA",
+    "state": "success",
+    "track_key": "manga:scheduled:heavy:airing_or_releasing",
+    "updated_at": "2026-11-08 23:54:33.273+00"
+  },
+  {
+    "cursor": {
+      "mode": "page",
+      "preset": "popularity_core",
+      "query_version": "popularity_desc:v1",
+      "sweep_top": null,
+      "watermark": null
+    },
+    "last_page": 2,
+    "media_type": "MANGA",
+    "state": "success",
+    "track_key": "manga:scheduled:light:popularity_core",
+    "updated_at": "2026-11-08 23:54:42.269+00"
+  }
+]

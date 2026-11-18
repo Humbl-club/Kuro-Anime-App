@@ -1,0 +1,18 @@
+{
+  "at": "2026-11-09T13:48:19.871111+00:00",
+  "before": {
+    "current_user": "postgres",
+    "extension": null,
+    "functions": null,
+    "member_owner": false
+  },
+  "rolled_back_probe": [
+    {
+      "diagnostic": {
+        "current_user": "postgres",
+        "evict": "pg_buffercache_evict(integer)",
+        "version": "1.5"
+      }
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "profile": "capacity-sequence-r2",
+  "samples": [
+    {
+      "active": 0,
+      "blks_hit": 22670836167,
+      "blks_read": 233244158,
+      "checked_at": "2026-11-09 09:19:40.018161+00",
+      "connections": 8,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8107642607771
+    },
+    {
+      "active": 0,
+      "blks_hit": 22670908378,
+      "blks_read": 233251141,
+      "checked_at": "2026-11-09 09:19:50.393407+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8107642607771
+    },
+    {
+      "active": 0,
+      "blks_hit": 22670990313,
+      "blks_read": 233252148,
+      "checked_at": "2026-11-09 09:20:00.934023+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8107650682747
+    },
+    {
+      "active": 0,
+      "blks_hit": 22671056884,
+      "blks_read": 233252803,
+      "checked_at": "2026-11-09 09:20:11.310397+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8107650682747
+    },
+    {
+      "active": 0,
+      "blks_hit": 22671060600,
+      "blks_read": 233253357,
+      "checked_at": "2026-11-09 09:20:21.725163+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8107650682747
+    }
+  ],
+  "stopped": false
+}

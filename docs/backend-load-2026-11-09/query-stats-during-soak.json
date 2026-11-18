@@ -1,0 +1,164 @@
+[
+  {
+    "calls": "160",
+    "operation": "apply_progress_mutations_v1",
+    "queryid": "-9208035185982615504",
+    "shared_blks_hit": "20102",
+    "shared_blks_read": "146",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 3641.23662
+  },
+  {
+    "calls": "1",
+    "operation": "browse_anime_page",
+    "queryid": "-7641183252790605996",
+    "shared_blks_hit": "5047",
+    "shared_blks_read": "0",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 57.075764
+  },
+  {
+    "calls": "418",
+    "operation": "search_anime_page",
+    "queryid": "-7589229712826916541",
+    "shared_blks_hit": "395240",
+    "shared_blks_read": "102",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 25090.678129
+  },
+  {
+    "calls": "61",
+    "operation": "fetch_club_bundle_loading",
+    "queryid": "-6774128399532124976",
+    "shared_blks_hit": "5910",
+    "shared_blks_read": "36",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 957.948606
+  },
+  {
+    "calls": "268",
+    "operation": "browse_manga_page",
+    "queryid": "-5696614397303678070",
+    "shared_blks_hit": "322684",
+    "shared_blks_read": "27410",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 6237.25241299999
+  },
+  {
+    "calls": "1040",
+    "operation": "home_bundle_v1",
+    "queryid": "-2303394757629558354",
+    "shared_blks_hit": "594564",
+    "shared_blks_read": "832",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 28313.668289
+  },
+  {
+    "calls": "1",
+    "operation": "discover_bundle",
+    "queryid": "143901091733951408",
+    "shared_blks_hit": "3026",
+    "shared_blks_read": "92",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 105.598878
+  },
+  {
+    "calls": "3",
+    "operation": "search_manga_page",
+    "queryid": "500681434287019983",
+    "shared_blks_hit": "17126",
+    "shared_blks_read": "15607",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 2199.847295
+  },
+  {
+    "calls": "527",
+    "operation": "discover_bundle",
+    "queryid": "5099827848241975764",
+    "shared_blks_hit": "5433893",
+    "shared_blks_read": "746999",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 247784.351946
+  },
+  {
+    "calls": "101",
+    "operation": "browse_anime_page",
+    "queryid": "5702342939144628092",
+    "shared_blks_hit": "63240",
+    "shared_blks_read": "0",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 561.038284
+  },
+  {
+    "calls": "3",
+    "operation": "search_anime_page",
+    "queryid": "6104152139902623235",
+    "shared_blks_hit": "16699",
+    "shared_blks_read": "0",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 1041.489437
+  },
+  {
+    "calls": "405",
+    "operation": "discover_mood_v1",
+    "queryid": "6394416210924253904",
+    "shared_blks_hit": "3530202",
+    "shared_blks_read": "26157",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 36896.329552
+  },
+  {
+    "calls": "212",
+    "operation": "search_manga_page",
+    "queryid": "6568064326250814560",
+    "shared_blks_hit": "388929",
+    "shared_blks_read": "6424",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 36745.454077
+  },
+  {
+    "calls": "869",
+    "operation": "series_detail_bundle_v1",
+    "queryid": "6757511713360139630",
+    "shared_blks_hit": "234484",
+    "shared_blks_read": "8903",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 20015.954443
+  },
+  {
+    "calls": "317",
+    "operation": "fetch_my_clubs_loading",
+    "queryid": "7976123862928673118",
+    "shared_blks_hit": "214634",
+    "shared_blks_read": "435",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 6447.267493
+  },
+  {
+    "calls": "1",
+    "operation": "browse_anime_page",
+    "queryid": "8058378165170347034",
+    "shared_blks_hit": "5041",
+    "shared_blks_read": "0",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 53.046506
+  },
+  {
+    "calls": "52",
+    "operation": "browse_manga_page",
+    "queryid": "8325654541738648315",
+    "shared_blks_hit": "61292",
+    "shared_blks_read": "6061",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 1679.813524
+  },
+  {
+    "calls": "763",
+    "operation": "browse_anime_page",
+    "queryid": "9018964049468386471",
+    "shared_blks_hit": "1794307",
+    "shared_blks_read": "427",
+    "temp_blks_written": "0",
+    "total_exec_time_ms": 73492.48727
+  }
+]

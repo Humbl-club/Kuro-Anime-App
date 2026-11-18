@@ -1,0 +1,41 @@
+{
+  "end": "2026-11-09T13:57:02.341Z",
+  "query": "SELECT source, count() AS n FROM logs GROUP BY source LIMIT 20",
+  "response": {
+    "result": [
+      {
+        "n": 26,
+        "source": "postgrest_logs"
+      },
+      {
+        "n": 3,
+        "source": "function_edge_logs"
+      },
+      {
+        "n": 200,
+        "source": "auth_audit_logs"
+      },
+      {
+        "n": 1,
+        "source": "pgbouncer_logs"
+      },
+      {
+        "n": 300,
+        "source": "auth_logs"
+      },
+      {
+        "n": 124,
+        "source": "postgres_logs"
+      },
+      {
+        "n": 10,
+        "source": "function_logs"
+      },
+      {
+        "n": 1050,
+        "source": "edge_logs"
+      }
+    ]
+  },
+  "start": "2026-11-09T13:27:02.341Z"
+}

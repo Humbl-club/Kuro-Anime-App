@@ -84,12 +84,19 @@ import {
 export interface RecommendPlatform {
   /** Client for this caller, or null when SUPABASE_URL / an API key env var is missing. */
   client(authHeader: string): SupabaseLike | null;
+  /** Service-role client ONLY for global accounting. Never receives the caller's Authorization. */
+  globalBudgetClient(): SupabaseLike | null;
   /** Environment lookup (read per request): SUPABASE_URL, GROQ_API_KEY, GROQ_MODEL. */
   env(name: "SUPABASE_URL" | "GROQ_API_KEY" | "GROQ_MODEL"): string | undefined;
   /** HTTP transport for Groq and concierge-retrieve-assist. */
   fetch(url: string, init: RequestInit): Promise<Response>;
   /** Clock for the mode-cache TTL (ms since epoch). */
   now(): number;
+  /**
+   * Optional background-task hook (Edge runtime `EdgeRuntime.waitUntil`). When present, best-effort writes
+   * (mode cache, run logs) finish after the response; when absent they complete before the run returns.
+   */
+  waitUntil?: (p: Promise<unknown>) => void;
 }
 
 function json(res: unknown, init: ResponseInit = {}) {
@@ -186,10 +193,11 @@ export async function handleRecommend(req: Request, platform: RecommendPlatform)
         },
         {
           repo,
-          narrationBudget: supabaseNarrationBudget(client),
+          narrationBudget: supabaseNarrationBudget(client, platform.globalBudgetClient()),
           narrationProvider: (opts) => groqNarrate({ ...opts, fetch: platform.fetch }),
           groqApiKey: () => platform.env("GROQ_API_KEY"),
           groqModel: () => platform.env("GROQ_MODEL") ?? "openai/gpt-oss-20b",
+          waitUntil: platform.waitUntil,
         },
       ),
     );
@@ -217,7 +225,12 @@ export type RecommendDeps = {
   narrationProvider: Parameters<typeof narrateWithBudget>[3];
   groqApiKey: () => string | undefined;
   groqModel: () => string;
+  /** See RecommendPlatform.waitUntil. */
+  waitUntil?: (p: Promise<unknown>) => void;
 };
+
+/** Per-request serial chain of best-effort writes. Tasks start as soon as queued; the tail never rejects. */
+type Defer = (task: () => Promise<unknown>) => void;
 
 /** Request-lifetime state written during the run (seed adoption, retrieval-assist outcome). */
 type RunState = {
@@ -227,8 +240,25 @@ type RunState = {
   ragSeedEntityId: string | null;
 };
 
-/** The deterministic recommendation run, then optional narration. Returns the response body. */
+/**
+ * The deterministic recommendation run, then optional narration. Returns the response body.
+ * Best-effort writes (mode cache, run logs) run on one serial chain: handed once to `deps.waitUntil` when
+ * provided (the run returns without awaiting it), otherwise awaited before returning.
+ */
 export async function runRecommend(r: RecommendRequest, deps: RecommendDeps) {
+  let tail: Promise<unknown> = Promise.resolve();
+  const defer: Defer = (task) => {
+    tail = tail.then(task).catch(() => {});
+  };
+  try {
+    return await runRecommendInner(r, deps, defer);
+  } finally {
+    if (deps.waitUntil) deps.waitUntil(tail);
+    else await tail;
+  }
+}
+
+async function runRecommendInner(r: RecommendRequest, deps: RecommendDeps, defer: Defer) {
   const { text, userId, locale } = r;
   const { repo } = deps;
 
@@ -313,7 +343,7 @@ export async function runRecommend(r: RecommendRequest, deps: RecommendDeps) {
       state.seedOverride = route.bareSeed.override;
     }
     const dec = decisionFromRanking({ ...route, usedLLM: false }, await rankSecondary(route.primaryId), anchors);
-    await repo.saveModeCache(userId, promptNorm, dec, cacheTtlDays);
+    defer(() => repo.saveModeCache(userId, promptNorm, dec, cacheTtlDays));
     return dec;
   };
 
@@ -508,11 +538,13 @@ export async function runRecommend(r: RecommendRequest, deps: RecommendDeps) {
   const secondaryReason = chosenEval.acceptable ? "diversified-secondary" : "fallback-secondary";
 
   if (chosenSecondaryId !== decision.secondaryId) {
-    await repo.saveModeCache(userId, promptNorm, {
-      ...decision,
-      secondaryId: chosenSecondaryId,
-      secondaryCandidates: uniq([chosenSecondaryId, ...decision.secondaryCandidates]),
-    }, cacheTtlDays);
+    defer(() =>
+      repo.saveModeCache(userId, promptNorm, {
+        ...decision,
+        secondaryId: chosenSecondaryId,
+        secondaryCandidates: uniq([chosenSecondaryId, ...decision.secondaryCandidates]),
+      }, cacheTtlDays)
+    );
   }
 
   modePicks.push(mkPick(chosenSecondaryId, secondaryCopy.displayTitle, secondaryConfidence, secondaryReason));
@@ -569,20 +601,22 @@ export async function runRecommend(r: RecommendRequest, deps: RecommendDeps) {
     }
   }
 
-  await repo.logRecommendRun({
-    inputChars: text.length,
-    itemsCount: allItems.length,
-    secondaryItemsCount: chosenSecondaryBuilt.items.length,
-    routerTelemetry: JSON.stringify({
-      primary_mode_id: decision.primaryId,
-      secondary_mode_id: chosenSecondaryId,
-      secondary_candidates_count: preferred.length,
-      secondary_overlap_ratio: Number(chosenEval.overlapRatio.toFixed(4)),
-      secondary_overlap_count: chosenEval.overlapCount,
-      secondary_item_count: chosenSecondaryBuilt.items.length,
-      secondary_acceptable: chosenEval.acceptable,
-    }),
-  });
+  defer(() =>
+    repo.logRecommendRun({
+      inputChars: text.length,
+      itemsCount: allItems.length,
+      secondaryItemsCount: chosenSecondaryBuilt.items.length,
+      routerTelemetry: JSON.stringify({
+        primary_mode_id: decision.primaryId,
+        secondary_mode_id: chosenSecondaryId,
+        secondary_candidates_count: preferred.length,
+        secondary_overlap_ratio: Number(chosenEval.overlapRatio.toFixed(4)),
+        secondary_overlap_count: chosenEval.overlapCount,
+        secondary_item_count: chosenSecondaryBuilt.items.length,
+        secondary_acceptable: chosenEval.acceptable,
+      }),
+    })
+  );
 
   // Backwards-compat: older clients can show the curator note in plain text.
   const message = sets.length === 0 ? emptyRecommendationMessage(locale) : curatorNote;

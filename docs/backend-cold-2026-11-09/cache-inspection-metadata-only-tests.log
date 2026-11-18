@@ -1,0 +1,20 @@
+BEGIN
+SET
+SET
+SET
+DO
+CREATE EXTENSION
+DO
+DO
+COMMIT
+Warm public data detected; would refuse a cold qualification
+DO
+Restarted local public heaps/indexes/TOAST independently verified empty
+BEGIN
+SET
+SET
+SET
+DROP EXTENSION
+COMMIT
+DO
+Metadata-only1.4 inspection checks PASS: existing-install refusal, warm detection, effective client view/read-function denial, eviction absent, verified cold state, exact removal

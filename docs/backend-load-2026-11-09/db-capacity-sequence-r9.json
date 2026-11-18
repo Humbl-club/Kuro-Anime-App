@@ -1,0 +1,90 @@
+{
+  "profile": "capacity-sequence-r9",
+  "samples": [
+    {
+      "active": 2,
+      "blks_hit": 22700629395,
+      "blks_read": 233452580,
+      "checked_at": "2026-11-09 10:23:21.476791+00",
+      "connections": 12,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "1.081308",
+      "temp_bytes": 8108162925556
+    },
+    {
+      "active": 0,
+      "blks_hit": 22700739949,
+      "blks_read": 233452586,
+      "checked_at": "2026-11-09 10:23:31.877903+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108162925556
+    },
+    {
+      "active": 1,
+      "blks_hit": 22700831085,
+      "blks_read": 233452589,
+      "checked_at": "2026-11-09 10:23:42.274403+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0.113915",
+      "temp_bytes": 8108162925556
+    },
+    {
+      "active": 1,
+      "blks_hit": 22700887947,
+      "blks_read": 233452592,
+      "checked_at": "2026-11-09 10:23:52.953018+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0.796988",
+      "temp_bytes": 8108162925556
+    },
+    {
+      "active": 0,
+      "blks_hit": 22701108551,
+      "blks_read": 233452598,
+      "checked_at": "2026-11-09 10:24:03.598109+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108177801752
+    },
+    {
+      "active": 0,
+      "blks_hit": 22701179368,
+      "blks_read": 233452617,
+      "checked_at": "2026-11-09 10:24:14.05739+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108177801752
+    },
+    {
+      "active": 0,
+      "blks_hit": 22701196679,
+      "blks_read": 233452617,
+      "checked_at": "2026-11-09 10:24:24.593871+00",
+      "connections": 13,
+      "deadlocks": 0,
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108177801752
+    }
+  ],
+  "stopped": false
+}

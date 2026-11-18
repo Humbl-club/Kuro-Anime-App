@@ -1,0 +1,39 @@
+{
+  "started_at": "2026-11-09T00:24:53.098513+00:00",
+  "profiles": [
+    {
+      "name": "after-2rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T00:24:53.126Z",
+      "finished_at": "2026-11-09T00:25:52.676Z",
+      "output": "after-2rps.json"
+    },
+    {
+      "name": "after-5rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T00:25:52.711Z",
+      "finished_at": "2026-11-09T00:26:52.551Z",
+      "output": "after-5rps.json"
+    },
+    {
+      "name": "ramp-10rps",
+      "exit_code": 0,
+      "pass": true,
+      "started_at": "2026-11-09T00:26:52.589Z",
+      "finished_at": "2026-11-09T00:27:52.554Z",
+      "output": "ramp-10rps.json"
+    },
+    {
+      "name": "soak-20rps",
+      "exit_code": 1,
+      "pass": false,
+      "started_at": "2026-11-09T00:27:52.588Z",
+      "finished_at": "2026-11-09T00:30:23.042Z",
+      "output": "soak-20rps.json"
+    }
+  ],
+  "complete": false,
+  "finished_at": "2026-11-09T00:30:23.169120+00:00"
+}

@@ -1,0 +1,55 @@
+{
+  "checked_at": "2026-11-09T11:11:39.378309+00:00",
+  "medium": "manga",
+  "query": "Naruto",
+  "samples": [
+    {
+      "http_status": 200,
+      "library_size": 0,
+      "ms": 458.12,
+      "rows": 30,
+      "semantic_ok": true,
+      "upstream_ms": 279.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 25,
+      "ms": 639.55,
+      "rows": 30,
+      "semantic_ok": true,
+      "upstream_ms": 259.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 100,
+      "ms": 340.06,
+      "rows": 30,
+      "semantic_ok": true,
+      "upstream_ms": 263.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 2000,
+      "ms": 298.14,
+      "rows": 30,
+      "semantic_ok": true,
+      "upstream_ms": 224.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 2000,
+      "ms": 305.04,
+      "rows": 30,
+      "semantic_ok": true,
+      "upstream_ms": 226.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 2000,
+      "ms": 300.47,
+      "rows": 30,
+      "semantic_ok": true,
+      "upstream_ms": 226.0
+    }
+  ]
+}

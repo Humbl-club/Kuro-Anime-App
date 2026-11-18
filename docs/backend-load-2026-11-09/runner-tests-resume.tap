@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: cleanup refuses a mismatched provenance before any deletion
+ok 1 - cleanup refuses a mismatched provenance before any deletion
+  ---
+  duration_ms: 12.326916
+  type: 'test'
+  ...
+# Subtest: cleanup refuses a token for a different account
+ok 2 - cleanup refuses a token for a different account
+  ---
+  duration_ms: 251.426792
+  type: 'test'
+  ...
+# Subtest: already absent identities are acknowledged without a deletion request
+ok 3 - already absent identities are acknowledged without a deletion request
+  ---
+  duration_ms: 2.106167
+  type: 'test'
+  ...
+# Subtest: lookalike origins and customer inventories fail before network access
+ok 4 - lookalike origins and customer inventories fail before network access
+  ---
+  duration_ms: 0.774459
+  type: 'test'
+  ...
+# Subtest: catalogue seeds page through the PostgREST1000-row cap
+ok 5 - catalogue seeds page through the PostgREST1000-row cap
+  ---
+  duration_ms: 756.392375
+  type: 'test'
+  ...
+# Subtest: resume refresh reads current revisions with the owner's token and makes no backend writes
+ok 6 - resume refresh reads current revisions with the owner's token and makes no backend writes
+  ---
+  duration_ms: 1.968541
+  type: 'test'
+  ...
+# Subtest: refresh refuses a missing user token before making an administrative fallback read
+ok 7 - refresh refuses a missing user token before making an administrative fallback read
+  ---
+  duration_ms: 0.6365
+  type: 'test'
+  ...
+# Subtest: fixed arrival scheduling counts saturated starts instead of slowing offered traffic
+ok 8 - fixed arrival scheduling counts saturated starts instead of slowing offered traffic
+  ---
+  duration_ms: 801.772625
+  type: 'test'
+  ...
+# Subtest: a configured safety stop prevents sending the first request
+ok 9 - a configured safety stop prevents sending the first request
+  ---
+  duration_ms: 1.6615
+  type: 'test'
+  ...
+# Subtest: exact origin, explicit mode and bounded limits reject unsafe runs
+ok 10 - exact origin, explicit mode and bounded limits reject unsafe runs
+  ---
+  duration_ms: 1.107584
+  type: 'test'
+  ...
+# Subtest: nearest rank percentiles preserve tail values
+ok 11 - nearest rank percentiles preserve tail values
+  ---
+  duration_ms: 0.138416
+  type: 'test'
+  ...
+# Subtest: errors, lost arrivals and slow successful replies cannot pass
+ok 12 - errors, lost arrivals and slow successful replies cannot pass
+  ---
+  duration_ms: 0.244916
+  type: 'test'
+  ...
+# Subtest: workload represents bounded real RPCs; paid narration stays off
+ok 13 - workload represents bounded real RPCs; paid narration stays off
+  ---
+  duration_ms: 0.4285
+  type: 'test'
+  ...
+# Subtest: HTTP200 empty failures do not masquerade as working personalized pages
+ok 14 - HTTP200 empty failures do not masquerade as working personalized pages
+  ---
+  duration_ms: 0.107833
+  type: 'test'
+  ...
+# Subtest: tracking must be applied with matching receipt; conflicts do not count as success
+ok 15 - tracking must be applied with matching receipt; conflicts do not count as success
+  ---
+  duration_ms: 0.122042
+  type: 'test'
+  ...
+# Subtest: parser response belongs to the caller; deterministic recommendations contain content
+ok 16 - parser response belongs to the caller; deterministic recommendations contain content
+  ---
+  duration_ms: 0.047083
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1067.367208

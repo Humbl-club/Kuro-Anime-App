@@ -1,0 +1,47 @@
+{
+  "checked_at": "2026-11-09T10:16:51.858345+00:00",
+  "samples": [
+    {
+      "http_status": 200,
+      "library_size": 0,
+      "ms": 432.27,
+      "semantic_ok": true,
+      "upstream_ms": 227.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 25,
+      "ms": 358.54,
+      "semantic_ok": true,
+      "upstream_ms": 113.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 100,
+      "ms": 568.06,
+      "semantic_ok": true,
+      "upstream_ms": 111.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 2000,
+      "ms": 526.82,
+      "semantic_ok": true,
+      "upstream_ms": 119.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 2000,
+      "ms": 288.32,
+      "semantic_ok": true,
+      "upstream_ms": 110.0
+    },
+    {
+      "http_status": 200,
+      "library_size": 2000,
+      "ms": 269.3,
+      "semantic_ok": true,
+      "upstream_ms": 109.0
+    }
+  ]
+}

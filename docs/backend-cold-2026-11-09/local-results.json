@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-11-09T12:50:45.449445+00:00",
+  "passed_assertions": 79,
+  "local_catalogue_rows": 64000,
+  "local_realm_rows": 256000,
+  "verified_empty_catalogue_buffer_starts": 2,
+  "os_page_cache_cleared": false,
+  "index_footprints": [
+    {
+      "case": "mv_anime_top_rated-30",
+      "before_ms": 0.357,
+      "after_ms": 0.071,
+      "before_blocks": 119,
+      "after_blocks": 32
+    },
+    {
+      "case": "mv_anime_trending-30",
+      "before_ms": 1.367,
+      "after_ms": 0.087,
+      "before_blocks": 421,
+      "after_blocks": 32
+    },
+    {
+      "case": "mv_manga_top_rated-30",
+      "before_ms": 0.373,
+      "after_ms": 0.081,
+      "before_blocks": 132,
+      "after_blocks": 32
+    },
+    {
+      "case": "mv_manga_trending-30",
+      "before_ms": 1.347,
+      "after_ms": 0.028,
+      "before_blocks": 369,
+      "after_blocks": 9
+    }
+  ],
+  "log": "local-catalogue-r7.log",
+  "limits": "Synthetic native PostgreSQL only; no Supabase gateway/Auth/Edge runtime, shared host quotas or production cold-capacity proof. OS page cache was not flushed."
+}

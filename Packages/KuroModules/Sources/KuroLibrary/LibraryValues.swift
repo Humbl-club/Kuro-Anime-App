@@ -151,6 +151,22 @@ public struct LibraryEntry: Equatable, Sendable {
 
     /// Legacy favourite rule (`score >= 90` on the 0-100 projection) expressed on the 1...10 scale.
     public var isFavorited: Bool { (rating?.value ?? 0) >= 9 }
+
+    /// How many extra times the title was watched or read (`repeat_count`); `0` when none or unknown.
+    public var repeatCount: Int { sourceMetadata?.repeatCount ?? 0 }
+
+    /// The date the user started the title (`started_raw`). `nil` when there is none, when the stored text
+    /// is not a date `PartialDate` accepts, or when the server value is unknown (`datesKnown == false`).
+    /// Every stored spelling of one date (`2024-00-00`, `2024`) reads as the same value.
+    public var startedOn: PartialDate? { sourceMetadata?.startedRaw.flatMap(PartialDate.init(raw:)) }
+
+    /// The date the user finished the title (`finished_raw`); `nil` under the same conditions as `startedOn`.
+    public var finishedOn: PartialDate? { sourceMetadata?.finishedRaw.flatMap(PartialDate.init(raw:)) }
+
+    /// `true` when the repeat count and dates were read from the server, so an empty date means "none".
+    /// `false` for a cached or provisional row: the server value is unknown, and callers must neither show
+    /// it as empty nor fill, restore or clear it.
+    public var datesKnown: Bool { sourceMetadata != nil }
 }
 
 // MARK: - Edit
@@ -185,19 +201,34 @@ public struct LibraryEdit: Sendable, Equatable {
     public var rating: FieldChange<UserRating>
     public var notes: FieldChange<String>
     public var verdict: FieldChange<Verdict>
+    /// Extra watches or reads (`repeat_count`, NOT NULL DEFAULT 0). `0...999`; never `.clear`.
+    public var repeatCount: FieldChange<Int>
+    /// The date the user started the title (`started_raw`); `.clear` writes `null`.
+    public var startedOn: FieldChange<PartialDate>
+    /// The date the user finished the title (`finished_raw`); `.clear` writes `null`.
+    public var finishedOn: FieldChange<PartialDate>
+
+    /// The largest repeat count the store accepts (`repeatCount` is `0...999`).
+    public static let maxRepeatCount = 999
 
     public init(
         status: FieldChange<ListStatus> = .unchanged,
         progress: FieldChange<Int> = .unchanged,
         rating: FieldChange<UserRating> = .unchanged,
         notes: FieldChange<String> = .unchanged,
-        verdict: FieldChange<Verdict> = .unchanged
+        verdict: FieldChange<Verdict> = .unchanged,
+        repeatCount: FieldChange<Int> = .unchanged,
+        startedOn: FieldChange<PartialDate> = .unchanged,
+        finishedOn: FieldChange<PartialDate> = .unchanged
     ) {
         self.status = status
         self.progress = progress
         self.rating = rating
         self.notes = notes
         self.verdict = verdict
+        self.repeatCount = repeatCount
+        self.startedOn = startedOn
+        self.finishedOn = finishedOn
     }
 
     /// Progress or status is named. Those fields go through the revision fence.
@@ -211,15 +242,26 @@ public struct LibraryEdit: Sendable, Equatable {
         return false
     }
 
-    /// Notes, rating and verdict. These stay on direct PATCH and still advance `server_revision`.
+    /// Notes, rating, verdict, repeat count and dates. These stay on direct PATCH (the durable progress
+    /// outbox and `apply_progress_mutations_v1` carry only position and status) and still advance
+    /// `server_revision`.
     package var patchBodyOmittingProgress: LibraryEdit {
-        LibraryEdit(rating: rating, notes: notes, verdict: verdict)
+        LibraryEdit(
+            rating: rating, notes: notes, verdict: verdict,
+            repeatCount: repeatCount, startedOn: startedOn, finishedOn: finishedOn
+        )
     }
 
     /// `true` when the edit names no field.
     var isEmpty: Bool {
         status.isUnchanged && progress.isUnchanged && rating.isUnchanged
             && notes.isUnchanged && verdict.isUnchanged
+            && repeatCount.isUnchanged && startedOn.isUnchanged && finishedOn.isUnchanged
+    }
+
+    /// Whether the edit names the repeat count or either date, the fields held in `sourceMetadata`.
+    var touchesDatesOrRepeat: Bool {
+        !(repeatCount.isUnchanged && startedOn.isUnchanged && finishedOn.isUnchanged)
     }
 
     /// The first rule the edit violates, if any. Checked before any request or projection change.
@@ -228,23 +270,37 @@ public struct LibraryEdit: Sendable, Equatable {
         switch progress {
         case .clear: return .invalidValue(field: "progress")
         case .set(let value) where value < 0: return .invalidValue(field: "progress")
+        default: break
+        }
+        switch repeatCount {
+        case .clear: return .invalidValue(field: "repeatCount")
+        case .set(let value) where !(0...Self.maxRepeatCount).contains(value): return .invalidValue(field: "repeatCount")
         default: return nil
         }
     }
 
-    /// An absolute edit that restores every field of `entry` (re-save after a removal).
+    /// An absolute edit that restores every field of `entry` (re-save after a removal). The repeat count
+    /// and dates are restored only when `entry.datesKnown`: an unknown value is never sent.
     static func restoring(_ entry: LibraryEntry) -> LibraryEdit {
-        LibraryEdit(
+        var edit = LibraryEdit(
             status: .set(entry.status),
             progress: .set(entry.progress),
             rating: entry.rating.map { .set($0) } ?? .clear,
             notes: entry.notes.map { .set($0) } ?? .clear,
             verdict: entry.verdict.map { .set($0) } ?? .clear
         )
+        if entry.datesKnown {
+            edit.repeatCount = .set(entry.repeatCount)
+            edit.startedOn = entry.startedOn.map { .set($0) } ?? .clear
+            edit.finishedOn = entry.finishedOn.map { .set($0) } ?? .clear
+        }
+        return edit
     }
 
     /// A compensating edit that moves only the fields that differ between `current` and `previous`
-    /// back to their `previous` values.
+    /// back to their `previous` values. The repeat count and dates are compared by value (`2024-00-00` and
+    /// `2024` are one date) and are reverted only when `previous.datesKnown`: a pre-image whose dates were
+    /// never read cannot be restored, and an unknown value is never written back as empty.
     static func reverting(_ current: LibraryEntry, to previous: LibraryEntry) -> LibraryEdit {
         var edit = LibraryEdit()
         if current.status != previous.status { edit.status = .set(previous.status) }
@@ -252,6 +308,11 @@ public struct LibraryEdit: Sendable, Equatable {
         if current.rating != previous.rating { edit.rating = previous.rating.map { .set($0) } ?? .clear }
         if current.notes != previous.notes { edit.notes = previous.notes.map { .set($0) } ?? .clear }
         if current.verdict != previous.verdict { edit.verdict = previous.verdict.map { .set($0) } ?? .clear }
+        if previous.datesKnown {
+            if current.repeatCount != previous.repeatCount { edit.repeatCount = .set(previous.repeatCount) }
+            if current.startedOn != previous.startedOn { edit.startedOn = previous.startedOn.map { .set($0) } ?? .clear }
+            if current.finishedOn != previous.finishedOn { edit.finishedOn = previous.finishedOn.map { .set($0) } ?? .clear }
+        }
         return edit
     }
 }
@@ -275,6 +336,15 @@ extension LibraryEntry {
         entry.rating = edit.rating.resolved(rating)
         entry.notes = edit.notes.resolved(notes)
         entry.verdict = edit.verdict.resolved(verdict)
+        if edit.touchesDatesOrRepeat {
+            // Metadata is created only here: an edit that names none of these fields leaves a cached row's
+            // nil metadata nil, so an optimistic edit never turns unknown dates into known-empty ones.
+            var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
+            if case .set(let count) = edit.repeatCount { metadata.repeatCount = count }
+            if !edit.startedOn.isUnchanged { metadata.startedRaw = edit.startedOn.resolved(nil)?.raw }
+            if !edit.finishedOn.isUnchanged { metadata.finishedRaw = edit.finishedOn.resolved(nil)?.raw }
+            entry.sourceMetadata = metadata
+        }
         entry.updatedAt = time
         return entry
     }
@@ -288,6 +358,18 @@ extension LibraryEntry {
         if !edit.rating.isUnchanged { entry.rating = prior.rating }
         if !edit.notes.isUnchanged { entry.notes = prior.notes }
         if !edit.verdict.isUnchanged { entry.verdict = prior.verdict }
+        if edit.touchesDatesOrRepeat {
+            if prior.sourceMetadata == nil {
+                // The values before the edit were never read: the pre-image keeps them unknown.
+                entry.sourceMetadata = nil
+            } else {
+                var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
+                if !edit.repeatCount.isUnchanged { metadata.repeatCount = prior.sourceMetadata?.repeatCount }
+                if !edit.startedOn.isUnchanged { metadata.startedRaw = prior.sourceMetadata?.startedRaw }
+                if !edit.finishedOn.isUnchanged { metadata.finishedRaw = prior.sourceMetadata?.finishedRaw }
+                entry.sourceMetadata = metadata
+            }
+        }
         if edit.touchesProgress { entry.progressLabel = prior.progressLabel; entry.unitId = prior.unitId }
         entry.updatedAt = prior.updatedAt
         entry.revision = prior.revision

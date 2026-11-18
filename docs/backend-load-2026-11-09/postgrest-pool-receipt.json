@@ -1,0 +1,32 @@
+{
+  "after": {
+    "db_extra_search_path": "public, extensions",
+    "db_pool": 6,
+    "db_pool_acquisition_timeout": 10,
+    "db_pool_max_idletime": 30,
+    "db_pool_max_lifetime": 1800,
+    "db_schema": "public,graphql_public",
+    "max_rows": 1000
+  },
+  "all_other_fields_including_signing_secret_unchanged": true,
+  "authorization_scope": "Requested production backend bottleneck remediation; reversible existing API pool tuning, no new code deployment or compute purchase",
+  "before": {
+    "db_extra_search_path": "public, extensions",
+    "db_pool": null,
+    "db_pool_acquisition_timeout": 10,
+    "db_pool_max_idletime": 30,
+    "db_pool_max_lifetime": 1800,
+    "db_schema": "public,graphql_public",
+    "max_rows": 1000
+  },
+  "changed_fields": [
+    "db_pool"
+  ],
+  "checked_at": "2026-11-09T09:43:02.972247+00:00",
+  "compute_or_billing_mutation": false,
+  "patch": {
+    "db_pool": 6
+  },
+  "readback_verified": true,
+  "started_at": "2026-11-09T09:42:59.853075+00:00"
+}

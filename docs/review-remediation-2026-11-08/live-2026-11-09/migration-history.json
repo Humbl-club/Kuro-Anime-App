@@ -1,0 +1,1050 @@
+[
+  {
+    "name": "remote_applied_placeholder",
+    "version": "20250109"
+  },
+  {
+    "name": "remote_applied_placeholder",
+    "version": "20250909"
+  },
+  {
+    "name": "remote_applied_placeholder",
+    "version": "20250917"
+  },
+  {
+    "name": "concierge_core",
+    "version": "20260203171100"
+  },
+  {
+    "name": "concierge_title_search_rebuild",
+    "version": "20260203171110"
+  },
+  {
+    "name": "profiles_insert_policy",
+    "version": "20260203181000"
+  },
+  {
+    "name": "concierge_recommend_rpc",
+    "version": "20260203183000"
+  },
+  {
+    "name": "editorial_recommend_engine",
+    "version": "20260203190000"
+  },
+  {
+    "name": "recommend_focus_tags",
+    "version": "20260203191500"
+  },
+  {
+    "name": "recommend_focus_filter",
+    "version": "20260203194500"
+  },
+  {
+    "name": "editorial_story_boosts",
+    "version": "20260203201000"
+  },
+  {
+    "name": "recommend_seed_similarity",
+    "version": "20260203203000"
+  },
+  {
+    "name": "scale_perf_bundle_and_indexes",
+    "version": "20260203223000"
+  },
+  {
+    "name": "browse_rpc_add_created_at",
+    "version": "20260203224500"
+  },
+  {
+    "name": "mirror_runs",
+    "version": "20260203233500"
+  },
+  {
+    "name": "search_rpc_keyset",
+    "version": "20260203235500"
+  },
+  {
+    "name": "collection_paging_rpc",
+    "version": "20260204010500"
+  },
+  {
+    "name": "title_aliases",
+    "version": "20260204124500"
+  },
+  {
+    "name": "collection_feed_paging_rpc",
+    "version": "20260204133000"
+  },
+  {
+    "name": "concierge_rate_limits_and_llm_budgets",
+    "version": "20260204221500"
+  },
+  {
+    "name": "recommend_seed_similarity_allow_anon",
+    "version": "20260204233000"
+  },
+  {
+    "name": "concierge_ops_observability_and_retention",
+    "version": "20260204233010"
+  },
+  {
+    "name": "recommend_seed_similarity_ranked_tags",
+    "version": "20260204234500"
+  },
+  {
+    "name": "recommend_seed_similarity_genre_gate",
+    "version": "20260204235500"
+  },
+  {
+    "name": null,
+    "version": "20260204240500"
+  },
+  {
+    "name": "concierge_global_llm_budget_and_default_tuning",
+    "version": "20260205000500"
+  },
+  {
+    "name": "concierge_budget_raise",
+    "version": "20260205002000"
+  },
+  {
+    "name": "admin_schema_snapshot",
+    "version": "20260205160000"
+  },
+  {
+    "name": "concierge_modes_config",
+    "version": "20260205190000"
+  },
+  {
+    "name": "curated_rails",
+    "version": "20260205231000"
+  },
+  {
+    "name": "concierge_mode_cache",
+    "version": "20260205232000"
+  },
+  {
+    "name": "concierge_router_flag_and_retention",
+    "version": "20260205232500"
+  },
+  {
+    "name": "concierge_modes_v2_config",
+    "version": "20260205233000"
+  },
+  {
+    "name": "curated_rails_seed",
+    "version": "20260205234000"
+  },
+  {
+    "name": "discover_bundle_use_curated_rails",
+    "version": "20260205235000"
+  },
+  {
+    "name": "concierge_modes_v3_expanded",
+    "version": "20260206100000"
+  },
+  {
+    "name": "curated_rails_expansion",
+    "version": "20260206120000"
+  },
+  {
+    "name": "fix_legacy_tags_and_comments",
+    "version": "20260206143000"
+  },
+  {
+    "name": "security_hardening_rls_and_views",
+    "version": "20260206150000"
+  },
+  {
+    "name": "curated_rails_expansion",
+    "version": "20260206162329"
+  },
+  {
+    "name": "security_hardening_rls_and_views",
+    "version": "20260206164200"
+  },
+  {
+    "name": "search_titles_enrich_year_format",
+    "version": "20260207000000"
+  },
+  {
+    "name": "curated_rails_vibes_seed",
+    "version": "20260207011000"
+  },
+  {
+    "name": "concierge_modes_v4_add_vibe_rail_ids",
+    "version": "20260207012000"
+  },
+  {
+    "name": "curated_rails_more_vibes_seed",
+    "version": "20260207020000"
+  },
+  {
+    "name": "concierge_modes_v5_add_more_vibe_rail_ids",
+    "version": "20260207021000"
+  },
+  {
+    "name": "phase0_remove_sequels",
+    "version": "20260208022035"
+  },
+  {
+    "name": "concierge_mode_analytics",
+    "version": "20260208022043"
+  },
+  {
+    "name": "add_sports_mode",
+    "version": "20260208022110"
+  },
+  {
+    "name": "phase0_remove_misclassified",
+    "version": "20260208022136"
+  },
+  {
+    "name": "add_scifi_mode",
+    "version": "20260208022153"
+  },
+  {
+    "name": "add_horror_supernatural_mode",
+    "version": "20260208022239"
+  },
+  {
+    "name": "phase0_dedup_rails",
+    "version": "20260208022250"
+  },
+  {
+    "name": "phase0_slim_and_rerank",
+    "version": "20260208022326"
+  },
+  {
+    "name": "add_demographic_rails",
+    "version": "20260208022342"
+  },
+  {
+    "name": "update_concierge_config_new_modes",
+    "version": "20260208022356"
+  },
+  {
+    "name": "phase0_fix_classics",
+    "version": "20260208022404"
+  },
+  {
+    "name": "phase0_backfill_underpopulated_rails",
+    "version": "20260208023052"
+  },
+  {
+    "name": "phase0_dedup_backfilled_rails",
+    "version": "20260208023221"
+  },
+  {
+    "name": "phase0_final_backfill",
+    "version": "20260208023331"
+  },
+  {
+    "name": "refine_short_and_fantasy_rails",
+    "version": "20260208090000"
+  },
+  {
+    "name": "curated_rails_premium_picks_seed",
+    "version": "20260208091500"
+  },
+  {
+    "name": "concierge_modes_v6_add_premium_picks_rail_id",
+    "version": "20260208092000"
+  },
+  {
+    "name": "search_titles_add_cover_image",
+    "version": "20260209000000"
+  },
+  {
+    "name": "concierge_modes_v7_german_synonyms",
+    "version": "20260209100000"
+  },
+  {
+    "name": "concierge_modes_v8_expanded",
+    "version": "20260209110000"
+  },
+  {
+    "name": "new_vibe_rails",
+    "version": "20260209120000"
+  },
+  {
+    "name": "import_reconciliation",
+    "version": "20260209135229"
+  },
+  {
+    "name": "clubs_foundation",
+    "version": "20260209200000"
+  },
+  {
+    "name": "clubs_rls_policies",
+    "version": "20260209201000"
+  },
+  {
+    "name": "clubs_rpcs",
+    "version": "20260209202000"
+  },
+  {
+    "name": "club_analytics",
+    "version": "20260209220000"
+  },
+  {
+    "name": "fix_mirror_cron_contention",
+    "version": "20260209224945"
+  },
+  {
+    "name": "feature_flags",
+    "version": "20260211030140"
+  },
+  {
+    "name": "rag_tables",
+    "version": "20260211100000"
+  },
+  {
+    "name": "privacy_retention_and_gdpr",
+    "version": "20260211110000"
+  },
+  {
+    "name": "rag_retrieve_candidates",
+    "version": "20260211113000"
+  },
+  {
+    "name": "fetch_club_bundle_member_identity",
+    "version": "20260211154000"
+  },
+  {
+    "name": "reduce_school_shoujo_overlap",
+    "version": "20260211162000"
+  },
+  {
+    "name": "enable_concierge_intelligence_de_canary",
+    "version": "20260211170000"
+  },
+  {
+    "name": "clubs_concierge_swipe_flags",
+    "version": "20260213130000"
+  },
+  {
+    "name": "concierge_editorial_v1_flag",
+    "version": "20260213143000"
+  },
+  {
+    "name": "add_create_rail_and_poll_rpcs",
+    "version": "20260215124919"
+  },
+  {
+    "name": "create_club_rail_and_poll_rpcs",
+    "version": "20260215124946"
+  },
+  {
+    "name": "fix_invite_code_crypto_and_club_members_insert",
+    "version": "20260215125056"
+  },
+  {
+    "name": "club_reactions_and_invite_share",
+    "version": "20260215125312"
+  },
+  {
+    "name": "fix_club_fk_housekeeping_gdpr",
+    "version": "20260215130000"
+  },
+  {
+    "name": "clubs_list_enrichment",
+    "version": "20260216015514"
+  },
+  {
+    "name": "club_reactions_in_bundle",
+    "version": "20260216015733"
+  },
+  {
+    "name": "clubs_realtime_publication",
+    "version": "20260216015921"
+  },
+  {
+    "name": "club_messages",
+    "version": "20260216020023"
+  },
+  {
+    "name": "add_club_rail_item_structured_errors",
+    "version": "20260216193000"
+  },
+  {
+    "name": "catalog_created_at_not_null",
+    "version": "20260216200204"
+  },
+  {
+    "name": "drop_unused_indexes_merge_policies_health_check",
+    "version": "20260216200227"
+  },
+  {
+    "name": "fix_initplan_rls_club_messages_reactions",
+    "version": "20260216214047"
+  },
+  {
+    "name": "authors_tags_created_at_not_null",
+    "version": "20260216214050"
+  },
+  {
+    "name": "fix_join_club_archived_check",
+    "version": "20260218131735"
+  },
+  {
+    "name": "capture_club_message_functions",
+    "version": "20260218141739"
+  },
+  {
+    "name": "update_join_create_club_functions",
+    "version": "20260218141754"
+  },
+  {
+    "name": "fix_storage_insert_policy",
+    "version": "20260218141757"
+  },
+  {
+    "name": "drop_duplicate_indexes",
+    "version": "20260218173617"
+  },
+  {
+    "name": "drop_dead_rag_cache_cleanup",
+    "version": "20260218173619"
+  },
+  {
+    "name": "critical_security_drop_and_revoke",
+    "version": "20260219002612"
+  },
+  {
+    "name": "drop_start_bulk_import_with_args",
+    "version": "20260219002639"
+  },
+  {
+    "name": "revoke_public_from_admin_functions",
+    "version": "20260219002706"
+  },
+  {
+    "name": "add_user_lists_to_realtime_publication",
+    "version": "20260219003105"
+  },
+  {
+    "name": "anime_is_adult_not_null",
+    "version": "20260219003111"
+  },
+  {
+    "name": "drop_ambiguous_overloads",
+    "version": "20260219003305"
+  },
+  {
+    "name": "harden_toggle_reaction",
+    "version": "20260219003323"
+  },
+  {
+    "name": "harden_create_club",
+    "version": "20260219003339"
+  },
+  {
+    "name": "tighten_club_write_policies",
+    "version": "20260219003351"
+  },
+  {
+    "name": "tighten_storage_update_policy",
+    "version": "20260219003357"
+  },
+  {
+    "name": "add_missing_fk_indexes",
+    "version": "20260219003402"
+  },
+  {
+    "name": "cron_cleanup_and_mirror_auth",
+    "version": "20260219003703"
+  },
+  {
+    "name": "critical_security_drop_and_revoke",
+    "version": "20260219100000"
+  },
+  {
+    "name": "drop_start_bulk_import_with_args",
+    "version": "20260219100001"
+  },
+  {
+    "name": "revoke_public_from_admin_functions",
+    "version": "20260219100002"
+  },
+  {
+    "name": "add_user_lists_to_realtime_publication",
+    "version": "20260219100003"
+  },
+  {
+    "name": "anime_manga_is_adult_not_null",
+    "version": "20260219100004"
+  },
+  {
+    "name": "drop_ambiguous_overloads",
+    "version": "20260219100005"
+  },
+  {
+    "name": "harden_toggle_reaction",
+    "version": "20260219100006"
+  },
+  {
+    "name": "harden_create_club",
+    "version": "20260219100007"
+  },
+  {
+    "name": "tighten_club_write_policies",
+    "version": "20260219100008"
+  },
+  {
+    "name": "tighten_storage_update_policy",
+    "version": "20260219100009"
+  },
+  {
+    "name": "add_missing_fk_indexes",
+    "version": "20260219100010"
+  },
+  {
+    "name": "cron_cleanup_and_mirror_auth",
+    "version": "20260219100011"
+  },
+  {
+    "name": "set_not_null_on_nullable_required_columns",
+    "version": "20260219114953"
+  },
+  {
+    "name": "set_not_null_on_nullable_required_columns",
+    "version": "20260219120000"
+  },
+  {
+    "name": "manga_chapter_enrichment_v1",
+    "version": "20260219153000"
+  },
+  {
+    "name": "fix_manga_chapter_enrich_cron_secret",
+    "version": "20260219234000"
+  },
+  {
+    "name": "manga_review_approved_mapping_method",
+    "version": "20260219235500"
+  },
+  {
+    "name": "manga_fuzzy_matcher_v2",
+    "version": "20260220103000"
+  },
+  {
+    "name": "browse_filters_year_format",
+    "version": "20260221120000"
+  },
+  {
+    "name": "manga_fuzzy_matcher_method_allow_title_fuzzy",
+    "version": "20260221150000"
+  },
+  {
+    "name": "manga_zero_touch_canonical_mapping",
+    "version": "20260221162000"
+  },
+  {
+    "name": "manga_chapter_crunch_mode",
+    "version": "20260221173000"
+  },
+  {
+    "name": "enable_swipe_tap_guard_v1",
+    "version": "20260221190000"
+  },
+  {
+    "name": "synopsis_enhancement_fields",
+    "version": "20260221191000"
+  },
+  {
+    "name": "synopsis_enrichment_rpcs",
+    "version": "20260221192000"
+  },
+  {
+    "name": "synopsis_retry_backoff_and_resume",
+    "version": "20260223002000"
+  },
+  {
+    "name": "catalog_safety_runner_v1",
+    "version": "20260224101000"
+  },
+  {
+    "name": "social_activity_layer",
+    "version": "20260224150000"
+  },
+  {
+    "name": "check_email_exists_rpc",
+    "version": "20260225100000"
+  },
+  {
+    "name": "streaming_availability_v1",
+    "version": "20260301100000"
+  },
+  {
+    "name": "streaming_availability_country_lang_v1",
+    "version": "20260301153000"
+  },
+  {
+    "name": "credits_cast_v1_flag",
+    "version": "20260304100000"
+  },
+  {
+    "name": "fix_delete_user_concierge_data_uuid_compare",
+    "version": "20260305151500"
+  },
+  {
+    "name": "fix_delete_user_concierge_data_import_sessions_and_coverage",
+    "version": "20260305153000"
+  },
+  {
+    "name": "cleanup_db_lint_warnings",
+    "version": "20260305162000"
+  },
+  {
+    "name": "provider_availability_note_contract",
+    "version": "20260306113000"
+  },
+  {
+    "name": "media_relations_ladder_v1",
+    "version": "20260307120000"
+  },
+  {
+    "name": "adaptation_ladder_v2_editorial_context",
+    "version": "20260307150000"
+  },
+  {
+    "name": "fix_adaptation_ladder_entry_point",
+    "version": "20260307163000"
+  },
+  {
+    "name": "ladder_source_author",
+    "version": "20260311100000"
+  },
+  {
+    "name": "slim_club_bundle_limits",
+    "version": "20260313100000"
+  },
+  {
+    "name": "social_activity_v1_rollout_100",
+    "version": "20260313120000"
+  },
+  {
+    "name": "fix_club_bundle_columns_and_reactions",
+    "version": "20260316100000"
+  },
+  {
+    "name": "clubs_list_cover_images_members",
+    "version": "20260316220000"
+  },
+  {
+    "name": "clubs_list_cover_image_large",
+    "version": "20260317063000"
+  },
+  {
+    "name": "fetch_club_bundle_ordering_and_poll_counts",
+    "version": "20260317110000"
+  },
+  {
+    "name": "import_track_and_worker_state",
+    "version": "20260318103000"
+  },
+  {
+    "name": "club_loading_rpcs",
+    "version": "20260318104000"
+  },
+  {
+    "name": "provider_availability_request_priority",
+    "version": "20260319123000"
+  },
+  {
+    "name": "add_list_verdicts",
+    "version": "20260322110000"
+  },
+  {
+    "name": "search_title_priority",
+    "version": "20260324173000"
+  },
+  {
+    "name": "search_title_popularity_tiebreak",
+    "version": "20260324180000"
+  },
+  {
+    "name": "discover_airing_today_berlin_day",
+    "version": "20260324213000"
+  },
+  {
+    "name": "discover_new_to_you_rotation",
+    "version": "20260326221000"
+  },
+  {
+    "name": "exclude_ancillary_anime_from_default_surfaces",
+    "version": "20260326234000"
+  },
+  {
+    "name": "taste_signal_events_v1",
+    "version": "20260730160000"
+  },
+  {
+    "name": "taste_deck_v1",
+    "version": "20260731010000"
+  },
+  {
+    "name": "taste_profile_recompute_v1",
+    "version": "20260731011000"
+  },
+  {
+    "name": "personalized_nty_and_flags_v1",
+    "version": "20260731012000"
+  },
+  {
+    "name": "image_convergence_v1",
+    "version": "20260731020000"
+  },
+  {
+    "name": "outbound_link_ledger_v1",
+    "version": "20260731030000"
+  },
+  {
+    "name": "clubs_trust_pack_v1",
+    "version": "20260731040000"
+  },
+  {
+    "name": "taste_deck_meta_v1",
+    "version": "20260731050000"
+  },
+  {
+    "name": "taste_math_v2",
+    "version": "20260731060000"
+  },
+  {
+    "name": "taste_math_v2_hotfix",
+    "version": "20260731070000"
+  },
+  {
+    "name": "taste_math_v2_fix2",
+    "version": "20260731080000"
+  },
+  {
+    "name": "taste_deck_pass_memory",
+    "version": "20260731090000"
+  },
+  {
+    "name": "deck_love_to_list",
+    "version": "20260731095000"
+  },
+  {
+    "name": "discover_p1",
+    "version": "20260731100000"
+  },
+  {
+    "name": "daily_feature_argument_polish",
+    "version": "20260731110000"
+  },
+  {
+    "name": "realm_signatures_v1",
+    "version": "20260731120000"
+  },
+  {
+    "name": "canon_seed_v1",
+    "version": "20260731130000"
+  },
+  {
+    "name": "media_rec_edges_v1",
+    "version": "20260731140000"
+  },
+  {
+    "name": "realm_graph_v1",
+    "version": "20260731150000"
+  },
+  {
+    "name": "realm_gate_calibration",
+    "version": "20260731160000"
+  },
+  {
+    "name": "media_realm_llm_v1",
+    "version": "20260731170000"
+  },
+  {
+    "name": "similarity_inclusion_fix",
+    "version": "20260731180000"
+  },
+  {
+    "name": "debug_functiondef",
+    "version": "20260731190000"
+  },
+  {
+    "name": "debug_functiondef2",
+    "version": "20260731191000"
+  },
+  {
+    "name": "debug_functiondef3",
+    "version": "20260731192000"
+  },
+  {
+    "name": "debug_sim_pair",
+    "version": "20260731193000"
+  },
+  {
+    "name": "debug_sim_v42",
+    "version": "20260731194000"
+  },
+  {
+    "name": "debug_ranked_pair",
+    "version": "20260731195000"
+  },
+  {
+    "name": "penalty_clamp_and_debug_cleanup",
+    "version": "20260731200000"
+  },
+  {
+    "name": "realm_describe_drain",
+    "version": "20260802010000"
+  },
+  {
+    "name": "ops_read_cron_secret_tmp",
+    "version": "20260802011000"
+  },
+  {
+    "name": "ops_list_cron_jobnames",
+    "version": "20260802012000"
+  },
+  {
+    "name": "ops_extract_literal_import_secret",
+    "version": "20260802013000"
+  },
+  {
+    "name": "realm_llm_upsert_rate_budget",
+    "version": "20260802014000"
+  },
+  {
+    "name": "pause_realm_describe_cron",
+    "version": "20260802015000"
+  },
+  {
+    "name": "realm_describe_cron_catchup",
+    "version": "20260802016000"
+  },
+  {
+    "name": "realm_llm_upsert_service_role_only",
+    "version": "20260802017000"
+  },
+  {
+    "name": "pause_realm_describe_cron_again",
+    "version": "20260802120000"
+  },
+  {
+    "name": "media_realm_membership_delta_v1",
+    "version": "20260802123000"
+  },
+  {
+    "name": "membership_delta_clamp_fix",
+    "version": "20260802124000"
+  },
+  {
+    "name": "membership_delta_check_float4",
+    "version": "20260802125000"
+  },
+  {
+    "name": "spirited_away_gate_harden",
+    "version": "20260802140000"
+  },
+  {
+    "name": "canon_bless_and_discover_realm_rails",
+    "version": "20260802141000"
+  },
+  {
+    "name": "curation_sources_expand_v1",
+    "version": "20260802150000"
+  },
+  {
+    "name": "similarity_penalty_and_costs",
+    "version": "20260804100000"
+  },
+  {
+    "name": "totoro_credits_and_studio_main",
+    "version": "20260804110000"
+  },
+  {
+    "name": "tier_from_effective_and_cron",
+    "version": "20260804120000"
+  },
+  {
+    "name": "rebuild_tier_execute_service_role_only",
+    "version": "20260804121000"
+  },
+  {
+    "name": "media_similar_titles_precompute",
+    "version": "20260804130000"
+  },
+  {
+    "name": "similar_builder_oom_fix",
+    "version": "20260804131000"
+  },
+  {
+    "name": "similar_driver_batch_100",
+    "version": "20260804132000"
+  },
+  {
+    "name": "franchise_components_and_blend_dedupe",
+    "version": "20260804140000"
+  },
+  {
+    "name": "hygiene_ops_fn_and_view_advisors",
+    "version": "20260804150000"
+  },
+  {
+    "name": "daily_feature_display_synopsis",
+    "version": "20260805100000"
+  },
+  {
+    "name": "realm_audit_overrides",
+    "version": "20260805110000"
+  },
+  {
+    "name": "realm_audit_override_conditional_swap",
+    "version": "20260805112000"
+  },
+  {
+    "name": "edges_first_serving",
+    "version": "20260805120000"
+  },
+  {
+    "name": "critique_ingestion_schema",
+    "version": "20260805130000"
+  },
+  {
+    "name": "entry_point_canonicalization",
+    "version": "20260805140000"
+  },
+  {
+    "name": "entry_point_upward_tier_substitution",
+    "version": "20260805150000"
+  },
+  {
+    "name": "security_and_mirror_repair",
+    "version": "20260806000000"
+  },
+  {
+    "name": "serving_fixes_v1",
+    "version": "20260806010000"
+  },
+  {
+    "name": "serving_hardening_v1",
+    "version": "20260806020000"
+  },
+  {
+    "name": "baseline_capture_v1",
+    "version": "20260807000000"
+  },
+  {
+    "name": "leftover_repairs_v1",
+    "version": "20260807010000"
+  },
+  {
+    "name": "clubs_trust_flags_promote_100",
+    "version": "20260810120000"
+  },
+  {
+    "name": "club_members_role_column_guard",
+    "version": "20261005120000"
+  },
+  {
+    "name": "club_rails_insert_admin_only",
+    "version": "20261005120100"
+  },
+  {
+    "name": "toggle_comment_reaction_visibility",
+    "version": "20261005120200"
+  },
+  {
+    "name": "import_apply_undo_transactions",
+    "version": "20261005130000"
+  },
+  {
+    "name": "account_deletion_write_barrier",
+    "version": "20261005140000"
+  },
+  {
+    "name": "club_membership_lifecycle_and_privacy",
+    "version": "20261005150000"
+  },
+  {
+    "name": "club_realtime_signals",
+    "version": "20261005160000"
+  },
+  {
+    "name": "user_lists_view_security_invoker",
+    "version": "20261005170000"
+  },
+  {
+    "name": "list_user_id_canonical_case",
+    "version": "20261005180000"
+  },
+  {
+    "name": "import_sessions_select_only",
+    "version": "20261006120000"
+  },
+  {
+    "name": "series_home_foundation_v1",
+    "version": "20261007040000"
+  },
+  {
+    "name": "feature_flag_overrides",
+    "version": "20261007120000"
+  },
+  {
+    "name": "series_account_lifecycle",
+    "version": "20261007130000"
+  },
+  {
+    "name": "import_status_fence_preserves_units",
+    "version": "20261008100000"
+  },
+  {
+    "name": "import_review_recovery_v2",
+    "version": "20261008110000"
+  },
+  {
+    "name": "release_schedule_and_themes_v2",
+    "version": "20261101000000"
+  },
+  {
+    "name": "perf_hotpaths",
+    "version": "20261101010000"
+  },
+  {
+    "name": "perf_drop_duplicate_indexes",
+    "version": "20261101010100"
+  },
+  {
+    "name": "bridge_identity_fix",
+    "version": "20261101020000"
+  },
+  {
+    "name": "contact_messages",
+    "version": "20261102100000"
+  },
+  {
+    "name": "character_voice_actors_v1",
+    "version": "20261103100000"
+  },
+  {
+    "name": "media_similar_v1",
+    "version": "20261103100100"
+  },
+  {
+    "name": "theme_links_apple_v1",
+    "version": "20261103100200"
+  },
+  {
+    "name": "discover_usability_v1",
+    "version": "20261104100000"
+  },
+  {
+    "name": "discover_mood_perf_v1",
+    "version": "20261104100100"
+  },
+  {
+    "name": "review_security_v1",
+    "version": "20261108120159"
+  },
+  {
+    "name": "catalog_intake_schedule_v1",
+    "version": "20261108120211"
+  }
+]

@@ -1,0 +1,680 @@
+[
+  {
+    "calls": 25790,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 597951.648976,
+    "mean_exec_time": 26105.6004073582,
+    "operation": [
+      "rebuild_media_similar_titles"
+    ],
+    "queryid": "-8797001082340220221",
+    "shape": null,
+    "shared_blks_hit": 20353934561,
+    "shared_blks_read": 145339345,
+    "temp_blks_written": 1494336147,
+    "total_exec_time": 673263434.505764
+  },
+  {
+    "calls": 1996,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 475401.363754,
+    "mean_exec_time": 7356.50454858467,
+    "operation": [
+      "rebuild_media_similar_titles"
+    ],
+    "queryid": "-3896595861041238975",
+    "shape": null,
+    "shared_blks_hit": 292137782,
+    "shared_blks_read": 9437804,
+    "temp_blks_written": 19415921,
+    "total_exec_time": 14683583.078975
+  },
+  {
+    "calls": 99,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 139495.991045,
+    "mean_exec_time": 134212.617016566,
+    "operation": [
+      "rebuild_media_realm_tier"
+    ],
+    "queryid": "2582459874571565942",
+    "shape": null,
+    "shared_blks_hit": 33354860,
+    "shared_blks_read": 669743,
+    "temp_blks_written": 553167,
+    "total_exec_time": 13287049.08464
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 69436.365883,
+    "mean_exec_time": 69436.365883,
+    "operation": [
+      "media_realm_membership",
+      "media_realm_membership_delta",
+      "media_realm_membership_effective",
+      "realm_audit_overrides"
+    ],
+    "queryid": "8663260955128525519",
+    "shape": null,
+    "shared_blks_hit": 1947939,
+    "shared_blks_read": 2,
+    "temp_blks_written": 0,
+    "total_exec_time": 69436.365883
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 68867.320074,
+    "mean_exec_time": 68867.320074,
+    "operation": [
+      "media_realm_membership_effective",
+      "realm_audit_overrides"
+    ],
+    "queryid": "1261216022860156106",
+    "shape": null,
+    "shared_blks_hit": 1941418,
+    "shared_blks_read": 0,
+    "temp_blks_written": 0,
+    "total_exec_time": 68867.320074
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 53424.540157,
+    "mean_exec_time": 53424.540157,
+    "operation": [
+      "media_realm_membership",
+      "media_realm_membership_delta",
+      "realm_meta"
+    ],
+    "queryid": "942941696067235783",
+    "shape": null,
+    "shared_blks_hit": 10829,
+    "shared_blks_read": 223,
+    "temp_blks_written": 2019,
+    "total_exec_time": 53424.540157
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 40946.028153,
+    "mean_exec_time": 40946.028153,
+    "operation": [
+      "media_realm_membership_effective"
+    ],
+    "queryid": "3495431708023869411",
+    "shape": null,
+    "shared_blks_hit": 963502,
+    "shared_blks_read": 0,
+    "temp_blks_written": 0,
+    "total_exec_time": 40946.028153
+  },
+  {
+    "calls": 97,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 34938.706375,
+    "mean_exec_time": 21235.1377384124,
+    "operation": [
+      "media_realm_membership"
+    ],
+    "queryid": "2513578264372708583",
+    "shape": null,
+    "shared_blks_hit": 72383824,
+    "shared_blks_read": 314850,
+    "temp_blks_written": 8936369,
+    "total_exec_time": 2059808.360626
+  },
+  {
+    "calls": 97,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 32852.436365,
+    "mean_exec_time": 16563.6720174124,
+    "operation": [
+      "media_tag_vectors"
+    ],
+    "queryid": "7669735568293383556",
+    "shape": null,
+    "shared_blks_hit": 44757084,
+    "shared_blks_read": 1605860,
+    "temp_blks_written": 2839628,
+    "total_exec_time": 1606676.185689
+  },
+  {
+    "calls": 9278,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 30917.761649,
+    "mean_exec_time": 35.788582737659,
+    "operation": [
+      "drain_taste_recompute_queue"
+    ],
+    "queryid": "8043747244698754564",
+    "shape": null,
+    "shared_blks_hit": 4579567,
+    "shared_blks_read": 11406,
+    "temp_blks_written": 11922,
+    "total_exec_time": 332046.470639999
+  },
+  {
+    "calls": 7,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 25539.427495,
+    "mean_exec_time": 22022.9415825714,
+    "operation": [
+      "refresh_discover_matviews_v"
+    ],
+    "queryid": "592028405430749256",
+    "shape": null,
+    "shared_blks_hit": 1822323,
+    "shared_blks_read": 203421,
+    "temp_blks_written": 144087,
+    "total_exec_time": 154160.591078
+  },
+  {
+    "calls": 25,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 14947.188823,
+    "mean_exec_time": 7431.72708648,
+    "operation": [],
+    "queryid": "8155291966402198186",
+    "shape": "select\n        case when not exists (\n          select $2\n          from pg_replication_sl",
+    "shared_blks_hit": 0,
+    "shared_blks_read": 0,
+    "temp_blks_written": 0,
+    "total_exec_time": 185793.177162
+  },
+  {
+    "calls": 637066,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 14930.779848,
+    "mean_exec_time": 17.1951811999262,
+    "operation": [],
+    "queryid": "-6556992292508814483",
+    "shape": "SELECT wal->>$5 as type,\n       wal->>$6 as schema,\n       wal->>$7 as table,\n       COALE",
+    "shared_blks_hit": 1136238194,
+    "shared_blks_read": 147,
+    "temp_blks_written": 0,
+    "total_exec_time": 10954465.3063118
+  },
+  {
+    "calls": 47,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 14452.741066,
+    "mean_exec_time": 3660.72335942553,
+    "operation": [],
+    "queryid": "-968257996675475524",
+    "shape": "select\n        case when not exists (\n          select $2\n          from pg_replication_sl",
+    "shared_blks_hit": 0,
+    "shared_blks_read": 0,
+    "temp_blks_written": 0,
+    "total_exec_time": 172053.997893
+  },
+  {
+    "calls": 11,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 10797.571437,
+    "mean_exec_time": 1015.17349545455,
+    "operation": [],
+    "queryid": "-3336291063495911736",
+    "shape": "select runid,status,start_time,end_time,round(extract($1 from(end_time-start_time))::numer",
+    "shared_blks_hit": 8144,
+    "shared_blks_read": 788,
+    "temp_blks_written": 0,
+    "total_exec_time": 11166.90845
+  },
+  {
+    "calls": 90,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 8797.576131,
+    "mean_exec_time": 3325.24120778889,
+    "operation": [
+      "mv_manga_newly_added"
+    ],
+    "queryid": "-3184538003301221482",
+    "shape": null,
+    "shared_blks_hit": 13364408,
+    "shared_blks_read": 1253687,
+    "temp_blks_written": 18519,
+    "total_exec_time": 299271.708701
+  },
+  {
+    "calls": 9311,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 7949.946694,
+    "mean_exec_time": 1239.22595461637,
+    "operation": [
+      "get_manga_chapter_enrich_candidates"
+    ],
+    "queryid": "-3272118731462632404",
+    "shape": null,
+    "shared_blks_hit": 133449020,
+    "shared_blks_read": 33666806,
+    "temp_blks_written": 0,
+    "total_exec_time": 11538432.863433
+  },
+  {
+    "calls": 330,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 7916.37715,
+    "mean_exec_time": 193.816649575758,
+    "operation": [
+      "search_manga_page"
+    ],
+    "queryid": "6568064326250814560",
+    "shape": null,
+    "shared_blks_hit": 547949,
+    "shared_blks_read": 8977,
+    "temp_blks_written": 0,
+    "total_exec_time": 63959.49436
+  },
+  {
+    "calls": 984,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 7861.418159,
+    "mean_exec_time": 289.989844654471,
+    "operation": [
+      "media_realm_llm_pending"
+    ],
+    "queryid": "1093793170265349656",
+    "shape": null,
+    "shared_blks_hit": 13321116,
+    "shared_blks_read": 2657438,
+    "temp_blks_written": 0,
+    "total_exec_time": 285350.00714
+  },
+  {
+    "calls": 92,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 7766.698449,
+    "mean_exec_time": 3721.17362718478,
+    "operation": [
+      "image_mirror_character_candidates"
+    ],
+    "queryid": "4431234196050940276",
+    "shape": null,
+    "shared_blks_hit": 3301311,
+    "shared_blks_read": 757277,
+    "temp_blks_written": 600,
+    "total_exec_time": 342347.973701
+  },
+  {
+    "calls": 1302,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 7658.675644,
+    "mean_exec_time": 49.5471222549923,
+    "operation": [
+      "series_detail_bundle_v"
+    ],
+    "queryid": "6757511713360139630",
+    "shape": null,
+    "shared_blks_hit": 329305,
+    "shared_blks_read": 13690,
+    "temp_blks_written": 0,
+    "total_exec_time": 64510.353176
+  },
+  {
+    "calls": 488,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 7638.246797,
+    "mean_exec_time": 486.727864959017,
+    "operation": [
+      "discover_bundle"
+    ],
+    "queryid": "5099827848241975764",
+    "shape": null,
+    "shared_blks_hit": 5396720,
+    "shared_blks_read": 717593,
+    "temp_blks_written": 0,
+    "total_exec_time": 237523.1981
+  },
+  {
+    "calls": 1538,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 7468.113089,
+    "mean_exec_time": 32.0415058016905,
+    "operation": [
+      "home_bundle_v"
+    ],
+    "queryid": "-2303394757629558354",
+    "shape": null,
+    "shared_blks_hit": 764880,
+    "shared_blks_read": 872,
+    "temp_blks_written": 0,
+    "total_exec_time": 49279.835923
+  },
+  {
+    "calls": 55,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 6430.780489,
+    "mean_exec_time": 506.670191345455,
+    "operation": [
+      "media_realm_llm_pending"
+    ],
+    "queryid": "499862737316323828",
+    "shape": null,
+    "shared_blks_hit": 745978,
+    "shared_blks_read": 132646,
+    "temp_blks_written": 0,
+    "total_exec_time": 27866.860524
+  },
+  {
+    "calls": 951,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 6390.233117,
+    "mean_exec_time": 65.9374068149315,
+    "operation": [
+      "browse_anime_page"
+    ],
+    "queryid": "9018964049468386471",
+    "shape": null,
+    "shared_blks_hit": 1288118,
+    "shared_blks_read": 49,
+    "temp_blks_written": 0,
+    "total_exec_time": 62706.473881
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 6272.708305,
+    "mean_exec_time": 6272.708305,
+    "operation": [
+      "manga"
+    ],
+    "queryid": "8436226807595570195",
+    "shape": null,
+    "shared_blks_hit": 67463,
+    "shared_blks_read": 3723,
+    "temp_blks_written": 0,
+    "total_exec_time": 6272.708305
+  },
+  {
+    "calls": 176,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 6180.753517,
+    "mean_exec_time": 66.8911074318182,
+    "operation": [
+      "recommend_ids_similar_to_seeds"
+    ],
+    "queryid": "142682763924351820",
+    "shape": null,
+    "shared_blks_hit": 2100373,
+    "shared_blks_read": 12038,
+    "temp_blks_written": 1789,
+    "total_exec_time": 11772.834908
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 5924.325927,
+    "mean_exec_time": 5924.325927,
+    "operation": [],
+    "queryid": "1059502720789200073",
+    "shape": "select json_build_object(\n $1, (select string_agg(column_name, $2) from information_schema",
+    "shared_blks_hit": 9668,
+    "shared_blks_read": 5810,
+    "temp_blks_written": 0,
+    "total_exec_time": 5924.325927
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 5893.900964,
+    "mean_exec_time": 5893.900964,
+    "operation": [
+      "anime",
+      "character_voice_actors",
+      "import_runs",
+      "manga"
+    ],
+    "queryid": "1841334153493566681",
+    "shape": null,
+    "shared_blks_hit": 5724,
+    "shared_blks_read": 1139,
+    "temp_blks_written": 0,
+    "total_exec_time": 5893.900964
+  },
+  {
+    "calls": 285,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 4985.449829,
+    "mean_exec_time": 219.437929091228,
+    "operation": [
+      "anime"
+    ],
+    "queryid": "-4419147450006307592",
+    "shape": null,
+    "shared_blks_hit": 3004318,
+    "shared_blks_read": 13516,
+    "temp_blks_written": 0,
+    "total_exec_time": 62539.809791
+  },
+  {
+    "calls": 647,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 4642.486271,
+    "mean_exec_time": 63.2327221839258,
+    "operation": [
+      "search_anime_page"
+    ],
+    "queryid": "-7589229712826916541",
+    "shape": null,
+    "shared_blks_hit": 594728,
+    "shared_blks_read": 561,
+    "temp_blks_written": 0,
+    "total_exec_time": 40911.571253
+  },
+  {
+    "calls": 11,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 4308.429134,
+    "mean_exec_time": 1366.37817336364,
+    "operation": [
+      "chapters"
+    ],
+    "queryid": "-5718867018333126106",
+    "shape": null,
+    "shared_blks_hit": 57157,
+    "shared_blks_read": 14532,
+    "temp_blks_written": 0,
+    "total_exec_time": 15030.159907
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 4090.224561,
+    "mean_exec_time": 4090.224561,
+    "operation": [
+      "anime"
+    ],
+    "queryid": "7014744006222702987",
+    "shape": null,
+    "shared_blks_hit": 39927,
+    "shared_blks_read": 1758,
+    "temp_blks_written": 0,
+    "total_exec_time": 4090.224561
+  },
+  {
+    "calls": 976,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 3953.580748,
+    "mean_exec_time": 515.785602505123,
+    "operation": [
+      "chapters"
+    ],
+    "queryid": "8409293128076415810",
+    "shape": null,
+    "shared_blks_hit": 12387724,
+    "shared_blks_read": 341853,
+    "temp_blks_written": 0,
+    "total_exec_time": 503406.748045
+  },
+  {
+    "calls": 937,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 3842.413865,
+    "mean_exec_time": 773.314555263607,
+    "operation": [
+      "episodes"
+    ],
+    "queryid": "-2942683019664436399",
+    "shape": null,
+    "shared_blks_hit": 2440813,
+    "shared_blks_read": 346201,
+    "temp_blks_written": 0,
+    "total_exec_time": 724595.738281999
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 3815.926345,
+    "mean_exec_time": 3815.926345,
+    "operation": [],
+    "queryid": "-1917760933167913683",
+    "shape": "select m.id, m.title_english, m.title_romaji, m.status, m.popularity, (select count(*) fro",
+    "shared_blks_hit": 4694,
+    "shared_blks_read": 5606,
+    "temp_blks_written": 0,
+    "total_exec_time": 3815.926345
+  },
+  {
+    "calls": 90,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 3661.727156,
+    "mean_exec_time": 3163.24056954444,
+    "operation": [
+      "mv_anime_trending"
+    ],
+    "queryid": "-1827392617710207541",
+    "shape": null,
+    "shared_blks_hit": 1584059,
+    "shared_blks_read": 112278,
+    "temp_blks_written": 0,
+    "total_exec_time": 284691.651259
+  },
+  {
+    "calls": 35,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 3615.300431,
+    "mean_exec_time": 778.830985028571,
+    "operation": [
+      "fetch_taste_deck_batch"
+    ],
+    "queryid": "-5726352431060983015",
+    "shape": null,
+    "shared_blks_hit": 1035492,
+    "shared_blks_read": 118692,
+    "temp_blks_written": 0,
+    "total_exec_time": 27259.084476
+  },
+  {
+    "calls": 90,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 3522.022065,
+    "mean_exec_time": 2497.73585222222,
+    "operation": [
+      "mv_anime_newly_added"
+    ],
+    "queryid": "1367172117836610478",
+    "shape": null,
+    "shared_blks_hit": 6168142,
+    "shared_blks_read": 144917,
+    "temp_blks_written": 9800,
+    "total_exec_time": 224796.2267
+  },
+  {
+    "calls": 1,
+    "jit_emission_time": 0,
+    "jit_functions": 0,
+    "jit_generation_time": 0,
+    "max_exec_time": 3518.989515,
+    "mean_exec_time": 3518.989515,
+    "operation": [
+      "catalogue_search_blob_v",
+      "manga"
+    ],
+    "queryid": "-7527792943403504303",
+    "shape": null,
+    "shared_blks_hit": 491924,
+    "shared_blks_read": 0,
+    "temp_blks_written": 0,
+    "total_exec_time": 3518.989515
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "approved_manifest_sha256": "104df5ecd86f2a6ef5fd5b4127ef5f98ae3112d57f7ed95d7b66c3787547565b",
+  "one_restart_limit": 1,
+  "recorded_at": "2026-11-09T13:43:28.419521+00:00",
+  "reviewed_scope": "DEPLOYMENT.md",
+  "user_answer": "Explicit user reply: Approve reviewed production plan"
+}

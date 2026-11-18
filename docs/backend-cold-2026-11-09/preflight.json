@@ -1,0 +1,161 @@
+{
+  "checked_at": "2026-11-09T12:32:52.243616+00:00",
+  "cold_start_qualification": "NOT ESTABLISHED; actual cache/connection/host scope must be explicitly verified, no prewarming or warmup exclusion.",
+  "extensions": [
+    {
+      "extname": "pg_stat_statements",
+      "extversion": "1.11"
+    },
+    {
+      "extname": "pg_trgm",
+      "extversion": "1.6"
+    }
+  ],
+  "functions": [
+    {
+      "slug": "bulk-import-anime",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 87
+    },
+    {
+      "slug": "bulk-import-manga",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 85
+    },
+    {
+      "slug": "concierge-parse",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 49
+    },
+    {
+      "slug": "concierge-recommend",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 55
+    },
+    {
+      "slug": "concierge-resolve",
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "version": 20
+    }
+  ],
+  "pool": {
+    "db_pool": 3,
+    "db_pool_acquisition_timeout": 10,
+    "max_rows": 1000
+  },
+  "project": {
+    "id": "bkdifromsqxkndnllmdj",
+    "region": "eu-central-1",
+    "status": "ACTIVE_HEALTHY"
+  },
+  "reader_definitions": [
+    {
+      "proconfig": [
+        "search_path=public, extensions"
+      ],
+      "prosecdef": true,
+      "provolatile": "s",
+      "sha256": "1575864d3ddadd19a128aa84090c49d040c31d0d93919f896d6af6fbe195946a",
+      "signature": "_discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)"
+    },
+    {
+      "proconfig": [
+        "search_path=public, extensions"
+      ],
+      "prosecdef": false,
+      "provolatile": "i",
+      "sha256": "8332cd74a308d4839b96d84ebaa307b6ff93dd8e8435c248698100e98f0dcf18",
+      "signature": "catalogue_search_blob_v1(text,text,text)"
+    },
+    {
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "prosecdef": true,
+      "provolatile": "v",
+      "sha256": "575931d98b9ecfdd78735d41cb597a7d62704cccb8adb8e0b59c29b743cf87e2",
+      "signature": "discover_bundle(integer,integer)"
+    },
+    {
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off"
+      ],
+      "prosecdef": true,
+      "provolatile": "s",
+      "sha256": "0aa351c96377c65880dee86cee1c18b8c2d5597d2c64779178afcbe88c08f4a7",
+      "signature": "discover_mood_v1(text,text,integer,integer)"
+    },
+    {
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off",
+        "pg_trgm.similarity_threshold=0.3"
+      ],
+      "prosecdef": true,
+      "provolatile": "s",
+      "sha256": "36df30f50338e324c89b4996be29798e3ed9187a49462b205eed514be6226cc4",
+      "signature": "search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)"
+    },
+    {
+      "proconfig": [
+        "search_path=public, extensions",
+        "jit=off",
+        "pg_trgm.similarity_threshold=0.3"
+      ],
+      "prosecdef": true,
+      "provolatile": "s",
+      "sha256": "f513d75ed306769ed5a6e02c07ba2d53f266394f6d3f251be612c6bfd01c24e0",
+      "signature": "search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)"
+    }
+  ],
+  "remote_mutations": false,
+  "settings": [
+    {
+      "name": "effective_cache_size",
+      "setting": "98304",
+      "unit": "8kB"
+    },
+    {
+      "name": "jit",
+      "setting": "off",
+      "unit": null
+    },
+    {
+      "name": "max_parallel_workers_per_gather",
+      "setting": "1",
+      "unit": null
+    },
+    {
+      "name": "plan_cache_mode",
+      "setting": "auto",
+      "unit": null
+    },
+    {
+      "name": "server_version",
+      "setting": "17.6",
+      "unit": null
+    },
+    {
+      "name": "shared_buffers",
+      "setting": "32768",
+      "unit": "8kB"
+    },
+    {
+      "name": "track_io_timing",
+      "setting": "off",
+      "unit": null
+    },
+    {
+      "name": "work_mem",
+      "setting": "3500",
+      "unit": "kB"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "available_extension": [
+    {
+      "default_version": "1.5",
+      "installed_version": null,
+      "name": "pg_buffercache"
+    }
+  ],
+  "checked_at": "2026-11-09T12:51:54.239258+00:00",
+  "installed_or_changed": false
+}

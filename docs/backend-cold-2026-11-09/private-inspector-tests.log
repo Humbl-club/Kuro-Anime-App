@@ -1,0 +1,31 @@
+BEGIN
+SET
+SET
+SET
+DO
+CREATE SCHEMA
+REVOKE
+CREATE EXTENSION
+DO
+COMMIT
+ALTER FUNCTION
+SET
+GRANT
+GRANT
+RESET
+GRANT
+SET
+REVOKE
+RESET
+DO
+Private metadata observer detects warm public data
+Private metadata observer verifies zero public/TOAST buffers after local restart
+BEGIN
+SET
+SET
+SET
+DROP EXTENSION
+DROP SCHEMA
+COMMIT
+DO
+Private inspector tests PASS: managed grantor split emulated, clients denied before function resolution, non-superuser monitor can read, warm/cold states, exact removal. Zero eviction calls.

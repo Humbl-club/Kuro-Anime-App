@@ -28,7 +28,16 @@ venv/
 
 # Editor
 .vscode/
-.claude/
+# Share only reviewed project adapters; personal settings and runtime state stay local.
+.claude/*
+!.claude/settings.json
+!.claude/adapter.json
+!.claude/agents/
+.claude/agents/*
+!.claude/agents/*.md
+!.claude/rules/
+.claude/rules/*
+!.claude/rules/*.md
 
 # Local artifacts
 *.bak

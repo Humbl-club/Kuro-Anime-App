@@ -10,9 +10,12 @@ import KuroLibrary
 /// - `user_id` is `UserIdText.value(for:)` (the canonical lower-case TEXT id, F16); RLS enforces
 ///   ownership, and the explicit `user_id` filter keeps a request sent with another account's token
 ///   from matching any row (defence in depth for F33).
+/// - The repeat count and the started / finished dates are written as `repeat_count`, `started_raw` and
+///   `finished_raw` (a date is its canonical `PartialDate.raw`; `.clear` is an explicit `null`). They are
+///   selected on every read, with the fence on or off, so an entry's dates are always known.
 /// - When `fence` is set and `fenceEnabled` is true, progress, status and removal go through
-///   `apply_progress_mutations_v1` / `apply_remove_mutations_v1`. Notes, rating and verdict stay
-///   on PATCH; that PATCH still advances `server_revision`, so a progress mutation holding the
+///   `apply_progress_mutations_v1` / `apply_remove_mutations_v1`. Notes, rating, verdict, repeat count and
+///   dates stay on PATCH; that PATCH still advances `server_revision`, so a progress mutation holding the
 ///   previous base revision conflicts.
 /// - With the fence off, PATCH and DELETE stay the writers. That is the production path until
 ///   `series_foundation_v1` is enabled after the prepared migration is deployed.
@@ -384,6 +387,18 @@ public struct SupabaseLibraryBackend: LibraryBackend {
         case .clear: body["verdict"] = .null
         case .unchanged: break
         }
+        // `repeatCount` is NOT NULL (`LibraryEdit.validationError` rejects `.clear` before any request).
+        if case .set(let count) = edit.repeatCount { body["repeat_count"] = .int(count) }
+        switch edit.startedOn {
+        case .set(let date): body["started_raw"] = .string(date.raw)
+        case .clear: body["started_raw"] = .null
+        case .unchanged: break
+        }
+        switch edit.finishedOn {
+        case .set(let date): body["finished_raw"] = .string(date.raw)
+        case .clear: body["finished_raw"] = .null
+        case .unchanged: break
+        }
         return body
     }
 
@@ -471,13 +486,31 @@ struct ListTable: Sendable {
 
     var name: String { kind == .anime ? "anime_user_lists" : "manga_user_lists" }
     var mediaColumn: String { kind == .anime ? "anime_id" : "manga_id" }
+    /// The repeat count and both dates are always selected (editable fields, `LibraryEntry.datesKnown`),
+    /// so the fence suffix does not repeat them.
     var columns: String {
-        var base = "id,user_id,\(mediaColumn),list_type,progress,rating,notes,verdict,created_at,updated_at"
+        var base = "id,user_id,\(mediaColumn),list_type,progress,rating,notes,verdict,created_at,updated_at,repeat_count,started_raw,finished_raw"
         if includeFenceColumns {
-            base += ",server_revision,lifecycle_id,progress_label,unit_id,repeat_count,score_raw,score_scale,started_raw,finished_raw,entry_private,source_custom_lists,source_hidden,source_list_options"
+            base += ",server_revision,lifecycle_id,progress_label,unit_id,score_raw,score_scale,entry_private,source_custom_lists,source_hidden,source_list_options"
             if kind == .manga { base += ",volumes_progress" }
         }
         return base
+    }
+
+    /// Always present, so the entry's dates are known (empty means none). With the fence off only the
+    /// repeat count and dates are set; the other retained source fields are not selected and stay `nil`.
+    private func sourceMetadata(from row: LibraryRow) -> LibrarySourceMetadata {
+        guard includeFenceColumns else {
+            return LibrarySourceMetadata(
+                repeatCount: row.repeatCount, startedRaw: row.startedRaw, finishedRaw: row.finishedRaw
+            )
+        }
+        return LibrarySourceMetadata(
+            volumesProgress: row.volumesProgress, repeatCount: row.repeatCount, scoreRaw: row.scoreRaw?.value,
+            scoreScale: row.scoreScale, startedRaw: row.startedRaw, finishedRaw: row.finishedRaw,
+            isPrivate: row.entryPrivate, customLists: row.sourceCustomLists, hiddenFromStatusLists: row.sourceHidden,
+            sourceListOptions: row.sourceListOptions
+        )
     }
 
     /// Row -> entry. A rating outside 1...10 or an unknown verdict cannot pass the table's CHECK
@@ -500,11 +533,7 @@ struct ListTable: Sendable {
             lifecycleId: row.lifecycleId,
             progressLabel: row.progressLabel,
             unitId: row.unitId,
-            sourceMetadata: includeFenceColumns ? LibrarySourceMetadata(volumesProgress: row.volumesProgress,
-                repeatCount: row.repeatCount, scoreRaw: row.scoreRaw?.value, scoreScale: row.scoreScale,
-                startedRaw: row.startedRaw, finishedRaw: row.finishedRaw, isPrivate: row.entryPrivate,
-                customLists: row.sourceCustomLists, hiddenFromStatusLists: row.sourceHidden,
-                sourceListOptions: row.sourceListOptions) : nil
+            sourceMetadata: sourceMetadata(from: row)
         )
     }
 }

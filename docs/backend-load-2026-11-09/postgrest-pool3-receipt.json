@@ -1,0 +1,32 @@
+{
+  "after_safe": {
+    "db_extra_search_path": "public, extensions",
+    "db_pool": 3,
+    "db_pool_acquisition_timeout": 10,
+    "db_pool_max_idletime": 30,
+    "db_pool_max_lifetime": 1800,
+    "db_schema": "public,graphql_public",
+    "max_rows": 1000
+  },
+  "before_safe": {
+    "db_extra_search_path": "public, extensions",
+    "db_pool": 6,
+    "db_pool_acquisition_timeout": 10,
+    "db_pool_max_idletime": 30,
+    "db_pool_max_lifetime": 1800,
+    "db_schema": "public,graphql_public",
+    "max_rows": 1000
+  },
+  "checked_at": "2026-11-09T10:30:28.267688+00:00",
+  "compute_or_billing_mutation": false,
+  "nonsecret_changed_fields": [
+    "db_pool"
+  ],
+  "provider_message": "Configuration update exceeded expected time frame; application uncertain until readback",
+  "provider_update_http_status": 500,
+  "readback_pool": 3,
+  "requested_patch": {
+    "db_pool": 3
+  },
+  "signing_secret_byte_comparison": "Not retained across failed process; existing JWTs still validate, no credential mutation requested. Do not claim byte-identical comparison for this failed request."
+}

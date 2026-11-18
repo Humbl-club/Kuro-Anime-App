@@ -1,0 +1,97 @@
+{
+  "profile": "capacity-sequence-r12",
+  "samples": [
+    {
+      "active": 0,
+      "blks_hit": 22704644216,
+      "blks_read": 233496751,
+      "checked_at": "2026-11-09 11:09:21.884623+00",
+      "connections": 9,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108488924223
+    },
+    {
+      "active": 0,
+      "blks_hit": 22704735550,
+      "blks_read": 233504369,
+      "checked_at": "2026-11-09 11:09:32.214219+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108488924223
+    },
+    {
+      "active": 0,
+      "blks_hit": 22704814893,
+      "blks_read": 233505194,
+      "checked_at": "2026-11-09 11:09:42.618613+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108488924223
+    },
+    {
+      "active": 1,
+      "blks_hit": 22704874164,
+      "blks_read": 233506019,
+      "checked_at": "2026-11-09 11:09:52.973581+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0.501225",
+      "temp_bytes": 8108488924223
+    },
+    {
+      "active": 1,
+      "blks_hit": 22705031346,
+      "blks_read": 233508563,
+      "checked_at": "2026-11-09 11:10:03.504935+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "-0.004714",
+      "temp_bytes": 8108497081447
+    },
+    {
+      "active": 0,
+      "blks_hit": 22705106123,
+      "blks_read": 233509584,
+      "checked_at": "2026-11-09 11:10:14.348374+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108497081447
+    },
+    {
+      "active": 0,
+      "blks_hit": 22705127204,
+      "blks_read": 233509739,
+      "checked_at": "2026-11-09 11:10:24.730403+00",
+      "connections": 10,
+      "deadlocks": 0,
+      "generator_interface": "en0",
+      "lock_waiters": 0,
+      "max_connections": 60,
+      "oldest_active_seconds": "0",
+      "temp_bytes": 8108497081447
+    }
+  ],
+  "stopped": false
+}

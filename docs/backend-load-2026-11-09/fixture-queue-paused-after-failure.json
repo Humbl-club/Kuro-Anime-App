@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-11-09T00:39:02.294916+00:00",
+  "reason": "Prevent disposable test backlog from repeating the long periodic batch while awaiting the separately required worker deployment approval. Ordinary users and cron configuration untouched. Requeue controlled fixture work for the resumed qualification.",
+  "result": [
+    {
+      "removed_fixture_queue_rows": 80
+    }
+  ]
+}

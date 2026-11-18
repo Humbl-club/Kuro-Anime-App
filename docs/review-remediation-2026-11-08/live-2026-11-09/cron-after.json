@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-11-08T23:51:17.071275+00:00",
+  "jobs": [
+    {
+      "active": true,
+      "jobid": 104,
+      "jobname": "kuro-import-manga-weekly",
+      "schedule": "10 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 101,
+      "jobname": "kuro-import-anime-hourly",
+      "schedule": "5 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 102,
+      "jobname": "kuro-import-anime-weekly",
+      "schedule": "0 * * * *",
+      "username": "postgres"
+    },
+    {
+      "active": true,
+      "jobid": 103,
+      "jobname": "kuro-import-manga-hourly",
+      "schedule": "35 * * * *",
+      "username": "postgres"
+    }
+  ],
+  "original_jobs_schedules_credentials_preserved": true
+}

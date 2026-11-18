@@ -1,0 +1,5 @@
+Test case 'SessionSDKTests/failedEmailSignInPublishesOnlyTheMessage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.210 seconds)
+Test case 'SessionSDKTests/expiredSavedSessionRestore(offline:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.253 seconds)
+Test case 'SessionSDKTests/initialSessionReconcilesRegistrationGap()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.293 seconds)
+Test case 'SessionSDKTests/appleSignInThroughTheSDK()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.314 seconds)
+Test case 'SessionSDKTests/signUpThroughTheSDK()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.317 seconds)

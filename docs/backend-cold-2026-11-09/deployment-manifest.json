@@ -1,0 +1,187 @@
+{
+  "status": "DEPLOYED_VERIFIED_ONE_RESTART_NOT_COLD_UNQUALIFIED_CLEANED",
+  "created_at": "2026-11-09T12:53:29.876718+00:00",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "migration": "supabase/migrations/20261109123758_cold_catalogue_reads_v1.sql",
+  "files": [
+    {
+      "path": "supabase/migrations/20261109123758_cold_catalogue_reads_v1.sql",
+      "sha256": "c1acc7f38a955b87a66b4283f0369ca35a897b75c6efde6f33010aa47b9c9278",
+      "original_review_path": "supabase/prepared-migrations/20261109123758_cold_catalogue_reads_v1.sql"
+    },
+    {
+      "path": "scripts/load/backend_cold_gate.js",
+      "sha256": "f9f342b5fd3abd3957fd780f69b823ec30fa295cd1385a8548d7d35e2f2d38ae"
+    },
+    {
+      "path": "scripts/load/backend_cold_gate.test.js",
+      "sha256": "8cb9b67047a954609abd765191090f0f1deea2bd60ec80a95dc8b3f616d19ca6"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/INSTALL-CACHE-INSPECTION.sql",
+      "sha256": "bfaa02fc35a0148a4d869ae4df57b27bc821492206ddca25e79370fa803b0a4c"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/READ-CACHE-STATE.sql",
+      "sha256": "a9f8b0d2305bebcb17937e4a18aef7d0dd91725a79fb49ee1aeed6a48af0fa25"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/REMOVE-CACHE-INSPECTION.sql",
+      "sha256": "edb8dea9c3c8c1fdf4a391fa44dc510b68fb99f78759fd290790a09d58173bc2"
+    }
+  ],
+  "edge_same_source_redeploys": {
+    "concierge-parse": [
+      {
+        "path": "supabase/functions/_shared/alias_normalization.ts",
+        "sha256": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673"
+      },
+      {
+        "path": "supabase/functions/_shared/normalization.ts",
+        "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+      },
+      {
+        "path": "supabase/functions/_shared/rate_limit_gate.ts",
+        "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/handler.ts",
+        "sha256": "8303c891879839cbe9ac0613f797d257e67c5c19e6324ff769bae82653c054d3"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/index.ts",
+        "sha256": "c55a8f3cba01e7fcb6e0b993abcecc0c605b1f0cf01715c117039bca3bccac47"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/parse_repository.ts",
+        "sha256": "248dacd964388c905f6924b2d8219fd6cc63496cb8e6b79e0b6d40b661c72c41"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/rules.ts",
+        "sha256": "9750d2134cb72944d0593974b3cd269a3ec3ce8840ee332c479321bc55ed27e9"
+      },
+      {
+        "path": "supabase/functions/concierge-parse/search_plan.ts",
+        "sha256": "f6ed30f6306074d5a63195cc7a5546106a9fb6a63bdff371e899d8ed74019276"
+      }
+    ],
+    "concierge-recommend": [
+      {
+        "path": "supabase/functions/_shared/rate_limit_gate.ts",
+        "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+        "sha256": "49b88d972cec80199a86ef58bca6cf0f17fb5d77300d50af918484c9ad7af92b"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/curated_copy.ts",
+        "sha256": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/handler.ts",
+        "sha256": "f70117167f7292b6f9ac317a01ecd62db04aef950d771e311eea846f9fcf3824"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/index.ts",
+        "sha256": "4792b3d7cec776723bd6d77ecdf06dd690146187a40b884b2615f5e85c3bd6ed"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/narration.ts",
+        "sha256": "0cbe95a6aeaf2be35641d9c018db6f524a785e10e5b190666c6f6476e541dd1a"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/rail_policy.ts",
+        "sha256": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141"
+      },
+      {
+        "path": "supabase/functions/concierge-recommend/router.ts",
+        "sha256": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921"
+      }
+    ]
+  },
+  "edge_versions_before": {
+    "concierge-parse": 49,
+    "concierge-recommend": 55
+  },
+  "new_indexes": 5,
+  "new_tables": 0,
+  "rpc_bodies_changed": 0,
+  "function_settings_changed": 2,
+  "production_restart_count_limit": 1,
+  "temporary_cache_inspector": "REMOVED with own private schema using RESTRICT; private namespace denied client resolution; no eviction calls",
+  "slo_changes": false,
+  "fixture_accounts_to_create": 100,
+  "prior_fixtures": "All600 identities/30clubs across six cohorts independently clean; no tokens; only existing seven-day security barriers retained",
+  "workload_source_files": [
+    {
+      "path": "scripts/load_test_backend.js",
+      "sha256": "94206b69d6873299883e20eced96ad348cbf1be3faeb23e815e364f2232eabc5"
+    },
+    {
+      "path": "scripts/load/backend_curl_fetch.js",
+      "sha256": "fae13150bef40eefb79d964d74434790e58f9bda9b885706c096b888fcfbda12"
+    },
+    {
+      "path": "scripts/load/backend_fixture.js",
+      "sha256": "38fb3352107a771fd2a06f6ac62f45e2db3a99dc52bc801959b48a05766f4750"
+    },
+    {
+      "path": "scripts/load/backend_fixture.test.js",
+      "sha256": "a74289b7f40353e670aa24520ac784c36d4c7265e9b05f4ddc75e977c371f8ce"
+    },
+    {
+      "path": "scripts/load/backend_runner.test.js",
+      "sha256": "4132eccf8bb36fd44263a1fade29ac2de33195d17ca293ece363d0c0c3990f35"
+    },
+    {
+      "path": "scripts/load/backend_transport.test.js",
+      "sha256": "8753f0fff6c9ce1199c337fbd062f742ce98ef6f2b208d74a3d64bea3456149d"
+    },
+    {
+      "path": "scripts/load/backend_workload.js",
+      "sha256": "475a3062c175afb0f77e898d1535f625f2e746285eae6aebfbf1f93fb0907260"
+    },
+    {
+      "path": "scripts/load/backend_workload.test.js",
+      "sha256": "413bb5658b142a89285a7a996e80b730134b3fde51bc37d8f1a74922655737a5"
+    }
+  ],
+  "workload_changes": [
+    "Decouple mood from media so both media cover all3 moods",
+    "Alternate club bundle/list by actor round so odd-index large members are covered"
+  ],
+  "cold_expected_route_variants": 20,
+  "cold_expected_joint_route_library_cells": 79,
+  "local_checks": {
+    "native_sql_assertions": 79,
+    "existing_sql_assertions": 5,
+    "existing_query_differential_cases": 74,
+    "live_read_only_counterbalanced_cases": 14,
+    "offline_node_tests": 27,
+    "cache_inspection_assertions": 8
+  },
+  "frozen_at": "2026-11-09T13:05:22.832293+00:00",
+  "independent_review": "independent-review.json",
+  "deployed_migration": "supabase/migrations/20261109123758_cold_catalogue_reads_v1.sql",
+  "deployed_migration_sha256": "c1acc7f38a955b87a66b4283f0369ca35a897b75c6efde6f33010aa47b9c9278",
+  "inspector_adaptation": "inspector-private-schema-adaptation.json",
+  "inspector_current_namespace": null,
+  "approval_received": true,
+  "deployment_receipt": "deployment-receipt.json",
+  "cold_capacity_qualified": false,
+  "load_offered_starts": 0,
+  "actual_restart_requests": 1,
+  "restart_allowance_remaining": 0,
+  "current_edge_versions": {
+    "concierge-parse": 50,
+    "concierge-recommend": 56
+  },
+  "fixture_cleanup": "cleanup-verification-all-six-cohorts.json",
+  "cold_attempt": "cold1-sequence.json",
+  "final_live_state": "final-live-state-cold1.json",
+  "outcome_report": "REPORT.md",
+  "migration_original_review_path": "supabase/prepared-migrations/20261109123758_cold_catalogue_reads_v1.sql",
+  "approved_structured_manifest_snapshot": "approved-manifest-snapshot.json",
+  "post_attempt_checks": "post-attempt-final-checks.json"
+}

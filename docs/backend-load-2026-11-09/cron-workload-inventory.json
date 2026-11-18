@@ -1,0 +1,205 @@
+[
+  {
+    "active": true,
+    "jobid": 15,
+    "jobname": "kuro-import-runs-retention",
+    "operation": "other",
+    "schedule": "10 1 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 16,
+    "jobname": "concierge_housekeeping_daily",
+    "operation": "other",
+    "schedule": "0 4 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 18,
+    "jobname": "rag-cache-cleanup",
+    "operation": "other",
+    "schedule": "15 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 30,
+    "jobname": "cleanup-cron-history",
+    "operation": "other",
+    "schedule": "0 5 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 35,
+    "jobname": "manga-source-review-auto-expire-daily",
+    "operation": "other",
+    "schedule": "20 4 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 37,
+    "jobname": "taste-profile-drain-15m",
+    "operation": "other",
+    "schedule": "*/15 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 43,
+    "jobname": "outbound-link-ledger-retention",
+    "operation": "other",
+    "schedule": "40 4 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 44,
+    "jobname": "taste-tag-vectors-refresh",
+    "operation": "other",
+    "schedule": "50 3 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 45,
+    "jobname": "taste-tag-stats-decay",
+    "operation": "other",
+    "schedule": "10 4 * * 0"
+  },
+  {
+    "active": true,
+    "jobid": 51,
+    "jobname": "realm-tier-refresh",
+    "operation": "other",
+    "schedule": "50 4 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 87,
+    "jobname": "realm-similar-drive-5m",
+    "operation": "similarity graph rebuild",
+    "schedule": "*/5 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 99,
+    "jobname": "realm-membership-refresh",
+    "operation": "other",
+    "schedule": "30 4 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 100,
+    "jobname": "realm-affinity-refresh",
+    "operation": "other",
+    "schedule": "40 4 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 101,
+    "jobname": "kuro-import-anime-hourly",
+    "operation": "HTTP dispatch",
+    "schedule": "5 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 102,
+    "jobname": "kuro-import-anime-weekly",
+    "operation": "HTTP dispatch",
+    "schedule": "0 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 103,
+    "jobname": "kuro-import-manga-hourly",
+    "operation": "HTTP dispatch",
+    "schedule": "35 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 104,
+    "jobname": "kuro-import-manga-weekly",
+    "operation": "HTTP dispatch",
+    "schedule": "10 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 106,
+    "jobname": "mirror-images-anime-manga-0",
+    "operation": "HTTP dispatch",
+    "schedule": "0 2 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 107,
+    "jobname": "mirror-images-anime-manga-200",
+    "operation": "HTTP dispatch",
+    "schedule": "15 2 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 108,
+    "jobname": "mirror-images-anime-manga-400",
+    "operation": "HTTP dispatch",
+    "schedule": "30 2 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 109,
+    "jobname": "mirror-images-character",
+    "operation": "HTTP dispatch",
+    "schedule": "45 2 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 110,
+    "jobname": "mirror-images-staff",
+    "operation": "HTTP dispatch",
+    "schedule": "0 3 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 111,
+    "jobname": "manga-chapter-enrich-nightly-sweep",
+    "operation": "HTTP dispatch",
+    "schedule": "35 3 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 112,
+    "jobname": "manga-chapter-enrich-15m",
+    "operation": "HTTP dispatch",
+    "schedule": "*/15 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 114,
+    "jobname": "kuro-refresh-matviews",
+    "operation": "matview refresh",
+    "schedule": "30 1 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 115,
+    "jobname": "realm-similar-nightly",
+    "operation": "other",
+    "schedule": "10 5 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 116,
+    "jobname": "kuro-release-intake-airing-hourly",
+    "operation": "HTTP dispatch",
+    "schedule": "25 * * * *"
+  },
+  {
+    "active": true,
+    "jobid": 117,
+    "jobname": "kuro-release-intake-manga-daily",
+    "operation": "HTTP dispatch",
+    "schedule": "50 3 * * *"
+  },
+  {
+    "active": true,
+    "jobid": 119,
+    "jobname": "contact-messages-retention",
+    "operation": "other",
+    "schedule": "50 4 * * *"
+  }
+]

@@ -60,6 +60,7 @@ struct ProfileView: View {
     @State private var showImportWorkflow = false
     @State private var importWorkflowJob: ImportOutcome?
     @State private var showContact = false
+    @State private var showExport = false
     @State private var showImportChooser = false
     @State private var streamingObservability: ProviderAvailabilityStore.StreamingObservabilitySnapshot? = nil
     @State private var isRefreshingStreamingObservability: Bool = false
@@ -193,6 +194,13 @@ struct ProfileView: View {
             ContactSheet()
                 .environment(\.shellPageLifetime, nil)
         }
+        // Export your list (W2): a tool sheet over Profile, registered as a navigation layer (N10).
+        .sheet(isPresented: $showExport) {
+            LibraryExportSheet()
+                .kuroLeavesJourney()
+                .environment(\.shellPageLifetime, nil)
+        }
+        .kuroNavigationLayer("profile.export", isPresented: $showExport)
         .sheet(isPresented: $showImportChooser) {
             ImportSourceChooser { destination in
                 showImportChooser = false
@@ -624,6 +632,18 @@ struct ProfileView: View {
                 ) {
                     profileActionScope.launch(origin: ticket, session: imports.accountSession) { origin in
                         await session.signOut(expectedAccount: origin.account)
+                    }
+                }
+
+                // W2: behind `library_export_v1` (default off); the owner checks the flag again before it
+                // sends anything.
+                if flags.libraryExportV1Enabled {
+                    rowHairline
+                    ProfileQuietRow(
+                        title: LibraryExportCopy.rowTitle(german: german),
+                        subtitle: LibraryExportCopy.rowSubtitle(german: german)
+                    ) {
+                        showExport = true
                     }
                 }
 

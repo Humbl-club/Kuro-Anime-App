@@ -1,0 +1,523 @@
+{
+  "checked_at": "2026-11-09T14:09:02.891289+00:00",
+  "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+  "public_cached_blocks": 4834,
+  "public_relation_buffers": [
+    {
+      "cached_blocks": 1203,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "anime"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "anime_anilist_id_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "anime_kitsu_id_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "anime_mal_id_key"
+    },
+    {
+      "cached_blocks": 36,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "anime_pkey"
+    },
+    {
+      "cached_blocks": 479,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "anime_tags"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "anime_tags_anime_id_tag_id_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "anime_tags_pkey"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_average_score"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_created_at"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_load_created_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_load_popular_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_load_score_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_load_trending_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_next_airing_at"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_popularity"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_popularity_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_safety_blocked"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_safety_queue"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_score_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_season_year"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_season_year_popularity_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_status"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_status_popularity_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_synopsis_enhanced_queue"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_synopsis_retry_queue"
+    },
+    {
+      "cached_blocks": 68,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_tags_anime_id"
+    },
+    {
+      "cached_blocks": 4,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_tags_tag_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_title_english"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_title_romaji"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_trending"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_anime_trending_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_average_score"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_created_at"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_load_created_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_load_popular_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_load_score_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_load_trending_v1"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_next_chapter"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_popularity"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_popularity_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_safety_blocked"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_safety_queue"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_score_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_status"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_status_popularity_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_synopsis_enhanced_queue"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_synopsis_retry_queue"
+    },
+    {
+      "cached_blocks": 33,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_tags_manga_id"
+    },
+    {
+      "cached_blocks": 4,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_tags_tag_id"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_title_english"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_title_romaji"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_trending"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_manga_trending_id"
+    },
+    {
+      "cached_blocks": 7,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_media_relations_from"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_media_relations_to"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "idx_tags_kitsu_id_unique"
+    },
+    {
+      "cached_blocks": 561,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "manga"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "manga_anilist_id_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "manga_kitsu_id_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "manga_mal_id_key"
+    },
+    {
+      "cached_blocks": 13,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "manga_pkey"
+    },
+    {
+      "cached_blocks": 420,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "manga_tags"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "manga_tags_manga_id_tag_id_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "manga_tags_pkey"
+    },
+    {
+      "cached_blocks": 253,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "media_relations"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "media_relations_from_media_type_from_media_id_relation_type_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "media_relations_pkey"
+    },
+    {
+      "cached_blocks": 817,
+      "dirty_blocks": 0,
+      "relkind": "m",
+      "relname": "media_tag_vectors"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "media_tag_vectors_tag_key_idx"
+    },
+    {
+      "cached_blocks": 607,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "media_tag_vectors_uidx"
+    },
+    {
+      "cached_blocks": 8,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "realm_signatures"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "realm_signatures_pkey"
+    },
+    {
+      "cached_blocks": 19,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "tags"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "tags_anilist_id_key"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "tags_mal_id_key"
+    },
+    {
+      "cached_blocks": 4,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "tags_pkey"
+    },
+    {
+      "cached_blocks": 52,
+      "dirty_blocks": 6,
+      "relkind": "r",
+      "relname": "taste_profile_recompute_queue"
+    },
+    {
+      "cached_blocks": 2,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "taste_profile_recompute_queue_pkey"
+    },
+    {
+      "cached_blocks": 135,
+      "dirty_blocks": 0,
+      "relkind": "r",
+      "relname": "taste_signal_events"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "taste_signal_events_pkey"
+    },
+    {
+      "cached_blocks": 1,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "taste_signal_events_type_idx"
+    },
+    {
+      "cached_blocks": 10,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "taste_signal_events_user_created_idx"
+    },
+    {
+      "cached_blocks": 6,
+      "dirty_blocks": 0,
+      "relkind": "i",
+      "relname": "taste_signal_events_user_media_idx"
+    },
+    {
+      "cached_blocks": 29,
+      "dirty_blocks": 21,
+      "relkind": "r",
+      "relname": "user_taste_profiles"
+    },
+    {
+      "cached_blocks": 2,
+      "dirty_blocks": 1,
+      "relkind": "i",
+      "relname": "user_taste_profiles_pkey"
+    }
+  ]
+}

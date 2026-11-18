@@ -1,0 +1,16 @@
+{
+  "samples": [
+    {
+      "at": "2026-11-09T12:06:39.957696+00:00",
+      "auth_health": {
+        "ms": 165.74,
+        "status": 200
+      },
+      "management_project": {
+        "ms": 184.2,
+        "status": 200
+      }
+    }
+  ],
+  "scope": "Independent HTTPS control requests; no library/database workload, no automatic traffic retries. R7 controls alongside unchanged load; inspect numeric upstream timing to distinguish API/network delay."
+}

@@ -35,6 +35,14 @@ actor ImagePipeline {
     /// A source smaller than this (AniList `coverImage.large`) is stored as the full image anyway.
     nonisolated static let defaultPrefetchPixelSize = maxDecodePixelSize
 
+    /// Owner decision 2026-11-10: Kuro no longer requests anything from AniList. Covers and banners
+    /// were saved to Kuro Storage; an image still pointing at an AniList host (an unsaved character
+    /// or staff photo, or a cover whose download failed) shows the caller's placeholder instead.
+    nonisolated static func isBlockedSource(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        return host == "anilist.co" || host.hasSuffix(".anilist.co")
+    }
+
     /// The bucket a request decodes at: nil (full image) stays nil; otherwise the requested size is
     /// clamped to [min, max] and rounded up to the next bucket.
     nonisolated static func pixelBucket(for requested: Int?) -> Int? {
@@ -94,7 +102,7 @@ actor ImagePipeline {
         let bucket = Self.pixelBucket(for: maxPixelSize ?? Self.defaultPrefetchPixelSize)
         var queued = 0
         var seen: Set<URL> = []
-        let uniqueUrls = urls.filter { seen.insert($0).inserted }
+        let uniqueUrls = urls.filter { !Self.isBlockedSource($0) && seen.insert($0).inserted }
         for url in uniqueUrls {
             if queued >= maxPrefetchFanout { break }
             if inFlight.count >= maxInFlightCap { break }
@@ -107,6 +115,7 @@ actor ImagePipeline {
     }
 
     func image(url: URL, maxPixelSize: Int? = nil) async -> UIImage? {
+        if Self.isBlockedSource(url) { return nil }
         let bucket = Self.pixelBucket(for: maxPixelSize)
         if let cached = cachedImage(url: url, bucket: bucket) {
             log.debug("mem hit \(url.absoluteString, privacy: .private(mask: .hash))")

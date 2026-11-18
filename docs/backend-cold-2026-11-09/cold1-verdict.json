@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-11-09T14:15:39.036248+00:00",
+  "verdict": "UNQUALIFIED_NOT_COLD",
+  "cold100_active_user_qualified": false,
+  "original_limits_changed": false,
+  "restart_requests": 1,
+  "restart_allowance_remaining": 0,
+  "load_offered_starts": 0,
+  "gates": {
+    "exact_deployment_history_and_sources": "PASS",
+    "live_health_auth_pool_worker_grants": "PASS",
+    "new25_total_index_readiness": "PASS",
+    "five_new_index_plan_selection": "PASS",
+    "database_cold_precondition": "FAIL_ALREADY_CACHED_727_BLOCKS",
+    "20rps600sec_onset": "NOT_RUN",
+    "cold_first_use_79_cells": "NOT_RUN",
+    "40rps60sec_burst": "NOT_RUN",
+    "20rps90sec_recovery": "NOT_RUN",
+    "background_and_ownership_under_load": "NOT_RUN",
+    "edge_cold_boot_onset_correlation": "UNPROVEN_NO_ONSET",
+    "six_post_abort_semantic_checks": "PASS_FUNCTIONAL_ONLY",
+    "post_abort_manga_search_750ms_budget": "FAIL_1632_90MS_NOT_COLD_MEASURED",
+    "sixth_fixture_cleanup": "PASS",
+    "all600_accounts30clubs_cleanup": "PASS",
+    "temporary_inspector_and_private_schema_removed": "PASS"
+  },
+  "no_remaining_test_processes": "All seven armed observers exited without LOAD_STARTED; both controllers terminated; DONE persisted.",
+  "report": "REPORT.md"
+}

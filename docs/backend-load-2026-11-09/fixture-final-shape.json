@@ -1,0 +1,24 @@
+{
+  "accounts": 100,
+  "checked_at": "2026-11-09T00:24:17.122498+00:00",
+  "club_members": 50,
+  "clubs": 5,
+  "groups": {
+    "0": 20,
+    "100": 25,
+    "2000": 5,
+    "25": 50
+  },
+  "rows": [
+    {
+      "medium": "anime",
+      "rows": 9650
+    },
+    {
+      "medium": "manga",
+      "rows": 4100
+    }
+  ],
+  "setup_correction": "Initial REST limit2000 returned only1000 catalogue IDs. Pagination and a regression test repaired the5 large libraries before capacity testing. Original2/5rps baselines had1600-title large libraries, not2000.",
+  "total_rows": 13750
+}

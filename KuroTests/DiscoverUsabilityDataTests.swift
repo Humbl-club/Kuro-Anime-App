@@ -463,6 +463,98 @@ struct DiscoverFeedbackStoreTests {
         #expect(TasteStore.undoAction(prior: .known) == .known)
     }
 
+    @Test("Offline feedback and Undo survive relaunch and retry beyond five failures", arguments: [false, true])
+    func durableDelivery(undo: Bool) async throws {
+        let fixture = try Fixture()
+        defer { fixture.tearDown() }
+        fixture.server.respond { request in
+            request.resource == DiscoverFeedbackStoreTests.signalRPC
+                ? .json(#"{"message":"unavailable"}"#, status: 503) : .emptyArray
+        }
+        _ = fixture.accountSession.begin(userId: Self.userA)
+        let first = fixture.store()
+        let key = MediaKey(kind: .anime, id: 7)
+        let receipt = try #require(first.recordDiscoverFeedback(.seenIt, for: key))
+        await first.drainTask?.value
+        if undo {
+            #expect(first.undoDiscoverFeedback(receipt))
+            await first.drainTask?.value
+        }
+        for _ in 0..<TasteStore.maxDeliveryAttempts {
+            await first.drainSignalOutbox(force: true)?.value
+        }
+        #expect(first.pendingSignals.count == 1, "durable answers never disappear after an outage")
+        let diskKey = "kuro.taste.pending.\(Self.userA.lowercased())"
+        let pendingDisk = try #require(fixture.defaults.data(forKey: diskKey))
+        first.cancelAccountWork()
+        first.clearPrivateState()
+
+        // A different account cannot replay the first account's saved request.
+        _ = fixture.accountSession.begin(userId: Self.userB)
+        let other = fixture.store()
+        other.restoreDiscoverMemory()
+        #expect(other.pendingSignals.isEmpty)
+        _ = fixture.accountSession.begin(userId: Self.userA)
+        fixture.server.respond { request in
+            request.resource == DiscoverFeedbackStoreTests.signalRPC ? DUJSON.signalOK : .emptyArray
+        }
+        let relaunched = fixture.store()
+        relaunched.restoreDiscoverMemory()
+        await relaunched.drainTask?.value
+        #expect(relaunched.pendingSignals.isEmpty)
+        #expect(fixture.sentSignals().last == "\(undo ? "retract" : "known") ANIME 7")
+        #expect(relaunched.isHiddenOnDiscover(key) == !undo)
+        // A crash between persisting the acknowledgment and removing the queue file can leave
+        // an older pending record on disk. Its acknowledged action must still not replay.
+        fixture.defaults.set(pendingDisk, forKey: diskKey)
+        let acknowledged = fixture.store()
+        acknowledged.restoreDiscoverMemory()
+        #expect(acknowledged.pendingSignals.isEmpty, "acknowledged work is removed from disk")
+        let sent = fixture.sentSignals().count
+        #expect(await acknowledged.loadDiscoverHidden(force: true))
+        await acknowledged.drainTask?.value
+        #expect(fixture.sentSignals().count == sent, "a lagging read never replays acknowledged work")
+    }
+
+    @Test("An older build's unacknowledged local overlay is recovered after server reconciliation")
+    func recoverLegacyOverlay() async throws {
+        let fixture = try Fixture()
+        defer { fixture.tearDown() }
+        _ = fixture.accountSession.begin(userId: Self.userA)
+        let key = MediaKey(kind: .anime, id: 7)
+        // The old schema has no delivery action or acknowledgment fields.
+        var memory = DiscoverHiddenMemory()
+        memory.record(key, state: .notInterested, at: Date())
+        memory.overlay[0].deliveryAction = nil
+        fixture.defaults.set(try JSONEncoder().encode(memory),
+            forKey: try #require(DiscoverHiddenMemory.storageKey(userId: Self.userA)))
+        let taste = fixture.store()
+        taste.restoreDiscoverMemory()
+        #expect(taste.isHiddenOnDiscover(key))
+        #expect(fixture.sentSignals().isEmpty)
+        #expect(await taste.loadDiscoverHidden(force: true))
+        await taste.drainTask?.value
+        #expect(fixture.sentSignals() == ["skip ANIME 7"])
+        #expect(taste.pendingSignals.isEmpty)
+    }
+
+    @Test("Account deletion removes a pending Discover write from disk")
+    func deletePendingDelivery() async throws {
+        let fixture = try Fixture()
+        defer { fixture.tearDown() }
+        fixture.server.respond { _ in .json(#"{"message":"offline"}"#, status: 503) }
+        _ = fixture.accountSession.begin(userId: Self.userA)
+        let taste = fixture.store()
+        taste.recordDiscoverFeedback(.notInterested, for: MediaKey(kind: .anime, id: 7))
+        await taste.drainTask?.value
+        #expect(taste.pendingSignals.count == 1)
+        try await taste.removeDeletedAccountData(userId: Self.userA)
+        let relaunched = fixture.store()
+        relaunched.restoreDiscoverMemory()
+        #expect(relaunched.pendingSignals.isEmpty)
+        #expect(relaunched.discoverHidden.isEmpty)
+    }
+
     @Test("Device memory: answers survive a new store instance before any read; account changes clear the in-memory copy; deletion removes the device copy")
     func persistenceAndAccountScope() async throws {
         let fixture = try Fixture()

@@ -1,0 +1,15 @@
+{
+  "status": "DEPLOYED_VERIFIED_SPECIFIED_WARMED_WORKLOAD_PASSED",
+  "migration": "supabase/migrations/20261109003243_taste_worker_latency_v1.sql",
+  "sha256": "5ff1e8e3d0523e3b821e6a4933215a888417054b4b36afdcbae903f1851b0b96",
+  "worker_batch": 5,
+  "cron_jobid": 37,
+  "schedule": "* * * * *",
+  "sql_assertions": 11,
+  "live_vector_parity_cases": 4,
+  "math_body_unchanged": true,
+  "approved_migration_path": "supabase/prepared-migrations/20261109003243_taste_worker_latency_v1.sql",
+  "capacity_result": "REPORT.md",
+  "capacity_sequence": "capacity-sequence-r15.json",
+  "cold_call_gap_retained": true
+}
