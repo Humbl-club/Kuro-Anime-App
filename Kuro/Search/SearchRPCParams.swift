@@ -84,3 +84,21 @@ struct RPCSearchMangaPageParams: Encodable, Sendable {
         try c.encode(p_hidden_gems, forKey: .p_hidden_gems)
     }
 }
+
+/// `search_<medium>_page_v2`: the v1 rows in v1 order plus the bounded count of 18+ titles the
+/// query matched but Search never lists (`null` on page 2+, filters-only and 1-character queries).
+struct SearchPageV2<Card: Decodable>: Decodable {
+    let items: [Card]
+    let hiddenAdult: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case items
+        case hiddenAdult = "hidden_adult"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        items = try c.decode([Card].self, forKey: .items)
+        hiddenAdult = try c.decodeIfPresent(Int.self, forKey: .hiddenAdult)
+    }
+}
