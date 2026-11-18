@@ -101,10 +101,30 @@ Deno.test("annServesAnimeOnlyAndTakesItsOwnLock", async () => {
   assert.deepEqual(db.rpcs[0].args, { p_key: "catalogue-intake:ann", p_ttl_seconds: 900 });
 });
 
-Deno.test("handlersNotBuiltYetAnswer501AndTakeNoLock", async () => {
+// Every named handler has an implementation now (publish and restore landed in Task 15), so the
+// not-built-yet 501 is unreachable by name; an unknown name is a 400 and takes no lock.
+Deno.test("unknownHandlerAnswers400AndTakesNoLock", async () => {
   const db = fakeSupabase();
   const { deps } = build(db);
-  const res = await handleRequest(request({ handler: "publish", medium: "anime" }), { secret: "s3cret", buildDeps: () => deps });
-  assert.equal(res.status, 501);
+  const res = await handleRequest(request({ handler: "nope", medium: "anime" }), { secret: "s3cret", buildDeps: () => deps });
+  assert.equal(res.status, 400);
   assert.equal(db.rpcs.length, 0);
+});
+
+Deno.test("publishHandlerRunsUnderItsLockAndWritesNothingWhenNoGroupIsNew", async () => {
+  const groups = ["identity", "titles", "facts", "relations", "credits", "popularity", "tags", "adult", "synopsis", "episodes", "links", "images"];
+  const db = fakeSupabase({ tables: { catalogue_cutover: groups.map((g) => ({ field_group: g, mode: "anilist" })) } });
+  const { deps } = build(db);
+  const res = await handleRequest(request({ handler: "publish", medium: "anime" }), { secret: "s3cret", buildDeps: () => deps });
+  assert.equal(res.status, 200);
+  assert.deepEqual(db.rpcs.map((r) => r.name), ["acquire_import_lock", "release_import_lock"]);
+});
+
+Deno.test("restoreHandlerRefusesAGroupThatIsStillNew", async () => {
+  const groups = ["identity", "titles", "facts", "relations", "credits", "popularity", "tags", "adult", "synopsis", "episodes", "links", "images"];
+  const db = fakeSupabase({ tables: { catalogue_cutover: groups.map((g) => ({ field_group: g, mode: g === "facts" ? "new" : "anilist" })) } });
+  const { deps } = build(db);
+  const res = await handleRequest(request({ handler: "restore", group: "facts" }), { secret: "s3cret", buildDeps: () => deps });
+  assert.equal(res.status, 500);
+  assert.match((await res.json()).error, /still 'new'/);
 });

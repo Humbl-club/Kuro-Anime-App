@@ -54,6 +54,12 @@ export type AiringOptions = {
   dryRun: boolean;
   deadlineMs: number;
   nowMs: number;
+  /**
+   * False once the `episodes` group is switched to 'new' (public.catalogue_cutover): catalogue publish
+   * owns anime.next_episode_number / next_airing_at, so this run only records release events.
+   * Default true.
+   */
+  writeNextAiring?: boolean;
 };
 
 export type AiringResult = {
@@ -237,7 +243,7 @@ export async function runAiringWindow(supabase: any, anilist: AniListClient, opt
       rows.push(eventRow(row, scheduleId, episode, airingAt, opts.nowMs, observedAt));
       if (!patched.has(row.id)) {
         patched.add(row.id);
-        if (await patchNextAiring(supabase, row, s?.media?.nextAiringEpisode, opts.dryRun)) result.animePatched++;
+        if (opts.writeNextAiring !== false && await patchNextAiring(supabase, row, s?.media?.nextAiringEpisode, opts.dryRun)) result.animePatched++;
       }
     }
     if (!opts.dryRun) await writeReleaseEvents(supabase, rows);
@@ -279,7 +285,7 @@ export async function runAiringWindow(supabase: any, anilist: AniListClient, opt
           if (!row) continue;
           result.staleChecked++;
           const next = m?.nextAiringEpisode;
-          if (await patchNextAiring(supabase, row, next, opts.dryRun)) result.stalePatched++;
+          if (opts.writeNextAiring !== false && await patchNextAiring(supabase, row, next, opts.dryRun)) result.stalePatched++;
           const scheduleId = Number(next?.id);
           if (Number.isInteger(scheduleId) && Number.isFinite(Number(next?.episode)) && Number.isFinite(Number(next?.airingAt))) {
             rows.push(eventRow(row, scheduleId, Number(next.episode), Number(next.airingAt), opts.nowMs, observedAt));

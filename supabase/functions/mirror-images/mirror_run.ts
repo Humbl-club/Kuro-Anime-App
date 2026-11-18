@@ -8,6 +8,7 @@ import {
   type MediaType,
   type MirrorRepository,
 } from "./mirror_repository.ts";
+import { groupIsAniListOwned } from "../_shared/catalogue/field_groups.ts";
 import { ALLOWED_BUCKET, type MirrorStorage } from "./mirror_storage.ts";
 import {
   classifySourceUrl,
@@ -103,11 +104,17 @@ async function run(input: MirrorRunInput): Promise<Response> {
     }
     lockAcquired = outcome === "acquired";
 
+    // Once the `images` group is switched to 'new', catalogue publish owns anime/manga cover and banner columns
+    // and this job leaves them alone (Task 15). An unreadable switch throws: the run fails before any fetch.
+    // Character and staff photos are not part of the images group.
+    const imagesNew = input.repository.cutoverModes ? !groupIsAniListOwned("images", await input.repository.cutoverModes()) : false;
+    ctx.skipTitleImages = imagesNew;
+
     const results: Record<string, number> = {};
     results["priority"] = await drainPriorityQueue(ctx);
 
-    if (mediaTypes.includes("ANIME")) results["anime"] = await mirrorGroup(ctx, "ANIME", limit, offset);
-    if (mediaTypes.includes("MANGA")) results["manga"] = await mirrorGroup(ctx, "MANGA", limit, offset);
+    if (mediaTypes.includes("ANIME")) results["anime"] = imagesNew ? 0 : await mirrorGroup(ctx, "ANIME", limit, offset);
+    if (mediaTypes.includes("MANGA")) results["manga"] = imagesNew ? 0 : await mirrorGroup(ctx, "MANGA", limit, offset);
     if (mediaTypes.includes("CHARACTER")) results["characters"] = await mirrorGroup(ctx, "CHARACTER", limit, offset);
     if (mediaTypes.includes("STAFF")) results["staff"] = await mirrorGroup(ctx, "STAFF", limit, offset);
 
@@ -132,6 +139,8 @@ type Ctx = MirrorRunInput & {
   nowIso: () => string;
   maxImageBytes: number;
   fetchTimeoutMs: number;
+  /** The images group is 'new': anime/manga rows are not touched (priority queue included). */
+  skipTitleImages?: boolean;
 };
 
 function resolveBucket(raw: unknown): typeof ALLOWED_BUCKET | null {
@@ -154,7 +163,8 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
 }
 
 async function drainPriorityQueue(ctx: Ctx): Promise<number> {
-  const pending = await ctx.repository.pendingPriority(PRIORITY_LIMIT);
+  const all = await ctx.repository.pendingPriority(PRIORITY_LIMIT);
+  const pending = ctx.skipTitleImages ? all.filter((row) => row.media_type !== "ANIME" && row.media_type !== "MANGA") : all;
   if (pending.length === 0) return 0;
 
   const idsByType: Record<string, number[]> = {};

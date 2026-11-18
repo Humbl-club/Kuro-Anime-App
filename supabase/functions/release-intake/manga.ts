@@ -70,6 +70,8 @@ export type MangaOptions = {
   dryRun: boolean;
   deadlineMs: number;
   nowMs: number;
+  /** False once the `facts` group is 'new': catalogue publish owns manga.volumes (Task 15). Default true. */
+  writeVolumes?: boolean;
 };
 
 export type MangaResult = {
@@ -357,7 +359,7 @@ export async function runMangaReleases(
       // scanlation-derived; see the header).
       const patch: Record<string, number> = {};
       const volumes = parseVolumeCount(s?.status);
-      if (volumes !== null && (candidate.volumes == null || volumes > Number(candidate.volumes))) patch.volumes = volumes;
+      if (opts.writeVolumes !== false && volumes !== null && (candidate.volumes == null || volumes > Number(candidate.volumes))) patch.volumes = volumes;
       if (Object.keys(patch).length > 0) {
         if (!opts.dryRun) {
           const { error } = await supabase.from("manga").update(patch).eq("id", candidate.id);

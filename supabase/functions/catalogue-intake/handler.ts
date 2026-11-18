@@ -8,7 +8,9 @@
 //   medium   'anime' | 'manga' (required; ann is anime only, mangaupdates is manga only)
 //   limit    per-run work cap, each handler clamps it
 //   timeBudgetMs  default 50_000 (5_000..140_000)
-// publish is a later task and answers 501 without taking a lock. compose (Task 7) is local-DB only.
+// compose (Task 7) is local-DB only. publish (Task 15) writes the field groups whose mode is 'new'
+// (publish.ts). restore (Task 15) is the rollback of one group, payload { handler: 'restore', group },
+// medium not needed; it refuses a group that is still 'new' (restore.ts).
 // Lock: acquire_import_lock('catalogue-intake:<handler>', 900), released only when acquired.
 // Bookkeeping: import_runs (run_type 'catalogue_intake_<handler>'). Cursors: import_track_state
 // `catalogue-intake:<handler>:<medium>`, owned by each handler.
@@ -18,12 +20,16 @@ import { clampInt, type Medium } from "./store.ts";
 import { runAnn } from "./ann.ts";
 import { runCompose } from "./compose.ts";
 import { runMangaUpdates } from "./mangaupdates.ts";
+import { inMangaUpdatesQuietWindow } from "./cron_schedule.ts";
 import { runPageviews } from "./pageviews.ts";
+import { runPublish } from "./publish.ts";
+import { restore } from "./restore.ts";
+import type { FieldGroup } from "../_shared/catalogue/field_groups.ts";
 import { runWikidata } from "./wikidata.ts";
 
 export type { IntakeDeps } from "./context.ts";
 
-export const HANDLER_NAMES = ["wikidata", "ann", "mangaupdates", "pageviews", "compose", "publish"] as const;
+export const HANDLER_NAMES = ["wikidata", "ann", "mangaupdates", "pageviews", "compose", "publish", "restore"] as const;
 export type HandlerName = (typeof HANDLER_NAMES)[number];
 
 /** Handlers with an implementation. Later tasks register theirs here. */
@@ -33,6 +39,7 @@ export const HANDLERS: Partial<Record<HandlerName, (ctx: RunContext) => Promise<
   mangaupdates: runMangaUpdates,
   pageviews: runPageviews,
   compose: runCompose,
+  publish: runPublish,
 };
 
 /** Which media each handler serves; absent means both. */
@@ -57,6 +64,7 @@ export async function handleRequest(
 export async function run(payload: any, deps: IntakeDeps): Promise<Response> {
   const handler = String(payload?.handler ?? "").trim().toLowerCase() as HandlerName;
   if (!HANDLER_NAMES.includes(handler)) return json({ success: false, error: `handler must be one of ${HANDLER_NAMES.join(", ")}` }, 400);
+  if (handler === "restore") return runRestore(payload, deps);
   const medium = String(payload?.medium ?? "").trim().toLowerCase();
   if (medium !== "anime" && medium !== "manga") return json({ success: false, error: "medium must be 'anime' or 'manga'" }, 400);
   const allowed = MEDIA_FOR[handler];
@@ -65,6 +73,11 @@ export async function run(payload: any, deps: IntakeDeps): Promise<Response> {
   if (!impl) return json({ success: false, error: `handler '${handler}' is not available yet` }, 501);
 
   const now = deps.now ?? Date.now;
+  // MangaUpdates never overlaps release-intake's manga run (03:50 UTC): the cron expressions skip 03:30-04:20 and
+  // this guard backs them up for a manual or late-fired call. No lock, no run row, no request.
+  if (handler === "mangaupdates" && inMangaUpdatesQuietWindow(now())) {
+    return json({ success: true, skipped: true, reason: "release_intake_window" });
+  }
   const supabase = deps.supabase;
   const startedMs = now();
   const deadlineMs = startedMs + clampInt(payload?.timeBudgetMs, 50_000, 5_000, 140_000);
@@ -101,5 +114,26 @@ export async function run(payload: any, deps: IntakeDeps): Promise<Response> {
     return json({ success: false, handler, medium, error: message }, 500);
   } finally {
     await releaseImportLock(supabase, lockKey);
+  }
+}
+
+/** Rollback of one group (both media). Same lock family and bookkeeping as the other handlers; restore.ts records its own import_runs row with the duration. */
+// deno-lint-ignore no-explicit-any
+async function runRestore(payload: any, deps: IntakeDeps): Promise<Response> {
+  const group = String(payload?.group ?? "").trim().toLowerCase() as FieldGroup;
+  const lockKey = "catalogue-intake:restore";
+  const lock = await acquireImportLock(deps.supabase, lockKey, 900);
+  if (lock.status !== "acquired") {
+    return lock.status === "unavailable"
+      ? json({ success: false, skipped: true, reason: "lock_unavailable", error: lock.reason }, 500)
+      : json({ success: true, skipped: true, reason: "locked" });
+  }
+  try {
+    const r = await restore({ supabase: deps.supabase, now: deps.now }, group);
+    return json({ success: true, handler: "restore", results: r });
+  } catch (e) {
+    return json({ success: false, handler: "restore", error: e instanceof Error ? e.message : String(e) }, 500);
+  } finally {
+    await releaseImportLock(deps.supabase, lockKey);
   }
 }

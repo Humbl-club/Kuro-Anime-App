@@ -15,6 +15,9 @@ export type FakeOptions = {
   writeErrors?: Record<string, { message: string; code?: string }>;
   /** PostgREST max-rows: a select returns at most this many rows whatever limit/range asks (default 1000). */
   maxRows?: number;
+  /** Models an RPC from its SQL contract (e.g. the Task 15 publish/restore batches). The SQL is tested in DB test 124. */
+  // deno-lint-ignore no-explicit-any
+  rpcHandlers?: Record<string, (args: Row, tables: Record<string, Row[]>) => { data: any; error: { message: string } | null }>;
 };
 
 export function fakeSupabase(opts: FakeOptions = {}) {
@@ -209,6 +212,8 @@ export function fakeSupabase(opts: FakeOptions = {}) {
       if (typeof l === "object") return Promise.resolve({ data: null, error: { message: l.error } });
       return Promise.resolve({ data: l, error: null });
     }
+    const handler = opts.rpcHandlers?.[name];
+    if (handler) return Promise.resolve(handler(args, tables));
     return Promise.resolve({ data: null, error: null });
   }
 
