@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "workstream": "W2",
+  "testedCommit": "a66328b79f09c70b90688f068ea21051e20e72a3",
+  "recordedAt": "2026-11-18T13:16:14Z",
+  "runs": [
+    {
+      "id": "pkg-1",
+      "layer": "pkg",
+      "command": "cd Packages/KuroModules && swift test",
+      "context": {
+        "kind": "local"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/W2-pkg.txt"
+    },
+    {
+      "id": "swift-1",
+      "layer": "swift",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=2A1D0DFE-CE8D-4C90-B57B-CD025E16AF64' -parallel-testing-enabled NO -only-testing:KuroTests/LibraryExportFlowTests test",
+      "context": {
+        "kind": "simulator",
+        "simulator": "2A1D0DFE-CE8D-4C90-B57B-CD025E16AF64"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/W2-swift.txt"
+    },
+    {
+      "id": "sql-1",
+      "layer": "sql",
+      "command": "LC_ALL=en_US.UTF-8 KURO_DB_PORT=54345 bash scripts/db/run_local_db_tests.sh --only 110_export",
+      "context": {
+        "kind": "local-db"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/W2-db110.txt"
+    }
+  ],
+  "scenarios": [
+    {
+      "feature": "W2-export.feature",
+      "scenario": "Exported MAL XML re-imports without changes",
+      "tag": "@pkg:LibraryExportTests/malXmlRoundTripPreservesEveryMappedEntry",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "Titles without a MyAnimeList id are reported, not silently dropped",
+      "tag": "@pkg:LibraryExportTests/entriesWithoutMalIdAreReportedNotDropped",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "A very large MyAnimeList file is split into parts the importer accepts",
+      "tag": "@pkg:LibraryExportTests/malXmlSplitsLargeLibrariesIntoReimportableParts",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "CSV columns and escaping",
+      "tag": "@pkg:LibraryExportTests/csvHasDocumentedHeaderAndEscapesText",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "Spreadsheet formulas in my text are neutralised in CSV but kept exact in JSON",
+      "tag": "@pkg:LibraryExportTests/csvNeutralisesFormulaCellsAndJsonKeepsExactText",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "JSON is full fidelity",
+      "tag": "@pkg:LibraryExportTests/jsonCarriesIdsTagsListsAndDates",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "My custom lists export as lists, in my order",
+      "tag": "@pkg:LibraryExportTests/jsonExportsListsInManualOrderWithItemsOutsideTheLibrary",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "The export says whether it is complete",
+      "tag": "@pkg:LibraryExportTests/summaryDistinguishesCompleteIdentityAndOrganisationGaps",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "Exporting from Profile",
+      "tag": "@swift:LibraryExportFlowTests/exportSheetSharesFilesForSignedInAccount",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "Exporting offline",
+      "tag": "@swift:LibraryExportFlowTests/exportWorksOfflineWithCachedCatalogueOrReportsMissingIds",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "Switching accounts during an export never sends my titles under the other account",
+      "tag": "@swift:LibraryExportFlowTests/identityLookupNeverSendsOldLibraryWithNewCredentials",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "Export sends nothing until it is released",
+      "tag": "@swift:LibraryExportFlowTests/flagOffSendsNoRequest",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W2-export.feature",
+      "scenario": "The id lookup stays inside the Browse budget",
+      "tag": "@load:export-mal-id-lookup",
+      "result": "blocked",
+      "run": null,
+      "note": "No owner-approved --qualify run exists. Offline profile tests and DB plan check 110 pass, but they are not qualification evidence."
+    }
+  ],
+  "unresolvedGates": [
+    "@load:export-mal-id-lookup: needs an owner-approved --qualify run of tracker-gaps-combined (600 s, populated 25/100/2000 fixtures) with a pass verdict for export-mal-id-lookup and a cleanup report"
+  ]
+}
