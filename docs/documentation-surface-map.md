@@ -10,13 +10,14 @@ This file defines which Markdown surfaces are current, which are reference-only,
 | `CURRENT_APP_STATE_PLAIN.md` | Plain-English current-state authority | Non-technical companion to `CURRENT_APP_STATE.md`. |
 | `AGENTS.md` | Shared agent operating policy | Provider-neutral correctness, ownership, authorization and verification rules. Supersedes personal always-multiple-personas conventions for Kuro. |
 | `agents/routes.yaml` + `agents/README.md` | Validated source/verification registry + usage | Current owner starting points, capability/check contracts, explicit discovery for unknown paths, and enforcement limitations. No runtime/deployment proof. |
-| `CLAUDE.md` + `.claude/agents/`, `.claude/rules/`, `.claude/settings.json` | Claude adapter | Imports the shared policy; optional model/tool defaults and local startup validation. No independent policy or copied live-state authority. |
+| `CLAUDE.md` + `.claude/adapter.json`, `.claude/agents/`, `.claude/rules/`, `.claude/settings.json` | Claude adapter | Imports the shared policy; isolated model/tool defaults and local startup validation. Shared routing never loads this configuration; explicit adapter validation treats it as data. |
 | `IMPLEMENTATION_PLAN_Variation1.md` | Ongoing implementation ledger | Tracks shipped work and plan status; historical by nature, but still maintained. |
 
 ## Live reference docs
 
 | Surface | Role | Notes |
 |---|---|---|
+| `docs/agent-policy/discovery-first-2026-11-09/` | Fresh Claude/Codex discovery acceptance | Actual catalog/filename/route order, source provenance and 46 policy-test receipts; preserves initial misses and concurrent drift. Coding-agent evidence, not app/hosted qualification. |
 | `docs/handoffs/2026-10-07-integrated-testflight-execution.md` + `2026-10-07-integrated-release-checklist.csv` | Current integrated executor, all114finding reconciliation and lasting implementation rules | User-approved modularity/Home scope, two waves, bounded launch envelope and five release gates. NOT COMPLETE; source/local evidence never implies hosted or installed acceptance. |
 | `docs/handoffs/2026-10-07-integrated-release-evidence/` | Current integrated local/source evidence and source checkpoint | Actual-owner, syntax and offline checks are labelled separately; no frozen artifact or hosted/installed acceptance. |
 | `fastlane/RELEASE_PIPELINE.md` + `scripts/live/README.md` | Exact candidate release and bounded live qualification runbooks | Prepared procedures, not deployed or installed qualification. |

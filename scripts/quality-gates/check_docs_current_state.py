@@ -22,7 +22,6 @@ MIGRATION_COUNT = len(list((ROOT / "supabase" / "migrations").glob("*.sql")))
 
 CURRENT_APP_STATE = (ROOT / "CURRENT_APP_STATE.md").read_text()
 CURRENT_APP_STATE_PLAIN = (ROOT / "CURRENT_APP_STATE_PLAIN.md").read_text()
-CLAUDE = (ROOT / "CLAUDE.md").read_text()
 AGENTS = (ROOT / "AGENTS.md").read_text()
 SQL_REPORT = (ROOT / "archive" / "SQL_COMPATIBILITY_REPORT.md").read_text()
 KNOWLEDGE_INDEX = (ROOT / "KNOWLEDGE" / "INDEX.md").read_text()
@@ -44,11 +43,6 @@ checks = [
         "CURRENT_APP_STATE_PLAIN inventory",
         f"**Current inventory:** {APP_SWIFT_COUNT} app Swift files{PACKAGE_PLAIN_CLAUSE} and {MIGRATION_COUNT} SQL migrations are in the repo today.",
         CURRENT_APP_STATE_PLAIN,
-    ),
-    (
-        "CLAUDE shared policy import",
-        "\n@AGENTS.md\n",
-        CLAUDE,
     ),
     (
         "AGENTS shared routing entry point",
@@ -90,6 +84,16 @@ policy_result = subprocess.run(
 )
 if policy_result.returncode != 0:
     sys.exit(policy_result.returncode)
+
+# The complete Kuro checkout checks its optional adapter explicitly. A portable
+# shared-policy export with neither Claude entry point does not depend on Claude.
+if (ROOT / "CLAUDE.md").exists() or (ROOT / ".claude" / "adapter.json").exists():
+    adapter_result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "agents" / "policy.py"), "--check-claude"],
+        check=False,
+    )
+    if adapter_result.returncode != 0:
+        sys.exit(adapter_result.returncode)
 
 print("PASS")
 print(f"- app_swift={APP_SWIFT_COUNT}")

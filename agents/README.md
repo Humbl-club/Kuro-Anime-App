@@ -4,12 +4,28 @@ Root `AGENTS.md` is the provider-neutral policy. `routes.yaml` is its source and
 verification registry; `.claude/` and root `CLAUDE.md` adapt it to Claude Code.
 No runtime application/backend code or global agent configuration is changed.
 
+Shared registry schema v2 contains no provider model/tool/environment settings.
+Claude's schema-v1 registry is `.claude/adapter.json`; its existing settings and
+worker files remain under `.claude/`. Source routing and ordinary `--check` never
+read those files and work when both `.claude/` and `CLAUDE.md` are absent.
+`--check-claude` explicitly validates that adapter as repository data, without
+executing hooks, launching Claude or applying environment variables. The full
+checkout's docs gate performs this separate check when the adapter is installed.
+Shared unit fixtures do not read provider settings. Optional Claude tests have a
+separate fixture/class and are explicitly skipped when that adapter is absent;
+missing Claude files never break the shared test suite.
+
 ## Use
 
 From the repository root:
 
 ```sh
+python3 scripts/agents/policy.py --discover  # first discovery command each session
+python3 scripts/agents/policy.py --files '*HomeView.swift' '*LibraryProgress.swift'
+# Copy exact IDs/paths from discovery output before using --route/--paths:
+python3 scripts/agents/policy.py --route library_progress --route identity
 python3 scripts/agents/policy.py --check
+python3 scripts/agents/policy.py --check-claude  # only for installed Claude adapter
 python3 scripts/agents/policy.py --list
 python3 scripts/agents/policy.py --route library_progress
 python3 scripts/agents/policy.py --route library_progress --route identity --rpc apply_progress_mutations_v1 --rpc _apply_progress_mutations_for_user
@@ -20,17 +36,31 @@ bash scripts/quality-gates/check_docs_current_state.sh
 
 The resolver returns JSON: applicable routes, current owner entry points, behavior
 contracts, check candidates and required handoff fields. It returns **all** path
-matches and any explicitly selected routes. An unknown path (including one mixed
-with known paths) returns `discovery_required` and exit 2; unknown route IDs or
+matches and any explicitly selected routes. A nonexistent path is reported in
+`missing_paths` and returns `discovery_required`/exit 2 even when a route pattern
+matches it. Suggested routes never certify that a guessed input file exists.
+An unmapped path (including one mixed with known paths) also returns exit 2; unknown route IDs or
 invalid configuration return exit 1. Retired `SupabaseService` and archive paths
 cannot become current owners merely by matching a pattern.
 
 There is no natural-language classifier pretending to understand the task. For a
-question without filenames, inspect `--list`, select by capability and confirm
+question without filenames, start with `--discover`, copy a valid ID and confirm
 with current symbols/callers. For a new/unmapped area, use bounded discovery,
 confirm its owner and update the route before dependent edits. An explicit route
 does not clear an unmapped path. Cross-cutting tasks must include every affected
 capability even if only one route's filenames happen to match.
+
+`--discover` publishes validated route IDs and existing owner paths, with no
+provider configuration or task classifier. Before a scoped read/search outside
+those owners, use `--files '<glob>'`, `rg --files`, or native Glob to find exact
+paths. Filename lookup scans the active non-hidden tree, excluding archive,
+dependency/build/cache directories, symlinks and retired service filenames. It
+reads no contents. Repeated `--files` flags retain every pattern. It preserves unmatched patterns (exit 2), reports truncation
+and total matches, and returns candidate route IDs per file. Narrow a truncated
+query (`--limit` defaults to 80, maximum 500); absence within this scope is not
+proof of repository-wide absence. Do not infer a directory from a basename.
+Shell-less workers use lead-supplied catalog output and native Glob. Unknown
+routes fail with valid IDs and the discovery command; no fuzzy auto-selection.
 
 For RPC/server claims, `--rpc <unqualified-function-name>` lists CREATE FUNCTION
 declaration candidates from both canonical and prepared SQL, ordered by filename
@@ -48,7 +78,8 @@ nor non-deployment. Never present an older matching body as the latest contract.
 with Python's standard `json` library. No YAML dependency/install is required.
 Keep this subset (no YAML comments/anchors/tags). The reader rejects duplicate
 keys, unknown schema fields, invalid/missing references and checks, absolute or
-escaping/symlink paths, historical/catch-all authorities and adapter drift.
+escaping/symlink paths and historical/catch-all authorities. Explicit adapter
+validation additionally checks model/tool/settings drift.
 All commands in the registry are **templates/candidates, never executed**. Resolve
 placeholders, inspect permissions and choose the smallest affected checks. Tests
 of the resolver never invoke Swift, Deno, databases, providers or an LLM.
@@ -63,13 +94,13 @@ Read-only Claude workers allow only Read/Grep/Glob. Implementer/runner workers
 can execute shell commands and therefore are not security sandboxes. Caller
 permissions, inspected commands and existing authorization boundaries still apply.
 Every worker receives the shared policy; the old `omitClaudeMd` shortcut is gone.
-The project also sets `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`: Claude's server-side
+The Claude adapter sets `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`: Claude's server-side
 advisor is an additional model call, not governed by the ordinary worker tool
 allowlist. This keeps Kuro's model routing explicit without altering other
-projects. The validator checks this setting, and fresh-session evidence must
+projects or coding agents. The explicit adapter validator checks this setting, and fresh-session evidence must
 inspect `server_tool_use`/`advisor_tool_result` blocks as well as normal tool calls.
 
-The Claude SessionStart command validates this checkout and emits a short policy
+The Claude SessionStart command validates the shared core plus its adapter and emits a short policy
 reminder; it follows the hook's working-directory ancestry when in a worktree.
 Failure emits diagnostic context and a nonzero exit. SessionStart is not a write
 barrier. Hooks may be disabled by runtime settings; the docs quality gate also
@@ -94,12 +125,31 @@ improvement has been established by this configuration change.
 
 ## Maintenance and evidence
 
+Local unit tests create disposable fixtures. Strict read-only sandboxes that deny
+all temporary writes cannot execute those assertions. Give the test process an
+isolated scratch directory while keeping the repository read-only; record that
+permission boundary and actual executed counts. Do not treat fixture setup errors
+as a passing suite or as evidence of broken application behavior.
+
 Fresh runtime acceptance is recorded in
 [`docs/agent-policy/fresh-session-2026-11-09/REPORT.md`](../docs/agent-policy/fresh-session-2026-11-09/REPORT.md)
 with sanitized transcript/model/check evidence. Four fresh sessions exercised policy
 imports, bounded discovery, worker defaults and actual local policy checks. Initial
 failures and corrections remain recorded; this does not certify arbitrary future
 tasks or application/hosted behavior.
+
+Fresh Codex acceptance and the shared/Claude isolation regression are recorded in
+[`docs/agent-policy/fresh-codex-2026-11-09/REPORT.md`](../docs/agent-policy/fresh-codex-2026-11-09/REPORT.md).
+That initial acceptance ran 36 tests. Current shared test fixtures have no Claude
+dependency. When the optional adapter is absent, its eight tests explicitly skip
+while all 38 shared tests still execute. The complete checkout executes all 46 tests and explicitly validates its
+installed adapter without applying Claude environment variables or hooks.
+
+The subsequent [discovery-first Claude/Codex retest](../docs/agent-policy/discovery-first-2026-11-09/REPORT.md)
+records catalog-first route selection, filename provenance before scoped reads,
+missing-path enforcement and the current 46-test suite. It preserves benign
+discovery misses, permission/temporary-file recovery and concurrent inventory
+failures rather than claiming every tool call was successful.
 
 Update route/check references in the same change when files move or ownership
 changes. Keep live pool sizes, user counts, feature flags, upstream quotas and test

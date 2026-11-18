@@ -8,11 +8,12 @@ to spawn multiple personas for every task. Global settings remain unchanged.
 
 ## Routing
 
-- Resolve context with `python3 scripts/agents/policy.py --paths <paths> ...`
-  or `--route <id>` before choosing workers; confirm owners by symbols/callers.
+- Start discovery with `python3 scripts/agents/policy.py --discover`; copy valid
+  IDs and owner paths. Use `--files '<glob>'`/Glob for other filenames before
+  scoped reads/searches. Then resolve copied routes/paths before choosing workers.
 - `.claude/agents/` supplies optional workers, not mandatory stages. Small tasks
   stay in the main session. Model/tool defaults are checked against
-  `agents/routes.yaml`; invocation/organization overrides may still apply.
+  `.claude/adapter.json`; invocation/organization overrides may still apply.
 - `Explore` (Haiku): bounded discovery returning paths/lines and search limits.
 - `kuro-implementer` (Sonnet): confirmed owner, explicit scope and verification.
 - `kuro-reviewer` (Opus): sensitive/complex review using diff, expected behavior
@@ -35,7 +36,8 @@ to spawn multiple personas for every task. Global settings remain unchanged.
 The project SessionStart hook validates policy references and emits a reminder.
 It runs no builds, tests, provider calls or mutations. Feedback is diagnostic;
 it is not a sandbox or proof of model routing. With project hooks disabled, run
-`python3 scripts/agents/policy.py --check` manually.
+`python3 scripts/agents/policy.py --check-claude` manually. Ordinary source routing
+and `--check` validate only the shared core and do not load this adapter registry.
 
 The docs gate checks shared policy and adapter together. Confirm actual worker
 selection/model using Claude's `/agents` and `/tasks` when workers are used;

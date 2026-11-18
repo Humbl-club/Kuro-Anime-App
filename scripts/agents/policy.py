@@ -5,6 +5,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -12,6 +13,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = "agents/routes.yaml"
+CLAUDE_MANIFEST = ".claude/adapter.json"
 
 
 class PolicyError(ValueError):
@@ -110,12 +112,12 @@ def frontmatter(path):
 
 def validate(root, data):
     expected = {
-        "schema_version", "format", "authority", "profiles", "claude_adapter",
+        "schema_version", "format", "authority", "profiles",
         "checks", "routes", "unmapped", "handoff_required",
     }
     if not isinstance(data, dict) or set(data) != expected:
         raise PolicyError("Invalid manifest fields (unknown or missing key)")
-    if type(data["schema_version"]) is not int or data["schema_version"] != 1:
+    if type(data["schema_version"]) is not int or data["schema_version"] != 2:
         raise PolicyError("Unsupported policy schema_version")
     references(root, data["authority"], "authority")
     string_list(data["handoff_required"], "handoff_required")
@@ -157,9 +159,17 @@ def validate(root, data):
         for check in string_list(route["checks"], "route checks " + name):
             if check not in data["checks"]:
                 raise PolicyError("Unknown check: " + check)
-    adapter = data["claude_adapter"]
-    if not isinstance(adapter, dict) or set(adapter) != {"workers", "settings", "main_model"}:
+    if len((root / "AGENTS.md").read_text().splitlines()) >= 200:
+        raise PolicyError("AGENTS.md must remain under 200 lines")
+    return data
+
+
+def validate_claude(root, data, adapter):
+    """Explicit optional adapter validation; never applies settings or runs hooks."""
+    if not isinstance(adapter, dict) or set(adapter) != {"schema_version", "workers", "settings", "main_model"}:
         raise PolicyError("Invalid Claude adapter")
+    if type(adapter["schema_version"]) is not int or adapter["schema_version"] != 1:
+        raise PolicyError("Unsupported Claude adapter schema_version")
     if not isinstance(adapter["workers"], dict) or not adapter["workers"]:
         raise PolicyError("No Claude workers configured")
     for name, worker in adapter["workers"].items():
@@ -194,24 +204,75 @@ def validate(root, data):
         for group in hooks for hook in group.get("hooks", [])
     ):
         raise PolicyError("Claude startup policy hook is missing")
-    for filename in ("AGENTS.md", "CLAUDE.md"):
+    for filename in ("CLAUDE.md",):
         if len((root / filename).read_text().splitlines()) >= 200:
             raise PolicyError(filename + " must remain under 200 lines")
     if "\n@AGENTS.md\n" not in (root / "CLAUDE.md").read_text():
         raise PolicyError("Claude adapter must import shared AGENTS.md")
-    return data
+    return adapter
 
 
 def load(root=ROOT):
     return validate(root, read_json(root / MANIFEST))
 
 
+def load_claude(root=ROOT, data=None):
+    return validate_claude(root, data if data is not None else load(root), read_json(root / CLAUDE_MANIFEST))
+
+
+def discover(root, data):
+    """Publish validated route IDs and existing owner paths, without guessing intent."""
+    return {
+        "status": "route_catalog",
+        "instruction": "Copy exact route IDs from this catalog. Sources exist locally, but confirm mounted callers. For other filenames use --files '<glob>' or rg --files before reading/searching a path. No checks are executed.",
+        "routes": [
+            {key: route[key] for key in ("id", "profile", "sources")}
+            for route in data["routes"]
+        ],
+    }
+
+
+def find_files(root, data, patterns, limit=80):
+    """Bounded active-tree filename discovery; no file contents/provider config read."""
+    for pattern in patterns:
+        relative_path(root, pattern)
+    if not 1 <= limit <= 500:
+        raise PolicyError("--limit must be between 1 and 500")
+    ignored = {"archive", "node_modules", "vendor", "Pods", "build", "DerivedData", "__pycache__"}
+    found = {pattern: [] for pattern in patterns}
+    for folder, directories, filenames in os.walk(root, followlinks=False):
+        directories[:] = sorted(name for name in directories if not name.startswith(".") and name not in ignored and not (Path(folder) / name).is_symlink())
+        for name in sorted(filenames):
+            path = Path(folder) / name
+            if name.startswith(".") or path.is_symlink() or retired(name):
+                continue
+            relative = path.relative_to(root).as_posix()
+            for pattern in patterns:
+                matched = matches(relative, pattern) if "/" in pattern else fnmatch.fnmatchcase(name, pattern)
+                if matched:
+                    found[pattern].append(relative)
+    paths = sorted(set(path for group in found.values() for path in group))
+    missing = [pattern for pattern, group in found.items() if not group]
+    return {
+        "status": "discovery_required" if missing else "file_candidates",
+        "files": paths[:limit],
+        "routes_by_file": {path: [route["id"] for route in data["routes"] if any(matches(path, pattern) for pattern in route["paths"])] for path in paths[:limit]},
+        "unmatched_patterns": missing,
+        "total_matches": len(paths),
+        "truncated": len(paths) > limit,
+        "scope": "Active non-hidden tree; excludes archive, dependency/build/cache directories, symlinks and retired SupabaseService names. Filename lookup only, not content/ownership proof.",
+        "instruction": "Use returned exact paths for reads/searches; narrow patterns if truncated. No matches means broaden discovery, never synthesize a directory or silently choose a substitute.",
+    }
+
+
 def resolve(root, data, paths=(), route_ids=()):
     by_id = {route["id"]: route for route in data["routes"]}
     unknown_ids = sorted(set(route_ids) - set(by_id))
     if unknown_ids:
-        raise PolicyError("Unknown routes: " + ", ".join(unknown_ids))
+        raise PolicyError("Unknown routes: {}. Run --discover first; valid IDs: {}".format(
+            ", ".join(unknown_ids), ", ".join(by_id)))
     normalized = [relative_path(root, path) for path in paths]
+    missing = [path for path in normalized if not (root / path).exists()]
     selected = set(route_ids)
     unmapped = []
     for path in normalized:
@@ -224,10 +285,11 @@ def resolve(root, data, paths=(), route_ids=()):
     routes = [route for route in data["routes"] if route["id"] in selected]
     check_ids = list(dict.fromkeys(check for route in routes for check in route["checks"]))
     return {
-        "status": "discovery_required" if unmapped else "context_candidates",
+        "status": "discovery_required" if unmapped or missing else "context_candidates",
         "paths": normalized,
+        "missing_paths": missing,
         "unmapped": unmapped,
-        "instruction": data["unmapped"] if unmapped else "Confirm mounted owners/callers and applicable contracts before editing. Suggested checks are not executed or authorized by this command.",
+        "instruction": "Missing input paths are not verified sources. Run --discover and --files '<glob>' before reading/searching; planned new paths still require existing-owner discovery." if missing else data["unmapped"] if unmapped else "Confirm mounted owners/callers and applicable contracts before editing. Suggested checks are not executed or authorized by this command.",
         "authority": data["authority"],
         "routes": routes,
         "checks": {name: data["checks"][name] for name in check_ids},
@@ -265,12 +327,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT, help="Repository root (also supports isolated fixtures)")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--check-claude", action="store_true", help="Explicitly validate the optional Claude adapter as data")
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--discover", action="store_true", help="First step: list valid route IDs and verified existing owner paths")
+    parser.add_argument("--files", nargs="+", action="extend", default=[], help="Find exact existing active-tree filenames using quoted globs; repeatable")
+    parser.add_argument("--limit", type=int, default=80, help="Maximum file candidates (1..500; default 80)")
     parser.add_argument("--claude-start", action="store_true")
     parser.add_argument("--paths", nargs="+", default=[])
     parser.add_argument("--route", action="append", default=[])
     parser.add_argument("--rpc", action="append", default=[], help="List local SQL definition candidates; repeat for internal callees")
     args = parser.parse_args(argv)
+    if (args.discover or args.files) and (args.paths or args.route or args.rpc or args.check or args.check_claude or args.claude_start or args.list or (args.discover and args.files)):
+        parser.error("Run --discover or --files separately before route selection/checks")
     root = args.root.resolve()
     try:
         if args.claude_start:
@@ -282,14 +350,23 @@ def main(argv=None):
             candidates = [cwd] + list(cwd.parents)
             root = next((candidate for candidate in candidates if (candidate / MANIFEST).is_file()), root)
         data = load(root)
+        if args.claude_start or args.check_claude:
+            load_claude(root, data)
         if args.claude_start:
             context = (
                 "Kuro shared policy validation PASS at {}. AGENTS.md overrides personal always-multiple-personas defaults for Kuro. "
-                "Before edits, run python3 scripts/agents/policy.py --paths <paths> (or --route <id>), "
+                "First discovery command: python3 scripts/agents/policy.py --discover. Copy valid route IDs and owner paths; "
+                "for other files use --files '<glob>' before reads/searches. Never invent a route or directory. Then use --route <copied-id> or --paths <discovered-paths>, "
                 "confirm current owners/callers, and choose focused verification before model selection. "
                 "No builds, hosted calls or model invocations were performed."
             ).format(root)
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": context}}))
+        elif args.discover:
+            print(json.dumps(discover(root, data), indent=2))
+        elif args.files:
+            result = find_files(root, data, args.files, args.limit)
+            print(json.dumps(result, indent=2))
+            return 2 if result["status"] == "discovery_required" else 0
         elif args.paths or args.route or args.rpc:
             route_ids = args.route or (["database"] if args.rpc and not args.paths else [])
             result = resolve(root, data, args.paths, route_ids)
@@ -304,10 +381,12 @@ def main(argv=None):
         elif args.list:
             for route in data["routes"]:
                 print("{} [{}]".format(route["id"], route["profile"]))
+        elif args.check_claude:
+            print("PASS: shared policy and explicit Claude adapter validation")
         elif args.check:
-            print("PASS: shared policy, {} routes, references and Claude adapter".format(len(data["routes"])))
+            print("PASS: shared policy, {} routes and references (provider-neutral)".format(len(data["routes"])))
         else:
-            parser.error("Choose --check, --list, --paths, --route or --rpc; no default task guessing")
+            parser.error("Start with --discover; use --files for filenames, then --paths/--route/--rpc. Validation: --check or --check-claude")
     except (PolicyError, OSError, ValueError, TypeError, KeyError, AttributeError) as error:
         if args.claude_start:
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "Kuro policy validation FAILED; resolve configuration before editing: " + str(error)}}))

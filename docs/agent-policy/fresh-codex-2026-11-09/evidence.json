@@ -1,0 +1,1318 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-09",
+  "scope": "Fresh native Codex source-routing/verification acceptance; no application or hosted qualification",
+  "raw_directory": "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c",
+  "runtime": {
+    "root": "/Users/max/Kuro-Anime-App",
+    "binary": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+    "version": "codex-cli 0.166.0-alpha.5.1",
+    "raw_directory": "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c"
+  },
+  "sessions": [
+    {
+      "phase": "baseline",
+      "id": "01a1c06c-382c-73a1-a9c5-fdbb037dff54",
+      "process_exit": 0,
+      "launch": {
+        "argv": [
+          "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+          "--ask-for-approval",
+          "never",
+          "exec",
+          "--ignore-user-config",
+          "--sandbox",
+          "read-only",
+          "--model",
+          "gpt-6.1-sol",
+          "--config",
+          "model_reasoning_effort=\"high\"",
+          "--config",
+          "web_search=\"disabled\"",
+          "--config",
+          "features.apps=false",
+          "--config",
+          "features.multi_agent=false",
+          "--config",
+          "mcp_servers={}",
+          "--json",
+          "--cd",
+          "/Users/max/Kuro-Anime-App",
+          "--output-last-message",
+          "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/baseline-final.txt",
+          "-"
+        ],
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "inherits_user_config": false,
+        "claude_advisor_env_before": null
+      },
+      "runtime": {
+        "id": "01a1c06c-382c-73a1-a9c5-fdbb037dff54",
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "cli_version": "0.166.0-alpha.5.1",
+        "source": "exec",
+        "model_provider": "openai"
+      },
+      "context": {
+        "model": "gpt-6.1-sol",
+        "approval_policy": "never",
+        "sandbox_policy": {
+          "type": "read-only"
+        },
+        "permission_profile": {
+          "type": "managed",
+          "file_system": {
+            "type": "restricted",
+            "entries": [
+              {
+                "path": {
+                  "type": "special",
+                  "value": {
+                    "kind": "root"
+                  }
+                },
+                "access": "read"
+              }
+            ]
+          },
+          "network": "restricted"
+        }
+      },
+      "input_proof": {
+        "instruction_labels": [
+          "# AGENTS.md instructions for /Users/max/Kuro-Anime-App"
+        ],
+        "shared_policy_injected": true,
+        "claude_adapter_body_injected": false
+      },
+      "commands": [
+        {
+          "id": "item_1",
+          "command": "/bin/zsh -lc pwd",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "29fb4cbb80322d0f90051d3c7402eedbd0c533452071acdcf6d4af47419c5973"
+        },
+        {
+          "id": "item_2",
+          "command": "/bin/zsh -lc 'git status --short'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "45886d1e7877a3f571f58ad227f2b20600585fd88d34a9df389353bedea95891"
+        },
+        {
+          "id": "item_3",
+          "command": "/bin/zsh -lc 'git diff --stat'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "50631e5daed03c8fed23f878cb5b8d8493190869db6657f6860f76b6b428d10e"
+        },
+        {
+          "id": "item_4",
+          "command": "/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'policy.py' -g 'test_*.py' -g 'check_docs_current_state.sh' -g 'routes.yaml'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "f7a8215485050e275e24d61dc0e7bb17f981af24728d122a108127b3344790d6",
+          "output": "AGENTS.md\nfastlane/test_ios_unit_runner.py\nfastlane/test_live_service_evidence.py\nagents/routes.yaml\nscripts/agents/test_policy.py\nscripts/agents/policy.py\nscripts/test_series_enrichment_worker.py\nscripts/test_home_repair_drain.py\nscripts/quality-gates/check_docs_current_state.sh\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_5",
+          "command": "/bin/zsh -lc 'if [ \"${CLAUDE_CODE_DISABLE_ADVISOR_TOOL+x}\" = x ]; then printf '\"'CLAUDE_CODE_DISABLE_ADVISOR_TOOL is present\\\\n'; else printf 'CLAUDE_CODE_DISABLE_ADVISOR_TOOL is absent\\\\n'; fi\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "b2ecbdca46470063f47dd11ad48500f3276e46fef62f4965bf69ef70bd2926db",
+          "output": "CLAUDE_CODE_DISABLE_ADVISOR_TOOL is absent\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_6",
+          "command": "/bin/zsh -lc 'nl -ba scripts/agents/policy.py'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "6ae6a3819638f6b0d40ccfbcfa862e8cb3ac5c5294652f6a3c7c1202d4718bfc"
+        },
+        {
+          "id": "item_7",
+          "command": "/bin/zsh -lc 'nl -ba AGENTS.md'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "ab2eda994c0be82e878052c6282d4d25d7f95d3ecc512c5c4e7e2910362846e6"
+        },
+        {
+          "id": "item_8",
+          "command": "/bin/zsh -lc 'nl -ba scripts/quality-gates/check_docs_current_state.sh'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "a30752a6f18bb3805a84789c71ad212b1a99cd5a1868b67c1d755e7ae96e7aaf",
+          "output": "     1\t#!/usr/bin/env bash\n     2\tset -euo pipefail\n     3\t\n     4\tSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n     5\tROOT_DIR=\"$(cd \"$SCRIPT_DIR/../..\" && pwd)\"\n     6\t\n     7\techo \"=== Current-State Docs Check ===\"\n     8\techo \"\"\n     9\t\n    10\tpython3 \"$SCRIPT_DIR/check_docs_current_state.py\"\n    11\t\n    12\techo \"\"\n    13\techo \"Current-state docs PASSED.\"\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_9",
+          "command": "/bin/zsh -lc 'nl -ba scripts/agents/test_policy.py'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "dfc8e7943630939438bc0b6ee5339d270c14a37b20739f3bf7b341a2b458a0fd"
+        },
+        {
+          "id": "item_11",
+          "command": "/bin/zsh -lc \"sed -n '150,321p' scripts/agents/policy.py\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "12859778535150288795b5025fed67419ceee855bfecdd9158f67fea0217bee1"
+        },
+        {
+          "id": "item_10",
+          "command": "/bin/zsh -lc 'nl -ba scripts/quality-gates/check_docs_current_state.py'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "08dd011f509d8cb5f7cfb50f5edef86c36c6527eb65745351671820d1c49ed9f",
+          "output": "     1\t#!/usr/bin/env python3\n     2\tfrom pathlib import Path\n     3\timport subprocess\n     4\timport sys\n     5\t\n     6\tROOT = Path(__file__).resolve().parents[2]\n     7\tAPP_SWIFT_COUNT = len(list((ROOT / \"Kuro\").rglob(\"*.swift\")))\n     8\t# Local Swift package(s) (Packages/*/Sources and Packages/*/Tests). Absent until the first package target lands.\n     9\tPACKAGES_DIR = ROOT / \"Packages\"\n    10\tPACKAGE_SWIFT_COUNT = (\n    11\t    len([p for p in PACKAGES_DIR.rglob(\"*.swift\") if \".build\" not in p.parts])\n    12\t    if PACKAGES_DIR.exists()\n    13\t    else 0\n    14\t)\n    15\tPACKAGE_STATE_CLAUSE = (\n    16\t    f\"; {PACKAGE_SWIFT_COUNT} package Swift files in `/Packages`\" if PACKAGE_SWIFT_COUNT else \"\"\n    17\t)\n    18\tPACKAGE_PLAIN_CLAUSE = (\n    19\t    f\", {PACKAGE_SWIFT_COUNT} package Swift files\" if PACKAGE_SWIFT_COUNT else \"\"\n    20\t)\n    21\tMIGRATION_COUNT = len(list((ROOT / \"supabase\" / \"migrations\").glob(\"*.sql\")))\n    22\t\n    23\tCURRENT_APP_STATE = (ROOT / \"CURRENT_APP_STATE.md\").read_text()\n    24\tCURRENT_APP_STATE_PLAIN = (ROOT / \"CURRENT_APP_STATE_PLAIN.md\").read_text()\n    25\tCLAUDE = (ROOT / \"CLAUDE.md\").read_text()\n    26\tAGENTS = (ROOT / \"AGENTS.md\").read_text()\n    27\tSQL_REPORT = (ROOT / \"archive\" / \"SQL_COMPATIBILITY_REPORT.md\").read_text()\n    28\tKNOWLEDGE_INDEX = (ROOT / \"KNOWLEDGE\" / \"INDEX.md\").read_text()\n    29\tDOC_MAP = ROOT / \"docs\" / \"documentation-surface-map.md\"\n    30\tARCHIVE_README = ROOT / \"archive\" / \"README.md\"\n    31\t\n    32\tchecks = [\n    33\t    (\n    34\t        \"CURRENT_APP_STATE inventory\",\n    35\t        f\"**Current repo inventory:** {APP_SWIFT_COUNT} app Swift files in `/Kuro`{PACKAGE_STATE_CLAUSE}; {MIGRATION_COUNT} SQL migrations in `/supabase/migrations`.\",\n    36\t        CURRENT_APP_STATE,\n    37\t    ),\n    38\t    (\n    39\t        \"CURRENT_APP_STATE historical note\",\n    40\t        \"Historical change-log entries below may include point-in-time counts.\",\n    41\t        CURRENT_APP_STATE,\n    42\t    ),\n    43\t    (\n    44\t        \"CURRENT_APP_STATE_PLAIN inventory\",\n    45\t        f\"**Current inventory:** {APP_SWIFT_COUNT} app Swift files{PACKAGE_PLAIN_CLAUSE} and {MIGRATION_COUNT} SQL migrations are in the repo today.\",\n    46\t        CURRENT_APP_STATE_PLAIN,\n    47\t    ),\n    48\t    (\n    49\t        \"CLAUDE shared policy import\",\n    50\t        \"\\n@AGENTS.md\\n\",\n    51\t        CLAUDE,\n    52\t    ),\n    53\t    (\n    54\t        \"AGENTS shared routing entry point\",\n    55\t        \"python3 scripts/agents/policy.py --paths\",\n    56\t        AGENTS,\n    57\t    ),\n    58\t    (\n    59\t        \"SQL report historical disclaimer\",\n    60\t        \"**Status:** Historical point-in-time report, not a current whole-repo compatibility guarantee.\",\n    61\t        SQL_REPORT,\n    62\t    ),\n    63\t    (\n    64\t        \"KNOWLEDGE intentional overlap note\",\n    65\t        \"> **Design note:** This directory is intentionally self-contained for LLM\",\n    66\t        KNOWLEDGE_INDEX,\n    67\t    ),\n    68\t]\n    69\t\n    70\tfailures = []\n    71\tfor label, needle, haystack in checks:\n    72\t    if needle not in haystack:\n    73\t        failures.append(f\"{label} missing expected text: {needle}\")\n    74\t\n    75\tif not DOC_MAP.exists():\n    76\t    failures.append(\"docs/documentation-surface-map.md is missing\")\n    77\t\n    78\tif not ARCHIVE_README.exists():\n    79\t    failures.append(\"archive/README.md is missing\")\n    80\t\n    81\tif failures:\n    82\t    print(\"FAIL\")\n    83\t    for failure in failures:\n    84\t        print(f\"- {failure}\")\n    85\t    sys.exit(1)\n    86\t\n    87\tpolicy_result = subprocess.run(\n    88\t    [sys.executable, str(ROOT / \"scripts\" / \"agents\" / \"policy.py\"), \"--check\"],\n    89\t    check=False,\n    90\t)\n    91\tif policy_result.returncode != 0:\n    92\t    sys.exit(policy_result.returncode)\n    93\t\n    94\tprint(\"PASS\")\n    95\tprint(f\"- app_swift={APP_SWIFT_COUNT}\")\n    96\tprint(f\"- package_swift={PACKAGE_SWIFT_COUNT}\")\n    97\tprint(f\"- migrations={MIGRATION_COUNT}\")\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_12",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --route library_progress identity home_collection_releases'",
+          "exit_code": 2,
+          "status": "failed",
+          "output_sha256": "9f5d9bf0086791ce9b703903398eb32bf934a174aa0cc559cdbf092c97df1c88"
+        },
+        {
+          "id": "item_14",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --route library_progress --route identity --route home_collection_releases'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "e3b485d8e8972662931a798fc0a919d83cb5fad34db6ee11e7d847fb4158331f"
+        },
+        {
+          "id": "item_15",
+          "command": "/bin/zsh -lc \"rg -n 'incrementProgress|sendProgress|progressSender|configureProgress|ProgressOutbox|apply_progress|durable|makeLibrary|LibraryStore\\\\(' Kuro/Composition/AppComposition.swift Kuro/Home/HomeStore.swift Kuro/Collection Kuro/Library Packages/KuroModules/Sources/KuroLibrary Kuro/Composition/PostgrestLibraryTransport.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "ce6c362530ba481eac6d048a23285b323579d365953dddc6e8e1b8af47d6859d"
+        },
+        {
+          "id": "item_16",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --check'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "29761c5f4434a3794118a74f3448cf463c80f89e49998545fe07f150e296bd6f",
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\npython3: error: couldn't create cache file '/tmp/xcrun_db-r3JWKhtZ' (errno=Operation not permitted)\n2026-11-09 14:08:49.969 xcodebuild[73474:4317816]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-11-09 14:08:50.122 xcodebuild[73474:4317814] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\npython3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\npython3: error: couldn't create cache file '/tmp/xcrun_db-M69mWhDe' (errno=Operation not permitted)\n2026-11-09 14:08:50.699 xcodebuild[73478:4317836]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-11-09 14:08:50.846 xcodebuild[73478:4317835] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\nPASS: shared policy, 16 routes, references and Claude adapter\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_17",
+          "command": "/bin/zsh -lc \"python3 -m unittest discover -s scripts/agents -p 'test_*.py'\"",
+          "exit_code": 1,
+          "status": "failed",
+          "output_sha256": "181da61d429b30cc9d3fb57810274b4fcd3faa1fafc98d116268cb1c8c34847d",
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\npython3: error: couldn't create cache file '/tmp/xcrun_db-ajNET9mT' (errno=Operation not permitted)\n2026-11-09 14:08:55.608 xcodebuild[73530:4318164]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-11-09 14:08:55.760 xcodebuild[73530:4318148] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\npython3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\npython3: error: couldn't create cache file '/tmp/xcrun_db-ApVBazbF' (errno=Operation not permitted)\n2026-11-09 14:08:56.392 xcodebuild[73554:4318295]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-11-09 14:08:56.559 xcodebuild[73554:4318294] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\nEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n======================================================================\nERROR: test_adapter_cannot_silently_enable_untracked_advisor_model (test_policy.PolicyTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/max/Kuro-Anime-App/scripts/agents/test_policy.py\", line 16, in setUp\n    self.temp = tempfile.TemporaryDirectory()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 779, in __init__\n    self.name = mkdtemp(suffix, prefix, dir)\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 348, in mkdtemp\n    prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 118, in _sanitize_params\n    dir = gettempdir()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 287, in gettempdir\n    tempdir = _get_default_tempdir()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 219, in _get_default_tempdir\n    raise FileNotFoundError(_errno.ENOENT,\nFileNotFoundError: [Errno 2] No usable temporary directory found in ['/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/', '/tmp', '/var/tmp', '/usr/tmp', '/Users/max/Kuro-Anime-App']\n\n======================================================================\nERROR: test_adapter_must_import_shared_policy (test_policy.PolicyTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/max/Kuro-Ani\n[TRUNCATED; original digest above]\n File \"/Users/max/Kuro-Anime-App/scripts/agents/test_policy.py\", line 16, in setUp\n    self.temp = tempfile.TemporaryDirectory()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 779, in __init__\n    self.name = mkdtemp(suffix, prefix, dir)\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 348, in mkdtemp\n    prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 118, in _sanitize_params\n    dir = gettempdir()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 287, in gettempdir\n    tempdir = _get_default_tempdir()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 219, in _get_default_tempdir\n    raise FileNotFoundError(_errno.ENOENT,\nFileNotFoundError: [Errno 2] No usable temporary directory found in ['/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/', '/tmp', '/var/tmp', '/usr/tmp', '/Users/max/Kuro-Anime-App']\n\n======================================================================\nERROR: test_view_combines_presentation_and_capability (test_policy.PolicyTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/max/Kuro-Anime-App/scripts/agents/test_policy.py\", line 16, in setUp\n    self.temp = tempfile.TemporaryDirectory()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 779, in __init__\n    self.name = mkdtemp(suffix, prefix, dir)\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 348, in mkdtemp\n    prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 118, in _sanitize_params\n    dir = gettempdir()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 287, in gettempdir\n    tempdir = _get_default_tempdir()\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py\", line 219, in _get_default_tempdir\n    raise FileNotFoundError(_errno.ENOENT,\nFileNotFoundError: [Errno 2] No usable temporary directory found in ['/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/', '/tmp', '/var/tmp', '/usr/tmp', '/Users/max/Kuro-Anime-App']\n\n----------------------------------------------------------------------\nRan 30 tests in 0.011s\n\nFAILED (errors=30)\n",
+          "output_truncated": true
+        },
+        {
+          "id": "item_18",
+          "command": "/bin/zsh -lc 'bash scripts/quality-gates/check_docs_current_state.sh'",
+          "exit_code": 1,
+          "status": "failed",
+          "output_sha256": "e723933f1f41b1433ad7131c5544b34ee19f9656a83378c538a889b1c4674308",
+          "output": "=== Current-State Docs Check ===\n\npython3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\npython3: error: couldn't create cache file '/tmp/xcrun_db-xX77sDcP' (errno=Operation not permitted)\n2026-11-09 14:09:01.359 xcodebuild[73644:4318652]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-11-09 14:09:01.512 xcodebuild[73644:4318651] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\npython3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\npython3: error: couldn't create cache file '/tmp/xcrun_db-mUfpQHfZ' (errno=Operation not permitted)\n2026-11-09 14:09:02.104 xcodebuild[73666:4318748]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-11-09 14:09:02.261 xcodebuild[73666:4318746] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\nFAIL\n- CURRENT_APP_STATE inventory missing expected text: **Current repo inventory:** 293 app Swift files in `/Kuro`; 36 package Swift files in `/Packages`; 250 SQL migrations in `/supabase/migrations`.\n- CURRENT_APP_STATE_PLAIN inventory missing expected text: **Current inventory:** 293 app Swift files, 36 package Swift files and 250 SQL migrations are in the repo today.\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_19",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Composition/PostgrestLibraryTransport.swift | sed -n '1,180p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "086444eeea473e161a59b7f21226143ccabaef05c6ff3724363d110b22d0c26c"
+        },
+        {
+          "id": "item_20",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Home/HomeStore.swift | sed -n '65,100p;475,580p;615,700p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "acddade64a801ae49b2187671e416c31f8146db59e6ab16519b77c597cbef77b"
+        },
+        {
+          "id": "item_21",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Composition/AppComposition.swift | sed -n '175,295p;345,430p;610,628p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "af2f25758c1a52bb71e55ceed6700c9c33a19424e6a405c855a82ebda294242c"
+        },
+        {
+          "id": "item_22",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Collection/CollectionStore+Lists.swift | sed -n '1,145p';\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "dd42604e37af753b417791d7020c47e0432ecd3d77cd2c03ce7ec32a659144df"
+        },
+        {
+          "id": "item_23",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --rpc apply_progress_mutations_v1 --rpc _apply_progress_mutations_for_user'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "629f3fab265632ed480b7a91ca94e7057ec1515b67b10f9928789b220ec417b7"
+        },
+        {
+          "id": "item_24",
+          "command": "/bin/zsh -lc \"nl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift | sed -n '50,95p;178,290p;360,465p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "6d25b9ee0934850d73cabc5377c00c3b6bfc0630234a7d3162e9dddc3689d325"
+        },
+        {
+          "id": "item_25",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Composition/AppComposition.swift | sed -n '85,160p'; nl -ba Kuro/Home/HomeStore.swift | sed -n '526,546p;619,670p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "6ab714705126ed75c3d26e6029e199c90c6db0af5c5db53292cd77cfcd62c67d"
+        },
+        {
+          "id": "item_26",
+          "command": "/bin/zsh -lc \"nl -ba supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql | sed -n '558,610p;720,832p'; nl -ba supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql | sed -n '1,255p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "caf968d4e4e39b4e96b9d15bf2a05ac39c59066ec8aae8e60d9fed721db188e0"
+        },
+        {
+          "id": "item_27",
+          "command": "/bin/zsh -lc \"rg -n 'HomeView\\\\(|CollectionView\\\\(|advanceFromList\\\\(|home\\\\.advance|store\\\\.advance|libraryBackend\\\\(|seriesFoundationV1Enabled|libraryEditV2Enabled' Kuro/Composition/AppComposition.swift Kuro/Views Kuro/ContentView.swift Kuro/App Kuro/Features Kuro/Design Kuro/Models Kuro/Shell 2>/dev/null\"",
+          "exit_code": 2,
+          "status": "failed",
+          "output_sha256": "7ee3c1bbf82dbc5d1e57f5de1fd65b43ea61d52e1f28014809cd5dafa4402eaf"
+        },
+        {
+          "id": "item_29",
+          "command": "/bin/zsh -lc \"nl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift | sed -n '154,180p;232,265p;311,355p'; nl -ba Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift | sed -n '64,92p;160,200p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "2973e41ec2d7856603dc6711021cfde75b95138cd46333da3eba5442c61fa78d"
+        },
+        {
+          "id": "item_30",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/ContentView.swift | sed -n '830,865p'; nl -ba Kuro/Views/Home/HomeView.swift | sed -n '854,875p'; nl -ba Kuro/Views/EditorialCollectionView.swift | sed -n '585,610p'; nl -ba Kuro/Library/LibraryActions.swift | sed -n '230,265p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "2d0a9082b5c435d25e8b8c4bdfc68d9b766ffc3b43d10e69214bbfa650bbf9e0"
+        },
+        {
+          "id": "item_31",
+          "command": "/bin/zsh -lc \"rg -n '(_apply_progress_mutations_for_user|apply_progress_mutations_v1|row level security|grant|revoke)' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql | tail -45; rg -n 'Library|Identity|histor|authority' docs/modules/README.md docs/documentation-surface-map.md | head -30; rg -n 'func test|@Test|replay|account|lost|conflict' Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift | head -40\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "4b7deeb6f27a60c4828ecfa11db8b46fa57eb1991d42a03bbfccc819a4010863"
+        },
+        {
+          "id": "item_32",
+          "command": "/bin/zsh -lc \"rg --files Kuro | rg 'FeatureFlags|AccountSession|SessionController'; rg -n 'applyProgressMutations|fenceEnabled|progressAvailable|applyDurable' Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift; rg -n 'withCredentialLease|isCurrent|transition|bind\\\\(|reset\\\\(' Packages/KuroModules/Sources/KuroCore/AccountSession.swift Kuro/Identity/SessionController.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "1b9657fe837c102fe0a524e19805b17dfa99a00c45c8da3be6275103194df82e"
+        },
+        {
+          "id": "item_33",
+          "command": "/bin/zsh -lc \"rg -n 'seriesFoundation(V1Enabled|FenceEnabled)|series_foundation|UserDefaults|launchArguments' Kuro/Services/FeatureFlags.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "20e452547c4849611939502fa3834dfcfe3a0cda7488b3176204fa509cfda1c1"
+        },
+        {
+          "id": "item_34",
+          "command": "/bin/zsh -lc \"nl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift | sed -n '232,257p;350,390p'; nl -ba Packages/KuroModules/Sources/KuroCore/AccountSession.swift | sed -n '99,104p;120,149p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "9bfdc9da3f9083d909747c7d9e4ffb57f086217d2382ceb438df5cd028616f0b"
+        },
+        {
+          "id": "item_35",
+          "command": "/bin/zsh -lc \"rg -n 'Current repo inventory|Current inventory' CURRENT_APP_STATE.md CURRENT_APP_STATE_PLAIN.md; nl -ba agents/routes.yaml | sed -n '30,52p'; nl -ba docs/modules/README.md | sed -n '1,50p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "290126298183cc880d75ccd5bd62e849fa8748cba486a732546652794391d748"
+        },
+        {
+          "id": "item_36",
+          "command": "/bin/zsh -lc \"rg -n '(grant|revoke).*(_apply_progress_mutations_for_user|apply_progress_mutations_v1)' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql; nl -ba Kuro/Identity/SessionController.swift | sed -n '809,840p'; nl -ba Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift | sed -n '58,62p;112,134p;174,204p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "438a0f06eff773fef6f1836e149172ae1b4a23bb825588b32f752f9dc21dd2f5"
+        },
+        {
+          "id": "item_37",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Services/FeatureFlags.swift | sed -n '50,80p;233,273p'; nl -ba Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift | sed -n '80,108p'; nl -ba Kuro/Composition/AppComposition.swift | sed -n '605,615p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "b4e3091199848c31bfb57b4554aae18487c1f471f976ec0895f0cb865c4de779"
+        },
+        {
+          "id": "item_38",
+          "command": "/bin/zsh -lc \"rg -n 'package_progress|swift test --package-path|library_progress|\\\"identity\\\"' agents/routes.yaml; rg -n '\\\\.environment\\\\((app\\\\.|composition\\\\.|graph\\\\.)?(home|collection|library)|environment\\\\(.*home|environment\\\\(.*collection|AppComposition.shared' Kuro/KuroApp.swift Kuro/ContentView.swift; nl -ba scripts/agents/policy.py | sed -n '185,209p'; nl -ba docs/plans/2026-10-08-import-library-home-completion.md | sed -n '1,27p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "9688a8ad33b49d9ba6a8202453a7507803b99d0900e91f27dad807e4c570bc67"
+        }
+      ],
+      "public_final": "Read-only inspection completed. Two of the three acceptance checks failed; no app or hosted readiness is established.\n\n1. **Policy and current ownership**\n\n   [AGENTS.md:7](/Users/max/Kuro-Anime-App/AGENTS.md:7) declares the shared policy canonical and `CLAUDE.md` an adapter. Its single-agent default is at line 9. The [source-before-model rule:14](/Users/max/Kuro-Anime-App/AGENTS.md:14) requires routing, confirming owners/callers and selecting verification before model selection.\n\n   Successful router commands, both exit **0**:\n\n   ```text\n   python3 scripts/agents/policy.py --route library_progress --route identity --route home_collection_releases\n   python3 scripts/agents/policy.py --rpc apply_progress_mutations_v1 --rpc _apply_progress_mutations_for_user\n   ```\n\n   An initial attempt to pass multiple IDs after one `--route` exited **2**; I corrected it to repeated flags.\n\n   Current source evidence replaces the stale `SupabaseService.incrementProgress` note:\n\n   - [KuroApp.swift:67](/Users/max/Kuro-Anime-App/Kuro/KuroApp.swift:67) injects the composed owners. [ContentView.swift:841](/Users/max/Kuro-Anime-App/Kuro/ContentView.swift:841) mounts Home; line 855 mounts Collection.\n   - [HomeView.swift:868](/Users/max/Kuro-Anime-App/Kuro/Views/Home/HomeView.swift:868) calls `home.advance`, which calls `LibraryStore.storeProgress` at [HomeStore.swift:529](/Users/max/Kuro-Anime-App/Kuro/Home/HomeStore.swift:529).\n   - [EditorialCollectionView.swift:596](/Users/max/Kuro-Anime-App/Kuro/Views/EditorialCollectionView.swift:596) calls `collection.advanceFromList`. [CollectionStore+Lists.swift:91](/Users/max/Kuro-Anime-App/Kuro/Collection/CollectionStore+Lists.swift:91) chooses Library’s durable progress API when available with lifecycle/revision metadata, otherwise a direct Library edit.\n   - [LibraryActions.incrementProgress:239](/Users/max/Kuro-Anime-App/Kuro/Library/LibraryActions.swift:239) also delegates to `LibraryStore.advanceProgress`; it is not a universal intermediary for Home/Collection.\n   - [LibraryProgress.swift:236](/Users/max/Kuro-Anime-App/Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift:236) persists through `ProgressOutbox`, then schedules draining. [ProgressOutbox.advance:164](/Users/max/Kuro-Anime-App/Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift:164) computes the capped increment from durable state. The [drain:368](/Users/max/Kuro-Anime-App/Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift:368) claims intents and calls the configured sender with account/epoch checks.\n   - [HomeStore.configureProgress:619](/Users/max/Kuro-Anime-App/Kuro/Home/HomeStore.swift:619) supplies that sender through `withCredentialLease`; [SupabaseHomeProgressSender.apply:668](/Users/max/Kuro-Anime-App/Kuro/Home/HomeStore.swift:668) invokes `apply_progress_mutations_v1`. Identity binds Library before suspension at [SessionController.swift:826](/Users/max/Kuro-Anime-App/Kuro/Identity/SessionController.swift:826).\n\n   Production explicitly supplies `fenceEnabled: { flags.seriesFoundationFenceEnabled() }` at [AppComposition.swift:127](/Users/max/Kuro-Anime-App/Kuro/Composition/AppComposition.swift:127), despite the factory’s default `{ false }` at line 610. Home explicitly receives `{ shell.flags.seriesFoundationV1Enabled }` at line 236, despite its initializer default `{ true }`. The general backend separately gates fenced transport through [SupabaseLibraryBackend.usesFence:58](/Users/max/Kuro-Anime-App/Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift:58). **Actual live flag values remain unknown.**\n\n   SQL lookup found the [RPC wrapper:797](/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql:797), which derives the user from `auth.uid()` and calls `_apply_progress_mutations_for_user`. The internal writer has an earlier definition at line 558 and a later [replacement body:7](/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql:7). That later body includes payload-presence hashing, replay receipts, lifecycle/revision checks, and writes numeric progress alongside nonnumeric labels at lines 193 and 212. Its [ACL:937](/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql:937) revokes direct client execution. These are local definitions; **the prepared directory proves neither deployment nor non-deployment**.\n\n2. **Checks**\n\n   I inspected `policy.py`, `test_policy.py`, the docs shell wrapper and its Python implementation before execution. Each requested check ran separately from `/Users/max/Kuro-Anime-App`, once:\n\n   | Exact command | Exit | Actual result |\n   |---|---:|---|\n   | `python3 scripts/agents/policy.py --check` | 0 | `PASS: shared policy, 16 routes, references and Claude adapter` |\n   | `python3 -m unittest discover -s scripts/agents -p 'test_*.py'` | 1 | `Ran 30 tests in 0.011s`; `FAILED (errors=30)` |\n   | `bash scripts/quality-gates/check_docs_current_state.sh` | 1 | `FAIL`: both current inventory statements mismatch |\n\n   All 30 unit errors occurred in `setUp`: `FileNotFoundError: No usable temporary directory found`. Test assertions therefore did not execute. The docs checker counted **293 app Swift files, 36 package Swift files, 250 migrations**; both current inventory statements say **35 package files**.\n\n   The route proposes this exact focused check, **not run**:\n\n   ```text\n   swift test --package-path Packages/KuroModules --filter LibraryProgressOwnerTests\n   ```\n\n3. **Isolation and portability**\n\n   The shell presence probe reported **`CLAUDE_CODE_DISABLE_ADVISOR_TOOL` absent**. No other environment values were inspected.\n\n   Validating adapter files as repository data does not apply their models, hooks or environment settings to Codex. [policy.py:186](/Users/max/Kuro-Anime-App/scripts/agents/policy.py:186) reads and validates those declarations. No Claude executor, configured hook or helper agent was launched.\n\n   Genuine dependencies encountered: routing validation requires the repository’s Claude adapter artifacts; unit tests require writable temporary storage; this machine’s `python3` and Git shims emitted Xcode/cache diagnostics and denied cache-write attempts. No app/native/package build command was requested.\n\n   Existing checkout changes were observed. I made no file edits, documentation/memory updates, staging or commits, and used no credentials, connectors, services, database tests or deployment.",
+      "other_item_types": [],
+      "raw_files": {
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/baseline-events.jsonl": "5c89f723810d54254f214649f4e1f887d2855bdb22f34d027bc8c06a569836c4",
+        "/Users/max/.codex/sessions/2026/11/09/rollout-2026-11-09T14-08-00-01a1c06c-382c-73a1-a9c5-fdbb037dff54.jsonl": "eadb36e5b5ee19c5756b8a39d8f58670545dd02066c2c3c1c983b1ee870c0d34",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/baseline-launch.json": "967cb0a96b58e9bba77757cdf2f5395110baf592c10044722fd563db0b9be57b",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/baseline-stderr.log": "8f6a08c4317835ef24dc4d885acc0cfb9058052614dd5e0b305c8d6c9b53d57d"
+      }
+    },
+    {
+      "phase": "retest",
+      "id": "01a1c072-2298-7582-b8f6-384328c18a1e",
+      "process_exit": 0,
+      "launch": {
+        "argv": [
+          "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+          "--ask-for-approval",
+          "never",
+          "exec",
+          "--ignore-user-config",
+          "--config",
+          "default_permissions=\"kuro-acceptance\"",
+          "--config",
+          "permissions.kuro-acceptance.extends=\":read-only\"",
+          "--config",
+          "permissions.kuro-acceptance.filesystem={\"/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch\"=\"write\"}",
+          "--config",
+          "permissions.kuro-acceptance.network.enabled=false",
+          "--model",
+          "gpt-6.1-sol",
+          "--config",
+          "model_reasoning_effort=\"high\"",
+          "--config",
+          "web_search=\"disabled\"",
+          "--config",
+          "features.apps=false",
+          "--config",
+          "features.multi_agent=false",
+          "--config",
+          "mcp_servers={}",
+          "--json",
+          "--cd",
+          "/Users/max/Kuro-Anime-App",
+          "--output-last-message",
+          "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/retest-final.txt",
+          "-"
+        ],
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "inherits_user_config": false,
+        "claude_advisor_env_before": null
+      },
+      "runtime": {
+        "id": "01a1c072-2298-7582-b8f6-384328c18a1e",
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "cli_version": "0.166.0-alpha.5.1",
+        "source": "exec",
+        "model_provider": "openai"
+      },
+      "context": {
+        "model": "gpt-6.1-sol",
+        "approval_policy": "never",
+        "sandbox_policy": {
+          "type": "workspace-write",
+          "writable_roots": [
+            "/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch"
+          ],
+          "network_access": false,
+          "exclude_tmpdir_env_var": false,
+          "exclude_slash_tmp": true
+        },
+        "permission_profile": {
+          "type": "managed",
+          "file_system": {
+            "type": "restricted",
+            "entries": [
+              {
+                "path": {
+                  "type": "path",
+                  "path": "/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch"
+                },
+                "access": "write"
+              },
+              {
+                "path": {
+                  "type": "special",
+                  "value": {
+                    "kind": "root"
+                  }
+                },
+                "access": "read"
+              }
+            ]
+          },
+          "network": "restricted"
+        }
+      },
+      "input_proof": {
+        "instruction_labels": [
+          "# AGENTS.md instructions for /Users/max/Kuro-Anime-App"
+        ],
+        "shared_policy_injected": true,
+        "claude_adapter_body_injected": false
+      },
+      "commands": [
+        {
+          "id": "item_1",
+          "command": "/bin/zsh -lc pwd",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "29fb4cbb80322d0f90051d3c7402eedbd0c533452071acdcf6d4af47419c5973"
+        },
+        {
+          "id": "item_2",
+          "command": "/bin/zsh -lc 'git status --short'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "d8202dd63fd0f196b46778cadca5cf735470c7ec19edf358aba0c26194126b94"
+        },
+        {
+          "id": "item_3",
+          "command": "/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'policy.py' -g 'test_*.py' -g 'check_docs_current_state.sh' -g 'routes.yaml' scripts agents .\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "729a066fb6f225bae0c7705a09722a30041920000449f98de4eff684757699ae",
+          "output": "./agents/routes.yaml\nagents/routes.yaml\n./fastlane/test_ios_unit_runner.py\n./fastlane/test_live_service_evidence.py\nscripts/agents/test_policy.py\nscripts/agents/policy.py\n./AGENTS.md\nscripts/test_series_enrichment_worker.py\nscripts/test_home_repair_drain.py\nscripts/quality-gates/check_docs_current_state.sh\n./scripts/agents/test_policy.py\n./scripts/agents/policy.py\n./scripts/test_home_repair_drain.py\n./scripts/test_series_enrichment_worker.py\n./scripts/quality-gates/check_docs_current_state.sh\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_4",
+          "command": "/bin/zsh -lc 'if [ \"${CLAUDE_CODE_DISABLE_ADVISOR_TOOL+x}\" = x ]; then printf '\"'CLAUDE_CODE_DISABLE_ADVISOR_TOOL is present\\\\n'; else printf 'CLAUDE_CODE_DISABLE_ADVISOR_TOOL is absent\\\\n'; fi\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "b2ecbdca46470063f47dd11ad48500f3276e46fef62f4965bf69ef70bd2926db",
+          "output": "CLAUDE_CODE_DISABLE_ADVISOR_TOOL is absent\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_5",
+          "command": "/bin/zsh -lc 'nl -ba scripts/agents/policy.py'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "49994234ae54a3bfa90e45db03117b0a41ab6e2bf76afa770b6924a0fa766a64"
+        },
+        {
+          "id": "item_6",
+          "command": "/bin/zsh -lc 'nl -ba agents/routes.yaml'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "906f221cf626dafd95e29199b411d257956f1ab4d35a2e44a3c44ef5101781f8"
+        },
+        {
+          "id": "item_7",
+          "command": "/bin/zsh -lc 'nl -ba AGENTS.md'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "30dbfad955c4acd78b03e497fd5549bbfbf2082b76522ae40ee1d8c2d3fa6725"
+        },
+        {
+          "id": "item_8",
+          "command": "/bin/zsh -lc 'nl -ba scripts/agents/test_policy.py'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "d84dbefbd30fa3c54467cc6886b53538389711a877ca1a35aa2157021756f0d0"
+        },
+        {
+          "id": "item_9",
+          "command": "/bin/zsh -lc 'nl -ba scripts/quality-gates/check_docs_current_state.sh\nnl -ba scripts/quality-gates/check_docs_current_state.py'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "a1b52118fb6f03bc73969d29c183f590c2d341e61e7fd20bb8c447b632131438",
+          "output": "     1\t#!/usr/bin/env bash\n     2\tset -euo pipefail\n     3\t\n     4\tSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n     5\tROOT_DIR=\"$(cd \"$SCRIPT_DIR/../..\" && pwd)\"\n     6\t\n     7\techo \"=== Current-State Docs Check ===\"\n     8\techo \"\"\n     9\t\n    10\tpython3 \"$SCRIPT_DIR/check_docs_current_state.py\"\n    11\t\n    12\techo \"\"\n    13\techo \"Current-state docs PASSED.\"\n     1\t#!/usr/bin/env python3\n     2\tfrom pathlib import Path\n     3\timport subprocess\n     4\timport sys\n     5\t\n     6\tROOT = Path(__file__).resolve().parents[2]\n     7\tAPP_SWIFT_COUNT = len(list((ROOT / \"Kuro\").rglob(\"*.swift\")))\n     8\t# Local Swift package(s) (Packages/*/Sources and Packages/*/Tests). Absent until the first package target lands.\n     9\tPACKAGES_DIR = ROOT / \"Packages\"\n    10\tPACKAGE_SWIFT_COUNT = (\n    11\t    len([p for p in PACKAGES_DIR.rglob(\"*.swift\") if \".build\" not in p.parts])\n    12\t    if PACKAGES_DIR.exists()\n    13\t    else 0\n    14\t)\n    15\tPACKAGE_STATE_CLAUSE = (\n    16\t    f\"; {PACKAGE_SWIFT_COUNT} package Swift files in `/Packages`\" if PACKAGE_SWIFT_COUNT else \"\"\n    17\t)\n    18\tPACKAGE_PLAIN_CLAUSE = (\n    19\t    f\", {PACKAGE_SWIFT_COUNT} package Swift files\" if PACKAGE_SWIFT_COUNT else \"\"\n    20\t)\n    21\tMIGRATION_COUNT = len(list((ROOT / \"supabase\" / \"migrations\").glob(\"*.sql\")))\n    22\t\n    23\tCURRENT_APP_STATE = (ROOT / \"CURRENT_APP_STATE.md\").read_text()\n    24\tCURRENT_APP_STATE_PLAIN = (ROOT / \"CURRENT_APP_STATE_PLAIN.md\").read_text()\n    25\tAGENTS = (ROOT / \"AGENTS.md\").read_text()\n    26\tSQL_REPORT = (ROOT / \"archive\" / \"SQL_COMPATIBILITY_REPORT.md\").read_text()\n    27\tKNOWLEDGE_INDEX = (ROOT / \"KNOWLEDGE\" / \"INDEX.md\").read_text()\n    28\tDOC_MAP = ROOT / \"docs\" / \"documentation-surface-map.md\"\n    29\tARCHIVE_README = ROOT / \"archive\" / \"README.md\"\n    30\t\n    31\tchecks = [\n    32\t    (\n    33\t        \"CURRENT_APP_STATE inventory\",\n    34\t        f\"**Current repo inventory:** {APP_SWIFT_COUNT} app Swift files in `/Kuro`{PACKAGE_STATE_CLAUSE}; {MIGRATION_COUNT} SQL migrations in `/supabase/migrations`.\",\n    35\t        CURRENT_APP_STATE,\n    36\t    ),\n    37\t    (\n    38\t        \"CURRENT_APP_STATE historical note\",\n    39\t        \"Historical change-log entries below may include point-in-time counts.\",\n    40\t        CURRENT_APP_STATE,\n    41\t    ),\n    42\t    (\n    43\t        \"CURRENT_APP_STATE_PLAIN inventory\",\n    44\t        f\"**Current inventory:** {APP_SWIFT_COUNT} app Swift files{PACKAGE_PLAIN_CLAUSE} and {MIGRATION_COUNT} SQL migrations are in the repo today.\",\n    45\t        CURRENT_APP_STATE_PLAIN,\n    46\t    ),\n    47\t    (\n    48\t        \"AGENTS shared routing entry point\",\n    49\t        \"python3 scripts/agents/policy.py --paths\",\n    50\t        AGENTS,\n    51\t    ),\n    52\t    (\n    53\t        \"SQL report historical disclaimer\",\n    54\t        \"**Status:** Historical point-in-time report, not a current whole-repo compatibility guarantee.\",\n    55\t        SQL_REPORT,\n    56\t    ),\n    57\t    (\n    58\t        \"KNOWLEDGE intentional overlap note\",\n    59\t        \"> **Design note:** This directory is intentionally self-contained for LLM\",\n    60\t        KNOWLEDGE_INDEX,\n    61\t    ),\n    62\t]\n    63\t\n    64\tfailures = []\n    65\tfor label, needle, haystack in checks:\n    66\t    if needle not in haystack:\n    67\t        failures.append(f\"{label} missing expected text: {needle}\")\n    68\t\n    69\tif not DOC_MAP.exists():\n    70\t    failures.append(\"docs/documentation-surface-map.md is missing\")\n    71\t\n    72\tif not ARCHIVE_README.exists():\n    73\t    failures.append(\"archive/README.md is missing\")\n    74\t\n    75\tif failures:\n    76\t    print(\"FAIL\")\n    77\t    for failure in failures:\n    78\t        print(f\"- {failure}\")\n    79\t    sys.exit(1)\n    80\t\n    81\tpolicy_result = subprocess.run(\n    82\t    [sys.executable, str(ROOT / \"scripts\" / \"agents\" / \"policy.py\"), \"--check\"],\n    83\t    check=False,\n    84\t)\n    85\tif policy_result.returncode != 0:\n    86\t    sys.exit(policy_result.returncode)\n    87\t\n    88\t# The complete Kuro checkout checks its optional adapter explicitly. A portable\n    89\t# shared-policy export with neither Claude entry point does not depend on Claude.\n    90\tif (ROOT / \"CLAUDE.md\").exists() or (ROOT / \".claude\" / \"adapter.json\").exists():\n    91\t    adapter_result = subprocess.run(\n    92\t        [sys.executable, str(ROOT / \"scripts\" / \"agents\" / \"policy.py\"), \"--check-claude\"],\n    93\t        check=False,\n    94\t    )\n    95\t    if adapter_result.returncode != 0:\n    96\t        sys.exit(adapter_result.returncode)\n    97\t\n    98\tprint(\"PASS\")\n    99\tprint(f\"- app_swift={APP_SWIFT_COUNT}\")\n   100\tprint(f\"- package_swift={PACKAGE_SWIFT_COUNT}\")\n   101\tprint(f\"- migrations={MIGRATION_COUNT}\")\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_10",
+          "command": "/bin/zsh -lc \"nl -ba scripts/agents/policy.py | sed -n '140,420p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "3215d5796bbeac8a483831c7b856458006793e3004e649586067eb3fc01b1a50"
+        },
+        {
+          "id": "item_11",
+          "command": "/bin/zsh -lc \"nl -ba scripts/agents/test_policy.py | sed -n '1,260p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "085e67860476e4f83c249355cb513ad08b66a2d04dedc954db1528135b22f2b5"
+        },
+        {
+          "id": "item_12",
+          "command": "/bin/zsh -lc \"nl -ba scripts/quality-gates/check_docs_current_state.sh\nnl -ba scripts/quality-gates/check_docs_current_state.py | sed -n '1,260p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "a1b52118fb6f03bc73969d29c183f590c2d341e61e7fd20bb8c447b632131438",
+          "output": "     1\t#!/usr/bin/env bash\n     2\tset -euo pipefail\n     3\t\n     4\tSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n     5\tROOT_DIR=\"$(cd \"$SCRIPT_DIR/../..\" && pwd)\"\n     6\t\n     7\techo \"=== Current-State Docs Check ===\"\n     8\techo \"\"\n     9\t\n    10\tpython3 \"$SCRIPT_DIR/check_docs_current_state.py\"\n    11\t\n    12\techo \"\"\n    13\techo \"Current-state docs PASSED.\"\n     1\t#!/usr/bin/env python3\n     2\tfrom pathlib import Path\n     3\timport subprocess\n     4\timport sys\n     5\t\n     6\tROOT = Path(__file__).resolve().parents[2]\n     7\tAPP_SWIFT_COUNT = len(list((ROOT / \"Kuro\").rglob(\"*.swift\")))\n     8\t# Local Swift package(s) (Packages/*/Sources and Packages/*/Tests). Absent until the first package target lands.\n     9\tPACKAGES_DIR = ROOT / \"Packages\"\n    10\tPACKAGE_SWIFT_COUNT = (\n    11\t    len([p for p in PACKAGES_DIR.rglob(\"*.swift\") if \".build\" not in p.parts])\n    12\t    if PACKAGES_DIR.exists()\n    13\t    else 0\n    14\t)\n    15\tPACKAGE_STATE_CLAUSE = (\n    16\t    f\"; {PACKAGE_SWIFT_COUNT} package Swift files in `/Packages`\" if PACKAGE_SWIFT_COUNT else \"\"\n    17\t)\n    18\tPACKAGE_PLAIN_CLAUSE = (\n    19\t    f\", {PACKAGE_SWIFT_COUNT} package Swift files\" if PACKAGE_SWIFT_COUNT else \"\"\n    20\t)\n    21\tMIGRATION_COUNT = len(list((ROOT / \"supabase\" / \"migrations\").glob(\"*.sql\")))\n    22\t\n    23\tCURRENT_APP_STATE = (ROOT / \"CURRENT_APP_STATE.md\").read_text()\n    24\tCURRENT_APP_STATE_PLAIN = (ROOT / \"CURRENT_APP_STATE_PLAIN.md\").read_text()\n    25\tAGENTS = (ROOT / \"AGENTS.md\").read_text()\n    26\tSQL_REPORT = (ROOT / \"archive\" / \"SQL_COMPATIBILITY_REPORT.md\").read_text()\n    27\tKNOWLEDGE_INDEX = (ROOT / \"KNOWLEDGE\" / \"INDEX.md\").read_text()\n    28\tDOC_MAP = ROOT / \"docs\" / \"documentation-surface-map.md\"\n    29\tARCHIVE_README = ROOT / \"archive\" / \"README.md\"\n    30\t\n    31\tchecks = [\n    32\t    (\n    33\t        \"CURRENT_APP_STATE inventory\",\n    34\t        f\"**Current repo inventory:** {APP_SWIFT_COUNT} app Swift files in `/Kuro`{PACKAGE_STATE_CLAUSE}; {MIGRATION_COUNT} SQL migrations in `/supabase/migrations`.\",\n    35\t        CURRENT_APP_STATE,\n    36\t    ),\n    37\t    (\n    38\t        \"CURRENT_APP_STATE historical note\",\n    39\t        \"Historical change-log entries below may include point-in-time counts.\",\n    40\t        CURRENT_APP_STATE,\n    41\t    ),\n    42\t    (\n    43\t        \"CURRENT_APP_STATE_PLAIN inventory\",\n    44\t        f\"**Current inventory:** {APP_SWIFT_COUNT} app Swift files{PACKAGE_PLAIN_CLAUSE} and {MIGRATION_COUNT} SQL migrations are in the repo today.\",\n    45\t        CURRENT_APP_STATE_PLAIN,\n    46\t    ),\n    47\t    (\n    48\t        \"AGENTS shared routing entry point\",\n    49\t        \"python3 scripts/agents/policy.py --paths\",\n    50\t        AGENTS,\n    51\t    ),\n    52\t    (\n    53\t        \"SQL report historical disclaimer\",\n    54\t        \"**Status:** Historical point-in-time report, not a current whole-repo compatibility guarantee.\",\n    55\t        SQL_REPORT,\n    56\t    ),\n    57\t    (\n    58\t        \"KNOWLEDGE intentional overlap note\",\n    59\t        \"> **Design note:** This directory is intentionally self-contained for LLM\",\n    60\t        KNOWLEDGE_INDEX,\n    61\t    ),\n    62\t]\n    63\t\n    64\tfailures = []\n    65\tfor label, needle, haystack in checks:\n    66\t    if needle not in haystack:\n    67\t        failures.append(f\"{label} missing expected text: {needle}\")\n    68\t\n    69\tif not DOC_MAP.exists():\n    70\t    failures.append(\"docs/documentation-surface-map.md is missing\")\n    71\t\n    72\tif not ARCHIVE_README.exists():\n    73\t    failures.append(\"archive/README.md is missing\")\n    74\t\n    75\tif failures:\n    76\t    print(\"FAIL\")\n    77\t    for failure in failures:\n    78\t        print(f\"- {failure}\")\n    79\t    sys.exit(1)\n    80\t\n    81\tpolicy_result = subprocess.run(\n    82\t    [sys.executable, str(ROOT / \"scripts\" / \"agents\" / \"policy.py\"), \"--check\"],\n    83\t    check=False,\n    84\t)\n    85\tif policy_result.returncode != 0:\n    86\t    sys.exit(policy_result.returncode)\n    87\t\n    88\t# The complete Kuro checkout checks its optional adapter explicitly. A portable\n    89\t# shared-policy export with neither Claude entry point does not depend on Claude.\n    90\tif (ROOT / \"CLAUDE.md\").exists() or (ROOT / \".claude\" / \"adapter.json\").exists():\n    91\t    adapter_result = subprocess.run(\n    92\t        [sys.executable, str(ROOT / \"scripts\" / \"agents\" / \"policy.py\"), \"--check-claude\"],\n    93\t        check=False,\n    94\t    )\n    95\t    if adapter_result.returncode != 0:\n    96\t        sys.exit(adapter_result.returncode)\n    97\t\n    98\tprint(\"PASS\")\n    99\tprint(f\"- app_swift={APP_SWIFT_COUNT}\")\n   100\tprint(f\"- package_swift={PACKAGE_SWIFT_COUNT}\")\n   101\tprint(f\"- migrations={MIGRATION_COUNT}\")\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_13",
+          "command": "/bin/zsh -lc \"nl -ba scripts/agents/test_policy.py | sed -n '250,380p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "22cb1521a60b7cfa3f2e6703cae1d4471058276337a4d552c0fefcfac2c88a9e"
+        },
+        {
+          "id": "item_14",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --route library_progress --route identity --route home_collection_releases'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "644ae3f2d8cf5ba34955b31b509c9c4c079760a6fe156f37da372090e9ab0471"
+        },
+        {
+          "id": "item_15",
+          "command": "/bin/zsh -lc \"rg -n 'incrementProgress|configureProgress|progressSender|apply_progress|durable|credentialLease|make.*Transport' Kuro/Library/LibraryActions.swift Kuro/Home/HomeStore.swift Kuro/Collection Kuro/Composition/AppComposition.swift Kuro/Composition/PostgrestLibraryTransport.swift Packages/KuroModules/Sources/KuroLibrary\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "e2831583d41eb38da3c9789dbe8dff9b3e6374da2bab81fc3a7f2dccdb0b00ee"
+        },
+        {
+          "id": "item_18",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Composition/AppComposition.swift | sed -n '1,300p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "2591ba7b0ef0d1198ab684a7fbe22fa8c1471e2ccbe0f6234763f6699cf39a17"
+        },
+        {
+          "id": "item_17",
+          "command": "/bin/zsh -lc \"nl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift | sed -n '1,320p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "315e1b286e0094308a116b55f0a58f4c7a91739cbf0fd6517b190a3e8c3cc244"
+        },
+        {
+          "id": "item_19",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Home/HomeStore.swift | sed -n '1,125p;475,690p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "95a5d939d98c1b7548bdbcb44189423946e45be5a7f5f12fd536af3174fd9a73"
+        },
+        {
+          "id": "item_20",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Collection/CollectionStore+Lists.swift | sed -n '1,160p'\nnl -ba Kuro/Composition/PostgrestLibraryTransport.swift | sed -n '1,165p'\nnl -ba Kuro/Library/LibraryActions.swift | sed -n '220,330p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "838ddc992a4e15fb0296bcca01f062d61f6b0cb466dc4c6f148c1732f2cb4260"
+        },
+        {
+          "id": "item_21",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --rpc apply_progress_mutations_v1 --rpc _apply_progress_mutations_for_user'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "0437bb062a242a8ea76cf0ca951f15c8d7b6557319a1b94c08a0ef671799f02a"
+        },
+        {
+          "id": "item_22",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/Home/HomeStore.swift | sed -n '60,100p;485,560p;615,680p'\nrg -n 'libraryBackend|fenceEnabled' Kuro/Composition/AppComposition.swift\nrg -n 'advanceFromList|home.advance|homeStore.advance|\\\\.advance\\\\(' Kuro/Views/Home Kuro/Views/Collection\nrg -n 'HomeView|CollectionView|environment\\\\(.*(home|collection)|composition.home|composition.collection' Kuro/KuroApp.swift Kuro/ContentView.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "f0a681f78f6b4219d714eb0f661fc3da8dceff548e217fa9dc3c56dd93836fa1"
+        },
+        {
+          "id": "item_23",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --check'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "df13a9770f362c6aa43cacc3042677d4a10dd3d070ee03dd813e634d288e3ab4",
+          "output": "PASS: shared policy, 16 routes and references (provider-neutral)\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_24",
+          "command": "/bin/zsh -lc \"python3 -m unittest discover -s scripts/agents -p 'test_*.py'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "2ff702194ab3cf6ff3e3edcb5ac76b9b346550abd1ae6f5db0dce149ee92904a",
+          "output": "...................................\n----------------------------------------------------------------------\nRan 35 tests in 2.785s\n\nOK\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_25",
+          "command": "/bin/zsh -lc 'bash scripts/quality-gates/check_docs_current_state.sh'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "6719e3dd2fd6e3ac111ef87ed998702ae0974ea2ad099e9f12f5cc8482ca9497",
+          "output": "=== Current-State Docs Check ===\n\nPASS: shared policy, 16 routes and references (provider-neutral)\nPASS: shared policy and explicit Claude adapter validation\nPASS\n- app_swift=293\n- package_swift=36\n- migrations=250\n\nCurrent-state docs PASSED.\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_26",
+          "command": "/bin/zsh -lc \"nl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift | sed -n '25,100p;165,295p;330,465p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "1c729dc069667f8b5b8d97d895d154248b5550fa81ca9b990ad87ae73f4a105a"
+        },
+        {
+          "id": "item_27",
+          "command": "/bin/zsh -lc \"nl -ba supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql | sed -n '1,300p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "f57559e1780ae3a0ce4e00c8c0090a1621928a74882f1bd927644a6d5114a539"
+        },
+        {
+          "id": "item_28",
+          "command": "/bin/zsh -lc \"nl -ba supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql | sed -n '558,580p;665,825p'\nrg -n '(_apply_progress_mutations_for_user|apply_progress_mutations_v1)' supabase/migrations supabase/prepared-migrations | tail -35\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "7b28705655c2961811fc01f107716b50f7e5e4254a0b3eab227f39678157ea71"
+        },
+        {
+          "id": "item_29",
+          "command": "/bin/zsh -lc \"nl -ba Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift | sed -n '60,115p;140,255p'\nnl -ba Kuro/Composition/AppComposition.swift | sed -n '600,618p'\nrg -n 'fenceEnabled|applyProgressMutations' Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift\nrg -n 'advanceFromList|struct EditorialCollectionView|collectionList|CollectionList' Kuro/Views Kuro/ContentView.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "33fe88e1a0fa8dd30f9711f8b111366e77936e58a0cdc8cd0dfc2aff64ba9312"
+        },
+        {
+          "id": "item_31",
+          "command": "/bin/zsh -lc \"nl -ba docs/modules/README.md | sed -n '1,105p'\nnl -ba docs/documentation-surface-map.md | sed -n '1,110p'\nnl -ba Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift | sed -n '58,65p;135,150p;179,216p'\nnl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift | sed -n '1,52p'\nrg -n 'progressState|invalidateProgress|bind\\\\(' Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "6a21acc995a3851dfc8f676378d5cadd5502eb28994a4d475ea3598b27ebc3b2"
+        },
+        {
+          "id": "item_32",
+          "command": "/bin/zsh -lc \"rg -n 'withCredentialLease|isCurrent|generation|invalidate' Packages/KuroModules/Sources/KuroCore/AccountSession.swift\nnl -ba Kuro/Composition/AccountScopedState.swift | sed -n '1,155p'\nrg -n 'home|collection|accountScopedStates|invalidate|revoke|cancel|activate|bind' Kuro/Identity/SessionController.swift Kuro/Identity/AuthService.swift Kuro/Composition/AppComposition.swift\nnl -ba Kuro/Services/FeatureFlags.swift | sed -n '1,110p'\nrg -n 'seriesFoundation' Kuro/Services/FeatureFlags.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "2319f84a53800bcc5949690f291bfcf4ce44f71c726abeac5827c5fa2b61cdf7"
+        },
+        {
+          "id": "item_33",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/KuroApp.swift | sed -n '35,85p'\nnl -ba Kuro/ContentView.swift | sed -n '828,860p'\nnl -ba Kuro/Views/Home/HomeView.swift | sed -n '845,878p'\nnl -ba Kuro/Views/EditorialCollectionView.swift | sed -n '574,620p'\nrg -n 'func test|@Test|@Suite|lost|account|rapid|replay|retry|revision' Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift Packages/KuroModules/Tests/KuroLibraryTests/LibraryStoreTests.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "c5d416e0db74ba711e1aab9cd191edfaaec2571d400b489cc42309bb8b73e2ea"
+        },
+        {
+          "id": "item_34",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/ContentView.swift | sed -n '834,858p'\nnl -ba Kuro/Views/Home/HomeView.swift | sed -n '850,875p'\nnl -ba Kuro/Views/EditorialCollectionView.swift | sed -n '580,614p'\nnl -ba Packages/KuroModules/Sources/KuroCore/AccountSession.swift | sed -n '95,173p'\nnl -ba Kuro/Identity/SessionController.swift | sed -n '811,835p;877,891p'\nnl -ba Kuro/Composition/AppComposition.swift | sed -n '394,417p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "ac03bc765f94aa39ed71e8e622c74b98e96b6d58fe42c71efd0ac2ad82fe415e"
+        },
+        {
+          "id": "item_35",
+          "command": "/bin/zsh -lc \"nl -ba Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift | sed -n '1,210p'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "20b1d503d05983e330c04c6ad15842392bae791af849c5f46431fae8895c4a75"
+        },
+        {
+          "id": "item_36",
+          "command": "/bin/zsh -lc \"nl -ba Kuro/KuroApp.swift | sed -n '23,35p;61,80p'\nnl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift | sed -n '78,104p'\nnl -ba Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift | sed -n '150,172p'\nnl -ba Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift | sed -n '98,122p'\nnl -ba supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql | sed -n '904,918p'\nnl -ba supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql | sed -n '934,945p'\nrg -n 'enqueueSync|attempted|pendingSync' Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift | tail -18\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "a1605a2eb2cc20e38c1e87aad8ee4bc78fbbb32eb47755a947e8ed808b7f7d12"
+        },
+        {
+          "id": "item_37",
+          "command": "/bin/zsh -lc 'git status --short'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "d8202dd63fd0f196b46778cadca5cf735470c7ec19edf358aba0c26194126b94"
+        }
+      ],
+      "public_final": "The bounded acceptance checks passed. I made no repository edits; before/after `git status --short` matched. No helpers, Claude executor, services, builds, database tests or deployment were used.\n\n[AGENTS.md:7](/Users/max/Kuro-Anime-App/AGENTS.md:7) is the canonical shared policy. Its single-agent default is at line 10. Lines 15–23 require routing, confirming actual owners/callers and verification needs before model selection. `CLAUDE.md` was not used as operating authority.\n\nCurrent progress ownership is:\n\n- **Mounted callers:** [ContentView.swift:841](/Users/max/Kuro-Anime-App/Kuro/ContentView.swift:841) constructs Home and, at line 855, Collection. [HomeView.swift:868](/Users/max/Kuro-Anime-App/Kuro/Views/Home/HomeView.swift:868) calls `home.advance`; [EditorialCollectionView.swift:596](/Users/max/Kuro-Anime-App/Kuro/Views/EditorialCollectionView.swift:596) calls `collection.advanceFromList`.\n- **Library authority:** [HomeStore.advance:508](/Users/max/Kuro-Anime-App/Kuro/Home/HomeStore.swift:508) reaches `LibraryStore.storeProgress`. [CollectionStore.advanceFromList:91](/Users/max/Kuro-Anime-App/Kuro/Collection/CollectionStore+Lists.swift:91) selects durable `advanceProgress` when available with lifecycle/revision, otherwise an absolute Library edit. [LibraryActions.incrementProgress:239](/Users/max/Kuro-Anime-App/Kuro/Library/LibraryActions.swift:239) also delegates to Library. The old `SupabaseService.incrementProgress` note is obsolete.\n- **Persistence/send:** [LibraryProgress.swift:219](/Users/max/Kuro-Anime-App/Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift:219) admits to the outbox before scheduling drain; line 381 invokes the configured sender. [ProgressOutbox.swift:164](/Users/max/Kuro-Anime-App/Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift:164) computes increments on its disk queue; line 195 claims account-scoped FIFO work. [HomeStore.configureProgress:619](/Users/max/Kuro-Anime-App/Kuro/Home/HomeStore.swift:619) supplies the send closure, leases the supplied account at line 639, and its sender invokes `apply_progress_mutations_v1` at line 668.\n- **Identity:** [AccountSession.withCredentialLease:120](/Users/max/Kuro-Anime-App/Packages/KuroModules/Sources/KuroCore/AccountSession.swift:120) gates requests by current context/credential transition. [AppComposition.swift:415](/Users/max/Kuro-Anime-App/Kuro/Composition/AppComposition.swift:415) registers Home/Collection for account cleanup; [SessionController.swift:826](/Users/max/Kuro-Anime-App/Kuro/Identity/SessionController.swift:826) rebinds Library before clearing prior account state.\n\nProduction arguments differ from defaults: [AppComposition.swift:127](/Users/max/Kuro-Anime-App/Kuro/Composition/AppComposition.swift:127) explicitly supplies `flags.seriesFoundationFenceEnabled()` to the general Library backend; its factory default at line 610 is `{ false }`. Line 236 explicitly supplies `seriesFoundationV1Enabled` for outbox writes, overriding Home’s `{ true }` default. The general [PostgrestLibraryTransport.swift:75](/Users/max/Kuro-Anime-App/Kuro/Composition/PostgrestLibraryTransport.swift:75) is a separate RPC path. **Actual live flag values and path activation remain unknown.**\n\nSQL lookup found the wrapper at [20261007040000_series_home_foundation_v1.sql:797](/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql:797): it derives identity from `auth.uid()` and calls `_apply_progress_mutations_for_user`. That writer has an earlier definition at line 558 and a later replacement at [20261008100000_import_status_fence_preserves_units.sql:7](/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql:7). The later body includes replay hashes/receipts, lifecycle/revision checks, and—at line 191—writes integer progress alongside nonnumeric labels; omitted position preserves unit/label fields. Its internal execute privileges are restricted at line 937. These are local definitions; directory placement proves neither deployment nor non-deployment.\n\nExecuted router commands both exited **0**, with `context_candidates` and no unresolved entries:\n\n```sh\npython3 scripts/agents/policy.py --route library_progress --route identity --route home_collection_releases\npython3 scripts/agents/policy.py --rpc apply_progress_mutations_v1 --rpc _apply_progress_mutations_for_user\n```\n\nThe route’s exact focused Swift check, **not run**, is:\n\n```sh\nswift test --package-path Packages/KuroModules --filter LibraryProgressOwnerTests\n```\n\nAfter inspecting the policy script, all 35 test definitions, and the docs gate’s shell/Python implementation, I ran these separately from the repository root:\n\n| Command | Exit | Actual output |\n|---|---:|---|\n| `python3 scripts/agents/policy.py --check` | 0 | `PASS: shared policy, 16 routes and references (provider-neutral)` |\n| `python3 -m unittest discover -s scripts/agents -p 'test_*.py'` | 0 | `Ran 35 tests in 2.785s` — `OK` |\n| `bash scripts/quality-gates/check_docs_current_state.sh` | 0 | Shared policy PASS; explicit Claude adapter validation PASS; `app_swift=293`, `package_swift=36`, `migrations=250`; `Current-state docs PASSED.` |\n\n`CLAUDE_CODE_DISABLE_ADVISOR_TOOL` was **absent** in the shell; only that variable’s presence was queried. [policy.py:298](/Users/max/Kuro-Anime-App/scripts/agents/policy.py:298) loads adapter configuration only for explicit adapter/startup validation. Such validation reads repository data without applying models, environment settings or configured hook commands to Codex.\n\nA genuine portability dependency remains: [test_policy.py:23](/Users/max/Kuro-Anime-App/scripts/agents/test_policy.py:23) unconditionally requires installed Claude adapter data to construct fixtures. Shared routing itself works without Claude files; the docs gate conditionally validates an installed adapter. No environment changes or permission widening were needed.\n\nThese results establish local policy-check outcomes and source ownership only; app behavior, hosted parity and readiness remain unverified.",
+      "other_item_types": [],
+      "raw_files": {
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/retest-events.jsonl": "ab940133f1ed26ab09c1f2ace52ddfca851dab1b2d7b178a52a1b60bf22f2094",
+        "/Users/max/.codex/sessions/2026/11/09/rollout-2026-11-09T14-14-27-01a1c072-2298-7582-b8f6-384328c18a1e.jsonl": "9795ff979debbf4732a60746a52961390c83b3c4cf9d23bd2e85a77fc16e9afc",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/retest-launch.json": "411ec2142b98e0835182ce45681f06732dd0625c10ed478eae39108762985b23",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/retest-stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "phase": "final",
+      "id": "01a1c077-e3b3-7801-afef-637e365b89a0",
+      "process_exit": 0,
+      "launch": {
+        "argv": [
+          "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+          "--ask-for-approval",
+          "never",
+          "exec",
+          "--ignore-user-config",
+          "--config",
+          "default_permissions=\"kuro-acceptance\"",
+          "--config",
+          "permissions.kuro-acceptance.extends=\":read-only\"",
+          "--config",
+          "permissions.kuro-acceptance.filesystem={\"/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch\"=\"write\"}",
+          "--config",
+          "permissions.kuro-acceptance.network.enabled=false",
+          "--model",
+          "gpt-6.1-sol",
+          "--config",
+          "model_reasoning_effort=\"high\"",
+          "--config",
+          "web_search=\"disabled\"",
+          "--config",
+          "features.apps=false",
+          "--config",
+          "features.multi_agent=false",
+          "--config",
+          "mcp_servers={}",
+          "--json",
+          "--cd",
+          "/Users/max/Kuro-Anime-App",
+          "--output-last-message",
+          "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/final-final.txt",
+          "-"
+        ],
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "inherits_user_config": false,
+        "claude_advisor_env_before": null
+      },
+      "runtime": {
+        "id": "01a1c077-e3b3-7801-afef-637e365b89a0",
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "cli_version": "0.166.0-alpha.5.1",
+        "source": "exec",
+        "model_provider": "openai"
+      },
+      "context": {
+        "model": "gpt-6.1-sol",
+        "approval_policy": "never",
+        "sandbox_policy": {
+          "type": "workspace-write",
+          "writable_roots": [
+            "/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch"
+          ],
+          "network_access": false,
+          "exclude_tmpdir_env_var": false,
+          "exclude_slash_tmp": true
+        },
+        "permission_profile": {
+          "type": "managed",
+          "file_system": {
+            "type": "restricted",
+            "entries": [
+              {
+                "path": {
+                  "type": "path",
+                  "path": "/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch"
+                },
+                "access": "write"
+              },
+              {
+                "path": {
+                  "type": "special",
+                  "value": {
+                    "kind": "root"
+                  }
+                },
+                "access": "read"
+              }
+            ]
+          },
+          "network": "restricted"
+        }
+      },
+      "input_proof": {
+        "instruction_labels": [
+          "# AGENTS.md instructions for /Users/max/Kuro-Anime-App"
+        ],
+        "shared_policy_injected": true,
+        "claude_adapter_body_injected": false
+      },
+      "commands": [
+        {
+          "id": "item_1",
+          "command": "/bin/zsh -lc \"pwd; git status --short; git diff --stat; rg --files -g 'AGENTS.md' -g '*policy*' -g 'test_*.py' scripts/agents; sed -n '1,240p' AGENTS.md\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "cd9a6445713431f5521dd2c73dc82a26cbd32918d5c86e664c658b17ee0e19cd"
+        },
+        {
+          "id": "item_2",
+          "command": "/bin/zsh -lc \"sed -n '1,320p' scripts/agents/test_policy.py\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "1e037146debb0dd6660bbede71ec5b7f6a7d39bd7f81554ecacd02efbdca2a94"
+        },
+        {
+          "id": "item_3",
+          "command": "/bin/zsh -lc \"sed -n '1,260p' scripts/agents/policy.py\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "94cfb98606c63762c16c24db7818a4ca610cd1c7d556da8ab1457cdf4b8c7ede"
+        },
+        {
+          "id": "item_4",
+          "command": "/bin/zsh -lc \"cat scripts/quality-gates/check_docs_current_state.sh; sed -n '1,260p' scripts/quality-gates/check_docs_current_state.py; sed -n '1,200p' agents/README.md\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "cd8027d79f0b0705dfbf0a7609cd6cdda8d65ce4ee836cb0211e4b5844ad53f9",
+          "output": "#!/usr/bin/env bash\nset -euo pipefail\n\nSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\nROOT_DIR=\"$(cd \"$SCRIPT_DIR/../..\" && pwd)\"\n\necho \"=== Current-State Docs Check ===\"\necho \"\"\n\npython3 \"$SCRIPT_DIR/check_docs_current_state.py\"\n\necho \"\"\necho \"Current-state docs PASSED.\"\n#!/usr/bin/env python3\nfrom pathlib import Path\nimport subprocess\nimport sys\n\nROOT = Path(__file__).resolve().parents[2]\nAPP_SWIFT_COUNT = len(list((ROOT / \"Kuro\").rglob(\"*.swift\")))\n# Local Swift package(s) (Packages/*/Sources and Packages/*/Tests). Absent until the first package target lands.\nPACKAGES_DIR = ROOT / \"Packages\"\nPACKAGE_SWIFT_COUNT = (\n    len([p for p in PACKAGES_DIR.rglob(\"*.swift\") if \".build\" not in p.parts])\n    if PACKAGES_DIR.exists()\n    else 0\n)\nPACKAGE_STATE_CLAUSE = (\n    f\"; {PACKAGE_SWIFT_COUNT} package Swift files in `/Packages`\" if PACKAGE_SWIFT_COUNT else \"\"\n)\nPACKAGE_PLAIN_CLAUSE = (\n    f\", {PACKAGE_SWIFT_COUNT} package Swift files\" if PACKAGE_SWIFT_COUNT else \"\"\n)\nMIGRATION_COUNT = len(list((ROOT / \"supabase\" / \"migrations\").glob(\"*.sql\")))\n\nCURRENT_APP_STATE = (ROOT / \"CURRENT_APP_STATE.md\").read_text()\nCURRENT_APP_STATE_PLAIN = (ROOT / \"CURRENT_APP_STATE_PLAIN.md\").read_text()\nAGENTS = (ROOT / \"AGENTS.md\").read_text()\nSQL_REPORT = (ROOT / \"archive\" / \"SQL_COMPATIBILITY_REPORT.md\").read_text()\nKNOWLEDGE_INDEX = (ROOT / \"KNOWLEDGE\" / \"INDEX.md\").read_text()\nDOC_MAP = ROOT / \"docs\" / \"documentation-surface-map.md\"\nARCHIVE_README = ROOT / \"archive\" / \"README.md\"\n\nchecks = [\n    (\n        \"CURRENT_APP_STATE inventory\",\n        f\"**Current repo inventory:** {APP_SWIFT_COUNT} app Swift files in `/Kuro`{PACKAGE_STATE_CLAUSE}; {MIGRATION_COUNT} SQL migrations in `/supabase/migrations`.\",\n        CURRENT_APP_STATE,\n    ),\n    (\n        \"CURRENT_APP_STATE historical note\",\n        \"Historical change-log entries below may include point-in-time counts.\",\n        CURRENT_APP_STATE,\n    ),\n    (\n        \"CURRENT_APP_STATE_PLAIN inventory\",\n        f\"**Current inventory:** {APP_SWIFT_COUNT} app Swift files{PACKAGE_PLAIN_CLAUSE} and {MIGRATION_COUNT} SQL migrations are in the repo today.\",\n        CURRENT_APP_STATE_PLAIN,\n    ),\n    (\n        \"AGENTS shared routing entry point\",\n        \"python3 scripts/agents/policy.py --paths\",\n        AGENTS,\n    ),\n    (\n        \"SQL report historical disclaimer\",\n        \"**Status:** Historical point-in-time report, not a current whole-repo compatibility guarantee.\",\n        SQL_REPORT,\n    ),\n    (\n        \"KNOWLEDGE intentional overlap note\",\n        \"> **Design note:** This directory is intentionally self-contained for LLM\",\n        KNOWLEDGE_INDEX,\n    ),\n]\n\nfailures = []\nfor label, needle, haystack in checks:\n    if needle not in haystack:\n        failures.append(f\"{label} missing expected text: {needle}\")\n\nif not DOC_MAP.exists():\n    failures.append(\"docs/documentation-surface-map.md is missing\")\n\nif not ARCHIVE_README.exists():\n    failures.append(\"archive/README.md is missing\")\n\nif failures:\n    print(\"FAIL\")\n    fo\n[TRUNCATED; original digest above]\nime/cost as secondary results. No model-quality or speed\nimprovement has been established by this configuration change.\n\n## Maintenance and evidence\n\nLocal unit tests create disposable fixtures. Strict read-only sandboxes that deny\nall temporary writes cannot execute those assertions. Give the test process an\nisolated scratch directory while keeping the repository read-only; record that\npermission boundary and actual executed counts. Do not treat fixture setup errors\nas a passing suite or as evidence of broken application behavior.\n\nFresh runtime acceptance is recorded in\n[`docs/agent-policy/fresh-session-2026-11-09/REPORT.md`](../docs/agent-policy/fresh-session-2026-11-09/REPORT.md)\nwith sanitized transcript/model/check evidence. Four fresh sessions exercised policy\nimports, bounded discovery, worker defaults and actual local policy checks. Initial\nfailures and corrections remain recorded; this does not certify arbitrary future\ntasks or application/hosted behavior.\n\nUpdate route/check references in the same change when files move or ownership\nchanges. Keep live pool sizes, user counts, feature flags, upstream quotas and test\noutcomes in their dated owning evidence. Search current-state docs for the latest\ncapacity report; a target is not measured concurrency, and a passing aggregate\ndoes not override failed cohorts, cold misses or uncompleted burst/recovery.\nFor intake, trace actual worker/cron -> source identifiers -> writer RPC and raw\nprovenance. Cached data, search links and a source discovered via another provider\nmust not be described as an independent replacement.\n\nThe original dirty-tree `CLAUDE.md`, old `AGENTS.md` and eight local agent/rule\ndefinitions are preserved byte-for-byte inside fenced sections of\n`archive/agent-policy-2026-11-09.md`, each with its original SHA-256. They are\nhistorical evidence only, never auto-imported. Other source edits and the index\nwere preserved. The personal global multi-persona file is unchanged; the Kuro\npolicy/adapter explicitly overrides that convention here.\n\nDesign basis: [Google DeepMind's Intelligent AI Delegation](https://arxiv.org/html/2602.11865v1)\n(capability/authority/verification contracts; proposed framework, not a correctness\nguarantee), [Google's context engineering in ADK](https://developers.googleblog.com/en/architecting-efficient-context-aware-multi-agent-framework-for-production/)\n(scoped context and explicit transformations), and\n[ADK Agent Config](https://adk.dev/agents/config/) (runtime-specific configuration,\nnot a universal format). Native adapter mechanics follow\n[Claude memory/imports](https://code.claude.com/docs/en/memory),\n[subagents](https://code.claude.com/docs/en/sub-agents) and\n[hooks](https://code.claude.com/docs/en/hooks). This registry is a small local\nimplementation of those principles, not Google's ADK schema or a trained router.\nAdvisor behavior/disable control: [official Claude advisor documentation](https://code.claude.com/docs/en/advisor#turn-the-advisor-off).\n",
+          "output_truncated": true
+        },
+        {
+          "id": "item_5",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --route library_progress --route identity --paths Kuro/Home/HomeStore.swift Kuro/Collection/CollectionStore+Lists.swift Kuro/Composition/AppComposition.swift --rpc apply_progress_mutations_v1 --rpc _apply_progress_mutations_for_user'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "80cd6f3e0435fed36455aa566894d3832009de39ade97a2f3476e97222b71495"
+        },
+        {
+          "id": "item_7",
+          "command": "/bin/zsh -lc \"rg -n 'configure|progress|Progress|credentialLease|sender|HomeStore|CollectionStore|register|LibraryStore' Kuro/Composition/AppComposition.swift Kuro/Home/HomeStore.swift Kuro/Collection/CollectionStore+Lists.swift Kuro/Collection/CollectionStore.swift Kuro/Library/LibraryActions.swift Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift Kuro/Composition/PostgrestLibraryTransport.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "61bcb3cfe4041e93387fc0960a322927825bfc2c2ed3dab65de746ef7bcd899d"
+        },
+        {
+          "id": "item_8",
+          "command": "/bin/zsh -lc \"sed -n '260,440p' scripts/agents/policy.py; sed -n '138,178p' scripts/agents/test_policy.py; tail -8 scripts/agents/test_policy.py; rg -n 'HomeStore|CollectionStore|composition\\\\.home|composition\\\\.collection|incrementProgress|updateProgress|setProgress' Kuro/Views/Home Kuro/Views/Collection Kuro/Composition Kuro/Identity/SessionController.swift Packages/KuroModules/Sources/KuroCore/AccountSession.swift Kuro/Composition/AccountScopedState.swift docs/modules/README.md\"",
+          "exit_code": 2,
+          "status": "failed",
+          "output_sha256": "4933e1ab7e3f87a57ee150f2dfe1238828a645cf8a6392326e59cfd58c0c3c19"
+        },
+        {
+          "id": "item_9",
+          "command": "/bin/zsh -lc \"sed -n '797,845p' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql; sed -n '1,260p' supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql; sed -n '1,130p' Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift; rg -n 'AGENTS|agents/|histor' docs/documentation-surface-map.md\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "01691bcb75cc6b429fa43a63a3b43f699287e54ef02bc277bea27563edef3aea"
+        },
+        {
+          "id": "item_10",
+          "command": "/bin/zsh -lc \"sed -n '210,278p' Kuro/Composition/AppComposition.swift; sed -n '110,185p' Kuro/Home/HomeStore.swift; rg -n 'func advance|advanceProgress|apply_progress|withCredentialLease|configureProgress|progressWritesEnabled' Kuro/Home/HomeStore.swift Kuro/Collection/CollectionStore+Lists.swift; rg -n 'home\\\\.advance|advanceFromList|@Environment\\\\(HomeStore|@Environment\\\\(CollectionStore' Kuro/Views/Home Kuro/Views/Collection; rg -n '\\\\.environment\\\\(.*(home|collection)|environment\\\\(composition\\\\.(home|collection)' Kuro; sed -n '797,822p' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql; rg -n 'revoke|grant|_apply_progress_mutations_for_user' supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "b2efbe42279105899b0142f13b8ccfaeb67b44e2522a331da18478aabe1a35cb"
+        },
+        {
+          "id": "item_11",
+          "command": "/bin/zsh -lc \"sed -n '74,84p' Kuro/Home/HomeStore.swift; sed -n '508,549p' Kuro/Home/HomeStore.swift; sed -n '619,670p' Kuro/Home/HomeStore.swift; sed -n '91,113p' Kuro/Collection/CollectionStore+Lists.swift; sed -n '797,820p' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql; rg -n '(revoke|grant).*(_apply_progress_mutations_for_user|apply_progress_mutations_v1)' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "e388621ea3cb72c5f8b585c4c195786581c71c3614eb7bbd987bd24828acffa9"
+        },
+        {
+          "id": "item_12",
+          "command": "/bin/zsh -lc \"rg -n 'environment\\\\(.*(home|collection)|HomeView\\\\(' Kuro/KuroApp.swift Kuro/Views/Routing Kuro/ContentView.swift; sed -n '850,875p' Kuro/Views/Home/HomeView.swift; sed -n '1,104p' Kuro/Composition/PostgrestLibraryTransport.swift; sed -n '1,90p' Kuro/Composition/AccountScopedState.swift; rg -n 'register|scoped|credential|generation' Kuro/Identity/SessionController.swift Kuro/Composition/AppComposition.swift Packages/KuroModules/Sources/KuroCore/AccountSession.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "252bd14f4f656055256963ce10c4f28bb936da2f2f66823434edd88fe819d7a8"
+        },
+        {
+          "id": "item_13",
+          "command": "/bin/zsh -lc \"sed -n '265,425p' scripts/agents/policy.py; sed -n '145,175p' scripts/agents/test_policy.py; sed -n '1,80p' docs/modules/README.md; python3 -c 'import os; print(\\\"CLAUDE_CODE_DISABLE_ADVISOR_TOOL present=\\\" + str(\\\"CLAUDE_CODE_DISABLE_ADVISOR_TOOL\\\" in os.environ))'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "74bf64aa601a5795154c9aed80d055eeedef18b89fa569b30e626fb490e1d168",
+          "output": "            raw = path.read_bytes()\n            text = raw.decode(\"utf-8\")\n            for match in pattern.finditer(text):\n                candidates.append({\n                    \"path\": path.relative_to(root).as_posix(),\n                    \"line\": text.count(\"\\n\", 0, match.start()) + 1,\n                    \"source_folder\": folder,\n                    \"sha256\": hashlib.sha256(raw).hexdigest(),\n                })\n    return sorted(candidates, key=lambda item: (Path(item[\"path\"]).name, item[\"line\"], item[\"path\"]))\n\n\ndef main(argv=None):\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument(\"--root\", type=Path, default=ROOT, help=\"Repository root (also supports isolated fixtures)\")\n    parser.add_argument(\"--check\", action=\"store_true\")\n    parser.add_argument(\"--check-claude\", action=\"store_true\", help=\"Explicitly validate the optional Claude adapter as data\")\n    parser.add_argument(\"--list\", action=\"store_true\")\n    parser.add_argument(\"--claude-start\", action=\"store_true\")\n    parser.add_argument(\"--paths\", nargs=\"+\", default=[])\n    parser.add_argument(\"--route\", action=\"append\", default=[])\n    parser.add_argument(\"--rpc\", action=\"append\", default=[], help=\"List local SQL definition candidates; repeat for internal callees\")\n    args = parser.parse_args(argv)\n    root = args.root.resolve()\n    try:\n        if args.claude_start:\n            # Worktree-aware: walk from hook cwd; never evaluate arbitrary commands.\n            event = json.load(sys.stdin)\n            if not isinstance(event, dict):\n                raise PolicyError(\"Invalid Claude hook input\")\n            cwd = Path(event.get(\"cwd\", str(root))).resolve()\n            candidates = [cwd] + list(cwd.parents)\n            root = next((candidate for candidate in candidates if (candidate / MANIFEST).is_file()), root)\n        data = load(root)\n        if args.claude_start or args.check_claude:\n            load_claude(root, data)\n        if args.claude_start:\n            context = (\n                \"Kuro shared policy validation PASS at {}. AGENTS.md overrides personal always-multiple-personas defaults for Kuro. \"\n                \"Before edits, run python3 scripts/agents/policy.py --paths <paths> (or --route <id>), \"\n                \"confirm current owners/callers, and choose focused verification before model selection. \"\n                \"No builds, hosted calls or model invocations were performed.\"\n            ).format(root)\n            print(json.dumps({\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": context}}))\n        elif args.paths or args.route or args.rpc:\n            route_ids = args.route or ([\"database\"] if args.rpc and not args.paths else [])\n            result = resolve(root, data, args.paths, route_ids)\n            if args.rpc:\n                result[\"rpc_definitions\"] = {name: rpc_definitions(root, name) for name in args.rpc}\n                result[\"unresolved_rpcs\"] = [name for name, definitions in result[\"rpc_definit\n[TRUNCATED; original digest above]\n `scripts/db/` | `scripts/db/run_local_db_tests.sh` (throwaway local Postgres, audited-schema fixture) | n/a |\n\nPrepared-but-not-deployed backend changes live in `supabase/prepared-migrations/` (outside the deploy path on purpose) and the edge functions listed in the ledger.\n\n## Rules that are enforced\n\n| Rule | Enforced by |\n| --- | --- |\n| Package target graph is acyclic; targets import only what they declare; files import the module whose declarations they use | SwiftPM + `MemberImportVisibility` (`scripts/quality-gates/test_packages.sh`, the app build) |\n| No code references the retired `SupabaseService`; no `FeatureFlags.shared`; no SDK imports in views; list tables named only in the Library transport/realtime; the package stays SDK-free and UI-free; legacy writer mapping lives only in `LibraryActions` | `scripts/quality-gates/check_architecture.sh` |\n| Account isolation: every async completion that publishes private state captures its `AccountContext` and checks `isCurrent` before every write; every private store has one clear rule in its owner's `clearPrivateState()`; the registered list is built in one place | `AccountLifecycleTests`, `IdentityCompositionTests` (exact membership and order), per-owner stale-completion tests |\n| One write authority for tracking | `LibraryStore` (per-key FIFO, optimistic projection, typed `LibraryOutcome`/`LibraryError`) + the HTTP-level contract tests |\n| Safety-critical lifecycle order (context invalidated before the first suspension; SDK sign-out before channel teardown; deletion clears local state only after confirmed success; fail-closed auth-callback guard with `exp` requirement) | `SessionController` + the order tests; see the E1 section of the ledger before touching it |\n\n## Mounted private actions\n\n`KuroCore.AccountActionScope` captures the rendered `AccountContext`, presentation generation and scope instance before creating work. Screens retain/cancel their tasks and guard dispatch/publication; club-derived work also uses current permission generation. It is an admission helper, not an alternative account owner or generic task framework. Library retains mutation authority. `MALNativeAccountConnector` owns OAuth/Keychain/provider generation; `ImportsService+MALAccount` owns both-medium journal/checkpoint orchestration; `KuroLibrary.MALAccountListReader` owns provider fields and pagination policy.\n\n## Verify a change\n\n```bash\n# package (host, fast)\ncd Packages/KuroModules && swift test\n# app unit tests (simulator)\nxcodebuild -project Kuro.xcodeproj -scheme Kuro \\\n  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:KuroTests\n# repository gates (secrets, migrations, corpora, router, docs, architecture, packages, builds)\nSKIP_RAILS_AUDIT=1 scripts/quality-gates/run_all.sh     # rails audit needs the live project\n# local database authorization tests (throwaway Postgres; refuses any non-local target)\nscripts/db/run_local_db_tests.sh\nCLAUDE_CODE_DISABLE_ADVISOR_TOOL present=False\n",
+          "output_truncated": true
+        },
+        {
+          "id": "item_14",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --check'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "df13a9770f362c6aa43cacc3042677d4a10dd3d070ee03dd813e634d288e3ab4",
+          "output": "PASS: shared policy, 16 routes and references (provider-neutral)\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_15",
+          "command": "/bin/zsh -lc \"python3 -m unittest discover -s scripts/agents -p 'test_*.py'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "4c8a886e5c76a6add2d7e569b6a3a9050461138d35436a7792991c100b67aab5",
+          "output": "....................................\n----------------------------------------------------------------------\nRan 36 tests in 2.019s\n\nOK\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_16",
+          "command": "/bin/zsh -lc 'bash scripts/quality-gates/check_docs_current_state.sh'",
+          "exit_code": 1,
+          "status": "failed",
+          "output_sha256": "23b31b7b9ba6835984ff5b5e5d2c3b5d0bacbc240f50d3ce616bfd624ea69b91",
+          "output": "=== Current-State Docs Check ===\n\nFAIL\n- CURRENT_APP_STATE inventory missing expected text: **Current repo inventory:** 293 app Swift files in `/Kuro`; 39 package Swift files in `/Packages`; 250 SQL migrations in `/supabase/migrations`.\n- CURRENT_APP_STATE_PLAIN inventory missing expected text: **Current inventory:** 293 app Swift files, 39 package Swift files and 250 SQL migrations are in the repo today.\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_18",
+          "command": "/bin/zsh -lc \"sed -n '35,81p' Kuro/KuroApp.swift; sed -n '833,848p' Kuro/ContentView.swift; sed -n '394,419p' Kuro/Composition/AppComposition.swift; sed -n '594,618p' Kuro/Composition/AppComposition.swift; sed -n '115,149p' Packages/KuroModules/Sources/KuroCore/AccountSession.swift; sed -n '924,952p' Kuro/Identity/SessionController.swift; rg -n '\"'^class |''^@unittest.skip|''^    def test_'\"' scripts/agents/test_policy.py; rg -n 'Current repo inventory|Current inventory' CURRENT_APP_STATE.md CURRENT_APP_STATE_PLAIN.md\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "9d86c45bae12b9eef66f50f2c01648f27df6f8dd815e002ebbec2b79f9eaf09c"
+        },
+        {
+          "id": "item_19",
+          "command": "/bin/zsh -lc 'python3 scripts/agents/policy.py --route database'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "f27ed54d3d859852deca1010b88dc92ecd5d7a1071f4633597432ea7e68e9617"
+        },
+        {
+          "id": "item_20",
+          "command": "/bin/zsh -lc \"rg -n 'libraryBackend\\\\(|fenceEnabled:' Kuro/Composition/AppComposition.swift; sed -n '192,210p' Kuro/Composition/AppComposition.swift; sed -n '20,35p' Kuro/KuroApp.swift; sed -n '1,42p' docs/plans/2026-10-08-import-library-home-completion.md; sed -n '1,45p' supabase/tests/README.md; sed -n '1,32p' docs/modules/sql-function-index.md; rg -n '2026100[78]|progress' supabase/tests/pending_migrations.txt\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "5bca4997a1b4d7714fc78a4b59d3a1d69429fe1c4a40509af559c36d2b9a7aa6"
+        }
+      ],
+      "public_final": "Acceptance is partial: shared routing and all 36 policy tests passed; the docs gate failed. No repository files, index, docs, memory, permissions, or environment were changed.\n\n[AGENTS.md](/Users/max/Kuro-Anime-App/AGENTS.md:5) is the canonical operating policy. `CLAUDE.md` is an adapter, not my instruction source. The policy requires establishing expected behavior/account boundaries, routing to sources, confirming owners/callers and verification needs, then selecting models/tools. Router output is navigation evidence, not correctness or authorization.\n\nThe shared router resolved `library_progress`, `identity`, Home/Collection, and database contracts. Actual source confirms:\n\n- [ContentView.swift](/Users/max/Kuro-Anime-App/Kuro/ContentView.swift:841) mounts `HomeView`; [HomeView.swift](/Users/max/Kuro-Anime-App/Kuro/Views/Home/HomeView.swift:868) calls `home.advance(card)`, which reaches `LibraryStore.storeProgress`. Collection also uses `LibraryStore.advanceProgress`, with a guarded direct-edit fallback.\n- [AppComposition.swift](/Users/max/Kuro-Anime-App/Kuro/Composition/AppComposition.swift:234) constructs Home with the shared Library and `seriesFoundationV1Enabled` closure. [HomeStore.swift](/Users/max/Kuro-Anime-App/Kuro/Home/HomeStore.swift:619) configures Library’s outbox sender through `withCredentialLease(for: account)` and `SupabaseHomeProgressSender`.\n- The general Library backend separately receives `seriesFoundationFenceEnabled()`; its factory default does not establish production behavior.\n- Identity supplies account generations, credential leases, and registered Home/Collection cancellation/private-state clearing.\n- `SupabaseService` is retired and rejected as a current owner by the router.\n\n`--rpc` found public `apply_progress_mutations_v1` at line 797 of `20261007040000_series_home_foundation_v1.sql`. It derives the actor from `auth.uid()` and invokes `_apply_progress_mutations_for_user`. That writer has an initial definition at line 558 and a later replacement in `20261008100000_import_status_fence_preserves_units.sql:7`. The later body preserves omitted unit/progress fields and retains replay/revision checks; its ACL excludes public/anon/authenticated direct execution.\n\nThese are local source findings. Hosted flag values, deployed definitions, and parity remain unknown; migration-folder placement proves neither deployment nor nondeployment.\n\nFull focused package-test template, **not run**:\n\n```sh\nswift test --package-path Packages/KuroModules --filter LibraryProgressOwnerTests\n```\n\nThe three requested commands ran separately:\n\n| Command | Actual result |\n|---|---|\n| `python3 scripts/agents/policy.py --check` | Exit 0; PASS, **16 routes** and references |\n| `python3 -m unittest discover -s scripts/agents -p 'test_*.py'` | Exit 0; **36 tests**, 2.019s, OK; no skips reported |\n| `bash scripts/quality-gates/check_docs_current_state.sh` | Exit 1; **two inventory-text failures** |\n\nThe docs gate counted **293 app Swift files, 39 package Swift files, 250 migrations**. Both current-state documents still declare **36 package Swift files**. I left them unchanged.\n\n[Test structure](/Users/max/Kuro-Anime-App/scripts/agents/test_policy.py:17) separates 28 shared tests from eight optional Claude tests. Shared fixtures copy provider-neutral references; regressions verify operation without Claude files and reject Claude configuration reads. Claude tests use `skipUnless(adapter.json exists)` and passive validation.\n\nA remaining conditional dependency exists: the docs gate invokes `--check-claude` if **either** `CLAUDE.md` or the adapter exists. A partial installation can therefore fail. This run stopped before that branch.\n\nThe presence-only probe returned `CLAUDE_CODE_DISABLE_ADVISOR_TOOL present=False`; no value or environment dump was produced. Adapter validation reads configuration as data; it does not execute configured hooks, launch Claude, or apply Claude models/tools/environment to Codex.\n\nOne discovery search reported nonexistent `Kuro/Views/Collection`; mounted Home evidence supplied the required caller. No application or hosted readiness claim follows from these checks.",
+      "other_item_types": [],
+      "raw_files": {
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/final-events.jsonl": "4638f8c5806f84d46a757adb283cc68495ec2b5b52373f8bb58b702952b20696",
+        "/Users/max/.codex/sessions/2026/11/09/rollout-2026-11-09T14-20-45-01a1c077-e3b3-7801-afef-637e365b89a0.jsonl": "585b9ffafe327ef6391d07744c777bed7a60f309c53da10f4245f057b6883c0f",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/final-launch.json": "33ba6108ab2331cc1e8c24678496d83500b22a9b0b67d14b9456291254a84175",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/final-stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "phase": "acceptance",
+      "id": "01a1c07a-0d93-7653-b7b9-816b77741244",
+      "process_exit": 0,
+      "launch": {
+        "argv": [
+          "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+          "--ask-for-approval",
+          "never",
+          "exec",
+          "--ignore-user-config",
+          "--config",
+          "default_permissions=\"kuro-acceptance\"",
+          "--config",
+          "permissions.kuro-acceptance.extends=\":read-only\"",
+          "--config",
+          "permissions.kuro-acceptance.filesystem={\"/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch\"=\"write\"}",
+          "--config",
+          "permissions.kuro-acceptance.network.enabled=false",
+          "--model",
+          "gpt-6.1-sol",
+          "--config",
+          "model_reasoning_effort=\"high\"",
+          "--config",
+          "web_search=\"disabled\"",
+          "--config",
+          "features.apps=false",
+          "--config",
+          "features.multi_agent=false",
+          "--config",
+          "mcp_servers={}",
+          "--json",
+          "--cd",
+          "/Users/max/Kuro-Anime-App",
+          "--output-last-message",
+          "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/acceptance-final.txt",
+          "-"
+        ],
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "inherits_user_config": false,
+        "claude_advisor_env_before": null
+      },
+      "runtime": {
+        "id": "01a1c07a-0d93-7653-b7b9-816b77741244",
+        "cwd": "/Users/max/Kuro-Anime-App",
+        "cli_version": "0.166.0-alpha.5.1",
+        "source": "exec",
+        "model_provider": "openai"
+      },
+      "context": {
+        "model": "gpt-6.1-sol",
+        "approval_policy": "never",
+        "sandbox_policy": {
+          "type": "workspace-write",
+          "writable_roots": [
+            "/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch"
+          ],
+          "network_access": false,
+          "exclude_tmpdir_env_var": false,
+          "exclude_slash_tmp": true
+        },
+        "permission_profile": {
+          "type": "managed",
+          "file_system": {
+            "type": "restricted",
+            "entries": [
+              {
+                "path": {
+                  "type": "path",
+                  "path": "/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch"
+                },
+                "access": "write"
+              },
+              {
+                "path": {
+                  "type": "special",
+                  "value": {
+                    "kind": "root"
+                  }
+                },
+                "access": "read"
+              }
+            ]
+          },
+          "network": "restricted"
+        }
+      },
+      "input_proof": {
+        "instruction_labels": [
+          "# AGENTS.md instructions for /Users/max/Kuro-Anime-App"
+        ],
+        "shared_policy_injected": true,
+        "claude_adapter_body_injected": false
+      },
+      "commands": [
+        {
+          "id": "item_1",
+          "command": "/bin/zsh -lc \"pwd\n git status --short\n git diff --stat\n sed -n '1,240p' AGENTS.md\n sed -n '1,260p' scripts/agents/policy.py\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "5c5f9f9d640009499236e476eb462a0277158e4cc55156a0a4cac200c81c55e3"
+        },
+        {
+          "id": "item_2",
+          "command": "/bin/zsh -lc \"python3 scripts/agents/policy.py --paths Kuro/Library/LibraryProgress.swift Kuro/Composition/AppComposition.swift --route library --route identity\nsed -n '260,420p' scripts/agents/policy.py\nsed -n '1,280p' scripts/agents/test_policy.py\ncat scripts/quality-gates/check_docs_current_state.sh\nrg -n 'subprocess|os\\\\.|write|open\\\\(|policy|claude|def main' scripts/quality-gates/check_docs_current_state.py\nrg -n 'progress|Progress|credentialLease|credential|HomeStore|HomeView' Kuro/Composition/AppComposition.swift Kuro/Home Kuro/Library/LibraryProgress.swift\"",
+          "exit_code": 2,
+          "status": "failed",
+          "output_sha256": "4e19c57a4aad0a0135ed19864300f2996dabbc3dee3c15e093c515579885d7a3"
+        },
+        {
+          "id": "item_4",
+          "command": "/bin/zsh -lc \"python3 scripts/agents/policy.py --route library_progress --route identity --route home_collection_releases --rpc apply_progress_mutations_v1 --rpc _apply_progress_mutations_for_user\nsed -n '185,265p' Kuro/Composition/AppComposition.swift\nsed -n '505,553p' Kuro/Home/HomeStore.swift\nsed -n '619,670p' Kuro/Home/HomeStore.swift\nrg -n 'home|Home|advance' Kuro/Composition/CapabilityGraph.swift Kuro/Views/Home Kuro/Views/ContentView.swift Kuro/Composition/AppComposition.swift\nsed -n '1,150p' scripts/quality-gates/check_docs_current_state.py\nsed -n '275,360p' scripts/agents/test_policy.py\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "17794e7668505ec325d73a08fe94d65419ebe90054411b2276428542a7067149"
+        },
+        {
+          "id": "item_5",
+          "command": "/bin/zsh -lc \"sed -n '1,235p' supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql\nsed -n '797,826p' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql\nsed -n '70,86p' Kuro/Home/HomeStore.swift\nsed -n '1,155p' Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift\nrg -n -F -e 'HomeView(' -e '.environment(composition.home)' -e '.environment(home)' -e 'seriesFoundationV1Enabled' Kuro/ContentView.swift Kuro/KuroApp.swift Kuro/Views Kuro/Composition/AppComposition.swift Kuro/Infrastructure\nrg -n 'withCredentialLease|func isCurrent|struct AccountContext' Packages/KuroModules/Sources/KuroCore/AccountSession.swift\nsed -n '1,105p' Kuro/Composition/PostgrestLibraryTransport.swift\nsed -n '1,60p' Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "7b5e7bf70446f90468ec6da217d53e0f77bd9208141c07dd1cc872dc19f10acb"
+        },
+        {
+          "id": "item_7",
+          "command": "/bin/zsh -lc \"PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport os\nfrom pathlib import Path\nimport tempfile\nprint('CLAUDE_CODE_DISABLE_ADVISOR_TOOL_present=' + str('CLAUDE_CODE_DISABLE_ADVISOR_TOOL' in os.environ))\nscratch = Path('/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch')\nprint('tempfile_uses_authorized_scratch=' + str(Path(tempfile.gettempdir()).resolve() == scratch.resolve()))\nPY\nsed -n '1,82p' Kuro/KuroApp.swift\nsed -n '831,852p' Kuro/ContentView.swift\nsed -n '99,153p' Packages/KuroModules/Sources/KuroCore/AccountSession.swift\nsed -n '100,180p' Kuro/Composition/AppComposition.swift\nsed -n '235,252p' supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql\nrg -n -F 'seriesFoundationV1Enabled' Kuro/Features Kuro/Configuration Kuro/Composition/AppComposition.swift\nrg -n 'revoke.*_apply_progress|grant.*_apply_progress|revoke.*apply_progress_mutations_v1|grant.*apply_progress_mutations_v1' supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "c6dc19f3b3a1573219d8596a3139027317aa5ce848a72ba5653985f89c8f10be"
+        },
+        {
+          "id": "item_8",
+          "command": "/bin/zsh -lc \"export TMPDIR=/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch\nexport PYTHONDONTWRITEBYTECODE=1\npython3 -c 'import os; print(\\\"CLAUDE_CODE_DISABLE_ADVISOR_TOOL_present=\\\" + str(\\\"CLAUDE_CODE_DISABLE_ADVISOR_TOOL\\\" in os.environ))'\npython3 scripts/agents/policy.py --check\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "b9dfed06d82106593c1ff3d49ee6d3bfe5847f28bb16d6d8e3b526fec61a02bd",
+          "output": "CLAUDE_CODE_DISABLE_ADVISOR_TOOL_present=False\nPASS: shared policy, 16 routes and references (provider-neutral)\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_9",
+          "command": "/bin/zsh -lc \"export TMPDIR=/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch\nexport PYTHONDONTWRITEBYTECODE=1\npython3 -m unittest discover -s scripts/agents -p 'test_*.py'\"",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "2f0b6d6171affb8f8d4fc2b41297775eb90623926842720e7e50aada6825780b",
+          "output": "....................................\n----------------------------------------------------------------------\nRan 36 tests in 2.214s\n\nOK\n",
+          "output_truncated": false
+        },
+        {
+          "id": "item_10",
+          "command": "/bin/zsh -lc 'export TMPDIR=/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch\nexport PYTHONDONTWRITEBYTECODE=1\nbash scripts/quality-gates/check_docs_current_state.sh'",
+          "exit_code": 0,
+          "status": "completed",
+          "output_sha256": "93555e874db79cb61c6d542359c09550bc45d6ea1c95795a3c62efd30f29400e",
+          "output": "=== Current-State Docs Check ===\n\nPASS: shared policy, 16 routes and references (provider-neutral)\nPASS: shared policy and explicit Claude adapter validation\nPASS\n- app_swift=293\n- package_swift=39\n- migrations=250\n\nCurrent-state docs PASSED.\n",
+          "output_truncated": false
+        }
+      ],
+      "public_final": "Completed within **8 shell invocations**, read-only. No repository/docs/memory/index/settings edits, network calls, application tests, or builds. Existing worktree changes were preserved.\n\n- **Policy:** Normal session instructions supplied [AGENTS.md](/Users/max/Kuro-Anime-App/AGENTS.md), confirmed against disk. It requires resolving sources, mounted owners, contracts, and verification needs before model selection. `CLAUDE.md` was not used as authority. Shared routing uses `agents/routes.yaml`; Claude mappings and hooks/environment remain separate in `.claude/adapter.json` and `.claude/settings.json`.\n- **Ownership:** The resolver returned `library_progress`, `identity`, and `home_collection_releases`. Mounted Home calls `HomeStore.advance`, which calls `LibraryStore.storeProgress`. [Composition](/Users/max/Kuro-Anime-App/Kuro/Composition/AppComposition.swift:234) supplies the Home progress configuration; [HomeStore](/Users/max/Kuro-Anime-App/Kuro/Home/HomeStore.swift:619) wraps its sender in `withCredentialLease(for: account)` and calls `apply_progress_mutations_v1`. Home’s write flag and the general Library transport’s fence gate are separately configured; enabled runtime state was not established.\n- **SQL:** RPC lookup searched both migration folders. The authenticated wrapper derives `auth.uid()` and calls `_apply_progress_mutations_for_user`. Its later local definition is [20261008100000_import_status_fence_preserves_units.sql](/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql:7), after the foundation definition. This establishes local source candidates, not deployed behavior.\n\nThe three requested checks ran separately, once each, with bytecode writes disabled and `TMPDIR` explicitly set to authorized scratch:\n\n| Command | Exit | Actual result |\n|---|---:|---|\n| `python3 scripts/agents/policy.py --check` | 0 | PASS; 16 routes |\n| `python3 -m unittest discover -s scripts/agents -p 'test_*.py'` | 0 | 36 tests executed; OK |\n| `bash scripts/quality-gates/check_docs_current_state.sh` | 0 | PASS; 293 app Swift files, 39 package Swift files, 250 migrations |\n\nThe docs gate also validated the installed optional Claude adapter as inert data. No Claude runtime or configured hook commands were executed.\n\n**Candidate only; not run:**\n\n```sh\nswift test --package-path Packages/KuroModules --filter LibraryProgressOwnerTests\n```\n\nThe environment presence probe returned **False** for `CLAUDE_CODE_DISABLE_ADVISOR_TOOL`; its value was never printed. Exact runtime model metadata was unavailable, and no model switching was evidenced.\n\nInitial discovery encountered an incorrect route name and nonexistent paths; the corrected resolver succeeded. A here-document probe was denied temporary-file creation; the subsequent `python3 -c` presence probe succeeded. No further discovery followed completion of the acceptance checks.",
+      "other_item_types": [],
+      "raw_files": {
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/acceptance-events.jsonl": "8ab9a16f6bc7557fd1a8776ff6dc092c683dc3c10e1439a97d63f2ee1458cacf",
+        "/Users/max/.codex/sessions/2026/11/09/rollout-2026-11-09T14-23-06-01a1c07a-0d93-7653-b7b9-816b77741244.jsonl": "43d1e9bf53945947696af956f4f2ddc0e6c19bf2841ede1c84e3ea82d5444838",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/acceptance-launch.json": "77afef4622582c959804fdde685ae5f148a9121cd284bd9e86cf4975186d7991",
+        "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/acceptance-stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "sandbox_probe": {
+    "argv": [
+      "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+      "sandbox",
+      "--permission-profile",
+      "kuro-acceptance",
+      "-c",
+      "default_permissions=\"kuro-acceptance\"",
+      "-c",
+      "permissions.kuro-acceptance.extends=\":read-only\"",
+      "-c",
+      "permissions.kuro-acceptance.filesystem={\"/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch\"=\"write\"}",
+      "-c",
+      "permissions.kuro-acceptance.network.enabled=false",
+      "--cd",
+      "/Users/max/Kuro-Anime-App",
+      "--",
+      "/usr/bin/env",
+      "TMPDIR=/private/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "/usr/bin/python3",
+      "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/sandbox_probe.py"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"scratch_fixture_write\": true, \"repository_write_denied\": true}\n",
+    "stderr": "2026-11-09 14:10:50.508 xcodebuild[79768:4337071]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-11-09 14:10:51.961 xcodebuild[79768:4337064] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\n"
+  },
+  "portable_core": {
+    "fixture_type": "minimal shared-reference source fixture, not a full app checkout",
+    "claude_files_absent": true,
+    "receipts": [
+      {
+        "name": "shared_routing_without_adapter",
+        "argv": [
+          "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+          "scripts/agents/policy.py",
+          "--route",
+          "library_progress",
+          "--route",
+          "identity"
+        ],
+        "cwd": "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch/portable-core",
+        "exit_code": 0,
+        "stdout": "{\n  \"status\": \"context_candidates\",\n  \"paths\": [],\n  \"unmapped\": [],\n  \"instruction\": \"Confirm mounted owners/callers and applicable contracts before editing. Suggested checks are not executed or authorized by this command.\",\n  \"authority\": [\n    \"AGENTS.md\",\n    \"docs/modules/README.md\",\n    \"docs/documentation-surface-map.md\"\n  ],\n  \"routes\": [\n    {\n      \"id\": \"library_progress\",\n      \"paths\": [\n        \"Kuro/Library/**\",\n        \"Packages/KuroModules/Sources/KuroLibrary/**\",\n        \"Packages/KuroModules/Sources/KuroSupabase/**\",\n        \"Packages/KuroModules/Tests/KuroLibraryTests/**\",\n        \"Packages/KuroModules/Tests/KuroSupabaseTests/**\",\n        \"Kuro/Composition/PostgrestLibraryTransport.swift\",\n        \"KuroTests/Library*.swift\"\n      ],\n      \"sources\": [\n        \"Kuro/Library/LibraryActions.swift\",\n        \"Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift\",\n        \"Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift\",\n        \"Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift\",\n        \"Kuro/Home/HomeStore.swift\",\n        \"Kuro/Collection/CollectionStore+Lists.swift\",\n        \"Kuro/Widgets/WidgetIntentInbox.swift\",\n        \"Kuro/Composition/PostgrestLibraryTransport.swift\",\n        \"Kuro/Composition/AppComposition.swift\"\n      ],\n      \"checks\": [\n        \"package_progress\",\n        \"native_library\",\n        \"architecture\"\n      ],\n      \"profile\": \"high_assurance\",\n      \"contract\": \"Library owns tracking. Trace mounted Home/Collection/widget callers through the actual LibraryStore progress APIs/outbox and transport, not an assumed universal LibraryActions path. Resolve Identity for account-switch reasoning. For server claims use --rpc for the client RPC and its relevant internal callees, inspect every later candidate in canonical/prepared SQL, and distinguish local source from deployment evidence. Prove replay/lost-response safety, rapid edits, revision conflicts, persisted recovery and account isolation for affected paths. Use the exact package command template with --package-path. Trace the composition-configured sender: HomeStore configures the actual Library outbox send/credential-lease closure; the general PostgrestLibraryTransport path has separate fencing/gating. Existence or construction alone is not proof a path is enabled.\"\n    },\n    {\n      \"id\": \"identity\",\n      \"paths\": [\n        \"Kuro/Identity/**\",\n        \"Kuro/Composition/**\",\n        \"Packages/KuroModules/Sources/KuroCore/**\",\n        \"Packages/KuroModules/Tests/KuroCoreTests/**\",\n        \"KuroTests/AccountLifecycleTests.swift\",\n        \"KuroTests/IdentityCompositionTests.swift\",\n        \"supabase/functions/delete-account/**\",\n        \"supabase/functions/auth-callback/**\"\n      ],\n      \"sources\": [\n        \"Kuro/Identity/SessionController.swift\",\n        \"Kuro/Identity/AuthService.swift\",\n        \"Packages/KuroModules/Sources/KuroCore/AccountSession.swift\",\n        \"Kuro/Composition/AppComposition.swift\",\n        \"Kuro/Composition/AccountScopedState.swift\"\n      ],\n      \"checks\": [\n        \"native_identity\",\n        \"architecture\"\n      ],\n      \"profile\": \"high_assurance\",\n      \"contract\": \"Trace credential leases, current account generations, private-state registration, cancellation and deletion ordering. Independently review authorization/lifecycle changes. No credential or hosted mutation is implied.\"\n    }\n  ],\n  \"checks\": {\n    \"package_progress\": {\n      \"sources\": [\n        \"Packages/KuroModules/Tests/KuroLibraryTests/LibraryProgressOwnerTests.swift\",\n        \"Packages/KuroModules/Tests/KuroLibraryTests/LibraryStoreTests.swift\"\n      ],\n      \"command_template\": \"swift test --package-path Packages/KuroModules --filter LibraryProgressOwnerTests\",\n      \"proves\": \"Focused host Library progress behavior; add the owner tests affected by the diff.\"\n    },\n    \"native_library\": {\n      \"sources\": [\n        \"KuroTests/LibraryHTTPContractTests.swift\",\n        \"KuroTests/LibraryViewActionsTests.swift\"\n      ],\n      \"command_template\": \"xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=<verified-owned-UUID>' test -only-testing:KuroTests/LibraryHTTPContractTests\",\n      \"proves\": \"Selected SDK/client contract on a verified owned simulator, not hosted writes.\"\n    },\n    \"architecture\": {\n      \"sources\": [\n        \"scripts/quality-gates/check_architecture.sh\"\n      ],\n      \"command_template\": \"bash scripts/quality-gates/check_architecture.sh\",\n      \"proves\": \"Selected source boundaries, not runtime or complete architecture proof.\"\n    },\n    \"native_identity\": {\n      \"sources\": [\n        \"KuroTests/AccountLifecycleTests.swift\",\n        \"KuroTests/IdentityCompositionTests.swift\"\n      ],\n      \"command_template\": \"xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=<verified-owned-UUID>' test -only-testing:KuroTests/StaleUserListsCompletionTests -only-testing:KuroTests/PrivateStateResetTests\",\n      \"proves\": \"Selected stale-completion/account reset cases; select other changed lifecycle suites explicitly.\"\n    }\n  },\n  \"handoff_required\": [\n    \"task_and_expected_behavior\",\n    \"confirmed_owner_and_callers\",\n    \"applicable_routes_and_sources\",\n    \"allowed_files_and_preexisting_changes\",\n    \"account_permission_and_environment_scope\",\n    \"required_checks_and_evidence\",\n    \"escalation_conditions\"\n  ],\n  \"model_policy\": \"Select by verified task capability; no automatic model switch or guarantee of correctness.\"\n}\n",
+        "stderr": ""
+      },
+      {
+        "name": "shared_validation_without_adapter",
+        "argv": [
+          "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+          "scripts/agents/policy.py",
+          "--check"
+        ],
+        "cwd": "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch/portable-core",
+        "exit_code": 0,
+        "stdout": "PASS: shared policy, 16 routes and references (provider-neutral)\n",
+        "stderr": ""
+      },
+      {
+        "name": "suite_without_adapter",
+        "argv": [
+          "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/agents",
+          "-p",
+          "test_*.py"
+        ],
+        "cwd": "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/scratch/portable-core",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "ssssssss............................\n----------------------------------------------------------------------\nRan 36 tests in 1.590s\n\nOK (skipped=8)\n"
+      }
+    ]
+  },
+  "initial_isolation_failure": {
+    "operation": "load shared registry without Claude adapter files in temp fixture",
+    "error": "route policy references missing path: CLAUDE.md"
+  },
+  "preservation": {
+    "baseline_file": "/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-codex-acceptance-29dez_6c/baseline.json",
+    "baseline_sha256": "6f9fa85ca68bb5478a733e1b528ea6ac8ef77193d30cdd1275de429e3724a6de",
+    "global_files": {
+      "/Users/max/.codex/config.toml": {
+        "before_sha256": "2d49a846f7c499a7372b5d7797f3eef5cfaddb880d20f9378bc209706c894dd4",
+        "after_sha256": "2d49a846f7c499a7372b5d7797f3eef5cfaddb880d20f9378bc209706c894dd4",
+        "unchanged": true
+      },
+      "/Users/max/.codex/AGENTS.md": {
+        "before_sha256": "b8c73f25398161e93097a81d0fd66145be3db0505d13657e87fd609f66bef015",
+        "after_sha256": "b8c73f25398161e93097a81d0fd66145be3db0505d13657e87fd609f66bef015",
+        "unchanged": true
+      },
+      "/Users/max/.claude/settings.json": {
+        "before_sha256": "028e34d14dbaed96e69fcdbb35dbe96447ed67bb05117ac22b83892240492e9f",
+        "after_sha256": "028e34d14dbaed96e69fcdbb35dbe96447ed67bb05117ac22b83892240492e9f",
+        "unchanged": true
+      },
+      "/Users/max/.claude/CLAUDE.md": {
+        "before_sha256": "3718ab2d037e3c04114cb121c0db54c224d7a395edf167149975731117172d9c",
+        "after_sha256": "3718ab2d037e3c04114cb121c0db54c224d7a395edf167149975731117172d9c",
+        "unchanged": true
+      }
+    },
+    "existing_claude_settings_workers_rules_unchanged": {
+      ".claude/agents/Explore.md": true,
+      ".claude/agents/kuro-implementer.md": true,
+      ".claude/agents/kuro-reviewer.md": true,
+      ".claude/agents/kuro-runner.md": true,
+      ".claude/rules/agent-routing.md": true,
+      ".claude/rules/backend-data.md": true,
+      ".claude/rules/client-latency.md": true,
+      ".claude/rules/system-facts.md": true,
+      ".claude/settings.json": true
+    },
+    "adapter_mapping_equal_to_original_shared_payload": true,
+    "index_diff_unchanged": true,
+    "protected_file_count": 870,
+    "changed_by_concurrent_work": [
+      "KuroTests/PostgrestLibraryTransportTests.swift",
+      "Packages/KuroModules/Sources/KuroLibrary/LibraryContracts.swift",
+      "Packages/KuroModules/Sources/KuroLibrary/LibraryValues.swift",
+      "Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift",
+      "Packages/KuroModules/Tests/KuroSupabaseTests/SupabaseLibraryBackendTests.swift"
+    ],
+    "concurrency_note": "Other tasks added/committed package Library features and changed backend load/cold evidence during this acceptance. No protected source was written by this task; native sessions had repository writes denied. Hash drift is recorded, not attributed to acceptance or reverted."
+  },
+  "implementation_sha256": {
+    ".gitignore": "96a1750a6f1b92272a91d645874fc459529705ad9e7f133bf7618ac217f40461",
+    "AGENTS.md": "dae1b54d21e522f985f8a12cb81c0db77d5c461df3c324dcc1d9d4d4f7d78f4d",
+    "CLAUDE.md": "576b99f9039440823a058fe42add3deb29ea1c1e6d87359fae921a069c1910bb",
+    ".claude/adapter.json": "3fec02570c96c9395ba1ef99d68f01f6288529ea7bfc61ec66886bbf3f9d4ae8",
+    "agents/routes.yaml": "4f5a6046dac3ea9a81e263f0f49561789a9d9c67f3363f67d04f5bc9882ef9d3",
+    "agents/README.md": "dde1584048794fb6da443d869bb962322a57fd96722fd063580de9fa77e3db4d",
+    "scripts/agents/policy.py": "1bd393d4698da5d1ef813e591101659bbbcc2f2a78a4114995e6510a9768cc03",
+    "scripts/agents/test_policy.py": "7c306732907971c4fc47267e827802490c456fb69204e45861b5e774fdf620f0",
+    "scripts/quality-gates/check_docs_current_state.py": "ab69bb408c227c1642fcbfd70b3c846a23e5e6ee2c70d916b7c7d21de6999874",
+    "docs/documentation-surface-map.md": "e6b48d5b26e4fc1a1b46ba4115c11f0455902cc9056c35d133c4a121d46c0174"
+  },
+  "inventory": {
+    "app_swift": 293,
+    "package_swift": 41,
+    "canonical_migrations": 250
+  },
+  "post_documentation_checks": [
+    {
+      "argv": [
+        "bash",
+        "scripts/quality-gates/check_docs_current_state.sh"
+      ],
+      "exit_code": 0,
+      "stdout": "=== Current-State Docs Check ===\n\nPASS: shared policy, 16 routes and references (provider-neutral)\nPASS: shared policy and explicit Claude adapter validation\nPASS\n- app_swift=293\n- package_swift=41\n- migrations=250\n\nCurrent-state docs PASSED.\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        ".gitignore",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "agents/README.md",
+        "agents/routes.yaml",
+        "scripts/agents/policy.py",
+        "scripts/agents/test_policy.py",
+        "scripts/quality-gates/check_docs_current_state.py",
+        "docs/documentation-surface-map.md",
+        "CURRENT_APP_STATE.md",
+        "CURRENT_APP_STATE_PLAIN.md",
+        "IMPLEMENTATION_PLAN_Variation1.md"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

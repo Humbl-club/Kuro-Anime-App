@@ -2,16 +2,19 @@
 
 import copy
 import json
+import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import policy
 
 
-class PolicyTests(unittest.TestCase):
+class PolicyFixture(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -22,8 +25,7 @@ class PolicyTests(unittest.TestCase):
             refs.extend(route["sources"])
         for check in self.data["checks"].values():
             refs.extend(check["sources"])
-        refs.extend(worker["file"] for worker in self.data["claude_adapter"]["workers"].values())
-        refs.extend(["AGENTS.md", "CLAUDE.md", self.data["claude_adapter"]["settings"]])
+        refs.append("AGENTS.md")
         for ref in set(refs):
             source = policy.ROOT / ref
             dest = self.root / ref
@@ -46,13 +48,125 @@ class PolicyTests(unittest.TestCase):
             text=True, capture_output=True, check=False,
         )
 
-    def test_current_checkout_references_and_adapter_validate(self):
-        self.assertEqual(policy.load()["schema_version"], 1)
+
+class PolicyTests(PolicyFixture):
+    def test_current_checkout_references_validate(self):
+        self.assertEqual(policy.load()["schema_version"], 2)
+
+    def test_discovery_catalog_supplies_exact_valid_ids_and_existing_sources(self):
+        result = self.cli("--discover")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        routes = json.loads(result.stdout)["routes"]
+        self.assertEqual([r["id"] for r in routes], [r["id"] for r in self.data["routes"]])
+        for route in routes:
+            self.assertTrue(all((self.root / p).exists() for p in route["sources"]))
+        self.assertFalse((self.root / ".claude").exists())
+
+    def test_filename_discovery_finds_package_owner_without_assuming_app_folder(self):
+        result = self.cli("--files", "*LibraryProgress.swift")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        value = json.loads(result.stdout)
+        owner = "Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift"
+        self.assertEqual(value["files"], [owner])
+        self.assertIn("library_progress", value["routes_by_file"][owner])
+
+    def test_nonexistent_but_route_matching_path_requires_discovery(self):
+        result = self.cli("--paths", "Kuro/Library/LibraryProgress.swift")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        value = json.loads(result.stdout)
+        self.assertEqual(value["missing_paths"], ["Kuro/Library/LibraryProgress.swift"])
+        self.assertEqual(value["status"], "discovery_required")
+        self.assertEqual(value["unmapped"], [])
+        self.assertIn("library_progress", [r["id"] for r in value["routes"]])
+
+    def test_filename_miss_is_not_hidden_among_successful_matches(self):
+        result = self.cli("--files", "LibraryProgress.swift", "NeverExisted.swift")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        value = json.loads(result.stdout)
+        self.assertEqual(value["unmatched_patterns"], ["NeverExisted.swift"])
+        self.assertEqual(len(value["files"]), 1)
+
+    def test_repeated_filename_options_preserve_every_pattern(self):
+        result = self.cli("--files", "LibraryProgress.swift", "--files", "LibraryStore.swift", "--files", "NeverExisted.swift")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        value = json.loads(result.stdout)
+        self.assertEqual(len(value["files"]), 2)
+        self.assertEqual(value["unmatched_patterns"], ["NeverExisted.swift"])
+
+    def test_discovery_avoids_archived_build_hidden_retired_and_symlink_files(self):
+        for folder in ["archive", "Packages/.build", ".claude", "node_modules", "Kuro/Live"]:
+            dest = self.root / folder / "Probe.swift"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text("must not be read")
+        (self.root / "Kuro/Live/SupabaseService.swift").write_text("retired")
+        (self.root / "Kuro/Live/Link.swift").symlink_to(self.root / "Kuro/Live/Probe.swift")
+        with mock.patch.object(Path, "read_text", side_effect=AssertionError("Inventory must not read file bodies")):
+            value = policy.find_files(self.root, self.data, ["Probe.swift", "Link.swift", "SupabaseService.swift"])
+        self.assertEqual(value["files"], ["Kuro/Live/Probe.swift"])
+        self.assertEqual(value["unmatched_patterns"], ["Link.swift", "SupabaseService.swift"])
+
+    def test_discovery_truncation_preserves_total_and_requires_narrowing(self):
+        value = policy.find_files(self.root, self.data, ["*.swift"], limit=1)
+        self.assertEqual(len(value["files"]), 1)
+        self.assertTrue(value["truncated"])
+        self.assertGreater(value["total_matches"], 1)
+        self.assertIn("narrow", value["instruction"])
+
+    def test_discovery_rejects_escaping_patterns_and_invalid_limits(self):
+        for pattern in ["../*.swift", "/tmp/*.swift"]:
+            with self.subTest(pattern=pattern), self.assertRaises(policy.PolicyError):
+                policy.find_files(self.root, self.data, [pattern])
+        for limit in [0, 501]:
+            with self.subTest(limit=limit), self.assertRaises(policy.PolicyError):
+                policy.find_files(self.root, self.data, ["*.swift"], limit=limit)
+
+    def test_discovery_does_not_silently_ignore_other_cli_actions(self):
+        for args in [("--discover", "--route", "identity"), ("--files", "*.swift", "--check"), ("--discover", "--files", "*.swift")]:
+            result = self.cli(*args)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("separately", result.stderr)
+
+    def test_shared_routing_works_without_any_claude_files(self):
+        shutil.rmtree(self.root / ".claude", ignore_errors=True)
+        (self.root / "CLAUDE.md").unlink(missing_ok=True)
+        self.assertEqual(policy.load(self.root)["schema_version"], 2)
+        result = self.cli("--route", "library_progress", "--route", "identity")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["unmapped"], [])
+        self.assertNotIn("claude_adapter", json.loads(result.stdout))
+
+    def test_shared_validation_does_not_read_claude_configuration(self):
+        original_read = Path.read_text
+
+        def guarded_read(path, *args, **kwargs):
+            if ".claude" in path.parts or path.name == "CLAUDE.md":
+                raise AssertionError("Shared validation tried to read Claude configuration")
+            return original_read(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "read_text", guarded_read):
+            policy.load(self.root)
+
+    def test_claude_check_is_explicit_and_requires_its_adapter(self):
+        shutil.rmtree(self.root / ".claude", ignore_errors=True)
+        result = self.cli("--check-claude")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(".claude/adapter.json", result.stderr)
+        self.assertEqual(self.cli("--check").returncode, 0)
+
+    def test_shared_manifest_rejects_provider_adapter_configuration(self):
+        self.data["claude_adapter"] = {"provider_settings": "must stay outside shared schema"}
+        with self.assertRaisesRegex(policy.PolicyError, "manifest fields"):
+            policy.validate(self.root, self.data)
 
     def test_current_native_source_folders_have_context_routes(self):
         paths = [str(path.relative_to(policy.ROOT)) for path in (policy.ROOT / "Kuro").rglob("*.swift")]
         result = policy.resolve(policy.ROOT, self.data, paths)
         self.assertEqual(result["unmapped"], [])
+
+    def test_existing_package_manifest_has_a_context_route(self):
+        result = self.cli("--paths", "Packages/KuroModules/Package.swift")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([r["id"] for r in json.loads(result.stdout)["routes"]], ["infrastructure"])
 
     def test_progress_routes_to_current_owners_not_retired_service(self):
         result = policy.resolve(self.root, self.data, ["Kuro/Library/LibraryActions.swift"])
@@ -99,6 +213,8 @@ class PolicyTests(unittest.TestCase):
         result = self.cli("--route", "looks_like_library")
         self.assertEqual(result.returncode, 1)
         self.assertIn("Unknown routes", result.stderr)
+        self.assertIn("--discover first", result.stderr)
+        self.assertIn("library_progress", result.stderr)
 
     def test_rpc_lookup_includes_later_prepared_replacement(self):
         for folder, filename, body in (
@@ -196,18 +312,48 @@ class PolicyTests(unittest.TestCase):
         path.write_text('{"schema_version":1,"schema_version":2}')
         with self.assertRaisesRegex(policy.PolicyError, "Duplicate configuration"):
             policy.read_json(path)
-        self.data["schema_version"] = 2
+        self.data["schema_version"] = 99
         with self.assertRaisesRegex(policy.PolicyError, "schema_version"):
             policy.validate(self.root, self.data)
-        self.data["schema_version"] = 1
+        self.data["schema_version"] = 2
         self.data["typo"] = True
         with self.assertRaisesRegex(policy.PolicyError, "manifest fields"):
             policy.validate(self.root, self.data)
 
+    def test_resolving_is_read_only(self):
+        def snapshot():
+            return {str(path.relative_to(self.root)): path.read_bytes() for path in self.root.rglob("*") if path.is_file()}
+        before = snapshot()
+        result = self.cli("--route", "library_progress")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(snapshot(), before)
+
+
+@unittest.skipUnless((policy.ROOT / policy.CLAUDE_MANIFEST).is_file(), "Optional Claude adapter not installed")
+class ClaudeAdapterTests(PolicyFixture):
+    def setUp(self):
+        super().setUp()
+        self.adapter = copy.deepcopy(policy.read_json(policy.ROOT / policy.CLAUDE_MANIFEST))
+        refs = ["CLAUDE.md", policy.CLAUDE_MANIFEST, self.adapter["settings"]]
+        refs.extend(worker["file"] for worker in self.adapter["workers"].values())
+        for ref in refs:
+            dest = self.root / ref
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text((policy.ROOT / ref).read_text())
+
+    def test_current_installed_adapter_validates(self):
+        self.assertEqual(policy.load_claude()["schema_version"], 1)
+
+    def test_explicit_adapter_validation_never_applies_env_or_runs_hooks(self):
+        before = dict(os.environ)
+        with mock.patch.object(subprocess, "run", side_effect=AssertionError("Hook execution forbidden")):
+            policy.validate_claude(self.root, self.data, self.adapter)
+        self.assertEqual(dict(os.environ), before)
+
     def test_read_only_worker_cannot_gain_shell_by_changing_manifest(self):
-        self.data["claude_adapter"]["workers"]["Explore"]["tools"].append("Bash")
+        self.adapter["workers"]["Explore"]["tools"].append("Bash")
         with self.assertRaisesRegex(policy.PolicyError, "Read-only worker"):
-            policy.validate(self.root, self.data)
+            policy.validate_claude(self.root, self.data, self.adapter)
 
     def test_model_tool_and_policy_omission_drift_fail(self):
         path = self.root / ".claude/agents/Explore.md"
@@ -219,14 +365,14 @@ class PolicyTests(unittest.TestCase):
         ):
             path.write_text(text)
             with self.subTest(text=text[:90]), self.assertRaises(policy.PolicyError):
-                policy.validate(self.root, self.data)
+                policy.validate_claude(self.root, self.data, self.adapter)
         path.write_text(original)
 
     def test_adapter_must_import_shared_policy(self):
         path = self.root / "CLAUDE.md"
         path.write_text(path.read_text().replace("@AGENTS.md", "AGENTS.md"))
         with self.assertRaisesRegex(policy.PolicyError, "must import"):
-            policy.validate(self.root, self.data)
+            policy.validate_claude(self.root, self.data, self.adapter)
 
     def test_adapter_cannot_silently_enable_untracked_advisor_model(self):
         path = self.root / ".claude/settings.json"
@@ -234,7 +380,7 @@ class PolicyTests(unittest.TestCase):
         settings["env"].pop("CLAUDE_CODE_DISABLE_ADVISOR_TOOL")
         path.write_text(json.dumps(settings))
         with self.assertRaisesRegex(policy.PolicyError, "implicit server-side advisor"):
-            policy.validate(self.root, self.data)
+            policy.validate_claude(self.root, self.data, self.adapter)
 
     def test_startup_hook_outputs_context_without_running_checks(self):
         nested = self.root / "Kuro/Library"
@@ -243,20 +389,14 @@ class PolicyTests(unittest.TestCase):
         context = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
         self.assertIn("validation PASS", context)
         self.assertIn(str(self.root), context)
+        self.assertIn("--discover", context)
+        self.assertIn("--files", context)
 
     def test_startup_failure_is_visible_and_nonzero(self):
         (self.root / "Kuro/Library/LibraryActions.swift").unlink()
         result = self.cli("--claude-start", event={"cwd": str(self.root)})
         self.assertEqual(result.returncode, 1)
         self.assertIn("validation FAILED", json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"])
-
-    def test_resolving_is_read_only(self):
-        def snapshot():
-            return {str(path.relative_to(self.root)): path.read_bytes() for path in self.root.rglob("*") if path.is_file()}
-        before = snapshot()
-        result = self.cli("--route", "library_progress")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(snapshot(), before)
 
 
 if __name__ == "__main__":

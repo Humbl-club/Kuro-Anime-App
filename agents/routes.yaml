@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "format": "JSON-compatible YAML 1.2; parsed with Python stdlib json, no runtime dependencies.",
   "authority": [
     "AGENTS.md",
@@ -22,60 +22,6 @@
     "review": {
       "require": "Independent evidence-based review against user intent and failure scenarios; no author conclusions."
     }
-  },
-  "claude_adapter": {
-    "workers": {
-      "Explore": {
-        "file": ".claude/agents/Explore.md",
-        "profile": "discovery",
-        "model": "haiku",
-        "effort": "low",
-        "tools": [
-          "Read",
-          "Grep",
-          "Glob"
-        ]
-      },
-      "kuro-implementer": {
-        "file": ".claude/agents/kuro-implementer.md",
-        "profile": "implementation",
-        "model": "sonnet",
-        "effort": "medium",
-        "tools": [
-          "Read",
-          "Grep",
-          "Glob",
-          "Edit",
-          "Write",
-          "Bash"
-        ]
-      },
-      "kuro-runner": {
-        "file": ".claude/agents/kuro-runner.md",
-        "profile": "verification",
-        "model": "haiku",
-        "effort": "low",
-        "tools": [
-          "Read",
-          "Grep",
-          "Glob",
-          "Bash"
-        ]
-      },
-      "kuro-reviewer": {
-        "file": ".claude/agents/kuro-reviewer.md",
-        "profile": "review",
-        "model": "opus",
-        "effort": "high",
-        "tools": [
-          "Read",
-          "Grep",
-          "Glob"
-        ]
-      }
-    },
-    "settings": ".claude/settings.json",
-    "main_model": "Use the actual available model at the capability needed; do not assume or force a global Opus default."
   },
   "checks": {
     "policy": {
@@ -193,7 +139,6 @@
       ],
       "sources": [
         "AGENTS.md",
-        "CLAUDE.md",
         "agents/README.md"
       ],
       "checks": [
@@ -518,11 +463,13 @@
     {
       "id": "infrastructure",
       "paths": [
+        "Packages/KuroModules/Package.swift",
         "Kuro/Infrastructure/**",
         "Kuro/Services/**",
         "Kuro/Telemetry/**"
       ],
       "sources": [
+        "Packages/KuroModules/Package.swift",
         "Kuro/Infrastructure/Retry.swift",
         "Kuro/Infrastructure/TimedCache.swift",
         "Kuro/Services/FeatureFlags.swift",
