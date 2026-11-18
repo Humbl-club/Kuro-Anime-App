@@ -1,0 +1,54 @@
+{
+  "at": "2026-11-18T15:46:45.414087+00:00",
+  "catalogue_tables": [
+    {
+      "relname": "catalogue_units"
+    },
+    {
+      "relname": "catalogue_units_anime_uq"
+    },
+    {
+      "relname": "catalogue_units_manga_uq"
+    },
+    {
+      "relname": "catalogue_units_pkey"
+    },
+    {
+      "relname": "catalogue_units_source"
+    }
+  ],
+  "functions": [
+    {
+      "slug": "concierge-parse",
+      "verify_jwt": true,
+      "version": 51
+    },
+    {
+      "slug": "concierge-recommend",
+      "verify_jwt": true,
+      "version": 57
+    }
+  ],
+  "has_IMPORT_SECRET": true,
+  "health": [
+    {
+      "lock_waiters": 0,
+      "long_q": 0
+    }
+  ],
+  "history_tail": [
+    {
+      "name": "search_titles_param_v1",
+      "version": "20261110100000"
+    },
+    {
+      "name": "search_titles_topn_v1",
+      "version": "20261109200100"
+    },
+    {
+      "name": "search_staged_v1",
+      "version": "20261109200000"
+    }
+  ],
+  "project": "ACTIVE_HEALTHY"
+}
