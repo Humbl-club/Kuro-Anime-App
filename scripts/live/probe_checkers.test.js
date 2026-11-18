@@ -187,3 +187,14 @@ test("actual Realtime verifies delivery, own removal and revocation before clean
   assert.equal(removedChannels, 4);
   assert.ok(b.users.every((u) => u.deleted));
 });
+
+test("import workflow probe never selects or filters anilist_id with an owner token", () => {
+  const importProbe = require("./probe_import_workflow_v2");
+  for (const medium of ["anime", "manga"]) {
+    const ownerPath = importProbe.ownerCatalogPath(medium);
+    assert.ok(!ownerPath.includes("anilist_id"), ownerPath);
+    assert.match(ownerPath, /select=id,mal_id,/);
+    assert.match(ownerPath, /mal_id=not\.is\.null/);
+    assert.equal(importProbe.adminAnilistPath(medium, [3, 5]), `/rest/v1/${medium}?select=id,anilist_id&id=in.(3,5)`);
+  }
+});

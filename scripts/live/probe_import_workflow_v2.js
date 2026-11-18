@@ -25,6 +25,14 @@ function reject(response, message) {
   requireTrue(!response.ok && response.body?.code === "P0001" && response.body?.message === message,
     `Expected ${message}, received HTTP ${response.status}/${response.body?.code || "no code"}`);
 }
+// Owner-token catalog read: Kuro id and MAL id only, never anilist_id.
+function ownerCatalogPath(medium) {
+  return `/rest/v1/${medium}?select=id,mal_id,title_romaji&mal_id=not.is.null&order=id.asc&limit=8`;
+}
+// Administrative (service-role) crosswalk read for the AniList namespace proof.
+function adminAnilistPath(medium, ids) {
+  return `/rest/v1/${medium}?select=id,anilist_id&id=in.(${ids.join(",")})`;
+}
 function source(title, provider, values) {
   const external = provider === "anilist" ? title.anilist_id : title.mal_id;
   requireTrue(Number.isSafeInteger(external) && external > 0, "Catalog provider identity is unavailable");
@@ -128,9 +136,15 @@ async function importChecks(p) {
   const owner = await p.provision("import-v2-owner"), outsider = await p.provision("import-v2-outsider");
   const titles = [];
   for (const medium of ["anime", "manga"]) {
-    const candidates = await p.must(`/rest/v1/${medium}?select=id,anilist_id,mal_id,title_romaji&anilist_id=not.is.null&mal_id=not.is.null&order=id.asc&limit=8`, { token: owner.token });
+    const candidates = await p.must(ownerCatalogPath(medium), { token: owner.token });
     requireTrue(Array.isArray(candidates), "Catalog read failed");
-    const selected = candidates.filter((item) => Number.isSafeInteger(item.id) && item.id > 0 && Number.isSafeInteger(item.anilist_id) && item.anilist_id > 0 && Number.isSafeInteger(item.mal_id) && item.mal_id > 0).slice(0, 2);
+    const picked = candidates.filter((item) => Number.isSafeInteger(item.id) && item.id > 0 && Number.isSafeInteger(item.mal_id) && item.mal_id > 0).slice(0, 2);
+    // anilist_id is not readable with an owner token after migration 20261112100500; the AniList namespace
+    // proof reads the service-only crosswalk with the administrative key.
+    const crosswalk = picked.length ? await p.must(adminAnilistPath(medium, picked.map((item) => item.id)), { admin: true }) : [];
+    requireTrue(Array.isArray(crosswalk), "AniList crosswalk read failed");
+    const selected = picked.map((item) => ({ ...item, anilist_id: crosswalk.find((row) => row.id === item.id)?.anilist_id }))
+      .filter((item) => Number.isSafeInteger(item.anilist_id) && item.anilist_id > 0);
     requireTrue(selected.length === 2, `Two existing ${medium} provider identities are required`);
     titles.push(...selected.map((item, index) => ({ ...item, medium, index })));
   }
@@ -252,4 +266,4 @@ async function run(options = {}) {
 }
 if (require.main === module) run().then((report) => { console.log(JSON.stringify(report, null, 2)); process.exitCode = report.exitCode; })
   .catch(() => { console.error("Import v2 probe failed before a sanitized report could be emitted"); process.exitCode = 1; });
-module.exports = { run, importChecks, verifyCleanup };
+module.exports = { run, importChecks, verifyCleanup, ownerCatalogPath, adminAnilistPath };
