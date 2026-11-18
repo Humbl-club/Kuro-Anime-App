@@ -76,3 +76,6 @@
 
 # 2026-11-18 tracker gaps W9 tags and custom lists (prepared only; owner approval required to deploy).
 20261118120000_library_tags_custom_lists_v1.sql
+
+# 2026-11-18 W5 guest browsing (prepared only; owner approval required; release gated by capacity qualification and the owner; AniList stopped, so D-A is resolved).
+20261118110000_guest_anon_allowlist_v1.sql
