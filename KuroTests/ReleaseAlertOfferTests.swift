@@ -62,6 +62,25 @@ private struct AlertOfferHarness {
 
     func requests(to resource: String) -> [RecordedRequest] { server.requests.filter { $0.resource == resource } }
 
+    /// One save through the Library, then the follow-up work the sink started.
+    @discardableResult
+    func save(_ id: Int, kind: MediaKind = .anime, status: ListStatus = .current) async -> Bool {
+        let outcome = await service.libraryActions.apply(LibraryEdit(status: .set(status)),
+                                                         to: MediaKey(kind: kind, id: id), createIfMissing: status)
+        await service.releases.libraryChangeTask?.value
+        await service.releases.alertOfferTask?.value
+        return outcome.error == nil
+    }
+
+    /// A `media_release_schedule_v1` answer with one exact confirmed episode.
+    static func mediaScheduleResponder(id: Int, episode: Int = 5, ahead: TimeInterval = 2 * 86_400) -> StubServer.Responder {
+        let at = ISO8601DateFormatter().string(from: Date().addingTimeInterval(ahead))
+        return { request in
+            guard request.resource == "rpc/media_release_schedule_v1" else { return .emptyArray }
+            return .json(#"[{"medium":"anime","media_id":\#(id),"title":"Frieren","unit_kind":"episode","unit_number":\#(episode),"release_at":"\#(at)","basis":"confirmed","source":"anilist","release_precision":"instant"}]"#)
+        }
+    }
+
     func tearDown() async {
         await service.session.endSession()
         defaults.removePersistentDomain(forName: suiteName)
@@ -226,5 +245,119 @@ struct ReleaseAlertOfferTests {
         #expect(!ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: nil, now: t.addingTimeInterval(29)))
         #expect(ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: nil, now: t.addingTimeInterval(31)))
         #expect(!ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: UUID(), now: t.addingTimeInterval(300)))
+    }
+
+    // MARK: Task 3: the owner raises the offer after a save (no new request)
+
+    @Test func offerShownAfterSavingAiringTitleWithExactNextRelease() async throws {
+        let h = try AlertOfferHarness(responder: AlertOfferHarness.mediaScheduleResponder(id: 501))
+        await h.signIn()
+        let releases = h.service.releases
+        // The detail page left the media-schedule cache; user_airing_next answers [] here, so only the cache can know.
+        #expect(await releases.mediaSchedule(kind: .anime, id: 501).count == 1)
+        #expect(await h.save(501))
+        let offer = try #require(releases.pendingAlertOffer)
+        #expect(offer.key == MediaKey(kind: .anime, id: 501))
+        #expect(ReleaseAlertOfferCopy.prompt(offer.item, german: false) == "Notify me when episode 5 airs")
+        #expect(h.notifications.authorizationRequests == 0)
+        await h.tearDown()
+    }
+
+    @Test func offerAppearsAfterExistingUpcomingRefresh() async throws {
+        let h = try AlertOfferHarness()
+        await h.signIn()
+        let before = h.server.requests.count
+        #expect(await h.save(501))
+        let releases = h.service.releases
+        #expect(releases.pendingAlertOffer?.key == MediaKey(kind: .anime, id: 501))
+        let sent = h.server.requests.dropFirst(before).compactMap(\.resource)
+        #expect(sent.sorted() == ["rpc/collection_feed_page", "user_airing_next"], "the save sent \(sent)")
+        await h.tearDown()
+
+        // A title the stub has no airing for: no offer, the same pre-existing requests (the Collection sink's feed
+        // page and the one upcoming read); the offer adds none.
+        let other = try AlertOfferHarness(airing: [(999, 1, 86_400)])
+        await other.signIn()
+        let otherBefore = other.server.requests.count
+        #expect(await other.save(501))
+        #expect(other.service.releases.pendingAlertOffer == nil)
+        let otherSent = other.server.requests.dropFirst(otherBefore).compactMap(\.resource)
+        #expect(otherSent.sorted() == ["rpc/collection_feed_page", "user_airing_next"], "the save sent \(otherSent)")
+        await other.tearDown()
+    }
+
+    @Test func mangaReadingTitleWithExactChapterTimeOffers() async throws {
+        let h = try AlertOfferHarness()
+        await h.signIn()
+        let releases = h.service.releases
+        releases.schedule = [ReleaseScheduleItem(medium: .manga, mediaId: 2, title: "Kagurabachi", unitKind: .chapter, unitNumber: 68,
+                                                 releaseAt: Date().addingTimeInterval(3 * 86_400), basis: .confirmed, source: "mangadex",
+                                                 precision: .instant)]
+        releases.scheduleCoverageByMedium = [.anime: .complete, .manga: .complete]
+        #expect(await h.save(2, kind: .manga))
+        #expect(releases.pendingAlertOffer?.key == MediaKey(kind: .manga, id: 2))
+        await h.tearDown()
+    }
+
+    @Test func noOfferForRefreshImportOrBatch() async throws {
+        let backend = FakeLibraryBackend()
+        backend.setRows([FakeLibraryBackend.entry(.anime, 504, rowId: 504, status: .planning, progress: 0)], for: AlertOfferHarness.userA)
+        let h = try AlertOfferHarness(backend: backend, airing: [(501, 5, 2 * 86_400), (502, 3, 2 * 86_400), (503, 7, 2 * 86_400), (504, 1, 2 * 86_400)])
+        await h.signIn()
+        let releases = h.service.releases
+        let context = try #require(h.context)
+        // A server-side change (realtime / import / launch) re-reads the Library and never calls the sinks.
+        backend.setRows([FakeLibraryBackend.entry(.anime, 501, rowId: 501, status: .current, progress: 1),
+                         FakeLibraryBackend.entry(.anime, 504, rowId: 504, status: .planning, progress: 0)],
+                        for: AlertOfferHarness.userA)
+        await h.service.libraryActions.libraryChangedServerSide(for: context).value
+        await releases.alertOfferTask?.value
+        #expect(releases.pendingAlertOffer == nil)
+        // A batch (Folio) runs suppressed.
+        await releases.withAlertOffersSuppressed {
+            _ = await h.save(502)
+            _ = await h.save(503)
+        }
+        #expect(releases.pendingAlertOffer == nil)
+        // The widget's queued +1 on a planning entry runs suppressed too.
+        let advanced = await h.service.libraryActions.advanceQueuedProgress(MediaKey(kind: .anime, id: 504), to: 1, lifecycleId: nil, cap: nil)
+        await releases.alertOfferTask?.value
+        #expect(advanced == .applied)
+        #expect(releases.pendingAlertOffer == nil)
+        // A plain save afterwards (suppression ended) offers. 502 was suppressed, so it is still unoffered.
+        #expect(await h.save(502, status: .paused))
+        releases.pendingAlertOffer = nil
+        #expect(await h.save(502, status: .current))
+        #expect(releases.pendingAlertOffer?.key == MediaKey(kind: .anime, id: 502))
+        await h.tearDown()
+    }
+
+    @Test func offerShownOncePerTitle() async throws {
+        let suite = "kuro.tests.alert-offer.once.\(UUID().uuidString)"
+        let h = try AlertOfferHarness(suiteName: suite)
+        await h.signIn()
+        let releases = h.service.releases
+        #expect(await h.save(501))
+        let offer = try #require(releases.pendingAlertOffer)
+        let host = UUID()
+        releases.alertOfferPresented(offer.id, by: host)
+        releases.expireAlertOffer(offer.id, by: UUID())
+        #expect(releases.pendingAlertOffer?.id == offer.id, "a host that is not bound expired the offer")
+        releases.expireAlertOffer(offer.id, by: host)
+        #expect(releases.pendingAlertOffer == nil)
+        let context = try #require(h.context)
+        #expect(h.service.reminders.declinedAlertKeys(for: context).isEmpty, "an expired hold counted as a decline")
+        #expect(h.service.reminders.offeredAlertKeys(for: context) == [MediaKey(kind: .anime, id: 501)])
+        // Paused, then Watching again: no second offer (offered memory).
+        #expect(await h.save(501, status: .paused))
+        #expect(await h.save(501, status: .current))
+        #expect(releases.pendingAlertOffer == nil)
+        // A relaunch over the same defaults keeps the memory.
+        let relaunched = try AlertOfferHarness(suiteName: suite)
+        await relaunched.signIn()
+        #expect(await relaunched.save(501))
+        #expect(relaunched.service.releases.pendingAlertOffer == nil)
+        await relaunched.tearDown()
+        await h.tearDown()
     }
 }

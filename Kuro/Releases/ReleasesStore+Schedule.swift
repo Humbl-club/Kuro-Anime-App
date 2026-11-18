@@ -191,6 +191,18 @@ extension ReleasesStore {
         return ReleaseSchedulePolicy.item(fromAiring: airing)
     }
 
+    /// The first eligible upcoming row of any fresh cached `mediaSchedule` answer for `key` (the detail
+    /// page loaded it). Reads the private cache only; never requests (W3a).
+    func cachedMediaRelease(for key: MediaKey, now: Date = Date()) -> ReleaseScheduleItem? {
+        guard let context = accountSession.current else { return nil }
+        let prefix = cacheKey(context, "media", key.kind.rawValue, String(key.id)) + "|"
+        return scheduleCache.keys.filter { $0.hasPrefix(prefix) }
+            .compactMap { freshSchedule($0) }
+            .flatMap { $0 }
+            .filter { $0.key == key && ReleaseNotificationPlanner.isEligible($0, now: now) }
+            .min { ($0.releaseAt ?? .distantFuture) < ($1.releaseAt ?? .distantFuture) }
+    }
+
     /// What the loaded schedule can claim about `medium` (rulebook §9): `.complete` only after the
     /// schedule contract answered; the airing fallback knows anime for seven days and manga not at
     /// all; a failed read is unknown.
