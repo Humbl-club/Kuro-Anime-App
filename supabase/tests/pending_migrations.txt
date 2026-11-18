@@ -56,3 +56,4 @@
 # Still pending: 1c, PARKED 2026-11-18 (no benefit while imports are off; matview drop folded into
 # catalogue Task 15d). Tests: 104 (+99).
 20261109200200_discover_newly_added_base_v1.sql
+20261112100000_catalogue_sources_v1.sql
