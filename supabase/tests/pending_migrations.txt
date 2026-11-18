@@ -73,3 +73,6 @@
 
 # 2026-11-10 tracker gaps W10 (prepared only; owner approval required to deploy).
 20261118130000_library_up_next_v1.sql
+
+# 2026-11-18 tracker gaps W9 tags and custom lists (prepared only; owner approval required to deploy).
+20261118120000_library_tags_custom_lists_v1.sql
