@@ -1,3 +1,15 @@
+# Approved cold-start plan — execution outcome
+
+**APPROVED AND EXECUTED; COLD QUALIFICATION UNQUALIFIED.** Exact migration20261109123758 is live with five ready indexes/two Search settings. Same-source Parse50/Recommend56 redeployments are verified. One production restart occurred; first successful healthy/new-postmaster observation already had727 target cached blocks. No load stage or second restart occurred. All600 fixture accounts/30clubs across six cohorts are independently clean; temporary extension/private schema removed. Full [results and limitations](REPORT.md).
+
+The original approved package is preserved in [DEPLOYMENT-AS-APPROVED.md](DEPLOYMENT-AS-APPROVED.md). Its requested actions below are historical, not new permission or a ready-to-rerun command. Canonical migration is now `supabase/migrations/20261109123758_cold_catalogue_reads_v1.sql`, with the exact approved SHA. Managed owner/version behavior required the independently reviewed private inspector variant, actual client namespace denial and RESTRICT removal, documented in the report. The original public-schema/1.4 installer variants rolled back. The original allowance for one restart is consumed.
+
+The provider rejected optional health `timeout_ms`, then Python3.9 timestamp parsing delayed reconciliation. The first count was727, so the primary stopped without load. Post-abort functional requests passed6/6, but Manga Search1,632.90ms missed750ms; this is not a latency or capacity pass. Another restart/cron interference-control plan requires explicit authorization after compatibility repairs and review.
+
+---
+
+## Historical reviewed protocol
+
 # Cold-start repair and qualification — approval package
 
 **Prepared, not deployed. Production cold-start capacity remains unproved.** Existing warmed R15 proof stays valid for its dated workload; this package does not turn that into cold-start proof.
@@ -28,22 +40,24 @@ Create and independently verify a **fresh sixth** fixture before the restart:100
 
 After restart, verify changed `pg_postmaster_start_time`. Poll only owning-service status, Auth health and REST metadata readiness; no catalogue RPC, smoke recommendation, EXPLAIN, sample title lookup, manual worker call or application-data read is permitted before onset. Record every readiness observation and the planned-outage interval.
 
-Use [READ-CACHE-STATE.sql](READ-CACHE-STATE.sql) to observe public heaps, indexes, materialized views and associated TOAST buffers without reading catalogue rows. **Require zero target cached blocks**, record exact timestamp and new postmaster start, and start the fresh Node generator within five seconds of this observation/readiness. Natural cron remains enabled; record any intervening executions. If background/client activity has already warmed the target buffers, label the attempt NOT COLD/UNQUALIFIED, do not relabel it or restart again. Preserve the trace and clean the fixture.
+Use [READ-CACHE-STATE.sql](READ-CACHE-STATE.sql) to observe public heaps, indexes, materialized views and associated TOAST buffers without reading catalogue rows. **Require zero target cached blocks**, record exact timestamp and new postmaster start, and start the fresh Node generator within five seconds of this observation/readiness. Natural cron remains enabled; record any intervening executions. Known catalogue/worker activity between the zero-buffer receipt and first offered start invalidates onset. If background/client activity has already warmed the target buffers, label the attempt NOT COLD/UNQUALIFIED, do not relabel it or restart again. Preserve the trace and clean the fixture.
 
 A PostgreSQL restart and empty shared buffers do not prove an empty OS/storage cache. Report that boundary explicitly. Edge redeployment alone does not prove a new isolate: inspect provider boot/execution evidence correlated to the new deployed versions and measured onset, including boot time in first-request latency. If that evidence is unavailable, report Edge-cold state UNPROVEN and do not claim whole-backend cold qualification. Do not use warm calls to check readiness. This separates database-buffer/process-cold, client-connection-cold, Edge-isolate-cold and unobservable OS/storage state.
 
 ## Same workload, stricter onset acceptance
 
-Use the same pinned eight-file Node workload, ordinary100 JWT actors, original seed/mix, request bodies, semantic checks, eight-second deadlines, safety stops, rates and limits. Start **20 rps immediately**, with no5-rps warmup. Run20 rps/600 s,40 rps/60 s,20 rps/90 s:16,200 offered starts. One active request/user/five seconds (two-and-a-half during burst) remains the agreed model, not100 permanently busy queries.
+Use the newly pinned eight-file Node workload (original snapshots retained), ordinary100 JWT actors, original seed/mix and semantic checks, eight-second deadlines, safety stops, rates and limits. Start **20 rps immediately**, with no5-rps warmup. Run20 rps/600 s,40 rps/60 s,20 rps/90 s:16,200 offered starts. One active request/user/five seconds (two-and-a-half during burst) remains the agreed model, not100 permanently busy queries.
 
 In addition to every original endpoint/library/media gate and zero errors/missed starts, use [backend_cold_gate.js](../../scripts/load/backend_cold_gate.js):
 
 - All100 actors represented in the first100 starts (first five seconds), without dropped/duplicate starts.
-- First60seconds:1,200 completions, all16 required route/media variants, same p95/error limits by route and every observed library group. Missing first-minute library groups are listed, not silently treated as tested.
-- Whole cold stage: all39 declared endpoint/library groups (empty progress excluded), all16 route/media variants, and the same per-group limits. Missing mandatory groups fail.
-- The very first request in each declared route/media and endpoint/library cell must individually meet its existing latency limit. Warm requests cannot wash out a slow first call.
+- First1,200 planned arrivals (nominal0–60s): all responses must complete within their individual deadlines; all20 required route/media/mood variants, same p95/error limits by route and every observed library group. Report actual start/completion boundaries from sequence/rate plus measured start lag. Responses after60s remain included; they are not falsely called completions by60s. Missing onset library groups are listed, not silently treated as tested.
+- Whole cold stage: all39 declared endpoint/library groups (empty progress excluded), all20 route/media variants, and the same per-group limits. Missing mandatory groups fail.
+- All79 combined route/media/mood×library cells must be observed, meet p95/error limits, and their very first request must individually meet its existing latency limit. Warm requests cannot wash out a slow first call.
 
-First-use groups encountered later in the stage share earlier cache activity; this is one observed cold-start sequence, not63 independent cold experiments. Do not claim independently cold behavior for each cell. Stop escalation after any failed stage or cold gate; retain every failure and do not retry to a pass.
+First-use groups encountered later in the stage share earlier cache activity; this is one observed cold-start sequence, not79 independent cold experiments. Do not claim independently cold behavior for each cell. Stop escalation after any failed stage or cold gate; retain every failure and do not retry to a pass.
+
+The original deterministic schedule coupled manga to short moods and odd-index large actors to club-list reads. Two local builder changes now independently cycle media/mood and alternate club bundle/list by actor round. This preserves rates, weights, request/error/deadline limits and endpoint contracts while covering all six media/mood combinations and large members’ club bundles. Original measured eight sources/hashes are archived under measured-source-before-cold-coverage; old R15 proof is not relabeled as this broader workload. The offline planned route audit covers all79 combined cells and20 onset routes; it makes no latency claim.
 
 Observers start before onset with unique markers. Keep Ethernet/en0 route checks and DB connection/lock safety observations about every10 s; stop on route change, two monitor errors or the existing pressure limits. Keep host metrics about60 s, slow-query hashes/public references, private raw SQL and independent HTTPS controls. Requeue only50 verified fixture profiles during the soak after onset; confirm all five large profiles recompute and record actual natural cron work. Run owner/outsider library/club checks and five privileged-RPC grant checks during load. HTTP cron dispatch success is not importer completion proof.
 

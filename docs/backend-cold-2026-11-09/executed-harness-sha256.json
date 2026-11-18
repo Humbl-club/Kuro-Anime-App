@@ -1,0 +1,66 @@
+{
+  "captured_at": "2026-11-09T14:18:43.256917+00:00",
+  "purpose": "Historical actual source, not rerun-ready; helper/credentials excluded. Compatibility failures retained.",
+  "files": [
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/README.md",
+      "sha256": "ce24413586ed1cc58cb013c55974859e9d19a7f0885a8812380d5589aca815e7"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_active_observer.py",
+      "sha256": "365ade59a8e54ee95696a5e76a4bbada1eb4f61ec5439da7d7411e21034d6015"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_backlog.py",
+      "sha256": "302920cc6f3ec4f24fd275aeb7e6a3a60c7223a4e7a0f761faffa3da59a4b393"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_connectivity.py",
+      "sha256": "35f9b8475c038db68b4461899af78a6452ebe4ec232ebfa6066950f215fcaad9"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_continue_same_restart_20261109.py",
+      "sha256": "ca635b7b7f280189ed97694574dcccc44fe712daf4108fe646f5106747b2f10b"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_db_observer.py",
+      "sha256": "965b9203638ed75aed9799738bc9a4cb4ed7c892e7495f6b3393e3237ffcf0e9"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_final_query_plans.py",
+      "sha256": "04921a932714bd01d71ff366e5953866c23ebc02c9d94829139afc692f7c2652"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_isolation.py",
+      "sha256": "20cbf1e3908a55b0a71e5196156cfa3ccef99d5dda25eeb1143877736d297a39"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_post_abort_smoke.js",
+      "sha256": "bf451078ede4e62409c98e7f8bf035a2f94d781ec9871db5a104639782c21cbc"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_post_attempt_checks.py",
+      "sha256": "eb093dfe4dea4d37302bf38b9c8c7c14629f4ac40edef9e0bff97062897f9427"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_resource_observer.py",
+      "sha256": "b08a955f0877d68c2fa422b7278552e50de2ac7e3c92b47adafd46ad1aac67d2"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_restart_and_run_20261109.py",
+      "sha256": "45d529c8ea6138bd9106224d5599d621d78a26c30d6aab1655fc1aec80fc05e9"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_cold_worker_observer.py",
+      "sha256": "0f51f5cad6b5af802629670f827218a740b93b5f51930e649fdbe8ea60518d4d"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_final_readback_cold1.py",
+      "sha256": "8271aa44967a6d9d327321ffa13efa1521ba51625e38981fd083348a66aaf4f9"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/executed-harness/kuro_verify_load_cleanup_r6_20261109.py",
+      "sha256": "4e3ff9449a004e8f8c6ba9490eb6f1c71e67a5dd5eedd8fb67ee41bef28bb5fc"
+    }
+  ]
+}

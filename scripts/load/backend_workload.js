@@ -161,13 +161,13 @@ function requestFor(kind, actor, fixture, seq, random = Math.random) {
       });
     case "mood":
       return rpc("discover_mood_v1", {
-        p_mood: ["short", "cozy", "intense"][seq % 3],
+        p_mood: ["short", "cozy", "intense"][Math.floor(seq / 3) % 3],
         p_media_type: medium.toUpperCase(),
         p_limit: 24,
         p_offset: seq % 5 === 0 ? 24 : 0,
       });
     case "clubs":
-      return actor.clubId && seq % 2 === 0
+      return actor.clubId && Math.floor(seq / fixture.accounts.length) % 2 === 0
         ? rpc("fetch_club_bundle_loading", { p_club_id: actor.clubId })
         : rpc("fetch_my_clubs_loading", {});
     case "discover":

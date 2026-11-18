@@ -1,0 +1,12 @@
+Downloading Function: concierge-parse
+Extracting file: supabase/functions/concierge-parse/index.ts
+Extracting file: supabase/functions/concierge-parse/handler.ts
+Extracting file: supabase/functions/_shared/alias_normalization.ts
+Extracting file: supabase/functions/_shared/normalization.ts
+Extracting file: supabase/functions/_shared/rate_limit_gate.ts
+Extracting file: supabase/functions/concierge-parse/parse_repository.ts
+Extracting file: supabase/functions/concierge-parse/rules.ts
+Extracting file: supabase/functions/concierge-parse/search_plan.ts
+Downloaded Function concierge-parse from project bkdifromsqxkndnllmdj.
+A new version of Supabase CLI is available: v3.1.0 (currently installed v2.78.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

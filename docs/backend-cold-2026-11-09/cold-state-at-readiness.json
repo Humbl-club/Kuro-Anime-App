@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-11-09T14:08:14.324913+00:00",
+  "cold": false,
+  "later_full_metadata": "cold-state-later-full-metadata.json",
+  "postmaster_started_at": "2026-11-09T14:07:47.716686+00:00",
+  "public_cached_blocks": 727,
+  "source": "restart-receipt.json first healthy/new-postmaster/cache poll",
+  "timestamp_semantics": "Start of first successful health/cache observation; exact cache-response timestamp was not persisted because controller timestamp parsing failed. Count is retained in original poll. Later full metadata snapshot is separate."
+}

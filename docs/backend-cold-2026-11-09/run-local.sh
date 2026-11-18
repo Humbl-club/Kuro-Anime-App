@@ -13,7 +13,7 @@ start_cluster
 psql_local -f docs/backend-cold-2026-11-09/cold-catalogue-fixture.sql
 "$pg_bin/pg_ctl" -D "$cold_dir/data" -m fast -w stop >/dev/null
 start_cluster
-psql_local -f docs/backend-cold-2026-11-09/cold-local-state.sql -f docs/backend-cold-2026-11-09/cold-catalogue-cases.sql -f supabase/prepared-migrations/20261109123758_cold_catalogue_reads_v1.sql
+psql_local -f docs/backend-cold-2026-11-09/cold-local-state.sql -f docs/backend-cold-2026-11-09/cold-catalogue-cases.sql -f supabase/migrations/20261109123758_cold_catalogue_reads_v1.sql
 "$pg_bin/pg_ctl" -D "$cold_dir/data" -m fast -w stop >/dev/null
 start_cluster
 psql_local -f docs/backend-cold-2026-11-09/cold-local-state.sql -f docs/backend-cold-2026-11-09/cold-catalogue-assertions.sql

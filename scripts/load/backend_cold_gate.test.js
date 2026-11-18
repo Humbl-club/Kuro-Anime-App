@@ -6,7 +6,7 @@ const C = require("./backend_cold_gate");
 function healthy() {
   const actors = Array.from({ length: 100 }, (_, i) => ({
     librarySize: i < 20 ? 0 : i < 70 ? 25 : i < 95 ? 100 : 2000,
-    clubId: i < 50 ? "fixture" : null,
+    clubId: i < 48 || i === 70 || i === 95 ? "fixture" : null,
   }));
   let seed = 20261109;
   const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
@@ -15,7 +15,9 @@ function healthy() {
     random(); // The frozen request builder consumes its catalogue-selection random value.
     const actor = actors[sequence % 100];
     if (kind === "progress" && !actor.librarySize) kind = "home";
-    return { kind, sequence, librarySize: actor.librarySize, medium: null, ms: 40, ok: true };
+    return { kind, sequence, librarySize: actor.librarySize, medium: null, ms: 40, ok: true,
+      startLagMs: 0,
+      variant: kind === "mood" ? ["short", "cozy", "intense"][Math.floor(sequence / 3) % 3] : null };
   });
   return { actors, report: { config: { rps: 20, duration: 600, vus: 100 }, samples,
     summary: W.summarize(samples, 12000, 600) } };
@@ -26,8 +28,32 @@ test("complete onset, routes and library coverage pass without changing the limi
   assert.equal(r.pass, true);
   assert.equal(r.missing.length, 0);
   assert.equal(r.fullLibrary.length, 39);
-  assert.equal(r.first60Seconds.routes.length, 16);
+  assert.equal(r.first60Seconds.routes.length, 20);
+  assert.equal(r.firstCrossCalls.length, 79);
   assert.equal(r.firstRouteCalls.find((x) => x.key === "search:manga").limit, 750);
+});
+test("joint first-call failure cannot hide behind healthy library and medium marginals", () => {
+  const { actors, report } = healthy();
+  const first = report.samples.find((s) => s.kind === "search" && s.librarySize === 2000);
+  const firstMedium = first.sequence % 3 === 0 ? "manga" : "anime";
+  const otherMedium = firstMedium === "anime" ? "manga" : "anime";
+  const sample = report.samples.find((s) => s.kind === "search" && s.librarySize === 2000 &&
+    (s.sequence % 3 === 0 ? "manga" : "anime") === otherMedium);
+  sample.ms = 751;
+  const result = C.evaluateColdStage(report, actors);
+  assert.ok(result.firstLibraryCalls.find((x) => x.key === "search/2000").pass);
+  assert.ok(result.firstRouteCalls.find((x) => x.key === "search:" + otherMedium).pass);
+  assert.equal(result.firstCrossCalls.find((x) => x.key === "search:" + otherMedium + "/2000").pass, false);
+  assert.equal(result.pass, false);
+});
+test("onset reports measured timing instead of claiming all responses finish by60seconds", () => {
+  const { actors, report } = healthy();
+  report.samples[1199].startLagMs = 20;
+  report.samples[1199].ms = 100;
+  const result = C.evaluateColdStage(report, actors);
+  assert.equal(result.first60Seconds.actualStartsBy60Seconds, 1200);
+  assert.equal(result.first60Seconds.completionsBy60Seconds, 1199);
+  assert.equal(result.first60Seconds.latestCompletionMs, 60070);
 });
 test("one slow first call fails even when warm requests make overall p95 pass", () => {
   const { actors, report } = healthy();

@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-11-09T13:52:08.759577+00:00",
+  "reason": "Managed platform forces1.5 and extension owner retains eviction PUBLIC EXECUTE; private namespace isolates all client lookup without owner-role escalation.",
+  "fresh_private_schema": "kuro_cold_inspection",
+  "version": "1.5",
+  "client_boundary": "No USAGE/CREATE on schema; all3inspection read functions deny direct EXECUTE; view denies SELECT. Eviction retains a PUBLIC EXECUTE ACL bit but cannot be resolved by clients and is not exposed through Data API. It is NEVER invoked.",
+  "independent_review": "PASS conditional fresh atomic schema/private namespace/denial/API non-exposure/native emulation/removal proof; no live probes or tests by reviewer.",
+  "native_emulation_test": "private-inspector-tests.log",
+  "files": [
+    {
+      "path": "docs/backend-cold-2026-11-09/INSTALL-CACHE-INSPECTION-PRIVATE.sql",
+      "sha256": "3eb5f881cacd76d23f0501f0778b00cba32703a94daf42bfc9972bca3629feb3"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/READ-CACHE-STATE-PRIVATE.sql",
+      "sha256": "aa1a019aa8f931fbf52b281c371d19d8543e81e49ef24d22aa9980325476dcc0"
+    },
+    {
+      "path": "docs/backend-cold-2026-11-09/REMOVE-CACHE-INSPECTION-PRIVATE.sql",
+      "sha256": "83869402e69635f01a9db0c5e271e7224d609f028470d764033d9d20d635bba4"
+    }
+  ],
+  "credentials_roles_membership_changes": false
+}

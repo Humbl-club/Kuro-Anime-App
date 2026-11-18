@@ -1,0 +1,18 @@
+{
+  "cached_blocks_at_first_ready": 727,
+  "cold_state_verified": false,
+  "complete": false,
+  "controller_compatibility_errors": [
+    "Health timeout_ms query parameter rejected by provider; omitted for same-request continuation",
+    "Python3.9 timestamp parser rejected historic PostgreSQL five-digit fractional/+00 timestamp; reconciled without further restart"
+  ],
+  "failure": "First successful healthy/new-postmaster buffer observation already held727 public/TOAST blocks; no load or second restart.",
+  "finished_at": "2026-11-09T14:09:02.953083+00:00",
+  "load_started": false,
+  "no_catalogue_pre_warm_calls": true,
+  "prior_postmaster_start": "2026-08-04 19:53:25.02166+00",
+  "profiles": [],
+  "restart_requests": 1,
+  "started_at": "2026-11-09T14:07:11.166987+00:00",
+  "verdict": "NOT_COLD_UNQUALIFIED"
+}

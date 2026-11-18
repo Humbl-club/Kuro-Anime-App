@@ -1,3 +1,5 @@
+> **Historical measured source boundary:** R15 below used its original eight-file workload. The cold-start follow-up adds broader mood/club coverage but its single restart attempt was unqualified before any load; original code/hashes are preserved under [the cold source archive](../backend-cold-2026-11-09/measured-source-before-cold-coverage/). R15 is not proof of that newer workload. [Current cold-start work](../backend-cold-2026-11-09/REPORT.md).
+
 # Kuro backend capacity — recommendation v55 wired qualification, 9 November 2026
 
 **PASS for the specified 100-active-session steady-state workload.** R15 completions: 16,500; errors: 0; missed offered starts: 0. Acceptance requires every unchanged stage and subgroup gate, real background work, ownership checks, exact cleanup and fresh production readback. This is a bounded workload qualification, not an unlimited scalability or release guarantee. All checkpoints are explicit in [the machine-readable verdict](capacity-verdict-r15.json).

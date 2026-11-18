@@ -1,0 +1,11 @@
+=== Migration Hygiene Check ===
+
+Checking for untracked migration files...
+Checking for modified migration files...
+Verifying migration checksums...
+
+Total migration files: 250
+
+--- Migration Hygiene Summary ---
+Warnings: 0
+Migration hygiene PASSED.

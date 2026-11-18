@@ -1,0 +1,7 @@
+{
+  "checked_at": "2026-11-09T14:18:43.459001+00:00",
+  "reviewed_source_entries": 30,
+  "public_artifacts_scanned": 165,
+  "all_source_and_executed_harness_hashes_match": true,
+  "secret_material_detected": false
+}

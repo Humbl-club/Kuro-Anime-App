@@ -1,0 +1,7 @@
+# Executed orchestration source archive
+
+Historical evidence only. Do not run these scripts: their private fixture has been deleted and the single authorized restart is consumed. The external shared Management helper and credentials are intentionally excluded.
+
+The original controller sent one restart, then its optional `timeout_ms` query parameter was rejected by the provider. It was terminated before any load; the continuation contains no restart operation and reconciled the same request using the supported health URL. Python3.9 then rejected the historical five-digit-fraction/+00 PostgreSQL timestamp. Healthy/new-postmaster polls nevertheless retained727 cached blocks. The primary stopped the continuation, reconciled those retained metadata receipts and wrote DONE without offering workload starts. Full relation metadata was captured only later and is explicitly separate.
+
+Offline report parsing and two-failed-route safety checks passed before restart. They did not cover these provider/timestamp compatibility failures. The original review/archives are retained without retroactively repairing their executed source. Any new qualification needs a corrected, offline-tested timestamp parser; an actual successful owning-service health-schema preflight with the exact URL; bounded readiness I/O and deadline checks; review and authorization for another maintenance window. A natural worker ran before the first successful observation; repeat plans must address interference explicitly, without hiding or disabling jobs under the original authorization.

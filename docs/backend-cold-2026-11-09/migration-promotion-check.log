@@ -1,0 +1,16 @@
+=== Migration Hygiene Check ===
+
+Checking for untracked migration files...
+FAIL: Untracked SQL files in supabase/migrations/:
+  - supabase/migrations/20261109123758_cold_catalogue_reads_v1.sql
+  Commit migration files (or set MIGRATIONS_ALLOW_UNTRACKED=1 for local dev).
+Checking for modified migration files...
+Verifying migration checksums...
+  New migration (not in checksums): 20261109123758_cold_catalogue_reads_v1.sql
+  Checksums written to /Users/max/Kuro-Anime-App/supabase/migrations/.checksums
+
+Total migration files: 251
+
+--- Migration Hygiene Summary ---
+Warnings: 0
+HARD FAIL: Migration hygiene check failed.

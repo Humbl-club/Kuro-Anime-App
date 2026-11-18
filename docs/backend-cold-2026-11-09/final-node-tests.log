@@ -1,0 +1,172 @@
+TAP version 13
+# Subtest: complete onset, routes and library coverage pass without changing the limits
+ok 1 - complete onset, routes and library coverage pass without changing the limits
+  ---
+  duration_ms: 235.620333
+  type: 'test'
+  ...
+# Subtest: joint first-call failure cannot hide behind healthy library and medium marginals
+ok 2 - joint first-call failure cannot hide behind healthy library and medium marginals
+  ---
+  duration_ms: 220.8045
+  type: 'test'
+  ...
+# Subtest: onset reports measured timing instead of claiming all responses finish by60seconds
+ok 3 - onset reports measured timing instead of claiming all responses finish by60seconds
+  ---
+  duration_ms: 189.001208
+  type: 'test'
+  ...
+# Subtest: one slow first call fails even when warm requests make overall p95 pass
+ok 4 - one slow first call fails even when warm requests make overall p95 pass
+  ---
+  duration_ms: 174.514792
+  type: 'test'
+  ...
+# Subtest: missing rare large-library coverage fails instead of disappearing from percentiles
+ok 5 - missing rare large-library coverage fails instead of disappearing from percentiles
+  ---
+  duration_ms: 219.516792
+  type: 'test'
+  ...
+# Subtest: a missing first-minute route fails even when it occurs in the later warm period
+ok 6 - a missing first-minute route fails even when it occurs in the later warm period
+  ---
+  duration_ms: 199.669709
+  type: 'test'
+  ...
+# Subtest: conflicting media and missing user starts cannot qualify
+ok 7 - conflicting media and missing user starts cannot qualify
+  ---
+  duration_ms: 214.774375
+  type: 'test'
+  ...
+# Subtest: cleanup refuses a mismatched provenance before any deletion
+ok 8 - cleanup refuses a mismatched provenance before any deletion
+  ---
+  duration_ms: 15.049834
+  type: 'test'
+  ...
+# Subtest: cleanup refuses a token for a different account
+ok 9 - cleanup refuses a token for a different account
+  ---
+  duration_ms: 255.488208
+  type: 'test'
+  ...
+# Subtest: already absent identities are acknowledged without a deletion request
+ok 10 - already absent identities are acknowledged without a deletion request
+  ---
+  duration_ms: 4.055834
+  type: 'test'
+  ...
+# Subtest: lookalike origins and customer inventories fail before network access
+ok 11 - lookalike origins and customer inventories fail before network access
+  ---
+  duration_ms: 2.106125
+  type: 'test'
+  ...
+# Subtest: catalogue seeds page through the PostgREST1000-row cap
+ok 12 - catalogue seeds page through the PostgREST1000-row cap
+  ---
+  duration_ms: 757.720834
+  type: 'test'
+  ...
+# Subtest: resume refresh reads current revisions with the owner's token and makes no backend writes
+ok 13 - resume refresh reads current revisions with the owner's token and makes no backend writes
+  ---
+  duration_ms: 4.395334
+  type: 'test'
+  ...
+# Subtest: refresh refuses a missing user token before making an administrative fallback read
+ok 14 - refresh refuses a missing user token before making an administrative fallback read
+  ---
+  duration_ms: 1.940167
+  type: 'test'
+  ...
+# Subtest: fixed arrival scheduling counts saturated starts instead of slowing offered traffic
+ok 15 - fixed arrival scheduling counts saturated starts instead of slowing offered traffic
+  ---
+  duration_ms: 803.250959
+  type: 'test'
+  ...
+# Subtest: a configured safety stop prevents sending the first request
+ok 16 - a configured safety stop prevents sending the first request
+  ---
+  duration_ms: 2.215833
+  type: 'test'
+  ...
+# Subtest: curl keeps credentials in stdin and only exposes numeric upstream/version headers
+ok 17 - curl keeps credentials in stdin and only exposes numeric upstream/version headers
+  ---
+  duration_ms: 24.763541
+  type: 'test'
+  ...
+# Subtest: curl refuses any other origin before spawning
+ok 18 - curl refuses any other origin before spawning
+  ---
+  duration_ms: 0.581792
+  type: 'test'
+  ...
+# Subtest: curl cancellation terminates the child without retrying
+ok 19 - curl cancellation terminates the child without retrying
+  ---
+  duration_ms: 0.407166
+  type: 'test'
+  ...
+# Subtest: exact origin, explicit mode and bounded limits reject unsafe runs
+ok 20 - exact origin, explicit mode and bounded limits reject unsafe runs
+  ---
+  duration_ms: 1.624584
+  type: 'test'
+  ...
+# Subtest: nearest rank percentiles preserve tail values
+ok 21 - nearest rank percentiles preserve tail values
+  ---
+  duration_ms: 0.14325
+  type: 'test'
+  ...
+# Subtest: errors, lost arrivals and slow successful replies cannot pass
+ok 22 - errors, lost arrivals and slow successful replies cannot pass
+  ---
+  duration_ms: 1.0295
+  type: 'test'
+  ...
+# Subtest: workload represents bounded real RPCs; paid narration stays off
+ok 23 - workload represents bounded real RPCs; paid narration stays off
+  ---
+  duration_ms: 1.302875
+  type: 'test'
+  ...
+# Subtest: every medium can reach every mood and odd-index large members can load their club
+ok 24 - every medium can reach every mood and odd-index large members can load their club
+  ---
+  duration_ms: 3.049708
+  type: 'test'
+  ...
+# Subtest: HTTP200 empty failures do not masquerade as working personalized pages
+ok 25 - HTTP200 empty failures do not masquerade as working personalized pages
+  ---
+  duration_ms: 0.183833
+  type: 'test'
+  ...
+# Subtest: tracking must be applied with matching receipt; conflicts do not count as success
+ok 26 - tracking must be applied with matching receipt; conflicts do not count as success
+  ---
+  duration_ms: 0.195
+  type: 'test'
+  ...
+# Subtest: parser response belongs to the caller; deterministic recommendations contain content
+ok 27 - parser response belongs to the caller; deterministic recommendations contain content
+  ---
+  duration_ms: 0.063
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1529.496083

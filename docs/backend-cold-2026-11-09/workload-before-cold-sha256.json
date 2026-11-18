@@ -1,0 +1,34 @@
+[
+  {
+    "path": "scripts/load_test_backend.js",
+    "sha256": "94206b69d6873299883e20eced96ad348cbf1be3faeb23e815e364f2232eabc5"
+  },
+  {
+    "path": "scripts/load/backend_curl_fetch.js",
+    "sha256": "fae13150bef40eefb79d964d74434790e58f9bda9b885706c096b888fcfbda12"
+  },
+  {
+    "path": "scripts/load/backend_fixture.js",
+    "sha256": "38fb3352107a771fd2a06f6ac62f45e2db3a99dc52bc801959b48a05766f4750"
+  },
+  {
+    "path": "scripts/load/backend_fixture.test.js",
+    "sha256": "a74289b7f40353e670aa24520ac784c36d4c7265e9b05f4ddc75e977c371f8ce"
+  },
+  {
+    "path": "scripts/load/backend_runner.test.js",
+    "sha256": "4132eccf8bb36fd44263a1fade29ac2de33195d17ca293ece363d0c0c3990f35"
+  },
+  {
+    "path": "scripts/load/backend_transport.test.js",
+    "sha256": "8753f0fff6c9ce1199c337fbd062f742ce98ef6f2b208d74a3d64bea3456149d"
+  },
+  {
+    "path": "scripts/load/backend_workload.js",
+    "sha256": "f93778d2d4627f3d18545a3896910ff8e9c24aacb1db35a2472e49d47d61a122"
+  },
+  {
+    "path": "scripts/load/backend_workload.test.js",
+    "sha256": "895fd97164182875ed3afb01508181c8e75d6c75003474625ae1eaa188978eab"
+  }
+]

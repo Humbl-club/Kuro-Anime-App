@@ -1,0 +1,17 @@
+{
+  "commands_omitted": true,
+  "interpretation": "Overlap is activity evidence; no causation attribution for all727 cached blocks. No zero-buffer observation/onset interval existed.",
+  "observed_from": "2026-11-09T14:07:11.167547+00:00",
+  "observed_until_observation_start": "2026-11-09T14:08:14.324913+00:00",
+  "runs": [
+    {
+      "duration_seconds": 0.70569,
+      "end_time": "2026-11-09 14:08:00.805606+00",
+      "jobid": 37,
+      "jobname": "taste-profile-drain-15m",
+      "runid": 100107,
+      "start_time": "2026-11-09 14:08:00.099916+00",
+      "status": "succeeded"
+    }
+  ]
+}

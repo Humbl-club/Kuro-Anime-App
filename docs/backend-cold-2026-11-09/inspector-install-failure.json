@@ -1,0 +1,5 @@
+{
+  "at": "2026-11-09T13:43:45.553931+00:00",
+  "automatic_retry": false,
+  "error": "Management HTTP 400 for /database/query: {\"message\":\"Failed to run sql query: ERROR:  P0001: Cache inspection must remain inaccessible to clients\\nCONTEXT:  PL/pgSQL function inline_code_block line 13 at RAISE\\n\"}"
+}

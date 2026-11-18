@@ -1,0 +1,13 @@
+=== Migration Hygiene Check ===
+
+Checking for untracked migration files...
+Checking for modified migration files...
+WARNING: Modified migration files (may have been applied already):
+  - supabase/migrations/20261109123758_cold_catalogue_reads_v1.sql
+Verifying migration checksums...
+
+Total migration files: 251
+
+--- Migration Hygiene Summary ---
+Warnings: 1
+Completed with 1 warning(s).

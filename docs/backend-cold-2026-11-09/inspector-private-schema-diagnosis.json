@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-09T13:49:26.045548+00:00",
+  "result": [
+    {
+      "diagnostic": {
+        "anon_usage": false,
+        "authenticated_usage": false,
+        "extension_owner": "supabase_admin",
+        "private_view": "kuro_cold_inspection.pg_buffercache",
+        "public_view": null,
+        "schema": "kuro_cold_inspection",
+        "version": "1.5"
+      }
+    }
+  ],
+  "rolled_back": true
+}

@@ -1,0 +1,54 @@
+{
+  "applied_at": "2026-11-09T13:45:38.396888+00:00",
+  "atomic_history_verified": true,
+  "capacity": "COLD_UNPROVEN",
+  "index_bytes": 9035776,
+  "indexes": [
+    {
+      "bytes": 32768,
+      "definition": "CREATE INDEX idx_mv_anime_score_cold_v1 ON public.mv_anime_top_rated USING btree (COALESCE(average_score, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (COALESCE(format, ''::text) <> ALL (ARRAY['SPECIAL'::text, 'MUSIC'::text, 'TV_SHORT'::text])))",
+      "name": "idx_mv_anime_score_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "bytes": 65536,
+      "definition": "CREATE INDEX idx_mv_anime_trending_cold_v1 ON public.mv_anime_trending USING btree (COALESCE(trending, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (COALESCE(format, ''::text) <> ALL (ARRAY['SPECIAL'::text, 'MUSIC'::text, 'TV_SHORT'::text])))",
+      "name": "idx_mv_anime_trending_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "bytes": 32768,
+      "definition": "CREATE INDEX idx_mv_manga_score_cold_v1 ON public.mv_manga_top_rated USING btree (COALESCE(average_score, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))))",
+      "name": "idx_mv_manga_score_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "bytes": 57344,
+      "definition": "CREATE INDEX idx_mv_manga_trending_cold_v1 ON public.mv_manga_trending USING btree (COALESCE(trending, 0) DESC, id DESC) WHERE ((COALESCE(is_adult, false) = false) AND (NOT ('Hentai'::text = ANY (COALESCE(genres, '{}'::text[])))) AND (NOT ('Ecchi'::text = ANY (COALESCE(genres, '{}'::text[])))))",
+      "name": "idx_mv_manga_trending_cold_v1",
+      "ready": true,
+      "valid": true
+    },
+    {
+      "bytes": 8847360,
+      "definition": "CREATE INDEX idx_realm_mood_cold_v1 ON public.media_realm_membership USING btree (media_type, realm, media_id) INCLUDE (weight) WHERE (weight >= (0.25)::double precision)",
+      "name": "idx_realm_mood_cold_v1",
+      "ready": true,
+      "valid": true
+    }
+  ],
+  "migration": {
+    "md5": "9331fcfe7fe0f80cd0bfab4ef78fa758",
+    "name": "cold_catalogue_reads_v1",
+    "version": "20261109123758"
+  },
+  "only2_function_settings_changed": true,
+  "prior_atomic_rollback": "deployment-attempt1.json",
+  "provider_ack_error": null,
+  "rpc_bodies_signatures_returns_grants_unchanged": true,
+  "session_prerequisite": "Register pg_trgm USERSET parameters through a literal read-only similarity call in the same connection; no privilege grants",
+  "sha256": "c1acc7f38a955b87a66b4283f0369ca35a897b75c6efde6f33010aa47b9c9278"
+}

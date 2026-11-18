@@ -1,0 +1,11 @@
+{
+  "controller_top_level_not_executed": true,
+  "cron_overlap_includes_prior_active_executions": true,
+  "expected_incomplete_fixture_verdict": false,
+  "no_network_calls": true,
+  "offline_json_roundtrip": "PASS",
+  "primary_monitor_timeout_seconds": 6,
+  "successful_heartbeat_max_age_seconds": 25,
+  "two_route_failures_stop_without_refreshing_heartbeat": "PASS",
+  "complete_sample_refreshes_heartbeat": "PASS"
+}

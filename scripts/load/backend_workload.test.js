@@ -78,6 +78,23 @@ test("workload represents bounded real RPCs; paid narration stays off", () => {
   );
   assert.equal(Object.values(W.WEIGHTS).reduce((a, b) => a + b), 100);
 });
+test("every medium can reach every mood and odd-index large members can load their club", () => {
+  const moods = new Set();
+  for (let sequence = 0; sequence < 900; sequence++) {
+    const r = W.requestFor("mood", actor, fixture, sequence, () => .1);
+    moods.add(r.body.p_media_type + ":" + r.body.p_mood);
+  }
+  assert.deepEqual([...moods].sort(), ["ANIME:cozy", "ANIME:intense", "ANIME:short",
+    "MANGA:cozy", "MANGA:intense", "MANGA:short"]);
+  const hundred = { ...fixture, accounts: Array.from({ length: 100 }, (_, i) => ({
+    ...actor, id: String(i), clubId: "fixture-club", librarySize: i === 19 ? 2000 : 25,
+  })) };
+  const member = hundred.accounts[19];
+  const paths = new Set(Array.from({ length: 10 }, (_, round) =>
+    W.requestFor("clubs", member, hundred, 19 + 100 * round, () => .1).path));
+  assert.deepEqual([...paths].sort(), ["/rest/v1/rpc/fetch_club_bundle_loading",
+    "/rest/v1/rpc/fetch_my_clubs_loading"]);
+});
 test("HTTP200 empty failures do not masquerade as working personalized pages", () => {
   const home = W.requestFor("home", actor, fixture, 1);
   assert.equal(
