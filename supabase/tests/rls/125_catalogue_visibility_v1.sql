@@ -33,11 +33,14 @@ select tests.ok('the apply function is service-only and plpgsql with the fixed s
           and bool_and(not has_function_privilege('public', oid, 'execute'))
           and bool_and(has_function_privilege('service_role', oid, 'execute'))
    from pg_proc where pronamespace = 'public'::regnamespace and proname = 'catalogue_apply_visibility_v1'));
--- W5 (20261118110000) removes anon EXECUTE from internal helpers: only the SECURITY DEFINER discover readers
--- (which run as their owner) call these, so anon needs no grant; signed-in clients keep theirs.
-select tests.ok('the predicate helpers set search_path and are callable by signed-in clients',
+-- Only the SECURITY DEFINER discover readers (which run as their owner) call these, so anon needs no grant:
+-- 20261112100401 grants them to authenticated and service_role only (W5 20261118110000 would close anon anyway).
+select tests.ok('the predicate helpers set search_path, are callable by signed-in clients and service_role, and not by anon or public',
   (select count(*) = 2 and bool_and(proconfig @> array['search_path=public, extensions'])
           and bool_and(has_function_privilege('authenticated', oid, 'execute'))
+          and bool_and(has_function_privilege('service_role', oid, 'execute'))
+          and bool_and(not has_function_privilege('anon', oid, 'execute'))
+          and bool_and(not has_function_privilege('public', oid, 'execute'))
    from pg_proc where pronamespace = 'public'::regnamespace
      and proname in ('catalogue_anime_visible', 'catalogue_manga_visible')));
 
