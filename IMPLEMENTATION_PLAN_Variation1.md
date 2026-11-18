@@ -1763,6 +1763,10 @@ Live with owner approval: 1a `20261109200000` (staged Search; production A/B −
 ### Change Log — 18 November 2026: Open-work master plan, waves 0–1
 Master index `docs/plans/2026-11-18-open-work-master-plan.md`. Merged to `main` (PR #11). Landed: tracker F1, F3 (+F3.2), W2 Tasks 7–8 (acceptance 12/13, load scenario blocked pending owner-approved qualification; device check I-3), catalogue Tasks 1–2 (prepared). TestFlight 26 blocked on an App Store Connect agreement. Remaining: see the master plan's waves and owner decisions.
 
+### Change Log — 18 November 2026 (later): F2 (+review fixes), W3a (accepted locally), W4, catalogue Tasks 3–15c
+All on `kuro/tracker-gaps`, local only. W3a locally accepted (`acceptance/W3.json`). Catalogue hosted order and open decisions (minYear, relation-source filtering, RecommendationsReader visibility) in the master plan.
+
+
 
 ### Change Log — 10 November 2026: AniList calls stopped (owner decision)
 - **Download:** covers and banners were saved to Storage first, via temporary `kuro-final-mirror-*` jobs, 09:48–17:27 UTC. Anime covers 21,889/21,890; manga covers 41,966/42,029.
