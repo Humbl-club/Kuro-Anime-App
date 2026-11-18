@@ -11,5 +11,6 @@ module.exports = Object.freeze({
     "export-mal-id-lookup": 0.2, // W2
     "search-with-hidden-adult-count": 1, // W4
     "collection-up-next": 2, // W10
+    "collection-series-membership": 1, // W6
   }),
 });

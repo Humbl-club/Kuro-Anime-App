@@ -56,7 +56,7 @@ Feature: One list entry per series
     When the Collection reads membership for 300 of my titles
     Then only published same-medium spans are returned and the read uses the anime_id index
 
-  @load:collection_series_membership
+  @load:collection-series-membership
   Scenario: The membership read stays inside the Browse budget
     Given reviewed series membership is published and the qualification fixture names its member ids
     When the membership read runs in qualification mode at its declared 1 request per second on top of the unchanged base mix
