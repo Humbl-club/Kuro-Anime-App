@@ -8,7 +8,8 @@ import { restore } from "./restore.ts";
 
 const cutover = (over: Partial<Record<FieldGroup, Mode>>): Row[] => FIELD_GROUP_NAMES.map((g) => ({ field_group: g, mode: over[g] ?? "anilist" }));
 const SWITCHED = ["titles", "facts", "credits", "relations"] as const;
-const noCompose = () => Promise.resolve({ titles: 0, written: 0, unchanged: 0, reviews: 0 });
+const noCompose = (_d?: unknown, _m?: unknown, ids: number[] = []) =>
+  Promise.resolve({ titles: ids.length, written: 0, unchanged: 0, reviews: 0, removed: 0, composedIds: ids });
 
 Deno.test("rollbackRestoresSnapshotWithoutBlanking", async () => {
   // Any AniList request would go through fetch: count it.

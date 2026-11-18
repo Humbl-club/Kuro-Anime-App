@@ -31,7 +31,13 @@ export type PublishDeps = {
 };
 
 export type GroupPublishResult = { titles: number; snapshotted: number; columnsUpdated: number; tablesReplaced: number };
-export type PublishResult = { titles: number; groups: Partial<Record<FieldGroup, GroupPublishResult>>; skippedGroups: FieldGroup[] };
+export type PublishResult = {
+  titles: number;
+  groups: Partial<Record<FieldGroup, GroupPublishResult>>;
+  skippedGroups: FieldGroup[];
+  /** The credits composer hit its time budget: only fully composed titles were published, and publishing stopped there. */
+  stoppedEarly?: "budget";
+};
 
 export async function publish(deps: PublishDeps, medium: Medium, mediaIds: number[]): Promise<PublishResult> {
   const ids = [...new Set(mediaIds)].sort((a, b) => a - b);
@@ -46,11 +52,23 @@ export async function publish(deps: PublishDeps, medium: Medium, mediaIds: numbe
     }
     const acc: GroupPublishResult = { titles: 0, snapshotted: 0, columnsUpdated: 0, tablesReplaced: 0 };
     for (const part of chunk(ids, WRITE_BATCH)) {
-      if (group === "credits") await (deps.compose ?? compose)({ supabase: deps.supabase, now: deps.now, allowCreate: true }, medium, part);
+      // Credits are published only for titles the composer finished in this call; a budget stop ends the run
+      // (a partly composed title must never publish half its credit lists).
+      let batch = part;
+      if (group === "credits") {
+        const composed = await (deps.compose ?? compose)({ supabase: deps.supabase, now: deps.now, allowCreate: true }, medium, part);
+        const done = new Set(composed.composedIds);
+        batch = part.filter((id) => done.has(id));
+        if (composed.stoppedEarly) result.stoppedEarly = composed.stoppedEarly;
+      }
+      if (batch.length === 0) {
+        if (result.stoppedEarly) break;
+        continue;
+      }
       const { data, error } = await deps.supabase.rpc("catalogue_publish_batch_v1", {
         p_medium: medium,
         p_group: group,
-        p_media_ids: part,
+        p_media_ids: batch,
         p_columns: [...FIELD_GROUP_COLUMNS[medium][group]],
         p_with_data_sources: group === firstNewGroup,
       });
@@ -60,8 +78,10 @@ export async function publish(deps: PublishDeps, medium: Medium, mediaIds: numbe
       acc.snapshotted += Number(r.snapshotted ?? 0);
       acc.columnsUpdated += Number(r.columns_updated ?? 0);
       acc.tablesReplaced += Number(r.tables_replaced ?? 0);
+      if (result.stoppedEarly) break;
     }
     result.groups[group] = acc;
+    if (result.stoppedEarly) break;
   }
   return result;
 }
@@ -142,6 +162,12 @@ export async function runPublish(ctx: RunContext): Promise<HandlerOutcome> {
       results.titles = Number(results.titles) + ids.length;
       results.columnsUpdated = Number(results.columnsUpdated) + (gr?.columnsUpdated ?? 0);
       results.tablesReplaced = Number(results.tablesReplaced) + (gr?.tablesReplaced ?? 0);
+      if (r.stoppedEarly) {
+        // The credits composer stopped on its budget: keep this group's watermark so the next run
+        // revisits the same titles (publish is idempotent; already composed titles are cheap).
+        stoppedEarly = r.stoppedEarly;
+        break;
+      }
     }
     state[group] = ids.length < limit ? { since: passStart, last_id: 0 } : { since: gs.since, last_id: ids[ids.length - 1] };
   }

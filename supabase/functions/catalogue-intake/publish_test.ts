@@ -30,7 +30,8 @@ function setup(over: Partial<Record<FieldGroup, Mode>>, extra: Record<string, Ro
   return { db, log };
 }
 
-const noCompose = () => Promise.resolve({ titles: 0, written: 0, unchanged: 0, reviews: 0 });
+const noCompose = (_d?: unknown, _m?: unknown, ids: number[] = []) =>
+  Promise.resolve({ titles: ids.length, written: 0, unchanged: 0, reviews: 0, removed: 0, composedIds: ids });
 
 Deno.test("onlyNewGroupsWritten", async () => {
   const { db, log } = setup({ titles: "new", facts: "shadow", adult: "anilist" });
@@ -80,7 +81,7 @@ Deno.test("firstPublishSnapshotsThenReplacesLinkedRows", async () => {
     compose: (d, _m, ids) => {
       assert.equal(d.allowCreate, true);
       composed.push(ids);
-      return noCompose();
+      return noCompose(d, _m, ids);
     },
   }, "anime", [1]);
   assert.deepEqual(composed, [[1]], "credits creation runs through the composer with allowCreate before the SQL batch");
@@ -194,4 +195,14 @@ Deno.test("visibilityAppliedWhileIdentityIsNew: a failing apply fails the run", 
     rpcHandlers: { catalogue_apply_visibility_v1: () => ({ data: null, error: { message: "boom" } }) },
   });
   await assert.rejects(() => runPublish(ctxFor(db, "2026-11-18T12:00:00Z")), /boom/);
+});
+
+Deno.test("creditsPublishOnlyComposedTitlesAndStopAtComposeBudget", async () => {
+  const { db, log } = setup({ credits: "new" });
+  const r = await publish({
+    supabase: db.client,
+    compose: (_d, _m, ids) => Promise.resolve({ titles: ids.length, written: 0, unchanged: 0, reviews: 0, removed: 0, composedIds: ids.slice(0, 2), stoppedEarly: "budget" }),
+  }, "anime", [1, 2, 3, 4]);
+  assert.deepEqual(log.map((l) => l.args.p_media_ids), [[1, 2]], "only titles the composer finished are published");
+  assert.equal(r.stoppedEarly, "budget");
 });
