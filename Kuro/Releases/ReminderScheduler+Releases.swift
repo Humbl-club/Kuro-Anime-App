@@ -45,6 +45,14 @@ extension ReminderScheduler {
         "com.kuro.releaseNotifications.allowed.\(userId.lowercased())"
     }
 
+    private nonisolated static func offeredKey(_ userId: String) -> String {
+        "com.kuro.releaseNotifications.offered.\(userId.lowercased())"
+    }
+
+    private nonisolated static func offerDeclinedKey(_ userId: String) -> String {
+        "com.kuro.releaseNotifications.offerDeclined.\(userId.lowercased())"
+    }
+
     /// Set once the retired `airing-*` reminders were removed from this device.
     nonisolated static let legacyAiringRetiredKey = "com.kuro.releaseNotifications.legacyAiringRetired"
 
@@ -80,6 +88,41 @@ extension ReminderScheduler {
         store(keys, forKey: Self.allowedKey(context.userId))
     }
 
+    // MARK: Alert offer memory (W3a)
+
+    /// Titles remembered as offered per account (oldest dropped past this many).
+    nonisolated static let alertOfferMemory = 500
+
+    /// Titles the account was already offered a release alert for (once per title).
+    func offeredAlertKeys(for context: AccountContext) -> Set<MediaKey> {
+        keys(forKey: Self.offeredKey(context.userId))
+    }
+
+    /// Remembers an offer for `key` (insertion order kept; the oldest go past `alertOfferMemory`).
+    /// No-op unless `context` is current.
+    func noteAlertOffered(_ key: MediaKey, for context: AccountContext) {
+        guard accountSession.isCurrent(context) else { return }
+        let storeKey = Self.offeredKey(context.userId)
+        var ordered = userDefaults.stringArray(forKey: storeKey) ?? []
+        let text = "\(key.kind.rawValue):\(key.id)"
+        guard !ordered.contains(text) else { return }
+        ordered.append(text)
+        if ordered.count > Self.alertOfferMemory { ordered.removeFirst(ordered.count - Self.alertOfferMemory) }
+        userDefaults.set(ordered, forKey: storeKey)
+    }
+
+    /// Titles whose offer the account answered "Not now" (three of them stop the offers).
+    func declinedAlertKeys(for context: AccountContext) -> Set<MediaKey> {
+        keys(forKey: Self.offerDeclinedKey(context.userId))
+    }
+
+    func noteAlertDeclined(_ key: MediaKey, for context: AccountContext) {
+        guard accountSession.isCurrent(context) else { return }
+        var declined = declinedAlertKeys(for: context)
+        declined.insert(key)
+        store(declined, forKey: Self.offerDeclinedKey(context.userId))
+    }
+
     /// Whether anything can notify for the account: the toggle is on, or a bell turned a title on.
     func releaseNotificationsWanted(for context: AccountContext) -> Bool {
         releaseNotificationPreference(for: context) == true || !allowedReleaseNotificationKeys(for: context).isEmpty
@@ -103,6 +146,8 @@ extension ReminderScheduler {
         userDefaults.removeObject(forKey: Self.preferenceKey(userId))
         userDefaults.removeObject(forKey: Self.mutedKey(userId))
         userDefaults.removeObject(forKey: Self.allowedKey(userId))
+        userDefaults.removeObject(forKey: Self.offeredKey(userId))
+        userDefaults.removeObject(forKey: Self.offerDeclinedKey(userId))
     }
 
     // MARK: Legacy cleanup
