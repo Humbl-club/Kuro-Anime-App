@@ -13,5 +13,6 @@ module.exports = Object.freeze({
     "collection-up-next": 2, // W10
     "collection-series-membership": 1, // W6
     "collection-with-tags-and-lists": 5, // W9
+    "guest-browse": 5, // W5 (anonymous reads: discover, search, browse, detail; own lane, absolute rps)
   }),
 });
