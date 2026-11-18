@@ -44,6 +44,12 @@ nonisolated enum ReleaseAlertOfferPolicy {
         var suppressed: Bool
     }
 
+    /// Pattern match: `NotificationPermission`'s `Equatable` is main-actor isolated, this enum is not.
+    private static func isDenied(_ permission: NotificationPermission) -> Bool {
+        if case .denied = permission { return true }
+        return false
+    }
+
     private static func isFollowed(_ status: ListStatus?) -> Bool {
         status == .current || status == .repeating
     }
@@ -59,7 +65,7 @@ nonisolated enum ReleaseAlertOfferPolicy {
               let next = input.next, next.key == key,
               ReleaseNotificationPlanner.isEligible(next, now: now),
               !input.toggleOn,
-              input.permission != .denied,
+              !Self.isDenied(input.permission),
               !input.allowed.contains(key), !input.muted.contains(key),
               !input.offered.contains(key),
               input.declined.count < declineLimit,
