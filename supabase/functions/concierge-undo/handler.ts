@@ -17,6 +17,7 @@
  *   OPTIONAL (after commit, best-effort): `log_concierge_run` analytics.
  * No remote imports here (index.ts owns supabase-js and env).
  */
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { interpretRateLimit, rateLimitBlockedResponse } from "../_shared/rate_limit_gate.ts";
 import { parseUndoResult, UNDO_FAILED_BODY, undoResponse, validateUndoRequest } from "./undo_plan.ts";
 
@@ -29,6 +30,8 @@ export interface UndoPlatform {
   client(authHeader: string): SupabaseLike | null;
   /** Service-role client for the Undo transaction RPC, or null when SUPABASE_SERVICE_ROLE_KEY is missing. */
   serviceClient(): SupabaseLike | null;
+  /** HMAC secret for the limiter IP bucket (`limiterSecretFromEnv`); undefined makes an IP-bearing request fail closed. */
+  limiterIpSecret(): string | undefined;
 }
 
 function json(res: unknown, init: ResponseInit = {}) {
@@ -68,7 +71,7 @@ export async function handleUndo(req: Request, platform: UndoPlatform): Promise<
 
     const rl = await client.rpc("check_concierge_rate_limit", {
       p_kind: "undo",
-      p_ip: clientIp(req),
+      p_ip: await limiterIpBucket(clientIp(req), platform.limiterIpSecret()),
       p_window_seconds: null,
       p_max_user: null,
       p_max_ip: null,

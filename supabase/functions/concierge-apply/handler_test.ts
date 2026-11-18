@@ -5,6 +5,7 @@
 // in supabase/tests/rls/70_import_apply_undo_transactions.sql. NOT a test against Supabase.
 // Run: deno test --no-prompt supabase/functions/concierge-apply/
 import { strict as assert } from "node:assert";
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { handleApply } from "./handler.ts";
 import { normalizeRating } from "./apply_plan.ts";
 import { handleUndo } from "../concierge-undo/handler.ts";
@@ -18,7 +19,7 @@ function newDb(user: string | null = USER): FakeSupabase {
 }
 
 function platform(db: FakeSupabase) {
-  return { client: () => db, serviceClient: () => db };
+  return { client: () => db, serviceClient: () => db, limiterIpSecret: () => "test-secret" };
 }
 
 function post(path: string, body: unknown): Request {
@@ -220,7 +221,7 @@ Deno.test("F78: only the exact deletion barrier is a non-retryable 403; other RP
     const transactionCalls: string[] = [];
     const res = await handleApply(post("concierge-apply", {
       items: [{ mediaType: "ANIME", mediaId: 7, status: "PLANNING", action: "add" }],
-    }), { client: () => db, serviceClient: () => ({ rpc: (name: string) => {
+    }), { client: () => db, limiterIpSecret: () => "test-secret", serviceClient: () => ({ rpc: (name: string) => {
       transactionCalls.push(name);
       return Promise.resolve({ data: null, error });
     } }) });
@@ -356,6 +357,23 @@ Deno.test("F14 review: a season number of 0 or below is no season (no S1E5 fabri
   const db = newDb();
   await apply(db, { items: [{ mediaType: "ANIME", mediaId: 31, status: "WATCHING", action: "add", seasonNumber: 0, episodeInSeason: 5, progressEpisodes: 5 }] });
   assert.equal(listRow(db, "anime_user_lists", USER, 31)?.notes, null);
+});
+
+Deno.test("the limiter gets the keyed IP bucket, never the raw client address", async () => {
+  const db = newDb();
+  const res = await handleApply(
+    new Request("https://example.test/functions/v1/concierge-apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer jwt", "x-forwarded-for": "203.0.113.7" },
+      body: JSON.stringify({ items: [{ mediaType: "ANIME", mediaId: 7, status: "PLANNING", action: "add" }] }),
+    }),
+    { client: () => db, serviceClient: () => db, limiterIpSecret: () => "test-secret" },
+  );
+  assert.equal(res.status, 200);
+  const sent = (db.calls("check_concierge_rate_limit")[0].args as { p_ip: string }).p_ip;
+  assert.equal(sent, await limiterIpBucket("203.0.113.7", "test-secret"));
+  assert.notEqual(sent, "203.0.113.7");
+  assert.ok(!sent.includes("203.0.113.7"));
 });
 
 Deno.test("F32: a limiter error is HTTP 503 with Retry-After and nothing is written; an explicit denial stays 429", async () => {

@@ -3,6 +3,7 @@
 // fresh list, AniList paging behind the injected fetch, and pure line conversion.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { limiterIpBucket, limiterSecretFromEnv } from "../_shared/limiter_ip.ts";
 import { gateRateLimit } from "../_shared/rate_limit_gate.ts";
 import { runAnilistImport } from "./run.ts";
 
@@ -46,7 +47,7 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await client.auth.getUser();
     if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
 
-    const ip = clientIp(req) ?? "";
+    const ip = await limiterIpBucket(clientIp(req), limiterSecretFromEnv((name) => Deno.env.get(name)));
     const blocked = await gateRateLimit(
       client.rpc("check_concierge_rate_limit", { p_kind: "anilist_import", p_ip: ip }),
       json,

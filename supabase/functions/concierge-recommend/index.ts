@@ -5,6 +5,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleRecommend } from "./handler.ts";
+import { limiterSecretFromEnv } from "../_shared/limiter_ip.ts";
 
 // Guarded lookup: the global exists only on the Edge runtime (absent in local deno check/test).
 const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
@@ -31,5 +32,6 @@ serve((req) =>
     fetch: (url, init) => fetch(url, init),
     now: () => Date.now(),
     waitUntil,
+    limiterIpSecret: () => limiterSecretFromEnv((name) => Deno.env.get(name)),
   })
 );

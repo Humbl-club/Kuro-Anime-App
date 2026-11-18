@@ -6,6 +6,7 @@
 // race). NOT a test against Supabase.
 // Run: deno test --no-prompt supabase/functions/concierge-undo/
 import { strict as assert } from "node:assert";
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { handleUndo } from "./handler.ts";
 import { handleApply } from "../concierge-apply/handler.ts";
 import { conciergeSchema, FakeSupabase, type Row } from "../_shared/test_fake_supabase.ts";
@@ -14,7 +15,7 @@ const USER = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
 
 function platform(db: FakeSupabase) {
-  return { client: () => db, serviceClient: () => db };
+  return { client: () => db, serviceClient: () => db, limiterIpSecret: () => "test-secret" };
 }
 
 function post(path: string, body: unknown): Request {
@@ -192,7 +193,7 @@ Deno.test("F78: only the exact deletion barrier is a non-retryable 403; other RP
     const logsBefore = db.calls("log_concierge_run").length;
     const transactionCalls: string[] = [];
     const res = await handleUndo(post("concierge-undo", { sessionId }), {
-      client: () => db, serviceClient: () => ({ rpc: (name: string) => {
+      client: () => db, limiterIpSecret: () => "test-secret", serviceClient: () => ({ rpc: (name: string) => {
         transactionCalls.push(name);
         return Promise.resolve({ data: null, error });
       } }),
@@ -212,6 +213,24 @@ Deno.test("F78: only the exact deletion barrier is a non-retryable 403; other RP
     assert.equal(db.rows("import_sessions")[0].status, "applied");
     assert.equal(db.calls("log_concierge_run").length, logsBefore);
   }
+});
+
+Deno.test("the limiter gets the keyed IP bucket, never the raw client address", async () => {
+  const db = new FakeSupabase(conciergeSchema(), USER);
+  const sessionId = await apply(db, [{ mediaType: "ANIME", mediaId: 7, status: "PLANNING", action: "add" }]);
+  const before = db.calls("check_concierge_rate_limit").length;
+  const res = await handleUndo(
+    new Request("https://example.test/functions/v1/concierge-undo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer jwt", "x-forwarded-for": "203.0.113.7" },
+      body: JSON.stringify({ sessionId }),
+    }),
+    platform(db),
+  );
+  assert.equal(res.status, 200);
+  const sent = (db.calls("check_concierge_rate_limit")[before].args as { p_ip: string }).p_ip;
+  assert.equal(sent, await limiterIpBucket("203.0.113.7", "test-secret"));
+  assert.ok(!sent.includes("203.0.113.7"));
 });
 
 Deno.test("F32: a limiter error is HTTP 503 and nothing is reverted; an explicit denial stays 429", async () => {

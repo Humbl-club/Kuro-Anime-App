@@ -22,6 +22,7 @@
  * secondary differs; at most 5 secondary candidates built in parallel, each rail built once (F73: the
  * fallback secondary only when there is no candidate). CHANGED (F76): a non-finite `limit` is 8.
  */
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { interpretRateLimit, rateLimitBlockedResponse } from "../_shared/rate_limit_gate.ts";
 import { type CatalogRepository, type SupabaseLike, supabaseCatalogRepository } from "./catalog_repository.ts";
 import { buildCuratorNote, curatedCopyForMode, emptyRecommendationMessage, type Locale } from "./curated_copy.ts";
@@ -88,6 +89,8 @@ export interface RecommendPlatform {
   globalBudgetClient(): SupabaseLike | null;
   /** Environment lookup (read per request): SUPABASE_URL, GROQ_API_KEY, GROQ_MODEL. */
   env(name: "SUPABASE_URL" | "GROQ_API_KEY" | "GROQ_MODEL"): string | undefined;
+  /** HMAC secret for the limiter IP bucket (`limiterSecretFromEnv`); undefined makes an IP-bearing request fail closed. */
+  limiterIpSecret(): string | undefined;
   /** HTTP transport for Groq and concierge-retrieve-assist. */
   fetch(url: string, init: RequestInit): Promise<Response>;
   /** Clock for the mode-cache TTL (ms since epoch). */
@@ -150,12 +153,12 @@ export async function handleRecommend(req: Request, platform: RecommendPlatform)
     }
 
     // Auth + rate-limit in parallel (both use the same client).
-    const ip = clientIp(req);
+    const ipBucket = await limiterIpBucket(clientIp(req), platform.limiterIpSecret());
     const [rlResult, userResult] = await Promise.all([
       Promise.resolve(
         client.rpc("check_concierge_rate_limit", {
           p_kind: "recommend",
-          p_ip: ip,
+          p_ip: ipBucket,
           p_window_seconds: null,
           p_max_user: null,
           p_max_ip: null,
