@@ -21,7 +21,7 @@ export function fakeSupabase(opts: FakeOptions = {}) {
   const ops: Op[] = [];
   const rpcs: { name: string; args: Row }[] = [];
   const reads: { table: string; filters: string[] }[] = [];
-  let seq = 1;
+  let seq = 10_000; // generated ids stay clear of ids seeded by tests
 
   function from(table: string) {
     const filters: Array<(r: Row) => boolean> = [];

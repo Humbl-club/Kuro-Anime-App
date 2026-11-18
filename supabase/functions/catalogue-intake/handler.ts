@@ -15,6 +15,7 @@
 import { acquireImportLock, finishImportRun, releaseImportLock, startImportRun } from "./../_shared/catalogue/intake_persistence.ts";
 import type { HandlerOutcome, IntakeDeps, RunContext } from "./context.ts";
 import { clampInt, type Medium } from "./store.ts";
+import { runAnn } from "./ann.ts";
 import { runWikidata } from "./wikidata.ts";
 
 export type { IntakeDeps } from "./context.ts";
@@ -25,6 +26,7 @@ export type HandlerName = (typeof HANDLER_NAMES)[number];
 /** Handlers with an implementation. Later tasks register theirs here. */
 export const HANDLERS: Partial<Record<HandlerName, (ctx: RunContext) => Promise<HandlerOutcome>>> = {
   wikidata: runWikidata,
+  ann: runAnn,
 };
 
 /** Which media each handler serves; absent means both. */

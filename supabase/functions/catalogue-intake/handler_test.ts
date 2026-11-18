@@ -90,6 +90,17 @@ Deno.test("wikidataRunWalksFromTheCursorAndAdvancesIt", async () => {
   assert.equal(db.opsOn("import_runs", "insert").length, 2);
 });
 
+Deno.test("annServesAnimeOnlyAndTakesItsOwnLock", async () => {
+  const db = fakeSupabase({ lock: false });
+  const { deps } = build(db);
+  const manga = await handleRequest(request({ handler: "ann", medium: "manga" }), { secret: "s3cret", buildDeps: () => deps });
+  assert.equal(manga.status, 400);
+  assert.equal(db.rpcs.length, 0);
+  const anime = await handleRequest(request({ handler: "ann", medium: "anime" }), { secret: "s3cret", buildDeps: () => deps });
+  assert.equal((await anime.json()).reason, "locked");
+  assert.deepEqual(db.rpcs[0].args, { p_key: "catalogue-intake:ann", p_ttl_seconds: 900 });
+});
+
 Deno.test("handlersNotBuiltYetAnswer501AndTakeNoLock", async () => {
   const db = fakeSupabase();
   const { deps } = build(db);

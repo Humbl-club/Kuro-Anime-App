@@ -66,6 +66,7 @@ export async function upsertRecords(
   supabase: SupabaseLike,
   records: SourceRecordInput[],
   nowIso: string = new Date().toISOString(),
+  opts: { touch?: boolean } = {},
 ): Promise<{ written: number; unchanged: number }> {
   if (records.length === 0) return { written: 0, unchanged: 0 };
   const bySource = new Map<string, SourceRecordInput[]>();
@@ -78,10 +79,12 @@ export async function upsertRecords(
   for (const group of bySource.values()) {
     const existing = await readExistingRecords(supabase, group[0].source, group[0].medium, group.map((g) => g.sourceKey));
     const changed: Record<string, unknown>[] = [];
+    const unchangedKeys: string[] = [];
     for (const r of group) {
       const hash = await payloadHash(r.payload);
       if (existing.get(r.sourceKey)?.payload_hash === hash) {
         unchanged++;
+        unchangedKeys.push(r.sourceKey);
         continue;
       }
       changed.push({ source: r.source, source_key: r.sourceKey, medium: r.medium, payload: r.payload, payload_hash: hash, licence: r.licence, fetched_at: nowIso });
@@ -90,6 +93,18 @@ export async function upsertRecords(
       const { error } = await supabase.from("catalogue_source_records").upsert(part, { onConflict: "source,source_key,medium" });
       if (error) throw new Error(`catalogue_source_records upsert failed: ${error.message ?? error}`);
       written += part.length;
+    }
+    // Handlers that refresh by age (fetched_at) record freshness without rewriting the payload.
+    if (opts.touch) {
+      for (const part of chunk(unchangedKeys, WRITE_BATCH)) {
+        const { error } = await supabase
+          .from("catalogue_source_records")
+          .update({ fetched_at: nowIso })
+          .eq("source", group[0].source)
+          .eq("medium", group[0].medium)
+          .in("source_key", part);
+        if (error) throw new Error(`catalogue_source_records touch failed: ${error.message ?? error}`);
+      }
     }
   }
   return { written, unchanged };

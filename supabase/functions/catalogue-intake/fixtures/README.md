@@ -9,6 +9,10 @@ field or below) or real replies captured once, read-only, on 2026-11-18 with the
 | `wikidata_q123.json` | hand-written SPARQL JSON (Q123 scenario) |
 | `wikidata_anime_live.json` | live WDQS reply, anime AniList ids 16498, 21355, 1 (13:07:28) |
 | `wikidata_manga_live.json` | live WDQS reply, manga AniList ids 30002, 30013, 30001, 30003, 105778 (13:07:54) |
+| `ann_report_sample.xml` | first 40 `<item>` rows of the live title report (12:59:48), closed with `</report>` |
+| `ann_api_one.xml` | live `api.xml?anime=4658` (13:00:06), unmodified |
+| `ann_api_batch.xml` | live `api.xml?anime=41045/9999999/16798` (13:00:08), unmodified; two unknown ids come back as `<warning>` |
+| `ann_fixtures.ts` | GENERATED: the three ANN files above as strings (`deno test --no-prompt` has no file read permission); regenerate if a capture changes |
 
 ## Live requests made while building Tasks 3-6 (total 15 before Task 4-6 captures, see below)
 
