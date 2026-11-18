@@ -83,7 +83,8 @@ export type PoliteClientOptions = {
 export type PoliteResponse = { status: number; json: unknown; text?: string };
 
 export type PoliteClient = {
-  request(url: string, init: { method?: "GET" | "POST"; body?: unknown }, deadlineMs?: number): Promise<PoliteResponse>;
+  /** A string `body` is sent as-is with `contentType` (default text/plain), e.g. a SPARQL query; other bodies are JSON. */
+  request(url: string, init: { method?: "GET" | "POST"; body?: unknown; contentType?: string }, deadlineMs?: number): Promise<PoliteResponse>;
 };
 
 export function createPoliteClient(options: PoliteClientOptions): PoliteClient {
@@ -120,7 +121,8 @@ export function createPoliteClient(options: PoliteClientOptions): PoliteClient {
     await sleep(delay);
   }
 
-  async function request(url: string, init: { method?: "GET" | "POST"; body?: unknown }, deadlineMs?: number): Promise<PoliteResponse> {
+  async function request(url: string, init: { method?: "GET" | "POST"; body?: unknown; contentType?: string }, deadlineMs?: number): Promise<PoliteResponse> {
+    const rawBody = typeof init.body === "string";
     let attempt = 0;
     while (true) {
       await waitTurn(deadlineMs);
@@ -133,9 +135,9 @@ export function createPoliteClient(options: PoliteClientOptions): PoliteClient {
           headers: {
             "Accept": accept,
             "User-Agent": userAgent,
-            ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
+            ...(init.body !== undefined ? { "Content-Type": rawBody ? (init.contentType ?? "text/plain") : "application/json" } : {}),
           },
-          body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+          body: init.body !== undefined ? (rawBody ? init.body as string : JSON.stringify(init.body)) : undefined,
           signal: controller.signal,
         });
         if (response.status === 429) {

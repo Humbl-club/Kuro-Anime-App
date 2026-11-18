@@ -1,0 +1,3848 @@
+{
+  "head" : {
+    "vars" : [ "aid", "item", "p", "v" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P8731"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P8731"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P8731"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P8731"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P8731"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-09-27T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P580"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1994-12-05T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P580"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1989-08-25T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P580"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1997-07-22T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P580"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2018-12-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P580"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "3424"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P1984"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "1511"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P1984"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "2298"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P1984"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "1223"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P1984"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "22369"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P1984"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "ktr1ti2"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P11149"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "x7a8kfp"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P11149"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "njeqwry"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P11149"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "pb8uwds"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P11149"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "ylx5wzn"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P11149"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "3"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4087"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "1"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4087"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "2"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4087"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "13"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4087"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "literal",
+        "value" : "116778"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4087"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2021-12-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2022-04-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2022-08-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2022-11-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2023-03-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2023-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2023-11-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2024-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2024-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2024-11-01T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2025-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2025-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q5366020"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15637305"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q101240755"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q12767035"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15637299"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15637305"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q101240583"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q101240755"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q124859541"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q139041618"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15637293"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q111254005"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q138948720"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q139071253"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15637293"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15637301"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15712918"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15712927"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q111143082"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q137198951"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q794912"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q12767035"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15637293"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q15712145"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P136"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2006-04-24T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P582"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-12-20T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P582"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1997-12-24T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1998-04-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1998-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1998-08-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1998-10-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1998-12-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-04-30T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-07-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-10-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "1999-12-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-02-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-04-28T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2000-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-02-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-04-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2001-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-02-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-04-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2002-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-02-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-05-01T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-10-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2003-12-19T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-08-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2004-11-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-02-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-04-28T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-11-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2005-12-26T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2006-04-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2006-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2006-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2006-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2007-03-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2007-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2007-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2007-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2008-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2008-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2008-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2008-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2009-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2009-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2009-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2009-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2010-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2010-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2010-08-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2010-11-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2011-02-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2011-05-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2011-08-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2011-11-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2012-02-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2012-05-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2012-08-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2012-11-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2013-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2013-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2013-08-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2013-11-01T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2014-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2014-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2014-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2014-12-27T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2015-04-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2015-07-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2015-10-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2015-12-28T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2016-04-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2016-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2016-11-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2017-02-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2017-05-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2017-08-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2017-11-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2018-03-02T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2018-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2018-09-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2018-12-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2019-03-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2019-07-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2019-10-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2019-12-28T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2020-04-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2020-09-16T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2021-02-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2021-06-04T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2021-09-03T00:00:00Z"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P577"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q11903553"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P156"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q2814790"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q2814791"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q17167037"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q100944081"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18559016"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q23419123"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q710324"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q1209459"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q10923740"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q40889063"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q56313751"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q109384202"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q109526557"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q124034224"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q135683949"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q104211858"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q123906765"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P4969"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.younganimal.com/berserk/"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P856"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "https://one-piece.com/comicsanime/comics.html"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P856"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "http://www.shonenjump.com/j/rensai/chainsaw.html"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P856"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "type" : "uri",
+        "value" : "https://mangaplus.shueisha.co.jp/titles/100037"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "P856"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chainsaw Man"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "チェンソーマン"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "21世紀少年"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "本格科学冒険漫画 20世紀少年"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "ワンピース"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "ワンピ"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "20th Century Boys"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Monster"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Berserk"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "21st Century Boys"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Nijū Seiki Shōnen"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Naoki Urasawa's 20th Century Boys"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Nijuu Seiki Shounen"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Monster manga"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Monsutā"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "CSM"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chainsawman"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "alias:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "ONE PIECE"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "20世紀少年"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "MONSTER"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "ベルセルク"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:ja"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "One Piece"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "label:en"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "ベルセルク (漫画)"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:jawiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "MONSTER (漫画)"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:jawiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "20世紀少年"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:jawiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "ONE PIECE"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:jawiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30013"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q28667972"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "One Piece"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:enwiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chainsaw Man"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:enwiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30002"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q18558978"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Berserk (manga)"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:enwiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30001"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q858384"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Monster (manga)"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:enwiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "30003"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91458"
+      },
+      "v" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "20th Century Boys"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:enwiki"
+      }
+    }, {
+      "aid" : {
+        "type" : "literal",
+        "value" : "105778"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q65240543"
+      },
+      "v" : {
+        "xml:lang" : "ja",
+        "type" : "literal",
+        "value" : "チェンソーマン"
+      },
+      "p" : {
+        "type" : "literal",
+        "value" : "sitelink:jawiki"
+      }
+    } ]
+  }
+}

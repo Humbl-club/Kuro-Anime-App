@@ -1,0 +1,14 @@
+{
+  "_note": "Hand-written SPARQL JSON result (shape of the Wikidata Query Service reply) for the Q123 scenario. Not a live capture.",
+  "head": { "vars": ["aid", "item", "p", "v"] },
+  "results": {
+    "bindings": [
+      { "aid": { "type": "literal", "value": "16498" }, "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q123" }, "p": { "type": "literal", "value": "P8729" }, "v": { "type": "literal", "value": "16498" } },
+      { "aid": { "type": "literal", "value": "16498" }, "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q123" }, "p": { "type": "literal", "value": "P4086" }, "v": { "type": "literal", "value": "16498" } },
+      { "aid": { "type": "literal", "value": "16498" }, "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q123" }, "p": { "type": "literal", "value": "P1985" }, "v": { "type": "literal", "value": "13592" } },
+      { "aid": { "type": "literal", "value": "16498" }, "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q123" }, "p": { "type": "literal", "value": "label:en" }, "v": { "type": "literal", "value": "Attack on Titan", "xml:lang": "en" } },
+      { "aid": { "type": "literal", "value": "16498" }, "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q123" }, "p": { "type": "literal", "value": "sitelink:enwiki" }, "v": { "type": "literal", "value": "Attack on Titan (TV series)" } },
+      { "aid": { "type": "literal", "value": "16498" }, "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q123" }, "p": { "type": "literal", "value": "P136" }, "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q8274" } }
+    ]
+  }
+}

@@ -65,3 +65,18 @@ Deno.test("text mode does not parse non-json bodies and keeps an empty body as e
   assert.equal(res.text, "");
   assert.equal(res.json, null);
 });
+
+Deno.test("stringBodyIsSentRawWithContentType", async () => {
+  const seen: { body: unknown; headers: Record<string, string> }[] = [];
+  const fetch = (_input: string | URL | Request, init?: RequestInit) => {
+    seen.push({ body: init?.body, headers: { ...(init?.headers as Record<string, string>) } });
+    return Promise.resolve(new Response("{}", { status: 200 }));
+  };
+  const client = createSourceClient("wikidata", new PoliteLimiter(0), { ...fast, fetch: fetch as typeof globalThis.fetch });
+  await client.request("https://example.test/sparql", { method: "POST", body: "SELECT 1", contentType: "application/sparql-query" });
+  await client.request("https://example.test/json", { method: "POST", body: { a: 1 } });
+  assert.equal(seen[0].body, "SELECT 1");
+  assert.equal(seen[0].headers["Content-Type"], "application/sparql-query");
+  assert.equal(seen[1].body, '{"a":1}');
+  assert.equal(seen[1].headers["Content-Type"], "application/json");
+});
