@@ -591,9 +591,9 @@ nonisolated enum FirstFavouritePicks {
 // MARK: - Plan key rule (pure) and write
 
 /// What one tap on a story card's Plan key does: plan a title that is not on the list, take a bare
-/// plan off again (planned, no progress, no notes, rating or verdict: nothing a removal would lose),
-/// or open the list editor for anything else (another status, or a plan the user has since added to;
-/// never removed from here).
+/// plan off again (planned, no progress, no notes, rating, verdict, repeat count or dates: nothing a
+/// removal would lose), or open the list editor for anything else (another status, or a plan the user
+/// has since added to; never removed from here).
 nonisolated enum TastePlanAction: Equatable {
     case plan, unplan, edit
 
@@ -608,6 +608,11 @@ nonisolated enum TastePlanAction: Equatable {
             && (entry.notes?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             && entry.rating == nil
             && entry.verdict == nil
+            && entry.repeatCount == 0
+            // Judged on the stored raw, not on `startedOn`: an unparseable imported raw has no parsed date
+            // but is still something a removal would lose. A cached row (no metadata) stays bare.
+            && (entry.sourceMetadata?.startedRaw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && (entry.sourceMetadata?.finishedRaw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
 }
 

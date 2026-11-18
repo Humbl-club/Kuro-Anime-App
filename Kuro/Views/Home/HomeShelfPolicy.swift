@@ -54,7 +54,7 @@ enum HomeShelfPolicy {
     /// empty medium shows the block only when the other medium is empty too; with the other medium
     /// occupied the approved invitation ("Go to your anime") stays.
     /// `onlyPlannedTitles` for `showsNewAccount`: every entry is a bare plan (`TastePlanAction.isBarePlan`:
-    /// planned, no progress, rating, verdict or notes), exactly what the block's Plan key writes. A
+    /// planned, no progress, rating, verdict, notes, repeat count or dates), exactly what the block's Plan key writes. A
     /// planned title the reader has started (Up next on its page keeps the status PLANNING) ends the
     /// block, so the started title shows on Home.
     static func onlyBarePlans(_ entries: [LibraryEntry]) -> Bool {
