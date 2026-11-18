@@ -374,4 +374,17 @@ struct GuestModeTests {
         #expect(mediaType == "ANIME")
         #expect(RoutePolicy.journeyPage(for: .signUp(request)) == nil, "the sign-up sheet is a tool, never a page")
     }
+
+    // MARK: Task 6: pager and the Browse entry
+
+    @Test("A guest reaches Browse from Discover and Search, not as a pager page")
+    func guestPagerOrderReachesBrowseFromDiscover() throws {
+        let (flags, suite, defaults) = try Self.guestFlags()
+        #expect(KuroMainView.Section.pagerOrder(tasteDeck: true, seriesHome: false, guest: true) == GuestPager.order)
+        #expect(KuroMainView.Section.pagerOrder(tasteDeck: false, seriesHome: true, guest: true) == GuestPager.order)
+        #expect(DiscoverBrowseEntry.isOffered(flags: flags, guest: true))
+        // Signed in, with the taste deck on and no series home, Browse stays a pager page (no entry).
+        #expect(KuroMainView.Section.pagerOrder(tasteDeck: true, seriesHome: false).contains(.browse))
+        defaults.removePersistentDomain(forName: suite)
+    }
 }

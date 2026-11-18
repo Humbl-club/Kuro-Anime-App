@@ -6,3 +6,4 @@ W3-alerts.feature
 W10-up-next.feature
 W6-grouping.feature
 W9-lists.feature
+W5-guest.feature
