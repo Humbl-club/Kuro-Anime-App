@@ -21,7 +21,110 @@ begin
   if v_uid is null then
     return;
   end if;
-  return;
+
+  -- The $anime_query$ / $manga_query$ markers are a contract: the EXPLAIN test extracts the SQL between them.
+  -- $1 = acting user (auth.uid()), $2 = limit. A reviewed link (series continuity 'verified', grouping
+  -- 'approved', section 'approved', same medium) wins over an AniList SEQUEL edge.
+  if p_medium = 'anime' then
+    return query execute $anime_query$
+      with done as (
+        select l.anime_id as id, l.updated_at as done_at
+        from public.anime_user_lists l
+        where l.user_id = $1::text and l.list_type = 'COMPLETED'),
+      cand as (
+        select mr.to_media_id as id, d.id as after_id, d.done_at, 1 as pri, 'sequel'::text as link
+        from done d
+        join public.media_relations mr
+          on mr.from_media_type = 'ANIME' and mr.from_media_id = d.id
+         and mr.relation_type = 'SEQUEL' and mr.to_media_type = 'ANIME'
+        union all
+        select nxt.anime_id, d.id, d.done_at, 0, 'reviewed'::text
+        from done d
+        join public.series_entry_spans sp on sp.anime_id = d.id
+        join public.series s on s.id = sp.series_id and s.continuity = 'verified'
+                            and s.grouping_state = 'approved' and s.medium = sp.medium
+        join public.series_sections sec on sec.id = sp.section_id and sec.state = 'approved'
+        join lateral (
+          select sp2.anime_id
+          from public.series_entry_spans sp2
+          join public.series_sections sec2 on sec2.id = sp2.section_id and sec2.state = 'approved'
+          where sp2.series_id = sp.series_id and sp2.anime_id is not null and sec2.sort_order > sec.sort_order
+          order by sec2.sort_order, sp2.id
+          limit 1) nxt on true),
+      best as (
+        select distinct on (c.id) c.*
+        from cand c
+        where c.id <> c.after_id
+        order by c.id, c.pri, c.done_at desc, c.after_id)
+      select 'anime'::text, a.id, coalesce(nullif(a.title_english, ''), a.title_romaji), a.cover_image_large,
+             a.format, a.status, coalesce(a.season_year, a.start_date_year), a.episodes,
+             p.id, coalesce(nullif(p.title_english, ''), p.title_romaji), b.link
+      from best b
+      join public.anime a on a.id = b.id
+      join public.anime p on p.id = b.after_id
+      where coalesce(a.is_adult, false) = false
+        and not ('Hentai' = any(coalesce(a.genres, '{}')))
+        and not ('Ecchi' = any(coalesce(a.genres, '{}')))
+        and upper(coalesce(a.format, '')) not in ('SPECIAL', 'MUSIC', 'TV_SHORT')
+        and coalesce(a.status, '') <> 'CANCELLED'
+        and not exists (select 1 from public.anime_user_lists o where o.user_id = $1::text and o.anime_id = b.id)
+        and not exists (select 1 from public.taste_signal_events e
+                        where e.user_id = $1 and e.media_type = 'ANIME' and e.media_id = b.id
+                          and e.event_type in ('deck_skip', 'deck_known')
+                          and e.created_at >= now() - interval '365 days')
+      order by b.done_at desc, b.id
+      limit $2
+    $anime_query$ using v_uid, v_limit;
+  else
+    return query execute $manga_query$
+      with done as (
+        select l.manga_id as id, l.updated_at as done_at
+        from public.manga_user_lists l
+        where l.user_id = $1::text and l.list_type = 'COMPLETED'),
+      cand as (
+        select mr.to_media_id as id, d.id as after_id, d.done_at, 1 as pri, 'sequel'::text as link
+        from done d
+        join public.media_relations mr
+          on mr.from_media_type = 'MANGA' and mr.from_media_id = d.id
+         and mr.relation_type = 'SEQUEL' and mr.to_media_type = 'MANGA'
+        union all
+        select nxt.manga_id, d.id, d.done_at, 0, 'reviewed'::text
+        from done d
+        join public.series_entry_spans sp on sp.manga_id = d.id
+        join public.series s on s.id = sp.series_id and s.continuity = 'verified'
+                            and s.grouping_state = 'approved' and s.medium = sp.medium
+        join public.series_sections sec on sec.id = sp.section_id and sec.state = 'approved'
+        join lateral (
+          select sp2.manga_id
+          from public.series_entry_spans sp2
+          join public.series_sections sec2 on sec2.id = sp2.section_id and sec2.state = 'approved'
+          where sp2.series_id = sp.series_id and sp2.manga_id is not null and sec2.sort_order > sec.sort_order
+          order by sec2.sort_order, sp2.id
+          limit 1) nxt on true),
+      best as (
+        select distinct on (c.id) c.*
+        from cand c
+        where c.id <> c.after_id
+        order by c.id, c.pri, c.done_at desc, c.after_id)
+      select 'manga'::text, a.id, coalesce(nullif(a.title_english, ''), a.title_romaji), a.cover_image_large,
+             a.format, a.status, a.start_date_year, a.chapters,
+             p.id, coalesce(nullif(p.title_english, ''), p.title_romaji), b.link
+      from best b
+      join public.manga a on a.id = b.id
+      join public.manga p on p.id = b.after_id
+      where coalesce(a.is_adult, false) = false
+        and not ('Hentai' = any(coalesce(a.genres, '{}')))
+        and not ('Ecchi' = any(coalesce(a.genres, '{}')))
+        and coalesce(a.status, '') <> 'CANCELLED'
+        and not exists (select 1 from public.manga_user_lists o where o.user_id = $1::text and o.manga_id = b.id)
+        and not exists (select 1 from public.taste_signal_events e
+                        where e.user_id = $1 and e.media_type = 'MANGA' and e.media_id = b.id
+                          and e.event_type in ('deck_skip', 'deck_known')
+                          and e.created_at >= now() - interval '365 days')
+      order by b.done_at desc, b.id
+      limit $2
+    $manga_query$ using v_uid, v_limit;
+  end if;
 end;
 $fn$;
 
