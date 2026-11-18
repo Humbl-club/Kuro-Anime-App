@@ -93,3 +93,4 @@ Append one line per landed step: date, wave, item, commit, checks, hosted receip
 - 2026-11-18 wave 3: W6 grouping merged (b8303e5..267e730; dark; DB 111 (21), load gate 10 files, BDD 52 resolved / 0 unresolved; package 168). Owner D-G steps in docs/tracker-gaps-2026-11/w6-grouping/MEMBERSHIP_POPULATION.md.
 - 2026-11-18 wave 3: catalogue Task 16 merged (aa94e65, f59bb3c): source credit on title pages behind catalogue_source_credit_v1 (off; detail select unchanged while off). Raise only after 20261112100000. Lane: KuroTests 1,292 pass, UI credit test pass.
 - 2026-11-18 verification at d9fe6eb+: serial KuroTests 1,313/1,313, package, Release OK; Deno all suites pass; full DB 60 files / 1,725 after fixing test 113's planner-dependent plan check (full-suite run had chosen a Seq Scan).
+- 2026-11-18 PR #13 merged to main (de7ba98).
