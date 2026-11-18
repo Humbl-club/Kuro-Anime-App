@@ -69,6 +69,10 @@ final class FeatureFlags {
     var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
     /// W4: Search asks `search_*_page_v2` for the hidden 18+ count and shows one plain line (off by default).
     var searchAdultNoticeV1Enabled: Bool { evaluate("search_adult_notice_v1") }
+    /// Catalogue Task 16: detail reads name `data_sources` and title pages show the source credit. Off by default
+    /// (absent row = off). Raise it only after prepared migration 20261112100000 is applied: until then the column
+    /// does not exist and every detail read would fail.
+    var catalogueSourceCreditV1Enabled: Bool { evaluate("catalogue_source_credit_v1") }
 
     // MARK: - Init
 

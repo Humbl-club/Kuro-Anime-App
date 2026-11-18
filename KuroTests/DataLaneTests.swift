@@ -57,8 +57,8 @@ struct CatalogColumnListTests {
     func detailListsCoverDecoders() {
         let animeKeys = Set(Anime.CodingKeys.allCases.map(\.rawValue))
         let mangaKeys = Set(Manga.CodingKeys.allCases.map(\.rawValue))
-        #expect(Set(CatalogColumns.animeDetail) == animeKeys.subtracting(CatalogColumns.omittedDetailColumns))
-        #expect(Set(CatalogColumns.mangaDetail) == mangaKeys.subtracting(CatalogColumns.omittedDetailColumns))
+        #expect(Set(CatalogColumns.animeDetail) == animeKeys.subtracting(CatalogColumns.omittedDetailColumns).subtracting([CatalogColumns.sourceCreditColumn]))
+        #expect(Set(CatalogColumns.mangaDetail) == mangaKeys.subtracting(CatalogColumns.omittedDetailColumns).subtracting([CatalogColumns.sourceCreditColumn]))
         for kept in ["synopsis_enhanced", "synopsis_enhanced_state", "description", "country_of_origin", "next_airing_at"] {
             #expect(CatalogColumns.animeDetail.contains(kept), "\(kept)")
         }

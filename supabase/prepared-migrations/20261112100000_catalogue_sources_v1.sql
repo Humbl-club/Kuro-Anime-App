@@ -11,6 +11,9 @@
 -- INVOKER (writers are service-role importers that hold the table grants); trigger functions
 -- need no EXECUTE for the invoking role and it is revoked from public/anon/authenticated anyway.
 -- anime/manga.data_sources: nullable text[] naming the sources a composed title used.
+-- The app flag `catalogue_source_credit_v1` (detail selects name data_sources, title pages show the source
+-- credit) may be raised ONLY AFTER this migration is applied: until then the column does not exist and every
+-- detail read that names it fails. The flag is off by default (absent feature_flags row = off).
 begin;
 set local search_path = public, extensions;
 set local lock_timeout = '3s';

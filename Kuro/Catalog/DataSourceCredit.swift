@@ -53,6 +53,15 @@ enum DataSourceCredit {
         return (german ? "Daten: " : "Data: ") + names.joined(separator: ", ")
     }
 
+    /// The line only while `catalogue_source_credit_v1` is on.
+    nonisolated static func visibleLine(for sources: [String]?, flagOn: Bool, german: Bool) -> String? {
+        flagOn ? line(for: sources, german: german) : nil
+    }
+
+    nonisolated static func attributedVisible(for sources: [String]?, externalLinks: [ExternalLink], flagOn: Bool, german: Bool) -> AttributedString? {
+        flagOn ? attributed(for: sources, externalLinks: externalLinks, german: german) : nil
+    }
+
     /// The link of a source's credit. ANN: the title's own ANN link from `external_links` (matched by site
     /// name or by host, https only), else the encyclopedia. Other sources carry no link.
     nonisolated static func link(source: String, externalLinks: [ExternalLink]) -> URL? {

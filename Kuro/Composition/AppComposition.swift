@@ -221,6 +221,7 @@ final class AppComposition {
         )
         let publicData = makePublicData(client: client, accountSession: accountSession, library: wiring.store)
         publicData.search.adultNoticeEnabled = { shell.flags.searchAdultNoticeV1Enabled }
+        publicData.catalog.sourceCreditEnabled = { shell.flags.catalogueSourceCreditV1Enabled }
         let personalData = makePersonalData(
             client: client,
             accountSession: accountSession,

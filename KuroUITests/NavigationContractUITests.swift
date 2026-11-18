@@ -25,6 +25,8 @@ final class NavigationContractUITests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments += ["--kuro-fixture-host", "--kuro-skip-auth", "--kuro-nav-fixture",
+                                // Task 16: the source credit renders only while its flag is on.
+                                "--ff-on=catalogue_source_credit_v1",
                                 "--kuro-start=discover", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(level(1).waitForExistence(timeout: 20), "the fixture journey opened on level 1")

@@ -20,6 +20,10 @@ final class CatalogStore: MemoryPressureTrimmable {
     /// missing, and then every read fails like a transport error (`requiredClient()`).
     private let client: SupabaseClient?
 
+    /// `catalogue_source_credit_v1`, read at call time (composition sets it from the flags). While it is off the
+    /// detail selects do not name `data_sources`, a column that exists only after migration 20261112100000.
+    @ObservationIgnored var sourceCreditEnabled: @MainActor () -> Bool = { false }
+
     init(client: SupabaseClient?) {
         self.client = client
     }
@@ -140,7 +144,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let rows: [Anime] = try await client
                 .from("anime")
-                .select(CatalogColumns.select(CatalogColumns.animeDetail))
+                .select(CatalogColumns.select(CatalogColumns.animeDetail(sourceCredit: sourceCreditEnabled())))
                 .eq("id", value: animeId)
                 .limit(1)
                 .execute()
@@ -185,7 +189,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let rows: [Manga] = try await client
                 .from("manga")
-                .select(CatalogColumns.select(CatalogColumns.mangaDetail))
+                .select(CatalogColumns.select(CatalogColumns.mangaDetail(sourceCredit: sourceCreditEnabled())))
                 .eq("id", value: mangaId)
                 .limit(1)
                 .execute()

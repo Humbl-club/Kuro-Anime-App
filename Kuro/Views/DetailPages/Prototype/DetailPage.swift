@@ -600,13 +600,14 @@ struct DetailSourceCreditLine: View {
     let mediaId: Int
 
     @Environment(CatalogStore.self) private var catalog
+    @Environment(FeatureFlags.self) private var flags
     @State private var links: [ExternalLink] = []
 
     private var german: Bool { KuroLocale.isGerman }
     private var creditsAnn: Bool { DataSourceCredit.displayNames(for: sources).contains("Anime News Network") }
 
     var body: some View {
-        if let text = DataSourceCredit.attributed(for: sources, externalLinks: links, german: german) {
+        if let text = DataSourceCredit.attributedVisible(for: sources, externalLinks: links, flagOn: flags.catalogueSourceCreditV1Enabled, german: german) {
             Text(text)
                 .font(.kuroMeta())
                 .foregroundStyle(Color.kuroInkSecondary)

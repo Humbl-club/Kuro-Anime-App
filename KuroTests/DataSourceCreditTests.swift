@@ -85,10 +85,63 @@ struct DataSourceCreditTests {
         #expect(DataSourceCredit.attributed(for: nil, externalLinks: [own], german: false) == nil)
     }
 
-    @Test func detailSelectsCarryDataSourcesAndCardsDoNot() {
-        #expect(CatalogColumns.animeDetail.contains("data_sources"))
-        #expect(CatalogColumns.mangaDetail.contains("data_sources"))
+    @Test func cardsNeverCarryDataSources() {
         #expect(!CatalogColumns.animeCard.contains("data_sources") && !CatalogColumns.mangaCard.contains("data_sources"))
+    }
+
+    @Test func flagIsOffByDefaultAndFollowsTheServerFlag() {
+        let defaults = UserDefaults(suiteName: "DataSourceCreditTests.\(UUID().uuidString)")!
+        #expect(FeatureFlags(userDefaults: defaults, launchArguments: []).catalogueSourceCreditV1Enabled == false)
+        #expect(FeatureFlags(userDefaults: defaults, launchArguments: ["--ff-on=catalogue_source_credit_v1"]).catalogueSourceCreditV1Enabled)
+    }
+
+    private func detailSelect(flagOn: Bool, kind: String) async throws -> [String] {
+        let harness = try PublicDataHarness { request in
+            switch request.resource {
+            case "anime": return .json("[" + PublicRowJSON.anime(990_205, title: "Anime 990205") + "]")
+            case "manga": return .json("[" + PublicRowJSON.manga(990_206, title: "Manga 990206") + "]")
+            default: return .emptyArray
+            }
+        }
+        let catalog = harness.service.catalog
+        catalog.sourceCreditEnabled = { flagOn }
+        let request: RecordedRequest
+        if kind == "anime" {
+            _ = try await catalog.fetchAnimeById(990_205)
+            request = try #require(harness.requests(to: "anime").first)
+        } else {
+            _ = try await catalog.fetchMangaById(990_206)
+            request = try #require(harness.requests(to: "manga").first)
+        }
+        let columns = DataLaneRequestTests.selected(request)
+        await harness.tearDown()
+        return columns
+    }
+
+    @Test func detailSelectOmitsDataSourcesWhileFlagOff() async throws {
+        for kind in ["anime", "manga"] {
+            let columns = try await detailSelect(flagOn: false, kind: kind)
+            #expect(!columns.isEmpty && !columns.contains("data_sources"), "\(kind): \(columns)")
+        }
+        #expect(!CatalogColumns.animeDetail.contains("data_sources") && !CatalogColumns.mangaDetail.contains("data_sources"))
+    }
+
+    @Test func detailSelectNamesDataSourcesWhenFlagOn() async throws {
+        for kind in ["anime", "manga"] {
+            let columns = try await detailSelect(flagOn: true, kind: kind)
+            #expect(columns.contains("data_sources"), "\(kind): \(columns)")
+            // Everything the flag-off select names is still named.
+            let base = kind == "anime" ? CatalogColumns.animeDetail : CatalogColumns.mangaDetail
+            #expect(Set(base).isSubset(of: Set(columns)))
+        }
+    }
+
+    @Test func noCreditLineWhileFlagOff() {
+        #expect(DataSourceCredit.visibleLine(for: ["ann", "wikidata"], flagOn: false, german: false) == nil)
+        #expect(DataSourceCredit.visibleLine(for: ["ann", "wikidata"], flagOn: true, german: false) == "Data: Anime News Network, Wikidata")
+        #expect(DataSourceCredit.visibleLine(for: nil, flagOn: true, german: false) == nil)
+        #expect(DataSourceCredit.attributedVisible(for: ["ann"], externalLinks: [], flagOn: false, german: false) == nil)
+        #expect(DataSourceCredit.attributedVisible(for: ["ann"], externalLinks: [], flagOn: true, german: false) != nil)
     }
 
     private let titleJSON = """
