@@ -16,6 +16,8 @@ struct FolioRowActions {
     var toggleSelection: (FolioItem) -> Void
     /// The key a row shows (nil: none).
     var keyPhase: (FolioItem) -> FolioKeyPhase?
+    /// W9: opens the tags-and-lists sheet; nil hides the menu item (switch off, or owners absent).
+    var organise: ((FolioItem) -> Void)? = nil
 }
 
 extension FolioKeyPhase {
@@ -87,6 +89,11 @@ private struct FolioContextMenu: ViewModifier {
                 Button { actions.classify(item) } label: {
                     Label(section.map { FolioGroupCopy.menuClassify(section: $0, german: german) }
                           ?? (german ? "Schnell einordnen" : "Quick classify"), systemImage: "tag")
+                }
+                if let organise = actions.organise {
+                    Button { organise(item) } label: {
+                        Label(OrganiseCopy.string(.tagsAndLists, german: german), systemImage: "tag.circle")
+                    }
                 }
                 Button(role: .destructive) { actions.remove(item) } label: {
                     Label(section.map { FolioGroupCopy.menuRemove(section: $0, german: german) }

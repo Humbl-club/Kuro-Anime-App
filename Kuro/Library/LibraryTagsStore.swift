@@ -41,8 +41,13 @@ final class LibraryTagsStore: AccountScopedState {
 
     /// Distinct tags (by case-insensitive key) of tracked titles, sorted by key.
     func allTags(kind: MediaKind?, tracked: Set<MediaKey>) -> [String] {
+        allTags(kind: kind) { tracked.contains($0) }
+    }
+
+    /// The same, asking `isTracked` per tagged title (no whole-library set per render).
+    func allTags(kind: MediaKind?, isTracked: (MediaKey) -> Bool) -> [String] {
         var spelling: [String: String] = [:]
-        let ordered = tagsByKey.keys.filter { tracked.contains($0) && (kind == nil || $0.kind == kind) }
+        let ordered = tagsByKey.keys.filter { isTracked($0) && (kind == nil || $0.kind == kind) }
             .sorted { $0.kind.rawValue == $1.kind.rawValue ? $0.id < $1.id : $0.kind.rawValue < $1.kind.rawValue }
         for key in ordered {
             for tag in tagsByKey[key] ?? [] where spelling[LibraryTagRules.key(tag)] == nil {
