@@ -2,6 +2,13 @@
 -- W4 (tracker gaps): additive search_{anime,manga}_page_v2 return {"items": [...v1 rows...],
 -- "hidden_adult": n|null}. v1 (the staged bodies of 20261109200000) is NOT touched. Adult =
 -- is_adult is true or genres @> {Hentai}. pg_trgm.similarity_threshold stays 0.35 (as v1).
+--
+-- Import staging (also in this file): a match to an adult catalogue row is staged as unmatched/ADULT_NOT_LISTED;
+-- a manual mapping onto one is refused with ADULT_NOT_LISTED (prepare_import_chunk_v2 is restated in full).
+-- KNOWN LIMITS (release note, no code change):
+--   1. Rows already staged before this migration (a job in `reviewing`) are NOT guarded: the trigger only
+--      fires on writes to media_id/disposition, so they keep their existing adult match until written again.
+--   2. An import row keeps the catalogue's title name for 18+ titles (title is not scrubbed).
 begin;
 set local lock_timeout = '3s';
 set local search_path = public, extensions;
@@ -212,6 +219,12 @@ begin
     select (m.is_adult is true or m.genres @> array['Hentai']::text[]) into v_adult from public.manga m where m.id = new.media_id;
   end if;
   if coalesce(v_adult, false) then
+    -- A manual mapping (insert, including the ON CONFLICT DO UPDATE form) onto an 18+ row is refused with a
+    -- stable code instead of being resolved to the adult title. Automatic matches and re-staging
+    -- (BEFORE UPDATE) still degrade to unmatched/ADULT_NOT_LISTED below.
+    if tg_op = 'INSERT' and new.manual_resolved then
+      raise exception 'ADULT_NOT_LISTED';
+    end if;
     new.disposition := 'unmatched';
     new.detail := 'ADULT_NOT_LISTED: 18+ title, not listed in Kuro';
     new.media_id := null;
@@ -257,6 +270,149 @@ begin
   );
 end;
 $function$;
+
+-- Effective body of 20261008110000 (the only definition) restated in full with ONE change: an automatic
+-- catalogue match onto an 18+ row no longer counts as `resolved` for the MAPPING_ALREADY_RESOLVED test.
+create or replace function public.prepare_import_chunk_v2(p_job_id uuid,p_items jsonb,p_exhausted_media jsonb default '{}')returns jsonb
+language plpgsql security definer set search_path=public,extensions as $$
+#variable_conflict use_variable
+declare uid uuid:=auth.uid(); j public.library_import_jobs%rowtype; old public.library_import_items%rowtype;
+ it jsonb; inc jsonb; cur jsonb; fields jsonb; medium text; external text; title text; med integer; found_ref boolean; resolved boolean;
+ manual integer; disposition text; detail text; h text; m text; complete boolean; merged jsonb;
+begin
+ if uid is null then raise exception 'UNAUTHENTICATED'; end if;
+ perform pg_advisory_xact_lock(hashtextextended('kuro.library.account:'||uid::text,0));
+ select * into j from public.library_import_jobs where id=p_job_id and user_id=uid for update;
+ if not found then raise exception 'NOT_AUTHORIZED'; end if;
+ if j.contract_version<>2 then raise exception 'CONTRACT_VERSION_MISMATCH'; end if;
+ if j.phase not in('preparing','reviewing')then raise exception 'JOB_NOT_PREPARING'; end if;
+ if jsonb_typeof(p_items)is distinct from 'array' or jsonb_array_length(p_items)>100
+  or jsonb_typeof(p_exhausted_media)is distinct from 'object' then raise exception 'INVALID_PAYLOAD'; end if;
+ if exists(select 1 from jsonb_each(p_exhausted_media)e where not(j.selection->'media'?e.key)or jsonb_typeof(e.value)<>'boolean')then raise exception 'INVALID_COVERAGE'; end if;
+ for it in select value from jsonb_array_elements(p_items)loop
+  medium:=lower(it->>'medium'); external:=it->>'external_id'; manual:=null;
+  if jsonb_typeof(it)<>'object'or medium is null or not(j.selection->'media'?medium)or external is null or length(external)>100 then raise exception 'INVALID_ITEM'; end if;
+  if it->>'resolved_media_id' is not null then
+   if jsonb_typeof(it->'resolved_media_id')<>'number'or(it->>'resolved_media_id')!~'^[1-9][0-9]{0,9}$'or(it->>'resolved_media_id')::numeric>2147483647 then raise exception 'INVALID_MAPPING'; end if;
+   manual:=(it->>'resolved_media_id')::integer;
+  end if;
+  title:=left(coalesce(nullif(it->>'title',''),case medium when 'anime'then 'Anime 'else 'Manga 'end||external),500);
+  med:=null;cur:=null;resolved:=false;found_ref:=false;detail:=null;fields:='[]';disposition:=null;
+  begin
+   if jsonb_typeof(it->'external_id')<>'string'or external!~'^[0-9]{1,10}$'or external::numeric>2147483647 or external::numeric<1 then raise exception 'INVALID_EXTERNAL_ID'; end if;
+   inc:=public._import_v2_values(it->'values',medium);
+   if not(inc?'status')then raise exception 'MISSING_STATUS'; end if;
+  exception when others then
+   disposition:='invalid';detail:=case sqlerrm when 'INVALID_EXTERNAL_ID'then 'Invalid provider ID'when 'INVALID_STATUS'then 'Unsupported status'else 'Invalid source values'end;
+   inc:=jsonb_build_object('unavailable_fields','[]'::jsonb);
+  end;
+  h:=encode(digest(inc::text,'sha256'),'hex');
+  select * into old from public.library_import_items where job_id=j.id and provider=j.provider and library_import_items.medium=medium and external_id=external for update;
+  if found then
+   if old.terminal or old.decision_hash is not null then
+    if old.request_hash<>h or manual is not null then raise exception 'SOURCE_ALREADY_DECIDED'; end if;
+    continue;
+   end if;
+   if exists(select 1 from jsonb_each(old.incoming-'custom_lists'-'unavailable_fields')x where inc?x.key and (inc->x.key)is distinct from x.value)then
+    update public.library_import_items set disposition='source_changed',detail='Contradictory values across source appearances',changed_fields='[]'where job_id=j.id and provider=j.provider and library_import_items.medium=medium and external_id=external;
+    continue;
+   end if;
+   if old.disposition='source_changed'then continue; end if;
+   -- Missing/unavailable fields are not contradictory values. Merge available
+   -- evidence; do not let an unavailable marker suppress a supplied valid value.
+   inc:=old.incoming||inc;
+   select coalesce(jsonb_agg(x order by x),'[]')into merged from(
+    select distinct value x from jsonb_array_elements_text(coalesce(old.incoming->'unavailable_fields','[]')||coalesce(inc->'unavailable_fields','[]'))
+    where not(inc?value))q;
+   inc:=inc||jsonb_build_object('unavailable_fields',merged);
+   if old.incoming?'custom_lists'or inc?'custom_lists'then
+    select coalesce(jsonb_agg(x order by x),'[]')into merged from(select distinct value x from jsonb_array_elements_text(coalesce(old.incoming->'custom_lists','[]')||coalesce(inc->'custom_lists','[]')))q;
+    inc:=inc||jsonb_build_object('custom_lists',merged);
+   end if;
+   h:=encode(digest(inc::text,'sha256'),'hex');
+   -- After coverage closes, effective source evidence is immutable. A new
+   -- field cannot expand a previously reviewed semantic approval group.
+   if j.phase='reviewing'and inc is distinct from old.incoming then
+    update public.library_import_items set disposition='source_changed',detail='Source values changed after review became ready',changed_fields='[]'where job_id=j.id and provider=j.provider and library_import_items.medium=medium and external_id=external;
+    continue;
+   end if;
+   -- Compatible duplicate evidence must pass the same precise-unit policy
+   -- as first staging before either duplicate fast path can return.
+   if old.media_id is not null and(manual is null or(old.manual_resolved and manual=old.media_id))and inc->>'unit_id'is not null
+    and not exists(select 1 from public.catalogue_units u where u.id=(inc->>'unit_id')::uuid and u.medium=medium
+     and(case medium when 'anime'then u.anime_id else u.manga_id end)=old.media_id
+     and(not(inc?'progress_label')or u.label=inc->>'progress_label'))then
+    update public.library_import_items set incoming=inc,request_hash=h,disposition='invalid',detail='Source unit does not belong to the matched title or label',changed_fields='[]'where job_id=j.id and provider=j.provider and library_import_items.medium=medium and external_id=external;
+    continue;
+   end if;
+   -- Repeating the same match must not launder a later edit/tombstone into
+   -- the original review baseline. Deliberate target changes get fresh review.
+   if manual is not null and old.manual_resolved and old.media_id=manual then
+    update public.library_import_items set incoming=inc,request_hash=h,changed_fields=case when old.current_values is null then old.changed_fields else public._import_v2_changed(old.current_values,inc,medium)end where job_id=j.id and provider=j.provider and library_import_items.medium=medium and external_id=external;
+    continue;
+   end if;
+   if manual is null then
+    update public.library_import_items set incoming=inc,request_hash=h,
+     changed_fields=case when current_values is not null then public._import_v2_changed(current_values,inc,medium)else changed_fields end,
+     disposition=case when current_values is not null then case when jsonb_array_length(public._import_v2_changed(current_values,inc,medium))=0 then 'existing'else 'changes'end else library_import_items.disposition end
+     where job_id=j.id and provider=j.provider and library_import_items.medium=medium and external_id=external;
+    continue;
+   end if;
+  elsif coalesce((j.exhausted_media->>medium)::boolean,false)then raise exception 'SOURCE_ALREADY_EXHAUSTED'; end if;
+  if disposition is null then
+   select case when unresolved then null when medium='anime'then anime_id else manga_id end,not unresolved into med,resolved from public.provider_entry_refs
+    where provider=j.provider and provider_entry_refs.medium=medium and external_id=external;
+   found_ref:=found;
+   if not found_ref then
+    if medium='anime'then
+     if j.provider='anilist'then select min(id)into med from public.anime where anilist_id=external::integer having count(*)=1;
+     else select min(id)into med from public.anime where mal_id=external::integer having count(*)=1;end if;
+    else
+     if j.provider='anilist'then select min(id)into med from public.manga where anilist_id=external::integer having count(*)=1;
+     else select min(id)into med from public.manga where mal_id=external::integer having count(*)=1;end if;
+    end if;
+    resolved:=med is not null;
+   end if;
+   -- W4: an automatic match onto an 18+ row is not a resolution (the guard trigger turns that row into
+   -- unmatched/ADULT_NOT_LISTED), so a later manual match must not be refused as MAPPING_ALREADY_RESOLVED.
+   if resolved and med is not null and(
+     (medium='anime'and exists(select 1 from public.anime a where a.id=med and(a.is_adult is true or a.genres @> array['Hentai']::text[])))
+     or(medium='manga'and exists(select 1 from public.manga g where g.id=med and(g.is_adult is true or g.genres @> array['Hentai']::text[]))))then
+    resolved:=false;
+   end if;
+   if manual is not null then
+    if resolved or old.identity_resolved then raise exception 'MAPPING_ALREADY_RESOLVED'; end if;
+    if (medium='anime'and not exists(select 1 from public.anime where id=manual))or(medium='manga'and not exists(select 1 from public.manga where id=manual))then raise exception 'INVALID_MAPPING';end if;
+    med:=manual;
+   end if;
+   if med is null then disposition:='unmatched';detail:='Catalogue identity requires review';
+   else
+    if inc->>'unit_id'is not null and not exists(select 1 from public.catalogue_units u where u.id=(inc->>'unit_id')::uuid and u.medium=medium and(case medium when 'anime'then u.anime_id else u.manga_id end)=med and(not(inc?'progress_label')or u.label=inc->>'progress_label'))then
+     disposition:='invalid';detail:='Source unit does not belong to the matched title';
+    else
+     cur:=public._import_v2_row(uid::text,medium,med);
+     fields:=case when cur is null then '[]'::jsonb else public._import_v2_changed(cur,inc,medium)end;
+     disposition:=case when cur is null then 'new'when jsonb_array_length(fields)=0 then 'existing'else 'changes'end;
+     if medium='anime'then select left(coalesce(title_english,title_romaji,title_native,title),500)into title from public.anime where id=med;
+     else select left(coalesce(title_english,title_romaji,title_native,title),500)into title from public.manga where id=med;end if;
+    end if;
+   end if;
+  elsif manual is not null then raise exception 'INVALID_MAPPING'; end if;
+  insert into public.library_import_items(job_id,provider,external_id,medium,disposition,request_hash,detail,media_id,title,incoming,current_values,changed_fields,expected_revision,expected_lifecycle,identity_resolved,manual_resolved,baseline_tombstones)
+  values(j.id,j.provider,external,medium,disposition,h,detail,med,title,inc,cur,fields,(cur->>'server_revision')::bigint,(cur->>'lifecycle_id')::uuid,resolved,manual is not null,public._import_v2_tombstones(uid::text,medium,med))
+  on conflict on constraint library_import_items_pkey do update set disposition=excluded.disposition,request_hash=excluded.request_hash,detail=excluded.detail,media_id=excluded.media_id,title=excluded.title,incoming=excluded.incoming,
+   current_values=excluded.current_values,changed_fields=excluded.changed_fields,expected_revision=excluded.expected_revision,expected_lifecycle=excluded.expected_lifecycle,identity_resolved=excluded.identity_resolved,manual_resolved=excluded.manual_resolved,baseline_tombstones=excluded.baseline_tombstones;
+ end loop;
+ foreach m in array array['anime','manga']loop
+  if coalesce((p_exhausted_media->>m)::boolean,false)then j.exhausted_media:=j.exhausted_media||jsonb_build_object(m,true);end if;
+ end loop;
+ complete:=not exists(select 1 from jsonb_array_elements_text(j.selection->'media')s(medium)where not coalesce((j.exhausted_media->>s.medium)::boolean,false));
+ update public.library_import_jobs set exhausted_media=j.exhausted_media,counters=public._import_v2_counts(j.id),phase=case when complete then 'reviewing'else 'preparing'end,updated_at=clock_timestamp()where id=j.id;
+ return public._import_v2_outcome(j.id);
+end;$$;
+
+revoke all on function public.prepare_import_chunk_v2(uuid,jsonb,jsonb) from public,anon;
+grant execute on function public.prepare_import_chunk_v2(uuid,jsonb,jsonb) to authenticated;
 
 notify pgrst, 'reload schema';
 commit;
