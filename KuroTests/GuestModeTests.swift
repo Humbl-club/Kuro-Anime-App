@@ -328,4 +328,50 @@ struct GuestModeTests {
                 "a guest wrote account keys: \(added)")
         await h.tearDown()
     }
+
+    // MARK: Task 5: the sign-up sheet and the gate
+
+    @Test("A guest's Plan opens the sign-up sheet with the intent and the keeps-nothing note; signed in it goes on")
+    func saveAsGuestOpensSignUpWithPendingIntent() throws {
+        let (flags, suite, defaults) = try Self.guestFlags()
+        let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(), flags: flags)
+        var shown: [AppRoute] = []
+        let routes = KuroRoutes { shown.append($0) }
+        let intent = PendingGuestIntent.plan(Self.frieren, title: "Frieren")
+
+        #expect(GuestGate.allows(intent, guest: graph.guest, routes: routes) == false)
+        #expect(shown.map(\.id) == ["signUp"])
+        guard case .signUp(let request) = shown.first else { Issue.record("no sign-up route"); return }
+        #expect(request.intent == intent)
+        #expect(request.mode == .signUp)
+        #expect(GuestCopy.sheetNote(for: request.intent, german: false)
+            == "Kuro keeps nothing on this phone until you have an account; the title you picked is added as soon as you sign up.")
+        #expect(GuestCopy.sheetNote(for: request.intent, german: true).hasPrefix("Kuro speichert nichts auf diesem Gerät"))
+
+        // The sheet appears: the intent is registered; the newest wins.
+        graph.guest.begin(request.intent)
+        #expect(graph.guest.pendingIntent == intent)
+        graph.guest.begin(.joinClub(code: "ABC"))
+        #expect(graph.guest.pendingIntent == .joinClub(code: "ABC"))
+
+        // Signed in: the gate lets the action through and presents nothing.
+        graph.identity.isAuthenticated = true
+        #expect(GuestGate.allows(intent, guest: graph.guest, routes: routes) == true)
+        #expect(shown.count == 1)
+        defaults.removePersistentDomain(forName: suite)
+    }
+
+    @Test("For a guest the tracking editor and add-to-club tools become the sign-up sheet that re-opens the title")
+    func guestToolRoutesBecomeSignUp() {
+        guard case .signUp(let request) = RoutePolicy.toolDestination(for: .addToClub(Self.frieren), isGuest: true) else {
+            Issue.record("add-to-club did not become the sign-up sheet"); return
+        }
+        #expect(request == GuestSignUpRequest(intent: .openTitle(Self.frieren), mode: .signUp))
+        guard case .addToClub(let mediaId, let mediaType) = RoutePolicy.toolDestination(for: .addToClub(Self.frieren), isGuest: false) else {
+            Issue.record("signed-in add-to-club changed"); return
+        }
+        #expect(mediaId == 154587)
+        #expect(mediaType == "ANIME")
+        #expect(RoutePolicy.journeyPage(for: .signUp(request)) == nil, "the sign-up sheet is a tool, never a page")
+    }
 }

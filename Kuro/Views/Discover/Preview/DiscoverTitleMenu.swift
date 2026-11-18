@@ -66,6 +66,7 @@ private struct DiscoverTitleMenuModifier: ViewModifier {
     @Environment(InteractionTelemetry.self) private var telemetry: InteractionTelemetry?
     @Environment(BannerCenter.self) private var banner: BannerCenter?
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -78,7 +79,7 @@ private struct DiscoverTitleMenuModifier: ViewModifier {
 
     private var offer: DiscoverMenuOffer {
         DiscoverMenuOffer.offer(entry: library.entry(for: key),
-                                signedIn: libraryActions.accountSession.current != nil,
+                                signedIn: libraryActions.accountSession.current != nil || guest?.isGuest == true,
                                 inAClub: !clubs.myClubs.isEmpty)
     }
 
@@ -139,12 +140,17 @@ private struct DiscoverTitleMenuModifier: ViewModifier {
     private func plan() {
         guard !suppressCardTaps else { return }
         KuroAccessibility.impactHaptic(.light)
+        // W5: a guest has no library; Plan opens the sign-up sheet instead.
+        guard GuestGate.allows(.plan(key, title: item.card.media.title), guest: guest, routes: routes) else { return }
         hostFeedback?.noteMenuPlan(key)
         plans.tap(item.card, library: library, actions: libraryActions, routes: routes, german: german)
     }
 
     private func answer(_ feedback: DiscoverFeedback) {
         guard !suppressCardTaps else { return }
+        // W5 (Discover R4/R5 guest exception): the answer teaches Taste, which needs an account, so a
+        // guest's Not interested / Seen it opens the sign-up sheet and is replayed once after sign-up.
+        guard GuestGate.allows(.discoverAnswer(key, feedback, title: item.card.media.title), guest: guest, routes: routes) else { return }
         KuroAccessibility.impactHaptic(.rigid)
         let record = {
             if let hostFeedback {

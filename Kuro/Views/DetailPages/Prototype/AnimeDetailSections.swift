@@ -116,6 +116,7 @@ struct AnimeDetailPage: View {
     /// Optional: fixture hosts may not inject one (then "More like this." stays hidden).
     @Environment(RecommendationsReader.self) private var recommendations: RecommendationsReader?
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
     @Environment(\.kuroFoldMemory) private var folds
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -239,7 +240,7 @@ struct AnimeDetailPage: View {
     }
 
     /// `social_activity_v1`: the server kill switch for notes, reactions and the club roster.
-    private var socialEnabled: Bool { flags.isSocialActivityV1Enabled }
+    private var socialEnabled: Bool { flags.isSocialActivityV1Enabled && guest?.isGuest != true }
 
     private var clubPeople: Int {
         socialEnabled && !clubs.myClubs.isEmpty ? roster.count : 0
@@ -594,6 +595,8 @@ struct AnimeDetailPage: View {
     /// The live dock's heart: saves to Planned, or removes a saved title. Removing asks first when the
     /// entry holds anything beyond a bare plan; the toast then offers Undo.
     private func toggleSaved() {
+        // W5: a guest has no library; the heart opens the sign-up sheet (Plan intent) instead.
+        guard GuestGate.allows(.plan(anime.libraryKey, title: anime.title), guest: guest, routes: routes) else { return }
         let origin = actionScope.capture(session: libraryActions.accountSession)
         guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         if let entry {

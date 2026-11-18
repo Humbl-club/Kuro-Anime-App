@@ -220,6 +220,7 @@ struct DiscoverFrame: View {
     @Environment(SocialActivityStore.self) private var social
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     private var isSaved: Bool { library.isTracked(media.libraryKey) }
 
@@ -294,11 +295,12 @@ struct DiscoverFrameMenu: View {
 
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     var body: some View {
         Button {
             KuroAccessibility.impactHaptic(.light)
-            LibraryViewActions.toggleTracked(media.libraryKey, actions: libraryActions)
+            LibraryViewActions.toggleTracked(media.libraryKey, title: media.title, actions: libraryActions, guest: guest, routes: routes)
         } label: {
             Label(
                 isSaved

@@ -14,7 +14,33 @@ import SwiftUI
 // `IdentityStore` (messages, link progress). The DEBUG-only Genie welcome (`-AuthGenieHero`) is kept
 // as it was, below.
 
+/// How the form starts: the welcome curtain (the auth wall) or straight on the email step (the guest
+/// sign-up sheet, W5).
+enum AuthEntry: Equatable {
+    case welcome
+    case guestSheet(mode: AuthFormRules.Mode)
+}
+
 struct AuthView: View {
+    /// The guest sheet's context (W5): its note line, the dirty-state report and the close control that
+    /// replaces the welcome step's back chevron. All nil on the auth wall.
+    private let entry: AuthEntry
+    private let guestNote: String?
+    private let onDirtyChange: ((Bool) -> Void)?
+    private let onClose: (() -> Void)?
+
+    init(entry: AuthEntry = .welcome, guestNote: String? = nil,
+         onDirtyChange: ((Bool) -> Void)? = nil, onClose: (() -> Void)? = nil) {
+        self.entry = entry
+        self.guestNote = guestNote
+        self.onDirtyChange = onDirtyChange
+        self.onClose = onClose
+        if case .guestSheet(let mode) = entry {
+            _step = State(initialValue: .email)
+            _mode = State(initialValue: mode)
+        }
+    }
+
     @Environment(IdentityStore.self) private var identity
     @Environment(SessionController.self) private var session
     @Environment(DiscoveryStore.self) private var discovery
@@ -82,6 +108,7 @@ struct AuthView: View {
     var body: some View {
         ZStack {
             Color.kuroCanvasPage.ignoresSafeArea()
+                .accessibilityIdentifier(entry == .welcome ? "auth.wall" : "auth.guestSheet")
 
             switch step {
             case .welcome:
@@ -124,6 +151,8 @@ struct AuthView: View {
             takeAuthNotice(identity.authNoticeMessage)
         }
         .onDisappear { revealTask?.cancel() }
+        .onChange(of: email) { _, _ in onDirtyChange?(!email.isEmpty || !password.isEmpty) }
+        .onChange(of: password) { _, _ in onDirtyChange?(!email.isEmpty || !password.isEmpty) }
         .onChange(of: identity.authErrorMessage) { _, newValue in
             takeAuthMessage(newValue)
         }
@@ -338,9 +367,9 @@ struct AuthView: View {
                     HStack {
                         Button {
                             KuroAccessibility.impactHaptic(.light)
-                            goToWelcome()
+                            if let onClose { onClose() } else { goToWelcome() }
                         } label: {
-                            Image(systemName: "chevron.left")
+                            Image(systemName: onClose == nil ? "chevron.left" : "xmark")
                                 .font(.kuroCustom(16, weight: .semibold, relativeTo: .body, maxSize: 24))
                                 .foregroundStyle(Color.kuroInk)
                                 .frame(width: 44, height: 44)
@@ -348,7 +377,8 @@ struct AuthView: View {
                         }
                         .buttonStyle(KuroPressStyle())
                         .disabled(isWorking)
-                        .accessibilityLabel(german ? "Zurück" : "Back")
+                        .accessibilityLabel(onClose == nil ? (german ? "Zurück" : "Back") : (german ? "Schließen" : "Close"))
+                        .accessibilityIdentifier(onClose == nil ? "auth.back" : "guest.signUp.close")
                         Spacer()
                     }
 
@@ -379,6 +409,16 @@ struct AuthView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 6)
                             .modifier(AuthStaggerEnter(revealed: show, delay: 0.10))
+
+                        if let guestNote {
+                            Text(guestNote)
+                                .font(.kuroMeta())
+                                .foregroundStyle(Color.kuroInkSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.top, 10)
+                                .accessibilityIdentifier("guest.signUp.note")
+                                .modifier(AuthStaggerEnter(revealed: show, delay: 0.12))
+                        }
 
                         HStack(spacing: 26) {
                             modeTab(german ? "Anmelden" : "Sign in", selected: mode == .signIn) {

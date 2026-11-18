@@ -42,6 +42,15 @@ enum LibraryViewActions {
         actions.toggleInCollection(mediaId: key.id, mediaType: key.kind.rawValue)
     }
 
+    /// The same toggle for a view that guests can reach (W5): a guest has no library, so the tap opens the
+    /// sign-up sheet instead (Plan intent, finished once after sign-up) and nothing is written.
+    @discardableResult
+    static func toggleTracked(_ key: MediaKey, title: String, actions: LibraryActions,
+                              guest: GuestSession?, routes: KuroRoutes) -> Task<Void, Never>? {
+        guard GuestGate.allows(.plan(key, title: title), guest: guest, routes: routes) else { return nil }
+        return toggleTracked(key, actions: actions)
+    }
+
     /// "+1 EP/CH" (`LibraryActions.incrementProgress`): an absolute progress-only edit of a tracked
     /// title (one past what the projection holds when the tap is handled); no other field is sent.
     /// Untracked titles are left alone.

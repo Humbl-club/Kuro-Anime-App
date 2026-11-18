@@ -92,6 +92,8 @@ enum AppRoute: Identifiable {
     case browse
     /// Any journey page (characters, staff, studios, authors, lane pages): `KuroRoutes.openPage`.
     case page(JourneyPage)
+    /// W5: the guest sign-up tool sheet (`GuestGate`); finishes the pending intent after sign-up.
+    case signUp(GuestSignUpRequest)
 
     /// Kind-prefixed identity: `anime 7` and `manga 7` are different routes, and a title's detail,
     /// tracking editor and add-to-club sheet are three different routes.
@@ -109,6 +111,8 @@ enum AppRoute: Identifiable {
             return "browse"
         case .page(let page):
             return page.id
+        case .signUp(let request):
+            return request.id
         }
     }
 }
@@ -131,6 +135,8 @@ enum RouteDestination {
     case browse
     /// A journey page that is not a title, club or the catalogue (built by `JourneyHost`).
     case journeyPage(JourneyPage)
+    /// `GuestSignUpSheet` (W5).
+    case signUp(GuestSignUpRequest)
 }
 
 /// The routing rules (pure).
@@ -164,6 +170,8 @@ enum RoutePolicy {
             return .addToClub(mediaId: key.id, mediaType: key.kind.rawValue.uppercased())
         case .browse:
             return .browse
+        case .signUp(let request):
+            return .signUp(request)
         case .page(let page):
             switch page {
             case .media(let media): return destination(for: .media(media))
@@ -182,7 +190,22 @@ enum RoutePolicy {
         case .club(let id): return .club(id: id)
         case .browse: return .browse
         case .page(let page): return page
-        case .trackingEditor, .addToClub: return nil
+        case .trackingEditor, .addToClub, .signUp: return nil
+        }
+    }
+
+    /// What a tool's sheet builds. A guest has no library or clubs: the tracking editor and add-to-club
+    /// tools turn into the sign-up sheet that re-opens the title after sign-up (W5). Everyone else gets
+    /// exactly `destination(for:)`.
+    static func toolDestination(for route: AppRoute, isGuest: Bool) -> RouteDestination {
+        guard isGuest else { return destination(for: route) }
+        switch route {
+        case .trackingEditor(let request):
+            return .signUp(GuestSignUpRequest(intent: .openTitle(request.media.libraryKey), mode: .signUp))
+        case .addToClub(let key):
+            return .signUp(GuestSignUpRequest(intent: .openTitle(key), mode: .signUp))
+        default:
+            return destination(for: route)
         }
     }
 }
@@ -199,6 +222,8 @@ struct KuroRoutes {
     var openBrowse: () -> Void
     /// Opens any journey page (pushed inside a journey; a new journey outside one).
     var openPage: (JourneyPage) -> Void
+    /// W5: the guest sign-up sheet.
+    var presentSignUp: (GuestSignUpRequest) -> Void
 
     /// One entry point the routes share.
     init(_ show: @escaping (AppRoute) -> Void) {
@@ -208,6 +233,7 @@ struct KuroRoutes {
         presentAddToClub = { show(.addToClub($0)) }
         openBrowse = { show(.browse) }
         openPage = { show(.page($0)) }
+        presentSignUp = { show(.signUp($0)) }
     }
 
     /// A character's page (appearances).
@@ -245,6 +271,7 @@ extension KuroRoutes {
         routes.presentAddToClub = { if !gate.isSuppressed { base.presentAddToClub($0) } }
         routes.openBrowse = { if !gate.isSuppressed { base.openBrowse() } }
         routes.openPage = { if !gate.isSuppressed { base.openPage($0) } }
+        routes.presentSignUp = { if !gate.isSuppressed { base.presentSignUp($0) } }
         return routes
     }
 }
@@ -353,9 +380,13 @@ struct SlotPresentationView: View {
 /// A tool's sheet content (N7).
 struct ToolDestinationView: View {
     let route: AppRoute
+    /// Optional: previews and fixture hosts that inject no `GuestSession` keep the signed-in behaviour.
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     var body: some View {
-        switch RoutePolicy.destination(for: route) {
+        switch RoutePolicy.toolDestination(for: route, isGuest: guest?.isGuest == true) {
+        case .signUp(let request):
+            GuestSignUpSheet(request: request)
         case .trackingEditor(let media):
             AddToListSheet(media: media, initialStatus: Self.initialStatus(of: route))
         case .addToClub(let mediaId, let mediaType):

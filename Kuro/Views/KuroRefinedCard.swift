@@ -52,6 +52,7 @@ struct KuroCompactCard: View {
     @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     private var mediaType: String {
         media.kind.rawValue
@@ -178,7 +179,7 @@ struct KuroCompactCard: View {
         .contextMenu {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                LibraryViewActions.toggleTracked(media.libraryKey, actions: libraryActions)
+                LibraryViewActions.toggleTracked(media.libraryKey, title: media.title, actions: libraryActions, guest: guest, routes: routes)
             }) {
                 Label(
                     isInCollection ? "Remove from List" : "Quick Add (Planned)",
@@ -221,6 +222,7 @@ struct KuroHeroCard: View {
     @Environment(SocialActivityStore.self) private var social
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     private var mediaType: String {
         media.kind.rawValue
@@ -328,7 +330,7 @@ struct KuroHeroCard: View {
         .contextMenu {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                LibraryViewActions.toggleTracked(media.libraryKey, actions: libraryActions)
+                LibraryViewActions.toggleTracked(media.libraryKey, title: media.title, actions: libraryActions, guest: guest, routes: routes)
             }) {
                 Label(
                     isInCollection ? "Remove from List" : "Quick Add (Planned)",

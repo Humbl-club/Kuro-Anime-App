@@ -895,6 +895,7 @@ struct MangaActionButtons: View {
     @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(\.openURL) private var openURL
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
     @State private var showQuickVerdict = false
     @State private var showProviders = false
     @State private var readLink: ProviderSheetItem? = nil
@@ -1038,6 +1039,8 @@ struct MangaActionButtons: View {
     }
 
     private func toggleSaved(origin: AccountActionScope.Ticket?) {
+        // W5: a guest has no library; the heart opens the sign-up sheet (Plan intent) instead.
+        guard GuestGate.allows(.plan(manga.libraryKey, title: manga.title), guest: guest, routes: routes) else { return }
         guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         let currentlySaved = isSaved
         let key = manga.libraryKey

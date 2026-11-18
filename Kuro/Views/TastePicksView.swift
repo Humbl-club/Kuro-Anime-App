@@ -1519,6 +1519,7 @@ struct TastePlanKey: View {
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
     @Environment(\.tasteGerman) private var germanOverride
     /// The page's Plan controller (`tastePlanHost`); a key outside any host keeps its own, and its
     /// result goes to the app banner instead (no Undo there).
@@ -1551,6 +1552,8 @@ struct TastePlanKey: View {
         Button {
             guard Self.acceptsTap(suppressCardTaps: suppressCardTaps) else { return }
             KuroAccessibility.impactHaptic(.light)
+            // W5: a guest has no library; the Plan key opens the sign-up sheet instead.
+            guard GuestGate.allows(.plan(card.key, title: card.media.title), guest: guest, routes: routes) else { return }
             controller.tap(card, library: library, actions: libraryActions, routes: routes, german: german)
         } label: {
             HStack(spacing: 5) {
