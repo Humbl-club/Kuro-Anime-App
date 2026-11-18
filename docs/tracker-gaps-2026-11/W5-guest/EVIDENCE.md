@@ -20,11 +20,16 @@ path in the app.
   Not interested / Seen it call sites; `AppRoute.signUp` and `RoutePolicy.toolDestination(for:isGuest:)`.
 - Load profile `guest-browse` (5 rps, anonymous, own lane) and its line in `tracker-gaps-combined.js`.
 
-## The allowlist (23 signatures)
+## The allowlist (22 signatures)
 
-19 guest page reads and 4 signed-out infrastructure functions. The sweep removes EXECUTE from PUBLIC and `anon` on
-every other non-extension `public` function, re-grants other roles what they had (snapshot and restore), drops
-Supabase's per-schema anon default, and asserts both at the end (the migration aborts rather than stay open).
+19 guest page reads and 3 signed-out infrastructure functions. The sweep removes EXECUTE from PUBLIC and `anon` on
+every other non-extension `public` function, re-grants `authenticated` and `service_role` only what they held before
+(snapshot and restore; never an explicit grant to authenticator, dashboard_user or supabase_*), drops Supabase's
+per-schema anon default (for `postgres`, and for `supabase_admin` when the migration role may), revokes the
+unguarded service-only `get_provider_availability_refresh_candidates(integer,text,integer,integer)` from
+`authenticated` (Q11; only `scripts/provider_availability_worker.swift` calls it, with the service-role key), and
+asserts anon and role-loss at the end (the migration aborts rather than stay open). Every allowlisted signature
+must resolve or the migration RAISES, except W4's two `search_*_v2`.
 
 | # | Signature | Why anon needs it |
 |---|---|---|
@@ -45,15 +50,17 @@ Supabase's per-schema anon default, and asserts both at the end (the migration a
 | 17 | `staff_voice_roles_v1(integer,integer)` | Staff page |
 | 18-19 | `search_anime_page_v2(...12)`, `search_manga_page_v2(...9)` (W4, prepared 20261118100000) | Search page 1 with the adult notice |
 | 20 | `check_concierge_rate_limit(text,text,integer,integer,integer)` | contact-submit runs its limiter on the ANON client; Edge anonymous parse. Writes a rate-limit counter row |
-| 21 | `get_concierge_config()` | concierge-parse anonymous public parse |
-| 22 | `search_titles(text,text,integer)` | concierge-parse anonymous public parse (SECURITY INVOKER) |
-| 23 | `normalize_title(text)` | pure helper that `search_titles` calls as the invoker |
+| 21 | `search_titles(text,text,integer)` | concierge-parse anonymous public parse (SECURITY INVOKER) |
+| 22 | `normalize_title(text)` | pure helper that `search_titles` calls as the invoker |
 
-Rows 20-23 are a deviation from the plan's 19: they are the signed-out functions the live Edge Functions use with
-the anon key (checked against `supabase/functions/**`), which the plan's sweep would have closed. Row 23 was
+Rows 20-22 are a deviation from the plan's 19: they are the signed-out functions the live Edge Functions use with
+the anon key (checked against `supabase/functions/**`), which the plan's sweep would have closed. Row 22 was
 found by the test, not by reading: `search_titles` is SECURITY INVOKER and calls `normalize_title`, so anon got
 `42501` once the sweep ran. 114 section A2 now checks every INVOKER allowlisted function for callees outside
 the list.
+
+`get_concierge_config()` was removed from the list after review (M1): it is called only for signed-in callers or
+from inside a SECURITY DEFINER function, so anon never needs it.
 
 Already service-role only before this file (`20261108120159_review_security_v1.sql`): `check_email_exists`,
 `rate_limit_hit`. Not on the list and now closed to anon: `catalogue_search_blob_v1`, `catalogue_anime_visible`,
@@ -100,7 +107,16 @@ UI: `GuestBrowsingUITests/testSignedOutLaunchShowsDiscoverNotAuthWall` passes (o
   and the Edge anonymous parse need it. Removing it needs those flows to move to a service-role limiter first.
 - D-W5-T: guests send no telemetry (default built). Conversion measurement needs a privacy-text update first.
 - D-W5-DP: the global PUBLIC default (`alter default privileges ... revoke execute ... from public`) is not
-  changed; a later migration that forgets `revoke ... from public` is caught by 114's exact-set assertion.
+  changed. A later migration that forgets `revoke ... from public` is anon-executable through PUBLIC until it is
+  caught: test 114 only proves the exact-set query sees such a function, it cannot catch a migration it never runs
+  against.
+- ORDER RULE (M2): re-run live audit query 1 (`live-anon-grants.sql`) after EVERY later migration that adds or
+  replaces a public function. Prepared `20261112100401` no longer grants `catalogue_anime_visible` /
+  `catalogue_manga_visible` to anon (authenticated and service_role only; test 125 asserts it).
+- M3: Supabase keeps a default-ACL row for `supabase_admin` as well as `postgres` (live Q5); both grant anon. The
+  migration revokes both when the role may (superuser or member of `supabase_admin`), otherwise it logs a NOTICE
+  and live audit query 3 filters that row and query 3b lists it. Functions created by migrations are owned by
+  `postgres` (live Q1), so the `supabase_admin` row only affects objects created by that role.
 - Release: `guest_browsing_v1` stays at 0 % until the full backend qualification passes (including an owner-approved
   `guest-browse` `--qualify` run), the owner approves applying the migration, and the live audit
   (`live-anon-grants.sql`) returns exactly the allowlist.

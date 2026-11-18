@@ -3,10 +3,13 @@
 -- connection). Nothing here writes. Save the outputs as anon-grants-before.tsv (before applying
 -- 20261118110000_guest_anon_allowlist_v1.sql) and anon-grants-after.tsv (after).
 --
+-- ORDER RULE: re-run query 1 after EVERY later migration that adds or replaces a public function. The global
+-- PUBLIC default is not revoked, so a later function that forgets `revoke all ... from public` is anon-executable.
+--
 -- 1. Every non-extension function in public that anon can EXECUTE.
 --    Before the migration: many rows (every function that kept Supabase's default grant or a PUBLIC grant).
---    After the migration: EXACTLY the 23 allowlist rows below when W4's 20261118100000 is also applied,
---    21 while it is not (search_anime_page_v2 / search_manga_page_v2 absent). Re-run after W4 is applied.
+--    After the migration: EXACTLY the 22 allowlist rows below when W4's 20261118100000 is also applied,
+--    20 while it is not (search_anime_page_v2 / search_manga_page_v2 absent). Re-run after W4 is applied.
 select p.oid::regprocedure::text as fn
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
@@ -15,7 +18,7 @@ where n.nspname = 'public'
   and has_function_privilege('anon', p.oid, 'EXECUTE')
 order by 1;
 
--- The 23 expected rows after the migration (compare the output of query 1 against this list):
+-- The 22 expected rows after the migration (compare the output of query 1 against this list):
 --   anime_cast_v1(integer,text,integer)
 --   browse_anime_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)
 --   browse_manga_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)
@@ -24,7 +27,6 @@ order by 1;
 --   discover_bundle(integer,integer)
 --   discover_mood_v1(text,text,integer,integer)
 --   discover_section_page_v1(text,text,text,text,text,text,integer,integer)
---   get_concierge_config()
 --   get_manga_chapter_status(integer)
 --   get_media_ladder(text,integer)
 --   media_franchise_ids_v1(integer[],integer[])
@@ -50,13 +52,25 @@ where n.nspname = 'public'
               where a.grantee = 0 and a.privilege_type = 'EXECUTE')
 order by 1;
 
--- 3. Default privileges: no per-schema default grants anon EXECUTE on new functions in public
---    (expected after: zero rows).
+-- 3. Default privileges: no per-schema default for the migration owner (postgres) grants anon EXECUTE on new
+--    functions in public (expected after: zero rows). supabase_admin is reported separately in 3b.
 select d.defaclrole::regrole as owner_role, d.defaclobjtype, d.defaclacl
 from pg_default_acl d
 join pg_namespace n on n.oid = d.defaclnamespace
 where n.nspname = 'public'
   and d.defaclobjtype = 'f'
+  and d.defaclrole::regrole::text <> 'supabase_admin'
+  and exists (select 1 from aclexplode(d.defaclacl) a where a.grantee = 'anon'::regrole and a.privilege_type = 'EXECUTE');
+
+-- 3b. The supabase_admin default row (objects created by the dashboard/supabase_admin; live Q5 showed it grants anon).
+--     Expected after: zero rows when the migration role could alter it, otherwise ONE row (owner_role = supabase_admin)
+--     and the migration logged a NOTICE. Harmless for migration-created functions, which postgres owns (live Q1).
+select d.defaclrole::regrole as owner_role, d.defaclobjtype, d.defaclacl
+from pg_default_acl d
+join pg_namespace n on n.oid = d.defaclnamespace
+where n.nspname = 'public'
+  and d.defaclobjtype = 'f'
+  and d.defaclrole::regrole::text = 'supabase_admin'
   and exists (select 1 from aclexplode(d.defaclacl) a where a.grantee = 'anon'::regrole and a.privilege_type = 'EXECUTE');
 
 -- 4. Anonymous catalogue table reads existed before W5 and are unchanged by it (expected: true both before

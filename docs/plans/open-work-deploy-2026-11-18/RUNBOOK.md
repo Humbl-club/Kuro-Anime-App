@@ -35,6 +35,12 @@ scratch `k.py`, same as the 2026-11-10 latency deploy).
 | B7 | Apply `20261112100150_catalogue_publish_v1`; deploy importers/release-intake/mirror-images | comparator gates pass for a group | a field group can switch to Kuro sources |
 | B8 | Apply `20261112100401` then `20261112100500` | app build without AniList-id reads shipped and older builds retired; update `scripts/live/probe_import_workflow_v2.js` | AniList ids leave public reads; newly-added matviews dropped |
 
+**Order rule for the W5 guest allowlist (`20261118110000_guest_anon_allowlist_v1`).** It closes only what exists when it
+runs, and the global PUBLIC default stays open. Re-run live audit query 1
+(`docs/tracker-gaps-2026-11/W5-guest/live-anon-grants.sql`) after EVERY later migration that adds or replaces a public
+function; the expected result is exactly the 22 allowlist rows (20 until W4 `20261118100000` is applied). `20261112100401`
+no longer grants `catalogue_anime_visible` / `catalogue_manga_visible` to anon, so apply it before W5 or re-run query 1 after.
+
 ## C. Outside Supabase
 
 - TestFlight: App Store Connect returns `403 REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`. The account holder accepts the agreement (Business → Agreements); then a new build from `main` (widget-less variant unless the App Group is registered) is archived and uploaded.
