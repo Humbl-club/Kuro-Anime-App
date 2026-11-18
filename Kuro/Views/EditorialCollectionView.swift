@@ -24,6 +24,8 @@ struct EditorialCollectionView: View {
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(HomeStore.self) private var home
     @Environment(FeatureFlags.self) private var flags
+    /// W10: optional, so hosts that do not inject it keep rendering (the section then hides).
+    @Environment(UpNextStore.self) private var upNext: UpNextStore?
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -64,6 +66,14 @@ struct EditorialCollectionView: View {
     }
     private var isImportedView: Bool { collection.importedTitleKeys != nil }
 
+    /// W10: whether "Up next in your series" shows (and loads): Completed view only, outside search,
+    /// selection and the imported-titles view, and only while `collection_up_next_v1` is on.
+    private var upNextShows: Bool {
+        upNext != nil && FolioUpNextPlacement.shows(
+            status: status, isImportedView: isImportedView, isSearching: isSearching || isQueryActive,
+            isSelecting: isSelecting, isEnabled: flags.collectionUpNextV1Enabled)
+    }
+
     private var density: Binding<FolioDensity> {
         medium == .manga ? $mangaDensity : $animeDensity
     }
@@ -82,15 +92,38 @@ struct EditorialCollectionView: View {
 
     /// Every loaded row of the selected medium joined with its Library entry and next release.
     private var loadedItems: [FolioItem] {
-        collection.displayedFeedItems.compactMap { media -> FolioItem? in
-            guard media.kind == medium, let entry = library.entry(for: media.libraryKey) else { return nil }
-            let progress = library.displayedProgress(for: entry.key, server: entry.progress, lifecycleId: entry.lifecycleId)
-            // Only a displayable date (an estimate needs confidence): sort, row and VoiceOver agree.
-            let next = entry.status == .completed || entry.status == .dropped
-                ? nil : releases.nextRelease(for: entry.key).flatMap { $0.isDisplayable ? $0 : nil }
-            return FolioItem(media: media, entry: entry, progress: progress, next: next,
-                             banner: collection.feedBanners[entry.key])
+        let feed = collection.displayedFeedItems.compactMap { media -> FolioItem? in
+            guard media.kind == medium else { return nil }
+            return folioItem(for: media)
         }
+        // W6: reviewed series collapse into one row (display only; never in the imported-titles subset).
+        guard collection.groupsSeasons else { return feed }
+        let loaded = Dictionary(feed.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+        return FolioGrouping.items(
+            feed: feed, index: collection.seriesIndex(medium: medium),
+            member: { key in loaded[key] ?? memberItem(key) },
+            membership: collection.seriesMembershipMap, german: german)
+    }
+
+    /// One item of the list: the catalogue card joined with its Library entry and next release.
+    private func folioItem(for media: Media) -> FolioItem? {
+        guard let entry = library.entry(for: media.libraryKey) else { return nil }
+        let progress = library.displayedProgress(for: entry.key, server: entry.progress, lifecycleId: entry.lifecycleId)
+        // Only a displayable date (an estimate needs confidence): sort, row and VoiceOver agree.
+        let next = entry.status == .completed || entry.status == .dropped
+            ? nil : releases.nextRelease(for: entry.key).flatMap { $0.isDisplayable ? $0 : nil }
+        return FolioItem(media: media, entry: entry, progress: progress, next: next,
+                         banner: collection.feedBanners[entry.key])
+    }
+
+    /// A season of a group that is not on the loaded feed: its hydrated card, or a placeholder (empty title)
+    /// while the card loads.
+    private func memberItem(_ key: MediaKey) -> FolioItem? {
+        let media = collection.memberMedia(key) ?? Media(
+            id: key.id, kind: key.kind, title: "", imageURL: nil, year: "", displayDescription: "", episodes: nil,
+            chapters: nil, rating: nil, genres: nil, statusRaw: nil, formatRaw: nil, popularityValue: nil,
+            trendingValue: nil, createdAtValue: nil)
+        return folioItem(for: media)
     }
 
     /// The rows the list shows: status (Library authority), verdict, search, then sort. A search spans
@@ -103,12 +136,21 @@ struct EditorialCollectionView: View {
                 rows = rows.filter { verdictFilter.includes($0.entry.verdict) }
             }
         }
-        rows = rows.filter { FolioPolicy.matches($0, query: searchText) }
+        rows = rows.filter { FolioGrouping.matches($0, query: searchText) }
         return FolioPolicy.sorted(rows, by: sort)
     }
 
+    /// Strip counts: rows while grouping is on (a count never disagrees with the strip), else entries.
     private var counts: [FolioStatus: Int] {
-        FolioPolicy.counts(library.allEntries, medium: medium)
+        collection.groupsSeasons
+            ? FolioGrouping.rowCounts(collection.seriesRows(medium: medium))
+            : FolioPolicy.counts(library.allEntries, medium: medium)
+    }
+
+    /// W6: the "Group seasons" switch, only when the release switch is on and this medium has a reviewed group.
+    private var groupSeasonsBinding: Binding<Bool>? {
+        guard collection.isSeriesGroupingAvailable, collection.hasSeriesGroups(medium: medium) else { return nil }
+        return Binding(get: { collection.groupSeasonsByAccount }, set: { collection.setGroupsSeasons($0) })
     }
 
     private var unsortedCompleted: Int {
@@ -143,6 +185,13 @@ struct EditorialCollectionView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     header(gutter: gutter, canSelect: !rows.isEmpty)
+                    if upNextShows {
+                        FolioUpNextSection(medium: medium, gutter: gutter, width: width,
+                                           onPlanned: { upNextPlanned($0) },
+                                           onDismissed: { upNextDismissed($0) },
+                                           onPlanFailed: { show(FolioUpNextNotices.failed(german: german)) })
+                            .padding(.top, KuroDesignSpacing.md)
+                    }
                     content(rows: rows, width: width, gutter: gutter)
                         .padding(.top, KuroDesignSpacing.md)
                     Color.clear.frame(height: KuroDesignSpacing.xl)
@@ -217,6 +266,12 @@ struct EditorialCollectionView: View {
             await reload()
             await releases.loadSchedule()
         }
+        // W10: loads only while the section can show (never on a Watching landing or with the switch off);
+        // a new account or medium loads again.
+        .task(id: "\(upNextShows)|\(medium.rawValue)|\(collection.accountSession.current?.generation ?? -1)") {
+            guard upNextShows else { return }
+            await upNext?.load(medium)
+        }
         .onChange(of: collection.requestedListFilter) { _, request in
             guard request != nil, let request = collection.consumeListRequest() else { return }
             apply(request)
@@ -268,6 +323,18 @@ struct EditorialCollectionView: View {
         .onChange(of: sort) { _, value in
             if value != .recent { Task { await loadAllForLocalOrdering() } }
         }
+        // W6: a page mounted before the bootstrap Library read prepared with no keys; prepare again once it
+        // loaded (keys already checked cost no request; nothing at all while the release switch is off).
+        .onChange(of: library.loadState) { _, state in
+            guard state == .loaded else { return }
+            Task { await prepareSeriesGrouping() }
+        }
+    }
+
+    private func prepareSeriesGrouping() async {
+        guard !isImportedView else { return }
+        let loadedFeed = Set(collection.displayedFeedItems.map { MediaKey(kind: $0.kind, id: $0.id) })
+        await collection.prepareSeriesGrouping(medium: medium, loadedFeed: loadedFeed)
     }
 
     // MARK: Header
@@ -313,7 +380,8 @@ struct EditorialCollectionView: View {
                 canSelect: canSelect,
                 onToggleSearch: toggleSearch,
                 onToggleSelect: toggleSelect,
-                gutter: gutter
+                gutter: gutter,
+                groupSeasons: groupSeasonsBinding
             )
 
             if isSearching {
@@ -520,7 +588,10 @@ struct EditorialCollectionView: View {
         await collection.fetchCollectionFeed(status: feedStatus)
         guard collection.accountSession.isCurrent(context) else { return }
         if sort != .recent || isQueryActive { await loadAllForLocalOrdering() }
+        await prepareSeriesGrouping()
+        guard collection.accountSession.isCurrent(context) else { return }
         if refreshLibrary { await releases.loadSchedule(force: true) }
+        if refreshLibrary, upNextShows { await upNext?.load(medium, force: true) }
     }
 
     /// Title/score/date sorts and search need the whole list: read the remaining pages (bounded at
@@ -560,6 +631,9 @@ struct EditorialCollectionView: View {
     // MARK: Progress
 
     private func keyPhase(_ item: FolioItem) -> FolioKeyPhase? {
+        // A group row's +1 targets its display season with that season's own total; unknown total or no
+        // active season: no key on the row.
+        if let group = item.group, FolioGrouping.advanceRequest(group: group) == nil { return nil }
         let entry = item.entry
         let unit = library.displayedUnitId(for: entry.key, serverUnitId: entry.unitId, lifecycleId: entry.lifecycleId)
         let label = library.displayedProgressLabel(for: entry.key, serverLabel: entry.progressLabel, lifecycleId: entry.lifecycleId)
@@ -618,9 +692,39 @@ struct EditorialCollectionView: View {
     }
 
     private func performNoticeAction() {
-        guard notice?.actionTitle != nil else { return }
+        guard let current = notice, current.actionTitle != nil else { return }
         hideNotice()
-        undoLastAdvance()
+        switch current.undo {
+        case .upNextPlan(let receipt)?:
+            undoUpNextPlan(receipt)
+        case .upNextDismiss(let receipt)?:
+            _ = upNext?.undoDismiss(receipt)
+        case .advance?, nil:
+            undoLastAdvance()
+        }
+    }
+
+    // MARK: Up next (W10)
+
+    private func upNextPlanned(_ receipt: UpNextPlanReceipt) {
+        guard activeAccount != nil else { return }
+        if receipt.offersUndo { KuroAccessibility.successHaptic() }
+        show(FolioUpNextNotices.planned(receipt, german: german), seconds: receipt.offersUndo ? 5 : 3)
+    }
+
+    private func upNextDismissed(_ receipt: DiscoverFeedbackReceipt) {
+        guard activeAccount != nil else { return }
+        show(FolioUpNextNotices.dismissed(receipt, german: german), seconds: 5)
+    }
+
+    /// Undo of a Plan removes only the entry that Plan created and nobody changed since; a refusal says so.
+    private func undoUpNextPlan(_ receipt: UpNextPlanReceipt) {
+        guard let upNext, let context = activeAccount else { return }
+        Task {
+            let undone = await upNext.undoPlan(receipt)
+            guard collection.accountSession.isCurrent(context) else { return }
+            if !undone { show(FolioUpNextNotices.failed(german: german)) }
+        }
     }
 
     /// Guarded Undo through the owner: the receipt's own path (the durable outbox's cancel/compensate,
@@ -654,7 +758,8 @@ struct EditorialCollectionView: View {
     }
 
     private func selectedItemKeys() -> [MediaKey] {
-        loadedItems.filter { selectedKeys.contains($0.id) }.map(\.key)
+        // Looks inside groups: a selected season of a group is a member row, not an item of the list.
+        FolioGrouping.selectedKeys(items: loadedItems, selected: selectedKeys)
     }
 
     private func batchChangeStatus(_ target: FolioStatus) async {

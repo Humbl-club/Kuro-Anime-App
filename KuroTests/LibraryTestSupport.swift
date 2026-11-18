@@ -38,10 +38,23 @@ final class FakeLibraryBackend: LibraryBackend {
     /// When set, each write waits until the test completes the label `<kind>-<id>`; a failure
     /// completion makes the write fail with that error.
     let writeGate: ControlledResponses<Bool>?
+    /// Models the server's revision fence: with `fence` on, an insert stamps a fresh `lifecycleId` and
+    /// `revision = 1`, and every edit increments `revision`. Off (the default) leaves both nil.
+    let fence: Bool
 
-    init(fetchSource: ControlledResponses<[LibraryEntry]>? = nil, writeGate: ControlledResponses<Bool>? = nil) {
+    init(fetchSource: ControlledResponses<[LibraryEntry]>? = nil, writeGate: ControlledResponses<Bool>? = nil,
+         fence: Bool = false) {
         self.fetchSource = fetchSource
         self.writeGate = writeGate
+        self.fence = fence
+    }
+
+    private func stamped(_ entry: LibraryEntry) -> LibraryEntry {
+        guard fence else { return entry }
+        var copy = entry
+        copy.lifecycleId = UUID()
+        copy.revision = 1
+        return copy
     }
 
     var calls: [Call] { state.withLock { $0.calls } }
@@ -109,12 +122,13 @@ final class FakeLibraryBackend: LibraryBackend {
             let user = account.userId.lowercased()
             if var entry = state.rows[user]?[key] {
                 Self.apply(edit, to: &entry)
+                if fence { entry.revision = (entry.revision ?? 0) + 1 }
                 state.rows[user, default: [:]][key] = entry
                 return LibraryWriteResult(entry: entry, created: false)
             }
             guard let createIfMissing else { throw LibraryError.notFound }
             state.nextRowId += 1
-            var entry = Self.entry(key.kind, key.id, rowId: state.nextRowId, status: createIfMissing)
+            var entry = stamped(Self.entry(key.kind, key.id, rowId: state.nextRowId, status: createIfMissing))
             Self.apply(edit, to: &entry)
             state.rows[user, default: [:]][key] = entry
             return LibraryWriteResult(entry: entry, created: true)
@@ -129,7 +143,7 @@ final class FakeLibraryBackend: LibraryBackend {
                 return LibraryWriteResult(entry: existing, created: false)
             }
             state.nextRowId += 1
-            let entry = Self.entry(key.kind, key.id, rowId: state.nextRowId, status: status)
+            let entry = stamped(Self.entry(key.kind, key.id, rowId: state.nextRowId, status: status))
             state.rows[user, default: [:]][key] = entry
             return LibraryWriteResult(entry: entry, created: true)
         }

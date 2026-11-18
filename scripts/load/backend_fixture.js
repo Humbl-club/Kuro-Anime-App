@@ -180,6 +180,23 @@ async function manage(
         save();
       }
     }
+    // W6: titles with reviewed series membership (read-only public GET, service key as for the media
+    // lists above). Empty until membership is published; the collection-series-membership profile
+    // refuses a qualify run while it is empty. A failed read leaves it empty and never aborts setup.
+    if (!Array.isArray(f.media.seriesMemberIds)) {
+      let ids = [];
+      try {
+        const rows = await call(
+          "/rest/v1/series_entry_spans?select=anime_id&medium=eq.anime&anime_id=not.is.null" +
+            "&order=anime_id&limit=300",
+          undefined,
+          { method: "GET" },
+        );
+        if (Array.isArray(rows)) ids = [...new Set(rows.map((x) => x.anime_id).filter(Number.isInteger))];
+      } catch {}
+      f.media.seriesMemberIds = ids;
+      save();
+    }
     for (let i = 0; i < accounts; i++) {
       let a = f.accounts[i];
       if (a?.deleted) throw new Error("A cleaned fixture cannot be reused");

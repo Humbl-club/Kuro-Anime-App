@@ -3,3 +3,5 @@
 W2-export.feature
 W4-adult-notice.feature
 W3-alerts.feature
+W10-up-next.feature
+W6-grouping.feature

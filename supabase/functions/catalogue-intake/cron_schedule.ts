@@ -7,7 +7,7 @@
 export type CronJob = {
   name: string;
   schedule: string;
-  handler: "wikidata" | "ann" | "mangaupdates" | "pageviews" | "compose" | "publish";
+  handler: "wikidata" | "ann" | "mangaupdates" | "mangaupdates_new" | "pageviews" | "compose" | "publish" | "create";
   medium: "anime" | "manga";
   /** Extra payload fields (timeBudgetMs etc.). */
   extra?: Record<string, unknown>;
@@ -39,6 +39,14 @@ export const CRON_JOBS: readonly CronJob[] = [
   { name: "catalogue-intake-mangaupdates-a", schedule: "*/2 0-2,5-23 * * *", handler: "mangaupdates", medium: "manga" },
   { name: "catalogue-intake-mangaupdates-b", schedule: "0-28/2 3 * * *", handler: "mangaupdates", medium: "manga" },
   { name: "catalogue-intake-mangaupdates-c", schedule: "22-58/2 4 * * *", handler: "mangaupdates", medium: "manga" },
+  // MangaUpdates new series (Task 15c): twice an hour on ODD minutes, so it never shares a minute with the matcher (even
+  // minutes, each run ends within 50 s) and never runs in 03:30-04:20 (release-intake): :07 and :37 except 03:37 and 04:07.
+  { name: "catalogue-intake-mangaupdates-new-a", schedule: "7,37 0-2,5-23 * * *", handler: "mangaupdates_new", medium: "manga" },
+  { name: "catalogue-intake-mangaupdates-new-b", schedule: "7 3 * * *", handler: "mangaupdates_new", medium: "manga" },
+  { name: "catalogue-intake-mangaupdates-new-c", schedule: "37 4 * * *", handler: "mangaupdates_new", medium: "manga" },
+  // create (Task 15c), manga, REPORT mode (the payload has no mode, so the default applies; insert mode is the separate,
+  // owner-approved Task 17 Step 2b change). DB only, no source request: it reads the records mangaupdates_new stored.
+  { name: "catalogue-intake-create-manga", schedule: "20 * * * *", handler: "create", medium: "manga" },
   // Pageviews: about 200 serial calls per 50 s run. Initial pass: both media every 10 min (offset 5 min),
   // i.e. one run every 5 min. Refresh: Sunday 00:00-12:00 on the same grid.
   { name: "catalogue-intake-pageviews-anime-initial", schedule: "0-50/10 * * * *", handler: "pageviews", medium: "anime", phase: "initial" },

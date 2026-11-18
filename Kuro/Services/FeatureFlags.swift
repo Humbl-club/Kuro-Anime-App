@@ -62,9 +62,17 @@ final class FeatureFlags {
     var libraryExportV1Enabled: Bool { evaluate("library_export_v1") }
     /// F2: a status change fills an empty start/finish date. Absent `feature_flags` row = off (0 %).
     var libraryDateAutofillV1Enabled: Bool { evaluate("library_date_autofill_v1") }
+    /// W10: Collection's Completed view lists "Up next in your series" (the owner's own check before any request).
+    var collectionUpNextV1Enabled: Bool { evaluate("collection_up_next_v1") }
+    /// W6: Collection shows one row per reviewed series. Default off (0 %); checked before any membership or card request.
+    var collectionSeriesGroupingV1Enabled: Bool { evaluate("collection_series_grouping_v1") }
     var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
     /// W4: Search asks `search_*_page_v2` for the hidden 18+ count and shows one plain line (off by default).
     var searchAdultNoticeV1Enabled: Bool { evaluate("search_adult_notice_v1") }
+    /// Catalogue Task 16: detail reads name `data_sources` and title pages show the source credit. Off by default
+    /// (absent row = off). Raise it only after prepared migration 20261112100000 is applied: until then the column
+    /// does not exist and every detail read would fail.
+    var catalogueSourceCreditV1Enabled: Bool { evaluate("catalogue_source_credit_v1") }
 
     // MARK: - Init
 

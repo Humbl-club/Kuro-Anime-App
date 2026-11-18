@@ -176,8 +176,10 @@ struct FolioItem: Identifiable {
     let progress: Int
     let next: ReleaseScheduleItem?
     let banner: String?
+    /// W6: set when this row stands for a reviewed series; the item then wears its display member (the anchor).
+    var group: FolioGroup? = nil
 
-    var id: String { media.stableKey }
+    var id: String { group?.id ?? media.stableKey }
     var key: MediaKey { entry.key }
     var status: FolioStatus { FolioStatus(listStatus: entry.status) }
     var total: Int? { FolioPolicy.total(of: media) }

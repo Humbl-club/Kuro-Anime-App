@@ -25,6 +25,8 @@ final class NavigationContractUITests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments += ["--kuro-fixture-host", "--kuro-skip-auth", "--kuro-nav-fixture",
+                                // Task 16: the source credit renders only while its flag is on.
+                                "--ff-on=catalogue_source_credit_v1",
                                 "--kuro-start=discover", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(level(1).waitForExistence(timeout: 20), "the fixture journey opened on level 1")
@@ -150,6 +152,13 @@ final class NavigationContractUITests: XCTestCase {
         tapScrolling(fixtureButton("navfixture.title"))
         XCTAssertTrue(back.waitForExistence(timeout: 8), "the fixture title is pushed")
         shot("nav-03-detail-pushed")
+        // Task 16: the fixture title carries `data_sources`, so the page's last line names them.
+        let credit = app.staticTexts["detail.sourceCredit"].firstMatch
+        for _ in 0..<12 where !credit.exists { app.swipeUp() }
+        XCTAssertTrue(credit.exists, "the source credit line is present when data_sources is set")
+        XCTAssertTrue(credit.label.hasPrefix("Data: ") || credit.label.hasPrefix("Daten: "), "line reads \(credit.label)")
+        XCTAssertTrue(credit.label.contains("Anime News Network") && credit.label.contains("Wikidata"))
+        for _ in 0..<12 where !back.isHittable { app.swipeDown() }
         edgeSwipe(to: 0.9)
         XCTAssertTrue(back.waitForNonExistence(timeout: 5), "edge swipe-back pops the detail page")
         XCTAssertTrue(level(1).waitForExistence(timeout: 5))

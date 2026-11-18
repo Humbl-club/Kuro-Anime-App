@@ -27,6 +27,7 @@ struct KuroApp: App {
     @State private var availability = AppComposition.shared.availability
     @State private var clubs = AppComposition.shared.clubs
     @State private var collection = AppComposition.shared.collection
+    @State private var upNext = AppComposition.shared.upNext
     @State private var imports = AppComposition.shared.imports
     @State private var concierge = AppComposition.shared.concierge
     @State private var taste = AppComposition.shared.taste
@@ -77,6 +78,7 @@ struct KuroApp: App {
                 .environment(availability)
                 .environment(clubs)
                 .environment(collection)
+                .environment(upNext)
                 .environment(imports)
                 .environment(concierge)
                 .environment(taste)

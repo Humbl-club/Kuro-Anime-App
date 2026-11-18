@@ -40,15 +40,28 @@ enum CatalogColumns {
 
     // MARK: Anime / Manga
 
-    /// Full detail model (`Anime`): every decoded column except the omitted ones.
+    /// The column behind the source credit (catalogue Task 16). It exists only after prepared migration
+    /// 20261112100000 is applied, so it is selected only while `catalogue_source_credit_v1` is on.
+    static let sourceCreditColumn = "data_sources"
+
+    /// Full detail model (`Anime`): every decoded column except the omitted ones and `data_sources`.
     static let animeDetail: [String] = Anime.CodingKeys.allCases
         .map(\.rawValue)
-        .filter { !omittedDetailColumns.contains($0) }
+        .filter { !omittedDetailColumns.contains($0) && $0 != sourceCreditColumn }
 
-    /// Full detail model (`Manga`): every decoded column except the omitted ones.
+    /// Full detail model (`Manga`): every decoded column except the omitted ones and `data_sources`.
     static let mangaDetail: [String] = Manga.CodingKeys.allCases
         .map(\.rawValue)
-        .filter { !omittedDetailColumns.contains($0) }
+        .filter { !omittedDetailColumns.contains($0) && $0 != sourceCreditColumn }
+
+    /// The detail lists a read uses: with `data_sources` only while the source-credit flag is on.
+    static func animeDetail(sourceCredit: Bool) -> [String] {
+        sourceCredit ? animeDetail + [sourceCreditColumn] : animeDetail
+    }
+
+    static func mangaDetail(sourceCredit: Bool) -> [String] {
+        sourceCredit ? mangaDetail + [sourceCreditColumn] : mangaDetail
+    }
 
     /// Card projection of `Anime` for rails ("More like this", next pick): titles, cover, format,
     /// status, counts, year, score, genres (content rules), plus the decoder's required fields.

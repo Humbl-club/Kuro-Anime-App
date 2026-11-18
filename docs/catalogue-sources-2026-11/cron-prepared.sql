@@ -49,6 +49,34 @@ select cron.schedule('catalogue-intake-mangaupdates-c', '22-58/2 4 * * *', forma
     body := %L::jsonb)$cmd$,
   :'project_url', :'service_jwt', :'import_secret', '{"handler":"mangaupdates","medium":"manga"}'));
 
+-- mangaupdates_new manga
+select cron.schedule('catalogue-intake-mangaupdates-new-a', '7,37 0-2,5-23 * * *', format(
+  $cmd$select net.http_post(url := %L || '/functions/v1/catalogue-intake',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || %L, 'x-import-secret', %L),
+    body := %L::jsonb)$cmd$,
+  :'project_url', :'service_jwt', :'import_secret', '{"handler":"mangaupdates_new","medium":"manga"}'));
+
+-- mangaupdates_new manga
+select cron.schedule('catalogue-intake-mangaupdates-new-b', '7 3 * * *', format(
+  $cmd$select net.http_post(url := %L || '/functions/v1/catalogue-intake',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || %L, 'x-import-secret', %L),
+    body := %L::jsonb)$cmd$,
+  :'project_url', :'service_jwt', :'import_secret', '{"handler":"mangaupdates_new","medium":"manga"}'));
+
+-- mangaupdates_new manga
+select cron.schedule('catalogue-intake-mangaupdates-new-c', '37 4 * * *', format(
+  $cmd$select net.http_post(url := %L || '/functions/v1/catalogue-intake',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || %L, 'x-import-secret', %L),
+    body := %L::jsonb)$cmd$,
+  :'project_url', :'service_jwt', :'import_secret', '{"handler":"mangaupdates_new","medium":"manga"}'));
+
+-- create manga
+select cron.schedule('catalogue-intake-create-manga', '20 * * * *', format(
+  $cmd$select net.http_post(url := %L || '/functions/v1/catalogue-intake',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || %L, 'x-import-secret', %L),
+    body := %L::jsonb)$cmd$,
+  :'project_url', :'service_jwt', :'import_secret', '{"handler":"create","medium":"manga"}'));
+
 -- pageviews anime (initial)
 select cron.schedule('catalogue-intake-pageviews-anime-initial', '0-50/10 * * * *', format(
   $cmd$select net.http_post(url := %L || '/functions/v1/catalogue-intake',

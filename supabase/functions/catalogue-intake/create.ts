@@ -3,8 +3,8 @@
 // Candidates
 //   anime  ANN encyclopedia report rows (catalogue_source_records `report:anime`) with no accepted ANN link;
 //   manga  MangaUpdates series records (catalogue_source_records source 'mangaupdates') with no accepted link.
-//          Nothing in this repository fetches MangaUpdates series that are not already linked, so this set is empty
-//          until a recent-series fetch exists (open item in the Task 15c report).
+//          The `mangaupdates_new` handler (mangaupdates_new.ts) stores the full record of every recently added series
+//          Kuro does not hold, so these records are the set of new manga; the matcher handler only fetches linked ones.
 //   Wikidata items carrying ANN/MangaUpdates ids but no Kuro title are not stored by the wikidata handler either
 //   (it queries by Kuro AniList ids), so they are not candidates yet.
 // For each candidate (spec section 3 identity rule, the same thresholds as the ann/mangaupdates matchers):

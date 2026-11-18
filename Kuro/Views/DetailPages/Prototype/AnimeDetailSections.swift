@@ -310,6 +310,10 @@ struct AnimeDetailPage: View {
                             .padding(.top, 12)
                             .transition(.opacity)
                         }
+                        if pending.isEmpty {
+                            DetailSourceCreditLine(sources: anime.dataSources, mediaType: "ANIME", mediaId: anime.id)
+                                .padding(.top, 28)
+                        }
                     }
                     .animation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion), value: pending.isEmpty)
                     .padding(.horizontal, 24)

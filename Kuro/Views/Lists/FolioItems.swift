@@ -44,6 +44,10 @@ enum FolioAccessibility {
         if item.entry.status == .completed, let verdict = item.entry.verdict {
             parts.append(verdict.name(german: german))
         }
+        if let group = item.group {
+            if let label = group.label { parts.append(label) }
+            parts.append(german ? "\(group.members.count) Staffeln" : "\(group.members.count) seasons")
+        }
         return parts.joined(separator: ", ")
     }
 
@@ -69,19 +73,24 @@ private struct FolioContextMenu: ViewModifier {
 
     func body(content: Content) -> some View {
         let german = KuroLocale.isGerman
+        // A group row acts on its display season only, and the menu names it ("Edit S2").
+        let section = item.group?.members.first { $0.item.key == item.key }?.sectionLabel
         content.contextMenu {
             if enabled {
                 Button { actions.open(item) } label: {
                     Label(german ? "Öffnen" : "Open", systemImage: "arrow.up.right")
                 }
                 Button { actions.edit(item) } label: {
-                    Label(german ? "Eintrag bearbeiten" : "Edit entry", systemImage: "slider.horizontal.3")
+                    Label(section.map { FolioGroupCopy.menuEdit(section: $0, german: german) }
+                          ?? (german ? "Eintrag bearbeiten" : "Edit entry"), systemImage: "slider.horizontal.3")
                 }
                 Button { actions.classify(item) } label: {
-                    Label(german ? "Schnell einordnen" : "Quick classify", systemImage: "tag")
+                    Label(section.map { FolioGroupCopy.menuClassify(section: $0, german: german) }
+                          ?? (german ? "Schnell einordnen" : "Quick classify"), systemImage: "tag")
                 }
                 Button(role: .destructive) { actions.remove(item) } label: {
-                    Label(german ? "Aus der Liste entfernen" : "Remove from list", systemImage: "trash")
+                    Label(section.map { FolioGroupCopy.menuRemove(section: $0, german: german) }
+                          ?? (german ? "Aus der Liste entfernen" : "Remove from list"), systemImage: "trash")
                 }
             }
         }
@@ -145,6 +154,7 @@ struct FolioShelf: View {
     let actions: FolioRowActions
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.kuroFoldMemory) private var folds
 
     var body: some View {
         let gutter = FolioPolicy.gutter(forWidth: width)
@@ -153,22 +163,171 @@ struct FolioShelf: View {
         let columns = FolioPolicy.shelfColumns(width: content, medium: medium,
                                                accessibilitySize: dynamicTypeSize.isAccessibilitySize, spacing: spacing)
         let cellWidth = floor((content - spacing * CGFloat(columns - 1)) / CGFloat(columns))
-        LazyVGrid(columns: Array(repeating: GridItem(.fixed(max(1, cellWidth)), spacing: spacing, alignment: .top), count: columns),
-                  alignment: .leading, spacing: medium == .manga ? 20 : 24) {
-            ForEach(items) { item in
-                Group {
-                    if medium == .manga {
-                        FolioCoverCell(item: item, width: cellWidth, isSelecting: isSelecting,
-                                       isSelected: selectedKeys.contains(item.id), actions: actions)
-                    } else {
-                        FolioSceneCell(item: item, width: cellWidth, isSelecting: isSelecting,
-                                       isSelected: selectedKeys.contains(item.id), actions: actions)
+        let gridColumns = Array(repeating: GridItem(.fixed(max(1, cellWidth)), spacing: spacing, alignment: .top), count: columns)
+        let rowSpacing: CGFloat = medium == .manga ? 20 : 24
+        let byId = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let expanded = Set(items.compactMap { item in
+            item.group.flatMap { FolioGroupFold.isOpen($0, isSelecting: isSelecting, folds: folds) ? $0.id : nil }
+        })
+        // Manga: an expanded group's seasons are a full-width band after its grid row. Anime scenes are one
+        // column, so the band sits directly under the cell.
+        let chunks = medium == .manga
+            ? FolioShelfChunks.split(ids: items.map(\.id), columns: columns, expanded: expanded)
+            : [.grid(items.map(\.id))]
+        VStack(alignment: .leading, spacing: rowSpacing) {
+            ForEach(Array(chunks.enumerated()), id: \.offset) { _, chunk in
+                switch chunk {
+                case .grid(let ids):
+                    LazyVGrid(columns: gridColumns, alignment: .leading, spacing: rowSpacing) {
+                        ForEach(ids.compactMap { byId[$0] }) { item in
+                            VStack(alignment: .leading, spacing: 0) {
+                                Group {
+                                    if medium == .manga {
+                                        FolioCoverCell(item: item, width: cellWidth, isSelecting: isSelecting,
+                                                       isSelected: selectedKeys.contains(item.id), actions: actions)
+                                    } else {
+                                        FolioSceneCell(item: item, width: cellWidth, isSelecting: isSelecting,
+                                                       isSelected: selectedKeys.contains(item.id), actions: actions)
+                                    }
+                                }
+                                .modifier(FolioContextMenu(item: item, actions: actions, enabled: !isSelecting))
+                                if let group = item.group, !isSelecting {
+                                    FolioGroupToggle(group: group)
+                                }
+                                if medium == .anime, let group = item.group, FolioGroupFold.isOpen(group, isSelecting: isSelecting, folds: folds) {
+                                    FolioGroupMembers(group: group, isSelecting: isSelecting, selectedKeys: selectedKeys,
+                                                      actions: actions, inset: 0)
+                                }
+                            }
+                        }
+                    }
+                case .band(let id):
+                    if let group = byId[id]?.group {
+                        FolioGroupMembers(group: group, isSelecting: isSelecting, selectedKeys: selectedKeys,
+                                          actions: actions, inset: 0)
                     }
                 }
-                .modifier(FolioContextMenu(item: item, actions: actions, enabled: !isSelecting))
             }
         }
         .padding(.horizontal, gutter)
+    }
+}
+
+// MARK: - Group seasons (W6)
+
+/// Whether a group's seasons are showing: open in the session fold memory, or always in select mode.
+enum FolioGroupFold {
+    @MainActor
+    static func isOpen(_ group: FolioGroup, isSelecting: Bool, folds: KuroFoldMemory) -> Bool {
+        isSelecting || folds.isExpanded(page: FolioGrouping.foldPage, section: FolioGrouping.foldSection(group))
+    }
+}
+
+/// "Show 3 seasons" / "Hide seasons": a real 44 pt fold button (never nested in the row's open button).
+struct FolioGroupToggle: View {
+    let group: FolioGroup
+    var inset: CGFloat = 0
+    @Environment(\.kuroFoldMemory) private var folds
+
+    var body: some View {
+        let german = KuroLocale.isGerman
+        KuroFoldButton(
+            isExpanded: folds.binding(page: FolioGrouping.foldPage, section: FolioGrouping.foldSection(group)),
+            expandLabel: FolioGroupCopy.showSeasons(group.members.count, german: german),
+            collapseLabel: FolioGroupCopy.hideSeasons(german: german))
+            .padding(.leading, inset)
+    }
+}
+
+/// The seasons of an open group: one 56 pt row each with its own status word, position and +1.
+struct FolioGroupMembers: View {
+    let group: FolioGroup
+    let isSelecting: Bool
+    let selectedKeys: Set<String>
+    let actions: FolioRowActions
+    var inset: CGFloat = 52
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(group.members) { member in
+                FolioMemberRow(member: member, isSelecting: isSelecting, isSelected: selectedKeys.contains(member.id),
+                               actions: actions)
+                    .modifier(FolioContextMenu(item: member.item, actions: actions, enabled: !isSelecting))
+            }
+        }
+        .padding(.leading, inset)
+    }
+}
+
+private struct FolioMemberRow: View {
+    let member: FolioMember
+    let isSelecting: Bool
+    let isSelected: Bool
+    let actions: FolioRowActions
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+
+    var body: some View {
+        let german = KuroLocale.isGerman
+        let item = member.item
+        let phase = isSelecting || member.isLoading ? nil : actions.keyPhase(item)
+        HStack(spacing: KuroDesignSpacing.sm) {
+            Button {
+                guard !suppressCardTaps else { return }
+                if isSelecting { actions.toggleSelection(item) } else { actions.open(item) }
+            } label: {
+                HStack(spacing: 10) {
+                    if isSelecting {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.kuroCustom(20, relativeTo: .title3, maxSize: 28))
+                            .foregroundStyle(isSelected ? Color.kuroInk : Color.kuroInkQuiet)
+                            .accessibilityHidden(true)
+                    }
+                    if let label = member.sectionLabel {
+                        Text(label)
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        if member.isLoading {
+                            KuroBusyMark(width: 44)
+                        } else {
+                            Text(item.media.title)
+                                .font(.kuroBody(weight: .medium))
+                                .foregroundStyle(Color.kuroInk)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        let position = FolioPolicy.positionLine(medium: item.media.kind, progress: item.progress,
+                                                                total: item.total, german: german)
+                        Text([item.status.title(medium: item.media.kind, german: german), position]
+                            .compactMap { $0 }.joined(separator: " · "))
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: KuroDesignSpacing.sm)
+                }
+                .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(FolioGroupCopy.memberAccessibility(member, german: german))
+            .accessibilityHint(isSelecting ? "" : (german ? "Öffnet die Details" : "Opens details"))
+            .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+
+            if let phase {
+                KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
+                               accessibilityText: FolioAccessibility.keyLabel(item, phase: phase, german: german)) {
+                    actions.advance(item)
+                }
+            }
+        }
     }
 }
 
@@ -210,7 +369,8 @@ private struct FolioCoverCell: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                let position = FolioPolicy.shelfPositionLine(medium: .manga, progress: item.progress, german: german)
+                let position = item.group?.label
+                    ?? FolioPolicy.shelfPositionLine(medium: .manga, progress: item.progress, german: german)
                 if phase == nil {
                     positionText(position)
                 } else {
@@ -287,7 +447,8 @@ private struct FolioSceneCell: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let position = FolioPolicy.positionLine(medium: .anime, progress: item.progress, total: item.total, german: german) {
+                    if let position = item.group?.label
+                        ?? FolioPolicy.positionLine(medium: .anime, progress: item.progress, total: item.total, german: german) {
                         Text(position)
                             .font(.kuroMeta())
                             .foregroundStyle(Color.kuroInkSecondary)
@@ -336,12 +497,37 @@ struct FolioIndex: View {
                 FolioIndexRow(item: item, isSelecting: isSelecting, isSelected: selectedKeys.contains(item.id), actions: actions)
                     .padding(.horizontal, gutter)
                     .modifier(FolioContextMenu(item: item, actions: actions, enabled: !isSelecting))
+                if let group = item.group {
+                    FolioIndexSeasons(group: group, isSelecting: isSelecting, selectedKeys: selectedKeys,
+                                      actions: actions, gutter: gutter)
+                }
                 Rectangle()
                     .fill(Color.kuroHairline)
                     .frame(height: 0.5)
                     .padding(.leading, gutter + 52)
             }
         }
+    }
+}
+
+/// Under a group row: the fold button and, when open (always in select mode), each season.
+private struct FolioIndexSeasons: View {
+    let group: FolioGroup
+    let isSelecting: Bool
+    let selectedKeys: Set<String>
+    let actions: FolioRowActions
+    let gutter: CGFloat
+    @Environment(\.kuroFoldMemory) private var folds
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if !isSelecting { FolioGroupToggle(group: group, inset: 52) }
+            if FolioGroupFold.isOpen(group, isSelecting: isSelecting, folds: folds) {
+                FolioGroupMembers(group: group, isSelecting: isSelecting, selectedKeys: selectedKeys, actions: actions)
+            }
+        }
+        .padding(.leading, gutter)
+        .padding(.trailing, gutter)
     }
 }
 
@@ -417,7 +603,15 @@ private struct FolioIndexRow: View {
 
     @ViewBuilder
     private var numeralText: some View {
-        if let numeral = FolioPolicy.progressNumeral(progress: item.progress, total: item.total),
+        if let label = item.group?.label {
+            // A group row's numeral slot shows its label ("S2 · 5/12").
+            Text(label)
+                .font(.kuroCustom(17, weight: .regular, relativeTo: .body, maxSize: 30))
+                .tracking(-0.4)
+                .monospacedDigit()
+                .foregroundStyle(Color.kuroInk)
+                .lineLimit(1)
+        } else if let numeral = FolioPolicy.progressNumeral(progress: item.progress, total: item.total),
            item.entry.status != .planning {
             Text(numeral)
                 .font(.kuroCustom(17, weight: .regular, relativeTo: .body, maxSize: 30))

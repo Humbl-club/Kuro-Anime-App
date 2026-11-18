@@ -166,7 +166,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 303 app Swift files, 44 package Swift files and 254 SQL migrations are in the repo today.
+**Current inventory:** 310 app Swift files, 46 package Swift files and 254 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2344,6 +2344,14 @@ All open work now sits in one plan (docs/plans/2026-11-18-open-work-master-plan.
 
 ### 18 November 2026 (later) — More of the plan built (nothing live yet)
 Built and tested on the working branch, nothing switched on: dates and rewatch count in the edit sheet (with several fixes after an independent review so Undo never loses or invents a date), an offer to turn on release alerts right after you save a title you're watching, a quiet "18+ titles hidden" note in Search, and most of the new catalogue pipeline that will replace AniList (reading Wikidata, Anime News Network, MangaUpdates and Wikipedia, combining them carefully, and adding new titles). New titles still need decisions from you (from which year to add titles) and approval to switch things on in production.
+
+### 18 November 2026 (evening) — Second big merge
+The second batch went into the main branch after every test passed (1,259 app tests). It includes the new date and rewatch fields, the release-alert offer and the 18+ note (still off), plus the catalogue groundwork. Since then: an "Up next" list for your Completed titles (off for now), Kuro's own popularity and tag logic for the new catalogue, and the app no longer uses AniList ids anywhere. I also found and fixed a Concierge bug where "isekai" or "harem" requests never got their special boost.
+
+### 18 November 2026 (night) — Grouping seasons, and waiting on permissions
+"One row per series" in your Collection is built (off for now; it also needs someone to review which seasons belong together before it shows anything). New manga can now be found for the new catalogue. The live steps (creating the new catalogue tables, deploying the Concierge fix) were stopped by the permission system; the exact steps are written down in docs/plans/open-work-deploy-2026-11-18/RUNBOOK.md.
+
+
 
 
 

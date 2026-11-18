@@ -1,5 +1,6 @@
 import Foundation
 import KuroCore
+import KuroLibrary
 import Observation
 
 #if canImport(Supabase)
@@ -19,6 +20,10 @@ final class CatalogStore: MemoryPressureTrimmable {
     /// missing, and then every read fails like a transport error (`requiredClient()`).
     private let client: SupabaseClient?
 
+    /// `catalogue_source_credit_v1`, read at call time (composition sets it from the flags). While it is off the
+    /// detail selects do not name `data_sources`, a column that exists only after migration 20261112100000.
+    @ObservationIgnored var sourceCreditEnabled: @MainActor () -> Bool = { false }
+
     init(client: SupabaseClient?) {
         self.client = client
     }
@@ -28,6 +33,12 @@ final class CatalogStore: MemoryPressureTrimmable {
         guard let client else { throw MissingSupabaseConfiguration() }
         return client
     }
+
+    // Reviewed series membership (W6; see CatalogStore+SeriesMembership.swift). Public data: survives
+    // sign-out. `seriesMembershipCheckedAt` also remembers titles without membership (24 h).
+    var seriesMembershipVersion = 0
+    var seriesMembershipStore: [MediaKey: SeriesMembership] = [:]
+    @ObservationIgnored var seriesMembershipCheckedAt: [MediaKey: Date] = [:]
 
     // Detail caches: cards/grids only carry minimal fields; we fetch full details by id on demand.
     var animeDetailCache: [Int: Anime] = [:]
@@ -94,6 +105,7 @@ final class CatalogStore: MemoryPressureTrimmable {
     func trimCachesForMemoryPressure() {
         animeCardCache.removeAll()
         mangaCardCache.removeAll()
+        seriesMembershipCheckedAt.removeAll()   // the small public membership map itself stays
         animeCastCache.removeAll()
         characterVoiceActorsCache.removeAll()
         staffVoiceRolesCache.removeAll()
@@ -132,7 +144,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let rows: [Anime] = try await client
                 .from("anime")
-                .select(CatalogColumns.select(CatalogColumns.animeDetail))
+                .select(CatalogColumns.select(CatalogColumns.animeDetail(sourceCredit: sourceCreditEnabled())))
                 .eq("id", value: animeId)
                 .limit(1)
                 .execute()
@@ -177,7 +189,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let rows: [Manga] = try await client
                 .from("manga")
-                .select(CatalogColumns.select(CatalogColumns.mangaDetail))
+                .select(CatalogColumns.select(CatalogColumns.mangaDetail(sourceCredit: sourceCreditEnabled())))
                 .eq("id", value: mangaId)
                 .limit(1)
                 .execute()

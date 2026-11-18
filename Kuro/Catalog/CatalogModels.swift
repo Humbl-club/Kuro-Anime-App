@@ -72,6 +72,10 @@ struct Anime: Identifiable, Codable {
     // Metadata
     let source: String?                   // MANGA, LIGHT_NOVEL, ORIGINAL, etc.
     let countryOfOrigin: String?
+
+    /// Sources that supplied the published values (`data_sources`, catalogue Task 16). Nil until the
+    /// catalogue publishes it; only the detail select carries it.
+    let dataSources: [String]?
     
     // Timestamps
     let createdAt: Date
@@ -119,6 +123,7 @@ struct Anime: Identifiable, Codable {
         case siteUrl = "site_url"
         case source
         case countryOfOrigin = "country_of_origin"
+        case dataSources = "data_sources"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case lastSyncedAt = "last_synced_at"
@@ -199,6 +204,9 @@ struct Manga: Identifiable, Codable {
     // External
     let siteUrl: String?
 
+    /// Sources that supplied the published values (`data_sources`, catalogue Task 16); detail select only.
+    let dataSources: [String]?
+
     // Timestamps
     let createdAt: Date
     let updatedAt: Date
@@ -229,6 +237,7 @@ struct Manga: Identifiable, Codable {
         case isAdult = "is_adult"
         case ageRating = "age_rating"
         case siteUrl = "site_url"
+        case dataSources = "data_sources"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }

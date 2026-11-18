@@ -68,6 +68,7 @@ final class AppComposition {
     var availability: ProviderAvailabilityStore { graph.availability }
     var clubs: ClubsStore { graph.clubs }
     var collection: CollectionStore { graph.collection }
+    var upNext: UpNextStore { graph.upNext }
     var imports: ImportsService { graph.imports }
     var concierge: ConciergeStore { graph.concierge }
     var taste: TasteStore { graph.taste }
@@ -220,6 +221,7 @@ final class AppComposition {
         )
         let publicData = makePublicData(client: client, accountSession: accountSession, library: wiring.store)
         publicData.search.adultNoticeEnabled = { shell.flags.searchAdultNoticeV1Enabled }
+        publicData.catalog.sourceCreditEnabled = { shell.flags.catalogueSourceCreditV1Enabled }
         let personalData = makePersonalData(
             client: client,
             accountSession: accountSession,
@@ -246,7 +248,8 @@ final class AppComposition {
             malCredentials: malCredentials,
             userDefaults: userDefaults
         )
-        let collection = makeCollection(client: client, accountSession: accountSession)
+        let collection = makeCollection(client: client, accountSession: accountSession, userDefaults: userDefaults,
+                                        groupingEnabled: { shell.flags.collectionSeriesGroupingV1Enabled })
         let support = makeSupport(client: client, accountSession: accountSession)
         // W9 wires its tags and custom-lists providers into `libraryExportSeams` (tagsByKey / customLists) here.
         let libraryExport = makeLibraryExport(
@@ -288,9 +291,13 @@ final class AppComposition {
             reloader: widgetReloader,
             thumbnails: widgetThumbnails
         )
+        // W10: built once over the one client; reads `collection_up_next_v1` at call time.
+        let upNext = UpNextStore(client: client, accountSession: accountSession, library: wiring.store,
+                                 actions: libraryActions, taste: assistant.taste, flags: shell.flags)
         clubs.home = home
         collection.home = home
         collection.library = wiring.store
+        collection.catalog = publicData.catalog
         assistant.libraryHook.connect(to: libraryActions)
 
         let identity = IdentityStore(configError: client == nil ? configError : nil)
@@ -323,6 +330,7 @@ final class AppComposition {
                 libraryActions: libraryActions,
                 home: home,
                 collection: collection,
+                upNext: upNext,
                 publicData: publicData,
                 personalData: personalData,
                 clubs: clubs,
@@ -353,6 +361,7 @@ final class AppComposition {
             availability: personalData.availability,
             clubs: clubs,
             collection: collection,
+            upNext: upNext,
             imports: assistant.imports,
             concierge: assistant.concierge,
             taste: assistant.taste,
@@ -434,6 +443,7 @@ final class AppComposition {
         libraryActions: LibraryActions,
         home: HomeStore,
         collection: CollectionStore,
+        upNext: UpNextStore,
         publicData: PublicDataOwners,
         personalData: PersonalDataOwners,
         clubs: ClubsStore,
@@ -443,7 +453,7 @@ final class AppComposition {
         widgets: WidgetSnapshotWriter,
         shell: ShellOwners
     ) -> [any AccountScopedState] {
-        [libraryActions, home, collection] + publicData.accountScopedStates
+        [libraryActions, home, collection, upNext] + publicData.accountScopedStates
             + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates
             + [support, libraryExport, widgets]
             + [shell.songPreview, shell.interactionTelemetry]
@@ -605,8 +615,14 @@ final class AppComposition {
     /// The Collection owner over `client` (the single SDK client; never a second one): the account's
     /// card pages and feed (account-scoped). The Collection change sink points at it once it exists
     /// (`LibraryChangeSinks.connect(releases:collection:imports:clubs:)`).
-    static func makeCollection(client: SupabaseClient?, accountSession: AccountSessionCoordinator) -> CollectionStore {
-        CollectionStore(client: client, accountSession: accountSession)
+    static func makeCollection(
+        client: SupabaseClient?,
+        accountSession: AccountSessionCoordinator,
+        userDefaults: UserDefaults = .standard,
+        groupingEnabled: @escaping @MainActor () -> Bool = { false }
+    ) -> CollectionStore {
+        CollectionStore(client: client, accountSession: accountSession,
+                        userDefaults: userDefaults, groupingEnabled: groupingEnabled)
     }
 
     /// The public-data owners over `client` (the single SDK client; never a second one).
@@ -725,6 +741,8 @@ struct AppGraph {
     let availability: ProviderAvailabilityStore
     let clubs: ClubsStore
     let collection: CollectionStore
+    /// W10: "Up next in your series" (Collection's Completed view; account-scoped, behind `collection_up_next_v1`).
+    let upNext: UpNextStore
     let imports: ImportsService
     let concierge: ConciergeStore
     let taste: TasteStore
