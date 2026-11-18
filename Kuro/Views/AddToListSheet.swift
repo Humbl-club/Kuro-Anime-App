@@ -14,6 +14,8 @@ struct AddToListSheet: View {
     /// The status a title that is not on the list starts at (`TrackingEditorRequest.initialStatus`).
     /// The baseline stays the plain Planned draft, so a preset counts as unsaved input (N7 guard).
     var initialStatus: ListStatus? = nil
+    /// Test seam: renders the editor in one language regardless of the device (nil = the device language).
+    var forcedGerman: Bool? = nil
     /// Status, progress, score (1...10, 0 = unrated) and notes as the editor shows them.
     @State private var draft = TrackingDraft(entry: nil)
     /// The draft as the editor was filled: anything else is unsaved input (N7).
@@ -42,7 +44,12 @@ struct AddToListSheet: View {
         (draft.status == .current || draft.status == .completed || draft.status == .repeating) && maxProgress > 0
     }
 
-    private var german: Bool { KuroLocale.isGerman }
+    private var german: Bool { forcedGerman ?? KuroLocale.isGerman }
+
+    /// The repeat count shows for a finished or repeated title, or whenever it already holds a value.
+    private var showsRepeat: Bool {
+        draft.status == .completed || draft.status == .repeating || draft.repeatCount > 0
+    }
 
     private var progressUnitLabel: String {
         switch (mediaType == "manga", german) {
@@ -126,6 +133,18 @@ struct AddToListSheet: View {
 
                     EditorialLayout.divider()
                         .padding(.horizontal, KuroSpacing.lg)
+
+                    SpreadDatesSection(startedOn: $draft.startedOn, finishedOn: $draft.finishedOn, german: german)
+
+                    EditorialLayout.divider()
+                        .padding(.horizontal, KuroSpacing.lg)
+
+                    if showsRepeat {
+                        SpreadRepeatSection(count: $draft.repeatCount, medium: media.kind, german: german)
+
+                        EditorialLayout.divider()
+                            .padding(.horizontal, KuroSpacing.lg)
+                    }
 
                     SpreadNotesSection(notes: $draft.notes, german: german)
 
@@ -505,6 +524,100 @@ private struct SpreadScoreSection: View {
             @unknown default: break
             }
         }
+    }
+}
+
+// MARK: - Dates Section
+
+/// Started / Finished: two rows; tapping one expands an inline picker (never a sheet over the sheet).
+private struct SpreadDatesSection: View {
+    @Binding var startedOn: PartialDate?
+    @Binding var finishedOn: PartialDate?
+    let german: Bool
+    private enum Field { case started, finished }
+    @State private var expanded: Field?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            row(.started, title: TrackingDateCopy.started(german: german), value: $startedOn)
+            EditorialLayout.divider()
+            row(.finished, title: TrackingDateCopy.finished(german: german), value: $finishedOn)
+        }
+        .padding(.horizontal, KuroSpacing.lg)
+        .padding(.vertical, KuroSpacing.sm)
+    }
+
+    private func row(_ field: Field, title: String, value: Binding<PartialDate?>) -> some View {
+        VStack(spacing: KuroSpacing.sm) {
+            Button {
+                withAnimation(KuroAnimation.fast) { expanded = expanded == field ? nil : field }
+                KuroAccessibility.impactHaptic(.light)
+            } label: {
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        Text(title).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                        Spacer(minLength: KuroSpacing.md)
+                        valueText(value.wrappedValue)
+                    }
+                    VStack(alignment: .leading, spacing: KuroSpacing.xs) {
+                        Text(title).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                        valueText(value.wrappedValue)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(TrackingDateCopy.rowLabel(title, value.wrappedValue, german: german))
+            .accessibilityAddTraits(expanded == field ? [.isSelected] : [])
+
+            if expanded == field {
+                PartialDatePicker(value: value, label: title, german: german)
+                if value.wrappedValue != nil {
+                    Button {
+                        value.wrappedValue = nil
+                        KuroAccessibility.impactHaptic(.light)
+                    } label: {
+                        Text(TrackingDateCopy.clear(german: german))
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .overlay(Capsule().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(KuroPressStyle())
+                }
+            }
+        }
+    }
+
+    private func valueText(_ date: PartialDate?) -> some View {
+        Text(date.map { TrackingDateCopy.display($0, german: german) } ?? TrackingDateCopy.noDate(german: german))
+            .font(.kuroMeta())
+            .foregroundStyle(date == nil ? Color.kuroInkQuiet : Color.kuroInkSecondary)
+            .multilineTextAlignment(.trailing)
+    }
+}
+
+// MARK: - Repeat Section
+
+private struct SpreadRepeatSection: View {
+    @Binding var count: Int
+    let medium: MediaKind
+    let german: Bool
+
+    var body: some View {
+        let label = TrackingDateCopy.repeatCount(count, medium: medium, german: german)
+        Stepper(value: $count, in: 0...LibraryEdit.maxRepeatCount) {
+            Text(label)
+                .font(.kuroTitle())
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityLabel(label)
+        .padding(.horizontal, KuroSpacing.lg)
+        .padding(.vertical, KuroSpacing.md)
+        .frame(minHeight: 44)
     }
 }
 

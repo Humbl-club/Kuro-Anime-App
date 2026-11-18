@@ -16,6 +16,10 @@ import KuroLibrary
 ///   never sent and never clears.
 /// - Notes are trimmed; an empty note clears the note the entry had, otherwise stays unsent.
 /// - The verdict is never part of this edit.
+/// - The repeat count and the started / finished dates are sent only when they differ by value from the
+///   entry the editor was filled from. A date the entry had and the user emptied is a deliberate clear; an
+///   untouched date (also an imported one the editor cannot parse, or one whose server value was never
+///   read) is never sent, so it can never be rewritten or blanked.
 struct TrackingDraft: Equatable {
     var status: ListStatus
     var progress: Int
@@ -26,6 +30,16 @@ struct TrackingDraft: Equatable {
     /// title was not tracked): emptying one of them is a deliberate clear.
     let originalRating: UserRating?
     let originalNotes: String?
+    /// Extra watches or reads (`0...999`).
+    var repeatCount: Int
+    var startedOn: PartialDate?
+    var finishedOn: PartialDate?
+    let originalRepeatCount: Int
+    let originalStartedOn: PartialDate?
+    let originalFinishedOn: PartialDate?
+    /// `false` for a cached row whose repeat count and dates the server never confirmed: the editor shows
+    /// them empty but never sends them unless the user changes them.
+    let datesKnown: Bool
 
     /// A draft filled from `entry`; a title that is not tracked starts as Planned with nothing set,
     /// or at `initialStatus` when the caller preset one (Discover "Add as Completed ›"). An entry's own
@@ -37,6 +51,13 @@ struct TrackingDraft: Equatable {
         notes = entry?.notes ?? ""
         originalRating = entry?.rating
         originalNotes = entry?.notes
+        repeatCount = entry?.repeatCount ?? 0
+        startedOn = entry?.startedOn
+        finishedOn = entry?.finishedOn
+        originalRepeatCount = entry?.repeatCount ?? 0
+        originalStartedOn = entry?.startedOn
+        originalFinishedOn = entry?.finishedOn
+        datesKnown = entry?.datesKnown ?? true
     }
 
     /// The status a missing entry is created with.
@@ -51,6 +72,9 @@ struct TrackingDraft: Equatable {
             || score != baseline.score
             || notes.trimmingCharacters(in: .whitespacesAndNewlines)
                 != baseline.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            || repeatCount != baseline.repeatCount
+            || startedOn != baseline.startedOn
+            || finishedOn != baseline.finishedOn
     }
 
     /// The progress a save writes. `maxProgress` is the known episode/chapter total (0 = unknown).
@@ -68,8 +92,19 @@ struct TrackingDraft: Equatable {
             progress: .set(resolvedProgress(maxProgress: maxProgress)),
             rating: ratingChange,
             notes: notesChange,
-            verdict: .unchanged
+            verdict: .unchanged,
+            repeatCount: repeatCount == originalRepeatCount ? .unchanged
+                : .set(min(max(0, repeatCount), LibraryEdit.maxRepeatCount)),
+            startedOn: dateChange(startedOn, original: originalStartedOn),
+            finishedOn: dateChange(finishedOn, original: originalFinishedOn)
         )
+    }
+
+    /// By value: an unchanged date is not sent; a new one is set; one the entry had and the user emptied is
+    /// cleared. When the original is nil (none, unparseable, or unknown) an empty date is never a clear.
+    private func dateChange(_ value: PartialDate?, original: PartialDate?) -> FieldChange<PartialDate> {
+        if value == original { return .unchanged }
+        return value.map { .set($0) } ?? .clear
     }
 
     private var ratingChange: FieldChange<UserRating> {

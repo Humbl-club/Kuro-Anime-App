@@ -171,6 +171,91 @@ struct TrackingDraftTests {
         #expect(stored.verdict == .okay)
         #expect(library.entry(for: Self.key)?.verdict == .okay)
     }
+
+    // MARK: Repeat count and dates (F2.4)
+
+    private static func date(_ raw: String) throws -> PartialDate {
+        try #require(PartialDate(raw: raw))
+    }
+
+    private static func datedEntry(
+        started: String? = "2024-00-00", finished: String? = "2024-07-14", repeatCount: Int = 1
+    ) -> LibraryEntry {
+        var entry = Self.entry(status: .completed, progress: 12)
+        entry.sourceMetadata = LibrarySourceMetadata(repeatCount: repeatCount, startedRaw: started, finishedRaw: finished)
+        return entry
+    }
+
+    @Test func untouchedDatesSendNothing() {
+        let edit = TrackingDraft(entry: Self.datedEntry()).edit(maxProgress: 12)
+        #expect(edit.startedOn == .unchanged)
+        #expect(edit.finishedOn == .unchanged)
+        #expect(edit.repeatCount == .unchanged)
+    }
+
+    @Test func changedDatesAndRepeatAreSent() throws {
+        var draft = TrackingDraft(entry: Self.datedEntry())
+        draft.startedOn = try Self.date("2024-05")
+        draft.finishedOn = nil
+        draft.repeatCount = 2
+        let edit = draft.edit(maxProgress: 12)
+        #expect(edit.startedOn == .set(try Self.date("2024-05")))
+        #expect(edit.finishedOn == .clear)
+        #expect(edit.repeatCount == .set(2))
+    }
+
+    @Test func hasChangesSeesDatesAndRepeat() throws {
+        let baseline = TrackingDraft(entry: Self.datedEntry())
+        #expect(!TrackingDraft(entry: Self.datedEntry()).hasChanges(from: baseline))
+
+        var finished = baseline
+        finished.finishedOn = nil
+        #expect(finished.hasChanges(from: baseline))
+
+        var started = baseline
+        started.startedOn = try Self.date("2023")
+        #expect(started.hasChanges(from: baseline))
+
+        var repeats = baseline
+        repeats.repeatCount = 5
+        #expect(repeats.hasChanges(from: baseline))
+    }
+
+    @Test func unknownDatesNeverCleared() {
+        var cached = Self.entry()
+        cached.sourceMetadata = nil
+        let draft = TrackingDraft(entry: cached)
+        #expect(!draft.datesKnown)
+        let edit = draft.edit(maxProgress: 12)
+        #expect(edit.repeatCount == .unchanged)
+        #expect(edit.startedOn == .unchanged)
+        #expect(edit.finishedOn == .unchanged)
+    }
+
+    @Test func unparseableImportedDateIsNeverRewrittenOrBlanked() throws {
+        let draft = TrackingDraft(entry: Self.datedEntry(started: "not-a-date"))
+        #expect(draft.startedOn == nil)
+        #expect(draft.edit(maxProgress: 12).startedOn == .unchanged)
+
+        var set = draft
+        set.startedOn = try Self.date("2024-05-07")
+        #expect(set.edit(maxProgress: 12).startedOn == .set(try Self.date("2024-05-07")))
+    }
+
+    @Test func spellingOfAnUntouchedDateDoesNotMatter() {
+        // "2024-00-00" (import form) and "2024" are one date: an untouched draft sends nothing.
+        let draft = TrackingDraft(entry: Self.datedEntry(started: "2024-00-00"))
+        #expect(draft.startedOn == PartialDate(raw: "2024"))
+        #expect(draft.edit(maxProgress: 12).startedOn == .unchanged)
+    }
+
+    @Test func untrackedTitleStartsWithNoDatesAndNoRepeat() {
+        let draft = TrackingDraft(entry: nil)
+        #expect(draft.repeatCount == 0 && draft.startedOn == nil && draft.finishedOn == nil)
+        #expect(draft.datesKnown)
+        let edit = draft.edit(maxProgress: 12)
+        #expect(edit.repeatCount == .unchanged && edit.startedOn == .unchanged && edit.finishedOn == .unchanged)
+    }
 }
 
 /// The quick status chips' rule (`QuickStatusChange`, used by QuickVerdictActionCard and the
