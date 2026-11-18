@@ -107,6 +107,12 @@ public struct ImportReviewItem: Codable, Equatable, Identifiable, Sendable {
     public var changedFields: [ImportField]
     public var undoDisposition: String?
     public var id: String { medium + "|" + externalId }
+    /// The stable code the server puts in `detail` for an 18+ title it will not list (W4). The
+    /// disposition stays `unmatched`, so older clients still decode the item.
+    public static let adultNotListedCode = "ADULT_NOT_LISTED"
+    public var isAdultNotListed: Bool {
+        disposition == .unmatched && (detail?.hasPrefix(Self.adultNotListedCode + ":") ?? false)
+    }
     enum CodingKeys: String, CodingKey {
         case medium, title, incoming, current, disposition, detail
         case externalId = "external_id", mediaId = "media_id", expectedRevision = "expected_revision"
@@ -145,10 +151,16 @@ public struct ImportCounts: Codable, Equatable, Sendable {
     public var unmatched: Int = 0
     public var invalid: Int = 0
     public var pending: Int = 0
+    /// Titles left out because they are 18+ (a subset of `unmatched`, W4): shown separately and never
+    /// counted as needing review. Absent from older servers (decodes as 0).
+    public var adultNotListed: Int = 0
     public init() {}
     public var applied: Int { added + updated }
-    public var needsReview: Int { conflict + unmatched + invalid }
-    enum CodingKeys: String, CodingKey { case added, updated, unchanged, conflict, unmatched, invalid, pending }
+    public var needsReview: Int { max(0, conflict + unmatched + invalid - adultNotListed) }
+    enum CodingKeys: String, CodingKey {
+        case added, updated, unchanged, conflict, unmatched, invalid, pending
+        case adultNotListed = "adult_not_listed"
+    }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         added = try c.decodeIfPresent(Int.self, forKey: .added) ?? 0
@@ -158,6 +170,7 @@ public struct ImportCounts: Codable, Equatable, Sendable {
         unmatched = try c.decodeIfPresent(Int.self, forKey: .unmatched) ?? 0
         invalid = try c.decodeIfPresent(Int.self, forKey: .invalid) ?? 0
         pending = try c.decodeIfPresent(Int.self, forKey: .pending) ?? 0
+        adultNotListed = try c.decodeIfPresent(Int.self, forKey: .adultNotListed) ?? 0
     }
 }
 
@@ -178,7 +191,9 @@ public struct ImportOutcome: Codable, Equatable, Identifiable, Sendable {
     public var historyAvailable: Bool
     public var id: String { jobId }
     public var isTerminal: Bool { [.ready, .cancelled, .failed, .undone].contains(phase) }
-    public var allRejected: Bool { counts.applied == 0 && counts.unchanged == 0 && counts.needsReview > 0 }
+    public var allRejected: Bool {
+        counts.applied == 0 && counts.unchanged == 0 && (counts.needsReview > 0 || counts.adultNotListed > 0)
+    }
     enum CodingKeys: String, CodingKey {
         case selection, phase, counts
         case jobId = "job_id", exhaustedMedia = "exhausted_media", homeRevisions = "home_revisions"

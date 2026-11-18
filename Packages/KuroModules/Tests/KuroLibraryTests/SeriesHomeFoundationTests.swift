@@ -241,6 +241,14 @@ import Testing
     #expect(try JSONDecoder().decode(LibraryImportCounts.self, from: Data("{}".utf8)) == LibraryImportCounts())
 }
 
+@Test func adultNotListedStaysOutOfNeedsReviewAndOldPayloadsDecodeAsZero() throws {
+    let counts = try JSONDecoder().decode(ImportCounts.self, from: Data(#"{"added":2,"unmatched":4,"adult_not_listed":3}"#.utf8))
+    #expect(counts.adultNotListed == 3 && counts.needsReview == 1)
+    let old = try JSONDecoder().decode(ImportCounts.self, from: Data(#"{"conflict":1,"unmatched":2,"invalid":1}"#.utf8))
+    #expect(old.adultNotListed == 0 && old.needsReview == 4)
+    #expect(ImportReviewItem.adultNotListedCode == "ADULT_NOT_LISTED")
+}
+
 @Test func conflictSurvivesReopenAndKeepCancelsEverySuccessor() async throws {
     let url=FileManager.default.temporaryDirectory.appendingPathComponent("kuro-conflict-\(UUID().uuidString).sqlite")
     defer { try? FileManager.default.removeItem(at:url) }
