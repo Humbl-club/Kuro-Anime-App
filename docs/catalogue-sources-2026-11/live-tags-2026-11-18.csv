@@ -1,0 +1,431 @@
+id,name,category,is_adult
+1,"Kaiju","Theme-Fantasy",False
+2,"Revenge","Theme-Drama",False
+3,"Tragedy","Theme-Drama",False
+4,"Military","Theme-Other-Organisations",False
+5,"Post-Apocalyptic","Setting-Universe",False
+6,"Primarily Teen Cast","Cast-Main Cast",False
+7,"Super Power","Theme-Fantasy",False
+8,"Male Protagonist","Cast-Main Cast",False
+9,"Henshin","Theme-Fantasy",False
+10,"Gore","Theme-Other",False
+11,"Swordplay","Theme-Action",False
+12,"Memory Manipulation","Theme-Other",False
+13,"Steampunk","Theme-Fantasy",False
+14,"Dystopian","Setting-Time",False
+15,"Vore","Sexual Content",True
+16,"Ensemble Cast","Cast-Main Cast",False
+17,"Orphan","Cast-Traits",False
+18,"Espionage","Theme-Action",False
+19,"Cannibalism","Theme-Other",False
+20,"Kuudere","Cast-Traits",False
+21,"Shounen","Demographic",False
+22,"Coming of Age","Theme-Drama",False
+23,"Suicide","Theme-Drama",False
+24,"Survival","Theme-Other",False
+25,"Medieval","Setting-Time",False
+26,"Time Skip","Setting-Time",False
+27,"Amnesia","Cast-Traits",False
+28,"Rural","Setting-Scene",False
+29,"CGI","Technical",False
+30,"Primarily Male Cast","Cast-Main Cast",False
+31,"Adoption","Theme-Other",False
+32,"Demons","Cast-Traits",False
+36,"Vampire","Cast-Traits",False
+39,"Travel","Theme-Other",False
+40,"Monster Girl","Cast-Traits",False
+46,"Mythology","Theme-Fantasy",False
+48,"Slapstick","Theme-Comedy",False
+49,"Historical","Setting-Time",False
+51,"Rotoscoping","Technical",False
+52,"Body Horror","Theme-Other",False
+53,"Curses","Theme-Fantasy",False
+54,"Chibi","Theme-Other",False
+56,"Snowscape","Setting-Scene",False
+57,"Animals","Theme-Other",False
+58,"Food","Theme-Arts",False
+59,"Crime","Theme-Other",False
+60,"Detective","Cast-Traits",False
+61,"Anti-Hero","Cast-Main Cast",False
+63,"Police","Theme-Other-Organisations",False
+64,"Fugitive","Theme-Action",False
+65,"Philosophy","Theme-Other",False
+66,"Primarily Adult Cast","Cast-Main Cast",False
+68,"Gods","Cast-Traits",False
+70,"Urban Fantasy","Setting-Universe",False
+72,"Urban","Setting-Scene",False
+73,"Unrequited Love","Theme-Romance",False
+75,"Yandere","Cast-Traits",False
+79,"Acting","Theme-Arts",False
+80,"Tennis","Theme-Game-Sport",False
+82,"Assassins","Theme-Other-Organisations",False
+83,"Achronological Order","Setting-Time",False
+85,"Asexual","Cast-Traits",False
+88,"Youkai","Theme-Fantasy",False
+93,"Exorcism","Theme-Fantasy",False
+94,"Dissociative Identities","Cast-Traits",False
+99,"Magic","Theme-Fantasy",False
+100,"Martial Arts","Theme-Action",False
+103,"Shapeshifting","Theme-Fantasy",False
+105,"School","Setting-Scene",False
+107,"Anthropomorphism","Cast-Traits",False
+111,"Surreal Comedy","Theme-Comedy",False
+112,"Twins","Cast-Traits",False
+113,"Boarding School","Setting-Scene",False
+114,"Baseball","Theme-Game-Sport",False
+116,"Superhero","Theme-Fantasy",False
+125,"Bullying","Theme-Drama",False
+126,"Cultivation","Theme-Fantasy",False
+127,"Prison","Setting-Scene",False
+138,"Chimera","Cast-Traits",False
+141,"Virtual World","Setting-Universe",False
+145,"Environmental","Theme-Other",False
+147,"Mafia","Theme-Other-Organisations",False
+149,"Card Battle","Theme-Game-Card & Board Game",False
+150,"Gangs","Theme-Other-Organisations",False
+152,"Transgender","Cast-Traits",False
+154,"Politics","Theme-Other",False
+155,"Shogi","Theme-Game-Card & Board Game",False
+156,"Video Games","Theme-Game",False
+157,"Board Game","Theme-Game",False
+161,"Parody","Theme-Comedy",False
+163,"Satire","Theme-Comedy",False
+167,"Cyborg","Cast-Traits",False
+170,"Seinen","Demographic",False
+171,"Aliens","Cast-Traits",False
+183,"Torture","Theme-Other",False
+196,"College","Setting-Scene",False
+197,"Heterosexual","Theme-Romance",False
+217,"Incest","Theme-Romance",False
+218,"Cult","Theme-Other-Organisations",False
+229,"Matriarchy","Theme-Other",False
+232,"Pirates","Cast-Traits",False
+237,"Found Family","Theme-Other",False
+239,"Ships","Theme-Other-Vehicle",False
+240,"Conspiracy","Theme-Drama",False
+245,"War","Theme-Other",False
+246,"Slavery","Theme-Other",False
+253,"Lost Civilization","Theme-Other",False
+254,"Monster Boy","Cast-Traits",False
+261,"Robots","Cast-Traits",False
+263,"Medicine","Theme-Other",False
+264,"Samurai","Cast-Traits",False
+266,"Guns","Theme-Action",False
+267,"Desert","Setting-Scene",False
+268,"Skeleton","Cast-Traits",False
+270,"Anachronism","Setting-Time",False
+273,"Dragons","Cast-Traits",False
+275,"Marriage","Theme-Other",False
+276,"Artificial Intelligence","Cast-Traits",False
+279,"Drugs","Theme-Other",False
+280,"Fairy","Cast-Traits",False
+283,"Battle Royale","Theme-Action",False
+285,"Aromantic","Cast-Traits",False
+286,"Ninja","Cast-Traits",False
+288,"Nudity","Cast-Traits",False
+289,"Mermaid","Cast-Traits",False
+290,"Gender Bending","Theme-Other",False
+291,"Time Manipulation","Theme-Sci-Fi",False
+292,"Clone","Cast-Traits",False
+293,"Musical Theater","Theme-Arts-Music",False
+294,"Arranged Marriage","Cast-Traits",False
+295,"Zombie","Cast-Traits",False
+296,"Angels","Cast-Traits",False
+297,"Trains","Theme-Other-Vehicle",False
+300,"Kabuki","Theme-Arts",False
+301,"Alchemy","Theme-Fantasy",False
+314,"Foreign","Setting-Scene",False
+317,"Disability","Cast-Traits",False
+320,"Necromancy","Theme-Fantasy",False
+325,"Religion","Theme-Other",False
+337,"Tomboy","Cast-Traits",False
+344,"Tanned Skin","Cast-Traits",False
+346,"Tsundere","Cast-Traits",False
+347,"Crossdressing","Cast-Traits",False
+350,"Isekai","Theme-Fantasy",False
+351,"Death Game","Theme-Other",False
+357,"Primarily Female Cast","Cast-Main Cast",False
+358,"Female Harem","Theme-Romance",False
+367,"Rescue","Theme-Other",False
+368,"Fishing","Theme-Game-Sport",False
+370,"Rape","Sexual Content",True
+373,"Inseki","Theme-Romance",False
+385,"Primarily Child Cast","Cast-Main Cast",False
+393,"Estranged Family","Cast-Main Cast",False
+400,"Love Triangle","Theme-Romance",False
+403,"Body Swapping","Theme-Fantasy",False
+418,"Alternate Universe","Setting-Universe",False
+420,"Shrine Maiden","Cast-Traits",False
+424,"Rehabilitation","Theme-Drama",False
+425,"Language Barrier","Theme-Other",False
+434,"Female Protagonist","Cast-Main Cast",False
+435,"POV","Technical",False
+481,"Bisexual","Cast-Traits",False
+484,"Bar","Setting-Scene",False
+485,"Cheerleading","Theme-Game-Sport",False
+518,"Coastal","Setting-Scene",False
+522,"Terrorism","Theme-Other",False
+538,"Teacher","Cast-Traits",False
+542,"Tentacles","Sexual Content",True
+551,"Episodic","Technical",False
+554,"Femboy","Cast-Traits",False
+555,"School Club","Setting-Scene",False
+562,"Ghost","Cast-Traits",False
+577,"Delinquents","Cast-Traits",False
+580,"Fitness","Theme-Game-Sport",False
+583,"Family Life","Theme-Slice of Life",False
+588,"Classical Music","Theme-Arts-Music",False
+605,"Age Regression","Cast-Traits",False
+713,"Time Loop","Theme-Sci-Fi",False
+717,"Witch","Cast-Traits",False
+720,"Cohabitation","Theme-Romance",False
+727,"Maids","Cast-Traits",False
+729,"Elf","Cast-Traits",False
+737,"Butler","Cast-Traits",False
+741,"Kemonomimi","Cast-Traits",False
+746,"Meta","Theme-Other",False
+748,"Nekomimi","Cast-Traits",False
+762,"Chuunibyou","Cast-Traits",False
+763,"Denpa","Theme-Other",False
+765,"Otaku Culture","Theme-Other",False
+778,"Volleyball","Theme-Game-Sport",False
+789,"Cute Boys Doing Cute Things","Theme-Slice of Life",False
+802,"Psychosexual","Theme-Other",False
+803,"Cosmic Horror","Theme-Other",False
+810,"Work","Setting-Scene",False
+821,"Human Pet","Sexual Content",True
+825,"Femdom","Sexual Content",True
+828,"Afterlife","Setting-Universe",False
+838,"Yakuza","Theme-Other-Organisations",False
+841,"LGBTQ+ Themes","Theme-Other",False
+845,"Motorcycles","Theme-Other-Vehicle",False
+848,"Dungeon","Setting-Scene",False
+852,"Full Color","Technical",False
+869,"Long Strip","Technical",False
+898,"Sadism","Sexual Content",True
+960,"Kingdom Management","Theme-Drama",False
+962,"Group Sex","Sexual Content",True
+963,"Prostitution","Sexual Content",True
+966,"Pregnancy","Theme-Other",False
+973,"Masturbation","Sexual Content",True
+976,"Fellatio","Sexual Content",True
+1014,"Class Struggle","Theme-Drama",False
+1023,"Reincarnation","Theme-Other",False
+1027,"Acrobatics","Theme-Game-Sport",False
+1028,"Yuri","Theme-Romance",False
+1053,"Large Breasts","Sexual Content",True
+1086,"Oiran","Cast-Traits",False
+1093,"Centaur","Cast-Traits",False
+1098,"Dinosaurs","Cast-Traits",False
+1136,"Polyamorous","Theme-Romance",False
+1177,"Criminal Organization","Theme-Other-Organisations",False
+1259,"Fake Relationship","Theme-Drama",False
+1268,"Hikikomori","Cast-Traits",False
+1273,"Parenthood","Theme-Slice of Life",False
+1277,"Iyashikei","Theme-Slice of Life",False
+1294,"Biographical","Theme-Other",False
+1299,"Outdoor Activities","Setting-Scene",False
+1301,"Agriculture","Theme-Slice of Life",False
+1302,"Classic Literature","Theme-Arts",False
+1332,"Augmented Reality","Setting-Universe",False
+1337,"Vikings","Cast-Traits",False
+1369,"Indigenous Cultures","Theme-Other",False
+1371,"Archery","Theme-Action",False
+1372,"Wilderness","Setting-Scene",False
+1411,"Mopeds","Theme-Other-Vehicle",False
+1412,"Age Gap","Theme-Romance",False
+1428,"Astronomy","Theme-Other",False
+1446,"Crossover","Theme-Other",False
+1460,"Ojou-sama","Cast-Traits",False
+1475,"VTuber","Cast-Traits",False
+1478,"Football","Theme-Game-Sport",False
+1481,"Athletics","Theme-Game-Sport",False
+1528,"Tokusatsu","Theme-Sci-Fi",False
+1534,"Gyaru","Cast-Traits",False
+1546,"Super Robot","Theme-Sci-Fi-Mecha",False
+1548,"Circus","Setting-Scene",False
+1573,"4-koma","Technical",False
+1575,"Agender","Cast-Traits",False
+1591,"Triads","Theme-Other-Organisations",False
+1595,"Royal Affairs","Theme-Other",False
+1641,"Idol","Cast-Traits",False
+1662,"Educational","Theme-Other",False
+1668,"Filmmaking","Theme-Other",False
+1670,"Cosplay","Cast-Traits",False
+1703,"Noir","Theme-Other",False
+1733,"Pandemic","Theme-Other",False
+1753,"Homeless","Cast-Traits",False
+1757,"Rock Music","Theme-Arts-Music",False
+3676,"Ancient China","Setting-Time",False
+6543,"Cowboys","Cast-Traits",False
+6565,"Nun","Cast-Traits",False
+6570,"Gambling","Theme-Other",False
+6589,"Space Opera","Theme-Sci-Fi",False
+6609,"Goblin","Cast-Traits",False
+6610,"Creature Taming","Theme-Other",False
+9031,"Amputation","Sexual Content",True
+9092,"Aviation","Theme-Other-Vehicle",False
+9099,"Achromatic","Technical",False
+9146,"Kids","Demographic",False
+9153,"Photography","Theme-Arts",False
+9154,"Male Harem","Theme-Romance",False
+9166,"Shoujo","Demographic",False
+9170,"Basketball","Theme-Game-Sport",False
+9202,"Cute Girls Doing Cute Things","Theme-Slice of Life",False
+9288,"Makeup","Theme-Arts",False
+9324,"Cars","Theme-Other-Vehicle",False
+9333,"Cyberpunk","Theme-Sci-Fi",False
+9343,"Tanks","Theme-Other-Vehicle",False
+9363,"Restaurant","Setting-Scene",False
+9367,"Sumo","Theme-Game-Sport",False
+9400,"Real Robot","Theme-Sci-Fi-Mecha",False
+9423,"Advertisement","Technical",False
+9440,"Proxy Battle","Theme-Other",False
+9503,"Villainess","Cast-Traits",False
+9504,"Economics","Theme-Other",False
+9546,"Vocal Synth","Theme-Other",False
+9567,"Drawing","Theme-Arts",False
+9574,"Boys' Love","Theme-Romance",False
+9576,"Band","Theme-Arts-Music",False
+9592,"Masochism","Sexual Content",True
+9598,"Succubus","Cast-Traits",False
+9629,"Primarily Animal Cast","Cast-Main Cast",False
+9674,"Firefighters","Theme-Other-Organisations",False
+9765,"Wrestling","Theme-Game-Sport",False
+9775,"Josei","Demographic",False
+9788,"Space","Setting-Universe",False
+9880,"Werewolf","Cast-Traits",False
+9936,"E-Sports","Theme-Game",False
+9947,"Cheating","Theme-Romance",False
+9976,"Swimming","Theme-Game-Sport",False
+10097,"Netorare","Sexual Content",True
+10141,"Dullahan","Cast-Traits",False
+10182,"Wuxia","Theme-Fantasy",False
+10326,"Dancing","Theme-Arts-Music",False
+10331,"Ballet","Theme-Arts",False
+10338,"Judo","Theme-Game-Sport",False
+11077,"Spearplay","Theme-Action",False
+11103,"Writing","Theme-Arts",False
+11271,"Table Tennis","Theme-Game-Sport",False
+11276,"Ice Sports","Theme-Game-Sport",False
+11290,"Mahjong","Theme-Game-Card & Board Game",False
+11348,"Fairy Tale","Theme-Fantasy",False
+11623,"Full CGI","Technical",False
+11784,"Anal Sex","Sexual Content",True
+11785,"Voyeur","Sexual Content",True
+11786,"Sex Toys","Sexual Content",True
+11790,"Rimjob","Sexual Content",True
+11809,"Omegaverse","Setting-Universe",True
+11817,"Netorase","Sexual Content",True
+11818,"Nakadashi","Sexual Content",True
+11846,"Office Lady","Cast-Traits",False
+11978,"Hypersexuality","Sexual Content",True
+12103,"Defloration","Sexual Content",True
+12110,"Virginity","Sexual Content",True
+12111,"Bondage","Sexual Content",True
+12113,"Cunnilingus","Sexual Content",True
+12115,"Handjob","Sexual Content",True
+12157,"Badminton","Theme-Game-Sport",False
+12178,"Watersports","Sexual Content",True
+12185,"Deepthroat","Sexual Content",True
+12251,"Anthology","Technical",False
+12273,"MILF","Sexual Content",True
+12302,"Veterinarian","Cast-Traits",False
+12344,"Autobiographical","Theme-Other",False
+12357,"Office","Setting-Scene",False
+12450,"Boobjob","Sexual Content",True
+12451,"Threesome","Sexual Content",True
+12452,"Public Sex","Sexual Content",True
+12458,"Shimaidon","Sexual Content",True
+12472,"Ahegao","Sexual Content",True
+12477,"Netori","Sexual Content",True
+12483,"Armpits","Sexual Content",True
+12485,"Squirting","Sexual Content",True
+12747,"Feet","Sexual Content",True
+12770,"Mating Press","Sexual Content",True
+12810,"Teens' Love","Theme-Romance",False
+12842,"Calligraphy","Theme-Arts",False
+12949,"Horticulture","Theme-Slice of Life",False
+13013,"Exhibitionism","Sexual Content",True
+13459,"Hip-hop Music","Theme-Arts-Music",False
+13554,"Mountaineering","Theme-Other",False
+13692,"Eco-Horror","Theme-Drama",False
+13712,"Inn","Setting-Scene",False
+13988,"DILF","Sexual Content",True
+13991,"Facial","Sexual Content",True
+14141,"Software Development","Theme-Other",False
+14147,"Airsoft","Theme-Game-Sport",False
+14235,"Rakugo","Theme-Arts",False
+14289,"Cycling","Theme-Game-Sport",False
+14310,"Fashion","Theme-Arts",False
+14329,"Boxing","Theme-Game-Sport",False
+14678,"Karuta","Theme-Game-Card & Board Game",False
+14856,"Rugby","Theme-Game-Sport",False
+15400,"Irrumatio","Sexual Content",True
+15689,"Sweat","Sexual Content",True
+16098,"Blackmail","Theme-Other",False
+16117,"Golf","Theme-Game-Sport",False
+16416,"Male Pregnancy","Sexual Content",True
+16483,"Konbini","Setting-Scene",False
+17436,"Ero Guro","Theme-Other",False
+17745,"Scissoring","Sexual Content",True
+18027,"Asphyxiation","Sexual Content",True
+18029,"Scat","Sexual Content",True
+18064,"Mixed Gender Harem","Theme-Romance",False
+18237,"Lacrosse","Theme-Game-Sport",False
+18471,"Body Image","Theme-Other",False
+18479,"Elderly Protagonist","Cast-Main Cast",False
+18652,"Camping","Setting-Scene",False
+18696,"Scuba Diving","Theme-Game-Sport",False
+19276,"Erotic Piercings","Sexual Content",True
+19294,"Reverse Isekai","Theme-Fantasy",False
+19861,"Surfing","Theme-Game-Sport",False
+20264,"Lactation","Sexual Content",True
+20278,"Ashikoki","Sexual Content",True
+20479,"Modeling","Theme-Arts",False
+20506,"Jazz Music","Theme-Arts-Music",False
+21094,"Poker","Theme-Game-Card & Board Game",False
+22167,"No Dialogue","Technical",False
+22249,"Sumata","Sexual Content",True
+23091,"Oyakodon","Sexual Content",True
+23207,"Futanari","Sexual Content",True
+23256,"Natural Disaster","Setting-Scene",False
+24305,"Metal Music","Theme-Arts-Music",False
+24308,"Flash","Technical",False
+24566,"Mixed Media","Technical",False
+25441,"Skateboarding","Theme-Game-Sport",False
+25464,"Flat Chest","Sexual Content",True
+25469,"Parkour","Theme-Game-Sport",False
+25641,"Double Penetration","Sexual Content",True
+26856,"Stop Motion","Technical",False
+26989,"Bowling","Theme-Game-Sport",False
+27118,"Pet Play","Sexual Content",True
+28034,"Fingering","Sexual Content",True
+28140,"Fencing","Theme-Game-Sport",False
+28770,"Matchmaking","Theme-Romance",False
+30248,"Cervix Penetration","Sexual Content",True
+30641,"American Football","Theme-Game-Sport",False
+30703,"Go","Theme-Game-Card & Board Game",False
+30943,"Cumflation","Sexual Content",True
+30984,"Puppetry","Technical",False
+31104,"Manzai","Theme-Arts",False
+31552,"Zoophilia","Sexual Content",True
+31934,"Non-fiction","Technical",False
+40718,"Hair Pulling","Sexual Content",True
+43539,"Handball","Theme-Game-Sport",False
+44573,"Vertical Video","Technical",False
+61814,"Swapping ","Sexual Content",True
+63301,"Fisting","Sexual Content",True
+330434,"Short-Form Chapter","Technical",False
+379604,"Gekiga","Technical",False
+386077,"Interspecies","Theme-Romance",False
+396208,"Graduation Project","Technical",False
+416729,"Human Experimentation","Theme-Other",False
+419813,"Brainwashing","Theme-Other",False
+631702,"Crafts","Theme-Arts",False
+632119,"Exiled","Theme-Other",False
+632978,"Middle East","Setting-Scene",False
+633293,"Prophecy","Theme-Other",False
+635173,"Poverty","Theme-Slice of Life",False
+641808,"Strap-on","Sexual Content",True
+690397,"Sixty-nine","Sexual Content",True
