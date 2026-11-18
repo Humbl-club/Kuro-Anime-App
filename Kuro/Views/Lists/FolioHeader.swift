@@ -76,12 +76,15 @@ struct FolioControlsRow: View {
     let onToggleSearch: () -> Void
     let onToggleSelect: () -> Void
     var gutter: CGFloat = KuroDesignSpacing.padding
+    /// W6: the "Group seasons" word switch; nil hides it (flag off, or no reviewed group in this medium).
+    var groupSeasons: Binding<Bool>? = nil
 
     var body: some View {
         let german = KuroLocale.isGerman
         ViewThatFits(in: .horizontal) {
             HStack(spacing: KuroDesignSpacing.md) {
                 densityWords(german: german)
+                groupSwitch(german: german)
                 Spacer(minLength: KuroDesignSpacing.sm)
                 sortMenu(german: german)
                 searchButton(german: german)
@@ -90,6 +93,7 @@ struct FolioControlsRow: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: KuroDesignSpacing.md) {
                     densityWords(german: german)
+                    groupSwitch(german: german)
                     Spacer(minLength: 0)
                 }
                 HStack(spacing: KuroDesignSpacing.md) {
@@ -131,6 +135,34 @@ struct FolioControlsRow: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(german ? "Ansicht" : "View")
+    }
+
+    /// A word in the density-word style: selected underline, `.isSelected` trait, value "On"/"Off".
+    @ViewBuilder
+    private func groupSwitch(german: Bool) -> some View {
+        if let groupSeasons {
+            let on = groupSeasons.wrappedValue
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) { groupSeasons.wrappedValue.toggle() }
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(FolioGroupCopy.switchTitle(german: german))
+                        .font(.kuroMeta(weight: on ? .semibold : .regular))
+                        .foregroundStyle(on ? Color.kuroInk : Color.kuroInkQuiet)
+                        .lineLimit(1)
+                    Rectangle()
+                        .fill(on ? Color.kuroInk : Color.clear)
+                        .frame(width: 16, height: 1.5)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(FolioGroupCopy.switchTitle(german: german))
+            .accessibilityValue(FolioGroupCopy.switchValue(on: on, german: german))
+            .accessibilityAddTraits(on ? [.isSelected] : [])
+        }
     }
 
     private func sortMenu(german: Bool) -> some View {

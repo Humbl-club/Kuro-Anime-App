@@ -60,6 +60,9 @@ extension CollectionStore {
         isSeriesGroupingAvailable && groupedRows(medium: medium).contains { $0.isGroup }
     }
 
+    /// The reviewed membership the rows were built from (empty until a read answered).
+    var seriesMembershipMap: [MediaKey: SeriesMembership] { catalog?.seriesMembershipMap ?? [:] }
+
     func memberMedia(_ key: MediaKey) -> Media? {
         if let media = collectionFeedItems.first(where: { $0.kind == key.kind && $0.id == key.id }) { return media }
         return seriesMemberMedia[key]
