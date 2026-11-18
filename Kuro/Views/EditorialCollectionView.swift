@@ -153,9 +153,11 @@ struct EditorialCollectionView: View {
             .background(Color.kuroCanvasPage)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: KuroDesignSpacing.sm) {
-                    if let notice {
-                        FolioNoticeBar(notice: notice) { performNoticeAction() }
-                            .transition(.opacity)
+                    ReleaseAlertOfferStack(hasToast: notice != nil) {
+                        if let notice {
+                            FolioNoticeBar(notice: notice) { performNoticeAction() }
+                                .transition(.opacity)
+                        }
                     }
                     if isSelecting && !selectedKeys.isEmpty {
                         FolioBatchBar(count: selectedKeys.count, medium: medium,

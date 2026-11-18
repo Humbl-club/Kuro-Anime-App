@@ -166,10 +166,12 @@ struct EditorialSearchView: View {
                     .fill(Color.kuroHairline)
                     .frame(height: 1)
 
-                if let transientBannerMessage = banner.message {
-                    KuroTransientBanner(message: transientBannerMessage)
-                        .padding(.horizontal, gutter)
-                        .padding(.vertical, KuroDesignSpacing.sm)
+                ReleaseAlertOfferStack(hasToast: banner.message != nil) {
+                    if let transientBannerMessage = banner.message {
+                        KuroTransientBanner(message: transientBannerMessage)
+                            .padding(.horizontal, gutter)
+                            .padding(.vertical, KuroDesignSpacing.sm)
+                    }
                 }
 
                 ScrollView(.vertical, showsIndicators: false) {

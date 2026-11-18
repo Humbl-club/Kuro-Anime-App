@@ -24,6 +24,7 @@ extension ReleasesStore {
         guard accountSession.isCurrent(change.account),
               ReleaseAlertOfferPolicy.entersFollowed(previous: change.previous?.status, current: change.current?.status)
         else { return }
+        dropLapsedAlertOffer(now: now)
         // Read now: a batch scope may have ended by the time a spawned task runs.
         let suppressed = alertOfferSuppression > 0
         guard !suppressed else { return }
@@ -68,16 +69,53 @@ extension ReleasesStore {
         return await work()
     }
 
+    /// What the host the view layer found to be the presenter may draw: nil when the offer is bound to
+    /// another host or lapsed unseen. Reads only (safe in a view body); see `alertOffer(forPresenter:)`.
+    func visibleAlertOffer(forPresenter hostId: UUID, now: Date = Date()) -> ReleaseAlertOffer? {
+        guard let offer = pendingAlertOffer,
+              !ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: alertOfferBoundHost, now: now),
+              alertOfferBoundHost == nil || alertOfferBoundHost == hostId else { return nil }
+        return offer
+    }
+
+    /// `visibleAlertOffer`, and an offer no host drew within `presentWithin` is dropped here (lazily, no
+    /// timer): not offered, not declined. Call outside a view body.
+    func alertOffer(forPresenter hostId: UUID, now: Date = Date()) -> ReleaseAlertOffer? {
+        dropLapsedAlertOffer(now: now)
+        return visibleAlertOffer(forPresenter: hostId, now: now)
+    }
+
+    /// Drops a pending offer that lapsed unseen.
+    func dropLapsedAlertOffer(now: Date = Date()) {
+        guard let offer = pendingAlertOffer,
+              ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: alertOfferBoundHost, now: now) else { return }
+        pendingAlertOffer = nil
+        alertOfferBoundHost = nil
+    }
+
     /// The first host to draw the pending offer binds it (and the title counts as offered, once). Ignored
     /// for another offer, another account, or when another host is already bound.
     func alertOfferPresented(_ offerId: UUID, by hostId: UUID) {
         guard let offer = pendingAlertOffer, offer.id == offerId,
-              alertOfferBoundHost == nil || alertOfferBoundHost == hostId,
-              let context = accountSession.current,
-              AccountSessionCoordinator.sameUser(context.userId, offer.accountUserId) else { return }
+              alertOfferBoundHost == nil || alertOfferBoundHost == hostId else { return }
+        // The binding is UI identity; the "offered" memory is the offer's own account's.
         alertOfferBoundHost = hostId
-        reminders.noteAlertOffered(offer.key, for: context)
+        if let context = accountSession.current, AccountSessionCoordinator.sameUser(context.userId, offer.accountUserId) {
+            reminders.noteAlertOffered(offer.key, for: context)
+        }
     }
+
+    #if DEBUG
+    /// UI tests only (`--kuro-offer-fixture`): one unbound offer for anime 501, episode 5.
+    func installFixtureAlertOffer(now: Date = Date()) {
+        let item = ReleaseScheduleItem(medium: .anime, mediaId: 501, title: "Frieren", unitKind: .episode, unitNumber: 5,
+                                       releaseAt: now.addingTimeInterval(2 * 86_400), basis: .confirmed, source: "fixture",
+                                       precision: .instant)
+        pendingAlertOffer = ReleaseAlertOffer(id: UUID(), key: item.key, item: item,
+                                              accountUserId: accountSession.current?.userId ?? "fixture", createdAt: now)
+        alertOfferBoundHost = nil
+    }
+    #endif
 
     /// The pending offer when `offerId` matches and the current account is the one it was raised for.
     private func ownedAlertOffer(_ offerId: UUID) -> (offer: ReleaseAlertOffer, context: AccountContext)? {

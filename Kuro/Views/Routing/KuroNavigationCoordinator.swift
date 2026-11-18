@@ -47,6 +47,54 @@ final class KuroNavigationCoordinator {
     /// Increments on every collapse; a layer that cannot register a binding can observe it instead.
     private(set) var collapseGeneration = 0
 
+    // MARK: Release alert offer hosts (W3a; the presenter follows what is visible, never attach order)
+
+    /// The pager's selected page, mirrored by `KuroMainView` (nil until then: no host is a presenter).
+    var pagerSelection: KuroMainView.Section?
+    /// Observed: `layers` is not observable and holds closures, so views that read `offerTopmostLayer`
+    /// re-evaluate when a layer registers, unregisters or changes.
+    private(set) var layerRevision = 0
+    /// The offer hosts attached by page foot slots, in attach order.
+    private(set) var offerHosts: [OfferHost] = []
+
+    /// Attaches (or replaces, its place can change) a host.
+    func attachOfferHost(_ host: OfferHost) {
+        if let index = offerHosts.firstIndex(where: { $0.id == host.id }) {
+            if offerHosts[index] != host { offerHosts[index] = host }
+        } else {
+            offerHosts.append(host)
+        }
+    }
+
+    func detachOfferHost(_ id: UUID) {
+        offerHosts.removeAll { $0.id == id }
+    }
+
+    /// The topmost presentation layer, derived from the coordinator's state.
+    var offerTopmostLayer: OfferLayer {
+        _ = layerRevision
+        _ = slot.presented
+        var sheetJourneyIds: [String: ObjectIdentifier] = [:]
+        for (key, weak) in sheetJourneys {
+            if let navigator = weak.navigator { sheetJourneyIds[key] = ObjectIdentifier(navigator) }
+        }
+        // `snapshot` keys header sheets by their registration key ("search#<instance>"); the journey is
+        // attached under the layer name.
+        let collapse = snapshot
+        var bySheet: [String: ObjectIdentifier] = [:]
+        for key in collapse.openSheets {
+            if let id = sheetJourneyIds[Self.layerName(key)] { bySheet[key] = id }
+        }
+        return ReleaseAlertOfferSlotPolicy.topmostLayer(OfferLayerSnapshot(
+            collapse: collapse, rootJourney: journey.map { ObjectIdentifier($0) }, sheetJourneys: bySheet))
+    }
+
+    /// Whether `id` is the host that may draw the pending offer now.
+    func isOfferPresenter(_ id: UUID) -> Bool {
+        ReleaseAlertOfferSlotPolicy.presenter(selectedSection: pagerSelection, topmostLayer: offerTopmostLayer,
+                                              hosts: offerHosts) == id
+    }
+
     /// A registered presentation layer.
     struct Layer {
         enum Kind { case sheet, cover }
@@ -88,20 +136,23 @@ final class KuroNavigationCoordinator {
     func registerLayer(_ id: String, kind: Layer.Kind, presentedInJourney: ObjectIdentifier? = nil,
                        isPresented: @escaping () -> Bool, close: @escaping () -> Void) {
         layers[id] = Layer(kind: kind, isPresented: isPresented, close: close, presentedInJourney: presentedInJourney)
+        layerRevision += 1
     }
 
     func unregisterLayer(_ id: String) {
         layers[id] = nil
+        layerRevision += 1
     }
 
     /// A page-level sheet's journey (Profile / Search / Concierge; `id` is the name the sheet's layer
     /// registered with): a link to its top page keeps it (N10).
     func attachJourney(_ navigator: JourneyNavigator, toLayer id: String) {
         sheetJourneys[id] = WeakJourney(navigator: navigator)
+        layerRevision += 1
     }
 
     func detachJourney(_ navigator: JourneyNavigator, fromLayer id: String) {
-        if sheetJourneys[id]?.navigator === navigator { sheetJourneys[id] = nil }
+        if sheetJourneys[id]?.navigator === navigator { sheetJourneys[id] = nil; layerRevision += 1 }
     }
 
     /// The name a layer registered with (`"profile"` for the registration key `"profile#<instance>"`).
@@ -111,6 +162,7 @@ final class KuroNavigationCoordinator {
 
     /// A layer opened or closed: a link held for the cover runs once the cover is gone.
     func layerDidChange() {
+        layerRevision += 1
         guard let pending, !coverOpen else { return }
         self.pending = nil
         run(pending.target, then: pending.action)
@@ -214,6 +266,7 @@ final class KuroNavigationCoordinator {
             }
         }
         collapseGeneration += 1
+        layerRevision += 1
         guard opening != nil || performsAction else { return }
         let finish = { [weak self] in
             if let opening { self?.slot.presented = .journey(JourneyNavigator(root: opening)) }
@@ -225,6 +278,7 @@ final class KuroNavigationCoordinator {
                 try? await Task.sleep(for: delay)
                 guard !Task.isCancelled else { return }
                 self?.collapseTask = nil
+                self?.layerRevision += 1
                 finish()
             }
         } else {

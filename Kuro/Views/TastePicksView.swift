@@ -61,7 +61,7 @@ struct TastePicksView: View {
             .scrollDisabled(false)
             .background(TastePageContent.canvas(for: medium).ignoresSafeArea())
         }
-        .tastePlanHost(plans)
+        .tastePlanHost(plans, offerSlot: true)
         .task {
             startedAsNewAccount = nil
             latchNewAccount()
@@ -860,6 +860,9 @@ struct TastePlanToastView: View {
 /// the modified view (put it outside the page's ScrollView so the toast stays put).
 struct TastePlanHost: ViewModifier {
     let controller: TastePlanController
+    /// Taste's own page draws the release alert offer in this slot (W3a); other pages (detail, Home)
+    /// register another foot slot for it and keep the default.
+    var offerSlot: Bool = false
 
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var actions
@@ -870,22 +873,31 @@ struct TastePlanHost: ViewModifier {
         content
             .environment(controller)
             .overlay(alignment: .bottom) {
-                if let toast = controller.toast {
-                    TastePlanToastView(toast: toast, german: german,
-                                       onUndo: { controller.undo(library: library, actions: actions, german: german) },
-                                       onDismiss: { controller.dismiss() })
-                        .id(toast.id)
-                        .transition(.opacity)
-                        .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+                if offerSlot {
+                    ReleaseAlertOfferStack(hasToast: controller.toast != nil) { toastView(german: german) }
+                } else {
+                    toastView(german: german)
                 }
             }
             .kuroAnimation(KuroMotion.contact, value: controller.toast?.id)
     }
+
+    @ViewBuilder
+    private func toastView(german: Bool) -> some View {
+        if let toast = controller.toast {
+            TastePlanToastView(toast: toast, german: german,
+                               onUndo: { controller.undo(library: library, actions: actions, german: german) },
+                               onDismiss: { controller.dismiss() })
+                .id(toast.id)
+                .transition(.opacity)
+                .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+        }
+    }
 }
 
 extension View {
-    func tastePlanHost(_ controller: TastePlanController) -> some View {
-        modifier(TastePlanHost(controller: controller))
+    func tastePlanHost(_ controller: TastePlanController, offerSlot: Bool = false) -> some View {
+        modifier(TastePlanHost(controller: controller, offerSlot: offerSlot))
     }
 }
 

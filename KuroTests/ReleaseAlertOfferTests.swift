@@ -10,7 +10,9 @@
 import Foundation
 import KuroCore
 import KuroLibrary
+import SwiftUI
 import Testing
+import UIKit
 @testable import Kuro
 
 /// A graph over a stub server (so request counts are observable) and a fake Library backend.
@@ -449,5 +451,129 @@ struct ReleaseAlertOfferTests {
         #expect(await h.save(506))
         #expect(releases.pendingAlertOffer == nil, "A's three declines did not survive the switch")
         await h.tearDown()
+    }
+
+    // MARK: Task 5: one slot, drawn by the visible page only
+
+    @Test func slotPolicyFollowsPagerSelectionAndTopmostLayer() {
+        let journey = ObjectIdentifier(JourneyNavigator(root: .media(MediaRoute(kind: .anime, id: 501))))
+        let taste = OfferHost(id: UUID(), section: .taste, layer: .pager)
+        let discover = OfferHost(id: UUID(), section: .discover, layer: .pager)
+        let collection = OfferHost(id: UUID(), section: .collection, layer: .pager)
+        let detail = OfferHost(id: UUID(), section: nil, layer: .journey(journey, top: "media:anime:501"))
+        let under = OfferHost(id: UUID(), section: nil, layer: .journey(journey, top: "media:anime:7"))
+        let hosts = [taste, discover, collection, detail, under]
+        typealias Policy = ReleaseAlertOfferSlotPolicy
+        #expect(Policy.presenter(selectedSection: .discover, topmostLayer: .pager, hosts: hosts) == discover.id,
+                "attach order decided (collection attached last)")
+        #expect(Policy.presenter(selectedSection: .collection, topmostLayer: .pager, hosts: hosts) == collection.id)
+        #expect(Policy.presenter(selectedSection: .clubs, topmostLayer: .pager, hosts: hosts) == nil)
+        #expect(Policy.presenter(selectedSection: nil, topmostLayer: .pager, hosts: hosts) == nil)
+        #expect(Policy.presenter(selectedSection: .discover, topmostLayer: .journey(journey, top: "media:anime:501"), hosts: hosts) == detail.id)
+        #expect(Policy.presenter(selectedSection: .discover, topmostLayer: .journey(journey, top: "media:anime:9"), hosts: hosts) == nil)
+        #expect(Policy.presenter(selectedSection: .discover, topmostLayer: .blocked, hosts: hosts) == nil)
+    }
+
+    @Test func topmostLayerFollowsTheRootCoordinator() async throws {
+        let navigation = KuroNavigationCoordinator(dismissalDelay: .zero)
+        #expect(navigation.offerTopmostLayer == .pager)
+
+        navigation.collapseThenOpen(.media(MediaRoute(kind: .anime, id: 501)))
+        try await Task.sleep(for: .milliseconds(50))
+        let root = try #require(navigation.journey)
+        #expect(navigation.offerTopmostLayer == .journey(ObjectIdentifier(root), top: "media:anime:501"))
+        root.tool = .addToClub(MediaKey(kind: .anime, id: 501))
+        #expect(navigation.offerTopmostLayer == .blocked)
+        root.tool = nil
+        #expect(navigation.offerTopmostLayer == .journey(ObjectIdentifier(root), top: "media:anime:501"))
+
+        // A header sheet with a journey: blocked while the root journey is also open, its own top page otherwise.
+        let revision = navigation.layerRevision
+        navigation.registerLayer("search#1", kind: .sheet, isPresented: { true }, close: {})
+        #expect(navigation.layerRevision > revision)
+        let searchJourney = JourneyNavigator(root: ShellJourneyPages.search())
+        navigation.attachJourney(searchJourney, toLayer: "search")
+        #expect(navigation.offerTopmostLayer == .blocked, "two page-level presentations: never guess")
+        navigation.slot.presented = nil
+        #expect(navigation.offerTopmostLayer == .journey(ObjectIdentifier(searchJourney), top: "custom:search"))
+        navigation.unregisterLayer("search#1")
+
+        // A page-level sheet without a journey, and a cover, block.
+        navigation.registerLayer("collection.import#1", kind: .sheet, isPresented: { true }, close: {})
+        #expect(navigation.offerTopmostLayer == .blocked)
+        navigation.unregisterLayer("collection.import#1")
+        navigation.registerLayer("onboarding#1", kind: .cover, isPresented: { true }, close: {})
+        #expect(navigation.offerTopmostLayer == .blocked)
+        let before = navigation.layerRevision
+        navigation.layerDidChange()
+        navigation.unregisterLayer("onboarding#1")
+        #expect(navigation.layerRevision >= before + 2)
+        #expect(navigation.offerTopmostLayer == .pager)
+    }
+
+    @Test func offerFollowsTheVisiblePageNotAttachOrder() async throws {
+        let h = try AlertOfferHarness(airing: [(501, 5, 2 * 86_400), (502, 3, 2 * 86_400), (503, 7, 2 * 86_400)])
+        await h.signIn()
+        let releases = h.service.releases
+        let navigation = KuroNavigationCoordinator(dismissalDelay: .zero)
+        navigation.pagerSelection = .discover
+        let home = UUID(), discover = UUID(), collection = UUID()
+        // The pager mounts the selected page +- 1 and every visited page; Collection attached last.
+        navigation.attachOfferHost(OfferHost(id: home, section: .home, layer: .pager))
+        navigation.attachOfferHost(OfferHost(id: discover, section: .discover, layer: .pager))
+        navigation.attachOfferHost(OfferHost(id: collection, section: .collection, layer: .pager))
+        #expect(navigation.offerHosts.count >= 2)
+
+        #expect(await h.save(501))
+        #expect(navigation.isOfferPresenter(discover))
+        #expect(!navigation.isOfferPresenter(home) && !navigation.isOfferPresenter(collection))
+        for host in [home, discover, collection] where navigation.isOfferPresenter(host) {
+            if let offer = releases.alertOffer(forPresenter: host) { releases.alertOfferPresented(offer.id, by: host) }
+        }
+        let context = try #require(h.context)
+        #expect(h.service.reminders.offeredAlertKeys(for: context) == [MediaKey(kind: .anime, id: 501)])
+        #expect(releases.alertOffer(forPresenter: home) == nil, "an offer bound to Discover was handed to another host")
+        #expect(releases.alertOffer(forPresenter: discover) != nil)
+
+        // Nobody can draw an offer for 31 s (Clubs has no host): it lapses, counted as neither offered nor declined.
+        navigation.pagerSelection = .clubs
+        #expect(await h.save(502))
+        let second = try #require(releases.pendingAlertOffer)
+        #expect(second.key == MediaKey(kind: .anime, id: 502))
+        let later = Date().addingTimeInterval(31)
+        for host in [home, discover, collection] { #expect(releases.alertOffer(forPresenter: host, now: later) == nil) }
+        #expect(releases.pendingAlertOffer == nil)
+        #expect(!h.service.reminders.offeredAlertKeys(for: context).contains(MediaKey(kind: .anime, id: 502)))
+        #expect(h.service.reminders.declinedAlertKeys(for: context).isEmpty)
+
+        // A journey over the pager hides every pager host and an unbound host cannot expire the offer.
+        navigation.pagerSelection = .discover
+        #expect(await h.save(503))
+        let third = try #require(releases.pendingAlertOffer)
+        navigation.collapseThenOpen(.media(MediaRoute(kind: .anime, id: 7)))
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(!navigation.isOfferPresenter(discover) && !navigation.isOfferPresenter(home) && !navigation.isOfferPresenter(collection))
+        releases.expireAlertOffer(third.id, by: discover)
+        #expect(releases.pendingAlertOffer?.id == third.id)
+        await h.tearDown()
+    }
+
+    @Test func offerRowFitsGermanAtLargestCappedType() throws {
+        let row = ReleaseAlertOfferRow(prompt: ReleaseAlertOfferCopy.prompt(Self.row(number: 12), german: true),
+                                       leadsWithSaved: true, german: true, onNotify: {}, onNotNow: {})
+        let host = UIHostingController(rootView: row.dynamicTypeSize(.accessibility3).frame(width: 320))
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        window.frame = CGRect(x: 0, y: 0, width: 320, height: 900)
+        window.rootViewController = host
+        window.isHidden = false
+        host.view.layoutIfNeeded()
+        let size = host.sizeThatFits(in: CGSize(width: 320, height: CGFloat.greatestFiniteMagnitude))
+        #expect(size.width <= 320, "the row is wider than the screen: \(size)")
+        #expect(size.height > 88, "both buttons and the text stack: \(size)")
+        // Prompt and both buttons are real text, never an ellipsis.
+        #expect(ReleaseAlertOfferCopy.notifyMe(german: true) == "Benachrichtigen" && ReleaseAlertOfferCopy.notNow(german: true) == "Nicht jetzt")
+        window.isHidden = true
+        window.rootViewController = nil
     }
 }

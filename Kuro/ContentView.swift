@@ -38,6 +38,8 @@ struct KuroRootView: View {
     @State private var navigation = KuroNavigationCoordinator()
     /// The session's open/closed sections (navigation contract F3; UI state only).
     @State private var foldMemory = KuroFoldMemory()
+    /// Optional: test hosts without Releases keep rendering (W3a DEBUG fixture offer only).
+    @Environment(ReleasesStore.self) private var releases: ReleasesStore?
 
     var body: some View {
         ZStack {
@@ -84,6 +86,24 @@ struct KuroRootView: View {
             guard !Task.isCancelled, !NavigationFixture.didOpen, navigation.collapseGeneration == 0 else { return }
             NavigationFixture.didOpen = true
             navigation.collapseThenOpen(NavigationFixture.level(1))
+        }
+        .task {
+            // UI tests of the release alert offer (`--kuro-offer-fixture`, W3a): publish one unbound offer
+            // once the pager is up; with `--kuro-nav-fixture` only after its journey is presented, so no
+            // pager host can bind it in the gap after launch.
+            guard ProcessInfo.processInfo.arguments.contains("--kuro-offer-fixture") else { return }
+            if NavigationFixture.isActive {
+                var waited = 0
+                while navigation.journey == nil && waited < 150 {
+                    try? await Task.sleep(for: .milliseconds(100))
+                    waited += 1
+                }
+                guard !Task.isCancelled, navigation.journey != nil else { return }
+            } else {
+                try? await Task.sleep(for: .milliseconds(1_800))
+            }
+            guard !Task.isCancelled else { return }
+            releases?.installFixtureAlertOffer()
         }
         #endif
     }
@@ -532,6 +552,7 @@ struct KuroMainView: View {
                         scheduleTapSuppressionReset(delayNs: delayNs)
 	                }
 	        )
+	            .onChange(of: selection, initial: true) { _, newValue in navigation?.pagerSelection = newValue }
 	            .onChange(of: selection) { _, newValue in
                     // Any page change the flag rule did not make itself is a choice (paging, header,
                     // VoiceOver adjust, onboarding, import navigation, Profile's Collection link).
@@ -859,6 +880,8 @@ private struct KuroSectionPager: View {
             }
             // iPad: a readable centred column inside the full-width page (spec D3). iPhone: unchanged.
             .kuroReadableWidth()
+            // Which pager page this is: the release alert offer slot draws only on the selected one (W3a).
+            .environment(\.kuroPagerSection, section)
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
             Color.kuroBackground
