@@ -34,12 +34,27 @@ struct TrackingDraft: Equatable {
     var repeatCount: Int
     var startedOn: PartialDate?
     var finishedOn: PartialDate?
-    let originalRepeatCount: Int
-    let originalStartedOn: PartialDate?
-    let originalFinishedOn: PartialDate?
+    private(set) var originalRepeatCount: Int
+    private(set) var originalStartedOn: PartialDate?
+    private(set) var originalFinishedOn: PartialDate?
     /// `false` for a cached row whose repeat count and dates the server never confirmed: the editor shows
-    /// them empty but never sends them unless the user changes them.
-    let datesKnown: Bool
+    /// them as unknown, does not let the user edit them, and `edit` never names them. They become editable
+    /// when the stored values arrive (`adoptDates`).
+    private(set) var datesKnown: Bool
+
+    /// The stored repeat count and dates arrived for the entry this draft was filled from: show them and make
+    /// them editable. They become the baseline, so adopting them is not a change. No-op when already known
+    /// or when `entry` does not know them either.
+    mutating func adoptDates(from entry: LibraryEntry) {
+        guard !datesKnown, entry.datesKnown else { return }
+        repeatCount = entry.repeatCount
+        startedOn = entry.startedOn
+        finishedOn = entry.finishedOn
+        originalRepeatCount = entry.repeatCount
+        originalStartedOn = entry.startedOn
+        originalFinishedOn = entry.finishedOn
+        datesKnown = true
+    }
 
     /// A draft filled from `entry`; a title that is not tracked starts as Planned with nothing set,
     /// or at `initialStatus` when the caller preset one (Discover "Add as Completed ›"). An entry's own
@@ -93,10 +108,11 @@ struct TrackingDraft: Equatable {
             rating: ratingChange,
             notes: notesChange,
             verdict: .unchanged,
-            repeatCount: repeatCount == originalRepeatCount ? .unchanged
+            // From an unknown baseline these are never named: the editor cannot see what the server holds.
+            repeatCount: !datesKnown || repeatCount == originalRepeatCount ? .unchanged
                 : .set(min(max(0, repeatCount), LibraryEdit.maxRepeatCount)),
-            startedOn: dateChange(startedOn, original: originalStartedOn),
-            finishedOn: dateChange(finishedOn, original: originalFinishedOn)
+            startedOn: datesKnown ? dateChange(startedOn, original: originalStartedOn) : .unchanged,
+            finishedOn: datesKnown ? dateChange(finishedOn, original: originalFinishedOn) : .unchanged
         )
     }
 

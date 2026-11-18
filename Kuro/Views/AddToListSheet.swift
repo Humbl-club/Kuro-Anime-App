@@ -134,13 +134,13 @@ struct AddToListSheet: View {
                     EditorialLayout.divider()
                         .padding(.horizontal, KuroSpacing.lg)
 
-                    SpreadDatesSection(startedOn: $draft.startedOn, finishedOn: $draft.finishedOn, german: german)
+                    SpreadDatesSection(startedOn: $draft.startedOn, finishedOn: $draft.finishedOn, known: draft.datesKnown, german: german)
 
                     EditorialLayout.divider()
                         .padding(.horizontal, KuroSpacing.lg)
 
                     if showsRepeat {
-                        SpreadRepeatSection(count: $draft.repeatCount, medium: media.kind, german: german)
+                        SpreadRepeatSection(count: $draft.repeatCount, known: draft.datesKnown, medium: media.kind, german: german)
 
                         EditorialLayout.divider()
                             .padding(.horizontal, KuroSpacing.lg)
@@ -195,6 +195,13 @@ struct AddToListSheet: View {
             isExistingEntry = entry != nil
             baseline = TrackingDraft(entry: entry)
             draft = TrackingDraft(entry: entry, initialStatus: entry == nil ? initialStatus : nil)
+        }
+        .onChange(of: library.entry(for: media.libraryKey)?.datesKnown ?? false) { _, known in
+            // The stored dates arrived after the editor opened on a cached row: unlock them without touching
+            // anything the user already typed.
+            guard known, !draft.datesKnown, let entry = library.entry(for: media.libraryKey) else { return }
+            draft.adoptDates(from: entry)
+            baseline.adoptDates(from: entry)
         }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected, saveError == offlineMutationMessage {
@@ -533,6 +540,8 @@ private struct SpreadScoreSection: View {
 private struct SpreadDatesSection: View {
     @Binding var startedOn: PartialDate?
     @Binding var finishedOn: PartialDate?
+    /// `false`: the stored dates were never read, so the rows say so and cannot be edited.
+    let known: Bool
     let german: Bool
     private enum Field { case started, finished }
     @State private var expanded: Field?
@@ -568,10 +577,12 @@ private struct SpreadDatesSection: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(TrackingDateCopy.rowLabel(title, value.wrappedValue, german: german))
+            .disabled(!known)
+            .accessibilityLabel(known ? TrackingDateCopy.rowLabel(title, value.wrappedValue, german: german)
+                                      : "\(title), \(TrackingDateCopy.unknown(german: german).lowercased())")
             .accessibilityAddTraits(expanded == field ? [.isSelected] : [])
 
-            if expanded == field {
+            if known, expanded == field {
                 PartialDatePicker(value: value, label: title, german: german)
                 if value.wrappedValue != nil {
                     Button {
@@ -592,9 +603,10 @@ private struct SpreadDatesSection: View {
     }
 
     private func valueText(_ date: PartialDate?) -> some View {
-        Text(date.map { TrackingDateCopy.display($0, german: german) } ?? TrackingDateCopy.noDate(german: german))
+        Text(!known ? TrackingDateCopy.unknown(german: german)
+             : date.map { TrackingDateCopy.display($0, german: german) } ?? TrackingDateCopy.noDate(german: german))
             .font(.kuroMeta())
-            .foregroundStyle(date == nil ? Color.kuroInkQuiet : Color.kuroInkSecondary)
+            .foregroundStyle(date == nil || !known ? Color.kuroInkQuiet : Color.kuroInkSecondary)
             .multilineTextAlignment(.trailing)
     }
 }
@@ -603,17 +615,21 @@ private struct SpreadDatesSection: View {
 
 private struct SpreadRepeatSection: View {
     @Binding var count: Int
+    /// `false`: the stored count was never read; it is shown as unknown and cannot be changed.
+    let known: Bool
     let medium: MediaKind
     let german: Bool
 
     var body: some View {
-        let label = TrackingDateCopy.repeatCount(count, medium: medium, german: german)
+        let label = known ? TrackingDateCopy.repeatCount(count, medium: medium, german: german)
+            : TrackingDateCopy.unknown(german: german)
         Stepper(value: $count, in: 0...LibraryEdit.maxRepeatCount) {
             Text(label)
                 .font(.kuroTitle())
-                .foregroundStyle(Color.kuroInk)
+                .foregroundStyle(known ? Color.kuroInk : Color.kuroInkQuiet)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .disabled(!known)
         .accessibilityLabel(label)
         .padding(.horizontal, KuroSpacing.lg)
         .padding(.vertical, KuroSpacing.md)

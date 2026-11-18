@@ -232,6 +232,33 @@ struct TrackingDraftTests {
         #expect(edit.finishedOn == .unchanged)
     }
 
+    @Test func unknownValuesCannotBeEditedOrSent() throws {
+        var cached = Self.entry()
+        cached.sourceMetadata = nil
+        var draft = TrackingDraft(entry: cached)
+        #expect(!draft.datesKnown)
+        // Even if a binding writes into the draft, nothing is sent from an unknown baseline.
+        draft.repeatCount = 5
+        draft.startedOn = try Self.date("2024-05-07")
+        draft.finishedOn = try Self.date("2024-06")
+        let edit = draft.edit(maxProgress: 12)
+        #expect(edit.repeatCount == .unchanged && edit.startedOn == .unchanged && edit.finishedOn == .unchanged)
+        #expect(edit.startedRawVerbatim == nil && edit.finishedRawVerbatim == nil)
+    }
+
+    @Test func valuesBecomeEditableOnceTheyAreKnown() throws {
+        var cached = Self.entry()
+        cached.sourceMetadata = nil
+        var draft = TrackingDraft(entry: cached)
+        var known = cached
+        known.sourceMetadata = LibrarySourceMetadata(repeatCount: 2, startedRaw: "2024-05")
+        draft.adoptDates(from: known)
+        #expect(draft.datesKnown && draft.repeatCount == 2 && draft.startedOn == PartialDate(raw: "2024-05"))
+        #expect(draft.edit(maxProgress: 12).repeatCount == .unchanged, "adopting the stored values is not a change")
+        draft.repeatCount = 3
+        #expect(draft.edit(maxProgress: 12).repeatCount == .set(3))
+    }
+
     @Test func unparseableImportedDateIsNeverRewrittenOrBlanked() throws {
         let draft = TrackingDraft(entry: Self.datedEntry(started: "not-a-date"))
         #expect(draft.startedOn == nil)

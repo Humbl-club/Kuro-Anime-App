@@ -9,6 +9,8 @@ enum TrackingDateCopy {
     static func started(german: Bool) -> String { german ? "Begonnen" : "Started" }
     static func finished(german: Bool) -> String { german ? "Beendet" : "Finished" }
     static func noDate(german: Bool) -> String { german ? "Nicht gesetzt" : "Not set" }
+    /// A value the server has not confirmed yet (a cached row): shown instead of "Not set", never editable.
+    static func unknown(german: Bool) -> String { german ? "Noch nicht geladen" : "Not loaded yet" }
     static func noMonth(german: Bool) -> String { german ? "Kein Monat" : "No month" }
     static func noDay(german: Bool) -> String { german ? "Kein Tag" : "No day" }
     static func clear(german: Bool) -> String { german ? "Datum entfernen" : "Clear date" }
