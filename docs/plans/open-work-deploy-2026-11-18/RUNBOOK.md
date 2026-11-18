@@ -14,6 +14,7 @@ scratch `k.py`, same as the 2026-11-10 latency deploy).
 
 | # | Step | What it does | Verify |
 | --- | --- | --- | --- |
+| A0 | **Security first:** apply `20261118110000_guest_anon_allowlist_v1` (independently reviewed twice; inserts `guest_browsing_v1` disabled) | Signed-out callers can execute 110 public functions today (unguarded queue writers among them); after it, only the 20–22 allowlisted ones. Signed-in access is unchanged except `get_provider_availability_refresh_candidates` (service-only by intent) | before: read-only Q1–Q8 (`docs/plans/open-work-deploy-2026-11-18/live-anon-review-queries-2026-11-18.json`) and 7 days of API logs for anon `/rpc/*` names outside the allowlist; after: live audit query 1 returns exactly the allowlist, contact form and anonymous parse smoke-tested |
 | A1 | Deploy `concierge-recommend` (isolated 8-file closure, JWT on) | Gimmick focus uses Kuro tag ids (was always empty live); no `tags.anilist_id` read | version bump, `verify_jwt` true, warmup/401 smoke, Deno 31/31 |
 | A2 | Apply `20261112100000_catalogue_sources_v1` | Five service-only catalogue tables, id-link triggers, cutover switch (all groups `anilist`) | RLS on, no anon/auth SELECT, triggers present, test 120 |
 | A3 | Apply `20261112100100_catalogue_shadow_report_v1` | Comparator RPC (service-only) | EXECUTE denied to anon/auth |
