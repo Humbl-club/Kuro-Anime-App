@@ -58,3 +58,6 @@
 20261109200200_discover_newly_added_base_v1.sql
 20261112100000_catalogue_sources_v1.sql
 20261112100100_catalogue_shadow_report_v1.sql
+
+# 2026-11-18 W4 (prepared only; owner approval required to deploy)
+20261118100000_search_hidden_adult_v1.sql
