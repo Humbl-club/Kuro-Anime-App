@@ -215,4 +215,79 @@ select tests.eq('p_limit 0 returns 1', (select count(*) from public.library_up_n
 select tests.eq('p_limit null returns 30', (select count(*) from public.library_up_next_v1('anime', null)), 30::bigint);
 select tests.reset();
 
+-- ---------------------------------------------------------------------------
+-- 2,000-completed plan check (the 102_load_hotpaths pattern). Real statistics, never enable_seqscan=off.
+-- ---------------------------------------------------------------------------
+set local jit = off;
+select tests.make_user(1095);
+select tests.make_user(2000 + u) from generate_series(1, 100) u;
+set local session_replication_role = replica;
+insert into public.anime (id, title_romaji, format, status, genres, is_adult, episodes, season_year)
+select 9100000 + n, 'Plan anime ' || n, 'TV', 'FINISHED', array['Drama'], false, 12, 2020
+from generate_series(1, 22000) n;
+-- the caller: 2,000 completed titles
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress, updated_at)
+select tests.uid(1095)::text, 9100000 + n, 'COMPLETED', 0, now() - n * interval '1 minute'
+from generate_series(1, 2000) n;
+-- 2,000 SEQUEL relations to 2,000 distinct targets; 300 targets are already owned
+insert into public.media_relations (from_media_type, from_media_id, relation_type, to_media_type, to_media_id)
+select 'ANIME', 9100000 + n, 'SEQUEL', 'ANIME', 9110000 + n from generate_series(1, 2000) n;
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress)
+select tests.uid(1095)::text, 9110000 + n, 'PLANNING', 0 from generate_series(1, 300) n;
+-- 200 dismissals
+insert into public.taste_signal_events (user_id, media_id, media_type, event_type, event_strength)
+select tests.uid(1095), 9110000 + n, 'ANIME', 'deck_skip', 0 from generate_series(301, 500) n;
+-- production-like selectivity: other accounts' rows and edges
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress)
+select tests.uid(2000 + u)::text, 9100000 + a, case when a % 3 = 0 then 'COMPLETED' else 'PLANNING' end, 0
+from generate_series(1, 100) u, generate_series(1, 300) a;
+insert into public.media_relations (from_media_type, from_media_id, relation_type, to_media_type, to_media_id)
+select 'ANIME', 9100000 + n, 'PREQUEL', 'ANIME', 9100000 + n + 1 from generate_series(2001, 150000) n;
+insert into public.taste_signal_events (user_id, media_id, media_type, event_type, event_strength)
+select tests.uid(2000 + u), 9100000 + a, 'ANIME', 'deck_love', 1 from generate_series(1, 100) u, generate_series(1, 30) a;
+set local session_replication_role = origin;
+analyze public.anime;
+analyze public.anime_user_lists;
+analyze public.media_relations;
+analyze public.taste_signal_events;
+analyze public.series_entry_spans;
+
+create temporary table up_next_plans (plan jsonb);
+create function pg_temp.up_next_plan() returns jsonb
+language plpgsql as $$
+declare v_src text; v_q text; v_plan jsonb;
+begin
+  select prosrc into v_src from pg_proc where oid = 'public.library_up_next_v1(text,integer)'::regprocedure;
+  v_q := split_part(v_src, '$anime_query$', 2);
+  v_q := replace(replace(v_q, '$1', quote_literal(tests.uid(1095))), '$2', '30');
+  execute 'explain (analyze, buffers, format json) ' || v_q into v_plan;
+  return v_plan;
+end $$;
+insert into up_next_plans select pg_temp.up_next_plan();
+\o /dev/null
+select plan from up_next_plans;
+\o
+select tests.ok('2,000-completed up-next uses the relation unique key, the list unique key and the taste index',
+  plan::text like '%media_relations_from_media_type_from_media_id_relation_type_key%'
+  and plan::text like '%anime_user_lists_user_id_anime_id_key%'
+  and plan::text like '%taste_signal_events_user_media_idx%')
+  from up_next_plans;
+select tests.ok('no seq scan on media_relations, anime_user_lists, anime or taste_signal_events',
+  plan::text !~ '"Node Type": "Seq Scan", [^}]*"Relation Name": "(media_relations|anime_user_lists|anime|taste_signal_events)"')
+  from up_next_plans;
+select tests.ok('local sanity: execution under 250 ms (the live budget is 750 ms p95)',
+  (plan->0->>'Execution Time')::numeric < 250) from up_next_plans;
+select tests.as_user(tests.uid(1095));
+select tests.eq('30 rows at the cap', (select count(*) from public.library_up_next_v1('anime', 30)), 30::bigint);
+select tests.reset();
+select plan from up_next_plans;
+
+-- Labelled negative control (rolled back with the transaction): without the relation index the same check is false.
+-- (At 150,000 relations the planner serves the join from the unique key; names pinned from the fixture.)
+alter table public.media_relations drop constraint media_relations_from_media_type_from_media_id_relation_type_key;
+create temporary table up_next_plans_control (plan jsonb);
+insert into up_next_plans_control select pg_temp.up_next_plan();
+select tests.ok('control: without that index the relation-index check is false',
+  plan::text not like '%media_relations_from_media_type_from_media_id_relation_type_key%') from up_next_plans_control;
+
 rollback;

@@ -22,7 +22,8 @@ begin
     return;
   end if;
 
-  -- The $anime_query$ / $manga_query$ markers are a contract: the EXPLAIN test extracts the SQL between them.
+  -- The dollar-quote tags of the two EXECUTE bodies below are a contract: the EXPLAIN test extracts the SQL between them.
+  -- (Never write the tag names in a comment: the test splits on the first occurrence.)
   -- $1 = acting user (auth.uid()), $2 = limit. A reviewed link (series continuity 'verified', grouping
   -- 'approved', section 'approved', same medium) wins over an AniList SEQUEL edge.
   if p_medium = 'anime' then
