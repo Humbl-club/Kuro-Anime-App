@@ -20172,6 +20172,10 @@ W6 one row per series: `SeriesListGrouping` (package), reviewed-membership read 
 ### Change Log — 18 November 2026 (late): PR #14; W5 guest browsing (dark); handoff fixes
 PR #14 merged to `main` (W9 tags/custom lists dark, W9/W4 review fixes, handoff `docs/plans/2026-11-18-handoff.md`) after serial KuroTests 1,339/1,339 and full DB 65 files / 1,871. Since: handoff 4b fixes (probe script off `anilist_id` for owner reads; distinct Home card ids per season of one series; removal Undo refuses to overwrite a row re-added on another device, with a lease re-check after its probe; concierge-recommend reincarnat/reborn regex — needs deploy). W5 guest browsing built dark (`guest_browsing_v1` 0 %): `GuestSession`, pending intent with one replay after sign-up, guest pager with invitation pages, signed-out guards; prepared `20261118110000_guest_anon_allowlist_v1` (sha `bc66547e…`) revokes anon EXECUTE from everything except a 23-function allowlist — **live today anon can execute ~110 functions** (each mostly refusing via its own auth check); test 114 (95). Release needs the allowlist migration, full qualification, a `guest-browse` qualify run and the live anon audit. BDD gate: 74 resolved / 0 unresolved / 0 pending (all tracker features landed). Inventory 322 app Swift / 48 package / 254 SQL.
 
+### Change Log — 18 November 2026 (latest): PR #15; security hardening prepared
+PR #15 merged to `main` (`d498841`) after serial KuroTests 1,358/1,358, full DB 68 files / 2,075, gates. Contents: W5 guest browsing (dark), handoff fixes, and prepared security hardening — `20261118110000` anon EXECUTE allowlist (110 → 22; two independent reviews; live read-only pre-checks recorded), `20261118140000` keyed Concierge rate limits (all 8 callers HMAC the IP; deploy the functions before the migration), `20261118150000` refresh-queue bounds; `20261112100401` no longer grants anon. Runbook A0–A0c lead the hosted order. Nothing applied (production writes refused by the session permission layer).
+
+
 
 
 
