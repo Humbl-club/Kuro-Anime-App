@@ -1,30 +1,30 @@
 {
   "schemaVersion": 1,
   "workstream": "W3",
-  "testedCommit": "ed3bb539ccacd28e246cd3dfaaff621f48e8f2e1",
-  "recordedAt": "2026-11-18T14:30:52Z",
+  "testedCommit": "6e5afed3aa6b0c88736695d44d1078e7247ae418",
+  "recordedAt": "2026-11-18T20:50:33Z",
   "runs": [
     {
       "id": "swift-1",
       "layer": "swift",
-      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=611AAFE0-3AE5-4C2C-8011-C7DA884CFE12' -parallel-testing-enabled NO -only-testing:KuroTests/ReleaseAlertOfferTests test",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=CF3DD8D6-E63F-4157-8229-43ED1370215B' -parallel-testing-enabled NO -only-testing:KuroTests/LibraryExportFlowTests -only-testing:KuroTests/ReleaseAlertOfferTests -only-testing:KuroTests/AdultNoticeTests -only-testing:KuroTests/GuestModeTests -only-testing:KuroTests/SeriesGroupingFolioTests -only-testing:KuroTests/SeriesGroupingCollectionTests -only-testing:KuroTests/LibraryTagsStoreTests -only-testing:KuroTests/CustomListsStoreTests -only-testing:KuroTests/OrganiseCredentialLeaseTests -only-testing:KuroTests/UpNextStoreTests -only-testing:KuroTests/FirstRunLaneTests test",
       "context": {
         "kind": "simulator",
-        "simulator": "611AAFE0-3AE5-4C2C-8011-C7DA884CFE12"
+        "simulator": "CF3DD8D6-E63F-4157-8229-43ED1370215B"
       },
       "exitCode": 0,
-      "log": "docs/tracker-gaps-2026-11/acceptance/logs/W3-swift.txt"
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-swift.txt"
     },
     {
       "id": "ui-1",
       "layer": "ui",
-      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=611AAFE0-3AE5-4C2C-8011-C7DA884CFE12' -parallel-testing-enabled NO -only-testing:KuroUITests/ReleaseAlertOfferUITests test",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=CF3DD8D6-E63F-4157-8229-43ED1370215B' -parallel-testing-enabled NO -only-testing:KuroUITests/ReleaseAlertOfferUITests -only-testing:KuroUITests/GuestBrowsingUITests test",
       "context": {
         "kind": "simulator",
-        "simulator": "611AAFE0-3AE5-4C2C-8011-C7DA884CFE12"
+        "simulator": "CF3DD8D6-E63F-4157-8229-43ED1370215B"
       },
       "exitCode": 0,
-      "log": "docs/tracker-gaps-2026-11/acceptance/logs/W3-ui.txt"
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-ui.txt"
     }
   ],
   "scenarios": [
@@ -86,6 +86,6 @@
     }
   ],
   "unresolvedGates": [
-    "W3-alerts.feature: Manga chapter alerts (needs decision D-B; scenarios written when decided): awaiting owner decision D-B"
+    "W3-alerts.feature: Manga chapter alerts (needs decision D-B; scenarios written when decided): name the owner decision or pending run"
   ]
 }

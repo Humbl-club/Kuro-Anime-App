@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "workstream": "W4",
+  "testedCommit": "6e5afed3aa6b0c88736695d44d1078e7247ae418",
+  "recordedAt": "2026-11-18T20:50:33Z",
+  "runs": [
+    {
+      "id": "sql-1",
+      "layer": "sql",
+      "command": "LC_ALL=en_US.UTF-8 KURO_DB_PORT=54376 scripts/db/run_local_db_tests.sh --only 107_library_tags,108_custom_lists,108_organisation_two_devices,109_library_up_next,111_series_membership_read,113_search_hidden_adult_count,114_guest_anon_allowlist",
+      "context": {
+        "kind": "local-db"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-sql.txt"
+    },
+    {
+      "id": "swift-1",
+      "layer": "swift",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=CF3DD8D6-E63F-4157-8229-43ED1370215B' -parallel-testing-enabled NO -only-testing:KuroTests/LibraryExportFlowTests -only-testing:KuroTests/ReleaseAlertOfferTests -only-testing:KuroTests/AdultNoticeTests -only-testing:KuroTests/GuestModeTests -only-testing:KuroTests/SeriesGroupingFolioTests -only-testing:KuroTests/SeriesGroupingCollectionTests -only-testing:KuroTests/LibraryTagsStoreTests -only-testing:KuroTests/CustomListsStoreTests -only-testing:KuroTests/OrganiseCredentialLeaseTests -only-testing:KuroTests/UpNextStoreTests -only-testing:KuroTests/FirstRunLaneTests test",
+      "context": {
+        "kind": "simulator",
+        "simulator": "CF3DD8D6-E63F-4157-8229-43ED1370215B"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-swift.txt"
+    }
+  ],
+  "scenarios": [
+    {
+      "feature": "W4-adult-notice.feature",
+      "scenario": "The search reports how many adult titles it left out",
+      "tag": "@sql:rls/113_search_hidden_adult_count.sql",
+      "result": "pass",
+      "run": "sql-1"
+    },
+    {
+      "feature": "W4-adult-notice.feature",
+      "scenario": "Search footnote",
+      "tag": "@swift:AdultNoticeTests/searchShowsNoticeOnlyWhenAdultTitlesWereHidden",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W4-adult-notice.feature",
+      "scenario": "Import review explains missing adult titles",
+      "tag": "@swift:AdultNoticeTests/importReviewLabelsAdultMatchesAndKeepsThemInUnresolvedFile",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W4-adult-notice.feature",
+      "scenario": "The notice switched off on the server asks for no count",
+      "tag": "@swift:AdultNoticeTests/flagOffSendsNoRequest",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W4-adult-notice.feature",
+      "scenario": "Search stays within budget",
+      "tag": "@load:search-with-hidden-adult-count",
+      "result": "blocked",
+      "run": null,
+      "note": "load qualification (--qualify) not run; no qualification evidence exists"
+    }
+  ],
+  "unresolvedGates": [
+    "load scenarios: no qualification run exists (blocked, not run by acceptance)"
+  ]
+}

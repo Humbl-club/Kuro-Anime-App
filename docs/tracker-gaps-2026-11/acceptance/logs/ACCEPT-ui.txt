@@ -1,0 +1,508 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination "platform=iOS Simulator,id=CF3DD8D6-E63F-4157-8229-43ED1370215B" -parallel-testing-enabled NO "-only-testing:KuroUITests/ReleaseAlertOfferUITests" "-only-testing:KuroUITests/GuestBrowsingUITests" test
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.3.2
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.54.1
+  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.5.0
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.0.6
+  KuroModules: /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e/Packages/KuroModules @ local
+  swift-crypto: https://github.com/apple/swift-crypto.git @ 3.15.1
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.7.0
+  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.5.1
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (40 targets)
+    Target 'KuroUITests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'KuroTests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'Kuro' in project 'Kuro'
+        ➜ Explicit dependency on target 'KuroWidgets' in project 'Kuro'
+        ➜ Explicit dependency on target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroWidgetSupport-product' in project 'KuroModules'
+    Target 'KuroSupabase-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Crypto-product' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'swift-crypto_Crypto' in project 'swift-crypto' (no dependencies)
+    Target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay' (no dependencies)
+    Target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'HTTPTypes' in project 'swift-http-types' (no dependencies)
+    Target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'ConcurrencyExtras' in project 'swift-concurrency-extras'
+    Target 'ConcurrencyExtras' in project 'swift-concurrency-extras' (no dependencies)
+    Target 'KuroWidgets' in project 'Kuro'
+        ➜ Explicit dependency on target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroWidgetSupport-product' in project 'KuroModules'
+    Target 'KuroWidgetSupport-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroWidgetSupport' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroWidgetSupport' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore' in project 'KuroModules' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e/Kuro.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+note: Disabling hardened runtime with ad-hoc codesigning. (in target 'Kuro' from project 'Kuro')
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroWidgets.appex /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/KuroWidgets.appex (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks -remove-static-executable /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/KuroWidgets.appex /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/swift-crypto_Crypto.bundle /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app
+
+ProcessInfoPlistFile /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Info.plist /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e/Info.plist (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    builtin-infoPlistUtility /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/assetcatalog_generated_info.plist -scanforprivacyfile /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroWidgets.appex -scanforprivacyfile /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/swift-crypto_Crypto.bundle -o /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Info.plist
+
+CopySwiftLibs /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Frameworks --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/SystemExtensions --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/swift-crypto_Crypto.bundle /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest
+
+ProcessInfoPlistFile /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/Info.plist /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/empty-KuroTests.plist (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    builtin-infoPlistUtility /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/empty-KuroTests.plist -producttype com.apple.product-type.bundle.unit-test -expandbuildsettings -format binary -platform iphonesimulator -scanforprivacyfile /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/swift-crypto_Crypto.bundle -o /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/Info.plist
+
+CodeSign /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib
+/Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib: replacing existing signature
+
+CodeSign /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/__preview.dylib (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/__preview.dylib
+/Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/__preview.dylib: replacing existing signature
+
+CodeSign /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --entitlements /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro.app.xcent --timestamp\=none --generate-entitlement-der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app
+/Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app: replacing existing signature
+
+ValidateEmbeddedBinary /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroWidgets.appex (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    /Applications/Xcode.app/Contents/Developer/usr/bin/embeddedBinaryValidationUtility /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroWidgets.appex -signing-cert - -info-plist-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app/Info.plist
+
+Validate /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App/.claude/worktrees/agent-a3ebe1c27fa77c18e
+    builtin-validationUtility /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Products/Debug-iphonesimulator/Kuro.app -shallow-bundle -infoplist-subpath Info.plist
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+
+2026-11-18 21:48:59.696599+0100 KuroUITests-Runner[57938:28746085] [Default] Running tests...
+    t =      nans Interface orientation changed to Portrait
+Test Suite 'Selected tests' started at 2026-11-18 21:49:01.026.
+Test Suite 'KuroUITests.xctest' started at 2026-11-18 21:49:01.027.
+Test Suite 'GuestBrowsingUITests' started at 2026-11-18 21:49:01.027.
+Test Case '-[KuroUITests.GuestBrowsingUITests testSignedOutLaunchShowsDiscoverNotAuthWall]' started.
+    t =     0.00s Start Test at 2026-11-18 21:49:01.028
+    t =     0.15s Set Up
+    t =     0.15s     Open com.Kuro.app
+    t =     0.15s         Launch com.Kuro.app
+2026-11-18 21:49:01.484 xcodebuild[57722:28745416] [MT] IDELaunchParametersSnapshot: debugger version lookup failed for path '<nil>': noURL
+2026-11-18 21:49:01.484 xcodebuild[57722:28745416] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     1.79s             Setting up automation session
+    t =     2.56s             Wait for com.Kuro.app to idle
+    t =     3.82s Waiting 20.0s for "discover.page" Any to exist
+    t =     4.90s     Checking `Expect predicate `existsNoRetry == 1` for object "discover.page" Any`
+    t =     4.90s         Checking existence of `"discover.page" Any`
+    t =     4.92s Checking existence of `"auth.wall" Any`
+    t =     4.99s Checking existence of `"Get started" Button`
+    t =     5.00s Waiting 10.0s for "header.search" Button to exist
+    t =     6.08s     Checking `Expect predicate `existsNoRetry == 1` for object "header.search" Button`
+    t =     6.08s         Checking existence of `"header.search" Button`
+    t =     6.11s Tap "header.search" Button
+    t =     6.11s     Wait for com.Kuro.app to idle
+    t =     6.11s     Find the "header.search" Button
+    t =     6.13s     Check for interrupting elements affecting "header.search" Button
+    t =     6.15s     Synthesize event
+    t =     6.55s     Wait for com.Kuro.app to idle
+    t =     7.04s Waiting 10.0s for "search.browseEntry" Any to exist
+    t =     8.11s     Checking `Expect predicate `existsNoRetry == 1` for object "search.browseEntry" Any`
+    t =     8.11s         Checking existence of `"search.browseEntry" Any`
+    t =     8.31s Tap "journey.close" Button
+    t =     8.31s     Wait for com.Kuro.app to idle
+    t =     8.31s     Find the "journey.close" Button
+    t =     8.40s     Check for interrupting elements affecting "journey.close" Button
+    t =     8.44s     Synthesize event
+    t =     8.73s     Wait for com.Kuro.app to idle
+    t =     9.07s Waiting 10.0s for "discover.page" Any to exist
+    t =    10.15s     Checking `Expect predicate `existsNoRetry == 1` for object "discover.page" Any`
+    t =    10.15s         Checking existence of `"discover.page" Any`
+    t =    10.16s Press Target Application 'com.Kuro.app'[0.02, 0.50] for 0.1 seconds, then drag to Target Application 'com.Kuro.app'[0.90, 0.50] with velocity of 500.00 pixels per second, and then hold for 0.0 seconds 
+    t =    10.16s     Wait for com.Kuro.app to idle
+    t =    10.17s     Find the Target Application 'com.Kuro.app'
+    t =    10.18s     Check for interrupting elements affecting "Kuro" Application
+    t =    10.20s     Synthesize event
+    t =    10.20s         Find the Target Application 'com.Kuro.app'
+    t =    10.21s         Find the Target Application 'com.Kuro.app'
+    t =    10.22s         Find the Target Application 'com.Kuro.app'
+    t =    10.23s         Find the Target Application 'com.Kuro.app'
+    t =    10.25s         Find the Target Application 'com.Kuro.app'
+    t =    11.26s     Wait for com.Kuro.app to idle
+    t =    11.27s Waiting 5.0s for "guest.invitation.home" Any to exist
+    t =    12.33s     Checking `Expect predicate `existsNoRetry == 1` for object "guest.invitation.home" Any`
+    t =    12.33s         Checking existence of `"guest.invitation.home" Any`
+    t =    12.35s Press Target Application 'com.Kuro.app'[0.02, 0.50] for 0.1 seconds, then drag to Target Application 'com.Kuro.app'[0.90, 0.50] with velocity of 500.00 pixels per second, and then hold for 0.0 seconds 
+    t =    12.35s     Wait for com.Kuro.app to idle
+    t =    12.35s     Find the Target Application 'com.Kuro.app'
+    t =    12.37s     Check for interrupting elements affecting "Kuro" Application
+    t =    12.38s     Synthesize event
+    t =    12.38s         Find the Target Application 'com.Kuro.app'
+    t =    12.39s         Find the Target Application 'com.Kuro.app'
+    t =    12.41s         Find the Target Application 'com.Kuro.app'
+    t =    12.42s         Find the Target Application 'com.Kuro.app'
+    t =    12.43s         Find the Target Application 'com.Kuro.app'
+    t =    13.45s     Wait for com.Kuro.app to idle
+    t =    13.45s Waiting 5.0s for "guest.invitation.taste" Any to exist
+    t =    14.52s     Checking `Expect predicate `existsNoRetry == 1` for object "guest.invitation.taste" Any`
+    t =    14.53s         Checking existence of `"guest.invitation.taste" Any`
+    t =    14.54s Press Target Application 'com.Kuro.app'[0.98, 0.50] for 0.1 seconds, then drag to Target Application 'com.Kuro.app'[0.10, 0.50] with velocity of 500.00 pixels per second, and then hold for 0.0 seconds 
+    t =    14.54s     Wait for com.Kuro.app to idle
+    t =    14.55s     Find the Target Application 'com.Kuro.app'
+    t =    14.56s     Check for interrupting elements affecting "Kuro" Application
+    t =    14.58s     Synthesize event
+    t =    14.58s         Find the Target Application 'com.Kuro.app'
+    t =    14.59s         Find the Target Application 'com.Kuro.app'
+    t =    14.60s         Find the Target Application 'com.Kuro.app'
+    t =    14.61s         Find the Target Application 'com.Kuro.app'
+    t =    14.63s         Find the Target Application 'com.Kuro.app'
+    t =    15.65s     Wait for com.Kuro.app to idle
+    t =    15.65s Press Target Application 'com.Kuro.app'[0.98, 0.50] for 0.1 seconds, then drag to Target Application 'com.Kuro.app'[0.10, 0.50] with velocity of 500.00 pixels per second, and then hold for 0.0 seconds 
+    t =    15.65s     Wait for com.Kuro.app to idle
+    t =    15.65s     Find the Target Application 'com.Kuro.app'
+    t =    15.67s     Check for interrupting elements affecting "Kuro" Application
+    t =    15.68s     Synthesize event
+    t =    15.68s         Find the Target Application 'com.Kuro.app'
+    t =    15.70s         Find the Target Application 'com.Kuro.app'
+    t =    15.71s         Find the Target Application 'com.Kuro.app'
+    t =    15.72s         Find the Target Application 'com.Kuro.app'
+    t =    15.73s         Find the Target Application 'com.Kuro.app'
+    t =    16.75s     Wait for com.Kuro.app to idle
+    t =    16.75s Waiting 5.0s for "discover.page" Any to exist
+    t =    17.82s     Checking `Expect predicate `existsNoRetry == 1` for object "discover.page" Any`
+    t =    17.83s         Checking existence of `"discover.page" Any`
+    t =    17.84s Press Target Application 'com.Kuro.app'[0.98, 0.50] for 0.1 seconds, then drag to Target Application 'com.Kuro.app'[0.10, 0.50] with velocity of 500.00 pixels per second, and then hold for 0.0 seconds 
+    t =    17.84s     Wait for com.Kuro.app to idle
+    t =    17.85s     Find the Target Application 'com.Kuro.app'
+    t =    17.86s     Check for interrupting elements affecting "Kuro" Application
+    t =    17.88s     Synthesize event
+    t =    17.88s         Find the Target Application 'com.Kuro.app'
+    t =    17.89s         Find the Target Application 'com.Kuro.app'
+    t =    17.91s         Find the Target Application 'com.Kuro.app'
+    t =    17.92s         Find the Target Application 'com.Kuro.app'
+    t =    17.94s         Find the Target Application 'com.Kuro.app'
+    t =    18.95s     Wait for com.Kuro.app to idle
+    t =    18.96s Waiting 5.0s for "guest.invitation.collection" Any to exist
+    t =    20.02s     Checking `Expect predicate `existsNoRetry == 1` for object "guest.invitation.collection" Any`
+    t =    20.03s         Checking existence of `"guest.invitation.collection" Any`
+    t =    20.05s Press Target Application 'com.Kuro.app'[0.98, 0.50] for 0.1 seconds, then drag to Target Application 'com.Kuro.app'[0.10, 0.50] with velocity of 500.00 pixels per second, and then hold for 0.0 seconds 
+    t =    20.05s     Wait for com.Kuro.app to idle
+    t =    20.05s     Find the Target Application 'com.Kuro.app'
+    t =    20.07s     Check for interrupting elements affecting "Kuro" Application
+    t =    20.08s     Synthesize event
+    t =    20.09s         Find the Target Application 'com.Kuro.app'
+    t =    20.10s         Find the Target Application 'com.Kuro.app'
+    t =    20.12s         Find the Target Application 'com.Kuro.app'
+    t =    20.13s         Find the Target Application 'com.Kuro.app'
+    t =    20.15s         Find the Target Application 'com.Kuro.app'
+    t =    21.16s     Wait for com.Kuro.app to idle
+    t =    21.17s Waiting 5.0s for "guest.invitation.clubs" Any to exist
+    t =    22.23s     Checking `Expect predicate `existsNoRetry == 1` for object "guest.invitation.clubs" Any`
+    t =    22.23s         Checking existence of `"guest.invitation.clubs" Any`
+    t =    22.25s Tear Down
+Test Case '-[KuroUITests.GuestBrowsingUITests testSignedOutLaunchShowsDiscoverNotAuthWall]' passed (22.482 seconds).
+Test Suite 'GuestBrowsingUITests' passed at 2026-11-18 21:49:23.510.
+	 Executed 1 test, with 0 failures (0 unexpected) in 22.482 (22.483) seconds
+Test Suite 'ReleaseAlertOfferUITests' started at 2026-11-18 21:49:23.511.
+Test Case '-[KuroUITests.ReleaseAlertOfferUITests testJourneySheetOnTopHidesThePagerOfferUntilItCloses]' started.
+    t =     0.00s Start Test at 2026-11-18 21:49:23.511
+    t =     0.02s Set Up
+    t =     0.02s Open com.Kuro.app
+    t =     0.02s     Launch com.Kuro.app
+    t =     0.02s         Terminate com.Kuro.app:58074
+2026-11-18 21:49:24.624 xcodebuild[57722:28745416] [MT] IDELaunchParametersSnapshot: debugger version lookup failed for path '<nil>': noURL
+2026-11-18 21:49:24.624 xcodebuild[57722:28745416] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     1.33s         Setting up automation session
+    t =     2.10s         Wait for com.Kuro.app to idle
+    t =     3.60s Waiting 25.0s for "navfixture.level.1" StaticText to exist
+    t =     4.66s     Checking `Expect predicate `existsNoRetry == 1` for object "navfixture.level.1" StaticText`
+    t =     4.66s         Checking existence of `"navfixture.level.1" StaticText`
+    t =     4.77s Get number of matches for: Elements matching predicate '"release-alert-offer" IN identifiers'
+    t =    16.83s Get number of matches for: Elements matching predicate '"release-alert-offer" IN identifiers'
+    t =    16.87s Checking existence of `"journey.close" Button`
+    t =    16.94s Tap "journey.close" Button
+    t =    16.94s     Wait for com.Kuro.app to idle
+    t =    16.95s     Find the "journey.close" Button
+    t =    17.02s     Check for interrupting elements affecting "journey.close" Button
+    t =    17.06s     Synthesize event
+    t =    17.35s     Wait for com.Kuro.app to idle
+    t =    17.70s Waiting 8.0s for "journey.close" Button to not exist
+    t =    18.76s     Checking `Expect predicate `existsNoRetry == 0` for object "journey.close" Button`
+    t =    18.76s         Checking existence of `"journey.close" Button`
+    t =    18.83s Waiting 10.0s for "release-alert-offer" Any to exist
+    t =    19.90s     Checking `Expect predicate `existsNoRetry == 1` for object "release-alert-offer" Any`
+    t =    19.90s         Checking existence of `"release-alert-offer" Any`
+    t =    19.92s Get number of matches for: Elements matching predicate '"release-alert-offer" IN identifiers'
+    t =    20.05s Added attachment named 'offer-after-journey-closed'
+    t =    20.05s Tear Down
+Test Case '-[KuroUITests.ReleaseAlertOfferUITests testJourneySheetOnTopHidesThePagerOfferUntilItCloses]' passed (20.265 seconds).
+Test Case '-[KuroUITests.ReleaseAlertOfferUITests testOffscreenNeighbourPagesNeverShowTheOffer]' started.
+    t =     0.00s Start Test at 2026-11-18 21:49:43.776
+    t =     0.02s Set Up
+    t =     0.02s Open com.Kuro.app
+    t =     0.02s     Launch com.Kuro.app
+    t =     0.02s         Terminate com.Kuro.app:59054
+2026-11-18 21:49:44.878 xcodebuild[57722:28745416] [MT] IDELaunchParametersSnapshot: debugger version lookup failed for path '<nil>': noURL
+2026-11-18 21:49:44.878 xcodebuild[57722:28745416] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     1.32s         Setting up automation session
+    t =     2.09s         Wait for com.Kuro.app to idle
+    t =     3.57s Waiting 25.0s for "release-alert-offer" Any to exist
+    t =     4.62s     Checking `Expect predicate `existsNoRetry == 1` for object "release-alert-offer" Any`
+    t =     4.63s         Checking existence of `"release-alert-offer" Any`
+    t =     4.67s Get number of matches for: Elements matching predicate '"release-alert-offer" IN identifiers'
+    t =     4.70s Find the "release-alert-offer" Any
+    t =     4.73s Find the Window (First Match)
+    t =     4.74s Find the "release-alert-offer" Other
+    t =     4.86s Added attachment named 'offer-on-discover'
+    t =     4.86s Swipe right Target Application 'com.Kuro.app'
+    t =     4.86s     Wait for com.Kuro.app to idle
+    t =     4.86s     Find the Target Application 'com.Kuro.app'
+    t =     4.88s     Check for interrupting elements affecting "Kuro" Application
+    t =     4.90s     Synthesize event
+    t =     5.33s     Wait for com.Kuro.app to idle
+    t =     5.42s Added attachment named 'taste-after-swipe'
+    t =     5.42s Waiting 6.0s for "release-alert-offer" Any to not exist
+    t =     6.48s     Checking `Expect predicate `existsNoRetry == 0` for object "release-alert-offer" Any`
+    t =     6.48s         Checking existence of `"release-alert-offer" Any`
+    t =    18.53s Get number of matches for: Elements matching predicate '"release-alert-offer" IN identifiers'
+    t =    18.55s Swipe left Target Application 'com.Kuro.app'
+    t =    18.55s     Wait for com.Kuro.app to idle
+    t =    18.55s     Find the Target Application 'com.Kuro.app'
+    t =    18.56s     Check for interrupting elements affecting "Kuro" Application
+    t =    18.58s     Synthesize event
+    t =    19.00s     Wait for com.Kuro.app to idle
+    t =    19.01s Waiting 8.0s for "release-alert-offer" Any to exist
+    t =    20.07s     Checking `Expect predicate `existsNoRetry == 1` for object "release-alert-offer" Any`
+    t =    20.07s         Checking existence of `"release-alert-offer" Any`
+    t =    20.10s Get number of matches for: Elements matching predicate '"release-alert-offer" IN identifiers'
+    t =    20.13s Tear Down
+Test Case '-[KuroUITests.ReleaseAlertOfferUITests testOffscreenNeighbourPagesNeverShowTheOffer]' passed (20.369 seconds).
+Test Suite 'ReleaseAlertOfferUITests' passed at 2026-11-18 21:50:04.145.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 40.633 (40.634) seconds
+Test Suite 'KuroUITests.xctest' passed at 2026-11-18 21:50:04.145.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 63.116 (63.118) seconds
+Test Suite 'Selected tests' passed at 2026-11-18 21:50:04.145.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 63.116 (63.119) seconds
+2026-11-18 21:50:04.440 xcodebuild[57722:28745416] [MT] IDETestOperationsObserverDebug: 65.436 elapsed -- Testing started completed.
+2026-11-18 21:50:04.440 xcodebuild[57722:28745416] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-18 21:50:04.440 xcodebuild[57722:28745416] [MT] IDETestOperationsObserverDebug: 65.436 sec, +65.436 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/max/Library/Developer/Xcode/DerivedData/Kuro-bypihenoezjqpxbceojkkazcybcf/Logs/Test/Test-Kuro-2026.11.18_21-48-55-+0100.xcresult
+
+** TEST SUCCEEDED **
+
+Testing started

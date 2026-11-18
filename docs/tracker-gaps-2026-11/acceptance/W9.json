@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "workstream": "W9",
+  "testedCommit": "6e5afed3aa6b0c88736695d44d1078e7247ae418",
+  "recordedAt": "2026-11-18T20:50:33Z",
+  "runs": [
+    {
+      "id": "sql-1",
+      "layer": "sql",
+      "command": "LC_ALL=en_US.UTF-8 KURO_DB_PORT=54376 scripts/db/run_local_db_tests.sh --only 107_library_tags,108_custom_lists,108_organisation_two_devices,109_library_up_next,111_series_membership_read,113_search_hidden_adult_count,114_guest_anon_allowlist",
+      "context": {
+        "kind": "local-db"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-sql.txt"
+    },
+    {
+      "id": "swift-1",
+      "layer": "swift",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=CF3DD8D6-E63F-4157-8229-43ED1370215B' -parallel-testing-enabled NO -only-testing:KuroTests/LibraryExportFlowTests -only-testing:KuroTests/ReleaseAlertOfferTests -only-testing:KuroTests/AdultNoticeTests -only-testing:KuroTests/GuestModeTests -only-testing:KuroTests/SeriesGroupingFolioTests -only-testing:KuroTests/SeriesGroupingCollectionTests -only-testing:KuroTests/LibraryTagsStoreTests -only-testing:KuroTests/CustomListsStoreTests -only-testing:KuroTests/OrganiseCredentialLeaseTests -only-testing:KuroTests/UpNextStoreTests -only-testing:KuroTests/FirstRunLaneTests test",
+      "context": {
+        "kind": "simulator",
+        "simulator": "CF3DD8D6-E63F-4157-8229-43ED1370215B"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-swift.txt"
+    },
+    {
+      "id": "pkg-1",
+      "layer": "pkg",
+      "command": "cd Packages/KuroModules && swift test",
+      "context": {
+        "kind": "local"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-pkg.txt"
+    }
+  ],
+  "scenarios": [
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Tags are private and bounded",
+      "tag": "@sql:rls/107_library_tags.sql",
+      "result": "pass",
+      "run": "sql-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Filter Collection by tag",
+      "tag": "@swift:LibraryTagsStoreTests/filterByTagShowsOnlyTaggedEntries",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Saving tags sends only what I changed",
+      "tag": "@swift:LibraryTagsStoreTests/organiseSaveSendsOnlyTheDelta",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Custom lists are private, bounded and mixed-medium",
+      "tag": "@sql:rls/108_custom_lists.sql",
+      "result": "pass",
+      "run": "sql-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Dragging writes one item row",
+      "tag": "@pkg:CustomListOrderTests/moveWritesOnePositionAndKeepsOrder",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Imported custom lists become Kuro lists on request",
+      "tag": "@swift:CustomListsStoreTests/importedCustomListNamesCanSeedLists",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Two devices never overwrite each other's lists",
+      "tag": "@sql:concurrency/108_organisation_two_devices.sql",
+      "result": "pass",
+      "run": "sql-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "A reorder against a changed list is not saved silently",
+      "tag": "@swift:CustomListsStoreTests/staleReorderReloadsAndRetriesOnlyOnRequest",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Lists keep titles I removed from my library",
+      "tag": "@swift:CustomListsStoreTests/exportListsKeepManualOrderEmptyListsAndRemovedTitles",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Account deletion removes tags and lists",
+      "tag": "@sql:rls/108_custom_lists_account_deletion.sql",
+      "result": "pass",
+      "run": "sql-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Collection stays within budget",
+      "tag": "@load:collection-with-tags-and-lists",
+      "result": "blocked",
+      "run": null,
+      "note": "load qualification (--qualify) not run; no qualification evidence exists"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Tags stay hidden and silent while the switch is off",
+      "tag": "@swift:LibraryTagsStoreTests/flagOffSendsNoRequest",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Lists stay hidden and silent while the switch is off",
+      "tag": "@swift:CustomListsStoreTests/flagOffSendsNoRequest",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "A tag or list change is never sent as the next account",
+      "tag": "@swift:OrganiseCredentialLeaseTests/preDispatchSwitchSendsNoOrganiseRequestAsB",
+      "result": "pass",
+      "run": "swift-1"
+    }
+  ],
+  "unresolvedGates": [
+    "load scenarios: no qualification run exists (blocked, not run by acceptance)"
+  ]
+}
