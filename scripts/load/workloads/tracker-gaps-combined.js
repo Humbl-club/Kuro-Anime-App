@@ -12,5 +12,6 @@ module.exports = Object.freeze({
     "search-with-hidden-adult-count": 1, // W4
     "collection-up-next": 2, // W10
     "collection-series-membership": 1, // W6
+    "collection-with-tags-and-lists": 5, // W9
   }),
 });
