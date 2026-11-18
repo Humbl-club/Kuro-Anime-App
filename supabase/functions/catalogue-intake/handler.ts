@@ -4,7 +4,7 @@
 // send JWTs): a missing server secret is 500, a wrong or absent header is 401.
 //
 // Payload: { handler, medium?, limit?, timeBudgetMs? }
-//   handler  'wikidata' | 'ann' | 'mangaupdates' | 'pageviews' | 'compose' | 'publish'
+//   handler  'wikidata' | 'ann' | 'mangaupdates' | 'mangaupdates_new' (new series records for create, manga only) | 'pageviews' | 'compose' | 'publish'
 //   medium   'anime' | 'manga' (required; ann is anime only, mangaupdates is manga only)
 //   limit    per-run work cap, each handler clamps it
 //   timeBudgetMs  default 50_000 (5_000..140_000)
@@ -21,6 +21,7 @@ import { clampInt, type Medium } from "./store.ts";
 import { runAnn } from "./ann.ts";
 import { runCompose } from "./compose.ts";
 import { runMangaUpdates } from "./mangaupdates.ts";
+import { runMangaUpdatesNew } from "./mangaupdates_new.ts";
 import { inMangaUpdatesQuietWindow } from "./cron_schedule.ts";
 import { runPageviews } from "./pageviews.ts";
 import { runCreate } from "./create.ts";
@@ -31,7 +32,7 @@ import { runWikidata } from "./wikidata.ts";
 
 export type { IntakeDeps } from "./context.ts";
 
-export const HANDLER_NAMES = ["wikidata", "ann", "mangaupdates", "pageviews", "compose", "publish", "restore", "create"] as const;
+export const HANDLER_NAMES = ["wikidata", "ann", "mangaupdates", "pageviews", "compose", "publish", "restore", "create", "mangaupdates_new"] as const;
 export type HandlerName = (typeof HANDLER_NAMES)[number];
 
 /** Handlers with an implementation. Later tasks register theirs here. */
@@ -45,7 +46,7 @@ export const HANDLERS: Partial<Record<HandlerName, (ctx: RunContext) => Promise<
 };
 
 /** Which media each handler serves; absent means both. */
-const MEDIA_FOR: Partial<Record<HandlerName, Medium[]>> = { ann: ["anime"], mangaupdates: ["manga"] };
+const MEDIA_FOR: Partial<Record<HandlerName, Medium[]>> = { ann: ["anime"], mangaupdates: ["manga"], mangaupdates_new: ["manga"] };
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -74,13 +75,15 @@ export async function run(payload: any, deps: IntakeDeps): Promise<Response> {
   // create (Task 15c): payload { handler: 'create', medium, mode: 'report' (default) | 'insert', minYear }. Insert needs minYear.
   const impl = handler === "create"
     ? (ctx: RunContext) => runCreate(ctx, { mode: payload?.mode === "insert" ? "insert" : "report", minYear: payload?.minYear === undefined ? undefined : Number(payload.minYear) })
-    : HANDLERS[handler];
+    : handler === "mangaupdates_new"
+      ? (ctx: RunContext) => runMangaUpdatesNew(ctx, { minYear: payload?.minYear === undefined ? undefined : Number(payload.minYear) })
+      : HANDLERS[handler];
   if (!impl) return json({ success: false, error: `handler '${handler}' is not available yet` }, 501);
 
   const now = deps.now ?? Date.now;
   // MangaUpdates never overlaps release-intake's manga run (03:50 UTC): the cron expressions skip 03:30-04:20 and
   // this guard backs them up for a manual or late-fired call. No lock, no run row, no request.
-  if (handler === "mangaupdates" && inMangaUpdatesQuietWindow(now())) {
+  if ((handler === "mangaupdates" || handler === "mangaupdates_new") && inMangaUpdatesQuietWindow(now())) {
     return json({ success: true, skipped: true, reason: "release_intake_window" });
   }
   const supabase = deps.supabase;

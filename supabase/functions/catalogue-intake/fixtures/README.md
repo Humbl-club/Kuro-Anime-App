@@ -19,6 +19,8 @@ field or below) or real replies captured once, read-only, on 2026-11-18 with the
 | `pageviews_missing_404.json` | live 404 body for a nonexistent ja.wikipedia article (13:02) |
 | `wikidata_people_live.json` | live WDQS reply, ANN person ids 3610, 668, 3086, 68814, 4422 via P1982 with optional P11227 (13:23:08); only 68814 has an item, without an AniList staff id (Task 7b) |
 | `wikidata_companies_live.json` | live WDQS reply, ANN company ids 8883, 160, 1850 via P1983 with en label (13:23:10): Feel, TV Asahi (Task 7b) |
+| `mu_search_newest.json` | live `POST /v1/series/search {"orderby":"date_added","perpage":10}` (15:47:19 UTC 2026-11-18), unmodified; newest first, mixed Manga/Doujinshi, one Manga without a year |
+| `mu_series_new_2853344834.json` | live `GET /v1/series/2853344834` (15:47:31), unmodified; a 2026 series Kuro does not hold |
 | `ann_fixtures.ts` | GENERATED: the three ANN files above as strings (`deno test --no-prompt` has no file read permission); regenerate if a capture changes |
 
 ## Live requests made while building Tasks 3-6 (15 in total, all listed here)
@@ -66,3 +68,17 @@ User-Agent `Kuro-Catalogue/1.0 (+https://kuro-legal.vercel.app/kontakt.html)`, n
 Decision: the Wikidata client timeout is 45 s (TIMEOUT_MS.wikidata in _shared/catalogue/source_http.ts), about 16x the observed
 2.7 s and under WDQS's own 60 s server limit; the 15 s default is too tight for a cold or busy server. The 8 MB response cap
 stays (observed 2.7 MB, about 3x headroom). Single sample: re-measure before raising the batch size.
+
+## Live requests made for MangaUpdates new series (Task 15c manga half, 5 in total, 2026-11-18)
+
+All to `https://api.mangaupdates.com/v1` with the User-Agent above, at least 3 s apart. Never AniList.
+
+| Time (UTC) | Request | Result |
+|---|---|---|
+| 15:46:56 | `POST /series/search {"search":"","orderby":"date_added","perpage":5}` | 400: `search` must be 1-400 characters when present (so the list is requested without `search`) |
+| 15:47:03 | `POST /series/search {"orderby":"date_added","perpage":5}` | 200; newest first, `total_hits` capped at 10000, not stored |
+| 15:47:19 | `POST /series/search {"orderby":"date_added","perpage":10}` | 200 (`mu_search_newest.json`); order identical to the previous reply |
+| 15:47:22 | `POST /series/search {"orderby":"date_added","perpage":100,"page":2}` | 200, 100 results, 124 kB (paging and perpage 100 confirmed; not stored) |
+| 15:47:31 | `GET /series/2853344834` | 200, 1.6 kB (`mu_series_new_2853344834.json`) |
+
+Series ids are not ordered by time (they are hashes of the slug), so the handler keeps a seen list instead of a high-water mark.
