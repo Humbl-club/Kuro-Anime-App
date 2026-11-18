@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-11-18T23:50:54.898833+00:00",
+  "history_tail": [
+    {
+      "version": "20261112100000",
+      "name": "catalogue_sources_v1"
+    },
+    {
+      "version": "20261112100100",
+      "name": "catalogue_shadow_report_v1"
+    },
+    {
+      "version": "20261112100150",
+      "name": "catalogue_publish_v1"
+    },
+    {
+      "version": "20261112100200",
+      "name": "catalogue_tag_sources_v1"
+    },
+    {
+      "version": "20261112100400",
+      "name": "catalogue_visibility_v1"
+    },
+    {
+      "version": "20261112100450",
+      "name": "catalogue_create_v1"
+    },
+    {
+      "version": "20261118100000",
+      "name": "search_hidden_adult_v1"
+    },
+    {
+      "version": "20261118110000",
+      "name": "guest_anon_allowlist_v1"
+    },
+    {
+      "version": "20261118120000",
+      "name": "library_tags_custom_lists_v1"
+    },
+    {
+      "version": "20261118130000",
+      "name": "library_up_next_v1"
+    },
+    {
+      "version": "20261118140000",
+      "name": "concierge_rate_limit_bounds_v1"
+    },
+    {
+      "version": "20261118150000",
+      "name": "refresh_queue_hardening_v1"
+    }
+  ],
+  "anon_count": [
+    {
+      "c": 22
+    }
+  ],
+  "flags_part_b": [
+    {
+      "flag_name": "collection_up_next_v1",
+      "enabled": true,
+      "rollout_percentage": 100
+    },
+    {
+      "flag_name": "guest_browsing_v1",
+      "enabled": false,
+      "rollout_percentage": 0
+    },
+    {
+      "flag_name": "library_date_autofill_v1",
+      "enabled": true,
+      "rollout_percentage": 100
+    },
+    {
+      "flag_name": "library_export_v1",
+      "enabled": true,
+      "rollout_percentage": 100
+    },
+    {
+      "flag_name": "search_adult_notice_v1",
+      "enabled": true,
+      "rollout_percentage": 100
+    }
+  ],
+  "new_anime": [
+    {
+      "anime_no_anilist": 19
+    }
+  ],
+  "cutover": [
+    {
+      "mode": "anilist",
+      "count": 12
+    }
+  ],
+  "b8_skipped": true
+}

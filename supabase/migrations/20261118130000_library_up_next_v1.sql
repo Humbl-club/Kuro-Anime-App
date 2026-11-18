@@ -2,6 +2,10 @@
 -- PREPARED, NOT DEPLOYED. Owner approval is required before this is applied.
 -- Depends on 20261007040000 (series tables, live) and 20260307120000 (media_relations, live).
 -- SECURITY INVOKER: every relation read is readable by `authenticated` under RLS.
+begin;
+set local search_path = public, extensions;
+set local lock_timeout = '3s';
+set local statement_timeout = '60s';
 create or replace function public.library_up_next_v1(p_medium text, p_limit integer default 30)
 returns table(media_type text, media_id integer, title text, cover_image text, format text, status text,
               start_year integer, total_units integer, after_media_id integer, after_title text, link text)
@@ -134,3 +138,4 @@ grant execute on function public.library_up_next_v1(text, integer) to authentica
 
 comment on function public.library_up_next_v1(text, integer) is
   'W10: sequels / reviewed next sections of the caller''s COMPLETED titles that are not in the library. INVOKER; account from auth.uid().';
+commit;

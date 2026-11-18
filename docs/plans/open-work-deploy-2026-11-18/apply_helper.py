@@ -125,10 +125,13 @@ def apply(path: pathlib.Path) -> dict:
     tag = f"kuro_mig_{version}"
     quoted = dollar_quote(tag, exact)
     # One transaction: migration body + exact history insert.
+    # Touch extensions.similarity first so CREATE FUNCTION … SET pg_trgm.similarity_threshold
+    # is allowed for the Management API postgres role (same workaround as latency-deploy 1a).
     sql = (
         "begin;\n"
         "set local lock_timeout = '5s';\n"
         "set local statement_timeout = '120s';\n"
+        "select extensions.similarity('a','b');\n"
         f"{inner}\n"
         "insert into supabase_migrations.schema_migrations (version, name, statements)\n"
         f"values ('{version}', '{name}', array[{quoted}]::text[]);\n"

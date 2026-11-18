@@ -56,23 +56,17 @@
 # 1c (20261109200200) is SUPERSEDED 2026-11-18 by 20261112100500 (catalogue Task 15d): the file is a no-op and is not listed. Tests: 104 (+99).
 
 # 2026-11-18 W4 (prepared only; owner approval required to deploy)
-20261118100000_search_hidden_adult_v1.sql
 # Catalogue Task 15 (single writer per group: transactional publish/restore, relation reader source filter). Prepared only.
-20261112100150_catalogue_publish_v1.sql
 # Catalogue Task 15b (browse visibility for list_only titles). Prepared only; 100401 is built on parked 1c and Discover usability: see its header.
-20261112100400_catalogue_visibility_v1.sql
 20261112100401_catalogue_visibility_discover_v1.sql
 # Catalogue Task 15c (transactional create of new titles from allowed sources). Prepared only.
-20261112100450_catalogue_create_v1.sql
 # Catalogue Task 11 (tag source map, tags.description_kuro/retired_at, service-only reader). Prepared only; the 430 descriptions are a later data file.
 # Catalogue Task 15d (AniList ids leave public reads: column grants, matviews rebuilt, newly-added matviews dropped, voice RPCs). Prepared only; rollout order is load-bearing (app build, owner confirms old builds retired, then apply). Requires 100401.
 20261112100500_anilist_id_private_v1.sql
 
 # 2026-11-10 tracker gaps W10 (prepared only; owner approval required to deploy).
-20261118130000_library_up_next_v1.sql
 
 # 2026-11-18 tracker gaps W9 tags and custom lists (prepared only; owner approval required to deploy).
-20261118120000_library_tags_custom_lists_v1.sql
 
 # 2026-11-18 W5 guest browsing (prepared only; owner approval required; release gated by capacity qualification and the owner; AniList stopped, so D-A is resolved).
 

@@ -1772,6 +1772,9 @@ PR #12 merged to main. W10 Up next landed (dark). Catalogue 10–11 (uncalibrate
 ### Change Log — 19 November 2026: Open-work Runbook Part A applied/deployed
 Owner-authorized hosted Part A complete on project `bkdifromsqxkndnllmdj`: guest anon allowlist, Concierge HMAC limiter (8 functions deployed) + SQL bounds, refresh-queue hardening, catalogue shadow tables + comparator/tag map, `catalogue-intake` v1 deployed and scheduled, first shadow comparator reports written. Part B / TestFlight / load qualification / owner product-legal gates remain open. Receipts under `docs/plans/open-work-deploy-2026-11-18/`.
 
+### Change Log — 19 November 2026: Part B executed; decisions locked; B8 skipped
+Owner authorized decision lock + Part B. Applied visibility/create/publish and W4/W9/W10; raised listed feature flags; anime create insert added 19 titles; redeployed AniList-path importers/release-intake/mirror-images with cutover still `anilist`. B8 (`100401`/`100500`) skipped pending shipped app + old-build retirement. Manga create Edge OOM remains. Decisions: `docs/plans/open-work-deploy-2026-11-18/owner-decisions-2026-11-19.md`.
+
 
 
 

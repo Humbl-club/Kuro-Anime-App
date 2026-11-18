@@ -4,8 +4,9 @@ Everything below is built, tested locally and merged (or on `kuro/tracker-gaps`)
 (A0–A7) was applied/deployed 2026-11-19** under owner instruction to execute the handoff; receipts
 live beside this file (`applied-*.json`, `final-state.json`, `a6-shadow-runs.json`,
 `a7-cron-scheduled.json`, first comparator reports under `docs/catalogue-sources-2026-11/runs/`).
-**Part B and C are still waiting.** Each remaining step lists what it does, its risk and how it is
-verified. Run them in this order.
+**Part B was executed 2026-11-19** under owner instruction (decisions locked in
+`owner-decisions-2026-11-19.md`). **B8 and Part C remain blocked** on App Store Connect /
+old-build retirement. Each remaining step lists what it does, its risk and how it is verified.
 
 To let Claude run them: allow the hosted actions in Claude Code's permission settings for this
 project (Management API `/database/query` with `read_only: false` and `supabase functions deploy`),

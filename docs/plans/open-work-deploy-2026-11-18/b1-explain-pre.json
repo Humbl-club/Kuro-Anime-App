@@ -1,0 +1,26 @@
+{
+  "phase": "pre_b1",
+  "captured_at": "2026-11-18T23:44:04.329520+00:00",
+  "plans": {
+    "browse_anime_page": {
+      "planning_ms": 0.132,
+      "execution_ms": 16.135,
+      "ok": true
+    },
+    "search_anime_page": {
+      "planning_ms": 0.11,
+      "execution_ms": 697.388,
+      "ok": true
+    },
+    "search_titles": {
+      "planning_ms": 0.103,
+      "execution_ms": 23.047,
+      "ok": true
+    },
+    "discover_bundle": {
+      "planning_ms": 0.052,
+      "execution_ms": 268.901,
+      "ok": true
+    }
+  }
+}

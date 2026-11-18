@@ -42,20 +42,22 @@ it may go live. This file is the single index. Detailed task steps stay in each 
 | 5 | Tracker W5 guest browsing | full qualification + data/access controls | dark until then |
 | gated | Catalogue 9 (L1), 12 (L2), 13 (L3), 10 calibration (L4c), 11 (Q6), 14 (gold judgments), 17 (L4/L5 + §6 gates); tracker W1 (D-E), W3b (D-B), W8 (D-D), dub/where-to-watch (D-C) | owner decisions below | — |
 
-## Owner decisions still needed (defaults the plans implement in brackets)
+## Owner decisions (locked 2026-11-19 — see `open-work-deploy-2026-11-18/owner-decisions-2026-11-19.md`)
 
-| Id | Decision | Default |
+| Id | Decision | Locked |
 | --- | --- | --- |
-| L1 | Episodes/airing provider: TheTVDB paid licence or TMDB commercial agreement | none — needs quotes; Task 9 waits, airing times stay frozen |
-| L2 | Synopses from facts only, or Wikipedia text (CC BY-SA) as input | facts only; Wikipedia only if counsel agrees |
-| L3 | Images: Kuro typographic art / licensed L1 art / press kits | (a) Kuro art now |
-| L4 | Fate of stored AniList-derived data at Task 17 | factual stub |
-| L5 | User AniList list import (`concierge-import-anilist`) | keep until Task 17, then remove |
-| Q6 | AniDB tag data | terms check before Task 11; exclude if non-commercial |
-| D-B/C/D/E | Manga chapter alerts, dub/where-to-watch, dark mode, Home Screen widget | not started |
-| D-G | Who reviews series membership (W6 visible effect) | pilot of ≈10 owner-reviewed series |
-| D-H | Release rule while NOT QUALIFIED | (a) blanket: only W3a goes on |
-| Concierge | Retire the chat/recommend surface? (parse stays for imports) | keep |
+| L1 | Episodes/airing provider | Frozen until commercial TMDB/TheTVDB deal; prefer TMDB when quotes exist |
+| L2 | Synopses | Facts only (no Wikipedia until counsel) |
+| L3 | Images | Kuro typographic art |
+| L4 | Stored AniList-derived data at Task 17 | Factual stub |
+| L5 | User AniList list import | **Keep** (grandfathered; predates policy change) |
+| Q6 | AniDB tag data | Excluded |
+| minYear | New-title create | **2024** |
+| Cutover | Field groups to `new` | Only after comparator gates pass for that group |
+| D-B/C/D/E | Manga chapter alerts, dub/where-to-watch, dark mode, widget | not started |
+| D-G | Series membership review | pilot of ≈10 (W6 stays dark until then) |
+| D-H | Release rule | Overridden for authorized Part B flag raises |
+| Concierge | Retire chat/recommend? | keep |
 
 ## Progress log
 
@@ -106,3 +108,4 @@ Append one line per landed step: date, wave, item, commit, checks, hosted receip
 - 2026-11-18 PR #15 merged to main after serial KuroTests 1,358/1,358, full DB 68 / 2,075, gates, package, Release at 1fe920a.
 - 2026-11-18 acceptance records (F1.3) at tested commit 6e5afed: W3 accepted 8/8; F2 5/6, W2 12/13, W4 4/5, W5 7/8, W6 10/11, W9 13/14, W10 8/9 — each missing only its @load scenario (blocked until an owner-approved qualification run).
 - 2026-11-19 hosted Part A (owner “execute the handoff”): A0–A0c security + A2–A7 catalogue shadow live. History now includes `20261112100000`, `100100`, `100200`, `20261118110000`, `140000`, `150000`. Anon EXECUTE 20. Concierge parse 52 / recommend 58 (+6 siblings). `catalogue-intake` v1 + 18 cron jobs. First comparator reports: anime/manga identity/titles/facts mostly fail or insufficient on the first small sample (expected); adult/data pass; 0 orphan/duplicate accepted links. Receipts in `docs/plans/open-work-deploy-2026-11-18/`. Part B not started.
+- 2026-11-19 hosted Part B (owner: lock decisions + execute Part B): decisions file `owner-decisions-2026-11-19.md` (L5 keep import; minYear 2024; no group cutover). Applied `100400`/`100450`/`100150`/`18100000`/`18120000`/`18130000`. Anime create insert: 19 new titles (`anilist_id` null). Flags on: `search_adult_notice_v1`, `collection_up_next_v1`, `library_export_v1`, `library_date_autofill_v1`, `library_organise_v1`, `catalogue_source_credit_v1`. Edge: bulk-import-anime 88, manga 86, release-intake 6, mirror-images 21. Cutover still all `anilist`. B8 skipped; manga create OOM; guest browsing off; ASC agreement still blocks TestFlight.
