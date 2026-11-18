@@ -15,9 +15,11 @@ field or below) or real replies captured once, read-only, on 2026-11-18 with the
 | `mu_search_berserk.json` | live `POST /v1/series/search {"search":"Berserk","perpage":10}` (13:00), unmodified |
 | `mu_search_sololeveling.json` | live search "Solo Leveling" (13:01), unmodified |
 | `mu_series_berserk.json` | live `GET /v1/series/51239621230` (13:01), unmodified |
+| `pageviews_berserk_en.json` | live `.../per-article/en.wikipedia/all-access/user/Berserk_(manga)/daily/20251118/20261117` (13:02), unmodified |
+| `pageviews_missing_404.json` | live 404 body for a nonexistent ja.wikipedia article (13:02) |
 | `ann_fixtures.ts` | GENERATED: the three ANN files above as strings (`deno test --no-prompt` has no file read permission); regenerate if a capture changes |
 
-## Live requests made while building Tasks 3-6 (total 15 before Task 4-6 captures, see below)
+## Live requests made while building Tasks 3-6 (15 in total, all listed here)
 
 | Source | URL pattern | Count | Time | Result |
 |---|---|---|---|---|
