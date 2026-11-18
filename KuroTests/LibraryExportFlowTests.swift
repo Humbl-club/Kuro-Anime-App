@@ -384,6 +384,27 @@ extension LibraryExportFlowTests {
         await fixture.tearDown()
     }
 
+    /// Baseline, not a gate: the 10 s ceiling is a sanity bound only. The owner-proposed gate (<= 2 s per
+    /// format on the reference simulator) is NOT asserted until confirmed (see W2-export/baseline.md).
+    @Test("A 2,000-title library exports in all three formats from cached identities; durations are recorded")
+    func twoThousandTitleExportBaseline() async throws {
+        let fixture = try ExportFixture(titles: 2000, now: Self.nov9Noon)
+        try await fixture.signInAndLoad()
+        await fixture.service.export(.json)   // fills the owner's identity cache (4 lookup batches; not timed as a format run)
+        #expect(fixture.service.identityCache.count == 2000)
+        let clock = ContinuousClock()
+        var lines: [String] = []
+        for format in LibraryExportFormat.allCases {
+            let duration = await clock.measure { await fixture.service.export(format) }
+            guard case .ready(let result) = fixture.service.state else { Issue.record("not ready for \(format)"); continue }
+            #expect(result.summary.entryCount == 2000)
+            #expect(duration < .seconds(10), "sanity ceiling only")
+            lines.append("BASELINE export \(format) 2000 titles: \(duration)")
+        }
+        for line in lines { print(line) }
+        await fixture.tearDown()
+    }
+
     @Test("Offline, the export is decided before any lookup: cached identities are used, the rest is reported as unavailable, tags and lists as unavailable")
     func exportWorksOfflineWithCachedCatalogueOrReportsMissingIds() async throws {
         let fixture = try ExportFixture(titles: 10, now: Self.nov9Noon)

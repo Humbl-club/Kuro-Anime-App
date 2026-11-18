@@ -22,7 +22,7 @@ declare -a GATES=(
   "branded-states:check_branded_states.sh:1"         # no stray ProgressView( in Kuro/ (prototype-fidelity Task 3; blocking since Task 10)
   "navigation:check_navigation.sh:1"                 # navigation contract (2026-11-02): pages in journeys, chrome on hidden bars, JourneyPage pushes; blocking since the lane integration (0 offenders)
   "bdd-selftest:test_bdd_traceability.sh:1"          # BDD traceability checker's own unit tests (tracker gaps F1); blocking
-  "bdd-traceability:check_bdd_traceability.sh:0"     # Gherkin scenario -> test map (tracker gaps); WARN until W2 lands (spec §4), then flip to 1 and list features in bdd_landed.txt
+  "bdd-traceability:check_bdd_traceability.sh:1"     # Gherkin scenario -> test map (tracker gaps); blocking since W2 landed (spec §4); landed features are listed in bdd_landed.txt
   "load-profiles:test_load_profiles.sh:1"            # offline node tests for the load harness and tracker-gap profiles (F3.1b)
   "ios-build:build_ios.sh:1"
   "ios-test:test_ios_unit.sh:1"
