@@ -64,3 +64,4 @@ Append one line per landed step: date, wave, item, commit, checks, hosted receip
 - 2026-11-18 wave 0: tree committed (`61eb137`, `4877e43`, `70eb3bc`); plans renumbered; this index written.
 - 2026-11-18 wave 1: tracker F1.1–F1.3 BDD traceability gate merged (7c4bd2d..c9972b3); 25 self-tests pass; gate 86 scenarios / 14 resolved / 60 pending / 0 errors.
 - 2026-11-18 wave 1: catalogue Tasks 1–2 merged (d39eb01, 8499df2): prepared 20261112100000 + test 120 (39 assertions); _shared catalogue helpers; Deno _shared 48, bulk-import-anime 32, -manga 17, release-intake 28 pass. Lead rulings: shadow mode keeps AniList as writer; no source CHECK; shadow/snapshot cleanup deferred to Task 15.
+- 2026-11-18 wave 1: tracker F3.1–F3.1d + F3.2 merged (46d18e2..823b85a): load-profiles gate 6 files pass; DB test 112 (7 assertions) pass; apply_progress_mutations_v1 confirmed live (read-only).
