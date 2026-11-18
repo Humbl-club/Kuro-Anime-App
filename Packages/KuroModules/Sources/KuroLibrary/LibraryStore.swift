@@ -280,6 +280,12 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
         await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: true)
     }
 
+    /// An Undo or restore: sends exactly `edit` and never fills a date, whatever the projection holds. Every
+    /// Undo the app shows that goes through an edit (removal Undo, +1 Undo) uses this, never `apply`.
+    public func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil) async -> LibraryOutcome {
+        await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: false)
+    }
+
     /// `fillsEmptyDates` is `false` for Undo, which must restore exactly and never fill. The release switch is
     /// read once, here, before the optimistic projection and before any backend call.
     func apply(_ original: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus?,
@@ -299,7 +305,9 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
                 if let raw = projected.sourceMetadata?.finishedRaw, !raw.isBlank { row.sourceMetadata?.finishedRaw = raw }
                 confirmed = row
             }
-            let creating = projected == nil && createIfMissing != nil
+            // "Creating" is only known once the account's rows are loaded: while the projection is loading,
+            // failed or unbound, a missing row may exist on the server with dates this device has not read.
+            let creating = projected == nil && createIfMissing != nil && loadState == .loaded
             (edit, autoFilled) = original.fillingEmptyDates(
                 current: confirmed, creating: creating, today: PartialDate.day(of: now(), in: calendar))
         }
@@ -308,8 +316,11 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
            let lease = currentLease() {
             // Reserve the online fields before the first suspension. Admit progress immediately,
             // so a later +1 computes from this action even while its notes PATCH is in flight.
-            let patch = edit.patchBodyOmittingProgress
-            let patchTask = patch.isEmpty ? nil : issue(.edit(patch, createIfMissing: nil), on: key, leased: autoFilled)
+            // The caller's own online fields go out now. An auto-filled date is a separate best-effort leg that
+            // is only dispatched after the durable status intent is accepted (below), never ahead of it.
+            let patch = original.patchBodyOmittingProgress
+            let patchTask = patch.isEmpty ? nil : issue(.edit(patch, createIfMissing: nil), on: key)
+            let fillLeg = autoFilled ? edit.dateFillLeg(comparedTo: original) : nil
             let position: Int
             if case .set(let value) = edit.progress { position = value } else { position = row.progress }
             let outcome = await applyDurableProgress(edit, position: position, to: key)
@@ -319,15 +330,31 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
             if case .failed = outcome { return outcome }
             // A failed leg that only carried the auto-filled date is best effort: the durable change stands and
             // the date was already dropped from the projection when the mutation settled.
-            let ownPatchIsEmpty = original.patchBodyOmittingProgress.isEmpty
-            if case .failed(let error) = patchOutcome, !(autoFilled && ownPatchIsEmpty) {
+            if case .failed(let error) = patchOutcome {
                 return .failed(.retryable(message: "Progress is saved on this device; other fields could not be saved: \(error)"))
+            }
+            if let fillLeg, fillLegStillApplies(fillLeg, key: key) {
+                // The durable intent is committed. The fill is best effort: a failed leg keeps the status and the
+                // projection drops the date when the mutation settles.
+                _ = await issue(.edit(fillLeg, createIfMissing: nil), on: key, leased: true).value
+                guard holds(lease) else { return .failed(.notAuthenticated) }
+                guard entry(for: key)?.lifecycleId == lifecycle else { return .failed(.notFound) }
             }
             guard let change = outcome.change else { return outcome }
             return .applied(LibraryChange(key: key, kind: .updated, previous: row,
                 current: entry(for: key), mutationId: change.mutationId, account: lease.context))
         }
         return await enqueue(.edit(edit, createIfMissing: createIfMissing), on: key)
+    }
+
+    /// The fill leg still applies when the date it would write is still empty: a date the user (or another
+    /// writer) set between the durable acceptance and this dispatch is never overwritten.
+    private func fillLegStillApplies(_ leg: LibraryEdit, key: MediaKey) -> Bool {
+        guard let metadata = entry(for: key)?.sourceMetadata else { return false }
+        func empty(_ raw: String?) -> Bool { raw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true }
+        if !leg.startedOn.isUnchanged, !empty(metadata.startedRaw) { return false }
+        if !leg.finishedOn.isUnchanged, !empty(metadata.finishedRaw) { return false }
+        return true
     }
 
     public func remove(_ key: MediaKey) async -> LibraryOutcome {

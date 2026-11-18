@@ -207,6 +207,11 @@ public struct LibraryEdit: Sendable, Equatable {
     public var startedOn: FieldChange<PartialDate>
     /// The date the user finished the title (`finished_raw`); `.clear` writes `null`.
     public var finishedOn: FieldChange<PartialDate>
+    /// Restore only: the stored text of the start date, written exactly as it was (`2019-05-00`, or an
+    /// imported text `PartialDate` cannot parse). Wins over `startedOn`; nil names nothing.
+    public var startedRawVerbatim: String?
+    /// Restore only: the stored text of the finish date; see `startedRawVerbatim`.
+    public var finishedRawVerbatim: String?
 
     /// The largest repeat count the store accepts (`repeatCount` is `0...999`).
     public static let maxRepeatCount = 999
@@ -219,7 +224,9 @@ public struct LibraryEdit: Sendable, Equatable {
         verdict: FieldChange<Verdict> = .unchanged,
         repeatCount: FieldChange<Int> = .unchanged,
         startedOn: FieldChange<PartialDate> = .unchanged,
-        finishedOn: FieldChange<PartialDate> = .unchanged
+        finishedOn: FieldChange<PartialDate> = .unchanged,
+        startedRawVerbatim: String? = nil,
+        finishedRawVerbatim: String? = nil
     ) {
         self.status = status
         self.progress = progress
@@ -229,6 +236,8 @@ public struct LibraryEdit: Sendable, Equatable {
         self.repeatCount = repeatCount
         self.startedOn = startedOn
         self.finishedOn = finishedOn
+        self.startedRawVerbatim = startedRawVerbatim
+        self.finishedRawVerbatim = finishedRawVerbatim
     }
 
     /// Progress or status is named. Those fields go through the revision fence.
@@ -248,7 +257,8 @@ public struct LibraryEdit: Sendable, Equatable {
     package var patchBodyOmittingProgress: LibraryEdit {
         LibraryEdit(
             rating: rating, notes: notes, verdict: verdict,
-            repeatCount: repeatCount, startedOn: startedOn, finishedOn: finishedOn
+            repeatCount: repeatCount, startedOn: startedOn, finishedOn: finishedOn,
+            startedRawVerbatim: startedRawVerbatim, finishedRawVerbatim: finishedRawVerbatim
         )
     }
 
@@ -257,11 +267,13 @@ public struct LibraryEdit: Sendable, Equatable {
         status.isUnchanged && progress.isUnchanged && rating.isUnchanged
             && notes.isUnchanged && verdict.isUnchanged
             && repeatCount.isUnchanged && startedOn.isUnchanged && finishedOn.isUnchanged
+            && startedRawVerbatim == nil && finishedRawVerbatim == nil
     }
 
     /// Whether the edit names the repeat count or either date, the fields held in `sourceMetadata`.
     var touchesDatesOrRepeat: Bool {
-        !(repeatCount.isUnchanged && startedOn.isUnchanged && finishedOn.isUnchanged)
+        !(repeatCount.isUnchanged && startedOn.isUnchanged && finishedOn.isUnchanged
+            && startedRawVerbatim == nil && finishedRawVerbatim == nil)
     }
 
     /// The first rule the edit violates, if any. Checked before any request or projection change.
@@ -280,8 +292,9 @@ public struct LibraryEdit: Sendable, Equatable {
     }
 
     /// An absolute edit that restores every field of `entry` (re-save after a removal). The repeat count
-    /// and dates are restored only when `entry.datesKnown`: an unknown value is never sent.
-    static func restoring(_ entry: LibraryEntry) -> LibraryEdit {
+    /// and dates are restored only when `entry.datesKnown`: an unknown value is never sent. A stored date
+    /// travels as its exact raw text (also an unparseable one); a blank one is cleared.
+    public static func restoring(_ entry: LibraryEntry) -> LibraryEdit {
         var edit = LibraryEdit(
             status: .set(entry.status),
             progress: .set(entry.progress),
@@ -291,8 +304,8 @@ public struct LibraryEdit: Sendable, Equatable {
         )
         if entry.datesKnown {
             edit.repeatCount = .set(entry.repeatCount)
-            edit.startedOn = restoredDate(entry.startedOn, raw: entry.sourceMetadata?.startedRaw)
-            edit.finishedOn = restoredDate(entry.finishedOn, raw: entry.sourceMetadata?.finishedRaw)
+            if let raw = entry.sourceMetadata?.startedRaw, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { edit.startedRawVerbatim = raw } else { edit.startedOn = .clear }
+            if let raw = entry.sourceMetadata?.finishedRaw, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { edit.finishedRawVerbatim = raw } else { edit.finishedOn = .clear }
         }
         return edit
     }
@@ -361,6 +374,16 @@ extension LibraryEdit {
     }
 }
 
+extension LibraryEdit {
+    /// The date-only edit holding what the auto-fill added to `original`; nil when it added nothing.
+    func dateFillLeg(comparedTo original: LibraryEdit) -> LibraryEdit? {
+        var leg = LibraryEdit()
+        if startedOn != original.startedOn { leg.startedOn = startedOn }
+        if finishedOn != original.finishedOn { leg.finishedOn = finishedOn }
+        return leg.isEmpty ? nil : leg
+    }
+}
+
 extension LibraryEntry {
     static let provisionalRowId = 0
 
@@ -387,6 +410,8 @@ extension LibraryEntry {
             if case .set(let count) = edit.repeatCount { metadata.repeatCount = count }
             if !edit.startedOn.isUnchanged { metadata.startedRaw = edit.startedOn.resolved(nil)?.raw }
             if !edit.finishedOn.isUnchanged { metadata.finishedRaw = edit.finishedOn.resolved(nil)?.raw }
+            if let raw = edit.startedRawVerbatim { metadata.startedRaw = raw }
+            if let raw = edit.finishedRawVerbatim { metadata.finishedRaw = raw }
             entry.sourceMetadata = metadata
         }
         entry.updatedAt = time
@@ -409,8 +434,8 @@ extension LibraryEntry {
             } else {
                 var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
                 if !edit.repeatCount.isUnchanged { metadata.repeatCount = prior.sourceMetadata?.repeatCount }
-                if !edit.startedOn.isUnchanged { metadata.startedRaw = prior.sourceMetadata?.startedRaw }
-                if !edit.finishedOn.isUnchanged { metadata.finishedRaw = prior.sourceMetadata?.finishedRaw }
+                if !edit.startedOn.isUnchanged || edit.startedRawVerbatim != nil { metadata.startedRaw = prior.sourceMetadata?.startedRaw }
+                if !edit.finishedOn.isUnchanged || edit.finishedRawVerbatim != nil { metadata.finishedRaw = prior.sourceMetadata?.finishedRaw }
                 entry.sourceMetadata = metadata
             }
         }

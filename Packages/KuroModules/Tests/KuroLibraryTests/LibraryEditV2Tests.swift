@@ -208,7 +208,7 @@ struct LibraryEditV2Tests {
         let known = Self.entry(LibrarySourceMetadata(repeatCount: 2, startedRaw: "2024-05", finishedRaw: nil))
         let restored = LibraryEdit.restoring(known)
         #expect(restored.repeatCount == .set(2))
-        #expect(restored.startedOn == .set(try Self.date("2024-05")))
+        #expect(restored.startedRawVerbatim == "2024-05")
         #expect(restored.finishedOn == .clear)
 
         let unknown = LibraryEdit.restoring(Self.entry(nil))
@@ -593,6 +593,88 @@ struct LibraryEditV2Tests {
         #expect(h.store.entry(for: h.key)?.startedOn == nil)
     }
 
+    // MARK: F2 review fixes
+
+    @Test("Undo of a removal (restore) never fills a date, even with the switch on and an empty projection",
+          .timeLimit(.minutes(1)))
+    func restoreNeverFillsDates() async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            try await h.load([])
+            let removed = Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .current)
+            let restore = LibraryEdit.restoring(removed)
+            let pending = Task { await h.store.restore(restore, to: Self.key, createIfMissing: removed.status) }
+            let call = try await h.nextCall()
+            guard case .edit(let sent, _, _) = call.request else {
+                Issue.record("expected an edit request, got \(call.request)")
+                return
+            }
+            #expect(sent == restore, "restore sent something other than exactly what it was given: \(sent)")
+            #expect(sent.startedOn != .set(try Self.date("2026-03-02")))
+            call.answer(.failure(.retryable(message: "end of test")))
+            _ = await pending.value
+        }
+    }
+
+    @Test("restoring carries the repeat count and every date's raw text exactly, also an unparseable one")
+    func restoringCarriesRawDatesVerbatim() throws {
+        let removed = Self.entry(LibrarySourceMetadata(repeatCount: 3, startedRaw: "2019-05-00", finishedRaw: "not-a-date"))
+        let restore = LibraryEdit.restoring(removed)
+        #expect(restore.repeatCount == .set(3))
+        #expect(restore.startedRawVerbatim == "2019-05-00")
+        #expect(restore.finishedRawVerbatim == "not-a-date")
+        let rebuilt = Self.entry(nil).applying(restore, at: Fixture.now)
+        #expect(rebuilt.sourceMetadata?.startedRaw == "2019-05-00")
+        #expect(rebuilt.sourceMetadata?.finishedRaw == "not-a-date")
+        #expect(rebuilt.sourceMetadata?.repeatCount == 3)
+        #expect(!restore.isEmpty && restore.touchesDatesOrRepeat)
+        #expect(restore.patchBodyOmittingProgress.finishedRawVerbatim == "not-a-date")
+    }
+
+    @Test("While the projection is not loaded, a status change to Completed never fills a date",
+          .timeLimit(.minutes(1)), arguments: [false, true])
+    func unloadedProjectionNeverFills(failedLoad: Bool) async throws {
+        try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
+            h.signIn(Fixture.userA)
+            if failedLoad {
+                let refresh = Task { try await h.store.refresh() }
+                let call = try await h.nextCall()
+                call.answer(.failure(.retryable(message: "offline")))
+                _ = try? await refresh.value
+                #expect(h.store.loadState == .failed)
+            } else {
+                #expect(h.store.loadState == .notLoaded)
+            }
+            let pending = Task {
+                await h.store.apply(LibraryEdit(status: .set(.completed)), to: Self.key, createIfMissing: .completed)
+            }
+            let call = try await h.nextCall()
+            guard case .edit(let sent, _, _) = call.request else {
+                Issue.record("expected an edit request, got \(call.request)")
+                return
+            }
+            #expect(sent.finishedOn == .unchanged, "a date was filled while the title was unknown: \(sent)")
+            #expect(sent.startedOn == .unchanged)
+            call.answer(.failure(.retryable(message: "end of test")))
+            _ = await pending.value
+        }
+    }
+
+    @Test("Fence on: the date leg is dispatched only after the durable status intent is committed",
+          .timeLimit(.minutes(1)))
+    func dateLegFollowsTheDurableIntent() async throws {
+        let h = try await DurableDateHarness(autofill: true)
+        defer { h.close() }
+        h.sender.failing = true
+        var pendingStatusAtDispatch: [String?] = []
+        h.backend.onEdit = { [store = h.store, key = h.key] _ in
+            pendingStatusAtDispatch.append(store.pendingProgress(for: key)?.status)
+        }
+        _ = await h.store.apply(LibraryEdit(status: .set(.current)), to: h.key)
+        #expect(h.backend.edits.count == 1)
+        #expect(pendingStatusAtDispatch.map { $0?.lowercased() } == ["current"], "the date PATCH went out before the durable intent existed")
+    }
+
     // MARK: Unparseable stored dates (ruling carried from F2.2)
 
     @Test("Restoring or reverting over an unparseable stored date never writes null; a blank one clears")
@@ -600,6 +682,7 @@ struct LibraryEditV2Tests {
         let unparseable = Self.entry(LibrarySourceMetadata(repeatCount: 0, startedRaw: "not-a-date", finishedRaw: "  "))
         let restored = LibraryEdit.restoring(unparseable)
         #expect(restored.startedOn == .unchanged)
+        #expect(restored.startedRawVerbatim == "not-a-date", "re-creating a row carries the raw text through")
         #expect(restored.finishedOn == .clear, "a blank value means no date")
 
         let current = Self.entry(LibrarySourceMetadata(repeatCount: 0, startedRaw: "2025", finishedRaw: "2025"))
@@ -672,8 +755,10 @@ private final class DurableDateHarness {
 @MainActor
 private final class RecordingSender {
     var calls: [[ProgressIntent]] = []
+    var failing = false
     func send(_ items: [ProgressIntent]) async throws -> [LibraryProgressReceipt] {
         calls.append(items)
+        if failing { throw LibraryError.retryable(message: "offline") }
         return items.map {
             LibraryProgressReceipt(mutationId: $0.mutationId, outcome: "applied", position: $0.position,
                                    revision: ($0.baseRevision ?? 0) + 1)
@@ -686,6 +771,7 @@ private final class ScriptedPatchBackend: LibraryBackend {
     var row: LibraryEntry
     var edits: [LibraryEdit] = []
     var failure: LibraryError?
+    var onEdit: ((LibraryEdit) -> Void)?
     init(row: LibraryEntry) { self.row = row }
     func fetchAll(for account: AccountContext) async throws -> [LibraryEntry] { [row] }
     func insertIfMissing(_ key: MediaKey, status: ListStatus, account: AccountContext) async throws -> LibraryWriteResult {
@@ -694,6 +780,7 @@ private final class ScriptedPatchBackend: LibraryBackend {
     func edit(_ edit: LibraryEdit, key: MediaKey, createIfMissing: ListStatus?, mutationId: UUID,
               baseRevision: Int64?, account: AccountContext) async throws -> LibraryWriteResult {
         edits.append(edit)
+        onEdit?(edit)
         if let failure { throw failure }
         if case .set(let date) = edit.startedOn {
             var metadata = row.sourceMetadata ?? LibrarySourceMetadata()

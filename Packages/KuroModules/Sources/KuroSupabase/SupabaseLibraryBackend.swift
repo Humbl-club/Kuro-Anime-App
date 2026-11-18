@@ -399,6 +399,9 @@ public struct SupabaseLibraryBackend: LibraryBackend {
         case .clear: body["finished_raw"] = .null
         case .unchanged: break
         }
+        // Restore only: the exact stored text wins over the parsed date.
+        if let raw = edit.startedRawVerbatim { body["started_raw"] = .string(raw) }
+        if let raw = edit.finishedRawVerbatim { body["finished_raw"] = .string(raw) }
         return body
     }
 

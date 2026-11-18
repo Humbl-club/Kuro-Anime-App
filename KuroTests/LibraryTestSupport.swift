@@ -175,7 +175,8 @@ final class FakeLibraryBackend: LibraryBackend {
         }
         // Like `LibraryEdit.applying`: metadata is created only when the edit names one of these fields,
         // so a plain edit never turns unknown dates into known-empty ones.
-        guard !(edit.repeatCount == .unchanged && edit.startedOn == .unchanged && edit.finishedOn == .unchanged) else { return }
+        guard !(edit.repeatCount == .unchanged && edit.startedOn == .unchanged && edit.finishedOn == .unchanged
+                && edit.startedRawVerbatim == nil && edit.finishedRawVerbatim == nil) else { return }
         var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
         if case .set(let count) = edit.repeatCount { metadata.repeatCount = count }
         switch edit.startedOn {
@@ -188,6 +189,8 @@ final class FakeLibraryBackend: LibraryBackend {
         case .clear: metadata.finishedRaw = nil
         case .unchanged: break
         }
+        if let raw = edit.startedRawVerbatim { metadata.startedRaw = raw }
+        if let raw = edit.finishedRawVerbatim { metadata.finishedRaw = raw }
         entry.sourceMetadata = metadata
     }
 }
