@@ -70,3 +70,6 @@
 20261112100200_catalogue_tag_sources_v1.sql
 # Catalogue Task 15d (AniList ids leave public reads: column grants, matviews rebuilt, newly-added matviews dropped, voice RPCs). Prepared only; rollout order is load-bearing (app build, owner confirms old builds retired, then apply). Requires 100401.
 20261112100500_anilist_id_private_v1.sql
+
+# 2026-11-10 tracker gaps W10 (prepared only; owner approval required to deploy).
+20261118130000_library_up_next_v1.sql
