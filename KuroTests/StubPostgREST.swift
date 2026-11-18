@@ -498,6 +498,7 @@ struct PublicDataHarness {
 
     init(
         notifications: FakeNotificationCenter? = nil,
+        flags: FeatureFlags? = nil,
         responder: @escaping StubServer.Responder = { _ in .emptyArray }
     ) throws {
         server = StubServer()
@@ -509,7 +510,8 @@ struct PublicDataHarness {
         service = AppComposition.testingGraph(
             testingUserDefaults: defaults,
             notificationCenter: center,
-            client: StubSupabase.makeClient(server: server)
+            client: StubSupabase.makeClient(server: server),
+            flags: flags
         )
     }
 

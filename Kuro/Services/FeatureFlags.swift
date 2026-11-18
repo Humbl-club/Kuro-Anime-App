@@ -68,6 +68,9 @@ final class FeatureFlags {
     var collectionSeriesGroupingV1Enabled: Bool { evaluate("collection_series_grouping_v1") }
     /// W9: tags, custom lists and the tags-and-lists sheet. Default off (0 %); both owners read it at call time, before any request.
     var libraryOrganiseV1Enabled: Bool { evaluate("library_organise_v1") }
+    /// W5: browse before signing up. Default off (0 %). Signed out there is no user id, so only a 100 %
+    /// rollout (or `--ff-on=guest_browsing_v1` in a debug build) turns it on.
+    var guestBrowsingV1Enabled: Bool { evaluate("guest_browsing_v1") }
     var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
     /// W4: Search asks `search_*_page_v2` for the hidden 18+ count and shows one plain line (off by default).
     var searchAdultNoticeV1Enabled: Bool { evaluate("search_adult_notice_v1") }
@@ -208,6 +211,36 @@ final class FeatureFlags {
             print("[FeatureFlags] all retries failed, using \(flags.count) cached flags")
         }
         #endif
+        #endif
+    }
+
+    /// W5: the one signed-out `feature_flags` read that decides the guest switch (anonymous GET, no
+    /// retries). Applies its answer only while no account is current, and returns after `timeout` even
+    /// when the read is still in flight (a late answer is still applied while signed out).
+    func refreshSignedOut(client: Any, accountSession: AccountSessionCoordinator, timeout: Duration) async {
+        #if canImport(Supabase)
+        guard accountSession.current == nil, let supabase = client as? SupabaseClient else { return }
+        let gate = SignedOutRefreshGate()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            gate.continuation = continuation
+            Task { @MainActor [weak self] in
+                let records: [FlagRecord]? = try? await supabase
+                    .from("feature_flags").select().execute().value
+                if let self, !Task.isCancelled, accountSession.current == nil, let records {
+                    var newFlags: [String: FlagRecord] = [:]
+                    for r in records { newFlags[r.flagName] = r }
+                    self.flags = newFlags
+                    self.lastFetchDate = Date()
+                    self.saveToCache()
+                    self.publishRevisionFence()
+                }
+                gate.finish()
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: timeout)
+                gate.finish()
+            }
+        }
         #endif
     }
 
@@ -359,6 +392,16 @@ final class FeatureFlags {
         var loaded: [String: FlagRecord] = [:]
         for r in records { loaded[r.flagName] = r }
         flags = loaded
+    }
+}
+
+/// Resumes the signed-out refresh's waiter exactly once (whichever of the read and the timeout ends first).
+@MainActor
+private final class SignedOutRefreshGate {
+    var continuation: CheckedContinuation<Void, Never>?
+    func finish() {
+        continuation?.resume()
+        continuation = nil
     }
 }
 
