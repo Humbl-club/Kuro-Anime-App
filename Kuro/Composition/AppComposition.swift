@@ -69,6 +69,9 @@ final class AppComposition {
     var clubs: ClubsStore { graph.clubs }
     var collection: CollectionStore { graph.collection }
     var upNext: UpNextStore { graph.upNext }
+    /// W9: tags and custom lists (account-scoped, behind `library_organise_v1`).
+    var libraryTags: LibraryTagsStore { graph.libraryTags }
+    var customLists: CustomListsStore { graph.customLists }
     var imports: ImportsService { graph.imports }
     var concierge: ConciergeStore { graph.concierge }
     var taste: TasteStore { graph.taste }
@@ -251,13 +254,33 @@ final class AppComposition {
         let collection = makeCollection(client: client, accountSession: accountSession, userDefaults: userDefaults,
                                         groupingEnabled: { shell.flags.collectionSeriesGroupingV1Enabled })
         let support = makeSupport(client: client, accountSession: accountSession)
-        // W9 wires its tags and custom-lists providers into `libraryExportSeams` (tagsByKey / customLists) here.
+        // W9: the tag and custom-list owners over the one client and the one FeatureFlags; they feed the export.
+        let libraryTags = LibraryTagsStore(client: client, accountSession: accountSession, flags: shell.flags)
+        let customLists = CustomListsStore(client: client, accountSession: accountSession, flags: shell.flags)
+        libraryTags.customLists = customLists
+        customLists.library = wiring.store
+        var exportSeams = libraryExportSeams
+        if !exportSeams.organisationProvided {
+            // Off: the empty value without a request (nobody has organisation data at 0 %). nil means "could not load".
+            exportSeams.tagsByKey = { [weak libraryTags] in
+                guard let libraryTags else { return nil }
+                guard libraryTags.isEnabled else { return [:] }
+                await libraryTags.load()
+                return libraryTags.loadState == .loaded ? libraryTags.tagsByKey : nil
+            }
+            exportSeams.customLists = { [weak customLists] in
+                guard let customLists else { return nil }
+                guard customLists.isEnabled else { return [] }
+                await customLists.load()
+                return customLists.exportLists()
+            }
+        }
         let libraryExport = makeLibraryExport(
             library: wiring.store,
             catalog: publicData.catalog,
             accountSession: accountSession,
             flags: shell.flags,
-            seams: libraryExportSeams
+            seams: exportSeams
         )
         let home = HomeStore(client: client, accountSession: accountSession, library: wiring.store,
             outbox: progressOutbox,
@@ -330,6 +353,8 @@ final class AppComposition {
                 libraryActions: libraryActions,
                 home: home,
                 collection: collection,
+                libraryTags: libraryTags,
+                customLists: customLists,
                 upNext: upNext,
                 publicData: publicData,
                 personalData: personalData,
@@ -362,6 +387,8 @@ final class AppComposition {
             clubs: clubs,
             collection: collection,
             upNext: upNext,
+            libraryTags: libraryTags,
+            customLists: customLists,
             imports: assistant.imports,
             concierge: assistant.concierge,
             taste: assistant.taste,
@@ -443,6 +470,8 @@ final class AppComposition {
         libraryActions: LibraryActions,
         home: HomeStore,
         collection: CollectionStore,
+        libraryTags: LibraryTagsStore,
+        customLists: CustomListsStore,
         upNext: UpNextStore,
         publicData: PublicDataOwners,
         personalData: PersonalDataOwners,
@@ -453,7 +482,7 @@ final class AppComposition {
         widgets: WidgetSnapshotWriter,
         shell: ShellOwners
     ) -> [any AccountScopedState] {
-        [libraryActions, home, collection, upNext] + publicData.accountScopedStates
+        [libraryActions, home, collection, libraryTags, customLists, upNext] + publicData.accountScopedStates
             + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates
             + [support, libraryExport, widgets]
             + [shell.songPreview, shell.interactionTelemetry]
@@ -743,6 +772,10 @@ struct AppGraph {
     let collection: CollectionStore
     /// W10: "Up next in your series" (Collection's Completed view; account-scoped, behind `collection_up_next_v1`).
     let upNext: UpNextStore
+    /// W9: tag index and the atomic organise write (account-scoped, behind `library_organise_v1`).
+    let libraryTags: LibraryTagsStore
+    /// W9: custom lists with manual order (account-scoped, behind `library_organise_v1`).
+    let customLists: CustomListsStore
     let imports: ImportsService
     let concierge: ConciergeStore
     let taste: TasteStore

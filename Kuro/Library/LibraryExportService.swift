@@ -68,10 +68,13 @@ nonisolated struct LibraryExportSeams {
     var directory: URL = LibraryExportService.defaultDirectory
     var now: @Sendable () -> Date = { Date() }
     var timeZone: @Sendable () -> TimeZone = { .current }
-    /// The tags provider (W9 wires `LibraryTagsStore` here); `nil` = could not load.
-    var tagsByKey: @MainActor () async -> [MediaKey: [String]]? = { [:] }
-    /// The custom-lists provider (W9 wires `CustomListsStore.exportLists()` here); `nil` = could not load.
-    var customLists: @MainActor () async -> [ExportCustomList]? = { [] }
+    /// The tags provider (the graph wires `LibraryTagsStore` here unless a test supplies its own); `nil` = could not load.
+    var tagsByKey: @MainActor () async -> [MediaKey: [String]]? = { [:] } { didSet { organisationProvided = true } }
+    /// The custom-lists provider (the graph wires `CustomListsStore.exportLists()` here unless a test supplies its own); `nil` = could not load.
+    var customLists: @MainActor () async -> [ExportCustomList]? = { [] } { didSet { organisationProvided = true } }
+    /// True once either provider was assigned: the composition then keeps the supplied provider instead of
+    /// wiring the W9 owners (a test's own probe stays in charge).
+    var organisationProvided = false
     var write: @Sendable (Data, URL, Data.WritingOptions) throws -> Void = LibraryExportService.defaultWrite
     var build: @Sendable (LibraryExportInput, Set<LibraryExportFormat>, Date, TimeZone) -> LibraryExportBundle = LibraryExportService.defaultBuild
 }
