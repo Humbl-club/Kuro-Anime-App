@@ -82,3 +82,4 @@ Append one line per landed step: date, wave, item, commit, checks, hosted receip
 - 2026-11-18 wave 3: W3a release-alert offer merged (55c18fc..9ad24b9; accepted locally 8/8, no flag, no new request). State docs updated (inventory 303/44/254).
 - 2026-11-18 verification: serial full KuroTests on owned sim at the F2-fixes merge (cae6d50): 1,234/1,234 pass; package tests pass; Release build OK.
 - 2026-11-18 wave 3: catalogue Tasks 10–11 merged (popularity index uncalibrated — L4c not granted; tag map table + assignTags; AniDB excluded: terms page behind a Cloudflare challenge). Deno catalogue-intake 176, _shared 94; DB 120/121/123/124/125/127 pass. tag-map.csv: proposed ids matched from live tags (read-only); every row reviewed=no until owner review.
+- 2026-11-18 tests: F33 imports flake fixed (99c3f55, test race: wait for the stub's stop signal before releasing the held write); lane 5/10 → 10/10, lead 5/5 on owned sim.
