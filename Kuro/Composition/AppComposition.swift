@@ -68,6 +68,7 @@ final class AppComposition {
     var availability: ProviderAvailabilityStore { graph.availability }
     var clubs: ClubsStore { graph.clubs }
     var collection: CollectionStore { graph.collection }
+    var upNext: UpNextStore { graph.upNext }
     var imports: ImportsService { graph.imports }
     var concierge: ConciergeStore { graph.concierge }
     var taste: TasteStore { graph.taste }
@@ -288,6 +289,9 @@ final class AppComposition {
             reloader: widgetReloader,
             thumbnails: widgetThumbnails
         )
+        // W10: built once over the one client; reads `collection_up_next_v1` at call time.
+        let upNext = UpNextStore(client: client, accountSession: accountSession, library: wiring.store,
+                                 actions: libraryActions, taste: assistant.taste, flags: shell.flags)
         clubs.home = home
         collection.home = home
         collection.library = wiring.store
@@ -323,6 +327,7 @@ final class AppComposition {
                 libraryActions: libraryActions,
                 home: home,
                 collection: collection,
+                upNext: upNext,
                 publicData: publicData,
                 personalData: personalData,
                 clubs: clubs,
@@ -353,6 +358,7 @@ final class AppComposition {
             availability: personalData.availability,
             clubs: clubs,
             collection: collection,
+            upNext: upNext,
             imports: assistant.imports,
             concierge: assistant.concierge,
             taste: assistant.taste,
@@ -434,6 +440,7 @@ final class AppComposition {
         libraryActions: LibraryActions,
         home: HomeStore,
         collection: CollectionStore,
+        upNext: UpNextStore,
         publicData: PublicDataOwners,
         personalData: PersonalDataOwners,
         clubs: ClubsStore,
@@ -443,7 +450,7 @@ final class AppComposition {
         widgets: WidgetSnapshotWriter,
         shell: ShellOwners
     ) -> [any AccountScopedState] {
-        [libraryActions, home, collection] + publicData.accountScopedStates
+        [libraryActions, home, collection, upNext] + publicData.accountScopedStates
             + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates
             + [support, libraryExport, widgets]
             + [shell.songPreview, shell.interactionTelemetry]
@@ -725,6 +732,8 @@ struct AppGraph {
     let availability: ProviderAvailabilityStore
     let clubs: ClubsStore
     let collection: CollectionStore
+    /// W10: "Up next in your series" (Collection's Completed view; account-scoped, behind `collection_up_next_v1`).
+    let upNext: UpNextStore
     let imports: ImportsService
     let concierge: ConciergeStore
     let taste: TasteStore
