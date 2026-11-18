@@ -159,6 +159,75 @@ test("resume refresh reads current revisions with the owner's token and makes no
     9,
   );
 });
+const xProfile = (over = {}) => ({
+  name: "x-test",
+  librarySizes: [25],
+  writes: true,
+  seed: async ({ actor, call }) => {
+    await call("/rest/v1/x_rows", [{ a: 1 }], { token: actor.token });
+    return { rowId: 5, mediaId: 77 };
+  },
+  cleanupCheck: async () => true,
+  ...over,
+});
+const sizedAccount = (over = {}) => ({
+  id: "id1",
+  email: "kuro-load-test-a@example.invalid",
+  token: "own-token",
+  librarySize: 25,
+  seeded: true,
+  ...over,
+});
+test("seed-profiles seeds once per covered actor and refresh keeps profile state", async (t) => {
+  const file = setup(t, {
+    accounts: [sizedAccount(), sizedAccount({ id: "id2", token: "tok2", email: "kuro-load-test-b@example.invalid", librarySize: 0 })],
+  });
+  const seen = [];
+  const fetcher = async (url, init) => {
+    seen.push({ url, method: init.method, auth: init.headers.Authorization });
+    if (new URL(url).pathname === "/rest/v1/anime_user_lists") {
+      if (init.headers.Authorization === "Bearer tok2") return new Response("[]", { status: 200 });
+      assert.equal(new URL(url).searchParams.get("anime_id"), "not.in.(77)");
+      return new Response(JSON.stringify([{ user_id: "id1", anime_id: 7, lifecycle_id: "l", server_revision: 3, progress: 1 }]), { status: 200 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+  const profiles = { "x-test": xProfile() };
+  const first = await manage("seed-profiles", file, { ...opts, profiles, fetcher });
+  assert.deepEqual(first.seeded, { "x-test": 1 });
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].auth, "Bearer own-token");
+  const stored = JSON.parse(fs.readFileSync(file)).accounts;
+  assert.deepEqual(stored[0].profileState, { "x-test": { rowId: 5, mediaId: 77 } });
+  assert.equal(stored[1].profileState, undefined);
+  const second = await manage("seed-profiles", file, { ...opts, profiles, fetcher });
+  assert.deepEqual(second.seeded, { "x-test": 0 });
+  assert.equal(seen.length, 1);
+  await manage("refresh", file, { ...opts, accounts: 1, fetcher });
+  const after = JSON.parse(fs.readFileSync(file)).accounts[0];
+  assert.deepEqual(after.profileState, { "x-test": { rowId: 5, mediaId: 77 } });
+  assert.equal(after.writeEntry.mediaId, 7);
+});
+test("seed-profiles requires a completed setup", async (t) => {
+  const file = setup(t, { accounts: [sizedAccount({ seeded: false })] });
+  await assert.rejects(() => manage("seed-profiles", file, { ...opts, profiles: { "x-test": xProfile() }, fetcher: () => { throw new Error("no network"); } }), /setup/);
+});
+test("cleanup verifies profile data is absent", async (t) => {
+  const absent = () => new Response("{}", { status: 404 });
+  const withState = () => setup(t, { accounts: [sizedAccount({ profileState: { "x-test": { rowId: 5, mediaId: 77 } } })] });
+  const file = withState();
+  const r = await manage("cleanup", file, { ...opts, profiles: { "x-test": xProfile() }, fetcher: async () => absent() });
+  assert.deepEqual(r.cleanup[0].profileData, { "x-test": "absent" });
+  const file2 = withState();
+  await assert.rejects(() => manage("cleanup", file2, {
+    ...opts, profiles: { "x-test": xProfile({ cleanupCheck: async () => false }) }, fetcher: async () => absent(),
+  }), /Profile data cleanup not confirmed \(x-test, account 0\)/);
+  // An unregistered profile name stops cleanup before any request is made.
+  const file3 = withState();
+  let calls = 0;
+  await assert.rejects(() => manage("cleanup", file3, { ...opts, profiles: {}, fetcher: async () => { calls++; return absent(); } }), /cleanup cannot verify unregistered profile x-test/);
+  assert.equal(calls, 0);
+});
 test("refresh refuses a missing user token before making an administrative fallback read", async (t) => {
   const file = setup(t, {
     accounts: [{

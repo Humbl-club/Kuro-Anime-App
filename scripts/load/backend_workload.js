@@ -338,7 +338,44 @@ function checkProfile(profile, file) {
   ) fail("ratePerSecond must be a finite number, 0 < r <= " + PROFILE_MAX_RATE);
   if (typeof profile.validate !== "function") fail("validate must be a function");
   if (typeof profile.request !== "function") fail("request must be a function");
+  // Qualification fields (F3.1c): an empty answer must never pass in qualify mode.
+  const ex = profile.emptyExamples;
+  if (!Array.isArray(ex) || ex.length < 1) {
+    fail("emptyExamples must list at least one empty answer");
+  }
+  for (const example of ex) {
+    let accepted = false;
+    try {
+      accepted = profile.validate(example, STUB_ACTOR, STUB_REQUEST, { mode: "qualify" }) === true;
+    } catch {
+      accepted = false; // a throw is a rejection
+    }
+    if (accepted) fail("validate accepts an empty answer in qualify mode");
+  }
+  for (const key of ["requires", "seed", "cleanupCheck"]) {
+    if (profile[key] !== undefined && typeof profile[key] !== "function") {
+      fail(key + " must be a function");
+    }
+  }
+  if (profile.writes === true && (!profile.seed || !profile.cleanupCheck)) {
+    fail("write profiles must declare seed and cleanupCheck");
+  }
+  if (profile.seed && !profile.cleanupCheck) {
+    fail("a profile with seed must declare cleanupCheck");
+  }
+  if (profile.payloads !== undefined) {
+    const ok = Array.isArray(profile.payloads) && profile.payloads.length > 0 &&
+      profile.payloads.every((p) => ["typical", "maximum"].includes(p));
+    if (!ok) fail("payloads must be a non-empty list of typical, maximum");
+  }
+  if (profile.librarySizes !== undefined) {
+    const ok = Array.isArray(profile.librarySizes) && profile.librarySizes.length > 0 &&
+      profile.librarySizes.every((n) => Number.isInteger(n) && n >= 0);
+    if (!ok) fail("librarySizes must be a non-empty list of integers");
+  }
 }
+const STUB_ACTOR = Object.freeze({ id: "stub", librarySize: 0, profileState: {} });
+const STUB_REQUEST = Object.freeze({ path: "/stub", body: {} });
 // One file per profile under scripts/load/profiles. Never part of WEIGHTS/chooseKind.
 function loadProfiles(dir = path.join(__dirname, "profiles")) {
   if (!fs.existsSync(dir)) return Object.freeze({});
@@ -395,10 +432,153 @@ function profileSchedule(selection, durationSeconds) {
   }
   return out.sort((a, b) => a.atMs - b.atMs || (a.name < b.name ? -1 : 1));
 }
-// 0 pass; 1 fail. (Qualification adds 3 for insufficient.)
+const QUALIFY_MIN = Object.freeze({ endpoint: 100, subgroup: 30, payload: 30 });
+// Kinds a selected profile records, with each kind's expected share of its arrivals.
+function profileKinds(entry) {
+  const p = entry.profile;
+  if (p.budgetClasses) {
+    return p.budgetClasses.map((c) => [`${entry.name}:${c}`, 1 / p.budgetClasses.length]);
+  }
+  if (p.operations) {
+    const ops = Object.entries(p.operations);
+    return ops.map(([op, o]) => [`${entry.name}:${op}`, o.share ?? 1 / ops.length]);
+  }
+  return [[entry.name, 1]];
+}
+// Fixture subgroups a profile covers; anonymous profiles ignore actors (no subgroups).
+function coveredActors(profile, fixture, config) {
+  if (profile.anonymous === true) return { sizes: [], actors: [] };
+  const all = fixture.accounts.slice(0, config.vus);
+  const sizes = profile.librarySizes ?? [...new Set(all.map((a) => a.librarySize))].sort((a, b) => a - b);
+  return { sizes, actors: all.filter((a) => sizes.includes(a.librarySize)) };
+}
+function qualifyPreflight(config, fixture, selection, min = QUALIFY_MIN) {
+  const problems = [], expected = {};
+  for (const entry of selection.profiles) {
+    const p = entry.profile;
+    const { sizes, actors } = coveredActors(p, fixture, config);
+    for (const size of sizes) {
+      if (!actors.some((a) => a.librarySize === size)) {
+        problems.push(`${entry.name}: no ${size}-title account in the fixture`);
+      }
+    }
+    if (p.requires) {
+      const reasons = new Map();
+      for (const a of actors) {
+        const why = p.requires(fixture, a);
+        if (why) reasons.set(why, (reasons.get(why) ?? 0) + 1);
+      }
+      for (const [why, n] of reasons) {
+        problems.push(`Fixture not populated for ${entry.name}: ${why} (${n} actors)`);
+      }
+    }
+    for (const [kind, share] of profileKinds(entry)) {
+      const completions = config.duration * entry.ratePerSecond * share;
+      const bySubgroup = {}, byPayload = {};
+      if (completions < min.endpoint) {
+        problems.push(`${kind}: expected ${Math.floor(completions)} completions < ${min.endpoint}; raise its rate or the duration`);
+      }
+      for (const size of sizes) {
+        bySubgroup[size] = completions / sizes.length;
+        if (bySubgroup[size] < min.subgroup) {
+          problems.push(`${kind}: expected ${Math.floor(bySubgroup[size])} completions in the ${size}-title subgroup < ${min.subgroup}`);
+        }
+      }
+      for (const payload of p.payloads ?? []) {
+        byPayload[payload] = completions / p.payloads.length;
+        if (byPayload[payload] < min.payload) {
+          problems.push(`${kind}: expected ${Math.floor(byPayload[payload])} ${payload} payload completions < ${min.payload}`);
+        }
+      }
+      expected[kind] = { completions, bySubgroup, byPayload };
+    }
+  }
+  if (problems.length) {
+    throw new Error("Qualification preflight refused:\n- " + problems.join("\n- "));
+  }
+  return { passed: true, expected };
+}
+const RANK = { pass: 0, insufficient: 1, fail: 2 };
+const worst = (vs) => vs.reduce((a, b) => (RANK[b] > RANK[a] ? b : a), "pass");
+// fail > insufficient > pass. Anonymous samples have no subgroup.
+function qualifyVerdicts(samples, selection, min = QUALIFY_MIN) {
+  const profiles = {};
+  for (const entry of selection.profiles) {
+    const p = entry.profile;
+    const endpoints = {};
+    for (const [kind] of profileKinds(entry)) {
+      const rows = samples.filter((x) => x.kind === kind);
+      const limit = selection.limits[kind];
+      const group = (own, needed) => {
+        const p95 = percentile(own.map((x) => x.ms), .95);
+        const completions = own.length;
+        let verdict = "pass";
+        if (own.some((x) => !x.ok) || (p95 !== null && p95 > limit)) verdict = "fail";
+        else if (completions < needed) verdict = "insufficient";
+        return { completions, p95, verdict };
+      };
+      const bySubgroup = {}, byPayload = {};
+      if (p.anonymous !== true) {
+        const sizes = p.librarySizes ?? [...new Set(rows.map((x) => x.librarySize))];
+        for (const size of sizes) {
+          bySubgroup[size] = group(rows.filter((x) => x.librarySize === size), min.subgroup);
+        }
+      }
+      for (const payload of p.payloads ?? []) {
+        byPayload[payload] = group(rows.filter((x) => x.payload === payload), min.payload);
+      }
+      const own = group(rows, min.endpoint);
+      endpoints[kind] = {
+        ...own,
+        limit,
+        verdict: worst([
+          own.verdict,
+          ...Object.values(bySubgroup).map((x) => x.verdict),
+          ...Object.values(byPayload).map((x) => x.verdict),
+        ]),
+        bySubgroup,
+        byPayload,
+      };
+    }
+    profiles[entry.name] = {
+      verdict: worst(Object.values(endpoints).map((e) => e.verdict)),
+      endpoints,
+    };
+  }
+  return { verdict: worst(Object.values(profiles).map((x) => x.verdict)), profiles };
+}
+const WORKLOAD_NAME = /^[a-z0-9][a-z0-9-]*$/;
+function loadWorkload(name, dir = path.join(__dirname, "workloads")) {
+  if (typeof name !== "string" || !WORKLOAD_NAME.test(name)) {
+    throw new Error("Invalid workload name");
+  }
+  const file = path.join(dir, name + ".js");
+  if (!fs.existsSync(file)) throw new Error("Unknown workload " + name);
+  const w = require(file);
+  if (w?.name !== name) throw new Error(`workload ${name}: name must equal the file name`);
+  if (!Number.isFinite(w.baseRps) || w.baseRps <= 0 || w.baseRps > 50) {
+    throw new Error(`workload ${name}: invalid baseRps`);
+  }
+  for (const [profile, rate] of Object.entries(w.profiles ?? {})) {
+    if (!Number.isFinite(rate) || rate <= 0 || rate > PROFILE_MAX_RATE) {
+      throw new Error(`workload ${name}: invalid rate for ${profile}`);
+    }
+  }
+  return Object.freeze({
+    name,
+    baseRps: w.baseRps,
+    profiles: Object.freeze({ ...w.profiles }),
+  });
+}
+// 0 pass; 1 fail; 3 insufficient (qualification only, nothing failed).
 function exitCodeFor(report) {
-  const profileSamples = report.lanes?.profiles?.samples ?? [];
-  if (!report.summary?.pass || profileSamples.some((x) => !x.ok)) return 1;
+  const lane = report.lanes?.profiles;
+  if (!report.summary?.pass || (lane?.samples ?? []).some((x) => !x.ok)) return 1;
+  if (report.mode === "qualify") {
+    if (report.preflight?.passed !== true) return 1;
+    if (lane?.verdict === "fail") return 1;
+    if (lane?.verdict === "insufficient") return 3;
+  }
   return 0;
 }
 module.exports = {
@@ -407,6 +587,10 @@ module.exports = {
   selectProfiles,
   profileSchedule,
   exitCodeFor,
+  QUALIFY_MIN,
+  loadWorkload,
+  qualifyPreflight,
+  qualifyVerdicts,
   EMPTY_SELECTION,
   ORIGIN,
   WEIGHTS,

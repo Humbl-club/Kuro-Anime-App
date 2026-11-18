@@ -204,7 +204,9 @@ function profileDir(t, profiles) {
   for (const [name, raw] of Object.entries(profiles)) {
     const fields = {
       name,
-      validate: { $fn: "() => true" },
+      // Accepts any non-empty array; in qualify mode an empty answer is rejected (F3.1c).
+      validate: { $fn: "(d, a, r, ctx) => ctx?.mode !== 'qualify' || (Array.isArray(d) && d.length > 0)" },
+      emptyExamples: [[]],
       request: { $fn: "() => ({ path: '/rest/v1/rpc/x' })" },
       ...raw,
     };
@@ -332,6 +334,105 @@ test("summarize reports payload groups when samples carry one", () => {
   assert.deepEqual(Object.keys(s.endpoints.browse.byPayload).sort(), ["maximum", "typical"]);
   assert.equal(s.endpoints.browse.byPayload.maximum.requests, 1);
   assert.equal(W.summarize([{ kind: "browse", ms: 1, status: 200, ok: true }], 1, 1).endpoints.browse.byPayload, undefined);
+});
+// ---- F3.1c: qualification ----
+function qSamples(parts, { ms = 50, payload } = {}) {
+  // parts: [[librarySize, count, ok?]]
+  return parts.flatMap(([librarySize, n, ok = true]) =>
+    Array.from({ length: n }, () => ({
+      kind: "q-test", ms, status: ok ? 200 : 500, ok, librarySize,
+      ...(payload ? { payload } : {}),
+    }))
+  );
+}
+function qSelection(t, extra = {}) {
+  const P = W.loadProfiles(profileDir(t, {
+    "q-test": { budgetClass: "browse", ratePerSecond: 0.5, librarySizes: [25, 2000], ...extra },
+  }));
+  return W.selectProfiles({ names: ["q-test"] }, P);
+}
+test("qualification verdicts", (t) => {
+  const sel = qSelection(t);
+  const verdict = (samples) => W.qualifyVerdicts(samples, sel);
+  assert.equal(verdict(qSamples([[25, 70], [2000, 29]])).profiles["q-test"].endpoints["q-test"].verdict, "insufficient");
+  assert.equal(verdict(qSamples([[25, 71], [2000, 29]])).profiles["q-test"].endpoints["q-test"].verdict, "insufficient");
+  const pass = verdict(qSamples([[25, 70], [2000, 30]]));
+  assert.equal(pass.profiles["q-test"].endpoints["q-test"].verdict, "pass");
+  assert.equal(pass.verdict, "pass");
+  assert.equal(pass.profiles["q-test"].endpoints["q-test"].bySubgroup[2000].completions, 30);
+  const failed = verdict(qSamples([[25, 100], [2000, 99], [2000, 1, false]]));
+  assert.equal(failed.verdict, "fail");
+  assert.equal(verdict(qSamples([[25, 100], [2000, 100]], { ms: 751 })).verdict, "fail");
+  // A slow 2000 subgroup fails even though the overall p95 passes.
+  const slowSub = [...qSamples([[25, 600]]), ...qSamples([[2000, 30]], { ms: 900 })];
+  assert.equal(verdict(slowSub).verdict, "fail");
+  // Zero samples for a declared endpoint is insufficient, never pass.
+  assert.equal(verdict([]).verdict, "insufficient");
+  const withMax = qSelection(t, { payloads: ["typical", "maximum"] });
+  const payloadSamples = [
+    ...qSamples([[25, 100], [2000, 90]], { payload: "typical" }),
+    ...qSamples([[2000, 10]], { payload: "maximum" }),
+  ];
+  const pv = W.qualifyVerdicts(payloadSamples, withMax);
+  assert.equal(pv.profiles["q-test"].endpoints["q-test"].verdict, "insufficient");
+  assert.equal(pv.profiles["q-test"].endpoints["q-test"].byPayload.maximum.verdict, "insufficient");
+  assert.notEqual(pv.verdict, "pass");
+  assert.equal(W.exitCodeFor({ mode: "qualify", summary: { pass: true }, preflight: { passed: true }, lanes: { profiles: { verdict: "pass", samples: [] } } }), 0);
+  assert.equal(W.exitCodeFor({ mode: "qualify", summary: { pass: true }, preflight: { passed: true }, lanes: { profiles: { verdict: "fail", samples: [] } } }), 1);
+  assert.equal(W.exitCodeFor({ mode: "qualify", summary: { pass: true }, preflight: { passed: true }, lanes: { profiles: { verdict: "insufficient", samples: [] } } }), 3);
+  assert.equal(W.exitCodeFor({ mode: "qualify", summary: { pass: true }, preflight: { passed: false }, lanes: { profiles: { verdict: "pass", samples: [] } } }), 1);
+  assert.equal(W.exitCodeFor({ mode: "qualify", summary: { pass: true }, lanes: { profiles: { verdict: "pass", samples: [] } } }), 1);
+  // insufficient never masks a failure
+  assert.equal(W.exitCodeFor({ mode: "qualify", summary: { pass: false }, preflight: { passed: true }, lanes: { profiles: { verdict: "insufficient", samples: [] } } }), 1);
+});
+test("qualify preflight refuses thin or empty setups", (t) => {
+  const accounts = (sizes) => sizes.map((librarySize, i) => ({ id: String(i), librarySize }));
+  const cfg = { duration: 600, vus: 2, rps: 20 };
+  const fx = (sizes) => ({ accounts: accounts(sizes) });
+  const thin = W.loadProfiles(profileDir(t, { "q-test": { budgetClass: "browse", ratePerSecond: 0.1, librarySizes: [25] } }));
+  assert.throws(() => W.qualifyPreflight(cfg, fx([25, 2000]), W.selectProfiles({ names: ["q-test"] }, thin)), /q-test: expected 60 completions < 100/);
+  const big = W.loadProfiles(profileDir(t, { "q-test": { budgetClass: "browse", ratePerSecond: 0.5, librarySizes: [2000] } }));
+  assert.throws(() => W.qualifyPreflight(cfg, fx([25, 25]), W.selectProfiles({ names: ["q-test"] }, big)), /2000/);
+  const req = W.loadProfiles(profileDir(t, { "q-test": {
+    budgetClass: "browse", ratePerSecond: 0.5, librarySizes: [25, 2000],
+    requires: { $fn: "() => 'no seeded lists'" },
+  } }));
+  assert.throws(() => W.qualifyPreflight(cfg, fx([25, 2000]), W.selectProfiles({ names: ["q-test"] }, req)), /Fixture not populated for q-test: no seeded lists/);
+  const good = W.loadProfiles(profileDir(t, { "q-test": { budgetClass: "browse", ratePerSecond: 0.5, librarySizes: [25, 2000] } }));
+  const r = W.qualifyPreflight(cfg, fx([25, 2000]), W.selectProfiles({ names: ["q-test"] }, good));
+  assert.equal(r.passed, true);
+  assert.equal(r.expected["q-test"].completions, 300);
+  assert.deepEqual(r.expected["q-test"].bySubgroup, { 25: 150, 2000: 150 });
+  // Operations split the arrivals by share; a thin operation is named.
+  const ops = W.loadProfiles(profileDir(t, { "q-test": {
+    operations: { a: { budgetClass: "browse", share: 0.9 }, b: { budgetClass: "browse", share: 0.1 } },
+    ratePerSecond: 0.5, librarySizes: [25],
+  } }));
+  assert.throws(() => W.qualifyPreflight(cfg, fx([25]), W.selectProfiles({ names: ["q-test"] }, ops)), /q-test:b: expected 30 completions < 100/);
+});
+test("qualify mode rejects empty answers", (t) => {
+  const ok = { budgetClass: "browse", ratePerSecond: 1 };
+  assert.throws(() => W.loadProfiles(profileDir(t, { "bad-test": { ...ok, validate: { $fn: "() => true" } } })), /accepts an empty answer in qualify mode/);
+  assert.throws(() => W.loadProfiles(profileDir(t, { "bad-test": { ...ok, emptyExamples: [] } })), /emptyExamples/);
+  assert.throws(() => W.loadProfiles(profileDir(t, { "bad-test": { ...ok, writes: true } })), /seed and cleanupCheck/);
+  assert.throws(() => W.loadProfiles(profileDir(t, { "bad-test": { ...ok, seed: { $fn: "async () => ({})" } } })), /cleanupCheck/);
+  const good = W.loadProfiles(profileDir(t, { "good-test": {
+    ...ok,
+    validate: { $fn: "(d, a, r, ctx) => Array.isArray(d) && (ctx.mode === 'wiring' || d.length > 0)" },
+  } }));
+  assert.equal(good["good-test"].validate([], actor, {}, { mode: "wiring" }), true);
+  assert.equal(good["good-test"].validate([], actor, {}, { mode: "qualify" }), false);
+  // a throwing validate counts as rejection
+  assert.doesNotThrow(() => W.loadProfiles(profileDir(t, { "thrower-test": { ...ok, validate: { $fn: "() => { throw new Error('x'); }" } } })));
+});
+test("combined workload names every profile with an explicit rate", () => {
+  const w = W.loadWorkload("tracker-gaps-combined");
+  assert.equal(w.baseRps, 20);
+  assert.deepEqual(Object.keys(w.profiles).sort(), Object.keys(W.TRACKER_GAP_PROFILES).sort());
+  for (const r of Object.values(w.profiles)) assert.ok(Number.isFinite(r) && r > 0 && r <= 10);
+  assert.ok(20 + Object.values(w.profiles).reduce((a, b) => a + b, 0) <= 50);
+  assert.throws(() => W.loadWorkload("nope-workload"));
+  assert.throws(() => W.loadWorkload("../backend_workload"));
 });
 test("config bounds cover both lanes", (t) => {
   const P = W.loadProfiles(profileDir(t, { "x-test": { budgetClass: "browse", ratePerSecond: 6 } }));

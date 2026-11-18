@@ -12,11 +12,24 @@ function makeRandom(initial) {
     return seed / 4294967296;
   };
 }
-async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) {
-  const selection = W.selectProfiles({ names: config.trackerGaps ?? [] }, profiles);
+// A named workload supplies explicit absolute rates; --tracker-gaps supplies names only.
+function selectionFor(config, profiles) {
+  const rates = config.profileRates;
+  return W.selectProfiles({
+    names: config.trackerGaps ?? (rates ? Object.keys(rates) : []),
+    ...(rates ? { rates } : {}),
+  }, profiles);
+}
+async function run(
+  config,
+  fixture,
+  { profiles = W.TRACKER_GAP_PROFILES, preflight } = {},
+) {
+  const selection = selectionFor(config, profiles);
   W.validateConfig(config, fixture, selection);
   const actors = fixture.accounts.slice(0, config.vus);
-  const mode = "wiring";
+  // Wiring mode (default) tolerates empty answers and is never release evidence.
+  const mode = config.mode === "qualify" ? "qualify" : "wiring";
   // Base lane state (identical to the pre-profile runner) and profile lane state.
   const newLane = (name, random) => ({
     name,
@@ -287,6 +300,10 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
     schemaVersion: 2,
     mode,
     runKey: fixture.runId + "@" + startedAt,
+    ...(mode === "qualify" && preflight ? { preflight } : {}),
+    ...(selection.profiles.length
+      ? { workload: config.workload ?? selection.profiles.map((p) => p.name).join(",") }
+      : {}),
     byLibrarySize,
     byMedium,
     runId: fixture.runId,
@@ -326,7 +343,12 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
             summary: W.summarize(lane2.samples, lane2.offered, elapsed, selection.limits),
             byLibrarySize: profileBySize,
             samples: lane2.samples,
-            verdict: "wiring",
+            ...(mode === "qualify"
+              ? (() => {
+                const q = W.qualifyVerdicts(lane2.samples, selection);
+                return { verdict: q.verdict, profiles: q.profiles };
+              })()
+              : { verdict: "wiring" }),
           },
         },
       }
@@ -339,17 +361,25 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
   ) report.summary.pass = false;
   return report;
 }
-if (require.main === module) {
-  const args = Object.fromEntries(
-    process.argv.slice(2).map((a) => {
-      const [k, ...v] = a.replace(/^--/, "").split("=");
-      return [k, v.length ? v.join("=") : true];
-    }),
-  );
-  const config = {
+function configFromArgs(args) {
+  if (args.workload !== undefined && args["tracker-gaps"] !== undefined) {
+    throw new Error("--workload and --tracker-gaps are mutually exclusive");
+  }
+  let workload = null;
+  if (args.workload !== undefined) {
+    workload = W.loadWorkload(args.workload);
+    if (args.rps !== undefined && Number(args.rps) !== workload.baseRps) {
+      throw new Error(`the combined workload keeps the base at ${workload.baseRps} rps`);
+    }
+  }
+  return {
     production: args.production === true,
     transport: args.transport || "node",
-    rps: Number(args.rps || 2),
+    rps: workload ? workload.baseRps : Number(args.rps || 2),
+    ...(workload
+      ? { workload: workload.name, profileRates: { ...workload.profiles } }
+      : {}),
+    ...(args.qualify === true ? { mode: "qualify" } : {}),
     duration: Number(args.duration || 60),
     vus: Number(args.vus || 100),
     maxRequests: Number(args["max-requests"] || 20000),
@@ -360,6 +390,15 @@ if (require.main === module) {
       ? { trackerGaps: args["tracker-gaps"].split(",").filter(Boolean) }
       : {}),
   };
+}
+if (require.main === module) {
+  const args = Object.fromEntries(
+    process.argv.slice(2).map((a) => {
+      const [k, ...v] = a.replace(/^--/, "").split("=");
+      return [k, v.length ? v.join("=") : true];
+    }),
+  );
+  const config = configFromArgs(args);
   if (!args.fixture || !args.output) {
     throw new Error(
       "--fixture=<private path> and --output=<report path> required",
@@ -373,7 +412,19 @@ if (require.main === module) {
   if (config.transport === "curl") {
     global.fetch = require("./load/backend_curl_fetch").makeCurlFetch();
   }
-  run(config, fixture).then((r) => {
+  let preflight;
+  if (config.mode === "qualify") {
+    // A refused preflight sends nothing and exits 1.
+    try {
+      const selection = selectionFor(config, W.TRACKER_GAP_PROFILES);
+      W.validateConfig(config, fixture, selection);
+      preflight = W.qualifyPreflight(config, fixture, selection);
+    } catch (e) {
+      console.error(e.message);
+      process.exit(1);
+    }
+  }
+  run(config, fixture, { preflight }).then((r) => {
     fs.writeFileSync(args.fixture, JSON.stringify(fixture, null, 2) + "\n", {
       mode: 0o600,
     });
@@ -396,4 +447,4 @@ if (require.main === module) {
     process.exitCode = 1;
   });
 }
-module.exports = { run };
+module.exports = { run, configFromArgs };

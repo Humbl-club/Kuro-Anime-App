@@ -3,14 +3,23 @@
 const fs = require("node:fs"), path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const { setTimeout: sleep } = require("node:timers/promises");
-const { ORIGIN } = require("./backend_workload");
+const W = require("./backend_workload");
+const { ORIGIN } = W;
+// `profiles` is the registry used to seed (the selected profiles) and to verify cleanup
+// (every profile named in an account's profileState must be registered).
 async function manage(
   mode,
   file,
-  { anonKey, serviceKey, accounts = 100, fetcher = fetch } = {},
+  {
+    anonKey,
+    serviceKey,
+    accounts = 100,
+    fetcher = fetch,
+    profiles = W.TRACKER_GAP_PROFILES,
+  } = {},
 ) {
   if (
-    !["setup", "refresh", "cleanup"].includes(mode) || !anonKey ||
+    !["setup", "refresh", "cleanup", "seed-profiles"].includes(mode) || !anonKey ||
     !serviceKey ||
     !Number.isInteger(accounts) || accounts < 1 || accounts > 100
   ) {
@@ -81,8 +90,12 @@ async function manage(
     }
     let changed = 0;
     for (const a of f.accounts) {
+      // A seeded profile row must never become the base `progress` kind's writeEntry.
+      const reserved = Object.values(a.profileState ?? {})
+        .map((s) => s?.mediaId).filter(Number.isInteger);
       const rows = await call(
-        "/rest/v1/anime_user_lists?select=user_id,anime_id,lifecycle_id,server_revision,progress&order=anime_id&limit=1",
+        "/rest/v1/anime_user_lists?select=user_id,anime_id,lifecycle_id,server_revision,progress&order=anime_id&limit=1" +
+          (reserved.length ? "&anime_id=not.in.(" + reserved.join(",") + ")" : ""),
         undefined,
         { method: "GET", token: a.token },
       );
@@ -109,6 +122,39 @@ async function manage(
       accountsRefreshed: f.accounts.length,
       changedRevisions: changed,
     };
+  }
+  if (mode === "seed-profiles") {
+    if (
+      !f.accounts.length ||
+      f.accounts.some((a) => !a.id || !a.token || a.deleted || !a.seeded)
+    ) {
+      throw new Error(
+        "seed-profiles requires a completed setup with active seeded accounts",
+      );
+    }
+    const core = {
+      requestFor: W.requestFor,
+      validateResponse: W.validateResponse,
+      ORIGIN,
+      now: () => new Date(),
+    };
+    const seeded = {};
+    for (const [name, profile] of Object.entries(profiles)) {
+      seeded[name] = 0;
+      if (!profile.seed) continue;
+      for (const actor of f.accounts) {
+        if (profile.librarySizes && !profile.librarySizes.includes(actor.librarySize)) {
+          continue;
+        }
+        actor.profileState ??= {};
+        if (actor.profileState[name] !== undefined) continue;
+        const state = await profile.seed({ actor, fixture: f, call, core });
+        actor.profileState[name] = JSON.parse(JSON.stringify(state ?? {}));
+        seeded[name]++;
+        save(); // resumable after every actor
+      }
+    }
+    return { runId: f.runId, seeded };
   }
   if (mode === "setup") {
     for (const medium of ["anime", "manga"]) {
@@ -270,6 +316,29 @@ async function manage(
     };
   }
   const cleanup = [];
+  // Every profile that left data behind must be verifiable; refuse before any deletion.
+  for (const a of f.accounts) {
+    if (a.deleted) continue;
+    for (const name of Object.keys(a.profileState ?? {})) {
+      if (typeof profiles[name]?.cleanupCheck !== "function") {
+        throw new Error("cleanup cannot verify unregistered profile " + name);
+      }
+    }
+  }
+  // After the account's auth record is confirmed gone, each profile proves its data is too.
+  const verifyProfileData = async (a) => {
+    const profileData = {};
+    for (const [name, state] of Object.entries(a.profileState ?? {})) {
+      const gone = await profiles[name].cleanupCheck({ actor: a, state, call });
+      if (gone !== true) {
+        throw new Error(
+          `Profile data cleanup not confirmed (${name}, account ${f.accounts.indexOf(a)})`,
+        );
+      }
+      profileData[name] = "absent";
+    }
+    return Object.keys(profileData).length ? { profileData } : {};
+  };
   // Members first, then owners: exact fixture inventory only. No broad users listing.
   for (const a of [...f.accounts].reverse()) {
     if (a.deleted || !a.id) continue;
@@ -278,6 +347,7 @@ async function manage(
       allowNotFound: true,
     });
     if (!u) {
+      const extra = await verifyProfileData(a);
       a.deleted = true;
       delete a.token;
       save();
@@ -285,6 +355,7 @@ async function manage(
         accountIndex: f.accounts.indexOf(a),
         route: "already-absent",
         authAbsent: true,
+        ...extra,
       });
       continue;
     }
@@ -317,6 +388,7 @@ async function manage(
     if (res.status !== 404) {
       throw new Error("Exact fixture account cleanup not confirmed");
     }
+    const extra = await verifyProfileData(a);
     a.deleted = true;
     delete a.token;
     save();
@@ -324,6 +396,7 @@ async function manage(
       accountIndex: f.accounts.indexOf(a),
       route,
       authAbsent: true,
+      ...extra,
     });
   }
   return {
@@ -334,10 +407,23 @@ async function manage(
 }
 if (require.main === module) {
   const [mode, file] = process.argv.slice(2);
+  let profiles = W.TRACKER_GAP_PROFILES; // cleanup verifies against the whole registry
+  if (mode === "seed-profiles") {
+    // Seed only the profiles of the named workload (KURO_LOAD_WORKLOAD) or list (KURO_LOAD_PROFILES).
+    const names = process.env.KURO_LOAD_WORKLOAD
+      ? Object.keys(W.loadWorkload(process.env.KURO_LOAD_WORKLOAD).profiles)
+      : (process.env.KURO_LOAD_PROFILES ?? "").split(",").filter(Boolean);
+    const all = names.includes("all") ? Object.keys(W.TRACKER_GAP_PROFILES) : names;
+    profiles = Object.fromEntries(all.map((n) => {
+      if (!W.TRACKER_GAP_PROFILES[n]) throw new Error("Unknown load profile " + n);
+      return [n, W.TRACKER_GAP_PROFILES[n]];
+    }));
+  }
   manage(mode, file, {
     anonKey: process.env.SUPABASE_ANON_KEY,
     serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     accounts: Number(process.env.KURO_LOAD_ACCOUNTS || 100),
+    profiles,
   }).then((r) => console.log(JSON.stringify(r))).catch((e) => {
     console.error(e.message);
     process.exitCode = 1;

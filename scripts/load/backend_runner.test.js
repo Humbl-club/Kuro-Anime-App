@@ -130,6 +130,47 @@ function recordingFetch(t, answer) {
   });
   return calls;
 }
+test("qualify report and exit code", async (t) => {
+  t.mock.method(global, "fetch", async (url, init) => validAnswer(url, init));
+  const modes = [];
+  const profile = Object.freeze({
+    ...xProfile(),
+    validate: (d, a, r, ctx) => {
+      modes.push(ctx.mode);
+      return Array.isArray(d);
+    },
+  });
+  const cfg = { ...laneConfig, trackerGaps: ["x-test"], mode: "qualify" };
+  const r = await run(cfg, structuredClone(laneFixture), {
+    profiles: { "x-test": profile },
+    preflight: { passed: true, expected: {} },
+  });
+  assert.equal(r.mode, "qualify");
+  assert.ok(r.runKey.startsWith("kuro-load-unit@"));
+  assert.deepEqual(r.preflight, { passed: true, expected: {} });
+  assert.equal(r.lanes.profiles.verdict, "insufficient");
+  assert.deepEqual(Object.keys(r.lanes.profiles.profiles), ["x-test"]);
+  assert.equal(W.exitCodeFor(r), 3);
+  assert.ok(modes.length > 0 && modes.every((m) => m === "qualify"));
+  const r2 = await run(cfg, structuredClone(laneFixture), { profiles: { "x-test": profile } });
+  assert.equal(W.exitCodeFor(r2), 1);
+  // Wiring mode is the default and is never release evidence.
+  const r3 = await run({ ...laneConfig, trackerGaps: ["x-test"] }, structuredClone(laneFixture), { profiles: { "x-test": profile } });
+  assert.equal(r3.mode, "wiring");
+  assert.equal(r3.lanes.profiles.verdict, "wiring");
+});
+test("workload and qualify flags", () => {
+  const { configFromArgs } = require("../load_test_backend");
+  const c = configFromArgs({ production: true, workload: "tracker-gaps-combined", qualify: true });
+  assert.equal(c.rps, 20);
+  assert.equal(c.mode, "qualify");
+  assert.equal(c.workload, "tracker-gaps-combined");
+  assert.deepEqual(c.profileRates, W.loadWorkload("tracker-gaps-combined").profiles);
+  assert.throws(() => configFromArgs({ workload: "tracker-gaps-combined", rps: "10" }), /keeps the base at 20 rps/);
+  assert.doesNotThrow(() => configFromArgs({ workload: "tracker-gaps-combined", rps: "20" }));
+  assert.throws(() => configFromArgs({ workload: "tracker-gaps-combined", "tracker-gaps": "all" }), /mutually exclusive/);
+  assert.equal(configFromArgs({ production: true }).mode, undefined);
+});
 test("GET and anonymous requests", async (t) => {
   const calls = recordingFetch(t, () => new Response(JSON.stringify([{ id: 1 }]), { status: 200 }));
   const profile = Object.freeze({
