@@ -412,6 +412,12 @@ enum DetailAdvance {
         await actions.apply(edit(status: status, to: progress), to: key, createIfMissing: .current)
     }
 
+    /// Sends the +1's Undo through the restore path: it never fills a date.
+    @MainActor
+    static func undo(_ edit: LibraryEdit, _ key: MediaKey, actions: LibraryActions) async -> LibraryOutcome {
+        await actions.restore(edit, to: key, createIfMissing: nil)
+    }
+
     /// The compensating edit for an applied +1: the count and, when the +1 promoted the title, its
     /// saved status. nil when nothing differs (or the change created the row: Undo removes it).
     static func undoEdit(_ change: LibraryChange) -> LibraryEdit? {
@@ -420,6 +426,17 @@ enum DetailAdvance {
         var touched = false
         if current.status != previous.status { edit.status = .set(previous.status); touched = true }
         if current.progress != previous.progress { edit.progress = .set(previous.progress); touched = true }
+        // Only a date the +1's auto-fill added: the pre-image held none (known, empty) and the result holds
+        // one. A date the title already had, or one the user set, is never named.
+        if previous.datesKnown {
+            func empty(_ raw: String?) -> Bool { raw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true }
+            if empty(previous.sourceMetadata?.startedRaw), !empty(current.sourceMetadata?.startedRaw) {
+                edit.startedOn = .clear; touched = true
+            }
+            if empty(previous.sourceMetadata?.finishedRaw), !empty(current.sourceMetadata?.finishedRaw) {
+                edit.finishedOn = .clear; touched = true
+            }
+        }
         return touched ? edit : nil
     }
 }
@@ -427,10 +444,10 @@ enum DetailAdvance {
 // MARK: - Remove from list (round-2 pathway)
 
 enum DetailRemoval {
-    /// Removing drops progress, notes, score and verdict: ask first unless the entry is a bare plan.
+    /// Removing drops progress, notes, score, verdict, dates and the repeat count: ask first unless the entry
+    /// is a bare plan (the same rule as the Plan key).
     static func needsConfirmation(_ entry: LibraryEntry) -> Bool {
-        entry.status != .planning || entry.progress > 0 || entry.rating != nil
-            || entry.notes?.detailNonEmpty != nil || entry.verdict != nil
+        !TastePlanAction.isBarePlan(entry)
     }
 
     static func confirmTitle(german: Bool) -> String { german ? "Von deiner Liste entfernen?" : "Remove from your list?" }
@@ -440,13 +457,15 @@ enum DetailRemoval {
                : "Your progress, score, notes and verdict for this title go with it. You can undo right after."
     }
 
-    /// The Undo after a removal: every field of the removed row, re-saved (the store's own restore rule).
+    /// The Undo after a removal: every field of the removed row, re-saved (the store's own restore rule),
+    /// with the repeat count and the raw date texts. Send it with `LibraryActions.restore`, never `apply`.
     static func restoreEdit(_ entry: LibraryEntry) -> LibraryEdit {
-        LibraryEdit(status: .set(entry.status),
-                    progress: .set(entry.progress),
-                    rating: entry.rating.map { .set($0) } ?? .clear,
-                    notes: entry.notes.map { .set($0) } ?? .clear,
-                    verdict: entry.verdict.map { .set($0) } ?? .clear)
+        LibraryEdit.restoring(entry)
+    }
+
+    @MainActor
+    static func undo(_ removed: LibraryEntry, _ key: MediaKey, actions: LibraryActions) async -> LibraryOutcome {
+        await actions.restore(restoreEdit(removed), to: key, createIfMissing: removed.status)
     }
 }
 

@@ -176,6 +176,86 @@ struct DetailPathwayTests {
         #expect(back.rating == previous.rating)
     }
 
+    // MARK: F2 review fixes: Undo never fills, restores everything, and removes only what the fill added
+
+    private static func tracked(_ status: ListStatus, progress: Int = 0, metadata: LibrarySourceMetadata?) -> LibraryEntry {
+        var entry = FakeLibraryBackend.entry(.anime, 5, rowId: 5, status: status, progress: progress)
+        entry.sourceMetadata = metadata
+        return entry
+    }
+
+    @Test("Removal Undo with the switch on restores the repeat count and the raw dates exactly, and fills nothing")
+    func removalUndoRestoresEveryFieldAndNeverFills() async throws {
+        let graph = try await Self.graph(
+            rows: [Self.tracked(.completed, progress: 12,
+                                metadata: LibrarySourceMetadata(repeatCount: 2, startedRaw: "2019-05-00", finishedRaw: "not-a-date"))],
+            autofill: true)
+        defer { Task { await graph.session.endSession() } }
+        let key = MediaKey(kind: .anime, id: 5)
+        let previous = try #require(graph.library.entry(for: key))
+        #expect((await graph.libraryActions.remove(key)).error == nil)
+
+        let outcome = await graph.libraryActions.restore(DetailRemoval.restoreEdit(previous), to: key, createIfMissing: previous.status)
+        #expect(outcome.error == nil)
+        let back = try #require(graph.library.entry(for: key))
+        #expect(back.sourceMetadata?.repeatCount == 2)
+        #expect(back.sourceMetadata?.startedRaw == "2019-05-00")
+        #expect(back.sourceMetadata?.finishedRaw == "not-a-date")
+    }
+
+    @Test("Removal Undo of a title with empty dates leaves them empty although the switch is on")
+    func removalUndoDoesNotFillEmptyDates() async throws {
+        let graph = try await Self.graph(rows: [Self.tracked(.current, metadata: LibrarySourceMetadata(repeatCount: 0))], autofill: true)
+        defer { Task { await graph.session.endSession() } }
+        let key = MediaKey(kind: .anime, id: 5)
+        let previous = try #require(graph.library.entry(for: key))
+        _ = await graph.libraryActions.remove(key)
+        let outcome = await graph.libraryActions.restore(DetailRemoval.restoreEdit(previous), to: key, createIfMissing: previous.status)
+        #expect(outcome.error == nil)
+        let back = try #require(graph.library.entry(for: key))
+        #expect(back.sourceMetadata?.startedRaw == nil, "Undo filled today's date: \(String(describing: back.sourceMetadata))")
+        #expect(back.sourceMetadata?.finishedRaw == nil)
+    }
+
+    @Test("A Planned title with dates or a repeat count is not a bare plan: removing it asks first")
+    func removalConfirmationCountsDatesAndRepeats() {
+        #expect(!DetailRemoval.needsConfirmation(Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 0))))
+        #expect(DetailRemoval.needsConfirmation(Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 1))))
+        #expect(DetailRemoval.needsConfirmation(Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 0, startedRaw: "2024"))))
+        #expect(DetailRemoval.needsConfirmation(Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 0, finishedRaw: "garbled"))))
+    }
+
+    @Test("+1 on a Planned title with no dates, then Undo: Planned, 0, no start date, a bare plan again")
+    func plusOneUndoClearsTheDateTheFillAdded() async throws {
+        let graph = try await Self.graph(rows: [Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 0))], autofill: true)
+        defer { Task { await graph.session.endSession() } }
+        let key = MediaKey(kind: .anime, id: 5)
+        let outcome = await DetailAdvance.advance(key, from: .planning, to: 1, actions: graph.libraryActions)
+        let change = try #require(outcome.change)
+        #expect(graph.library.entry(for: key)?.startedOn != nil, "the fill added a start date")
+
+        let undoEdit = try #require(DetailAdvance.undoEdit(change))
+        let undone = await DetailAdvance.undo(undoEdit, key, actions: graph.libraryActions)
+        #expect(undone.error == nil)
+        let restored = try #require(graph.library.entry(for: key))
+        #expect(restored.status == .planning && restored.progress == 0)
+        #expect(restored.sourceMetadata?.startedRaw == nil)
+        #expect(TastePlanAction.isBarePlan(restored))
+    }
+
+    @Test("+1 Undo never clears a date the title already had, or that the user set")
+    func plusOneUndoKeepsAnExistingDate() async throws {
+        let graph = try await Self.graph(
+            rows: [Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 0, startedRaw: "2020-01-00"))], autofill: true)
+        defer { Task { await graph.session.endSession() } }
+        let key = MediaKey(kind: .anime, id: 5)
+        let change = try #require((await DetailAdvance.advance(key, from: .planning, to: 1, actions: graph.libraryActions)).change)
+        let undoEdit = try #require(DetailAdvance.undoEdit(change))
+        #expect(undoEdit.startedOn == .unchanged && undoEdit.finishedOn == .unchanged)
+        _ = await DetailAdvance.undo(undoEdit, key, actions: graph.libraryActions)
+        #expect(graph.library.entry(for: key)?.sourceMetadata?.startedRaw == "2020-01-00")
+    }
+
     // MARK: Reads, rows, chrome
 
     @Test("A failed ladder read is told apart from a title without relations")
@@ -256,13 +336,14 @@ struct DetailPathwayTests {
 
     // MARK: Harness
 
-    private static func graph(rows: [LibraryEntry]) async throws -> AppGraph {
+    private static func graph(rows: [LibraryEntry], autofill: Bool = false) async throws -> AppGraph {
         let suite = "detail-pathways-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         let backend = FakeLibraryBackend()
         backend.setRows(rows, for: LifecycleFixtures.userA)
+        let flags = FeatureFlags(userDefaults: defaults, launchArguments: autofill ? ["--ff-on=library_date_autofill_v1"] : [])
         let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
-                                                libraryBackend: backend)
+                                                libraryBackend: backend, flags: flags)
         _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
         try await graph.library.refresh()
         return graph

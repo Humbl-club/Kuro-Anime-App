@@ -500,7 +500,7 @@ struct MangaDetailPage: View {
             if change.kind == .added {
                 outcome = await libraryActions.remove(key)
             } else if let edit = DetailAdvance.undoEdit(change) {
-                outcome = await libraryActions.apply(edit, to: key, createIfMissing: nil)
+                outcome = await DetailAdvance.undo(edit, key, actions: libraryActions)
             } else {
                 return
             }
@@ -547,7 +547,7 @@ struct MangaDetailPage: View {
         guard entry == nil else { return }
         let key = manga.libraryKey
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = await libraryActions.apply(DetailRemoval.restoreEdit(removed), to: key, createIfMissing: removed.status)
+            let outcome = await DetailRemoval.undo(removed, key, actions: libraryActions)
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
                                      title: outcome.error == nil ? KuroLocale.text("Back in your list.", "Wieder in deiner Liste.")

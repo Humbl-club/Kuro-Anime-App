@@ -360,6 +360,12 @@ final class LibraryActions: AccountScopedState {
         await library.apply(edit, to: key, createIfMissing: createIfMissing)
     }
 
+    /// Every Undo/restore that goes through an edit (removal Undo, +1 Undo): sends exactly `edit` and never
+    /// fills a date, whatever the switch or the projection says. `apply` is for user-initiated writes.
+    func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus?) async -> LibraryOutcome {
+        await library.restore(edit, to: key, createIfMissing: createIfMissing)
+    }
+
     /// Removes the title (idempotent: removing an untracked title is applied). The change sinks drop it
     /// from the loaded Collection pages and cancel the anime's reminders.
     func remove(_ key: MediaKey) async -> LibraryOutcome {
