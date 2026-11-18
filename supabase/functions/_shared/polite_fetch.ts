@@ -72,9 +72,15 @@ export type PoliteClientOptions = {
   maxPauseMs?: number;
   /** Largest accepted response body in bytes. */
   maxBytes?: number;
+  /** 'json' (default) parses the body; 'text' returns it unparsed in `text` (XML sources). */
+  responseType?: "json" | "text";
+  /** User-Agent header; defaults to the legacy intake agent so existing callers are unchanged. */
+  userAgent?: string;
+  /** Accept header; defaults to application/json (text mode: XML / plain text). */
+  accept?: string;
 };
 
-export type PoliteResponse = { status: number; json: unknown };
+export type PoliteResponse = { status: number; json: unknown; text?: string };
 
 export type PoliteClient = {
   request(url: string, init: { method?: "GET" | "POST"; body?: unknown }, deadlineMs?: number): Promise<PoliteResponse>;
@@ -91,6 +97,9 @@ export function createPoliteClient(options: PoliteClientOptions): PoliteClient {
   const jitterMs = options.jitterMs ?? 250;
   const maxPauseMs = options.maxPauseMs ?? 65_000;
   const maxBytes = options.maxBytes ?? 2 * 1024 * 1024;
+  const textMode = options.responseType === "text";
+  const userAgent = options.userAgent ?? INTAKE_USER_AGENT;
+  const accept = options.accept ?? (textMode ? "application/xml, text/xml, text/plain, */*" : "application/json");
 
   async function waitTurn(deadlineMs?: number) {
     const t = now();
@@ -122,8 +131,8 @@ export function createPoliteClient(options: PoliteClientOptions): PoliteClient {
         const response = await doFetch(url, {
           method: init.method ?? "GET",
           headers: {
-            "Accept": "application/json",
-            "User-Agent": INTAKE_USER_AGENT,
+            "Accept": accept,
+            "User-Agent": userAgent,
             ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
           },
           body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
@@ -145,6 +154,7 @@ export function createPoliteClient(options: PoliteClientOptions): PoliteClient {
           continue;
         }
         const text = await readBounded(response, maxBytes);
+        if (textMode) return { status: response.status, json: null, text };
         let json: unknown = null;
         if (text.trim()) {
           try {
