@@ -208,6 +208,66 @@ select tests.ok('a row updated to added with an adult media id (pre-migration im
 select tests.ok('the guard function is not executable by anon or authenticated',
   not has_function_privilege('anon', 'public._import_item_adult_guard_v1()', 'execute')
   and not has_function_privilege('authenticated', 'public._import_item_adult_guard_v1()', 'execute'));
+-- ---- 6. manual mapping, ON CONFLICT DO UPDATE and BEFORE UPDATE paths -------------------------------
+-- Each assertion below depends on the guard trigger (it fails with the trigger's WHEN disabled); the
+-- re-send in section 5 never reaches ON CONFLICT (the existing row short-circuits to a plain UPDATE).
+\o /dev/null
+select tests.reset();
+insert into public.anime(id, title_romaji, mal_id, is_adult, genres) values
+ (9105105, 'Manual Plain A', 9905105, false, array['Drama']),
+ (9105106, 'Manual Plain B', 9905106, false, array['Drama']),
+ (9105107, 'Flipper Import', 9905107, false, array['Drama']);
+insert into public.anime_user_lists(user_id, anime_id, list_type, progress)
+ values (tests.uid(1050)::text, 9105107, 'WATCHING', 1);
+select tests.as_user(tests.uid(1050));
+\o
+-- (a) ON CONFLICT DO UPDATE: 9905999 already exists as an unmatched row; a manual match onto an adult id
+-- is refused with the stable code and the stored row is not resolved to the adult title.
+select tests.raises('manual match of an existing unmatched row onto an adult id is refused (ON CONFLICT path)',
+  format($q$select public.prepare_import_chunk_v2(%L::uuid, '[{"medium":"anime","external_id":"9905999","resolved_media_id":9105102,"values":{"status":"watching","progress":1}}]'::jsonb, '{}'::jsonb)$q$, :'job'),
+  '%ADULT_NOT_LISTED%');
+select tests.ok('the refused row is still unmatched, with no media id and no manual resolution',
+  (select disposition = 'unmatched' and media_id is null and manual_resolved = false and identity_resolved = false
+   from public.library_import_items where job_id = :'job'::uuid and external_id = '9905999'));
+-- (b) manual match straight to an adult id, no staged row yet
+select tests.raises('manual match straight to an adult id on a fresh row is refused',
+  format($q$select public.prepare_import_chunk_v2(%L::uuid, '[{"medium":"anime","external_id":"9905201","resolved_media_id":9105101,"values":{"status":"watching","progress":1}}]'::jsonb, '{}'::jsonb)$q$, :'job'),
+  '%ADULT_NOT_LISTED%');
+select tests.eq('no row was staged for the refused fresh mapping',
+  (select count(*) from public.library_import_items where job_id = :'job'::uuid and external_id = '9905201'), 0::bigint);
+-- (c) the row auto-matched to an adult title (9905101) must answer ADULT_NOT_LISTED, never MAPPING_ALREADY_RESOLVED
+select tests.raises('manual match of an auto-matched adult row onto the adult id answers ADULT_NOT_LISTED',
+  format($q$select public.prepare_import_chunk_v2(%L::uuid, '[{"medium":"anime","external_id":"9905101","resolved_media_id":9105101,"values":{"status":"watching","progress":1}}]'::jsonb, '{}'::jsonb)$q$, :'job'),
+  '%ADULT_NOT_LISTED%');
+select tests.ok('the auto-matched adult row stays unmatched/ADULT_NOT_LISTED',
+  (select disposition = 'unmatched' and detail like 'ADULT_NOT_LISTED:%' and media_id is null
+   from public.library_import_items where job_id = :'job'::uuid and external_id = '9905101'));
+-- (d) a manual match onto a non-adult title still works over an existing row (ON CONFLICT DO UPDATE executes)
+\o /dev/null
+select public.prepare_import_chunk_v2(:'job'::uuid, '[
+ {"medium":"anime","external_id":"9905999","resolved_media_id":9105105,"values":{"status":"watching","progress":1}},
+ {"medium":"anime","external_id":"9905101","resolved_media_id":9105106,"values":{"status":"watching","progress":1}}
+]'::jsonb, '{}'::jsonb) as chunk3 \gset
+\o
+select tests.ok('a manual match onto non-adult titles resolves both existing rows (ON CONFLICT DO UPDATE)',
+  (select bool_and(disposition = 'new' and manual_resolved and detail is null and media_id = case external_id when '9905999' then 9105105 else 9105106 end)
+   from public.library_import_items where job_id = :'job'::uuid and external_id in ('9905999','9905101')));
+-- (e) BEFORE UPDATE: a row staged as 'changes' whose title becomes adult before it is re-sent
+\o /dev/null
+select public.prepare_import_chunk_v2(:'job'::uuid, '[{"medium":"anime","external_id":"9905107","values":{"status":"watching","progress":3}}]'::jsonb, '{}'::jsonb) as chunk4 \gset
+\o
+select tests.ok('the library-backed row is staged as changes against its non-adult title',
+  (select disposition = 'changes' and media_id = 9105107 from public.library_import_items where job_id = :'job'::uuid and external_id = '9905107'));
+\o /dev/null
+select tests.reset();
+update public.anime set is_adult = true where id = 9105107;
+select tests.as_user(tests.uid(1050));
+select public.prepare_import_chunk_v2(:'job'::uuid, '[{"medium":"anime","external_id":"9905107","values":{"status":"watching","progress":3}}]'::jsonb, '{}'::jsonb) as chunk5 \gset
+\o
+select tests.ok('re-staging after the title turned adult (BEFORE UPDATE) leaves an unmatched ADULT_NOT_LISTED row',
+  (select disposition = 'unmatched' and detail like 'ADULT_NOT_LISTED:%' and media_id is null and identity_resolved = false and changed_fields = '[]'::jsonb
+   from public.library_import_items where job_id = :'job'::uuid and external_id = '9905107'));
+select tests.reset();
 select medium, plan from adult_plans;
 \o /dev/null
 rollback;
