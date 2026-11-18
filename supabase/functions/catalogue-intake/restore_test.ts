@@ -96,3 +96,35 @@ Deno.test("restoreOfAnUnknownGroupIsRefused", async () => {
   const db = fakeSupabase({ tables: { catalogue_cutover: cutover({}) } });
   await assert.rejects(() => restore({ supabase: db.client }, "colour" as FieldGroup), /unknown group/);
 });
+
+Deno.test("restoring identity makes every list_only title visible again", async () => {
+  const applied: Row[] = [];
+  let remaining = 2;
+  const db = fakeSupabase({
+    tables: { catalogue_cutover: cutover({}) },
+    rpcHandlers: {
+      catalogue_restore_batch_v1: () => ({ data: { restored: 0, remaining: 0 }, error: null }),
+      catalogue_apply_visibility_v1: (args: Row) => {
+        applied.push(args);
+        const n = remaining;
+        remaining = 0;
+        return { data: n, error: null };
+      },
+    },
+  });
+  await restore({ supabase: db.client }, "identity");
+  assert.deepEqual(applied.map((a) => a.p_medium), ["anime", "anime", "manga"]);
+});
+
+Deno.test("restoring another group does not touch visibility", async () => {
+  const db = fakeSupabase({
+    tables: { catalogue_cutover: cutover({}) },
+    rpcHandlers: {
+      catalogue_restore_batch_v1: () => ({ data: { restored: 0, remaining: 0 }, error: null }),
+      catalogue_apply_visibility_v1: () => {
+        throw new Error("must not be called");
+      },
+    },
+  });
+  await restore({ supabase: db.client }, "titles");
+});

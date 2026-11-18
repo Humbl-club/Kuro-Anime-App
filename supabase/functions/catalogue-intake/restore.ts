@@ -8,6 +8,7 @@
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import { finishImportRun, startImportRun } from "../_shared/catalogue/intake_persistence.ts";
 import { type FieldGroup, FIELD_GROUP_NAMES, readCutoverModes } from "../_shared/catalogue/field_groups.ts";
+import { applyVisibility } from "./publish.ts";
 import { WRITE_BATCH, type Medium } from "./store.ts";
 
 export type RestoreDeps = { supabase: SupabaseLike; now?: () => number };
@@ -34,6 +35,8 @@ export async function restore(deps: RestoreDeps, group: FieldGroup): Promise<Res
         restored[medium] += Number(r.restored ?? 0);
         if (Number(r.remaining ?? 0) === 0 || Number(r.restored ?? 0) === 0) break;
       }
+      // identity back to AniList: every list_only title is visible again (the group is not 'new' here).
+      if (group === "identity") await applyVisibility(deps.supabase, medium);
     }
   } catch (e) {
     await finishImportRun(deps.supabase, runId, "error", { group, restored }, e instanceof Error ? e.message : String(e), startedMs);

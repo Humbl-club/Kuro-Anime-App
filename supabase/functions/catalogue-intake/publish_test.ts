@@ -157,3 +157,41 @@ Deno.test("aGroupSwitchedBackLosesItsWatermark", async () => {
   const again = await runPublish(ctxFor(db, "2026-11-18T12:20:00Z"));
   assert.equal(again.results.titles, 1, "a re-switched group starts from the beginning");
 });
+
+// ---- Task 15b: list_only visibility follows the identity group ----
+
+function visibilityDb(identity: Mode, changed: number[]) {
+  const calls: Row[] = [];
+  const db = fakeSupabase({
+    tables: { catalogue_cutover: cutover({ identity }), catalogue_shadow_values: [] },
+    rpcHandlers: {
+      catalogue_apply_visibility_v1: (args: Row) => {
+        calls.push(args);
+        return { data: changed.shift() ?? 0, error: null };
+      },
+    },
+  });
+  return { db, calls };
+}
+
+Deno.test("visibilityAppliedWhileIdentityIsNew: runPublish applies list_only in batches until nothing changes", async () => {
+  const { db, calls } = visibilityDb("new", [5000, 3, 0]);
+  const out = await runPublish(ctxFor(db, "2026-11-18T12:00:00Z"));
+  assert.equal(calls.length, 3);
+  assert.deepEqual(calls.map((c) => c.p_medium), ["anime", "anime", "anime"]);
+  assert.equal(out.results.visibilityChanged, 5003);
+});
+
+Deno.test("visibilityAppliedWhileIdentityIsNew: not called while identity is not new", async () => {
+  const { db, calls } = visibilityDb("shadow", [10]);
+  await runPublish(ctxFor(db, "2026-11-18T12:00:00Z"));
+  assert.equal(calls.length, 0);
+});
+
+Deno.test("visibilityAppliedWhileIdentityIsNew: a failing apply fails the run", async () => {
+  const db = fakeSupabase({
+    tables: { catalogue_cutover: cutover({ identity: "new" }), catalogue_shadow_values: [] },
+    rpcHandlers: { catalogue_apply_visibility_v1: () => ({ data: null, error: { message: "boom" } }) },
+  });
+  await assert.rejects(() => runPublish(ctxFor(db, "2026-11-18T12:00:00Z")), /boom/);
+});

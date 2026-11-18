@@ -63,3 +63,6 @@
 20261118100000_search_hidden_adult_v1.sql
 # Catalogue Task 15 (single writer per group: transactional publish/restore, relation reader source filter). Prepared only.
 20261112100150_catalogue_publish_v1.sql
+# Catalogue Task 15b (browse visibility for list_only titles). Prepared only; 100401 is built on parked 1c and Discover usability: see its header.
+20261112100400_catalogue_visibility_v1.sql
+20261112100401_catalogue_visibility_discover_v1.sql

@@ -67,6 +67,27 @@ export async function publish(deps: PublishDeps, medium: Medium, mediaIds: numbe
 }
 
 // ---------------------------------------------------------------------------------------------
+// list_only visibility (Task 15b): while the identity group is 'new', titles without an accepted link are
+// hidden from browse and recommendations (they stay readable everywhere else). Applied in batches by
+// catalogue_apply_visibility_v1 until it reports no change.
+
+export const VISIBILITY_BATCH = 5000;
+const VISIBILITY_MAX_CALLS = 20;
+
+/** Applies (identity 'new') or lifts (otherwise) list_only for one medium. Returns the rows changed. Throws on a failed call. */
+export async function applyVisibility(supabase: SupabaseLike, medium: Medium): Promise<number> {
+  let changed = 0;
+  for (let i = 0; i < VISIBILITY_MAX_CALLS; i++) {
+    const { data, error } = await supabase.rpc("catalogue_apply_visibility_v1", { p_medium: medium, p_limit: VISIBILITY_BATCH });
+    if (error) throw new Error(`catalogue_apply_visibility_v1(${medium}) failed: ${error.message ?? error}`);
+    const n = Number(data ?? 0);
+    changed += n;
+    if (n === 0) break;
+  }
+  return changed;
+}
+
+// ---------------------------------------------------------------------------------------------
 // Handler run. Cursor (import_track_state `catalogue-intake:publish:<medium>`):
 //   { groups: { <group>: { since: iso | null, last_id: number } } }
 
@@ -124,6 +145,8 @@ export async function runPublish(ctx: RunContext): Promise<HandlerOutcome> {
     }
     state[group] = ids.length < limit ? { since: passStart, last_id: 0 } : { since: gs.since, last_id: ids[ids.length - 1] };
   }
+  // Visibility follows the identity group; checked every run because a title can gain an accepted link without a shadow change.
+  if (modes.identity === "new" && !stoppedEarly) results.visibilityChanged = await applyVisibility(ctx.supabase, ctx.medium);
   await writeCursor(ctx.supabase, key, ctx.medium, { groups: state }, results, stoppedEarly ? `stopped_early:${stoppedEarly}` : null);
   return { results, stoppedEarly };
 }
