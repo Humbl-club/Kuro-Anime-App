@@ -164,7 +164,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 306 app Swift files in `/Kuro`; 44 package Swift files in `/Packages`; 254 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 309 app Swift files in `/Kuro`; 46 package Swift files in `/Packages`; 254 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -20165,6 +20165,10 @@ On `kuro/tracker-gaps`, nothing applied or deployed. **F2.3–F2.5** (status cha
 
 ### Change Log — 18 November 2026 (evening): PR #12 merged; catalogue 10–11, 15d; W10; concierge gimmick fix
 PR #12 merged to `main` (`e944f18`) after serial KuroTests 1,259/1,259 at `63bd2a4`, package tests, Release build, full DB suite and gates. Since: catalogue Tasks 10–11 (uncalibrated Kuro popularity index — L4c not granted; tag-map table and `assignTags`, AniDB excluded because its terms page is behind a Cloudflare challenge; `tag-map.csv` all `reviewed=no`), Task 15d (app reads no `anilist_id`; prepared `20261112100500` column grants, matviews rebuilt, newly-added matviews dropped, 1c superseded; apply order app build → old builds retired → 100401 → 100500), concierge-recommend gimmick focus now uses Kuro tag ids (it looked them up as AniList ids and was always empty live; needs a deploy), W10 Up next (prepared `20261118130000_library_up_next_v1`, invoker, sha `089ddb7f…`; `UpNextStore` behind `collection_up_next_v1` 0 %; Completed-view section; dismissals = Discover Not interested; DB 109 ×2 + 112; load profile `collection-up-next` 2 rps). BDD gate 41 resolved / 0 unresolved (W2, W3, W4, W10 landed). Inventory 306 app Swift / 44 package / 254 SQL.
+
+### Change Log — 18 November 2026 (night): W6 grouping (dark), manga new-series handler; hosted steps blocked
+W6 one row per series: `SeriesListGrouping` (package), reviewed-membership read (`CatalogStore+SeriesMembership`, requires `continuity='verified'` and approved grouping/section), `CollectionStore` grouping state with a per-account "Group seasons" switch, `FolioGrouping` fold; flag `collection_series_grouping_v1` 0 %; no migration; DB test 111 (21); load profile `collection-series-membership`. Visible effect needs D-G (membership is empty live). Gotcha: `series*` tables carry Supabase default write grants; only RLS blocks writes. Catalogue `mangaupdates_new` handler stores recently added MangaUpdates series for `create` (report mode default; minYear 2024 default). Task 16 source credit held until behind `catalogue_source_credit_v1` (live anime/manga lack `data_sources` until `20261112100000`). Hosted: the session permission layer refused the first production write and the concierge-recommend deploy; ordered runbook `docs/plans/open-work-deploy-2026-11-18/RUNBOOK.md`. BDD gate 52 resolved / 0 unresolved (W2, W3, W4, W6, W10 landed). Inventory 309 app Swift / 46 package / 254 SQL.
+
 
 
 
