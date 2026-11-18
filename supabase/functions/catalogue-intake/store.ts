@@ -22,6 +22,33 @@ export function clampInt(raw: unknown, fallback: number, min: number, max: numbe
   return Math.max(min, Math.min(max, Math.floor(n)));
 }
 
+export const PAGE_ROWS = 1000;
+
+/**
+ * Reads EVERY row of a query, paging with a stable order and `.range()`: PostgREST silently truncates a
+ * select at its max-rows setting (1,000 by default), so any read that can match more rows must page.
+ * `build` returns a fresh filtered query each call; `orderBy` must end in a unique column so pages
+ * never overlap or skip. Throws `<what> read failed: ...` on a database error.
+ */
+export async function selectAll<T>(
+  // deno-lint-ignore no-explicit-any
+  build: () => any,
+  orderBy: string[],
+  what: string,
+  pageSize: number = PAGE_ROWS,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0;; from += pageSize) {
+    let q = build();
+    for (const col of orderBy) q = q.order(col, { ascending: true });
+    const { data, error } = await q.range(from, from + pageSize - 1);
+    if (error) throw new Error(`${what} read failed: ${error.message ?? error}`);
+    const page = (data ?? []) as T[];
+    out.push(...page);
+    if (page.length < pageSize) return out;
+  }
+}
+
 /** JSON with object keys sorted, so equal payloads hash equally whatever order a source answered in. */
 export function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
@@ -51,14 +78,12 @@ export type ExistingRecord = { source_key: string; payload_hash: string; fetched
 export async function readExistingRecords(supabase: SupabaseLike, source: SourceCode, medium: Medium, keys: string[]): Promise<Map<string, ExistingRecord>> {
   const out = new Map<string, ExistingRecord>();
   for (const part of chunk(keys, WRITE_BATCH)) {
-    const { data, error } = await supabase
-      .from("catalogue_source_records")
-      .select("source_key, payload_hash, fetched_at")
-      .eq("source", source)
-      .eq("medium", medium)
-      .in("source_key", part);
-    if (error) throw new Error(`catalogue_source_records read failed: ${error.message ?? error}`);
-    for (const row of (data ?? []) as ExistingRecord[]) out.set(row.source_key, row);
+    const rows = await selectAll<ExistingRecord>(
+      () => supabase.from("catalogue_source_records").select("source_key, payload_hash, fetched_at").eq("source", source).eq("medium", medium).in("source_key", part),
+      ["source_key"],
+      "catalogue_source_records",
+    );
+    for (const row of rows) out.set(row.source_key, row);
   }
   return out;
 }
@@ -141,14 +166,13 @@ async function readExistingLinks(supabase: SupabaseLike, kind: LinkKind, source:
   const seen = new Map<number, ExistingLink>();
   const run = async (col: "kuro_id" | "source_key", values: (number | string)[]) => {
     for (const part of chunk(values, WRITE_BATCH)) {
-      const { data, error } = await supabase
-        .from("catalogue_id_links")
-        .select("id, kuro_id, source, source_key, status")
-        .eq("kind", kind)
-        .eq("source", source)
-        .in(col, part);
-      if (error) throw new Error(`catalogue_id_links read failed: ${error.message ?? error}`);
-      for (const row of (data ?? []) as ExistingLink[]) seen.set(row.id, row);
+      // One Kuro title can hold many links (every status), so this read pages past the 1,000-row cap.
+      const rows = await selectAll<ExistingLink>(
+        () => supabase.from("catalogue_id_links").select("id, kuro_id, source, source_key, status").eq("kind", kind).eq("source", source).in(col, part),
+        ["id"],
+        "catalogue_id_links",
+      );
+      for (const row of rows) seen.set(row.id, row);
     }
   };
   await run("kuro_id", kuroIds);

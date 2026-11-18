@@ -15,7 +15,7 @@
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import type { AnnRecord } from "./ann.ts";
 import type { MuRecord } from "./mangaupdates.ts";
-import { applyLinks, type LinkKind, type Medium, type SourceCode } from "./store.ts";
+import { applyLinks, chunk, selectAll, WRITE_BATCH, type LinkKind, type Medium, type SourceCode } from "./store.ts";
 
 export type EntityKind = "staff" | "studio" | "author";
 
@@ -28,8 +28,24 @@ export type EntityDeps = {
   linkMap?: Map<string, number | null>;
   crosswalkMap?: Map<string, CrosswalkPayload | null>;
   creditedCache?: Map<string, Promise<Record<string, unknown>[]>>;
+  /** Staff rows by AniList id, preloaded for the Wikidata crosswalk's staff ids (one query per chunk, not per person). */
+  staffByAnilist?: Map<number, Record<string, unknown>[]>;
+  /** Link writes are queued here and flushed with one applyLinks per kind (flushPendingLinks), not one per credit. */
+  pendingLinks?: Map<string, PendingLink>;
+  /** Checked before every credit; true makes composeCredits throw CreditsBudgetError so the run can stop cleanly. */
+  shouldStop?: () => boolean;
   nowIso?: string;
 };
+
+export type PendingLink = { kind: EntityKind; kuroId: number; source: SourceCode; sourceKey: string; method: "wikidata" | "name_match" | "id_match"; status: "accepted" | "proposed" };
+
+/** Thrown by composeCredits when `shouldStop()` turns true; nothing of the interrupted title is kept. */
+export class CreditsBudgetError extends Error {
+  constructor() {
+    super("compose time budget reached inside a title's credits");
+    this.name = "CreditsBudgetError";
+  }
+}
 
 export type ProposedNew = { kind: EntityKind | "character"; source: string; sourceKey: string; name: string };
 export type Resolved = { kuroId: number; created: boolean } | { review: true; reason: string } | { proposedNew: ProposedNew };
@@ -96,10 +112,11 @@ async function creditedRows(deps: EntityDeps, s: { table: string; creditTable: s
   let hit = cache.get(key);
   if (!hit) {
     hit = (async () => {
-      const credits = ((await must(deps.supabase.from(s.creditTable).select(s.entityColumn).eq(s.titleColumn, titleKuroId), s.creditTable)) ?? []) as Record<string, number>[];
+      const credits = await selectAll<Record<string, number>>(() => deps.supabase.from(s.creditTable).select(s.entityColumn).eq(s.titleColumn, titleKuroId), [s.entityColumn], s.creditTable);
       const ids = [...new Set(credits.map((c) => c[s.entityColumn]))];
-      if (ids.length === 0) return [];
-      return ((await must(deps.supabase.from(s.table).select("*").in("id", ids), s.table)) ?? []) as Record<string, unknown>[];
+      const out: Record<string, unknown>[] = [];
+      for (const part of chunk(ids, WRITE_BATCH)) out.push(...(await selectAll<Record<string, unknown>>(() => deps.supabase.from(s.table).select("*").in("id", part), ["id"], s.table)));
+      return out;
     })();
     cache.set(key, hit);
   }
@@ -127,6 +144,12 @@ async function crosswalkFor(deps: EntityDeps, kind: "person" | "company", annKey
 }
 
 async function link(deps: EntityDeps, kind: EntityKind, kuroId: number, source: SourceCode, sourceKey: string, method: "wikidata" | "name_match" | "id_match", status: "accepted" | "proposed") {
+  if (deps.pendingLinks) {
+    // Queued: composeCredits flushes once per title. The accepted key is usable straight away.
+    deps.pendingLinks.set(`${kind}|${source}|${sourceKey}|${kuroId}|${status}`, { kind, kuroId, source, sourceKey, method, status });
+    if (status === "accepted") deps.linkMap?.set(`${kind}|${source}|${sourceKey}`, kuroId);
+    return;
+  }
   const res = await applyLinks(deps.supabase, kind, [{ kuroId, source, sourceKey, method, confidence: method === "name_match" ? 0.9 : 1, status }], deps.nowIso);
   if (status === "accepted" && res.accepted > 0) deps.linkMap?.set(`${kind}|${source}|${sourceKey}`, kuroId);
 }
@@ -145,7 +168,9 @@ async function resolveEntity(deps: EntityDeps, kind: EntityKind, source: SourceC
     if (cw && !cw.conflict) {
       if (kind === "studio" && cw.label) wanted.add(normaliseName(cw.label));
       if (kind === "staff" && typeof cw.anilistStaffId === "number") {
-        const rows = ((await must(deps.supabase.from("staff").select("*").eq("anilist_id", cw.anilistStaffId), "staff")) ?? []) as Record<string, unknown>[];
+        const rows = deps.staffByAnilist?.has(cw.anilistStaffId)
+          ? deps.staffByAnilist.get(cw.anilistStaffId)!
+          : await selectAll<Record<string, unknown>>(() => deps.supabase.from("staff").select("*").eq("anilist_id", cw.anilistStaffId), ["id"], "staff");
         if (rows.length === 1) {
           const target = rows[0];
           const agrees = rowMatches(target, s.nameColumns, wanted);
@@ -216,7 +241,14 @@ export async function composeCredits(
   titleKuroId: number,
   records: { ann?: AnnRecord; mangaupdates?: MuRecord },
 ): Promise<{ fields: CreditField[] }> {
-  const deps: EntityDeps = { ...baseDeps, linkMap: baseDeps.linkMap ?? new Map(), crosswalkMap: baseDeps.crosswalkMap ?? new Map(), creditedCache: baseDeps.creditedCache ?? new Map() };
+  const deps: EntityDeps = {
+    ...baseDeps,
+    linkMap: baseDeps.linkMap ?? new Map(),
+    crosswalkMap: baseDeps.crosswalkMap ?? new Map(),
+    creditedCache: baseDeps.creditedCache ?? new Map(),
+    staffByAnilist: baseDeps.staffByAnilist ?? new Map(),
+    pendingLinks: baseDeps.pendingLinks ?? new Map(),
+  };
   const fields: CreditField[] = [];
   const proposed: ProposedNew[] = [];
   const review: { kind: string; source: string; sourceKey: string; name: string; reason: string }[] = [];
@@ -227,54 +259,122 @@ export async function composeCredits(
       if (!proposed.some((x) => x.kind === p.kind && x.source === p.source && x.sourceKey === p.sourceKey)) proposed.push(r.proposedNew);
     } else review.push({ kind: p.kind, source: p.source, sourceKey: p.sourceKey, name: p.name, reason: r.reason });
   };
+  // The deadline is checked before every credit, so a title with hundreds of credits cannot overrun it.
+  const checkBudget = () => {
+    if (deps.shouldStop?.()) throw new CreditsBudgetError();
+  };
 
-  const ann = records.ann;
-  const sources = new Set<string>();
-  if (ann) {
-    await preload(deps, "staff", "ann", ann.staff.map((x) => String(x.personId)));
-    await preload(deps, "studio", "ann", ann.companies.filter((c) => PRODUCTION_TASK.test(c.task)).map((x) => String(x.companyId)));
-    const staff: Credit[] = [];
-    for (const p of ann.staff) absorb(staff, await resolvePerson(deps, "ann", String(p.personId), p.name, titleKuroId), p.task || null, { kind: "staff", source: "ann", sourceKey: String(p.personId), name: p.name });
-    const studios: Credit[] = [];
-    for (const c of ann.companies.filter((x) => PRODUCTION_TASK.test(x.task))) absorb(studios, await resolveStudio(deps, "ann", String(c.companyId), c.name, titleKuroId), c.task || null, { kind: "studio", source: "ann", sourceKey: String(c.companyId), name: c.name });
-    const characters: Credit[] = [];
-    const seen = new Set<string>();
-    for (const c of ann.cast) {
-      const n = normaliseName(c.role);
-      if (!n || seen.has(n)) continue;
-      seen.add(n);
-      absorb(characters, await resolveCharacter(deps, titleKuroId, c.role), null, { kind: "character", source: "ann", sourceKey: n, name: c.role });
+  try {
+    const ann = records.ann;
+    const sources = new Set<string>();
+    if (ann) {
+      await preloadCreditMaps(deps, { staff: ann.staff.map((x) => String(x.personId)), studio: ann.companies.filter((c) => PRODUCTION_TASK.test(c.task)).map((x) => String(x.companyId)), author: [] });
+      const staff: Credit[] = [];
+      for (const p of ann.staff) {
+        checkBudget();
+        absorb(staff, await resolvePerson(deps, "ann", String(p.personId), p.name, titleKuroId), p.task || null, { kind: "staff", source: "ann", sourceKey: String(p.personId), name: p.name });
+      }
+      const studios: Credit[] = [];
+      for (const c of ann.companies.filter((x) => PRODUCTION_TASK.test(x.task))) {
+        checkBudget();
+        absorb(studios, await resolveStudio(deps, "ann", String(c.companyId), c.name, titleKuroId), c.task || null, { kind: "studio", source: "ann", sourceKey: String(c.companyId), name: c.name });
+      }
+      const characters: Credit[] = [];
+      const seen = new Set<string>();
+      for (const c of ann.cast) {
+        const n = normaliseName(c.role);
+        if (!n || seen.has(n)) continue;
+        seen.add(n);
+        checkBudget();
+        absorb(characters, await resolveCharacter(deps, titleKuroId, c.role), null, { kind: "character", source: "ann", sourceKey: n, name: c.role });
+      }
+      if (staff.length) fields.push({ field: "credits:staff", value: staff, source: "ann" });
+      if (studios.length) fields.push({ field: "credits:studios", value: studios, source: "ann" });
+      if (characters.length) fields.push({ field: "credits:characters", value: characters, source: "ann" });
+      sources.add("ann");
     }
-    if (staff.length) fields.push({ field: "credits:staff", value: staff, source: "ann" });
-    if (studios.length) fields.push({ field: "credits:studios", value: studios, source: "ann" });
-    if (characters.length) fields.push({ field: "credits:characters", value: characters, source: "ann" });
-    sources.add("ann");
+    const mu = records.mangaupdates;
+    if (mu) {
+      await preloadCreditMaps(deps, { staff: [], studio: [], author: mu.authors.map((a) => String(a.authorId)) });
+      const authors: Credit[] = [];
+      for (const a of mu.authors) {
+        checkBudget();
+        absorb(authors, await resolveAuthor(deps, "mangaupdates", String(a.authorId), a.name, titleKuroId), a.type || null, { kind: "author", source: "mangaupdates", sourceKey: String(a.authorId), name: a.name });
+      }
+      if (authors.length) fields.push({ field: "credits:authors", value: authors, source: "mangaupdates" });
+      sources.add("mangaupdates");
+    }
+    const src = [...sources].join(",");
+    if (proposed.length) fields.push({ field: "credits:proposed_entities", value: proposed, source: src });
+    if (review.length) fields.push({ field: "credits:review", value: review, source: src });
+  } finally {
+    // Links found so far are real whether or not the title finished: one applyLinks per kind.
+    await flushPendingLinks(deps);
   }
-  const mu = records.mangaupdates;
-  if (mu) {
-    await preload(deps, "author", "mangaupdates", mu.authors.map((a) => String(a.authorId)));
-    const authors: Credit[] = [];
-    for (const a of mu.authors) absorb(authors, await resolveAuthor(deps, "mangaupdates", String(a.authorId), a.name, titleKuroId), a.type || null, { kind: "author", source: "mangaupdates", sourceKey: String(a.authorId), name: a.name });
-    if (authors.length) fields.push({ field: "credits:authors", value: authors, source: "mangaupdates" });
-    sources.add("mangaupdates");
-  }
-  const src = [...sources].join(",");
-  if (proposed.length) fields.push({ field: "credits:proposed_entities", value: proposed, source: src });
-  if (review.length) fields.push({ field: "credits:review", value: review, source: src });
   return { fields };
 }
 
-/** One query each for the accepted links and the Wikidata crosswalk records of a title's credits. */
+/** Applies the queued credit links, one applyLinks call (itself batched) per kind. */
+export async function flushPendingLinks(deps: EntityDeps): Promise<void> {
+  const pending = deps.pendingLinks;
+  if (!pending || pending.size === 0) return;
+  const byKind = new Map<EntityKind, PendingLink[]>();
+  for (const l of pending.values()) byKind.set(l.kind, [...(byKind.get(l.kind) ?? []), l]);
+  pending.clear();
+  for (const [kind, list] of byKind) {
+    await applyLinks(
+      deps.supabase,
+      kind,
+      list.map((l) => ({ kuroId: l.kuroId, source: l.source, sourceKey: l.sourceKey, method: l.method, confidence: l.method === "name_match" ? 0.9 : 1, status: l.status })),
+      deps.nowIso,
+    );
+  }
+}
+
+/**
+ * Loads, for many credits at once, the accepted links, the Wikidata crosswalk records and the staff rows
+ * the crosswalk names. Keys already loaded are skipped. compose calls it once per chunk of titles, so a
+ * credit then resolves from memory instead of querying per person.
+ */
+export async function preloadCreditMaps(deps: EntityDeps, keys: { staff: string[]; studio: string[]; author: string[] }): Promise<void> {
+  await preload(deps, "staff", "ann", keys.staff);
+  await preload(deps, "studio", "ann", keys.studio);
+  await preload(deps, "author", "mangaupdates", keys.author);
+  if (!deps.staffByAnilist) return;
+  const wanted = new Set<number>();
+  for (const k of keys.staff) {
+    const cw = deps.crosswalkMap?.get(crosswalkKey("person", k));
+    if (cw && !cw.conflict && typeof cw.anilistStaffId === "number" && !deps.staffByAnilist.has(cw.anilistStaffId)) wanted.add(cw.anilistStaffId);
+  }
+  for (const part of chunk([...wanted], WRITE_BATCH)) {
+    const rows = await selectAll<Record<string, unknown>>(() => deps.supabase.from("staff").select("*").in("anilist_id", part), ["id"], "staff");
+    for (const id of part) deps.staffByAnilist.set(id, []);
+    for (const r of rows) deps.staffByAnilist.get(Number(r.anilist_id))?.push(r);
+  }
+}
+
+/** One query each (paged) for the accepted links and the Wikidata crosswalk records of the credits. */
 async function preload(deps: EntityDeps, kind: EntityKind, source: SourceCode, keys: string[]): Promise<void> {
-  const unique = [...new Set(keys)];
+  const unique = [...new Set(keys)].filter((k) => !deps.linkMap?.has(`${kind}|${source}|${k}`));
   if (unique.length === 0) return;
-  const rows = ((await must(deps.supabase.from("catalogue_id_links").select("kuro_id, source_key").eq("kind", kind).eq("source", source).eq("status", "accepted").in("source_key", unique), "catalogue_id_links")) ?? []) as { kuro_id: number; source_key: string }[];
-  const found = new Map(rows.map((r) => [r.source_key, r.kuro_id]));
-  for (const k of unique) deps.linkMap?.set(`${kind}|${source}|${k}`, found.get(k) ?? null);
-  if (source === "ann" && (kind === "staff" || kind === "studio")) {
-    const cwKind = kind === "staff" ? "person" : "company";
-    const recs = ((await must(deps.supabase.from("catalogue_source_records").select("source_key, payload").eq("source", "wikidata").eq("medium", "anime").in("source_key", unique.map((k) => crosswalkKey(cwKind, k))), "catalogue_source_records")) ?? []) as { source_key: string; payload: CrosswalkPayload }[];
-    const byKey = new Map(recs.map((r) => [r.source_key, r.payload]));
-    for (const k of unique) deps.crosswalkMap?.set(crosswalkKey(cwKind, k), byKey.get(crosswalkKey(cwKind, k)) ?? null);
+  for (const part of chunk(unique, WRITE_BATCH)) {
+    const rows = await selectAll<{ kuro_id: number; source_key: string }>(
+      () => deps.supabase.from("catalogue_id_links").select("kuro_id, source_key").eq("kind", kind).eq("source", source).eq("status", "accepted").in("source_key", part),
+      ["id"],
+      "catalogue_id_links",
+    );
+    const found = new Map(rows.map((r) => [r.source_key, r.kuro_id]));
+    for (const k of part) deps.linkMap?.set(`${kind}|${source}|${k}`, found.get(k) ?? null);
+    if (source === "ann" && (kind === "staff" || kind === "studio")) {
+      const cwKind = kind === "staff" ? "person" : "company";
+      const todo = part.filter((k) => !deps.crosswalkMap?.has(crosswalkKey(cwKind, k)));
+      const recs = await selectAll<{ source_key: string; payload: CrosswalkPayload }>(
+        () => deps.supabase.from("catalogue_source_records").select("source_key, payload").eq("source", "wikidata").eq("medium", "anime").in("source_key", todo.map((k) => crosswalkKey(cwKind, k))),
+        ["source_key"],
+        "catalogue_source_records",
+      );
+      const byKey = new Map(recs.map((r) => [r.source_key, r.payload]));
+      for (const k of todo) deps.crosswalkMap?.set(crosswalkKey(cwKind, k), byKey.get(crosswalkKey(cwKind, k)) ?? null);
+    }
   }
 }

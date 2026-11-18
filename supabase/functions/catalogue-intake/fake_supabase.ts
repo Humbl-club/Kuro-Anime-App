@@ -13,6 +13,8 @@ export type FakeOptions = {
   lock?: boolean | { error: string };
   /** Tables whose insert/upsert returns this error. */
   writeErrors?: Record<string, { message: string; code?: string }>;
+  /** PostgREST max-rows: a select returns at most this many rows whatever limit/range asks (default 1000). */
+  maxRows?: number;
 };
 
 export function fakeSupabase(opts: FakeOptions = {}) {
@@ -26,8 +28,10 @@ export function fakeSupabase(opts: FakeOptions = {}) {
   function from(table: string) {
     const filters: Array<(r: Row) => boolean> = [];
     const filterText: string[] = [];
-    let order: { col: string; asc: boolean } | null = null;
+    const orders: { col: string; asc: boolean }[] = [];
     let limitN: number | null = null;
+    let rangeFrom = 0;
+    let rangeTo: number | null = null;
     let mode: "select" | "insert" | "upsert" | "update" | "delete" = "select";
     let body: Row[] = [];
     let patch: Row = {};
@@ -40,11 +44,20 @@ export function fakeSupabase(opts: FakeOptions = {}) {
       if (mode === "select") {
         reads.push({ table, filters: filterText });
         let out = rows.filter((r) => filters.every((f) => f(r)));
-        if (order) {
-          const { col, asc } = order;
-          out = [...out].sort((a, b) => (Number(a[col]) - Number(b[col])) * (asc ? 1 : -1) || String(a[col]).localeCompare(String(b[col])) * (asc ? 1 : -1));
+        if (orders.length > 0) {
+          const cmp = (a: Row, b: Row) => {
+            for (const { col, asc } of orders) {
+              const d = (Number(a[col]) - Number(b[col])) * (asc ? 1 : -1) || String(a[col]).localeCompare(String(b[col])) * (asc ? 1 : -1);
+              if (d) return d;
+            }
+            return 0;
+          };
+          out = [...out].sort(cmp);
         }
+        if (rangeTo !== null) out = out.slice(rangeFrom, rangeTo + 1);
         if (limitN !== null) out = out.slice(0, limitN);
+        // Like PostgREST's max-rows: silently truncates; tests that forget to page see missing rows.
+        if (single === null) out = out.slice(0, opts.maxRows ?? 1000);
         out = out.map((r) => ({ ...r }));
         return finish(out);
       }
@@ -147,7 +160,22 @@ export function fakeSupabase(opts: FakeOptions = {}) {
         return q;
       },
       order(col: string, o?: { ascending?: boolean }) {
-        order = { col, asc: o?.ascending !== false };
+        orders.push({ col, asc: o?.ascending !== false });
+        return q;
+      },
+      range(from: number, to: number) {
+        rangeFrom = from;
+        rangeTo = to;
+        return q;
+      },
+      lte(c: string, v: unknown) {
+        filters.push((r) => Number(r[c]) <= Number(v));
+        filterText.push(`${c}<=${v}`);
+        return q;
+      },
+      neq(c: string, v: unknown) {
+        filters.push((r) => String(r[c]) !== String(v));
+        filterText.push(`${c}<>${v}`);
         return q;
       },
       limit(n: number) {
