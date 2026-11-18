@@ -62,3 +62,4 @@ it may go live. This file is the single index. Detailed task steps stay in each 
 Append one line per landed step: date, wave, item, commit, checks, hosted receipt.
 
 - 2026-11-18 wave 0: tree committed (`61eb137`, `4877e43`, `70eb3bc`); plans renumbered; this index written.
+- 2026-11-18 wave 1: tracker F1.1–F1.3 BDD traceability gate merged (7c4bd2d..c9972b3); 25 self-tests pass; gate 86 scenarios / 14 resolved / 60 pending / 0 errors.
