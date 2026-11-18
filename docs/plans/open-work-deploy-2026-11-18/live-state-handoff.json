@@ -1,0 +1,88 @@
+{
+  "catalogue_tables_live": 0,
+  "counts": {
+    "anime": 21890,
+    "anime_mal": 20366,
+    "manga": 42029,
+    "manga_mal": 33440,
+    "series": 0,
+    "spans": 0
+  },
+  "flag_columns": [
+    "flag_name",
+    "enabled",
+    "rollout_percentage",
+    "target_markets",
+    "description",
+    "updated_at"
+  ],
+  "flags": [
+    {
+      "enabled": true,
+      "flag": "series_foundation_v1",
+      "rollout_percentage": 100
+    },
+    {
+      "enabled": true,
+      "flag": "series_home_native_v1",
+      "rollout_percentage": 100
+    },
+    {
+      "enabled": true,
+      "flag": "taste_deck_v1",
+      "rollout_percentage": 100
+    }
+  ],
+  "functions": [
+    [
+      "bulk-import-anime",
+      87
+    ],
+    [
+      "bulk-import-manga",
+      85
+    ],
+    [
+      "concierge-parse",
+      51
+    ],
+    [
+      "concierge-recommend",
+      57
+    ],
+    [
+      "mirror-images",
+      20
+    ],
+    [
+      "release-intake",
+      5
+    ]
+  ],
+  "history_tail": [
+    {
+      "name": "search_titles_param_v1",
+      "version": "20261110100000"
+    },
+    {
+      "name": "search_titles_topn_v1",
+      "version": "20261109200100"
+    },
+    {
+      "name": "search_staged_v1",
+      "version": "20261109200000"
+    }
+  ],
+  "import_jobs_active": [
+    {
+      "jobname": "kuro-import-runs-retention"
+    },
+    {
+      "jobname": "kuro-release-intake-manga-daily"
+    }
+  ],
+  "newest_titles": {
+    "anime": "2026-11-10 17:00:07.181001+00",
+    "manga": "2026-11-10 17:10:10.22817+00"
+  }
+}
