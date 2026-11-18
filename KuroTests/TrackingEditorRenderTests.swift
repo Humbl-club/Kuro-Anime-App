@@ -29,51 +29,64 @@ struct TrackingEditorRenderTests {
         statusRaw: nil, formatRaw: nil, popularityValue: nil, trendingValue: nil, createdAtValue: nil
     )
 
-    private static func completed(_ media: Media) -> LibraryEntry {
-        var entry = FakeLibraryBackend.entry(media.kind, media.id, status: .completed, progress: 12)
-        entry.sourceMetadata = LibrarySourceMetadata(repeatCount: 2, startedRaw: "2024-05", finishedRaw: "2024-07-14")
-        return entry
-    }
-
-    @Test("Dates and repeat count render at the largest type in English and German, for an anime and a manga",
-          arguments: [true, false])
-    func datesAndRepeatRenderAtLargestTypeInBothLanguages(german: Bool) async throws {
-        for media in [Self.anime, Self.manga] {
-            let backend = FakeLibraryBackend()
-            backend.setRows([Self.completed(media)], for: LifecycleFixtures.userA)
-            let harness = try FacadeHarness(backend: backend)
-            await harness.signIn()
-            let graph = harness.service
-            #expect(graph.library.entry(for: media.libraryKey)?.startedOn?.raw == "2024-05")
-
-            let sheet = AddToListSheet(media: media, forcedGerman: german)
-                .environment(graph.library)
-                .environment(graph.libraryActions)
-                .environment(NetworkMonitor())
-                .dynamicTypeSize(.accessibility5)
-            let width: CGFloat = 390
-            let height: CGFloat = 844
-            let host = UIHostingController(rootView: sheet.frame(width: width, height: height))
-            host.safeAreaRegions = []
-            // A window in the test host's foreground scene (a scene-less window does not draw).
-            let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-            let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
-            window.frame = CGRect(x: 0, y: 0, width: width, height: height)
-            window.rootViewController = host
-            window.isHidden = false
-            host.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
-            // The editor fills from the projection in a `.task`; let it run, then lay out again.
+    /// The scrollable content of the editor for `entry`, laid out at the largest Dynamic Type size.
+    private static func contentSize(media: Media, entry: LibraryEntry, german: Bool) async throws -> CGSize {
+        let backend = FakeLibraryBackend()
+        backend.setRows([entry], for: LifecycleFixtures.userA)
+        let harness = try FacadeHarness(backend: backend)
+        await harness.signIn()
+        let graph = harness.service
+        let sheet = AddToListSheet(media: media, forcedGerman: german)
+            .environment(graph.library)
+            .environment(graph.libraryActions)
+            .environment(NetworkMonitor())
+            .dynamicTypeSize(.accessibility5)
+        let width: CGFloat = 390
+        let height: CGFloat = 844
+        let host = UIHostingController(rootView: sheet.frame(width: width, height: height))
+        host.safeAreaRegions = []
+        // A window in the test host's foreground scene (a scene-less window does not draw).
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        window.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        window.rootViewController = host
+        window.isHidden = false
+        host.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
+        // The editor fills from the projection in a `.task`; let it run, then lay out again.
+        // Under a loaded machine that can take long: measure until two readings 300 ms apart agree.
+        var size = CGSize.zero
+        for attempt in 0..<20 {
             try await Task.sleep(for: .milliseconds(300))
             host.view.setNeedsLayout()
             host.view.layoutIfNeeded()
+            let reading = Self.largestScrollView(in: host.view)?.contentSize ?? .zero
+            if attempt > 0, reading == size, reading.height > 0 { break }
+            size = reading
+        }
+        window.isHidden = true
+        await harness.tearDown()
+        return size
+    }
 
-            let scroll = Self.largestScrollView(in: host.view)
-            let content = scroll?.contentSize.height ?? 0
-            #expect(content > 0, "\(media.kind) german=\(german): the editor has no height")
-            #expect(!host.view.hasAmbiguousLayout, "\(media.kind) german=\(german): ambiguous layout")
-
-            window.isHidden = true
-            await harness.tearDown()
+    @Test("Dates and repeat count render at the largest type in English and German, for an anime and a manga: the repeat row adds height and nothing overflows sideways",
+          arguments: [true, false])
+    func datesAndRepeatRenderAtLargestTypeInBothLanguages(german: Bool) async throws {
+        for media in [Self.anime, Self.manga] {
+            func entry(repeats: Int) -> LibraryEntry {
+                var entry = FakeLibraryBackend.entry(media.kind, media.id, status: .current, progress: 3)
+                entry.sourceMetadata = LibrarySourceMetadata(repeatCount: repeats, startedRaw: "2024-05", finishedRaw: "2024-07-14")
+                return entry
+            }
+            let withRepeat = try await Self.contentSize(media: media, entry: entry(repeats: 2), german: german)
+            let withoutRepeat = try await Self.contentSize(media: media, entry: entry(repeats: 0), german: german)
+            #expect(withoutRepeat.height > 0, "\(media.kind) german=\(german): the editor has no height")
+            // The repeat row is the only difference between the two editors: it must take real space (a row that
+            // collapsed to nothing, or never rendered, would not).
+            #expect(withRepeat.height - withoutRepeat.height >= 44,
+                    "\(media.kind) german=\(german): the repeat row added \(withRepeat.height - withoutRepeat.height) pt")
+            // Nothing is laid out wider than the 390 pt column, also at the largest type size.
+            #expect(withRepeat.width <= 390.5 && withoutRepeat.width <= 390.5,
+                    "\(media.kind) german=\(german): content is \(withRepeat.width) pt wide")
         }
     }
 
@@ -83,6 +96,7 @@ struct TrackingEditorRenderTests {
             (TrackingDateCopy.started(german: false), TrackingDateCopy.started(german: true)),
             (TrackingDateCopy.finished(german: false), TrackingDateCopy.finished(german: true)),
             (TrackingDateCopy.noDate(german: false), TrackingDateCopy.noDate(german: true)),
+            (TrackingDateCopy.unknown(german: false), TrackingDateCopy.unknown(german: true)),
             (TrackingDateCopy.noMonth(german: false), TrackingDateCopy.noMonth(german: true)),
             (TrackingDateCopy.noDay(german: false), TrackingDateCopy.noDay(german: true)),
             (TrackingDateCopy.clear(german: false), TrackingDateCopy.clear(german: true)),

@@ -70,7 +70,41 @@ struct DateFillCredentialLeaseTests {
                 "A's date leg was sent with B's credential: \(patches)")
         #expect(patches.count == patchesBefore, "A's date leg was dispatched after its account ended: \(patches)")
         #expect(outcome.change == nil, "a change of A's must not be reported as applied once A ended: \(outcome)")
-        #expect(h.graph.library.entry(for: key) == nil, "A's title must not appear in B's library")
+        // The stub serves the same rows to every user, so B's own refresh may legitimately load this row; what must
+        // never appear in B's library is A's change (the status move and the filled date).
+        let seen = h.graph.library.entry(for: key)
+        #expect(seen == nil || (seen?.status == .planning && seen?.startedOn == nil),
+                "A's change must not appear in B's library: \(String(describing: seen))")
+        await h.tearDown()
+    }
+
+    @Test("Positive: gate open, account A, durable branch: the date PATCH goes out through the real lease with A's bearer and started_raw")
+    func openGateSendsDateLegAsAccountA() async throws {
+        let script = ListTablesScript(anime: [Self.plannedRow()])
+        let suite = "kuro.tests.date-fill-positive.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let flags = FeatureFlags(userDefaults: defaults, launchArguments: [
+            "--ff-on=library_date_autofill_v1", "--ff-on=series_foundation_v1",
+        ])
+        let h = try SessionSDKHarness(
+            responder: StubAuth.signInResponder(rest: script.responder()),
+            flags: flags,
+            libraryBackendOverClient: { AppComposition.libraryBackend(client: $0, fenceEnabled: { true }) }
+        )
+        _ = try await CredentialLeaseTests.signedInAsAKeepingBsSession(h)
+        let key = MediaKey(kind: .anime, id: 1)
+        #expect(h.graph.library.progressAvailable, "the durable branch needs the outbox and the series flag")
+        let patchesBefore = h.server.requests.filter { $0.method == "PATCH" }.count
+
+        let outcome = await h.graph.libraryActions.apply(LibraryEdit(status: .set(.current)), to: key, createIfMissing: nil)
+
+        #expect(outcome.change != nil, "\(outcome)")
+        let allPatches = h.server.requests.filter { $0.method == "PATCH" }
+        let dateLegs = allPatches.dropFirst(patchesBefore).filter { $0.jsonObject?["started_raw"] is String }
+        #expect(dateLegs.count == 1, "expected exactly one date PATCH, got \(allPatches)")
+        #expect(dateLegs.first?.bearerSubject == Self.userA.lowercased(), "the date leg did not carry A's bearer")
+        #expect(h.graph.library.entry(for: key)?.startedOn != nil, "the filled start date is in the projection")
         await h.tearDown()
     }
 
