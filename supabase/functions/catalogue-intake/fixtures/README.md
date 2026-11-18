@@ -52,3 +52,17 @@ All `POST https://query.wikidata.org/sparql` (application/sparql-query), at leas
 | 13:23:10 | company crosswalk, production query shape (`wikidata_companies_live.json`) | 200 |
 
 Adult genre decision recorded in `map_wikidata.ts` (`WIKIDATA_ADULT_GENRES`): only hentai (Q172067) counts as adult.
+
+## WDQS timeout measurement (review fix, 2026-11-18, 2 POSTs)
+
+One 500-id query with the real production shape (buildQuery("anime", ids 1..500), 5,015 bytes, application/sparql-query),
+User-Agent `Kuro-Catalogue/1.0 (+https://kuro-legal.vercel.app/kontakt.html)`, no AniList call. Two POSTs, 70 s apart:
+
+| Time (UTC) | Result |
+|---|---|
+| about 14:10 | 429 after 21.1 s (no body; a rate limit on the shared egress, not the query). The polite client treats 429 as a clean stop. |
+| 14:11:28 | 200 in 2.70 s total, 2,717,389 bytes (x-first-solution-millis 382, served by wdqs1020, CDN miss) |
+
+Decision: the Wikidata client timeout is 45 s (TIMEOUT_MS.wikidata in _shared/catalogue/source_http.ts), about 16x the observed
+2.7 s and under WDQS's own 60 s server limit; the 15 s default is too tight for a cold or busy server. The 8 MB response cap
+stays (observed 2.7 MB, about 3x headroom). Single sample: re-measure before raising the batch size.

@@ -2,7 +2,7 @@
 // Run: cd supabase/functions/catalogue-intake && deno test --no-prompt
 import { strict as assert } from "node:assert";
 import { PoliteLimiter } from "../_shared/polite_fetch.ts";
-import { createSourceClient } from "../_shared/catalogue/source_http.ts";
+import { createSourceClient, TIMEOUT_MS } from "../_shared/catalogue/source_http.ts";
 import { fakeSupabase, queuedFetch } from "./fake_supabase.ts";
 import { runWikidata, wikidataCrosswalk } from "./wikidata.ts";
 
@@ -295,4 +295,9 @@ Deno.test("aBatchThatFailedThreeRunsInARowIsSkippedAndRecorded", async () => {
   const cur = (db.tables.import_track_state[0].last_results as { cursor: { last_id: number; fails: Record<string, number> } }).cursor;
   assert.equal(cur.last_id, 0, "the pass finished (fewer rows than the limit)");
   assert.deepEqual(cur.fails, {});
+});
+
+Deno.test("wikidataClientTimeoutCoversTheMeasured500IdQuery", () => {
+  // Measured 2.7 s for one 500-id query (fixtures/README.md); the timeout keeps a wide margin under WDQS's 60 s limit.
+  assert.ok((TIMEOUT_MS.wikidata ?? 0) >= 30_000 && (TIMEOUT_MS.wikidata ?? 0) <= 60_000);
 });
