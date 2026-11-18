@@ -295,7 +295,13 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
                         account: AccountContext, replacing removed: LibraryEntry? = nil) async -> LibraryOutcome {
         // Never restore one account's row onto another account's projection.
         guard account == context else { return .failed(.notAuthenticated) }
-        if let removed, let refusal = await refusalForNewerRow(than: removed, key: key) { return refusal }
+        if let removed {
+            // The probe suspends: the account binding it started under must still be the bound one before
+            // anything is written (the bound account never changes silently under an Undo).
+            guard let lease = currentLease() else { return .failed(.notAuthenticated) }
+            if let refusal = await refusalForNewerRow(than: removed, key: key) { return refusal }
+            guard holds(lease), account == context else { return .failed(.notAuthenticated) }
+        }
         return await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: false)
     }
 

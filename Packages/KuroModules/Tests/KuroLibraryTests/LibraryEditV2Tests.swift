@@ -960,6 +960,32 @@ struct RestoreAfterReAddTests {
         #expect(fenceOn ? sender.calls >= 1 : !backend.edits.isEmpty)
     }
 
+    @Test("An account switch while the probe is in flight: no write is sent and nothing is published for the new account",
+          .timeLimit(.minutes(1)))
+    func accountSwitchDuringProbeSendsNothing() async throws {
+        try await withHarness { h in
+            let a = h.signIn(Fixture.userA)
+            try await h.load([])
+            let removed = Self.removedRow()
+            let pending = Task {
+                await h.store.restore(.restoring(removed), to: Self.key, createIfMissing: removed.status,
+                                      account: a, replacing: removed)
+            }
+            let probe = try await h.nextCall()
+            #expect(probe.request == .insertIfMissing(removed.status))
+            // B binds while the probe is held.
+            h.signIn(Fixture.userB)
+            try await h.load([])
+            // The probe answers as if it had created the row for A.
+            probe.answer(.write(LibraryWriteResult(entry: removed, created: true)))
+            let outcome = await pending.value
+            #expect(outcome == .failed(.notAuthenticated))
+            #expect(h.store.entry(for: Self.key) == nil, "A's row was published for B")
+            // A write sent for the old account would wait unanswered for the test and keep the entry projected.
+            #expect(h.sink.changes.allSatisfy { $0.account != a || $0.kind == .added }, "a write for the old account was published")
+        }
+    }
+
     @Test("The server still holds the very row that was removed (the removal never landed): it is restored in place",
           .timeLimit(.minutes(1)), arguments: [true, false])
     func sameRowIsRestoredInPlace(fenceOn: Bool) async throws {
