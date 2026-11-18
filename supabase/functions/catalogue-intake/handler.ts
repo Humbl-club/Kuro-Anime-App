@@ -8,7 +8,7 @@
 //   medium   'anime' | 'manga' (required; ann is anime only, mangaupdates is manga only)
 //   limit    per-run work cap, each handler clamps it
 //   timeBudgetMs  default 50_000 (5_000..140_000)
-// compose and publish are later tasks and answer 501 without taking a lock.
+// publish is a later task and answers 501 without taking a lock. compose (Task 7) is local-DB only.
 // Lock: acquire_import_lock('catalogue-intake:<handler>', 900), released only when acquired.
 // Bookkeeping: import_runs (run_type 'catalogue_intake_<handler>'). Cursors: import_track_state
 // `catalogue-intake:<handler>:<medium>`, owned by each handler.
@@ -16,6 +16,7 @@ import { acquireImportLock, finishImportRun, releaseImportLock, startImportRun }
 import type { HandlerOutcome, IntakeDeps, RunContext } from "./context.ts";
 import { clampInt, type Medium } from "./store.ts";
 import { runAnn } from "./ann.ts";
+import { runCompose } from "./compose.ts";
 import { runMangaUpdates } from "./mangaupdates.ts";
 import { runPageviews } from "./pageviews.ts";
 import { runWikidata } from "./wikidata.ts";
@@ -31,6 +32,7 @@ export const HANDLERS: Partial<Record<HandlerName, (ctx: RunContext) => Promise<
   ann: runAnn,
   mangaupdates: runMangaUpdates,
   pageviews: runPageviews,
+  compose: runCompose,
 };
 
 /** Which media each handler serves; absent means both. */
