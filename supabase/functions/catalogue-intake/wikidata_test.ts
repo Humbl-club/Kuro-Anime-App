@@ -4,7 +4,7 @@ import { strict as assert } from "node:assert";
 import { PoliteLimiter } from "../_shared/polite_fetch.ts";
 import { createSourceClient } from "../_shared/catalogue/source_http.ts";
 import { fakeSupabase, queuedFetch } from "./fake_supabase.ts";
-import { wikidataCrosswalk } from "./wikidata.ts";
+import { runWikidata, wikidataCrosswalk } from "./wikidata.ts";
 
 const fast = { sleep: () => Promise.resolve(), now: () => 0, random: () => 0 };
 import q123 from "./fixtures/wikidata_q123.json" with { type: "json" };
@@ -139,9 +139,11 @@ Deno.test("budgetStopKeepsCompletedBatchesOnly", async () => {
   assert.equal(res.stoppedEarly, "budget");
 });
 
-Deno.test("httpErrorThrowsAndWritesNothing", async () => {
+Deno.test("aRejectedRowIsRecordedFailedAndWritesNothing", async () => {
   const { db, deps } = setup([new Response("{}", { status: 400 })]);
-  await assert.rejects(() => wikidataCrosswalk(deps, "anime", [{ id: 1, anilist_id: 1 }]), /wikidata/);
+  const res = await wikidataCrosswalk(deps, "anime", [{ id: 1, anilist_id: 1 }]);
+  assert.deepEqual(res.failed, [{ key: "row:1", reason: "http 400" }]);
+  assert.equal(res.completedRows, 1, "the cursor may advance past a row the source rejects");
   assert.equal(db.ops.length, 0);
 });
 
@@ -244,4 +246,53 @@ Deno.test("wikidataReadsOnlyWhenAnItemClaimsSeveralIds", async () => {
   const { db, deps } = setup([sparql(q123.results.bindings)], { anime: [{ id: 7, anilist_id: 16498 }] });
   await wikidataCrosswalk(deps, "anime", [{ id: 7, anilist_id: 16498 }]);
   assert.equal(db.reads.filter((r) => r.table === "anime").length, 0, "single-claim items need no extra Kuro read");
+});
+
+// ---- one bad item must not stall the handler (review 2026-11-18) -------------------------------------
+
+const bad = () => new Response("{}", { status: 400 });
+
+Deno.test("aRejectedBatchIsBisectedDownToTheBadRow", async () => {
+  const rows = [1, 2, 3, 4].map((i) => ({ id: i, anilist_id: 100 + i }));
+  const { net, deps } = setup([bad(), sparql([]), bad(), sparql([]), bad()]);
+  const res = await wikidataCrosswalk(deps, "anime", rows);
+  assert.equal(net.calls.length, 5);
+  assert.deepEqual(res.failed, [{ key: "row:4", reason: "http 400" }]);
+  assert.equal(res.completedRows, 4);
+  assert.equal(res.stoppedEarly, undefined);
+});
+
+Deno.test("anUnreadableAnswerIsTreatedAsTheRowsOwnFault", async () => {
+  const { deps } = setup([new Response("<html>", { status: 200 })]);
+  const res = await wikidataCrosswalk(deps, "anime", [{ id: 1, anilist_id: 1 }]);
+  assert.deepEqual(res.failed.map((f) => f.key), ["row:1"]);
+  assert.equal(res.completedRows, 1);
+});
+
+Deno.test("aServerErrorStopsTheRunAndCountsAgainstTheBatch", async () => {
+  const failures: Record<string, number> = {};
+  const { deps } = setup([new Response("x", { status: 503 }), new Response("x", { status: 503 }), new Response("x", { status: 503 })]);
+  const res = await wikidataCrosswalk({ ...deps, failures }, "anime", [{ id: 7, anilist_id: 1 }]);
+  assert.equal(res.stoppedEarly, "source_error");
+  assert.equal(res.completedRows, 0);
+  assert.deepEqual(failures, { "b:7": 1 });
+});
+
+Deno.test("aBatchThatFailedThreeRunsInARowIsSkippedAndRecorded", async () => {
+  const db = fakeSupabase({
+    tables: {
+      anime: [{ id: 1, anilist_id: 11 }, { id: 2, anilist_id: 12 }],
+      import_track_state: [{ track_key: "catalogue-intake:wikidata:anime", last_results: { cursor: { last_id: 0, fails: { "b:1": 3 } } } }],
+    },
+  });
+  const net = queuedFetch([]);
+  const client = createSourceClient("wikidata", new PoliteLimiter(0), { ...fast, fetch: net.fetch });
+  const other = client;
+  const out = await runWikidata({ supabase: db.client, clients: { wikidata: client, ann: other, mangaupdates: other, pageviews: other }, medium: "anime", limit: undefined, deadlineMs: 50_000, now: () => 0 });
+  assert.equal(net.calls.length, 0, "the poisoned batch is not requested again");
+  assert.equal(out.stoppedEarly, undefined);
+  assert.deepEqual(out.results.failed_items, [{ key: "b:1", reason: "skipped_after_repeated_failures" }]);
+  const cur = (db.tables.import_track_state[0].last_results as { cursor: { last_id: number; fails: Record<string, number> } }).cursor;
+  assert.equal(cur.last_id, 0, "the pass finished (fewer rows than the limit)");
+  assert.deepEqual(cur.fails, {});
 });

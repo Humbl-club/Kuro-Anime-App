@@ -20,7 +20,8 @@
 //
 // The query returns entity-attribute-value rows (?aid ?item ?p ?v): one UNION branch per property,
 // so multi-valued properties (aliases, genres, relations) never multiply each other.
-import { isPoliteCleanStop, type PoliteClient } from "../_shared/polite_fetch.ts";
+import { isPoliteCleanStop, PoliteFetchError, type PoliteClient } from "../_shared/polite_fetch.ts";
+import { classifyFailure, exhausted, type FailedItem, type FailureCounts, isItemRejection, noteFailedItem, readFailureCounts } from "./item_failures.ts";
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import type { HandlerOutcome, RunContext } from "./context.ts";
 import { readKuroRows } from "./context.ts";
@@ -140,6 +141,8 @@ export type WikidataDeps = {
   /** Absolute ms deadline; a query that cannot start before it ends the run cleanly. */
   deadlineMs?: number;
   now?: () => number;
+  /** Consecutive-failure counts per batch (`b:<first Kuro id>`), mutated in place; persisted in the cursor by the caller. */
+  failures?: FailureCounts;
 };
 
 export type CrosswalkResult = {
@@ -150,7 +153,9 @@ export type CrosswalkResult = {
   completedRows: number;
   recordsWritten: number;
   proposed: number;
-  stoppedEarly?: "budget" | "rate_limited";
+  /** Rows the source rejected (4xx) or that sat in a batch skipped after three failed runs; recorded, not linked. */
+  failed: FailedItem[];
+  stoppedEarly?: "budget" | "rate_limited" | "source_error";
 };
 
 export async function wikidataCrosswalk(
@@ -158,32 +163,76 @@ export async function wikidataCrosswalk(
   medium: Medium,
   kuroRows: { id: number; anilist_id: number | string | null }[],
 ): Promise<CrosswalkResult> {
-  const result: CrosswalkResult = { linked: 0, conflicts: [], queries: 0, completedRows: 0, recordsWritten: 0, proposed: 0 };
+  const result: CrosswalkResult = { linked: 0, conflicts: [], queries: 0, completedRows: 0, recordsWritten: 0, proposed: 0, failed: [] };
   const rows = kuroRows.filter((r) => r.anilist_id !== null && r.anilist_id !== undefined);
-  for (const batch of chunk(rows, WIKIDATA_BATCH)) {
-    let json: unknown;
+  const failures = deps.failures ?? {};
+  type Row = { id: number; anilist_id: number | string | null };
+
+  // One query for a group of rows. A group the source rejects (4xx) or answers unreadably is bisected until the
+  // single bad row is found, recorded and skipped; a 5xx / timeout after retries stops the run.
+  const process = async (group: Row[]): Promise<void> => {
+    let json: unknown = null;
+    let rejected: string | null = null;
     try {
       const res = await deps.client.request(
         WDQS_ENDPOINT,
-        { method: "POST", body: buildQuery(medium, batch.map((r) => r.anilist_id as number)), contentType: "application/sparql-query" },
+        { method: "POST", body: buildQuery(medium, group.map((r) => r.anilist_id as number)), contentType: "application/sparql-query" },
         deps.deadlineMs,
       );
-      if (res.status !== 200) throw new Error(`wikidata http ${res.status}`);
-      json = res.json;
+      if (res.status === 200) json = res.json;
+      else if (isItemRejection(res.status)) rejected = `http ${res.status}`;
+      else throw new PoliteFetchError("http", `wikidata http ${res.status}`, res.status);
     } catch (e) {
-      if (isPoliteCleanStop(e)) {
+      const action = classifyFailure(e);
+      if (action === "clean") {
         result.stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
-        break;
+        return;
       }
-      throw e;
+      if (action === "stop") {
+        result.stoppedEarly = "source_error";
+        return;
+      }
+      if (action === "skip") rejected = "unreadable response";
+      else throw e;
     }
     result.queries++;
-    const stats = await persistBatch(deps, medium, batch, parseBindings(json));
+    if (rejected !== null) {
+      if (group.length === 1) {
+        noteFailedItem(result.failed, `row:${group[0].id}`, rejected);
+        result.completedRows += 1;
+        return;
+      }
+      const mid = Math.ceil(group.length / 2);
+      await process(group.slice(0, mid));
+      if (result.stoppedEarly) return;
+      await process(group.slice(mid));
+      return;
+    }
+    const stats = await persistBatch(deps, medium, group, parseBindings(json));
     result.linked += stats.accepted;
     result.proposed += stats.proposed;
     result.recordsWritten += stats.recordsWritten;
     result.conflicts.push(...stats.conflicts);
-    result.completedRows += batch.length;
+    result.completedRows += group.length;
+  };
+
+  for (const batch of chunk(rows, WIKIDATA_BATCH)) {
+    const key = `b:${batch[0].id}`;
+    if (exhausted(failures, key)) {
+      // This batch failed three consecutive runs: skipped (recorded) so it cannot block the pass.
+      noteFailedItem(result.failed, key, "skipped_after_repeated_failures");
+      delete failures[key];
+      result.completedRows += batch.length;
+      continue;
+    }
+    const before = result.completedRows;
+    await process(batch);
+    if (result.stoppedEarly === "source_error") {
+      failures[key] = (failures[key] ?? 0) + 1;
+      break;
+    }
+    if (result.stoppedEarly) break;
+    if (result.completedRows - before === batch.length) delete failures[key];
   }
   // Rows without an AniList id never block the cursor: the caller filters them in its query.
   return result;
@@ -331,17 +380,33 @@ export async function wikidataEntityCrosswalk(
   deps: WikidataDeps,
   kind: EntityCrosswalkKind,
   annKeys: string[],
-): Promise<{ queries: number; recordsWritten: number; completedKeys: number; stoppedEarly?: "budget" | "rate_limited" }> {
-  const out: { queries: number; recordsWritten: number; completedKeys: number; stoppedEarly?: "budget" | "rate_limited" } = { queries: 0, recordsWritten: 0, completedKeys: 0 };
+): Promise<{ queries: number; recordsWritten: number; completedKeys: number; failedKeys: number; stoppedEarly?: "budget" | "rate_limited" | "source_error" }> {
+  const out: { queries: number; recordsWritten: number; completedKeys: number; failedKeys: number; stoppedEarly?: "budget" | "rate_limited" | "source_error" } = { queries: 0, recordsWritten: 0, completedKeys: 0, failedKeys: 0 };
   for (const batch of chunk([...new Set(annKeys)], WIKIDATA_BATCH)) {
     let json: unknown;
     try {
       const res = await deps.client.request(WDQS_ENDPOINT, { method: "POST", body: buildEntityQuery(kind, batch), contentType: "application/sparql-query" }, deps.deadlineMs);
-      if (res.status !== 200) throw new Error(`wikidata http ${res.status}`);
+      if (isItemRejection(res.status)) {
+        // The source rejects this batch: no negative records are stored for it (they would hide the keys for good); it is skipped.
+        out.failedKeys += batch.length;
+        out.completedKeys += batch.length;
+        continue;
+      }
+      if (res.status !== 200) throw new PoliteFetchError("http", `wikidata http ${res.status}`, res.status);
       json = res.json;
     } catch (e) {
-      if (isPoliteCleanStop(e)) {
+      const action = classifyFailure(e);
+      if (action === "clean") {
         out.stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
+        break;
+      }
+      if (action === "skip") {
+        out.failedKeys += batch.length;
+        out.completedKeys += batch.length;
+        continue;
+      }
+      if (action === "stop") {
+        out.stoppedEarly = "source_error";
         break;
       }
       throw e;
@@ -365,7 +430,7 @@ const ENTITY_RECORD_LIMIT = 100;
 const PRODUCTION_TASK = /animation|production/i;
 
 /** Crosswalks the ANN people and production companies of the next ANN records that have no crosswalk record yet. */
-export async function runEntityCrosswalk(ctx: RunContext): Promise<{ records: number; people: number; companies: number; queries: number; stoppedEarly?: "budget" | "rate_limited" }> {
+export async function runEntityCrosswalk(ctx: RunContext): Promise<{ records: number; people: number; companies: number; queries: number; stoppedEarly?: "budget" | "rate_limited" | "source_error" }> {
   const key = cursorKey("wikidata-entities", "anime");
   const cursor = await readCursor<{ after_key?: string }>(ctx.supabase, key);
   const after = typeof cursor?.after_key === "string" ? cursor.after_key : "";
@@ -379,7 +444,7 @@ export async function runEntityCrosswalk(ctx: RunContext): Promise<{ records: nu
     .limit(ENTITY_RECORD_LIMIT);
   if (error) throw new Error(`catalogue_source_records read failed: ${error.message ?? error}`);
   const rows = ((data ?? []) as { source_key: string; payload: { staff?: { personId: number }[]; companies?: { companyId: number; task: string }[] } }[]).filter((r) => /^\d+$/.test(r.source_key));
-  const result: { records: number; people: number; companies: number; queries: number; stoppedEarly?: "budget" | "rate_limited" } = { records: rows.length, people: 0, companies: 0, queries: 0 };
+  const result: { records: number; people: number; companies: number; queries: number; stoppedEarly?: "budget" | "rate_limited" | "source_error" } = { records: rows.length, people: 0, companies: 0, queries: 0 };
   if (rows.length === 0) return result;
 
   const people = [...new Set(rows.flatMap((r) => (r.payload.staff ?? []).map((s) => String(s.personId))))];
@@ -418,11 +483,12 @@ export const WIKIDATA_DEFAULT_LIMIT = 2000;
 
 export async function runWikidata(ctx: RunContext): Promise<HandlerOutcome> {
   const key = cursorKey("wikidata", ctx.medium);
-  const cursor = await readCursor<{ last_id?: number }>(ctx.supabase, key);
+  const cursor = await readCursor<{ last_id?: number; fails?: Record<string, number> }>(ctx.supabase, key);
   const lastId = typeof cursor?.last_id === "number" ? cursor.last_id : 0;
+  const failures = readFailureCounts(cursor);
   const limit = clampInt(ctx.limit, WIKIDATA_DEFAULT_LIMIT, 1, 5000);
   const rows = await readKuroRows<{ id: number; anilist_id: number }>(ctx.supabase, ctx.medium, "id, anilist_id", lastId, limit, "anilist_id");
-  const cross = await wikidataCrosswalk({ supabase: ctx.supabase, client: ctx.clients.wikidata, deadlineMs: ctx.deadlineMs }, ctx.medium, rows);
+  const cross = await wikidataCrosswalk({ supabase: ctx.supabase, client: ctx.clients.wikidata, deadlineMs: ctx.deadlineMs, failures }, ctx.medium, rows);
 
   const finished = cross.completedRows === rows.length && !cross.stoppedEarly;
   let nextLast = lastId;
@@ -436,9 +502,11 @@ export async function runWikidata(ctx: RunContext): Promise<HandlerOutcome> {
     proposed: cross.proposed,
     conflicts: cross.conflicts.length,
     records_written: cross.recordsWritten,
+    items_failed: cross.failed.length,
+    failed_items: cross.failed,
     pass_completed: finished && rows.length < limit,
   };
-  await writeCursor(ctx.supabase, key, ctx.medium, { last_id: nextLast }, results, cross.stoppedEarly ? `stopped_early:${cross.stoppedEarly}` : null);
+  await writeCursor(ctx.supabase, key, ctx.medium, { last_id: nextLast, fails: failures }, results, cross.stoppedEarly ? `stopped_early:${cross.stoppedEarly}` : null);
   // Task 7b: after the title crosswalk, ask Wikidata about the people and companies ANN credits (anime only).
   let entities: Awaited<ReturnType<typeof runEntityCrosswalk>> | undefined;
   let stoppedEarly = cross.stoppedEarly;
