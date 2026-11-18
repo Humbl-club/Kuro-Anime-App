@@ -6,5 +6,7 @@
 module.exports = Object.freeze({
   name: "tracker-gaps-combined",
   baseRps: 20,
-  profiles: Object.freeze({}),
+  profiles: Object.freeze({
+    "status-with-date-fill": 0.4, // F3.1d
+  }),
 });
