@@ -166,7 +166,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 316 app Swift files, 48 package Swift files and 254 SQL migrations are in the repo today.
+**Current inventory:** 322 app Swift files, 48 package Swift files and 254 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2350,6 +2350,10 @@ The second batch went into the main branch after every test passed (1,259 app te
 
 ### 18 November 2026 (night) — Grouping seasons, and waiting on permissions
 "One row per series" in your Collection is built (off for now; it also needs someone to review which seasons belong together before it shows anything). New manga can now be found for the new catalogue. The live steps (creating the new catalogue tables, deploying the Concierge fix) were stopped by the permission system; the exact steps are written down in docs/plans/open-work-deploy-2026-11-18/RUNBOOK.md.
+
+### 18 November 2026 (late) — Every tracker feature is built
+Tags and custom lists went into the main branch. Guest browsing (looking around without an account) is now built too, switched off. While building it we found that signed-out visitors can currently call around 110 server functions (most refuse because they check sign-in, but it is wider than it should be); the prepared fix narrows that to 23 safe ones. Smaller fixes landed as well (Undo no longer overwrites a title you re-added on another phone).
+
 
 
 
