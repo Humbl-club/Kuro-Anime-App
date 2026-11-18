@@ -122,4 +122,32 @@ select tests.ok('the unfiltered readers do not carry the predicate (list, detail
   not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
     and p.proname in ('collection_feed_page', 'home_bundle_v1', 'series_detail_bundle_v1', 'fetch_club_bundle', 'get_media_ladder')
     and p.prosrc like '%catalogue_visibility = ''visible''%'));
+
+-- ---- 8. privileges of replaced SECURITY DEFINER functions are exactly the originals (no IDOR through p_uid) ----------
+select tests.ok('_discover_page_v1 (takes p_uid) is not executable by public, anon or authenticated',
+  to_regprocedure('public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)') is not null
+  and not has_function_privilege('anon', 'public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)', 'execute')
+  and not has_function_privilege('authenticated', 'public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)', 'execute')
+  and not has_function_privilege('public', 'public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)', 'execute'));
+select tests.ok('the Discover wrappers keep exactly their grants (anon, authenticated, service_role; not public)',
+  has_function_privilege('anon', 'public.discover_section_page_v1(text,text,text,text,text,text,integer,integer)', 'execute')
+  and has_function_privilege('authenticated', 'public.discover_section_page_v1(text,text,text,text,text,text,integer,integer)', 'execute')
+  and has_function_privilege('service_role', 'public.discover_section_page_v1(text,text,text,text,text,text,integer,integer)', 'execute')
+  and not has_function_privilege('public', 'public.discover_section_page_v1(text,text,text,text,text,text,integer,integer)', 'execute')
+  and has_function_privilege('anon', 'public.discover_mood_v1(text,text,integer,integer)', 'execute')
+  and has_function_privilege('authenticated', 'public.discover_mood_v1(text,text,integer,integer)', 'execute')
+  and has_function_privilege('service_role', 'public.discover_mood_v1(text,text,integer,integer)', 'execute')
+  and not has_function_privilege('public', 'public.discover_mood_v1(text,text,integer,integer)', 'execute'));
+select tests.ok('the internal recommend function is service-only and media_similar_v1 keeps its grants',
+  not has_function_privilege('anon', 'public._recommend_ids_similar_to_seeds_live(text,integer[],integer,boolean)', 'execute')
+  and not has_function_privilege('authenticated', 'public._recommend_ids_similar_to_seeds_live(text,integer[],integer,boolean)', 'execute')
+  and not has_function_privilege('public', 'public._recommend_ids_similar_to_seeds_live(text,integer[],integer,boolean)', 'execute')
+  and has_function_privilege('service_role', 'public._recommend_ids_similar_to_seeds_live(text,integer[],integer,boolean)', 'execute')
+  and has_function_privilege('anon', 'public.media_similar_v1(text,integer,integer)', 'execute')
+  and has_function_privilege('authenticated', 'public.media_similar_v1(text,integer,integer)', 'execute')
+  and not has_function_privilege('public', 'public.media_similar_v1(text,integer,integer)', 'execute'));
+select tests.ok('the functions created by the catalogue Tasks 15, 15b and 15c are SECURITY INVOKER (none is a definer that takes a user id)',
+  not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
+    and p.proname in ('catalogue_publish_batch_v1', 'catalogue_restore_batch_v1', 'catalogue_relation_source_v1',
+                      'catalogue_apply_visibility_v1', 'catalogue_anime_visible', 'catalogue_manga_visible', 'catalogue_create_title_v1')));
 rollback;

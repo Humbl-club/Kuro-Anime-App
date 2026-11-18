@@ -3592,5 +3592,24 @@ begin
 end;
 $$;
 
+-- Privileges restated exactly as in their original migrations (CREATE OR REPLACE keeps them on an existing function;
+-- these lines make the result the same if one of them had to be created).
+--   _recommend_ids_similar_to_seeds_live: internal SECURITY DEFINER (20260804130000): service_role only.
+revoke all on function public._recommend_ids_similar_to_seeds_live(text, integer[], integer, boolean) from public, anon, authenticated;
+grant execute on function public._recommend_ids_similar_to_seeds_live(text, integer[], integer, boolean) to service_role;
+--   media_similar_v1 (20261103100100): public wrapper.
+revoke all on function public.media_similar_v1(text, integer, integer) from public;
+grant execute on function public.media_similar_v1(text, integer, integer) to anon, authenticated, service_role;
+
+do $guard$
+begin
+  if has_function_privilege('anon', 'public._recommend_ids_similar_to_seeds_live(text,integer[],integer,boolean)', 'execute')
+     or has_function_privilege('authenticated', 'public._recommend_ids_similar_to_seeds_live(text,integer[],integer,boolean)', 'execute')
+     or has_function_privilege('public', 'public._recommend_ids_similar_to_seeds_live(text,integer[],integer,boolean)', 'execute') then
+    raise exception 'catalogue_visibility: an internal recommend function is executable by clients';
+  end if;
+end
+$guard$;
+
 notify pgrst, 'reload schema';
 commit;

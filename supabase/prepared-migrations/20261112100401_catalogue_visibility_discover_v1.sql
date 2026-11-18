@@ -18,6 +18,24 @@ set local lock_timeout = '3s';
 set local statement_timeout = '120s';
 set local check_function_bodies = off;
 
+
+-- Fail early: this file replaces functions that must already exist (a missing SECURITY DEFINER internal would
+-- otherwise be created with the default PUBLIC execute grant).
+do $need$
+declare
+  _sig text;
+begin
+  foreach _sig in array array[
+    'public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)',
+    'public.discover_section_page_v1(text,text,text,text,text,text,integer,integer)',
+    'public.discover_mood_v1(text,text,integer,integer)'] loop
+    if to_regprocedure(_sig) is null then
+      raise exception 'catalogue_visibility_discover: % does not exist; apply 20261104100000 / 20261104100100 (Discover usability) first', _sig;
+    end if;
+  end loop;
+end
+$need$;
+
 create or replace function public.catalogue_anime_visible(p_id integer)
 returns boolean
 language sql
@@ -1399,6 +1417,25 @@ begin
   end if;
 end;
 $$;
+
+-- Privileges restated exactly as in 20261104100000 / 20261104100100 (never widened by this file).
+revoke all on function public._discover_page_v1(uuid, text, integer[], boolean, integer, integer, integer, text) from public, anon, authenticated;
+revoke all on function public.discover_section_page_v1(text, text, text, text, text, text, integer, integer) from public, anon, authenticated;
+grant execute on function public.discover_section_page_v1(text, text, text, text, text, text, integer, integer) to anon, authenticated, service_role;
+revoke all on function public.discover_mood_v1(text, text, integer, integer) from public, anon, authenticated;
+grant execute on function public.discover_mood_v1(text, text, integer, integer) to anon, authenticated, service_role;
+-- discover_bundle: grant restated as in 20260203223000 (anon, authenticated); it takes no user id (auth.uid() inside).
+grant execute on function public.discover_bundle(integer, integer) to anon, authenticated;
+
+do $guard$
+begin
+  if has_function_privilege('anon', 'public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)', 'execute')
+     or has_function_privilege('authenticated', 'public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)', 'execute')
+     or has_function_privilege('public', 'public._discover_page_v1(uuid,text,integer[],boolean,integer,integer,integer,text)', 'execute') then
+    raise exception 'catalogue_visibility_discover: _discover_page_v1 (takes p_uid) is executable by clients';
+  end if;
+end
+$guard$;
 
 notify pgrst, 'reload schema';
 commit;
