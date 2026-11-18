@@ -291,6 +291,48 @@ test("invalid profiles are refused", (t) => {
 test("missing profiles directory yields no profiles", () => {
   assert.deepEqual(W.loadProfiles("/nonexistent"), {});
 });
+// ---- F3.1b: request options ----
+test("profile request options", (t) => {
+  const P = W.loadProfiles(profileDir(t, {
+    "y-test": {
+      budgetClasses: ["browse", "detail"],
+      ratePerSecond: 1,
+      request: { $fn: "(a, f, seq, r, core) => ({ method: 'GET', anonymous: true, budgetClass: seq % 2 ? 'detail' : 'browse', path: '/rest/v1/anime?id=eq.1', coreOk: core.requestFor })" },
+    },
+    "w-test": {
+      operations: { a: { budgetClass: "progress" }, b: { budgetClass: "progress" } },
+      ratePerSecond: 1,
+    },
+  }));
+  const y = W.selectProfiles({ names: ["y-test"] }, P).limits;
+  assert.equal(y["y-test:browse"], 750);
+  assert.equal(y["y-test:detail"], 1200);
+  assert.equal(Object.hasOwn(y, "y-test"), false);
+  const core = { requestFor: W.requestFor };
+  assert.equal(P["y-test"].request(actor, fixture, 0, Math.random, core).coreOk, W.requestFor);
+  const w = W.selectProfiles({ names: ["w-test"] }, P).limits;
+  assert.deepEqual(w, { "w-test:a": 750, "w-test:b": 750 });
+  const ok = { ratePerSecond: 1 };
+  const bad = [
+    { ...ok, budgetClasses: ["fast"] },
+    { ...ok, budgetClasses: ["browse"], operations: { a: { budgetClass: "browse" } } },
+    { ...ok, operations: { a: { budgetClass: "browse", share: 0.5 }, b: { budgetClass: "browse", share: 0.4 } } },
+    { ...ok, operations: { a: { budgetClass: "fast" } } },
+    { ...ok },
+  ];
+  for (const fields of bad) {
+    assert.throws(() => W.loadProfiles(profileDir(t, { "bad-test": fields })), /./, JSON.stringify(fields));
+  }
+});
+test("summarize reports payload groups when samples carry one", () => {
+  const s = W.summarize([
+    { kind: "browse", ms: 10, status: 200, ok: true, payload: "typical" },
+    { kind: "browse", ms: 20, status: 200, ok: true, payload: "maximum" },
+  ], 2, 1);
+  assert.deepEqual(Object.keys(s.endpoints.browse.byPayload).sort(), ["maximum", "typical"]);
+  assert.equal(s.endpoints.browse.byPayload.maximum.requests, 1);
+  assert.equal(W.summarize([{ kind: "browse", ms: 1, status: 200, ok: true }], 1, 1).endpoints.browse.byPayload, undefined);
+});
 test("config bounds cover both lanes", (t) => {
   const P = W.loadProfiles(profileDir(t, { "x-test": { budgetClass: "browse", ratePerSecond: 6 } }));
   const sel = W.selectProfiles({ names: ["x-test"] }, P);

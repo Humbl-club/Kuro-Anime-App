@@ -116,6 +116,87 @@ const xProfile = (validate = (d) => Array.isArray(d)) =>
     validate,
   });
 const laneConfig = { production: true, rps: 10, duration: 1, vus: 2, maxRequests: 20 };
+// Short profile-only-ish runs: base lane at 1 rps (one request), profile at 2 rps over 1 s.
+const optConfig = { production: true, rps: 1, duration: 1, vus: 2, maxRequests: 20, only: "home", trackerGaps: ["o-test"] };
+function recordingFetch(t, answer) {
+  const calls = [];
+  t.mock.method(global, "fetch", async (url, init) => {
+    const p = new URL(url).pathname;
+    calls.push({ path: p, search: new URL(url).search, method: init.method, headers: init.headers, body: init.body });
+    if (p.endsWith("/home_bundle_v1")) {
+      return new Response(JSON.stringify({ active: [], home_revision: 0, club: { state: "none" } }), { status: 200 });
+    }
+    return answer(p, init);
+  });
+  return calls;
+}
+test("GET and anonymous requests", async (t) => {
+  const calls = recordingFetch(t, () => new Response(JSON.stringify([{ id: 1 }]), { status: 200 }));
+  const profile = Object.freeze({
+    name: "o-test",
+    budgetClasses: ["browse", "detail"],
+    ratePerSecond: 2,
+    request: (a, f, seq) => seq % 2
+      ? { method: "GET", anonymous: true, budgetClass: "detail", path: "/rest/v1/anime?id=eq.1" }
+      : { budgetClass: "browse", path: "/rest/v1/rpc/o_test", body: {} },
+    validate: (d) => Array.isArray(d),
+  });
+  const r = await run(optConfig, structuredClone(laneFixture), { profiles: { "o-test": profile } });
+  const get = calls.find((c) => c.path === "/rest/v1/anime");
+  assert.equal(get.method, "GET");
+  assert.equal(get.search, "?id=eq.1");
+  assert.equal(get.body, undefined);
+  assert.equal(get.headers["Content-Type"], undefined);
+  assert.equal(get.headers.Authorization, "Bearer public");
+  const post = calls.find((c) => c.path === "/rest/v1/rpc/o_test");
+  assert.equal(post.method, "POST");
+  assert.match(post.headers.Authorization, /^Bearer tok/);
+  assert.deepEqual(Object.keys(r.lanes.profiles.summary.endpoints).sort(), ["o-test:browse", "o-test:detail"]);
+});
+test("PATCH and multi-step actions", async (t) => {
+  let aStatus = 200;
+  const calls = recordingFetch(t, (p, init) => {
+    if (p.endsWith("/x")) return new Response(JSON.stringify(aStatus === 200 ? { ok: 1 } : { code: "boom" }), { status: aStatus });
+    return new Response(JSON.stringify([{ id: 1 }]), { status: 200 });
+  });
+  const action = {
+    steps: [
+      { operation: "a", path: "/rest/v1/rpc/x", body: {} },
+      { operation: "b", method: "PATCH", path: "/rest/v1/anime_user_lists?id=eq.1", body: { started_raw: "2026-03-02" } },
+    ],
+  };
+  const profile = (request) => Object.freeze({
+    name: "o-test",
+    operations: { a: { budgetClass: "progress" }, b: { budgetClass: "progress" } },
+    ratePerSecond: 1,
+    request,
+    validate: () => true,
+  });
+  const r = await run({ ...optConfig }, structuredClone(laneFixture), { profiles: { "o-test": profile(() => action) } });
+  const own = calls.filter((c) => c.path !== "/rest/v1/rpc/home_bundle_v1");
+  assert.deepEqual(own.map((c) => c.method), ["POST", "PATCH"]);
+  assert.ok(own.every((c) => /^Bearer tok/.test(c.headers.Authorization)));
+  assert.equal(own[1].headers.Prefer, "return=representation");
+  assert.equal(own[1].headers["Content-Type"], "application/json");
+  assert.deepEqual(JSON.parse(own[1].body), { started_raw: "2026-03-02" });
+  assert.deepEqual(Object.keys(r.lanes.profiles.summary.endpoints).sort(), ["o-test:a", "o-test:b"]);
+  assert.equal(r.lanes.profiles.summary.endpoints["o-test:a"].requests, 1);
+  assert.equal(r.lanes.profiles.summary.endpoints["o-test:b"].requests, 1);
+  // First failing step ends the action; later steps are counted, not sampled.
+  aStatus = 500;
+  calls.length = 0;
+  const r2 = await run({ ...optConfig }, structuredClone(laneFixture), { profiles: { "o-test": profile(() => action) } });
+  assert.equal(calls.filter((c) => c.method === "PATCH").length, 0);
+  assert.equal(r2.lanes.profiles.skippedSteps["o-test:b"], 1);
+  assert.equal(r2.lanes.profiles.summary.endpoints["o-test:b"], undefined);
+  // An undeclared operation is a failed sample and sends nothing.
+  calls.length = 0;
+  const r3 = await run({ ...optConfig }, structuredClone(laneFixture), {
+    profiles: { "o-test": profile(() => ({ operation: "zz", path: "/rest/v1/rpc/x", body: {} })) },
+  });
+  assert.equal(calls.filter((c) => c.path.endsWith("/x")).length, 0);
+  assert.ok(r3.lanes.profiles.samples.every((s) => !s.ok && s.error === "undeclared_operation"));
+});
 test("base lane is identical with a profile lane", async (t) => {
   t.mock.method(global, "fetch", async (url, init) => validAnswer(url, init));
   const A = await run(laneConfig, structuredClone(laneFixture), { profiles: {} });

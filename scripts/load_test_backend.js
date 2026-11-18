@@ -47,21 +47,27 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
     now: () => new Date(),
   };
   // Sends one request for `lane`; `kind` names the sample; `validate` judges a 2xx body.
-  async function send(lane, actor, kind, req, seq, planned, validate) {
-    lane.busy.add(actor);
+  // The caller owns the lane's busy set (an action may span several sends). Returns the sample.
+  async function send(lane, actor, kind, req, seq, planned, validate, failure = null) {
     const t = performance.now();
-    let status = 0, ok = false, error = null, bytes = 0;
+    let status = 0, ok = false, error = failure, bytes = 0;
     let upstreamMs = null, responseStartMs = null, protocol = null;
+    const method = req.method ?? "POST";
     try {
+      if (failure) throw new Error(failure);
       const res = await fetch(W.ORIGIN + req.path, {
-        method: "POST",
+        method,
         headers: {
           apikey: fixture.anonKey,
-          Authorization: "Bearer " + actor.token,
-          "Content-Type": "application/json",
+          // Anonymous requests never carry an account token.
+          Authorization: "Bearer " + (req.anonymous ? fixture.anonKey : actor.token),
+          ...(method === "GET" ? {} : { "Content-Type": "application/json" }),
+          ...(method === "PATCH"
+            ? { Prefer: req.prefer ?? "return=representation" }
+            : {}),
           "X-Kuro-Load-Run": fixture.runId,
         },
-        body: JSON.stringify(req.body),
+        ...(method === "GET" ? {} : { body: JSON.stringify(req.body) }),
         signal: AbortSignal.timeout(8000),
       });
       responseStartMs = +(performance.now() - t).toFixed(2);
@@ -81,9 +87,9 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
             .slice(0, 80);
       }
     } catch (e) {
-      error = e.name === "TimeoutError" ? "timeout" : "transport_or_json";
-    } finally {
-      lane.busy.delete(actor);
+      if (!failure) {
+        error = e.name === "TimeoutError" ? "timeout" : "transport_or_json";
+      }
     }
     const sample = {
       kind,
@@ -100,6 +106,7 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
       protocol,
       startLagMs: +(t - planned).toFixed(2),
       librarySize: actor.librarySize,
+      ...(req.payload ? { payload: req.payload } : {}),
     };
     lane.samples.push(sample);
     // Each lane keeps its own rolling window; either lane's stop halts both.
@@ -109,33 +116,75 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
       (recent.filter((x) => !x.ok).length >= 3 ||
         recent.filter((x) => x.ms > 5000).length >= 5)
     ) stopReason ??= lane.name + ": rolling error/latency safety stop";
+    return sample;
   }
-  const baseCall = (actor, kind, seq, planned) => {
+  const baseCall = async (actor, kind, seq, planned) => {
+    base.busy.add(actor);
     seen.add(actor.id);
-    if (kind === "progress" && !actor.writeEntry) kind = "home";
-    const req = W.requestFor(kind, actor, fixture, seq, base.random);
-    return send(
-      base,
-      actor,
-      kind,
-      req,
-      seq,
-      planned,
-      (data) => W.validateResponse(kind, data, actor, req),
-    );
+    try {
+      if (kind === "progress" && !actor.writeEntry) kind = "home";
+      const req = W.requestFor(kind, actor, fixture, seq, base.random);
+      await send(
+        base,
+        actor,
+        kind,
+        req,
+        seq,
+        planned,
+        (data) => W.validateResponse(kind, data, actor, req),
+      );
+    } finally {
+      base.busy.delete(actor);
+    }
   };
-  const profileCall = (actor, entry, seq, planned) => {
-    const req = entry.profile.request(actor, fixture, seq, lane2.random, core);
-    return send(
-      lane2,
-      actor,
-      entry.name,
-      req,
-      seq,
-      planned,
-      (data) => entry.profile.validate(data, actor, req, { mode }),
-    );
+  // Sample kind for a profile request: "<name>:<class>" / "<name>:<operation>" / "<name>".
+  function profileKind(entry, req) {
+    const p = entry.profile;
+    if (p.operations) {
+      const op = req.operation;
+      return { kind: `${entry.name}:${op}`, failure: Object.hasOwn(p.operations, op ?? "") ? null : "undeclared_operation" };
+    }
+    if (p.budgetClasses) {
+      const c = req.budgetClass;
+      return { kind: `${entry.name}:${c}`, failure: p.budgetClasses.includes(c) ? null : "undeclared_budget_class" };
+    }
+    return { kind: entry.name, failure: null };
+  }
+  const profileCall = async (actor, entry, seq, planned) => {
+    lane2.busy.add(actor);
+    try {
+      const action = entry.profile.request(actor, fixture, seq, lane2.random, core);
+      const steps = action.steps ?? [action];
+      if (action.steps && (steps.length < 1 || steps.length > 3)) {
+        throw new Error(`profile ${entry.name}: an action has 1-3 steps`);
+      }
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        const { kind, failure } = profileKind(entry, step);
+        const sample = await send(
+          lane2,
+          actor,
+          kind,
+          step,
+          seq,
+          planned,
+          (data) => entry.profile.validate(data, actor, step, { mode }),
+          failure,
+        );
+        if (!sample.ok) {
+          // The first failed step ends the action; later steps are counted, not sampled.
+          for (const later of steps.slice(i + 1)) {
+            const k = profileKind(entry, later).kind;
+            skippedSteps[k] = (skippedSteps[k] ?? 0) + 1;
+          }
+          break;
+        }
+      }
+    } finally {
+      lane2.busy.delete(actor);
+    }
   };
+  const skippedSteps = {};
   const count = Math.min(
     Math.ceil(config.duration * config.rps),
     config.maxRequests,
@@ -273,7 +322,7 @@ async function run(config, fixture, { profiles = W.TRACKER_GAP_PROFILES } = {}) 
             offered: lane2.offered,
             droppedBusy: lane2.droppedBusy,
             maxInFlight: lane2.maxInFlight,
-            skippedSteps: {},
+            skippedSteps,
             summary: W.summarize(lane2.samples, lane2.offered, elapsed, selection.limits),
             byLibrarySize: profileBySize,
             samples: lane2.samples,

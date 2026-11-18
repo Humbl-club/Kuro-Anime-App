@@ -107,6 +107,17 @@ function summarize(samples, offered, seconds, limits = LIMITS) {
       pass: rows.length === success.length &&
         percentile(lat, .95) <= limits[kind],
     };
+    if (rows.some((x) => x.payload)) {
+      endpoints[kind].byPayload = {};
+      for (const payload of [...new Set(rows.map((x) => x.payload).filter(Boolean))]) {
+        const own = rows.filter((x) => x.payload === payload);
+        endpoints[kind].byPayload[payload] = {
+          requests: own.length,
+          errors: own.filter((x) => !x.ok).length,
+          p95: percentile(own.map((x) => x.ms), .95),
+        };
+      }
+    }
   }
   const ok = samples.filter((x) => x.ok).length;
   return {
@@ -290,8 +301,35 @@ function checkProfile(profile, file) {
       "weight is retired: declare ratePerSecond (weight w = 0.2*w rps at the 20 rps base)",
     );
   }
-  if (!Object.hasOwn(LIMITS, profile.budgetClass)) {
+  const declared = ["budgetClass", "budgetClasses", "operations"].filter((k) =>
+    Object.hasOwn(profile, k)
+  );
+  if (declared.length !== 1) {
+    fail("declare exactly one of budgetClass, budgetClasses, operations");
+  }
+  const known = (c) => Object.hasOwn(LIMITS, c);
+  if (declared[0] === "budgetClass" && !known(profile.budgetClass)) {
     fail("budgetClass must be one of " + Object.keys(LIMITS).join(", "));
+  }
+  if (declared[0] === "budgetClasses") {
+    const cs = profile.budgetClasses;
+    if (!Array.isArray(cs) || !cs.length || !cs.every(known)) {
+      fail("budgetClasses must be a non-empty list of " + Object.keys(LIMITS).join(", "));
+    }
+  }
+  if (declared[0] === "operations") {
+    const ops = Object.entries(profile.operations ?? {});
+    if (!ops.length || !ops.every(([, o]) => o && known(o.budgetClass))) {
+      fail("every operation needs a budgetClass from " + Object.keys(LIMITS).join(", "));
+    }
+    const shares = ops.map(([, o]) => o.share);
+    if (shares.some((s) => s !== undefined)) {
+      const sum = shares.reduce((n, s) => n + (s ?? NaN), 0);
+      if (
+        shares.some((s) => typeof s !== "number" || !(s > 0 && s <= 1)) ||
+        Math.abs(sum - 1) > 1e-9
+      ) fail("operation shares must each be in (0, 1] and sum to 1");
+    }
   }
   const r = profile.ratePerSecond;
   if (
@@ -330,7 +368,13 @@ function selectProfiles(spec = {}, profiles = TRACKER_GAP_PROFILES) {
       ratePerSecond <= 0 || ratePerSecond > PROFILE_MAX_RATE
     ) throw new Error("Invalid rate for profile " + name);
     chosen.push({ name, ratePerSecond, profile });
-    limits[name] = LIMITS[profile.budgetClass];
+    if (profile.budgetClasses) {
+      for (const c of profile.budgetClasses) limits[`${name}:${c}`] = LIMITS[c];
+    } else if (profile.operations) {
+      for (const [op, o] of Object.entries(profile.operations)) {
+        limits[`${name}:${op}`] = LIMITS[o.budgetClass];
+      }
+    } else limits[name] = LIMITS[profile.budgetClass];
     totalRate += ratePerSecond;
   }
   if (!chosen.length) return EMPTY_SELECTION;
