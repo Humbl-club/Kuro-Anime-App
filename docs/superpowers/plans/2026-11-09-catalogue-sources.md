@@ -516,6 +516,7 @@ Owner request 2026-11-10: keep `anilist_id` privately (it is the Wikidata/ANN cr
 - Live inventory, 2026-11-10:
   - anon and authenticated can read `anilist_id` on 12 tables: `anime`, `manga`, `authors`, `chapters`, `characters`, `curated_rail_items`, `episodes`, `rag_entity_index`, `staff`, `studios`, `tags`, `volumes`;
   - 6 matviews: `mv_{anime,manga}_{trending,top_rated,newly_added}`;
+  - 2026-11-18: `mv_{anime,manga}_newly_added` are **dropped** here instead of rebuilt (backend latency step 1c, parked: `supabase/prepared-migrations/20261109200200_discover_newly_added_base_v1.sql` switches `discover_bundle`'s newly-added rails to the base tables; regenerate it from the live body). Rebuild the other four;
   - RPCs whose result has AniList columns: `anime_cast_v1`, `character_voice_actors_v1`, `staff_voice_roles_v1`, `rag_retrieve_candidates`;
   - invoker functions that read the column: `_is_blessed_canon`, `anime_cast_v1`, `character_voice_actors_v1`, `staff_voice_roles_v1`. A column revoke breaks these unless they stop reading it or become definer functions.
 - Grants: on each table, `REVOKE SELECT … FROM anon, authenticated`, then `GRANT SELECT (<every other column>)`. The test asserts the column list equals the table's columns minus `anilist_id`, so a later column cannot silently go ungranted unnoticed. Matviews are rebuilt without the column. Changed RPCs are DROP+CREATE with the same names and argument lists.

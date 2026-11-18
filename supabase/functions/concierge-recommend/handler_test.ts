@@ -241,3 +241,109 @@ Deno.test("budget denial or error never calls the provider and releases only the
     assertEquals(body.items.length > 0, true, c.name);
   }
 });
+
+// --- Step 1d: best-effort writes (mode cache, run logs) leave the response critical path -------------------
+function gate() {
+  let open!: () => void;
+  const opened = new Promise<void>((r) => (open = r));
+  return { opened, open };
+}
+
+function recommendRaw(fake: ReturnType<typeof queryFake>, waitUntil?: (p: Promise<unknown>) => void, text = PROMPT) {
+  const env: Record<string, string> = { SUPABASE_URL: "https://project.supabase.co", GROQ_API_KEY: "test-key" };
+  return handleRecommend(
+    new Request("http://local/concierge-recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer test", "x-forwarded-for": "203.0.113.9" },
+      body: JSON.stringify({ text }),
+    }),
+    { client: () => fake.client, globalBudgetClient: () => fake.client, env: (k) => env[k], fetch: groq("ok").fetch, now: () => NOW, waitUntil },
+  );
+}
+
+const settled = async (p: Promise<unknown>, ms = 200) => {
+  let timer: number | undefined;
+  try {
+    return await Promise.race([p.then(() => "done", () => "rejected"), new Promise((r) => (timer = setTimeout(() => r("pending"), ms)))]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+Deno.test("waitUntil: the response resolves while the run log is pending; the one handed promise issues the same log calls", async () => {
+  const baseline = world();
+  await recommend(baseline, { text: PROMPT });
+  const expected = baseline.rpcCalls("log_concierge_run");
+  assertEquals(expected.length, 2);
+
+  const g = gate();
+  const fake = world({ rpc: { log_concierge_run: async () => { await g.opened; return { data: null, error: null }; } } });
+  const handed: Promise<unknown>[] = [];
+  const res = await recommendRaw(fake, (p) => handed.push(p));
+  assertEquals(res.status, 200);
+  assertEquals(handed.length, 1);
+  assertEquals(await settled(handed[0]), "pending");
+  assertEquals(fake.rpcCalls("log_concierge_run").length, 1); // second log waits behind the first on the serial chain
+  g.open();
+  await handed[0];
+  assertEquals(fake.rpcCalls("log_concierge_run"), expected);
+});
+
+Deno.test("waitUntil: the two mode-cache upserts reach the store in original order even when the first is slow", async () => {
+  // One genre per title so the rails differ and the chosen secondary is not the routed one: two saves.
+  const SPREAD = [["Slice of Life"], ["Sports"], ["Sci-Fi"], ["Horror", "Supernatural"], ["Drama"], ["Action"], ["Mystery"], ["Fantasy"]];
+  const fake = world({ tables: { anime: ANIME.map((m, i) => ({ ...m, genres: SPREAD[i % SPREAD.length] })) } });
+  const g = gate();
+  const origFrom = fake.client.from;
+  let n = 0;
+  fake.client.from = (table: string) => {
+    const b = origFrom(table);
+    if (table !== "concierge_mode_cache") return b;
+    const up = b.upsert.bind(b);
+    b.upsert = async (body: Json, o: Json) => {
+      if (n++ === 0) await g.opened;
+      return up(body, o);
+    };
+    return b;
+  };
+  const handed: Promise<unknown>[] = [];
+  const res = await recommendRaw(fake, (p) => handed.push(p), "hidden gems anime");
+  assertEquals(res.status, 200);
+  assertEquals(handed.length, 1);
+  assertEquals(await settled(handed[0]), "pending");
+  assertEquals(fake.calls.filter((c) => c.kind === "upsert").length, 0); // slow first save still in flight
+  g.open();
+  await handed[0];
+  const upserts = fake.calls.filter((c) => c.kind === "upsert").map((c) => (c as Json).body.secondary_mode_id);
+  assertEquals(upserts, ["gateway_start_here", "sports"]);
+  assertEquals(fake.tables.concierge_mode_cache[0].secondary_mode_id, "sports"); // the later save wins
+});
+
+Deno.test("without waitUntil every best-effort write has completed when the handler returns", async () => {
+  const g = gate();
+  const fake = world({ rpc: { log_concierge_run: async () => { await g.opened; return { data: null, error: null }; } } });
+  let returned = false;
+  const run = recommendRaw(fake).then((r) => { returned = true; return r; });
+  assertEquals(await settled(run), "pending");
+  assertEquals(returned, false);
+  g.open();
+  const res = await run;
+  assertEquals(res.status, 200);
+  assertEquals(fake.rpcCalls("log_concierge_run").length, 2);
+  assertEquals(fake.calls.some((c) => c.kind === "upsert"), true);
+});
+
+Deno.test("waitUntil: failing store writes (swallowed by the repository) neither fail the response nor reject the handed promise", async () => {
+  const fake = world({ rpc: { log_concierge_run: () => { throw new Error("log down"); } } });
+  const origFrom = fake.client.from;
+  fake.client.from = (table: string) => {
+    const b = origFrom(table);
+    if (table === "concierge_mode_cache") b.upsert = () => Promise.reject(new Error("cache down"));
+    return b;
+  };
+  const handed: Promise<unknown>[] = [];
+  const res = await recommendRaw(fake, (p) => handed.push(p));
+  assertEquals(res.status, 200);
+  assertEquals(handed.length, 1);
+  assertEquals(await settled(handed[0]), "done");
+});

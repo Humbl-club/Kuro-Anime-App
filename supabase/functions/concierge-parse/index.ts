@@ -6,6 +6,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleParse } from "./handler.ts";
 
+// Guarded lookup: the global exists only on the Edge runtime (absent in local deno check/test).
+const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+const waitUntil = typeof edgeRuntime?.waitUntil === "function" ? edgeRuntime.waitUntil.bind(edgeRuntime) : undefined;
+
 serve((req) =>
   handleParse(req, {
     // Env is read per request, exactly as before the split.
@@ -18,5 +22,6 @@ serve((req) =>
         global: { headers: authHeader ? { Authorization: authHeader } : {} },
       });
     },
+    waitUntil,
   })
 );

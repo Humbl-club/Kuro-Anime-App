@@ -1,0 +1,67 @@
+{
+  "at": "2026-11-10T10:03:39.624708+00:00",
+  "cases": {
+    "search_anime_page berserk": {
+      "change_pct": -0.3,
+      "new_median_ms": 26.06,
+      "old_median_ms": 26.12
+    },
+    "search_anime_page chainsaw man": {
+      "change_pct": -17.1,
+      "new_median_ms": 45.3,
+      "old_median_ms": 54.61
+    },
+    "search_anime_page dandadan": {
+      "change_pct": -32.5,
+      "new_median_ms": 57.49,
+      "old_median_ms": 85.22
+    },
+    "search_anime_page monster": {
+      "change_pct": -86.1,
+      "new_median_ms": 17.99,
+      "old_median_ms": 129.71
+    },
+    "search_anime_page spy x family": {
+      "change_pct": -3.4,
+      "new_median_ms": 31.83,
+      "old_median_ms": 32.96
+    },
+    "search_anime_page vinland saga": {
+      "change_pct": 0.3,
+      "new_median_ms": 32.83,
+      "old_median_ms": 32.73
+    },
+    "search_manga_page berserk": {
+      "change_pct": 1.1,
+      "new_median_ms": 65.31,
+      "old_median_ms": 64.58
+    },
+    "search_manga_page chainsaw man": {
+      "change_pct": -23.9,
+      "new_median_ms": 105.5,
+      "old_median_ms": 138.72
+    },
+    "search_manga_page dandadan": {
+      "change_pct": -35.4,
+      "new_median_ms": 132.22,
+      "old_median_ms": 204.56
+    },
+    "search_manga_page monster": {
+      "change_pct": -83.0,
+      "new_median_ms": 38.39,
+      "old_median_ms": 225.47
+    },
+    "search_manga_page spy x family": {
+      "change_pct": -2.8,
+      "new_median_ms": 72.89,
+      "old_median_ms": 74.96
+    },
+    "search_manga_page vinland saga": {
+      "change_pct": -7.6,
+      "new_median_ms": 82.43,
+      "old_median_ms": 89.18
+    }
+  },
+  "method": "EXPLAIN ANALYZE execution time; old = pre-deploy definition as a session-temporary function; alternated per repetition",
+  "reps": 5
+}

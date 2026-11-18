@@ -1,0 +1,79 @@
+{
+  "at": "2026-11-10T09:46:15.501411+00:00",
+  "cases": {
+    "newly_added anime (base table)": {
+      "max_ms": 0.5,
+      "median_ms": 0.44,
+      "min_ms": 0.42,
+      "rows": 30
+    },
+    "newly_added manga (base table)": {
+      "max_ms": 0.59,
+      "median_ms": 0.46,
+      "min_ms": 0.42,
+      "rows": 30
+    },
+    "search_anime_page blank": {
+      "max_ms": 7.79,
+      "median_ms": 7.3,
+      "min_ms": 7.05,
+      "rows": 1
+    },
+    "search_anime_page frieren": {
+      "max_ms": 67.99,
+      "median_ms": 51.55,
+      "min_ms": 50.97,
+      "rows": 1
+    },
+    "search_anime_page naruto": {
+      "max_ms": 69.63,
+      "median_ms": 67.22,
+      "min_ms": 66.43,
+      "rows": 1
+    },
+    "search_anime_page one piece": {
+      "max_ms": 57.81,
+      "median_ms": 56.62,
+      "min_ms": 56.17,
+      "rows": 1
+    },
+    "search_manga_page berserk": {
+      "max_ms": 51.77,
+      "median_ms": 43.98,
+      "min_ms": 43.54,
+      "rows": 1
+    },
+    "search_manga_page xyzzyq": {
+      "max_ms": 31.99,
+      "median_ms": 30.93,
+      "min_ms": 30.68,
+      "rows": 1
+    },
+    "search_titles attack on titan": {
+      "max_ms": 28.46,
+      "median_ms": 25.61,
+      "min_ms": 25.35,
+      "rows": 1
+    },
+    "search_titles frieren ANIME": {
+      "max_ms": 16.9,
+      "median_ms": 16.06,
+      "min_ms": 15.7,
+      "rows": 1
+    },
+    "search_titles naruto": {
+      "max_ms": 32.81,
+      "median_ms": 31.83,
+      "min_ms": 30.61,
+      "rows": 1
+    },
+    "search_titles xyzzyq": {
+      "max_ms": 8.71,
+      "median_ms": 8.37,
+      "min_ms": 8.04,
+      "rows": 1
+    }
+  },
+  "label": "after",
+  "reps": 7
+}

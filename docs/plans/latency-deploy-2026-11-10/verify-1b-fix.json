@@ -1,0 +1,234 @@
+{
+  "all_ok": true,
+  "parity": [
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "naruto",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "naruto",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "naruto",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "attack on titan",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "attack on titan",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 11,
+      "n_old": 11,
+      "q": "attack on titan",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 7,
+      "n_old": 7,
+      "q": "frieren",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 6,
+      "n_old": 6,
+      "q": "frieren",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 1,
+      "n_old": 1,
+      "q": "frieren",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "one piece",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "one piece",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "one piece",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 0,
+      "n_old": 0,
+      "q": "xyzzyq",
+      "scores_equal": null
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 0,
+      "n_old": 0,
+      "q": "xyzzyq",
+      "scores_equal": null
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 0,
+      "n_old": 0,
+      "q": "xyzzyq",
+      "scores_equal": null
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "kimi no na wa",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "kimi no na wa",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "kimi no na wa",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "berserk",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 8,
+      "n_old": 8,
+      "q": "berserk",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 9,
+      "n_old": 9,
+      "q": "berserk",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "null",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "love live",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'ANIME'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "love live",
+      "scores_equal": true
+    },
+    {
+      "diff_above_boundary": 0,
+      "diff_above_boundary_rev": 0,
+      "mt": "'MANGA'",
+      "n_new": 12,
+      "n_old": 12,
+      "q": "love live",
+      "scores_equal": true
+    }
+  ],
+  "posture": [
+    {
+      "anon": true,
+      "authd": true,
+      "proconfig": [
+        "search_path=public, extensions"
+      ],
+      "prosecdef": false,
+      "provolatile": "s",
+      "tiebreak": true,
+      "topn": true
+    }
+  ]
+}

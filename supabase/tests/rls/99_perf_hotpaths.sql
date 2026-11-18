@@ -180,10 +180,11 @@ select tests.eq('kuro-refresh-matviews keeps its 01:30 schedule',
 select tests.eq('no cron job still runs the blanket re-stale command',
   (select count(*) from cron.job where command ilike '%set stale = true where stale = false%'), 0::bigint);
 select tests.ok('mv_anime_current_season is dropped', to_regclass('public.mv_anime_current_season') is null);
-select tests.eq('the six read matviews remain', (select count(*) from pg_matviews where schemaname = 'public'
-  and matviewname in ('mv_anime_trending','mv_anime_top_rated','mv_anime_newly_added','mv_manga_trending','mv_manga_top_rated','mv_manga_newly_added')), 6::bigint);
-select tests.eq('refresh_discover_matviews_v1 refreshes all six (CONCURRENTLY works inside the job transaction)',
-  jsonb_array_length(public.refresh_discover_matviews_v1() -> 'refreshed'), 6);
+-- 20261109200200 (prepared) drops the two newly-added snapshots; Discover reads the base tables.
+select tests.eq('the four read matviews remain', (select count(*) from pg_matviews where schemaname = 'public'
+  and matviewname in ('mv_anime_trending','mv_anime_top_rated','mv_manga_trending','mv_manga_top_rated')), 4::bigint);
+select tests.eq('refresh_discover_matviews_v1 refreshes all four (CONCURRENTLY works inside the job transaction)',
+  jsonb_array_length(public.refresh_discover_matviews_v1() -> 'refreshed'), 4);
 
 -- ---- 4. catalog_safety_audit retention ------------------------------------------
 -- media A: 1 recent + 5 old rows -> the 3 oldest are outside the newest 3 AND > 90 days

@@ -1,0 +1,22 @@
+[
+  {
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+    "def": " SELECT id,\n    anilist_id,\n    mal_id,\n    kitsu_id,\n    title_english,\n    title_romaji,\n    title_native,\n    title_synonyms,\n    cover_image_large,\n    cover_image_medium,\n    cover_image_color,\n    banner_image,\n    format,\n    status,\n    description,\n    description_normalized,\n    episodes,\n    duration,\n    total_duration,\n    season,\n    season_year,\n    next_episode_number,\n    next_airing_at,\n    start_date_year,\n    start_date_month,\n    start_date_day,\n    end_date_year,\n    end_date_month,\n    end_date_day,\n    average_score,\n    mean_score,\n    popularity,\n    trending,\n    favourites,\n    genres,\n    source,\n    country_of_origin,\n    is_adult,\n    age_rating,\n    site_url,\n    created_at,\n    updated_at,\n    last_synced_at,\n    updated_at_anilist\n   FROM anime;",
+    "est_rows": 21744,
+    "idx": [
+      "CREATE INDEX idx_mv_anime_newly_added_created ON public.mv_anime_newly_added USING btree (created_at DESC)",
+      "CREATE UNIQUE INDEX mv_anime_newly_added_id_uidx ON public.mv_anime_newly_added USING btree (id)"
+    ],
+    "relname": "mv_anime_newly_added"
+  },
+  {
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+    "def": " SELECT id,\n    anilist_id,\n    mal_id,\n    kitsu_id,\n    title_english,\n    title_romaji,\n    title_native,\n    title_synonyms,\n    cover_image_large,\n    cover_image_medium,\n    cover_image_color,\n    banner_image,\n    format,\n    status,\n    description,\n    description_normalized,\n    chapters,\n    volumes,\n    next_chapter_number,\n    next_chapter_at,\n    start_date_year,\n    start_date_month,\n    start_date_day,\n    end_date_year,\n    end_date_month,\n    end_date_day,\n    average_score,\n    mean_score,\n    popularity,\n    trending,\n    favourites,\n    genres,\n    source,\n    country_of_origin,\n    is_adult,\n    age_rating,\n    site_url,\n    created_at,\n    updated_at,\n    last_synced_at,\n    updated_at_anilist\n   FROM manga;",
+    "est_rows": 41908,
+    "idx": [
+      "CREATE INDEX idx_mv_manga_newly_added_created ON public.mv_manga_newly_added USING btree (created_at DESC)",
+      "CREATE UNIQUE INDEX mv_manga_newly_added_id_uidx ON public.mv_manga_newly_added USING btree (id)"
+    ],
+    "relname": "mv_manga_newly_added"
+  }
+]

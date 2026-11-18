@@ -1,0 +1,28 @@
+[
+  {
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "anon": true,
+    "authd": true,
+    "proconfig": [
+      "search_path=public, extensions",
+      "jit=off",
+      "pg_trgm.similarity_threshold=0.35"
+    ],
+    "proname": "search_anime_page",
+    "prosecdef": true,
+    "staged": true
+  },
+  {
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "anon": true,
+    "authd": true,
+    "proconfig": [
+      "search_path=public, extensions",
+      "jit=off",
+      "pg_trgm.similarity_threshold=0.35"
+    ],
+    "proname": "search_manga_page",
+    "prosecdef": true,
+    "staged": true
+  }
+]

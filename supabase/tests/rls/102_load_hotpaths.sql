@@ -86,22 +86,24 @@ end $$;
 select tests.eq('all 74 differential Search/Browse rankings, filters and cursors match', (select count(*) from load_contract_results where not passed),0::bigint);
 select tests.eq('differential checks executed', (select count(*) from load_contract_results),74::bigint);
 select tests.ok('both Search functions have custom plans and no JIT; public contract remains definer',
- -- Both the original conservative prefilter and the parity-checked tighter bound retain
- -- this migration's custom-plan/JIT contract. Cold-read regression covers the bound.
- (select bool_and(prosecdef and prolang=(select oid from pg_language where lanname='plpgsql') and proconfig @> array['search_path=public, extensions','jit=off'] and proconfig && array['pg_trgm.similarity_threshold=0.3','pg_trgm.similarity_threshold=0.35']) from pg_proc where oid in (
+ -- 20261109123758 (live) tightened the lossy GIN prefilter to the 0.35 acceptance bound; a later
+ -- CREATE OR REPLACE must keep it (20261109200000 does), so 0.3 is no longer accepted here.
+ (select bool_and(prosecdef and prolang=(select oid from pg_language where lanname='plpgsql') and proconfig @> array['search_path=public, extensions','jit=off','pg_trgm.similarity_threshold=0.35']) from pg_proc where oid in (
  'public.search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)'::regprocedure,
  'public.search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)'::regprocedure)));
 
 -- Real EXPLAIN over the exact dynamically executed Search SQL, with representative bindings.
+-- Since 20261109200000 the trigram work lives in the $fuzzy$ stage (strong stage: 105).
 create temporary table load_query_plans(medium text,plan jsonb);
 do $$ declare med text;src text;q text;plan jsonb;i integer; begin
  foreach med in array array['anime','manga'] loop
   select prosrc into src from pg_proc where proname='search_'||med||'_page' and pronamespace='public'::regnamespace;
-  q:=split_part(src,'$query$',2);
-  for i in reverse 12..3 loop
-   q:=replace(q,'$'||i::text,case when i between 6 and 10 and not(med='manga' and i=10) then 'false' else 'null' end);
+  q:=split_part(src,'$fuzzy$',2);
+  for i in reverse 13..3 loop
+   q:=replace(q,'$'||i::text,case when i between 6 and 10 and not(med='manga' and i=10) then 'false' when i=13 or (med='manga' and i=10) then '30' else 'null' end);
   end loop;
-  q:=replace(replace(q,'$2','30'),'$1',quote_literal(case when med='anime' then 'naroto' else 'berser' end));
+  -- manga: 'berzerk' (a misspelling) instead of 'berser', which is now a strong prefix match
+  q:=replace(replace(q,'$2','30'),'$1',quote_literal(case when med='anime' then 'naroto' else 'berzerk' end));
   execute 'explain(analyze,buffers,format json) '||q into plan;
   insert into load_query_plans values(med,plan);
   raise notice 'LOAD_PLAN %: %',med,plan;

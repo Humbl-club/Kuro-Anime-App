@@ -1,0 +1,147 @@
+{
+  "backups": {
+    "latest": [
+      {
+        "id": 2162093156,
+        "inserted_at": "2026-11-04T05:49:40.522Z",
+        "is_physical_backup": true,
+        "status": "COMPLETED"
+      },
+      {
+        "id": 2152258079,
+        "inserted_at": "2026-11-03T05:49:47.402Z",
+        "is_physical_backup": true,
+        "status": "COMPLETED"
+      }
+    ],
+    "pitr_enabled": false
+  },
+  "checked_at": "2026-11-10T09:36:15.816941+00:00",
+  "created_at_not_null": [
+    {
+      "attnotnull": true,
+      "t": "anime"
+    },
+    {
+      "attnotnull": true,
+      "t": "manga"
+    }
+  ],
+  "cron_naming_matviews": [],
+  "cron_refresh": [
+    {
+      "active": true,
+      "jobid": 114,
+      "jobname": "kuro-refresh-matviews",
+      "schedule": "30 1 * * *"
+    }
+  ],
+  "discover_bundle_md5": "d54df8c428f18d128dcb408336687773",
+  "functions": [
+    {
+      "slug": "concierge-parse",
+      "status": "ACTIVE",
+      "updated_at": 1794232588022,
+      "verify_jwt": true,
+      "version": 50
+    },
+    {
+      "slug": "concierge-recommend",
+      "status": "ACTIVE",
+      "updated_at": 1794232590861,
+      "verify_jwt": true,
+      "version": 56
+    }
+  ],
+  "history_latest": [
+    {
+      "md5": "9331fcfe7fe0f80cd0bfab4ef78fa758",
+      "name": "cold_catalogue_reads_v1",
+      "version": "20261109123758"
+    },
+    {
+      "md5": "5f578178e696822ac8155c52e2bcc77d",
+      "name": "parent_unit_lookup_v1",
+      "version": "20261109100800"
+    },
+    {
+      "md5": "61e43c0a4a57988d5e1072686c7d9d66",
+      "name": "taste_worker_latency_v1",
+      "version": "20261109003243"
+    },
+    {
+      "md5": "a315c1be8c8eb61846bede5d4baa3420",
+      "name": "load_hotpaths_v1",
+      "version": "20261109001251"
+    },
+    {
+      "md5": "0e7343d4a5e9878a1bd788f2ea7ac609",
+      "name": "catalog_intake_schedule_v1",
+      "version": "20261108120211"
+    },
+    {
+      "md5": "e923bd9396dc42deb595ff0329bcdac4",
+      "name": "review_security_v1",
+      "version": "20261108120159"
+    }
+  ],
+  "load_created_indexes": [
+    {
+      "idx": "idx_manga_load_created_v1",
+      "indisready": true,
+      "indisvalid": true
+    },
+    {
+      "idx": "idx_anime_load_created_v1",
+      "indisready": true,
+      "indisvalid": true
+    }
+  ],
+  "matview_dependents": [],
+  "newly_added_matviews": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "est_rows": 21744,
+      "relname": "mv_anime_newly_added"
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "est_rows": 41908,
+      "relname": "mv_manga_newly_added"
+    }
+  ],
+  "other_functions_naming_matviews": [],
+  "project": {
+    "id": "bkdifromsqxkndnllmdj",
+    "name": "AniThing is Possible",
+    "region": "eu-central-1",
+    "status": "ACTIVE_HEALTHY"
+  },
+  "refresh_prosrc": "\ndeclare\n  v text;\n  v_done text[] := '{}';\nbegin\n  foreach v in array array['mv_anime_trending', 'mv_anime_top_rated', 'mv_anime_newly_added',\n                           'mv_manga_trending', 'mv_manga_top_rated', 'mv_manga_newly_added'] loop\n    if to_regclass('public.' || v) is null then\n      continue;\n    end if;\n    if (select m.ispopulated from pg_matviews m where m.schemaname = 'public' and m.matviewname = v) then\n      execute format('refresh materialized view concurrently public.%I', v);\n    else\n      execute format('refresh materialized view public.%I', v);  -- first fill cannot be concurrent\n    end if;\n    v_done := v_done || v;\n  end loop;\n  return jsonb_build_object('refreshed', to_jsonb(v_done));\nend;\n",
+  "running_refresh_or_long": [
+    {
+      "lock_waiters": 0,
+      "long_queries": 0,
+      "refresh_running": 0
+    }
+  ],
+  "search_anime_page_live_equals_load_hotpaths_body": true,
+  "search_anime_page_proconfig": [
+    "search_path=public, extensions",
+    "jit=off",
+    "pg_trgm.similarity_threshold=0.35"
+  ],
+  "search_manga_page_live_equals_load_hotpaths_body": true,
+  "search_manga_page_proconfig": [
+    "search_path=public, extensions",
+    "jit=off",
+    "pg_trgm.similarity_threshold=0.35"
+  ],
+  "search_titles_def_md5": "bff2b1a995cd47f159ad9249dbbb95cb",
+  "search_titles_live_equals_captured": true,
+  "similarity_schema": [
+    {
+      "nspname": "extensions"
+    }
+  ]
+}

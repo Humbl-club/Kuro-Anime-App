@@ -1,5 +1,5 @@
 # Reconciled 2026-11-09 against live migration history (see review-remediation live receipt).
-# One active pending cold-read migration below; previous query-load and taste-worker migrations are deployed with approval. 20261101030000_auth_hardening.sql was NOT
+# No active pending entries: cold-read, previous query-load and taste-worker migrations are deployed with approval. 20261101030000_auth_hardening.sql was NOT
 # applied separately: its email-oracle revoke is superseded by deployed 20261108120159.
 # Older prepared-file headers/comments below are historical; never blanket-push this folder.
 
@@ -47,4 +47,12 @@
 # Parent-unit lookup indexes20261109100800: applied after explicit owner approval.
 
 # Prepared cold-read working-set repair; deployment requires separate owner approval.
-20261109123758_cold_catalogue_reads_v1.sql
+
+# Cold-read20261109123758 applied with explicit owner approval; exact immutable history/source verified.
+
+# 2026-11-09 backend latency plan (docs/plans/2026-11-09-backend-latency-plan.md). Owner approved
+# deployment 2026-11-10: 20261109200000 (1a), 20261109200100 (1b) and the fix-forward
+# 20261110100000 are applied with exact history and promoted byte-identically to supabase/migrations.
+# Still pending: 1c, PARKED 2026-11-18 (no benefit while imports are off; matview drop folded into
+# catalogue Task 15d). Tests: 104 (+99).
+20261109200200_discover_newly_added_base_v1.sql
