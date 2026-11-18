@@ -94,3 +94,4 @@ Append one line per landed step: date, wave, item, commit, checks, hosted receip
 - 2026-11-18 wave 3: catalogue Task 16 merged (aa94e65, f59bb3c): source credit on title pages behind catalogue_source_credit_v1 (off; detail select unchanged while off). Raise only after 20261112100000. Lane: KuroTests 1,292 pass, UI credit test pass.
 - 2026-11-18 verification at d9fe6eb+: serial KuroTests 1,313/1,313, package, Release OK; Deno all suites pass; full DB 60 files / 1,725 after fixing test 113's planner-dependent plan check (full-suite run had chosen a Seq Scan).
 - 2026-11-18 PR #13 merged to main (de7ba98).
+- 2026-11-18 wave 3: W9 tags/custom lists merged (64dc893..f8ef98d; dark, library_organise_v1 0 %): prepared 20261118120000 (3 tables, 9 definer RPCs; sha a3a9104d…), DB 107/108×4 + 50 pass (152), KuroTests 1,323 (lane), BDD 66 resolved / 0 unresolved (only W5 pending). Independent review needed before apply.
