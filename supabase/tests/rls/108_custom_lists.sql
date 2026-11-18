@@ -105,6 +105,10 @@ select tests.raises('rebalance with a stale id set',
   format('select public.rebalance_custom_list_v1(%L, array[%L::uuid], %s)', :'l3', :'item150', :r + 2), '%STALE_LIST%');
 select tests.raises('rebalance with a stale revision',
   format('select public.rebalance_custom_list_v1(%L, (select array_agg(id) from public.custom_list_items where list_id = %L), %s)', :'l3', :'l3', :r), '%STALE_LIST%');
+select tests.raises('rebalance with more than 2000 ids is capped before any lookup',
+  format('select public.rebalance_custom_list_v1(%L, (select array_agg(gen_random_uuid()) from generate_series(1,2001)), %s)', :'l3', :r + 2), '%DELTA_INVALID%');
+select tests.raises('seed with more than 10000 items in total is invalid',
+  'select public.seed_custom_lists_v1((select jsonb_agg(jsonb_build_object(''name'', ''S'' || n, ''items'', (select jsonb_agg(jsonb_build_object(''medium'',''anime'',''media_id'',1)) from generate_series(1,1000)))) from generate_series(1,11) n))', '%SEED_INVALID%');
 select (public.rebalance_custom_list_v1(:'l3'::uuid, (select array_agg(id order by position, id) from public.custom_list_items where list_id = :'l3'::uuid), :r + 2))::text as rb \gset
 select tests.eq('rebalance renumbers 1024*i',
   (select array_agg(p) from (select (e ->> 'position')::float8 p from jsonb_array_elements(:'rb'::jsonb -> 'items') e order by 1 limit 3) q),

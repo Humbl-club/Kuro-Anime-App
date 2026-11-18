@@ -43,6 +43,13 @@ select tests.eq('re-adding by another case is a no-op keeping the stored spellin
   (select tags from public.library_tag_index_v1() where media_id = 1 and medium = 'anime'), array['comfy']);
 select tests.ok('removing an absent tag succeeds', (public.apply_title_organisation_delta_v1('anime', 1, null, array['absent'], null, null)) is not null);
 select tests.raises('same key in add and remove', 'select public.apply_title_organisation_delta_v1(''anime'',1,array[''x''],array[''X''],null,null)', '%DELTA_INVALID%');
+-- Up-front input caps (DELTA_INVALID before any other work, including TAG_EMPTY / ENTRY_NOT_FOUND)
+select tests.raises('11 add tags is over the cap', 'select public.apply_title_organisation_delta_v1(''anime'',1,(select array_agg(''c'' || n) from generate_series(1,11) n),null,null,null)', '%DELTA_INVALID%');
+select tests.raises('cap fires before per-tag validation', 'select public.apply_title_organisation_delta_v1(''anime'',1,(select array_agg(''''::text) from generate_series(1,11) n),null,null,null)', '%DELTA_INVALID%');
+select tests.raises('51 remove tags is over the cap', 'select public.apply_title_organisation_delta_v1(''anime'',1,null,(select array_agg(''c'' || n) from generate_series(1,51) n),null,null)', '%DELTA_INVALID%');
+select tests.raises('51 add list ids is over the cap', 'select public.apply_title_organisation_delta_v1(''anime'',1,null,null,(select array_agg(gen_random_uuid()) from generate_series(1,51) n),null)', '%DELTA_INVALID%');
+select tests.raises('51 remove list ids is over the cap', 'select public.apply_title_organisation_delta_v1(''anime'',1,null,null,null,(select array_agg(gen_random_uuid()) from generate_series(1,51) n))', '%DELTA_INVALID%');
+select tests.ok('exactly 50 remove tags is accepted', (public.apply_title_organisation_delta_v1('anime', 1, null, (select array_agg('c' || n) from generate_series(1,50) n), null, null)) is not null);
 select tests.raises('invalid medium', 'select public.apply_title_organisation_delta_v1(''film'',1,array[''x''],null,null,null)', '%INVALID_MEDIUM%');
 -- resulting-set limit on anime 2: 9 stored tags
 select public.apply_title_organisation_delta_v1('anime', 2, (select array_agg('t' || n) from generate_series(1, 9) n), null, null, null);
@@ -60,7 +67,7 @@ select tests.eq('orphan can still lose its tag',
 select tests.raises('re-tagging an untracked title', 'select public.apply_title_organisation_delta_v1(''anime'',3,array[''comfy''],null,null,null)', '%ENTRY_NOT_FOUND%');
 
 -- Bounds on a fresh tracked title (anime 4)
-select tests.raises('11 distinct tags', 'select public.apply_title_organisation_delta_v1(''anime'',4,(select array_agg(''k''||n) from generate_series(1,11) n),null,null,null)', '%TAG_LIMIT%');
+select tests.raises('11 distinct tags are over the input cap', 'select public.apply_title_organisation_delta_v1(''anime'',4,(select array_agg(''k''||n) from generate_series(1,11) n),null,null,null)', '%DELTA_INVALID%');
 select tests.raises('25 chars', 'select public.apply_title_organisation_delta_v1(''anime'',4,array[repeat(''a'',25)],null,null,null)', '%TAG_TOO_LONG%');
 select tests.raises('blank tag', 'select public.apply_title_organisation_delta_v1(''anime'',4,array[''   ''],null,null,null)', '%TAG_EMPTY%');
 select tests.eq('10 tags succeed',

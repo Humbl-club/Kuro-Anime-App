@@ -132,6 +132,15 @@ begin
     raise exception 'ENTRY_NOT_FOUND';
   end if;
 
+  -- Up-front input caps (before any per-element work, the lock or the limit checks). The 10-tag-per-title and
+  -- 50-lists-per-account limits make larger inputs meaningless; this bounds the O(n^2) dedupe below.
+  if cardinality(coalesce(p_add_tags, '{}'::text[])) > 10
+     or cardinality(coalesce(p_remove_tags, '{}'::text[])) > 50
+     or cardinality(coalesce(p_add_list_ids, '{}'::uuid[])) > 50
+     or cardinality(coalesce(p_remove_list_ids, '{}'::uuid[])) > 50 then
+    raise exception 'DELTA_INVALID';
+  end if;
+
   foreach v_t in array coalesce(p_add_tags, '{}'::text[]) loop
     v_t := normalize(btrim(coalesce(v_t, ''), E' \t\r\n'), NFC);
     if v_t = '' then
@@ -432,6 +441,10 @@ begin
   if v_uid is null then
     raise exception 'UNAUTHENTICATED' using errcode = '28000';
   end if;
+  -- A list holds at most 2000 items, so a longer id set can never match; refuse before the lock or any lookup.
+  if cardinality(v_ids) > 2000 then
+    raise exception 'DELTA_INVALID';
+  end if;
   perform pg_advisory_xact_lock(hashtextextended('kuro.library.organise:' || v_uid::text, 0));
   select l.revision into v_rev from public.custom_lists l where l.id = p_list_id and l.user_id = v_uid;
   if not found then
@@ -480,6 +493,7 @@ declare
   v_room integer;
   v_base double precision;
   v_el jsonb;
+  v_total integer := 0;
 begin
   if v_uid is null then
     raise exception 'UNAUTHENTICATED' using errcode = '28000';
@@ -490,6 +504,10 @@ begin
   for v_entry in select e from jsonb_array_elements(p_lists) e loop
     if jsonb_typeof(v_entry) <> 'object' or jsonb_typeof(v_entry -> 'name') is distinct from 'string'
        or jsonb_typeof(v_entry -> 'items') is distinct from 'array' or jsonb_array_length(v_entry -> 'items') > 2000 then
+      raise exception 'SEED_INVALID';
+    end if;
+    v_total := v_total + jsonb_array_length(v_entry -> 'items');
+    if v_total > 10000 then
       raise exception 'SEED_INVALID';
     end if;
     for v_el in select e from jsonb_array_elements(v_entry -> 'items') e loop
