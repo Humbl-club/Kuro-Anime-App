@@ -360,4 +360,94 @@ struct ReleaseAlertOfferTests {
         await relaunched.tearDown()
         await h.tearDown()
     }
+
+    // MARK: Task 4: accept through the bell, decline, account isolation
+
+    /// Answers the account schedule and the upcoming read with one exact episode per id (2 days ahead).
+    private static func scheduleResponder(ids: [Int]) -> StubServer.Responder {
+        let at = ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 86_400))
+        return { request in
+            switch request.resource {
+            case "rpc/user_release_schedule_v1":
+                let rows = ids.map { #"{"medium":"anime","media_id":\#($0),"title":"Frieren","unit_kind":"episode","unit_number":5,"release_at":"\#(at)","basis":"confirmed","source":"anilist","release_precision":"instant"}"# }
+                return .json("[\(rows.joined(separator: ","))]")
+            case "user_airing_next":
+                let rows = ids.map { #"{"anime_id":\#($0),"title_english":"Frieren","next_episode_number":5,"next_airing_at":"\#(at)"}"# }
+                return .json("[\(rows.joined(separator: ","))]")
+            default: return .emptyArray
+            }
+        }
+    }
+
+    @Test func notifyMeUsesBellToggleOnly() async throws {
+        let h = try AlertOfferHarness(responder: Self.scheduleResponder(ids: [501]))
+        await h.signIn()
+        let releases = h.service.releases
+        // setReleaseNotification loads the account schedule only while coverage is empty, and the planner reads
+        // `schedule`, not the media cache or upcomingAirings: so coverage must be empty here and the stub answers it.
+        #expect(releases.scheduleCoverageByMedium.isEmpty)
+        #expect(await h.save(501))
+        let offer = try #require(releases.pendingAlertOffer)
+        #expect(h.notifications.authorizationRequests == 0)
+        h.notifications.promptAnswer = .authorized
+        let result = await releases.acceptAlertOffer(offer.id)
+        #expect(result == .enabled)
+        #expect(h.notifications.authorizationRequests == 1)
+        #expect(h.notifications.prompts == 1)
+        #expect(releases.allowedReleaseNotificationKeys == [MediaKey(kind: .anime, id: 501)])
+        #expect(!releases.releaseNotificationsEnabled)
+        let context = try #require(h.context)
+        #expect(h.service.reminders.releaseNotificationPreference(for: context) == nil, "the Profile toggle was touched")
+        #expect(releases.pendingAlertOffer == nil)
+        #expect(h.notifications.pending == ["release-anime-501-episode-5"])
+        #expect(await releases.acceptAlertOffer(offer.id) == nil)
+        #expect(h.notifications.authorizationRequests == 1)
+        await h.tearDown()
+    }
+
+    @Test func threeDeclinesStopOffersForTheAccount() async throws {
+        let h = try AlertOfferHarness(responder: Self.scheduleResponder(ids: [501, 502, 503, 504]))
+        await h.signIn()
+        let releases = h.service.releases
+        for id in [501, 502, 503] {
+            #expect(await h.save(id))
+            let offer = try #require(releases.pendingAlertOffer, "no offer for \(id)")
+            #expect(offer.key == MediaKey(kind: .anime, id: id))
+            releases.declineAlertOffer(offer.id)
+            #expect(releases.pendingAlertOffer == nil)
+        }
+        let context = try #require(h.context)
+        #expect(h.service.reminders.declinedAlertKeys(for: context).count == 3)
+        #expect(await h.save(504))
+        #expect(releases.pendingAlertOffer == nil)
+        h.notifications.promptAnswer = .authorized
+        #expect(await releases.setReleaseNotificationsEnabled(true) == .enabled, "the Profile toggle stopped working")
+        await h.tearDown()
+    }
+
+    @Test func offerStateIsClearedOnAccountSwitch() async throws {
+        let h = try AlertOfferHarness(responder: Self.scheduleResponder(ids: [501, 502, 503, 504, 506]))
+        await h.signIn(AlertOfferHarness.userA)
+        let releases = h.service.releases
+        for id in [501, 502, 503] {
+            #expect(await h.save(id))
+            releases.declineAlertOffer(try #require(releases.pendingAlertOffer).id)
+        }
+        let contextA = try #require(h.context)
+        await h.signIn(AlertOfferHarness.userB)
+        #expect(await h.save(504))
+        let offer = try #require(releases.pendingAlertOffer, "account B has no offer although B declined nothing")
+        #expect(offer.key == MediaKey(kind: .anime, id: 504))
+        let staleId = offer.id
+        await h.signIn(AlertOfferHarness.userA)
+        #expect(releases.pendingAlertOffer == nil)
+        #expect(await releases.acceptAlertOffer(staleId) == nil)
+        #expect(h.notifications.authorizationRequests == 0)
+        let current = try #require(h.context)
+        #expect(current.userId.lowercased() == contextA.userId.lowercased())
+        #expect(h.service.reminders.allowedReleaseNotificationKeys(for: current).isEmpty)
+        #expect(await h.save(506))
+        #expect(releases.pendingAlertOffer == nil, "A's three declines did not survive the switch")
+        await h.tearDown()
+    }
 }

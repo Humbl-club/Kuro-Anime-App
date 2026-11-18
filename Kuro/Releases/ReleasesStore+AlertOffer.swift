@@ -79,6 +79,30 @@ extension ReleasesStore {
         reminders.noteAlertOffered(offer.key, for: context)
     }
 
+    /// The pending offer when `offerId` matches and the current account is the one it was raised for.
+    private func ownedAlertOffer(_ offerId: UUID) -> (offer: ReleaseAlertOffer, context: AccountContext)? {
+        guard let offer = pendingAlertOffer, offer.id == offerId, let context = accountSession.current,
+              AccountSessionCoordinator.sameUser(context.userId, offer.accountUserId) else { return nil }
+        return (offer, context)
+    }
+
+    /// "Notify me": the detail bell's own call for the offer's title, the one path from the offer to a
+    /// permission prompt. nil: no such offer, or another account is current (nothing is written).
+    func acceptAlertOffer(_ offerId: UUID) async -> ReleaseNotificationToggleResult? {
+        guard let owned = ownedAlertOffer(offerId) else { return nil }
+        pendingAlertOffer = nil
+        alertOfferBoundHost = nil
+        return await setReleaseNotification(true, for: owned.offer.key)
+    }
+
+    /// "Not now": the title counts toward the account's three declines.
+    func declineAlertOffer(_ offerId: UUID) {
+        guard let owned = ownedAlertOffer(offerId) else { return }
+        pendingAlertOffer = nil
+        alertOfferBoundHost = nil
+        reminders.noteAlertDeclined(owned.offer.key, for: owned.context)
+    }
+
     /// The hold elapsed in the bound host: the offer goes. NOT a decline. Ignored from any other host.
     func expireAlertOffer(_ offerId: UUID, by hostId: UUID) {
         guard let offer = pendingAlertOffer, offer.id == offerId, alertOfferBoundHost == hostId else { return }
