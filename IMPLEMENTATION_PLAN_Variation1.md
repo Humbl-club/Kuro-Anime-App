@@ -1766,6 +1766,10 @@ Master index `docs/plans/2026-11-18-open-work-master-plan.md`. Merged to `main` 
 ### Change Log — 18 November 2026 (later): F2 (+review fixes), W3a (accepted locally), W4, catalogue Tasks 3–15c
 All on `kuro/tracker-gaps`, local only. W3a locally accepted (`acceptance/W3.json`). Catalogue hosted order and open decisions (minYear, relation-source filtering, RecommendationsReader visibility) in the master plan.
 
+### Change Log — 18 November 2026 (evening): PR #12; W10; catalogue 10–11 and 15d
+PR #12 merged to main. W10 Up next landed (dark). Catalogue 10–11 (uncalibrated popularity; tags pending owner map review) and 15d (app side done; migration waits for old builds to retire). Concierge gimmick-focus fix needs a deploy.
+
+
 
 
 ### Change Log — 10 November 2026: AniList calls stopped (owner decision)
