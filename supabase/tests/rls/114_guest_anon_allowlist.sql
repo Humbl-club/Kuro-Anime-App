@@ -210,7 +210,7 @@ begin
       ('anime_cast_v1', $q$select * from public.anime_cast_v1(1, 'JAPANESE', 50)$q$, null),
       ('character_voice_actors_v1', $q$select * from public.character_voice_actors_v1(1, 'JAPANESE')$q$, null),
       ('staff_voice_roles_v1', $q$select * from public.staff_voice_roles_v1(1, 50)$q$, null),
-      ('check_concierge_rate_limit', $q$select * from public.check_concierge_rate_limit('contact', 'w5-probe-key', 5, 3600, 1)$q$, null),
+      ('check_concierge_rate_limit', $q$select * from public.check_concierge_rate_limit('contact', 'c1:00000000000000000000000000000005', 5, 3600, 1)$q$, null),
       ('search_titles', $q$select * from public.search_titles('a', 'ANIME', 5)$q$, null)
     ) as t(name, stmt, needs)
   loop
