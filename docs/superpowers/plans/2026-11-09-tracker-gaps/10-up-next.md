@@ -110,7 +110,7 @@
 ## File Structure
 | File | Responsibility |
 |---|---|
-| `supabase/prepared-migrations/20261110130000_library_up_next_v1.sql` (new) | The RPC, grants, comment. No table, no index (the plan uses existing ones; see Task 3) |
+| `supabase/prepared-migrations/20261118130000_library_up_next_v1.sql` (new) | The RPC, grants, comment. No table, no index (the plan uses existing ones; see Task 3) |
 | `supabase/tests/pending_migrations.txt` | Lists the new prepared file |
 | `supabase/tests/rls/109_library_up_next.sql` (new) | Posture, row rules, exclusions, limit, order, EXPLAIN on 2,000 completed rows |
 | `supabase/tests/rls/109_library_up_next_signed_out.sql` (new) | anon has no EXECUTE, a token without `sub` gets 0 rows, another account's library is never read |
@@ -134,7 +134,7 @@
 
 ### Task 1: Prepared migration and posture test (red first)
 
-**Files:** create `supabase/tests/rls/109_library_up_next.sql` (posture block only), `supabase/prepared-migrations/20261110130000_library_up_next_v1.sql`; modify `supabase/tests/pending_migrations.txt`.
+**Files:** create `supabase/tests/rls/109_library_up_next.sql` (posture block only), `supabase/prepared-migrations/20261118130000_library_up_next_v1.sql`; modify `supabase/tests/pending_migrations.txt`.
 
 **Interfaces**
 - Produces:
@@ -191,9 +191,9 @@
   - The header says it is prepared, NOT deployed; owner approval required; depends on `20261007040000` (live) and `20260307120000` (live).
   - The body validates `p_medium` first (the raise above), then returns no rows. Task 2 fills it.
   - The revoke/grant, and `comment on function`.
-  - Add `20261110130000_library_up_next_v1.sql` under a new comment block in `supabase/tests/pending_migrations.txt`: `# 2026-11-10 tracker gaps W10 (prepared only; owner approval required to deploy).`
+  - Add `20261118130000_library_up_next_v1.sql` under a new comment block in `supabase/tests/pending_migrations.txt`: `# 2026-11-10 tracker gaps W10 (prepared only; owner approval required to deploy).`
 - [ ] **Step 4: Run.** Expected: the posture assertions PASS. `PREPARED : every non-excluded … applied`.
-- [ ] **Step 5: Commit.** `git add supabase/prepared-migrations/20261110130000_library_up_next_v1.sql supabase/tests/rls/109_library_up_next.sql supabase/tests/pending_migrations.txt && git commit -m "W10: prepared library_up_next_v1 posture (invoker, authenticated only)"`
+- [ ] **Step 5: Commit.** `git add supabase/prepared-migrations/20261118130000_library_up_next_v1.sql supabase/tests/rls/109_library_up_next.sql supabase/tests/pending_migrations.txt && git commit -m "W10: prepared library_up_next_v1 posture (invoker, authenticated only)"`
 
 ### Task 2: Row rules (feature scenario 1)
 
@@ -262,7 +262,7 @@
 - [ ] **Step 2: Run** `--only 109_library_up_next`. Expected: FAIL at the first row assertion ("row (A2, after A1…)": 0 rows from the stub body).
 - [ ] **Step 3: Implement** the body as given, for both media.
 - [ ] **Step 4: Run.** Expected: PASS, every assertion.
-- [ ] **Step 5: Commit.** `git add supabase/prepared-migrations/20261110130000_library_up_next_v1.sql supabase/tests/rls/109_library_up_next.sql && git commit -m "W10: up-next rows from completed titles (sequel edges + reviewed continuity), owned/dismissed/catalogue exclusions"`
+- [ ] **Step 5: Commit.** `git add supabase/prepared-migrations/20261118130000_library_up_next_v1.sql supabase/tests/rls/109_library_up_next.sql && git commit -m "W10: up-next rows from completed titles (sequel edges + reviewed continuity), owned/dismissed/catalogue exclusions"`
 
 ### Task 3: Account scope (feature scenario 2) and the 2,000-title plan check
 
@@ -320,7 +320,7 @@
   - Only if the EXPLAIN shows a seq scan on a listed relation, add to the same migration one partial index: `create index if not exists idx_anime_user_lists_user_completed on public.anime_user_lists (user_id, updated_at desc) where list_type = 'COMPLETED';` (manga likewise). Record why in the migration comment.
   - Otherwise no index. Every write to the list tables would pay for an index, so one is added only when the plan proves it is needed.
 - [ ] **Step 4: Run** `scripts/db/run_local_db_tests.sh --only 109_library_up_next`. Expected: both files PASS (`TESTS : 2 test files … PASS`).
-- [ ] **Step 5: Commit.** `git add supabase/tests/rls/109_library_up_next_signed_out.sql supabase/tests/rls/109_library_up_next.sql supabase/prepared-migrations/20261110130000_library_up_next_v1.sql && git commit -m "W10: up-next account scope and 2,000-title plan check"`
+- [ ] **Step 5: Commit.** `git add supabase/tests/rls/109_library_up_next_signed_out.sql supabase/tests/rls/109_library_up_next.sql supabase/prepared-migrations/20261118130000_library_up_next_v1.sql && git commit -m "W10: up-next account scope and 2,000-title plan check"`
 
 ### Task 4: Client models and the pure filter
 

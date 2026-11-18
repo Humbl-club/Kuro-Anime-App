@@ -45,7 +45,7 @@ Feature: Browse before signing up
 
   Rule: The anonymous role can do only what guests need
 
-    @sql:rls/106_guest_anon_allowlist.sql
+    @sql:rls/114_guest_anon_allowlist.sql
     Scenario: Anonymous EXECUTE is an explicit allowlist
       Given the list of read RPCs that guest pages call
       Then the anon role can execute exactly those

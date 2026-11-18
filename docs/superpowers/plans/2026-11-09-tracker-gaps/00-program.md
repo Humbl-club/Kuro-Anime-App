@@ -10,6 +10,14 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-09-tracker-gaps-design.md` + `docs/superpowers/specs/2026-11-09-tracker-gaps/features/`
 
+## Lead notes 2026-11-18 (read first; they override older text in every plan)
+- **Renumbered** to avoid clashes with applied backend-latency work: migrations `20261110100000/110000/120000/130000` → `20261118100000/110000/120000/130000` (W4, W5, W9, W10); DB tests `104_library_2000_fixture` → `112_…`, `105_search_hidden_adult_count` → `113_…`, `106_guest_anon_allowlist` → `114_…`. Any remaining prose mention of "test 104/105/106" in these plans means 112/113/114. Tests `104_discover_newly_added_base`, `105_search_staged`, `106_search_titles_topn` belong to the latency work.
+- **Search bodies changed live** (2026-11-10, `20261109200000_search_staged_v1`): `search_anime_page` / `search_manga_page` are now two-stage (strong stage, then a rank-250 trigram stage, `$strong$`/`$fuzzy$`/`$blank$` EXECUTE bodies, threshold 0.35). W4's v2 functions must start from these live bodies (`supabase/migrations/20261109200000_search_staged_v1.sql`), not from `20261109001251`.
+- `search_titles` is plpgsql since `20261110100000_search_titles_param_v1`.
+- D-F is done: the remediation work is in history (`e19f581`), and everything else uncommitted was committed on 2026-11-18 (`61eb137`, `4877e43`, `70eb3bc`). `scripts/load/` is free to edit.
+- D-A outcome: the owner stopped AniList on 2026-11-10 (catalogue plan `docs/superpowers/plans/2026-11-09-catalogue-sources.md`). W7 (AniList sync) is therefore out of scope.
+- D-H stays at its current default (a) until the owner says otherwise: features ship dark (flag 0 %) and only W3a may be turned on while qualification is NOT QUALIFIED.
+
 ## Global Constraints
 All of spec §3 applies to every plan. The numbers that most often decide a task:
 - Capacity target: 100 simultaneous active users; 20 rps steady, 40 rps peak. Status: NOT QUALIFIED.
@@ -91,7 +99,7 @@ Lanes run in parallel, but these files are edited by more than one plan. Merge i
 | `scripts/quality-gates/bdd_landed.txt` | W2 (creates), W3, W4, W5, W6, W9, W10 | F1's landed scope. W2 creates it with `W2-export.feature`; every later final task appends its own feature file. Resolution findings block only for listed features. |
 | `scripts/load/profiles/` | F3.1d, W2, W4, W5, W6, W9, W10 | One `<name>.js` + `<name>.test.js` per profile, in F3's contract (`ratePerSecond`, `emptyExamples`, `validate(…, ctx)`, write profiles `seed` + `cleanupCheck`; a `weight` field throws). No plan edits `backend_workload.js` after F3. |
 | `scripts/load/workloads/tracker-gaps-combined.js` | F3.1c (creates), F3.1d, W2, W4, W5, W6, W9, W10 | Each profile's task appends its one line; final rates: `status-with-date-fill` 0.4, `export-mal-id-lookup` 0.2, `search-with-hidden-adult-count` 1, `guest-browse` 5 (anonymous), `collection_series_membership` 1, `collection-with-tags-and-lists` 5, `collection-up-next` 2 = 14.6 rps on top of the 20 rps base (table and sample arithmetic in `00-foundation.md` F3.1c). |
-| `supabase/tests/pending_migrations.txt`, `supabase/tests/README.md` | W4, W5, W9, W10 | Append in timestamp order: `20261110100000` (W4), `20261110110000` (W5), `20261110120000` (W9), `20261110130000` (W10). |
+| `supabase/tests/pending_migrations.txt`, `supabase/tests/README.md` | W4, W5, W9, W10 | Append in timestamp order: `20261118100000` (W4), `20261118110000` (W5), `20261118120000` (W9), `20261118130000` (W10). |
 | DB test numbers | F3.2, W4, W5, W9, W10, W2, W6 | 104 F3.2 · 105 W4 · 106 W5 · 107/108 (+ `concurrency/108`) W9 · 109 W10 · 110 W2 · 111 W6. |
 | `supabase/tests/rls/50_account_deletion_fk_and_rpc.sql` | W9 | Only W9 adds per-user tables (W10 adds none). |
 | `Kuro/Composition/AppComposition.swift`, `KuroTests/IdentityCompositionTests.swift` | F2, W2, W4, W5, W6, W9, W10 | F2 first: `makeLibrary(backend:dateAutofillEnabled:credentialLease:)`, `CompositionGraphTests/dateAutofillFollowsTheServerFlag`, and `SessionSDKHarness.init(…, flags: FeatureFlags? = nil)` (later plans find it present). Then the final `makeAccountScopedStates` / `expectedAccountScopedStates` order: `libraryActions, home, collection, libraryTags, customLists, upNext, discovery, recommendations, releases, social, availability, clubs, imports, concierge, taste, support, libraryExport, widgets, songPreview, interactionTelemetry`. `GuestSession` (W5) is not account-scoped. W5 changes `CatalogStore(client:accountSession:)`; W6 changes `makeCollection(…userDefaults:groupingEnabled:)`. |

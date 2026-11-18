@@ -103,7 +103,7 @@ F-tasks have no §5.2 row of their own. They carry the W9 F2 clauses, the §2 re
 - `scripts/load/profiles/` (new folder, created by the first profile; the loader tolerates its absence). Each profile is `<name>.js` plus its own `<name>.test.js`: `status-with-date-fill` (F3.1d), then W2, W4, W5, W6, W9, W10.
 - `scripts/load_test_backend.js`: two lanes; `--tracker-gaps=<a,b|all>`, `--workload=<name>`, `--qualify`; GET, anonymous, PATCH and multi-step requests (F3.1b); report `schemaVersion: 2`.
 - `supabase/tests/fixtures/library_2000.sql` (new): `pg_temp.load_library_2000(uuid, integer)` and `pg_temp.plan_uses_index(text, text)`.
-- `supabase/tests/rls/104_library_2000_fixture.sql` (new): proves both helpers.
+- `supabase/tests/rls/112_library_2000_fixture.sql` (new): proves both helpers.
 - `docs/tracker-gaps-2026-11/foundation/` (new): evidence notes.
 
 ---
@@ -754,7 +754,7 @@ Steps
 
 ### Task F3.2: 2,000-title SQL plan-check fixture
 
-**Files:** create `supabase/tests/fixtures/library_2000.sql` and `supabase/tests/rls/104_library_2000_fixture.sql`.
+**Files:** create `supabase/tests/fixtures/library_2000.sql` and `supabase/tests/rls/112_library_2000_fixture.sql`.
 
 **Interfaces (Produces, psql include via `\ir ../fixtures/library_2000.sql`, inside the test's transaction):**
 ```sql
@@ -772,7 +772,7 @@ Steps
 (plpgsql bodies, fixture rule.)
 
 Steps
-- [ ] Write the failing test `104_library_2000_fixture.sql`. Header: `-- @requires table public.anime_user_lists`, `-- @requires table public.manga_user_lists`. Body: `begin; \ir ../fixtures/library_2000.sql`, then:
+- [ ] Write the failing test `112_library_2000_fixture.sql`. Header: `-- @requires table public.anime_user_lists`, `-- @requires table public.manga_user_lists`. Body: `begin; \ir ../fixtures/library_2000.sql`, then:
   - `select tests.make_user(1);`
   - `tests.eq('2,000 rows for the user', pg_temp.load_library_2000(tests.uid(1)), 2000)`
   - `tests.eq('noise users hold their own rows', (select count(*) from public.anime_user_lists where user_id <> tests.uid(1)::text) + (select count(*) from public.manga_user_lists where user_id <> tests.uid(1)::text), 100000::bigint)`
@@ -780,10 +780,10 @@ Steps
   - Negative control proving the positive check means something (a permanent part of the test, rolled back with the transaction; not a red step and not a temporary mutation): `alter table public.anime_user_lists drop constraint <that constraint>;` (rolled back with the transaction), then `tests.ok('without the index the same query is not reported as using it', not pg_temp.plan_uses_index(<same query>, '<same index>'))`.
   - W9's 107/108 use this fixture and the same pair: the positive assertion, then drop the index and assert false. W2 (110), W4 (105), W6 (111) and W10 (109) build their own catalogue-scale data in the `102_load_hotpaths.sql` style and assert index use on the EXPLAIN text directly.
   - `rollback;`
-- [ ] Run `scripts/db/run_local_db_tests.sh --only 104_library_2000`. Expected FAIL: `psql: … library_2000.sql: No such file or directory`.
+- [ ] Run `scripts/db/run_local_db_tests.sh --only 112_library_2000`. Expected FAIL: `psql: … library_2000.sql: No such file or directory`.
 - [ ] Implement the fixture.
 - [ ] Run again. Expected: `TESTS : 1 test files, 4 assertions passed`. If the positive plan check picks a seq scan at this size, fix the fixture's selectivity or statistics (`analyze`). Never use `enable_seqscan=off`, which would prove nothing.
-- [ ] Commit: `git add supabase/tests/fixtures/library_2000.sql supabase/tests/rls/104_library_2000_fixture.sql`; message `F3: shared 2,000-title library fixture and plan-uses-index helper for SQL plan checks`.
+- [ ] Commit: `git add supabase/tests/fixtures/library_2000.sql supabase/tests/rls/112_library_2000_fixture.sql`; message `F3: shared 2,000-title library fixture and plan-uses-index helper for SQL plan checks`.
 
 ### Task F4: Docs, memory, verification and evidence
 

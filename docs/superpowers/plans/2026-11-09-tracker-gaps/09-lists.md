@@ -107,7 +107,7 @@
 | Collection reads and organisation writes ≤ 750 ms p95 (Browse reads, Progress writes) at 2,000 titles | Offline: the 107/108 `pg_temp.plan_uses_index` assertions and `node --test scripts/load/profiles/collection-with-tags-and-lists.test.js`. Live: an owner-approved **qualification-mode** run with the `collection-with-tags-and-lists` profile on the populated fixture (later qualification) | index plans true; profile test passes; live p95 ≤ 750 ms per class, every endpoint ≥ 100 completions and each library-size subgroup ≥ 30 (else `insufficient`), cleanup verified |
 
 ## File Structure
-- `supabase/prepared-migrations/20261110120000_library_tags_custom_lists_v1.sql` (new): tables, indexes, RLS, grants, nine RPCs (`library_tag_index_v1`, `apply_title_organisation_delta_v1`, `custom_lists_v1`, `create_custom_list_v1`, `rename_custom_list_v1`, `delete_custom_list_v1`, `move_custom_list_item_v1`, `rebalance_custom_list_v1`, `seed_custom_lists_v1`).
+- `supabase/prepared-migrations/20261118120000_library_tags_custom_lists_v1.sql` (new): tables, indexes, RLS, grants, nine RPCs (`library_tag_index_v1`, `apply_title_organisation_delta_v1`, `custom_lists_v1`, `create_custom_list_v1`, `rename_custom_list_v1`, `delete_custom_list_v1`, `move_custom_list_item_v1`, `rebalance_custom_list_v1`, `seed_custom_lists_v1`).
 - `supabase/tests/pending_migrations.txt`: lists the new file.
 - `supabase/tests/README.md`: pending table row.
 - `supabase/tests/rls/107_library_tags.sql` (new): tag privacy, bounds, normalisation, delta semantics, grants, plan, cascade.
@@ -140,7 +140,7 @@
 
 ### Task W9.1: Prepared migration (tables, tags, organisation delta) + DB test 107
 
-**Files:** create `supabase/prepared-migrations/20261110120000_library_tags_custom_lists_v1.sql` (the three tables, tag RPCs, the delta RPC) and `supabase/tests/rls/107_library_tags.sql`; modify `supabase/tests/pending_migrations.txt`, `supabase/tests/README.md` and `supabase/tests/rls/50_account_deletion_fk_and_rpc.sql`.
+**Files:** create `supabase/prepared-migrations/20261118120000_library_tags_custom_lists_v1.sql` (the three tables, tag RPCs, the delta RPC) and `supabase/tests/rls/107_library_tags.sql`; modify `supabase/tests/pending_migrations.txt`, `supabase/tests/README.md` and `supabase/tests/rls/50_account_deletion_fk_and_rpc.sql`.
 
 **Interfaces (Produces):**
 ```sql
@@ -243,11 +243,11 @@ Steps
   - Cascade: `tests.reset(); delete from auth.users where id=tests.uid(1);` then `tests.eq('tags cascade', (select count(*) from public.library_tags where user_id=tests.uid(1)), 0::bigint)`.
   - `rollback;`
 - [ ] Update `50_account_deletion_fk_and_rpc.sql` `'CASCADE set is the reviewed one'`: insert `custom_list_items.user_id`, `custom_lists.user_id` and `library_tags.user_id` into the expected string in sorted position (the FKs appear in this task, so the full suite stays green between W9.1 and W9.2).
-- [ ] Add `20261110120000_library_tags_custom_lists_v1.sql` to `pending_migrations.txt` (under a `# 2026-11-10 tracker gaps W9 (prepared only)` comment), and add a README pending-table row (`| 20261110120000_library_tags_custom_lists_v1.sql | W9 tags, custom lists | 107, 108, 50, concurrency/108 (limit race, two devices) |`).
+- [ ] Add `20261118120000_library_tags_custom_lists_v1.sql` to `pending_migrations.txt` (under a `# 2026-11-10 tracker gaps W9 (prepared only)` comment), and add a README pending-table row (`| 20261118120000_library_tags_custom_lists_v1.sql | W9 tags, custom lists | 107, 108, 50, concurrency/108 (limit race, two devices) |`).
 - [ ] Run `scripts/db/run_local_db_tests.sh --only 107_library_tags,50_account_deletion`. Expected FAIL: `function public.apply_title_organisation_delta_v1(...) does not exist` (107, first assertion) and the CASCADE string mismatch (50).
 - [ ] Implement the three tables (indexes, RLS, grants), the tag RPC and `apply_title_organisation_delta_v1` (both halves).
 - [ ] Run again. Expected: PASS for both. Then run `scripts/db/run_local_db_tests.sh --exclude-pending --only 107_library_tags`. Expected: FAIL at the first assertion (the red half of the evidence); record both lines.
-- [ ] Commit: `git add supabase/prepared-migrations/20261110120000_library_tags_custom_lists_v1.sql supabase/tests/rls/107_library_tags.sql supabase/tests/pending_migrations.txt supabase/tests/README.md supabase/tests/rls/50_account_deletion_fk_and_rpc.sql`; message `W9: prepared organisation tables and library tags (private, ≤10 × ≤24, NFC case-insensitive) with atomic organisation delta RPC`.
+- [ ] Commit: `git add supabase/prepared-migrations/20261118120000_library_tags_custom_lists_v1.sql supabase/tests/rls/107_library_tags.sql supabase/tests/pending_migrations.txt supabase/tests/README.md supabase/tests/rls/50_account_deletion_fk_and_rpc.sql`; message `W9: prepared organisation tables and library tags (private, ≤10 × ≤24, NFC case-insensitive) with atomic organisation delta RPC`.
 
 ### Task W9.2: Custom list RPCs in the migration + DB tests 108 and concurrency
 
@@ -334,7 +334,7 @@ Steps
 - [ ] Run `scripts/db/run_local_db_tests.sh --only 108_custom_lists,108_custom_list_limit_race,108_organisation_two_devices`. Expected FAIL: `function public.create_custom_list_v1(text) does not exist` in 108 and in both concurrency files' setup (the list RPCs are not written yet). The deletion file seeds its rows directly and the cascade exists since W9.1, so it can pass on its first normal run; its red half is `--exclude-pending --only 108_custom_lists_account_deletion` → FAIL (`relation "public.custom_lists" does not exist`). Record that line.
 - [ ] Implement the list part of the migration.
 - [ ] Run `--only 108_custom_lists,108_custom_lists_account_deletion,108_custom_list_limit_race,108_organisation_two_devices,50_account_deletion` again. Expected: PASS for the five files. Then run the full `scripts/db/run_local_db_tests.sh`. Expected: `TESTS … PASS (executed tests only)` and `PREPARED : every non-excluded … applied`.
-- [ ] Commit: `git add supabase/prepared-migrations/20261110120000_library_tags_custom_lists_v1.sql supabase/tests/rls/108_custom_lists.sql supabase/tests/rls/108_custom_lists_account_deletion.sql supabase/tests/concurrency/108_custom_list_limit_race.sql supabase/tests/concurrency/108_organisation_two_devices.sql`; message `W9: prepared custom lists (≤50, mixed media, sparse positions, revision-guarded one-row move, seed) deleted with the account`.
+- [ ] Commit: `git add supabase/prepared-migrations/20261118120000_library_tags_custom_lists_v1.sql supabase/tests/rls/108_custom_lists.sql supabase/tests/rls/108_custom_lists_account_deletion.sql supabase/tests/concurrency/108_custom_list_limit_race.sql supabase/tests/concurrency/108_organisation_two_devices.sql`; message `W9: prepared custom lists (≤50, mixed media, sparse positions, revision-guarded one-row move, seed) deleted with the account`.
 
 ### Task W9.3: `CustomListOrder` (package)
 
@@ -771,7 +771,7 @@ Steps
   - the EXPLAIN plan excerpts (`LOAD_PLAN` notices) for 107/108;
   - the scenario retag note;
   - the owner checklist:
-    - approve `20261110120000_library_tags_custom_lists_v1.sql` by name and checksum (`shasum -a 256`);
+    - approve `20261118120000_library_tags_custom_lists_v1.sql` by name and checksum (`shasum -a 256`);
     - apply it in one transaction;
     - re-run 107/108 read-only checks live;
     - run the load qualification in qualification mode with the `collection-with-tags-and-lists` profile on the populated fixture;

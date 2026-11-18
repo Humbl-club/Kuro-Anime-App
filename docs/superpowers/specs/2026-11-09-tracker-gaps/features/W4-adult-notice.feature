@@ -1,6 +1,6 @@
 Feature: Say plainly that 18+ titles are not listed
 
-  @sql:rls/105_search_hidden_adult_count.sql
+  @sql:rls/113_search_hidden_adult_count.sql
   Scenario: The search reports how many adult titles it left out
     Given the catalogue holds an adult title "X" and a non-adult title "Y"
     When a client searches for a query matching only "X"

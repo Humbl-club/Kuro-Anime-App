@@ -19,10 +19,10 @@
 - "one `@MainActor @Observable final class` owner per capability … views … import no Supabase SDK module … no Combine; `print` only inside `#if DEBUG`; no force unwraps."
 - "Do not interpret missing source history as newly deleted data." → adult import rows are never applied, never erase anything, and are kept in the unresolved file.
 - "Process: Rule 1 (three state docs) and Rule 2 (memory) after every workstream; quality gates `scripts/quality-gates/run_all.sh` green; build warning count does not rise above the 2026-10-31 baseline (60 unique Kuro-side warnings)."
-- Binding names: prepared migration `20261110100000_search_hidden_adult_v1.sql`; DB test `supabase/tests/rls/105_search_hidden_adult_count.sql`; load profile `search-with-hidden-adult-count`; RFC 4180 encoder `KuroLibrary.RFC4180` from W2 Task 1.
+- Binding names: prepared migration `20261118100000_search_hidden_adult_v1.sql`; DB test `supabase/tests/rls/113_search_hidden_adult_count.sql`; load profile `search-with-hidden-adult-count`; RFC 4180 encoder `KuroLibrary.RFC4180` from W2 Task 1.
 
 ## Review Focus
-1. **A false "18+" line.** Titles hidden for other reasons (Ecchi-only, `SPECIAL`/`MUSIC`/`TV_SHORT`, an active refinement such as Airing) must not count, nor may a filters-only search, a 1-character query or page 2+. Definition: adult = `is_adult is true or genres @> array['Hentai']`; counted only when it passes every other v1 filter and the v1 text-match predicate; only for page 1 (`p_cursor_id is null`) and a trimmed query of ≥ 2 characters; capped at 100. Pinned by the matrix in `105_search_hidden_adult_count.sql` (Task 1).
+1. **A false "18+" line.** Titles hidden for other reasons (Ecchi-only, `SPECIAL`/`MUSIC`/`TV_SHORT`, an active refinement such as Airing) must not count, nor may a filters-only search, a 1-character query or page 2+. Definition: adult = `is_adult is true or genres @> array['Hentai']`; counted only when it passes every other v1 filter and the v1 text-match predicate; only for page 1 (`p_cursor_id is null`) and a trimmed query of ≥ 2 characters; capped at 100. Pinned by the matrix in `113_search_hidden_adult_count.sql` (Task 1).
 2. **Leaking adult data through v2.** The response must never contain an adult row's title, id or cover URL, including via ordering ties or the count. Pinned by the "response text contains none of …" assertions in 105 (Task 1).
 3. **v2 not deployed / old builds.** Until the owner applies the migration, v2 answers PGRST202; Search must keep working (fallback to v1, no footnote) and must not retry v2 on every keystroke. Old TestFlight builds keep calling v1, which is unchanged. Pinned by `AdultNoticeTests/searchFallsBackToV1WhenV2NotDeployed` (Task 3) and the differential v1 = v2.items check in 105.
 4. **Adult import rows treated as failures or looping.** They must not raise `needsReview`, must not flip the heading to "Saved, with items to review.", must not be re-staged by "Review unresolved titles in a new import" (endless loop), must not offer "Match to a catalogue title", and must not change rows of imports that were already applied (undo paths). Pinned by `AdultNoticeTests/importReviewLabelsAdultMatchesAndKeepsThemInUnresolvedFile` (Task 5) and the trigger scope assertions in 105 (Task 2).
@@ -31,7 +31,7 @@
 ## Success parameters
 | Spec §5.2 W4 | Measured by | Expected |
 |---|---|---|
-| Search shows "Kuro doesn't list 18+ titles" when the query matched only adult titles | `xcodebuild … -only-testing:KuroTests/AdultNoticeTests` + `scripts/db/run_local_db_tests.sh --only 105_search_hidden_adult_count` | `searchShowsNoticeOnlyWhenAdultTitlesWereHidden` passes; 105: `items = []`, `hidden_adult = 1` for the adult-only query |
+| Search shows "Kuro doesn't list 18+ titles" when the query matched only adult titles | `xcodebuild … -only-testing:KuroTests/AdultNoticeTests` + `scripts/db/run_local_db_tests.sh --only 113_search_hidden_adult_count` | `searchShowsNoticeOnlyWhenAdultTitlesWereHidden` passes; 105: `items = []`, `hidden_adult = 1` for the adult-only query |
 | The import review counts adult titles separately and keeps them in the unresolved file | same `AdultNoticeTests` run + 105 import section | `importReviewLabelsAdultMatchesAndKeepsThemInUnresolvedFile` passes; 105: disposition `unmatched`, detail prefix `ADULT_NOT_LISTED:`, `adult_not_listed = 3` |
 | Search stays ≤ 750 ms p95 with the count | `node --test scripts/load/profiles/search-with-hidden-adult-count.test.js` (offline), 105 EXPLAIN assertions, then the owner-approved load run | profile registered in class `search` at 1 rps; count subquery uses `Bitmap Index Scan` on a title index (no `Seq Scan` on `anime`/`manga`); owner-approved `--qualify` run: p95 ≤ 750 ms with ≥ 100 completions and ≥ 30 per subgroup, base lane not worse than the current report |
 | Switched off, the count is never requested | `xcodebuild … -only-testing:KuroTests/AdultNoticeTests/flagOffSendsNoRequest` | passes: flag off → zero `search_*_page_v2` requests, v1 search unchanged |
@@ -39,8 +39,8 @@
 ## File Structure
 | File | Responsibility |
 |---|---|
-| `supabase/prepared-migrations/20261110100000_search_hidden_adult_v1.sql` (new) | `_search_hidden_adult_{anime,manga}_v1`, `search_anime_page_v2`, `search_manga_page_v2`, grants; import adult trigger; `_import_v2_counts` + `adult_not_listed` |
-| `supabase/tests/rls/105_search_hidden_adult_count.sql` (new) | search matrix, no-leak, differential v1 = v2.items, grants, EXPLAIN; import staging, re-staging, counts, trigger scope |
+| `supabase/prepared-migrations/20261118100000_search_hidden_adult_v1.sql` (new) | `_search_hidden_adult_{anime,manga}_v1`, `search_anime_page_v2`, `search_manga_page_v2`, grants; import adult trigger; `_import_v2_counts` + `adult_not_listed` |
+| `supabase/tests/rls/113_search_hidden_adult_count.sql` (new) | search matrix, no-leak, differential v1 = v2.items, grants, EXPLAIN; import staging, re-staging, counts, trigger scope |
 | `supabase/tests/pending_migrations.txt` (modify) | list the new prepared migration |
 | `Kuro/Search/SearchRPCParams.swift` (modify) | `SearchPageV2<Card>` decodable |
 | `Kuro/Search/SearchStore.swift` (modify) | page-1 via v2 behind the flag, `hiddenAdultCount`, v1 fallback + not-deployed memory |
@@ -69,7 +69,7 @@
 
 ### Task 1: v2 search functions with the bounded hidden-adult count
 
-**Files:** create `supabase/prepared-migrations/20261110100000_search_hidden_adult_v1.sql` (search section), `supabase/tests/rls/105_search_hidden_adult_count.sql` (search section); modify `supabase/tests/pending_migrations.txt`.
+**Files:** create `supabase/prepared-migrations/20261118100000_search_hidden_adult_v1.sql` (search section), `supabase/tests/rls/113_search_hidden_adult_count.sql` (search section); modify `supabase/tests/pending_migrations.txt`.
 
 **Interfaces — Consumes:** live `public.search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)` and `public.search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)` (unchanged; definitions in `20261109001251_load_hotpaths_v1.sql`), indexes `idx_{anime,manga}_load_title_{english,romaji,native,blob,fts}_v1`. **Produces:**
 ```sql
@@ -92,7 +92,7 @@ Pinned rules:
 - `hidden_adult` = `null` unless `p_cursor_id is null and length(btrim(coalesce(p_query, ''))) >= 2`; else `_search_hidden_adult_<medium>_v1(...)`.
 - Each helper body is `declare v_count integer; begin execute $count$ <sql> $count$ into v_count using p_query, p_trending, p_new_season, p_classics, p_hidden_gems[, p_airing_only, p_season, p_season_year]; return coalesce(v_count, 0); end;` (an integer function cannot use `return query`). Placeholders are fixed: `$1` query, `$2` trending, `$3` new season, `$4` classics, `$5` hidden gems, anime only `$6` airing, `$7` season, `$8` season year. `<sql>` is `select count(*)::int from (select 1 from public.<medium> a where (a.is_adult is true or a.genres @> array['Hentai']::text[]) and <v1's non-content filters verbatim: format exclusion (anime only) and the p_trending/p_new_season/p_classics/p_hidden_gems/p_airing_only/p_season/p_season_year clauses> and (<v1 `ranked` WHERE text-match disjunction verbatim, without its `$1 is null` branch>) limit 100) s`. Ecchi is NOT a condition in either direction (an adult Ecchi title counts; an Ecchi-only title does not).
 
-- [ ] **Step 1: failing DB test.** `105_search_hidden_adult_count.sql` header: `-- @requires table public.anime`, `-- @requires table public.manga`, `-- @requires function public.search_anime_page(text,integer,float8,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)`, `-- @requires function public.search_manga_page(text,integer,float8,integer,integer,boolean,boolean,boolean,boolean)` (v2 is the subject: NOT required, its absence must FAIL). `begin; set local jit = off;` insert fixtures (ids `9105001…`):
+- [ ] **Step 1: failing DB test.** `113_search_hidden_adult_count.sql` header: `-- @requires table public.anime`, `-- @requires table public.manga`, `-- @requires function public.search_anime_page(text,integer,float8,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)`, `-- @requires function public.search_manga_page(text,integer,float8,integer,integer,boolean,boolean,boolean,boolean)` (v2 is the subject: NOT required, its absence must FAIL). `begin; set local jit = off;` insert fixtures (ids `9105001…`):
   - anime "X" `title_english 'Velvet Hush'`, `is_adult true`, `cover_image_large 'https://img.test/velvet.jpg'`, format TV; anime "Y" `'Quiet Harbor'` non-adult; anime `'Silk Veil'` `is_adult false`, genres `{Hentai}`; anime `'Satin Breeze'` non-adult genres `{Ecchi}`; anime `'Lacquer Night'` adult, format `SPECIAL`; anime `'Ember Rite'` adult, status FINISHED; manga `'Velvet Ledger'` adult.
   - Assertions (`tests.eq` / `tests.ok`), each a named row:
     - `search_anime_page_v2('velvet hush')` → `jsonb_array_length(items) = 0`, `hidden_adult = 1`.
@@ -106,15 +106,15 @@ Pinned rules:
     - differential: for queries `'naruto'`, `'one'`, `'fate'`, `'berserk'`, `'quiet'` and a page-2 cursor taken from page 1, `v2.items = (select coalesce(jsonb_agg(to_jsonb(x)), '[]') from v1(...) x)` for both media.
     - grants: `has_function_privilege('anon', 'public.search_anime_page_v2(...)', 'execute')` and `authenticated` true (both media); both `_search_hidden_adult_*_v1` false for `anon` and `authenticated`; `prosecdef`, `prolang = plpgsql` and `proconfig @> array['search_path=public, extensions','jit=off','pg_trgm.similarity_threshold=0.3']` for all four.
     - EXPLAIN: for each medium extract `_search_hidden_adult_<medium>_v1`'s SQL with `split_part(prosrc, '$count$', 2)` (as `102_load_hotpaths.sql` does with `'$query$'`), replace `$8`…`$2` (descending, so `$1` never clobbers `$1x`) with `null`/`false` and `$1` with `quote_literal('velvet hush')`, `explain (analyze, format json)` over the 22,000-row generated catalogue (same `generate_series` inserts as 102 with ids `8100000+n`); assert the plan text contains `Bitmap Index Scan` on one of `idx_anime_load_title_*_v1` and no `"Seq Scan"` on `anime`; record it with `raise notice`.
-  - Add `20261110100000_search_hidden_adult_v1.sql` to `pending_migrations.txt` under a `# 2026-11-10 W4 (prepared only; owner approval required to deploy)` comment.
-- [ ] **Step 2:** `scripts/db/run_local_db_tests.sh --only 105_search_hidden_adult_count` → FAIL: `function public.search_anime_page_v2(unknown) does not exist`.
+  - Add `20261118100000_search_hidden_adult_v1.sql` to `pending_migrations.txt` under a `# 2026-11-10 W4 (prepared only; owner approval required to deploy)` comment.
+- [ ] **Step 2:** `scripts/db/run_local_db_tests.sh --only 113_search_hidden_adult_count` → FAIL: `function public.search_anime_page_v2(unknown) does not exist`.
 - [ ] **Step 3:** write the search section of the migration (`begin; set local lock_timeout = '3s'; set local search_path = public, extensions; … notify pgrst, 'reload schema'; commit;`, header `-- PREPARED ONLY (W4): owner approval required to apply.`).
 - [ ] **Step 4:** same command → PASS; then `scripts/db/run_local_db_tests.sh --only 102_load_hotpaths` → still PASS (v1 untouched).
-- [ ] **Step 5:** `git add supabase/prepared-migrations/20261110100000_search_hidden_adult_v1.sql supabase/tests/rls/105_search_hidden_adult_count.sql supabase/tests/pending_migrations.txt && git commit -m "W4: search v2 with bounded hidden-adult count (prepared)"`
+- [ ] **Step 5:** `git add supabase/prepared-migrations/20261118100000_search_hidden_adult_v1.sql supabase/tests/rls/113_search_hidden_adult_count.sql supabase/tests/pending_migrations.txt && git commit -m "W4: search v2 with bounded hidden-adult count (prepared)"`
 
 ### Task 2: Import staging marks adult matches; counts expose them
 
-**Files:** modify `supabase/prepared-migrations/20261110100000_search_hidden_adult_v1.sql` (import section), `supabase/tests/rls/105_search_hidden_adult_count.sql` (import section).
+**Files:** modify `supabase/prepared-migrations/20261118100000_search_hidden_adult_v1.sql` (import section), `supabase/tests/rls/113_search_hidden_adult_count.sql` (import section).
 
 **Interfaces — Consumes:** `public.library_import_items` (columns from `20261007040000` + `20261008110000`), `prepare_import_chunk_v2`, `start_library_import_v2`, `_import_v2_counts` (all live, unchanged except the counts function). **Produces:**
 ```sql
@@ -144,10 +144,10 @@ Why a trigger: it covers every staging path (`prepare_import_chunk_v2` insert an
   - `import_items_page_v2(job)` item for `9905101` has `"disposition":"unmatched"` and `detail` starting `"ADULT_NOT_LISTED:"`;
   - scope: a pre-existing item row updated to `disposition = 'added'` with an adult `media_id` (simulating an import applied before this migration) keeps `added` and its `media_id`;
   - grants: `_import_item_adult_guard_v1` not executable by `anon`/`authenticated`.
-- [ ] **Step 2:** `scripts/db/run_local_db_tests.sh --only 105_search_hidden_adult_count` → FAIL at `adult items are unmatched` (got `new`).
+- [ ] **Step 2:** `scripts/db/run_local_db_tests.sh --only 113_search_hidden_adult_count` → FAIL at `adult items are unmatched` (got `new`).
 - [ ] **Step 3:** add the import section to the migration.
 - [ ] **Step 4:** same command → PASS; `scripts/db/run_local_db_tests.sh --only 97_import_review_recovery_v2` → still PASS.
-- [ ] **Step 5:** `git add supabase/prepared-migrations/20261110100000_search_hidden_adult_v1.sql supabase/tests/rls/105_search_hidden_adult_count.sql && git commit -m "W4: import staging marks adult matches ADULT_NOT_LISTED (prepared)"`
+- [ ] **Step 5:** `git add supabase/prepared-migrations/20261118100000_search_hidden_adult_v1.sql supabase/tests/rls/113_search_hidden_adult_count.sql && git commit -m "W4: import staging marks adult matches ADULT_NOT_LISTED (prepared)"`
 
 ### Task 3: SearchStore reads v2 page 1 with fallback
 
@@ -351,7 +351,7 @@ test("search-with-hidden-adult-count is a Search-class first page on v2 at 1 rps
   - Append `W4-adult-notice.feature` to `scripts/quality-gates/bdd_landed.txt` (F1 landed scope); `check_bdd_traceability.sh` → exit 0.
 - [ ] **Step 3:** `EVIDENCE.md`: red/green excerpts, the 105 EXPLAIN plan, Task 0 numbers, migration SHA-256 for the owner approval, open items.
 - [ ] **Step 4:** `git add docs/tracker-gaps-2026-11/W4-adult-notice CURRENT_APP_STATE.md CURRENT_APP_STATE_PLAIN.md IMPLEMENTATION_PLAN_Variation1.md scripts/quality-gates/bdd_landed.txt && git commit -m "W4: docs and evidence"` (memory is outside the repo; update, do not stage).
-- [ ] **Step 5: acceptance record (F1.3; resolved ≠ accepted).** After Step 4's commit, re-run the Step 2 commands on that clean commit with logs saved under `docs/tracker-gaps-2026-11/acceptance/logs/W4-<run id>.txt`; start from `python3 scripts/quality-gates/check_bdd_traceability.py --record-template W4` and write `docs/tracker-gaps-2026-11/acceptance/W4.json` in F1.3's schema (workstream `W4`, spec §4), one entry per scenario (5). The `@sql:rls/105_search_hidden_adult_count.sql` entry counts only from the `run_local_db_tests.sh` log line `PASS  105_search_hidden_adult_count.sql … 0 blocked markers …`; the `@load:search-with-hidden-adult-count` entry stays `blocked` until an owner-approved `--qualify` run passes; `unresolvedGates` names it and the migration approval. Run `check_bdd_traceability.sh --accepted W4` → expected `exit=1` until then; record the output. Commit only `docs/tracker-gaps-2026-11/acceptance/W4.json` and `acceptance/logs/` (F1.3 rule 2), message `W4: acceptance record`.
+- [ ] **Step 5: acceptance record (F1.3; resolved ≠ accepted).** After Step 4's commit, re-run the Step 2 commands on that clean commit with logs saved under `docs/tracker-gaps-2026-11/acceptance/logs/W4-<run id>.txt`; start from `python3 scripts/quality-gates/check_bdd_traceability.py --record-template W4` and write `docs/tracker-gaps-2026-11/acceptance/W4.json` in F1.3's schema (workstream `W4`, spec §4), one entry per scenario (5). The `@sql:rls/113_search_hidden_adult_count.sql` entry counts only from the `run_local_db_tests.sh` log line `PASS  113_search_hidden_adult_count.sql … 0 blocked markers …`; the `@load:search-with-hidden-adult-count` entry stays `blocked` until an owner-approved `--qualify` run passes; `unresolvedGates` names it and the migration approval. Run `check_bdd_traceability.sh --accepted W4` → expected `exit=1` until then; record the output. Commit only `docs/tracker-gaps-2026-11/acceptance/W4.json` and `acceptance/logs/` (F1.3 rule 2), message `W4: acceptance record`.
 
 ## Owner / lead questions
 - O1: Task 0 numbers decide whether the import half can fire at all.

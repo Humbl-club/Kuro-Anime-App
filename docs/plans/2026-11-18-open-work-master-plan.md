@@ -1,0 +1,64 @@
+# Open work — master plan (2026-11-18)
+
+Owner instruction 2026-11-18: finish every open item fully — built, tested, merged and live where
+it may go live. This file is the single index. Detailed task steps stay in each plan:
+
+- Backend latency: [2026-11-09-backend-latency-plan.md](2026-11-09-backend-latency-plan.md)
+- Tracker gaps: [../superpowers/plans/2026-11-09-tracker-gaps/00-program.md](../superpowers/plans/2026-11-09-tracker-gaps/00-program.md) (read its "Lead notes 2026-11-18" first)
+- Catalogue sources: [../superpowers/plans/2026-11-09-catalogue-sources.md](../superpowers/plans/2026-11-09-catalogue-sources.md)
+
+## Rules that do not bend
+
+- Nothing turns on for users unless its plan's release gate is met. "Merged" ≠ "flag on".
+- Every SQL change: prepared migration → focused DB test (red then green) → owner-approved apply in
+  one transaction with exact history → read-only live verification → promotion to `supabase/migrations`.
+- Every hosted step is recorded in a receipt next to its plan. Production timing uses an interleaved
+  A/B on the live database (fixture plans do not predict production; see latency receipt).
+- Safety gates that protect users stay: Task 15d's revoke waits for an app release and retired old
+  builds; the 1c matview drop goes with it; guest browsing (W5) waits for full qualification.
+- Implementers work in isolated git worktrees on their own branches; the lead reviews, runs the
+  checks and merges. Commits use explicit pathspecs.
+
+## Done (2026-11-18)
+
+- Backend latency 1a, 1b (+ fix-forward), 1d live and committed (`70eb3bc`); 1c parked into catalogue Task 15d.
+- Agent-policy and cold-read work committed (`61eb137`, `4877e43`); working tree clean; unused worktree removed.
+- Tracker plans renumbered to avoid clashes with applied migrations/tests.
+
+## Waves
+
+| Wave | Work | Owner gate | Goes live as |
+| --- | --- | --- | --- |
+| 0 | Verify branch (package, app unit, Release build, DB suite, Deno, gates) → PR to `main` → merge | none (merge) | code on `main` |
+| 0b | TestFlight 26 from `main`: AniList image block + placeholders, W2 export hidden | TestFlight upload (owner instruction 2026-11-18) | build for testers |
+| 1 | Tracker foundation F1 (traceability gate), F2.3–F2.5 (dates, repeat count, bare plan), F3 (load profiles), F3.2 | none | dark; F2 date fill flag 0 % |
+| 1 | Catalogue Tasks 1, 2 (tables + switch; shared intake helpers) | none | prepared/offline |
+| 2 | Catalogue Tasks 3–6 (Wikidata, ANN, MangaUpdates, pageviews), 7, 7b (precedence, credits), 8 (comparator) | none | offline; read-only live comparator |
+| 2 | Tracker W2 Task 7–8, W3a alert offer, W4 18+ notice, W10 up next | none to build | W3a may go on (D-H a); others dark |
+| 3 | Catalogue 15, 15b, 15c (single writer, browse visibility, **new titles**), 16 (source credit) | apply + deploy approval | new titles resume |
+| 3 | Tracker W6 grouping, W9 tags/lists | D-G for visible effect | dark |
+| 4 | Catalogue 15d (AniList ids private, + 1c drop) | app release, old builds retired | revoke |
+| 4 | Load qualification run (F3 `--qualify`) | hosted load-test approval | unlocks D-H for backend-traffic features |
+| 5 | Tracker W5 guest browsing | full qualification + data/access controls | dark until then |
+| gated | Catalogue 9 (L1), 12 (L2), 13 (L3), 10 calibration (L4c), 11 (Q6), 14 (gold judgments), 17 (L4/L5 + §6 gates); tracker W1 (D-E), W3b (D-B), W8 (D-D), dub/where-to-watch (D-C) | owner decisions below | — |
+
+## Owner decisions still needed (defaults the plans implement in brackets)
+
+| Id | Decision | Default |
+| --- | --- | --- |
+| L1 | Episodes/airing provider: TheTVDB paid licence or TMDB commercial agreement | none — needs quotes; Task 9 waits, airing times stay frozen |
+| L2 | Synopses from facts only, or Wikipedia text (CC BY-SA) as input | facts only; Wikipedia only if counsel agrees |
+| L3 | Images: Kuro typographic art / licensed L1 art / press kits | (a) Kuro art now |
+| L4 | Fate of stored AniList-derived data at Task 17 | factual stub |
+| L5 | User AniList list import (`concierge-import-anilist`) | keep until Task 17, then remove |
+| Q6 | AniDB tag data | terms check before Task 11; exclude if non-commercial |
+| D-B/C/D/E | Manga chapter alerts, dub/where-to-watch, dark mode, Home Screen widget | not started |
+| D-G | Who reviews series membership (W6 visible effect) | pilot of ≈10 owner-reviewed series |
+| D-H | Release rule while NOT QUALIFIED | (a) blanket: only W3a goes on |
+| Concierge | Retire the chat/recommend surface? (parse stays for imports) | keep |
+
+## Progress log
+
+Append one line per landed step: date, wave, item, commit, checks, hosted receipt.
+
+- 2026-11-18 wave 0: tree committed (`61eb137`, `4877e43`, `70eb3bc`); plans renumbered; this index written.
