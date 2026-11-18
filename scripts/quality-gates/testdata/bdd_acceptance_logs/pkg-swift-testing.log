@@ -1,0 +1,26 @@
+✔ Test "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" with 10 test cases passed after 0.001 seconds.
+✔ Test "With the fence on, a status edit with a date goes through the receipt and the date rides a side PATCH" passed after 0.001 seconds.
+✔ Test "With the fence on, progress and status use the receipt RPC and notes stay on PATCH" passed after 0.001 seconds.
+✔ Test "With the fence off, an entry's source metadata holds only the repeat count and dates" passed after 0.001 seconds.
+✔ Test importedMetadataProjectsOnlyBehindFencedColumns() passed after 0.002 seconds.
+✔ Test "With the fence on, the date columns appear once and the fence columns follow" passed after 0.001 seconds.
+✔ Test "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" with 6 test cases passed after 0.001 seconds.
+✔ Test "A stale progress base returns conflict and does not PATCH" passed after 0.001 seconds.
+✔ Test "createIfMissing: PATCH, then insert-ignore-duplicates, then re-PATCH when the insert lost a race" with 2 test cases passed after 0.001 seconds.
+✔ Test "fetchAll pages by id in finite ranges and stops at the page cap instead of looping" passed after 0.001 seconds.
+✔ Test "With the fence off, every select still carries the repeat count and date columns" passed after 0.001 seconds.
+✔ Test "save never overwrites: insert-ignore-duplicates, then the existing row is read back unchanged" with 2 test cases passed after 0.002 seconds.
+✔ Test "The repeat count and both dates map to repeat_count, started_raw and finished_raw; clear is an explicit null" passed after 0.001 seconds.
+✔ Test "A row whose date columns are null reads as known and empty" passed after 0.001 seconds.
+✔ Test "anime 7 and manga 7 use their own tables and map to distinct keys even with equal row ids" passed after 0.001 seconds.
+✔ Test "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" with 5 test cases passed after 0.002 seconds.
+✔ Test "Editing a removed entry is notFound and never inserts a row" passed after 0.001 seconds.
+✔ Test "A date-only edit sends exactly one PATCH carrying only the date column" passed after 0.001 seconds.
+✔ Test "A notes-only PATCH with the fence off keeps the stored dates, and an imported spelling parses by value" passed after 0.001 seconds.
+✔ Test "An edit that names no field never sends PATCH {}: it reads the row, or saves it when createIfMissing" with 2 test cases passed after 0.001 seconds.
+✔ Suite "Library contract v2 mapping" passed after 0.002 seconds.
+✔ Suite "SupabaseLibraryBackend: request contract" passed after 0.002 seconds.
+✔ Test emptyFoundationLibraryValidatesEachMediumSchemaBeforeReadiness() passed after 0.002 seconds.
+✔ Test "Transport failures map to typed library errors" with 15 test cases passed after 0.004 seconds.
+✔ Suite "SupabaseLibraryBackend: mapping rules" passed after 0.005 seconds.
+✔ Test run with 22 tests in 3 suites passed after 0.005 seconds.

@@ -30,6 +30,7 @@ Exit codes: 0 clean, 1 findings, 2 usage error.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import shutil
 import subprocess
@@ -53,6 +54,7 @@ class Scenario:
     all_tags: set[str] = field(default_factory=set)
     gated: bool = False
     workstream: str = ""
+    rule: str = ""
 
 
 @dataclass
@@ -96,6 +98,7 @@ def parse_feature(path: Path) -> list[Scenario]:
     feature_tags: list[str] = []
     rule_tags: list[str] = []
     in_examples = False
+    rule_name = ""
     for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         stripped = raw.strip()
         if stripped.startswith("@"):
@@ -108,8 +111,10 @@ def parse_feature(path: Path) -> list[Scenario]:
             continue
         if stripped.startswith("Feature:"):
             feature_tags, pending, rule_tags, in_examples = pending, [], [], False
+            rule_name = ""
         elif stripped.startswith("Rule:"):
             rule_tags, pending, in_examples = pending, [], False
+            rule_name = stripped.split(":", 1)[1].strip()
         elif stripped.startswith(SCENARIO_KEYWORDS):
             in_examples = False
             name = stripped.split(":", 1)[1].strip()
@@ -126,6 +131,7 @@ def parse_feature(path: Path) -> list[Scenario]:
                     all_tags=set(plain_scope) | set(own),
                     gated="@gated" in plain_scope,
                     workstream=ws,
+                    rule=rule_name,
                 )
             )
         elif stripped and not stripped.startswith("#"):
@@ -449,16 +455,349 @@ def format_finding(f: Finding) -> str:
     return f"{f.file}:{f.line}: {f.scenario}: {f.problem}"
 
 
+# ---------------------------------------------------------------------------
+# Acceptance (--accepted <WS>): a workstream is accepted from an execution record
+# ---------------------------------------------------------------------------
+#
+# Record: docs/tracker-gaps-2026-11/acceptance/<WS>.json (schemaVersion 1):
+#   workstream, testedCommit (40 hex), recordedAt, unresolvedGates [str],
+#   runs: [{id, layer (pkg|swift|sql|deno|ui|load|manual), command, exitCode, log,
+#           context: {kind (local|simulator|local-db|live-read-only|load-qualification|owner),
+#                     simulator (swift/ui), loadReport/loadRunKey/cleanupReport (load),
+#                     owner/evidence (manual)}}],
+#   scenarios: [{feature, scenario, tag, result (pass|fail|blocked|insufficient), run, note?}]
+# Rules: (1) record parses, schemaVersion 1, workstream matches, 40-hex testedCommit.
+# (2) testedCommit == HEAD, or an ancestor of HEAD with only acceptance-folder changes since; the
+#     working tree has nothing outside the acceptance folder. (3) every non-gated scenario of the
+#     workstream needs exactly one entry keyed by (feature, scenario), with the current tag and
+#     result "pass"; gated scenarios are excluded and need a named unresolved gate.
+# (4) evidence per pass: run exists, layer == tag layer, exitCode 0, log exists, and per layer a
+#     passed line (pkg/swift/ui/deno), a harness PASS line with 0 blocked markers (sql), a passing
+#     qualification report plus cleanup proof (load), or an owner record (manual).
+
+ACCEPTANCE_DIR = "docs/tracker-gaps-2026-11/acceptance/"
+ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+SHA40 = re.compile(r"^[0-9a-f]{40}$")
+RESULTS = ("pass", "fail", "blocked", "insufficient")
+
+
+@dataclass
+class AcceptanceSummary:
+    workstream: str
+    total: int = 0
+    passed: int = 0
+    findings: int = 0
+    sha: str = ""
+    gated: list[str] = field(default_factory=list)
+    unresolved_gates: list[str] = field(default_factory=list)
+
+    def lines(self) -> list[str]:
+        if self.findings == 0:
+            head = f"Accepted {self.workstream}: {self.passed}/{self.total} scenarios pass at {self.sha[:12]}"
+        else:
+            head = f"NOT accepted {self.workstream}: {self.passed}/{self.total} pass, {self.findings} findings"
+        out = [head]
+        out += [f"gated (excluded): {g}" for g in self.gated]
+        out += [f"unresolved gate: {g}" for g in self.unresolved_gates]
+        return out
+
+
+def _git(root: Path, *args: str) -> tuple[int, str]:
+    run = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, check=False)
+    return run.returncode, run.stdout.rstrip("\n")  # keep leading spaces: porcelain lines start with them
+
+
+def git_head(root: Path) -> str:
+    code, out = _git(Path(root), "rev-parse", "HEAD")
+    return out if code == 0 else ""
+
+
+def _test_labels(root: Path, layer: str, suite: str, name: str) -> list[str]:
+    """Swift Testing display labels (`@Test("label")`) of the func, as the runner prints them."""
+    base = root / SWIFT_SCOPES[layer]
+    labels: list[str] = []
+    if not base.is_dir():
+        return labels
+    decl = re.compile(r"\b(?:struct|class|enum|actor|extension)\s+" + re.escape(suite) + r"\b")
+    for path in sorted(base.rglob("*.swift")):
+        raw = path.read_text(encoding="utf-8", errors="replace")
+        stripped = strip_swift(raw)
+        for match in decl.finditer(stripped):
+            open_at = stripped.find("{", match.end())
+            if open_at < 0:
+                continue
+            close = _match_brace(stripped, open_at)
+            body = stripped[open_at + 1 : close]
+            for fn in re.finditer(r"\bfunc\s+" + re.escape(name) + r"\s*[(<]", body):
+                at = open_at + 1 + fn.start()
+                before = stripped[:at]
+                cut = max(before.rfind("{"), before.rfind("}"))
+                for earlier in re.finditer(r"\bfunc\b", before[open_at:]):
+                    cut = max(cut, open_at + earlier.start())
+                window = raw[cut + 1 : at]
+                label = re.search(r'@Test\(\s*"((?:[^"\\]|\\.)*)"', window)
+                if label:
+                    labels.append(label.group(1))
+    return labels
+
+
+def _test_passed(root: Path, layer: str, tag: str, log: str) -> bool:
+    rest = tag[LAYER_TAG.match(tag).end():]  # type: ignore[union-attr]
+    text = ANSI.sub("", log)
+    if layer == "deno":
+        name = rest.partition("::")[2]
+        return re.search(r"^" + re.escape(name) + r" \.\.\. ok\b", text, re.M) is not None
+    suite, _, name = rest.partition("/")
+    if layer == "ui":
+        pattern = r"Test Case '-\[(?:\S+\.)?" + re.escape(suite) + " " + re.escape(name) + r"\]' passed"
+        return re.search(pattern, text) is not None
+    patterns = [r"Test " + re.escape(name) + r"\([^)]*\)(?: with \d+ test cases)? passed"]
+    for label in _test_labels(root, layer, suite, name):
+        patterns.append(r'Test "' + re.escape(label) + r'"(?: with \d+ test cases)? passed')
+    if layer == "swift":
+        patterns.append(r"Test case '" + re.escape(suite) + "/" + re.escape(name) + r"\([^)]*\)' passed")
+    return any(re.search(p, text) for p in patterns)
+
+
+def _sql_passed(basename: str, log: str) -> bool:
+    pattern = (
+        r"^PASS\s+" + re.escape(basename) + r"\s+\d+ assertions, 0 blocked markers, \d+ findings$"
+    )
+    return re.search(pattern, ANSI.sub("", log), re.M) is not None
+
+
+def _load_json(path: Path) -> dict | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _load_ok(root: Path, profile: str, context: dict) -> bool:
+    if context.get("kind") != "load-qualification":
+        return False
+    report = _load_json(root / str(context.get("loadReport", "")))
+    cleanup = _load_json(root / str(context.get("cleanupReport", "")))
+    if report is None or cleanup is None:
+        return False
+    if report.get("mode") != "qualify" or report.get("runKey") != context.get("loadRunKey"):
+        return False
+    if (report.get("preflight") or {}).get("passed") is not True:
+        return False
+    profiles = ((report.get("lanes") or {}).get("profiles") or {}).get("profiles") or {}
+    if (profiles.get(profile) or {}).get("verdict") != "pass":
+        return False
+    states = [
+        (entry.get("profileData") or {}).get(profile)
+        for entry in cleanup.get("cleanup") or []
+        if isinstance(entry, dict) and profile in (entry.get("profileData") or {})
+    ]
+    return bool(states) and all(s == "absent" for s in states)
+
+
+def _evidence_problem(root: Path, scenario: Scenario, entry: dict, runs: dict) -> str | None:
+    tag = scenario.test_tags[0]
+    layer = LAYER_TAG.match(tag).group(1)  # type: ignore[union-attr]
+    run = runs.get(entry.get("run"))
+    if run is None:
+        return f"run {entry.get('run')} not in record"
+    if run.get("layer") != layer:
+        return f"run layer {run.get('layer')} is not {layer}"
+    if run.get("exitCode") != 0:
+        return f"run exit code {run.get('exitCode')}"
+    log_path = root / str(run.get("log", ""))
+    if not run.get("log") or not log_path.is_file():
+        return "run log missing"
+    log = log_path.read_text(encoding="utf-8", errors="replace")
+    context = run.get("context") or {}
+    rest = tag[LAYER_TAG.match(tag).end():]  # type: ignore[union-attr]
+    if layer in ("pkg", "swift", "ui", "deno"):
+        if layer in ("swift", "ui") and not context.get("simulator"):
+            return "context.simulator missing"
+        if not _test_passed(root, layer, tag, log):
+            return "test did not pass in log"
+    elif layer == "sql":
+        basename = rest.rsplit("/", 1)[-1]
+        command = str(run.get("command", ""))
+        local = context.get("kind") == "local-db" and "run_local_db_tests.sh" in command
+        if not (local or context.get("kind") == "live-read-only") or not _sql_passed(basename, log):
+            return "SQL test did not run and pass"
+    elif layer == "load":
+        if not _load_ok(root, rest, context):
+            return "load evidence is not a passing qualification run"
+    elif layer == "manual":
+        evidence = str(context.get("evidence", ""))
+        if context.get("kind") != "owner" or not context.get("owner") or not evidence or not (root / evidence).exists():
+            return "manual evidence needs an owner context, an owner and an existing evidence path"
+    return None
+
+
+def _commit_problem(root: Path, tested: str) -> str | None:
+    head = git_head(root)
+    short = lambda s: s[:12]  # noqa: E731
+    if tested != head:
+        anc, _ = _git(root, "merge-base", "--is-ancestor", tested, "HEAD")
+        diff_code, diff = _git(root, "diff", "--name-only", tested, "HEAD")
+        if anc != 0 or diff_code != 0 or any(not p.startswith(ACCEPTANCE_DIR) for p in diff.splitlines() if p):
+            return f"record is for {short(tested)}; HEAD {short(head)} changed outside acceptance records"
+    _, status = _git(root, "status", "--porcelain", "-uall")
+    for line in status.splitlines():
+        paths = line[3:].split(" -> ")
+        if any(not p.strip('"').startswith(ACCEPTANCE_DIR) for p in paths):
+            return "uncommitted changes outside acceptance records"
+    return None
+
+
+def _all_scenarios(root: Path, feature_glob: str) -> list[Scenario]:
+    return [s for path in feature_files(root, feature_glob) for s in parse_feature(path)]
+
+
+def accepted(
+    root: Path, workstream: str, feature_glob: str = DEFAULT_FEATURE_GLOB
+) -> tuple[list[Finding], AcceptanceSummary]:
+    root = Path(root)
+    summary = AcceptanceSummary(workstream)
+    findings: list[Finding] = []
+
+    def record_problem(problem: str) -> None:
+        findings.append(Finding("record", 0, "", problem, "acceptance"))
+
+    scenarios = [s for s in _all_scenarios(root, feature_glob) if s.workstream == workstream]
+    in_scope = [s for s in scenarios if not s.gated]
+    gated = [s for s in scenarios if s.gated]
+    summary.total = len(in_scope)
+    summary.gated = [f"{s.file.name}: {s.name}" for s in gated]
+    record = _load_json(root / ACCEPTANCE_DIR / f"{workstream}.json")
+    if record is None:
+        record_problem(f"record {ACCEPTANCE_DIR}{workstream}.json missing or not valid JSON")
+        summary.findings = len(findings)
+        return findings, summary
+    summary.sha = str(record.get("testedCommit", ""))
+    if record.get("schemaVersion") != 1:
+        record_problem("schemaVersion must be 1")
+    if record.get("workstream") != workstream:
+        record_problem(f"workstream is {record.get('workstream')}, expected {workstream}")
+    tested = str(record.get("testedCommit", ""))
+    if not SHA40.match(tested):
+        record_problem("testedCommit must be 40 hex characters")
+    else:
+        problem = _commit_problem(root, tested)
+        if problem:
+            record_problem(problem)
+    summary.unresolved_gates = [str(g) for g in record.get("unresolvedGates") or []]
+    if gated and not summary.unresolved_gates:
+        record_problem("gated scenarios but no unresolved gate named")
+    runs = {r.get("id"): r for r in record.get("runs") or [] if isinstance(r, dict)}
+    entries: dict[tuple[str, str], list[dict]] = {}
+    for entry in record.get("scenarios") or []:
+        if isinstance(entry, dict):
+            entries.setdefault((str(entry.get("feature")), str(entry.get("scenario"))), []).append(entry)
+    known = {(s.file.name, s.name) for s in scenarios}
+    for key in entries:
+        if key not in known:
+            findings.append(Finding(key[0], 0, key[1], "stale record entry", "acceptance"))
+    for scenario in in_scope:
+        before = len(findings)
+
+        def add(problem: str, s: Scenario = scenario) -> None:
+            findings.append(Finding(s.file.name, s.line, s.name, problem, "acceptance"))
+
+        found = entries.get((scenario.file.name, scenario.name), [])
+        if len(scenario.test_tags) != 1:
+            add("no single test tag")
+        elif not found:
+            add("no result")
+        elif len(found) > 1:
+            add(f"{len(found)} results")
+        else:
+            entry = found[0]
+            result = entry.get("result")
+            if entry.get("tag") != scenario.test_tags[0]:
+                add("tag changed since record")
+            elif result not in RESULTS:
+                add(f"invalid result {result}")
+            elif result != "pass":
+                add(f"not accepted: {result}")
+            else:
+                problem = _evidence_problem(root, scenario, entry, runs)
+                if problem:
+                    add(problem)
+        if len(findings) == before:
+            summary.passed += 1
+    summary.findings = len(findings)
+    return findings, summary
+
+
+def record_template(root: Path, workstream: str, feature_glob: str = DEFAULT_FEATURE_GLOB) -> dict:
+    root = Path(root)
+    scenarios = [s for s in _all_scenarios(root, feature_glob) if s.workstream == workstream]
+    gates = sorted({(s.file.name, s.rule) for s in scenarios if s.gated})
+    return {
+        "schemaVersion": 1,
+        "workstream": workstream,
+        "testedCommit": git_head(root),
+        "recordedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "runs": [],
+        "scenarios": [
+            {
+                "feature": s.file.name,
+                "scenario": s.name,
+                "tag": s.test_tags[0] if s.test_tags else "",
+                "result": "blocked",
+                "run": None,
+            }
+            for s in scenarios
+            if not s.gated
+        ],
+        "unresolvedGates": [f"{f}: {rule or 'whole feature'}: name the owner decision or pending run" for f, rule in gates],
+    }
+
+
+def _accepted_main(root: Path, workstream: str, feature_glob: str) -> int:
+    findings, summary = accepted(root, workstream, feature_glob)
+    for f in findings:
+        if f.file == "record":
+            print(f"{workstream}: record: {f.problem}")
+        else:
+            print(f"{workstream}: {f.file}: {f.scenario}: {f.problem}")
+    for line in summary.lines():
+        print(line)
+    return 1 if findings else 0
+
+
+class _Parser(argparse.ArgumentParser):
+    def error(self, message: str):  # usage errors are exit 2, never an exception trace
+        raise ValueError(message)
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="BDD traceability checker")
+    parser = _Parser(description="BDD traceability checker")
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument("--features", default=DEFAULT_FEATURE_GLOB)
     parser.add_argument("--landed", default=None)
+    parser.add_argument("--accepted", default=None, metavar="WS")
+    parser.add_argument("--record-template", default=None, metavar="WS")
     try:
         args = parser.parse_args(argv)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     except SystemExit as exc:
         return 2 if exc.code else 0
     root = Path(args.root)
+    if args.accepted is not None or args.record_template is not None:
+        if args.accepted is not None and args.record_template is not None:
+            print("error: --accepted and --record-template are mutually exclusive", file=sys.stderr)
+            return 2
+        workstream = args.accepted if args.accepted is not None else args.record_template
+        if not workstream.strip():
+            print("error: empty workstream", file=sys.stderr)
+            return 2
+        if args.accepted is not None:
+            return _accepted_main(root, workstream, args.features)
+        print(json.dumps(record_template(root, workstream, args.features), indent=2))
+        return 0
     landed_path = Path(args.landed) if args.landed else root / "scripts/quality-gates/bdd_landed.txt"
     findings, summary = analyse(root, args.features, read_landed(landed_path))
     for f in findings:

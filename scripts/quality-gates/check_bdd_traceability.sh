@@ -3,6 +3,6 @@
 # `--accepted <WS>` and `--record-template <WS>` pass through.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-echo "=== BDD traceability ==="
+if [ "$#" -eq 0 ]; then echo "=== BDD traceability ==="; fi  # no banner for --record-template: its stdout is JSON
 python3 "$SCRIPT_DIR/check_bdd_traceability.py" "$@"
 exit $?
