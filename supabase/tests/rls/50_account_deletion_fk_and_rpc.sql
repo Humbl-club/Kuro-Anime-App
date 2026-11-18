@@ -85,7 +85,9 @@ select tests.as_user(tests.uid(2));
 select tests.eq('RPC refuses a caller deleting someone else''s data (forbidden)',
   (public.delete_user_concierge_data(tests.uid(1)::text)) ->> 'error', 'forbidden');
 select tests.as_anon();
-select tests.eq('RPC refuses anon (unauthenticated)', (public.delete_user_concierge_data(tests.uid(1)::text)) ->> 'error', 'unauthenticated');
+-- W5 (20261118110000): anon no longer holds EXECUTE here, so the call is refused at the grant (42501) before the body's own check; both denials count.
+select tests.ok('RPC refuses anon (unauthenticated from the body, or permission denied at the grant)',
+  tests.try_scalar(format($q$(public.delete_user_concierge_data(%L)) ->> 'error'$q$, tests.uid(1)::text)) ~ '(^unauthenticated$|permission denied for function delete_user_concierge_data)');
 select tests.as_user(tests.uid(2));
 select tests.eq('RPC rejects a non-uuid id for the caller as forbidden (id must equal auth.uid()::text)',
   (public.delete_user_concierge_data('not-a-uuid')) ->> 'error', 'forbidden');

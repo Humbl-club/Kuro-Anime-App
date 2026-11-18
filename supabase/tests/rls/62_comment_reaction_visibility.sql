@@ -93,8 +93,9 @@ update public.clubs set is_archived = false where id = :'m_club';
 
 -- ---- anon ----------------------------------------------------------------------
 select tests.as_anon();
-select tests.raises('anon: toggle_comment_reaction raises UNAUTHENTICATED',
-  format($q$select public.toggle_comment_reaction(%L, 'up')$q$, :'c1'), 'UNAUTHENTICATED');
+-- W5 (20261118110000): anon no longer holds EXECUTE here, so the call is refused at the grant (42501) before the body's own check; both denials count.
+select tests.ok('anon: toggle_comment_reaction is refused (UNAUTHENTICATED from the body, or permission denied at the grant)',
+  tests.try_scalar(format($q$public.toggle_comment_reaction(%L, 'up')$q$, :'c1')) ~ '(UNAUTHENTICATED|permission denied for function toggle_comment_reaction)');
 
 select tests.reset();
 rollback;
