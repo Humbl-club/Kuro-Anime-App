@@ -72,3 +72,9 @@ struct RPCCollectionFeedPageParams: Encodable, Sendable {
         try c.encodeIfPresent(p_list_type_manga, forKey: .p_list_type_manga)
     }
 }
+
+/// W10: `library_up_next_v1(p_medium, p_limit)`. The acting account comes from the token, never a parameter.
+struct RPCLibraryUpNextParams: Encodable, Sendable {
+    let p_medium: String
+    let p_limit: Int
+}
