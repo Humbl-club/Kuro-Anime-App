@@ -24,6 +24,8 @@ struct EditorialCollectionView: View {
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(HomeStore.self) private var home
     @Environment(FeatureFlags.self) private var flags
+    /// W10: optional, so hosts that do not inject it keep rendering (the section then hides).
+    @Environment(UpNextStore.self) private var upNext: UpNextStore?
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -63,6 +65,14 @@ struct EditorialCollectionView: View {
         mountedAccount == nil ? nil : collection.accountSession.current
     }
     private var isImportedView: Bool { collection.importedTitleKeys != nil }
+
+    /// W10: whether "Up next in your series" shows (and loads): Completed view only, outside search,
+    /// selection and the imported-titles view, and only while `collection_up_next_v1` is on.
+    private var upNextShows: Bool {
+        upNext != nil && FolioUpNextPlacement.shows(
+            status: status, isImportedView: isImportedView, isSearching: isSearching || isQueryActive,
+            isSelecting: isSelecting, isEnabled: flags.collectionUpNextV1Enabled)
+    }
 
     private var density: Binding<FolioDensity> {
         medium == .manga ? $mangaDensity : $animeDensity
@@ -143,6 +153,13 @@ struct EditorialCollectionView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     header(gutter: gutter, canSelect: !rows.isEmpty)
+                    if upNextShows {
+                        FolioUpNextSection(medium: medium, gutter: gutter, width: width,
+                                           onPlanned: { upNextPlanned($0) },
+                                           onDismissed: { upNextDismissed($0) },
+                                           onPlanFailed: { show(FolioUpNextNotices.failed(german: german)) })
+                            .padding(.top, KuroDesignSpacing.md)
+                    }
                     content(rows: rows, width: width, gutter: gutter)
                         .padding(.top, KuroDesignSpacing.md)
                     Color.clear.frame(height: KuroDesignSpacing.xl)
@@ -216,6 +233,12 @@ struct EditorialCollectionView: View {
             }
             await reload()
             await releases.loadSchedule()
+        }
+        // W10: loads only while the section can show (never on a Watching landing or with the switch off);
+        // a new account or medium loads again.
+        .task(id: "\(upNextShows)|\(medium.rawValue)|\(collection.accountSession.current?.generation ?? -1)") {
+            guard upNextShows else { return }
+            await upNext?.load(medium)
         }
         .onChange(of: collection.requestedListFilter) { _, request in
             guard request != nil, let request = collection.consumeListRequest() else { return }
@@ -521,6 +544,7 @@ struct EditorialCollectionView: View {
         guard collection.accountSession.isCurrent(context) else { return }
         if sort != .recent || isQueryActive { await loadAllForLocalOrdering() }
         if refreshLibrary { await releases.loadSchedule(force: true) }
+        if refreshLibrary, upNextShows { await upNext?.load(medium, force: true) }
     }
 
     /// Title/score/date sorts and search need the whole list: read the remaining pages (bounded at
@@ -618,9 +642,39 @@ struct EditorialCollectionView: View {
     }
 
     private func performNoticeAction() {
-        guard notice?.actionTitle != nil else { return }
+        guard let current = notice, current.actionTitle != nil else { return }
         hideNotice()
-        undoLastAdvance()
+        switch current.undo {
+        case .upNextPlan(let receipt)?:
+            undoUpNextPlan(receipt)
+        case .upNextDismiss(let receipt)?:
+            _ = upNext?.undoDismiss(receipt)
+        case .advance?, nil:
+            undoLastAdvance()
+        }
+    }
+
+    // MARK: Up next (W10)
+
+    private func upNextPlanned(_ receipt: UpNextPlanReceipt) {
+        guard activeAccount != nil else { return }
+        if receipt.offersUndo { KuroAccessibility.successHaptic() }
+        show(FolioUpNextNotices.planned(receipt, german: german), seconds: receipt.offersUndo ? 5 : 3)
+    }
+
+    private func upNextDismissed(_ receipt: DiscoverFeedbackReceipt) {
+        guard activeAccount != nil else { return }
+        show(FolioUpNextNotices.dismissed(receipt, german: german), seconds: 5)
+    }
+
+    /// Undo of a Plan removes only the entry that Plan created and nobody changed since; a refusal says so.
+    private func undoUpNextPlan(_ receipt: UpNextPlanReceipt) {
+        guard let upNext, let context = activeAccount else { return }
+        Task {
+            let undone = await upNext.undoPlan(receipt)
+            guard collection.accountSession.isCurrent(context) else { return }
+            if !undone { show(FolioUpNextNotices.failed(german: german)) }
+        }
     }
 
     /// Guarded Undo through the owner: the receipt's own path (the durable outbox's cancel/compensate,

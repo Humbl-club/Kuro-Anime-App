@@ -8,6 +8,8 @@
 
 import Testing
 import Foundation
+import SwiftUI
+import UIKit
 import KuroCore
 import KuroLibrary
 @testable import Kuro
@@ -350,6 +352,60 @@ extension UpNextStoreTests {
         #expect(h.rpcRequests.isEmpty)
         #expect(await h.upNext.plan(upNextItem) == nil)
         #expect(h.upNext.dismiss(upNextItem) == nil)
+        await h.tearDown()
+    }
+
+    // MARK: The Collection section
+
+    @Test func sectionShowsOnlyOnCompletedOutsideSearchSelectAndImport() {
+        func shows(_ status: FolioStatus, imported: Bool = false, searching: Bool = false, selecting: Bool = false,
+                   enabled: Bool = true) -> Bool {
+            FolioUpNextPlacement.shows(status: status, isImportedView: imported, isSearching: searching,
+                                       isSelecting: selecting, isEnabled: enabled)
+        }
+        #expect(shows(.completed))
+        for other in FolioStatus.allCases where other != .completed { #expect(!shows(other)) }
+        #expect(!shows(.completed, imported: true))
+        #expect(!shows(.completed, searching: true))
+        #expect(!shows(.completed, selecting: true))
+        for status in FolioStatus.allCases { #expect(!shows(status, enabled: false), "flag off: no section, no load") }
+    }
+
+    @Test func plannedNoticeOffersUndoOnlyForACreatedEntry() {
+        let account = AccountContext(userId: "u", generation: 1)
+        func receipt(created: Bool) -> UpNextPlanReceipt {
+            UpNextPlanReceipt(key: Self.key, account: account, rowId: 5, lifecycleId: UUID(), revision: 1, created: created)
+        }
+        for german in [false, true] {
+            let created = receipt(created: true)
+            let notice = FolioUpNextNotices.planned(created, german: german)
+            #expect(notice.actionTitle == TastePlanCopy.undo(german: german))
+            #expect(notice.undo == .upNextPlan(created))
+            let existing = FolioUpNextNotices.planned(receipt(created: false), german: german)
+            #expect(existing.message == UpNextCopy.alreadyInLibrary(german: german))
+            #expect(existing.actionTitle == nil && existing.undo == nil)
+        }
+    }
+
+    @Test func sectionFitsGermanAtLargestCappedType() async throws {
+        let long = """
+        [{"media_type":"anime","media_id":1201,"title":"Frieren: Beyond Journey's End Season 2","cover_image":null,"format":"TV",
+          "status":"NOT_YET_RELEASED","start_year":2026,"total_units":12,"after_media_id":1200,
+          "after_title":"Frieren: Beyond Journey's End","link":"sequel"}]
+        """
+        let h = try UpNextHarness(upNext: { _ in .json(long) })
+        await h.signIn()
+        await h.upNext.load(.anime)
+        #expect(h.upNext.visible(.anime).count == 1)
+        let column: CGFloat = 320
+        let gutter: CGFloat = 20
+        let view = FolioUpNextSection(medium: .anime, gutter: gutter, width: column, onPlanned: { _ in }, onDismissed: { _ in })
+            .environment(h.upNext)
+            .environment(\.dynamicTypeSize, .accessibility3)
+        let host = UIHostingController(rootView: view)
+        let size = host.sizeThatFits(in: CGSize(width: column, height: 10_000))
+        #expect(size.width <= column + 0.5, "the section is \(size.width) pt wide in a \(column) pt column")
+        #expect(size.height > 44, "the section drew its rail")
         await h.tearDown()
     }
 }

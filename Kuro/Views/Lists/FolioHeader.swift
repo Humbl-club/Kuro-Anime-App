@@ -343,8 +343,17 @@ struct FolioNotice: Equatable, Identifiable {
     let tone: Tone
     let message: String
     let actionTitle: String?
+    /// Which Undo the action runs; nil with an `actionTitle` is the legacy +1 Undo (`.advance`).
+    var undo: FolioNoticeUndo? = nil
 
     static func == (lhs: FolioNotice, rhs: FolioNotice) -> Bool { lhs.id == rhs.id }
+}
+
+/// The Undo a notice action performs (W10 adds the two Up next Undos next to the +1 Undo).
+enum FolioNoticeUndo: Equatable {
+    case advance
+    case upNextPlan(UpNextPlanReceipt)
+    case upNextDismiss(DiscoverFeedbackReceipt)
 }
 
 struct FolioNoticeBar: View {
