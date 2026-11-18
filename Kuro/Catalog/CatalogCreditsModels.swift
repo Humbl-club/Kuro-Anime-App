@@ -6,7 +6,6 @@ import KuroCore
 
 struct Character: Identifiable, Codable {
     let id: Int
-    let anilistId: Int?
     let nameFull: String?
     let nameNative: String?
     let imageLarge: String?
@@ -16,7 +15,6 @@ struct Character: Identifiable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case anilistId = "anilist_id"
         case nameFull = "name_full"
         case nameNative = "name_native"
         case imageLarge = "image_large"
@@ -33,7 +31,6 @@ extension Character {
     init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(Int.self, forKey: .id)
-        anilistId = try? c.decodeIfPresent(Int.self, forKey: .anilistId)
         nameFull = try? c.decodeIfPresent(String.self, forKey: .nameFull)
         nameNative = try? c.decodeIfPresent(String.self, forKey: .nameNative)
         imageLarge = try? c.decodeIfPresent(String.self, forKey: .imageLarge)
@@ -49,7 +46,6 @@ extension Character {
 
 struct Staff: Identifiable, Codable {
     let id: Int
-    let anilistId: Int?
     let nameFull: String?
     let nameNative: String?
     let imageLarge: String?
@@ -58,7 +54,6 @@ struct Staff: Identifiable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case anilistId = "anilist_id"
         case nameFull = "name_full"
         case nameNative = "name_native"
         case imageLarge = "image_large"
@@ -69,7 +64,6 @@ struct Staff: Identifiable, Codable {
 
 struct Studio: Identifiable, Codable {
     let id: Int
-    let anilistId: Int?
     let name: String?
     let isAnimationStudio: Bool?
     let siteUrl: String?
@@ -77,7 +71,6 @@ struct Studio: Identifiable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case anilistId = "anilist_id"
         case name
         case isAnimationStudio = "is_animation_studio"
         case siteUrl = "site_url"
@@ -87,7 +80,6 @@ struct Studio: Identifiable, Codable {
 
 struct Author: Identifiable, Codable {
     let id: Int
-    let anilistId: Int?
     let nameFull: String?
     let nameNative: String?
     let imageLarge: String?
@@ -95,7 +87,6 @@ struct Author: Identifiable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case anilistId = "anilist_id"
         case nameFull = "name_full"
         case nameNative = "name_native"
         case imageLarge = "image_large"

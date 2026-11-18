@@ -59,7 +59,7 @@ enum NavigationFixture {
     private static var fixtureContent: AnimeDetailContent {
         var content = AnimeDetailContent()
         content.characters = (1...4).map { index in
-            (character: Character(id: 990_100 + index, anilistId: nil, nameFull: "Fixture Character \(index)",
+            (character: Character(id: 990_100 + index, nameFull: "Fixture Character \(index)",
                                   nameNative: nil, imageLarge: nil, description: nil, gender: nil, age: nil),
              role: "MAIN")
         }

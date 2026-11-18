@@ -510,7 +510,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let joins: [AnimeStudioJoin] = try await client
                 .from("anime_studios")
-                .select("studios(id, anilist_id, name, is_animation_studio, site_url, favourites)")
+                .select(CatalogColumns.studioEmbed)
                 .eq("anime_id", value: animeId)
                 .order("id", ascending: true)
                 .limit(CatalogColumns.creditsRowLimit)

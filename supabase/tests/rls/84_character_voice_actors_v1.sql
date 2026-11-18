@@ -96,10 +96,10 @@ select tests.eq('cast: ENGLISH picks the English voice actor only',
      from public.anime_cast_v1(840001, 'english')),
   'Main Hero=English Voice,Side Friend=-,Quiet Extra=-');
 select tests.eq('cast: limit is honoured', (select count(*) from public.anime_cast_v1(840001, 'JAPANESE', 1)), 1::bigint);
-select tests.eq('cast: roles and ids come back',
-  (select string_agg(role || '/' || character_anilist_id || '/' || coalesce(staff_anilist_id::text, '-') || '/' || coalesce(language, '-'), ',')
+select tests.eq('cast: roles and languages come back (no AniList ids since 20261112100500)',
+  (select string_agg(role || '/' || coalesce(staff_id::text, '-') || '/' || coalesce(language, '-'), ',')
      from public.anime_cast_v1(840001)),
-  'MAIN/8401010/8402010/JAPANESE,SUPPORTING/8401020/8402020/JAPANESE,BACKGROUND/8401030/-/-');
+  'MAIN/840201/JAPANESE,SUPPORTING/840202/JAPANESE,BACKGROUND/-/-');
 select tests.eq('cast: an anime without characters is empty', (select count(*) from public.anime_cast_v1(999999)), 0::bigint);
 select tests.raises('cast: invalid id raises INVALID_MEDIA_ID', $q$select * from public.anime_cast_v1(0)$q$, 'INVALID_MEDIA_ID:%');
 select tests.raises('cast: invalid language raises INVALID_LANGUAGE',

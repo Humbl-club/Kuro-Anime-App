@@ -33,10 +33,10 @@ struct LibraryExportFlowTests {
 
     /// One catalogue row as PostgREST returns it.
     nonisolated static func identityRow(
-        id: Int, malId: Int?, anilistId: Int?, english: String? = nil, romaji: String? = nil, native: String? = nil
+        id: Int, malId: Int?, english: String? = nil, romaji: String? = nil, native: String? = nil
     ) -> [String: Any] {
         [
-            "id": id, "mal_id": malId as Any? ?? NSNull(), "anilist_id": anilistId as Any? ?? NSNull(),
+            "id": id, "mal_id": malId as Any? ?? NSNull(),
             "title_english": english as Any? ?? NSNull(), "title_romaji": romaji as Any? ?? NSNull(),
             "title_native": native as Any? ?? NSNull(),
         ]
@@ -46,7 +46,7 @@ struct LibraryExportFlowTests {
     nonisolated static func identityRows(for request: RecordedRequest) -> StubResponse {
         guard request.resource == "anime" || request.resource == "manga" else { return .emptyArray }
         let rows = inList(request).map {
-            identityRow(id: $0, malId: $0 + 10_000, anilistId: $0 + 20_000, english: "Title \($0)")
+            identityRow(id: $0, malId: $0 + 10_000, english: "Title \($0)")
         }
         return ListRowJSON.response(rows)
     }
@@ -62,12 +62,12 @@ struct LibraryExportFlowTests {
         #expect(requests.count == 4)   // 500 + 500 + 200 anime, 300 manga
         #expect(requests.allSatisfy { Self.inListCount($0) <= 500 && $0.method == "GET" })
         #expect(requests.allSatisfy { $0.query("is_adult") == nil })
-        #expect(requests.allSatisfy { $0.query("select") == "id,anilist_id,mal_id,title_english,title_romaji,title_native" })
+        #expect(requests.allSatisfy { $0.query("select") == "id,mal_id,title_english,title_romaji,title_native" })
         #expect(requests.filter { $0.resource == "anime" }.map(Self.inListCount) == [500, 500, 200])
         #expect(requests.filter { $0.resource == "manga" }.map(Self.inListCount) == [300])
         #expect(rows.count == 1_500)
         #expect(rows[MediaKey(kind: .anime, id: 7)]?.malId == 10_007)
-        #expect(rows[MediaKey(kind: .anime, id: 7)]?.anilistId == 20_007)
+        #expect(rows[MediaKey(kind: .anime, id: 7)]?.malId == 10_007)
         #expect(rows[MediaKey(kind: .anime, id: 7)]?.title == "Title 7")
         #expect(rows[MediaKey(kind: .manga, id: 7)]?.malId == 10_007, "manga 7 is its own title, not anime 7")
         await harness.tearDown()
@@ -101,9 +101,9 @@ struct LibraryExportFlowTests {
                 return .json(#"{"code":"PGRST100","message":"rejected","details":null,"hint":null}"#, status: 400)
             }
             return ListRowJSON.response([
-                Self.identityRow(id: 501, malId: nil, anilistId: 9, english: "  ", romaji: " Romaji Name ", native: "Native"),
-                Self.identityRow(id: 502, malId: 5, anilistId: nil, native: "  Native Only "),
-                Self.identityRow(id: 503, malId: 6, anilistId: 7, english: "", romaji: " "),
+                Self.identityRow(id: 501, malId: nil, english: "  ", romaji: " Romaji Name ", native: "Native"),
+                Self.identityRow(id: 502, malId: 5, native: "  Native Only "),
+                Self.identityRow(id: 503, malId: 6, english: "", romaji: " "),
             ])
         }
         let keys = Set((1...600).map { MediaKey(kind: .anime, id: $0) })
@@ -111,9 +111,9 @@ struct LibraryExportFlowTests {
         #expect(harness.server.requests.filter { $0.resource == "anime" }.count == 2, "the failed first batch does not stop the second")
         #expect(rows.count == 3, "the 500 keys of the failed batch are absent")
         #expect(rows[MediaKey(kind: .anime, id: 100)] == nil)
-        #expect(rows[MediaKey(kind: .anime, id: 501)] == ExportCatalogueRow(title: "Romaji Name", anilistId: 9, malId: nil))
-        #expect(rows[MediaKey(kind: .anime, id: 502)] == ExportCatalogueRow(title: "Native Only", anilistId: nil, malId: 5))
-        #expect(rows[MediaKey(kind: .anime, id: 503)] == ExportCatalogueRow(title: nil, anilistId: 7, malId: 6))
+        #expect(rows[MediaKey(kind: .anime, id: 501)] == ExportCatalogueRow(title: "Romaji Name", malId: nil))
+        #expect(rows[MediaKey(kind: .anime, id: 502)] == ExportCatalogueRow(title: "Native Only", malId: 5))
+        #expect(rows[MediaKey(kind: .anime, id: 503)] == ExportCatalogueRow(title: nil, malId: 6))
         await harness.tearDown()
     }
 
@@ -164,7 +164,7 @@ final class ExportIdentityScript: Sendable {
         if let failure = snapshot.failure { return .failure(failure) }
         let ids = LibraryExportFlowTests.inList(request).filter { snapshot.only?.contains($0) ?? true }
         let rows = ids.map {
-            LibraryExportFlowTests.identityRow(id: $0, malId: $0 + 10_000, anilistId: $0 + 20_000, english: "Title \($0)")
+            LibraryExportFlowTests.identityRow(id: $0, malId: $0 + 10_000, english: "Title \($0)")
         }
         let answer = ListRowJSON.response(rows)
         return snapshot.gate.map(answer.held(by:)) ?? answer

@@ -1,5 +1,5 @@
 -- W2 export: plan check for the public catalogue identity lookup (CatalogStore+ExportIdentities):
---   select id,anilist_id,mal_id,title_english,title_romaji,title_native from <medium> where id in (<=500 ids>)
+--   select id,mal_id,title_english,title_romaji,title_native from <medium> where id in (<=500 ids>)
 -- A plan check, not a red/green test: W2 changes no SQL. Disposable local fixture only, never hosted.
 -- Each medium is checked as anon and as authenticated. A negative control (primary key dropped,
 -- rolled back with the transaction) proves the positive check can fail.
@@ -36,7 +36,7 @@ begin
   select string_agg((9100000 + n)::text, ',') into v_ids from generate_series(1, 500) n;
   execute format('set local role %I', p_role);
   execute format(
-    'explain (analyze, format json) select id,anilist_id,mal_id,title_english,title_romaji,title_native from public.%I where id = any(array[%s])',
+    'explain (analyze, format json) select id,mal_id,title_english,title_romaji,title_native from public.%I where id = any(array[%s])',
     p_medium, v_ids) into v_plan;
   reset role;
   insert into lookup_plans values (p_medium, p_role, p_phase, v_plan);

@@ -152,8 +152,8 @@ struct MangaDetailLaneTests {
 
     @Test("Behind the pages names only credited authors; nothing is invented")
     func mangaCredits() {
-        let fujimoto = Author(id: 1, anilistId: nil, nameFull: "Tatsuki Fujimoto", nameNative: nil, imageLarge: nil, description: nil)
-        let unnamed = Author(id: 2, anilistId: nil, nameFull: nil, nameNative: nil, imageLarge: nil, description: nil)
+        let fujimoto = Author(id: 1, nameFull: "Tatsuki Fujimoto", nameNative: nil, imageLarge: nil, description: nil)
+        let unnamed = Author(id: 2, nameFull: nil, nameNative: nil, imageLarge: nil, description: nil)
         let rows = DetailCreditRow.manga(authors: [(fujimoto, "Story & Art"), (unnamed, "Art"), (fujimoto, "Story & Art")], german: false)
         #expect(rows.map(\.role) == ["Story & art"])
         #expect(rows.map(\.name) == ["Tatsuki Fujimoto"])

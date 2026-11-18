@@ -243,12 +243,12 @@ struct NavdetailRenderTests {
         let light = try Self.anime(id: 3, title: "Mushishi", color: "#e8e2c8")
         let manga = try Self.manga(id: 30, title: "Chainsaw Man", color: "#d9c27a")
         var content = AnimeDetailContent()
-        content.studios = [Studio(id: 1, anilistId: nil, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
+        content.studios = [Studio(id: 1, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
         // Enough sections that the page scrolls well past its hero (the collapsed render).
         content.songs = (1...6).map { ThemeSong(kind: $0 % 2 == 0 ? .ending : .opening, sequence: $0, title: "Song \($0)",
                                                 artist: "Artist \($0)", episodes: "1–12") }
         content.characters = (1...4).map { index in
-            (character: Character(id: index, anilistId: nil, nameFull: "Character \(index)", nameNative: nil, imageLarge: nil,
+            (character: Character(id: index, nameFull: "Character \(index)", nameNative: nil, imageLarge: nil,
                                   description: nil, gender: nil, age: nil), role: "MAIN")
         }
 

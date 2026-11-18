@@ -65,7 +65,7 @@ struct DetailAnimeSnapshotTests {
         let sparse = try Self.anime(id: 77, title: "Mushishi", art: "journal-anime-12-cover.jpg", color: nil, episodes: 26,
                                     synopsis: Self.synopsis, genres: [])
         var sparseContent = AnimeDetailContent()
-        sparseContent.studios = [Studio(id: 9, anilistId: nil, name: "Artland", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
+        sparseContent.studios = [Studio(id: 9, name: "Artland", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
         graph.clubs.myClubs = []
         await render(Self.host(AnimeDetailPage(anime: sparse, preview: sparseContent), graph: graph),
                      width: 390, height: 844, name: "detail-anime-untracked-390.png", fullPage: true)
@@ -282,17 +282,17 @@ struct DetailAnimeSnapshotTests {
                                          format: "MANGA", rating: nil, reasonLabel: nil, sourceAuthorName: "Gege Akutami")
         content.characters = [("Yuji Itadori", 22), ("Megumi Fushiguro", 21), ("Nobara Kugisaki", 23), ("Satoru Gojo", 24)]
             .enumerated().map { index, item in
-                (character: Character(id: index + 1, anilistId: nil, nameFull: item.0, nameNative: nil,
+                (character: Character(id: index + 1, nameFull: item.0, nameNative: nil,
                                       imageLarge: artURL("detail-character-\(item.1).png"), description: nil, gender: nil, age: nil),
                  role: "MAIN")
             }
         content.staff = [
-            (staff: Staff(id: 1, anilistId: nil, nameFull: "Gege Akutami", nameNative: nil, imageLarge: nil, description: nil,
+            (staff: Staff(id: 1, nameFull: "Gege Akutami", nameNative: nil, imageLarge: nil, description: nil,
                           primaryOccupations: nil), role: "Original Creator"),
-            (staff: Staff(id: 2, anilistId: nil, nameFull: "Shota Goshozono", nameNative: nil, imageLarge: nil, description: nil,
+            (staff: Staff(id: 2, nameFull: "Shota Goshozono", nameNative: nil, imageLarge: nil, description: nil,
                           primaryOccupations: nil), role: "Director")
         ]
-        content.studios = [Studio(id: 1, anilistId: nil, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
+        content.studios = [Studio(id: 1, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
         content.episodes = [episode(6), episode(7), episode(8, description: "The barrier closes over the city."), episode(9), episode(10)]
         content.songs = [
             ThemeSong(kind: .opening, sequence: 1, title: "Where Our Blue Is", artist: "Tatsuya Kitani", episodes: "1–5"),

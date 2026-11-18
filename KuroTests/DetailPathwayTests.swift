@@ -309,7 +309,7 @@ struct DetailPathwayTests {
     @Test("Credit rows without a target and episode rows without details are not buttons")
     func rowsWithoutTargetAreStatic() {
         #expect(!DetailCreditRow(role: "Original work", name: "Gege Akutami", target: .none).isInteractive)
-        let studio = Studio(id: 1, anilistId: nil, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)
+        let studio = Studio(id: 1, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)
         #expect(DetailCreditRow(role: "Animation", name: "MAPPA", target: .studio(studio)).isInteractive)
         #expect(!AnimeUnitsSection.isExpandable(description: nil, streamURL: nil))
         #expect(AnimeUnitsSection.isExpandable(description: "The barrier closes.", streamURL: nil))

@@ -77,7 +77,7 @@ struct DetailsPassDetailAfterSnapshotTests {
         let untracked = try Self.anime(id: 77, title: "Mushishi", art: "journal-anime-12-cover.jpg", color: nil, episodes: 26,
                                        status: "FINISHED", score: 87)
         var sparse = AnimeDetailContent()
-        sparse.studios = [Studio(id: 9, anilistId: nil, name: "Artland", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
+        sparse.studios = [Studio(id: 9, name: "Artland", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
         sparse.episodes = (1...4).map { Self.episode($0, animeId: 77, title: $0 == 1 ? "The Green Seat" : "Episode \($0)",
                                                        still: $0 <= 2 ? "anime0-banner.jpg" : nil) }
         sparse.cast = [CastMember(character: Self.character(40, "Ginko", "detail-character-180.png"), role: "BACKGROUND",
@@ -307,7 +307,7 @@ struct DetailsPassDetailAfterSnapshotTests {
     }
 
     private static func character(_ id: Int, _ name: String, _ art: String?) -> Character {
-        Character(id: id, anilistId: id, nameFull: name, nameNative: nil, imageLarge: art.map(artURL), description: nil,
+        Character(id: id, nameFull: name, nameNative: nil, imageLarge: art.map(artURL), description: nil,
                   gender: nil, age: nil)
     }
 
@@ -351,7 +351,7 @@ struct DetailsPassDetailAfterSnapshotTests {
                                          coverImage: artURL("journal-manga-23-cover.jpg"), year: 2018,
                                          format: "MANGA", rating: nil, reasonLabel: nil, sourceAuthorName: "Gege Akutami")
         let voices = [CatalogVoiceFixtures.kaji, CatalogVoiceFixtures.hanazawa,
-                      Staff(id: 95_014, anilistId: 95_014, nameFull: "Yui Ishikawa", nameNative: nil, imageLarge: nil,
+                      Staff(id: 95_014, nameFull: "Yui Ishikawa", nameNative: nil, imageLarge: nil,
                             description: nil, primaryOccupations: nil), nil]
         content.cast = [("Yuji Itadori", 22, "MAIN"), ("Megumi Fushiguro", 21, "MAIN"), ("Nobara Kugisaki", 23, "MAIN"),
                         ("Satoru Gojo", 24, "SUPPORTING")]
@@ -360,12 +360,12 @@ struct DetailsPassDetailAfterSnapshotTests {
                            voiceActor: voices[index], language: voices[index] == nil ? nil : "JAPANESE")
             }
         content.staff = [
-            (staff: Staff(id: 1, anilistId: nil, nameFull: "Gege Akutami", nameNative: nil, imageLarge: nil, description: nil,
+            (staff: Staff(id: 1, nameFull: "Gege Akutami", nameNative: nil, imageLarge: nil, description: nil,
                           primaryOccupations: nil), role: "Original Creator"),
-            (staff: Staff(id: 2, anilistId: nil, nameFull: "Shota Goshozono", nameNative: nil, imageLarge: nil, description: nil,
+            (staff: Staff(id: 2, nameFull: "Shota Goshozono", nameNative: nil, imageLarge: nil, description: nil,
                           primaryOccupations: nil), role: "Director")
         ]
-        content.studios = [Studio(id: 1, anilistId: nil, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
+        content.studios = [Studio(id: 1, name: "MAPPA", isAnimationStudio: true, siteUrl: nil, favourites: nil)]
         let titles = [5: "Hidden Inventory", 6: "Premature Death", 7: "Episode 7", 8: nil, 9: "Shibuya", 10: nil]
         content.episodes = (5...10).map { number in
             episode(number, title: titles[number] ?? nil, still: number <= 7 ? ["anime0-banner.jpg", "anime1-banner.jpg", "anime3-banner.jpg"][number % 3] : nil)
@@ -396,7 +396,7 @@ struct DetailsPassDetailAfterSnapshotTests {
         content.characters = [("Denji", "detail-character-181.png"), ("Power", "detail-character-182.png"),
                                ("Makima", "detail-character-180.png")]
             .enumerated().map { index, item in (character: character(100 + index, item.0, item.1), role: "MAIN") }
-        content.authors = [(author: Author(id: 1, anilistId: nil, nameFull: "Tatsuki Fujimoto", nameNative: nil, imageLarge: nil,
+        content.authors = [(author: Author(id: 1, nameFull: "Tatsuki Fujimoto", nameNative: nil, imageLarge: nil,
                                            description: nil), role: "Story & Art")]
         content.chapters = (66...70).map { number in
             MangaChapter(id: 5_000 + number, mangaId: 30, number: number, title: number == 67 ? "Bang" : "Chapter \(number)",

@@ -84,8 +84,8 @@ select tests.ok('search_manga_page hides the list_only manga',
 select tests.as_anon();
 select tests.eq('detail/by-id read (public table) still returns the list_only anime',
   (select count(*) from public.anime where id = 1250002), 1::bigint);
-select tests.eq('export identity lookup shape still returns the list_only manga',
-  (select count(*) from (select id, anilist_id, mal_id, title_english, title_romaji, title_native from public.manga where id in (1250102)) s), 1::bigint);
+select tests.eq('export identity lookup shape (no anilist_id since 20261112100500) still returns the list_only manga',
+  (select count(*) from (select id, mal_id, title_english, title_romaji, title_native from public.manga where id in (1250102)) s), 1::bigint);
 select tests.reset();
 select tests.as_user(tests.uid(1251));
 select tests.eq('unlinkedListTitleStaysReadable: the list row is still there and joins to the title',

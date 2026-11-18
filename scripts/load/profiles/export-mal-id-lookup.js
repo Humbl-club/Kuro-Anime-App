@@ -5,7 +5,7 @@
 // Profiles must not require backend_workload.js; helpers arrive through `core`.
 const NAME = "export-mal-id-lookup";
 const BATCH = 500;
-const SELECT = "id,anilist_id,mal_id,title_english,title_romaji,title_native";
+const SELECT = "id,mal_id,title_english,title_romaji,title_native";
 
 module.exports = {
   name: NAME,

@@ -2,10 +2,10 @@
 --
 -- The Discover readers of the visibility filter. Split from 20261112100400 because their latest definitions
 -- are in prepared files whose hosted state is not established by this task:
---   discover_bundle           20261109200200_discover_newly_added_base_v1.sql (backend latency step 1c, PARKED:
---                             switches the newly-added rails to the base tables). This file is built on that body,
---                             so it carries 1c's change. Apply 1c first, or regenerate this function from the live
---                             body; do NOT apply this file over an older live discover_bundle unintentionally.
+--   discover_bundle           20261109200200_discover_newly_added_base_v1.sql (backend latency step 1c, now SUPERSEDED and a
+--                             no-op: switches the newly-added rails to the base tables). This file is built on that body, so it
+--                             carries 1c's change. 20261112100500 (Task 15d) drops the two newly-added matviews and refuses to run
+--                             while discover_bundle still names them, so apply this file BEFORE 100500.
 --   discover_section_page_v1, discover_mood_v1, _discover_page_v1
 --                             20261104100000 / 20261104100100 (Discover usability). If those are not applied,
 --                             CREATE OR REPLACE here would create them.

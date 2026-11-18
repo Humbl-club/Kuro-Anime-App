@@ -8,7 +8,7 @@ import KuroCore
 // - UTF-8 with a byte order mark (EF BB BF) so spreadsheet apps read umlauts correctly.
 // - RFC 4180 records: CRLF line ends, a cell with a comma, quote, CR or LF in double quotes (`RFC4180.field`).
 //   This file additionally quotes every cell that holds a semicolon or a TAB (`csvField(_:)`).
-// - One header row, exactly `LibraryExport.csvHeader` (20 columns), then one row per library entry: anime
+// - One header row, exactly `LibraryExport.csvHeader` (19 columns), then one row per library entry: anime
 //   before manga, then by Kuro id. List items whose title left the library have no row (they are in the JSON
 //   file and counted in the summary).
 // - An empty cell means "nothing stored" or "not known" (no catalogue row, no source metadata, no unit): the
@@ -37,9 +37,9 @@ import KuroCore
 // CSV with an extra `'` there. The JSON file keeps the exact text and is the lossless format.
 
 extension LibraryExport {
-    /// The CSV header, in column order (20 columns).
+    /// The CSV header, in column order (19 columns).
     public static let csvHeader: [String] = [
-        "kind", "kuro_id", "anilist_id", "mal_id", "title", "status", "progress", "progress_label", "unit_id",
+        "kind", "kuro_id", "mal_id", "title", "status", "progress", "progress_label", "unit_id",
         "volumes_progress", "rating", "verdict", "repeat_count", "started_on", "finished_on", "notes", "tags",
         "custom_lists", "created_at", "updated_at",
     ]
@@ -149,7 +149,6 @@ extension LibraryExport {
         cells.reserveCapacity(csvHeader.count)
         cells.append(key.kind.rawValue)
         cells.append(String(key.id))
-        cells.append(row?.anilistId.map(String.init) ?? "")
         cells.append(row?.malId.map(String.init) ?? "")
         cells.append(catalogueTitle(for: key, in: input.catalogue) ?? "")
         cells.append(entry.status.rawValue)
@@ -182,7 +181,7 @@ extension LibraryExport {
 //     "entries": [ ... ], "lists": [ ... ] | null }
 //
 // Text is exact (no neutralisation). Unknown values are `null`, never 0 and never "":
-// - `anilist_id`, `mal_id`, `title` are null without a catalogue row; `unit_id` and `progress_label` are null
+// - `mal_id`, `title` are null without a catalogue row; `unit_id` and `progress_label` are null
 //   when the entry has none (never inferred);
 // - `repeat_count`, `source` and the two dates are null when the server values were not read;
 // - `started_on` / `finished_on` are `{"raw": <stored text, verbatim>, "precision": "year" | "month" | "day" |
@@ -248,7 +247,6 @@ extension LibraryExport {
         var object: [String: Any] = [:]
         object["kind"] = key.kind.rawValue
         object["kuro_id"] = key.id
-        object["anilist_id"] = jsonValue(row?.anilistId)
         object["mal_id"] = jsonValue(row?.malId)
         object["title"] = jsonValue(catalogueTitle(for: key, in: input.catalogue))
         object["status"] = entry.status.rawValue
