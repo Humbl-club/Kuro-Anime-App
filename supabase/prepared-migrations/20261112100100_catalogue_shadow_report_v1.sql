@@ -39,6 +39,37 @@ begin
 end;
 $$;
 
+-- Safe casts for shadow values (jsonb ->> text). A value that is not a plain integer / boolean returns
+-- null, so one bad shadow row counts as a disagreement (and is counted as invalid) instead of
+-- aborting the whole report.
+create or replace function public.catalogue_try_int(p_text text)
+returns integer
+language plpgsql
+immutable
+set search_path = public, extensions
+as $$
+begin
+  if p_text ~ '^-?[0-9]{1,9}$' then
+    return p_text::integer;
+  end if;
+  return null;
+end;
+$$;
+
+create or replace function public.catalogue_try_bool(p_text text)
+returns boolean
+language plpgsql
+immutable
+set search_path = public, extensions
+as $$
+begin
+  if p_text in ('true', 'false') then
+    return p_text::boolean;
+  end if;
+  return null;
+end;
+$$;
+
 create or replace function public.catalogue_shadow_report_v1(p_medium text, p_sample integer default 20)
 returns jsonb
 language plpgsql
@@ -112,7 +143,7 @@ begin
       select 'facts_start_year', id, t1, t5, tl, tc,
              (j->>'start_date_year') is not null,
              start_date_year is not null and (j->>'start_date_year') is not null,
-             coalesce((j->>'start_date_year')::integer = start_date_year, false),
+             coalesce(public.catalogue_try_int(j->>'start_date_year') = start_date_year, false),
              to_jsonb(start_date_year), j->'start_date_year'
       from b
       union all
@@ -133,14 +164,14 @@ begin
       select 'facts_episodes', id, t1, t5, tl, tc,
              (j->>'episodes') is not null,
              status = 'FINISHED' and episodes is not null and (j->>'episodes') is not null,
-             coalesce((j->>'episodes')::integer = episodes, false),
+             coalesce(public.catalogue_try_int(j->>'episodes') = episodes, false),
              to_jsonb(episodes), j->'episodes'
       from b
       union all
       select 'adult', id, t1, t5, tl, tc,
              (j->>'is_adult') is not null,
              (j->>'is_adult') is not null,
-             coalesce((j->>'is_adult')::boolean = is_adult, false),
+             coalesce(public.catalogue_try_bool(j->>'is_adult') = is_adult, false),
              to_jsonb(is_adult), j->'is_adult'
       from b
     ),
@@ -202,17 +233,27 @@ begin
         'accepted_links', (select count(*) from public.catalogue_id_links
                             where kind = $1 and status = 'accepted' and source in ('wikidata', 'ann', 'mangaupdates')),
         'proposed_links', (select count(*) from public.catalogue_id_links where kind = $1 and status = 'proposed'),
+        -- Gates that can fail (key kept for scripts/catalogue_shadow_report.js): the same Kuro title holding two accepted links for one source (the
+        -- partial unique index forbids it; a nonzero count means the index is missing or bypassed),
+        -- and accepted links whose target title no longer exists (the existence trigger forbids it).
         'duplicate_accepted_links', (select count(*) from (
                             select 1 from public.catalogue_id_links
                             where kind = $1 and status = 'accepted'
-                            group by source, source_key having count(*) > 1) d),
+                            group by kuro_id, source having count(*) > 1) d),
+        'orphan_accepted_links', (select count(*) from public.catalogue_id_links l
+                            where l.kind = $1 and l.status = 'accepted'
+                              and not exists (select 1 from ranked r where r.id = l.kuro_id)),
         'proposed_only_titles', (select count(distinct p.kuro_id) from public.catalogue_id_links p
                             where p.kind = $1 and p.status = 'proposed'
                               and not exists (select 1 from acc where acc.id = p.kuro_id))),
+      'invalid_shadow_values', (select count(*) from public.catalogue_shadow_values
+                            where medium = $1 and value is not null and jsonb_typeof(value) <> 'null'
+                              and ((field in ('start_date_year', 'episodes') and public.catalogue_try_int(value #>> '{}') is null)
+                                or (field = 'is_adult' and public.catalogue_try_bool(value #>> '{}') is null))),
       'adult', jsonb_build_object(
         'review_size', (select count(*) from public.catalogue_shadow_values where medium = $1 and field = 'review:adult'),
-        'becomes_non_adult', (select count(*) from b where (j->>'is_adult') = 'false' and is_adult),
-        'newly_adult', (select count(*) from b where (j->>'is_adult') = 'true' and not is_adult))
+        'becomes_non_adult', (select count(*) from b where public.catalogue_try_bool(j->>'is_adult') = false and is_adult),
+        'newly_adult', (select count(*) from b where public.catalogue_try_bool(j->>'is_adult') = true and not is_adult))
     )
   $q$, _episodes_expr, p_medium, p_medium || '_id', p_medium || '_user_lists');
 
@@ -222,8 +263,12 @@ end;
 $$;
 
 revoke all on function public.catalogue_norm_title(text) from public, anon, authenticated;
+revoke all on function public.catalogue_try_int(text) from public, anon, authenticated;
+revoke all on function public.catalogue_try_bool(text) from public, anon, authenticated;
 revoke all on function public.catalogue_shadow_report_v1(text, integer) from public, anon, authenticated;
 grant execute on function public.catalogue_norm_title(text) to service_role;
+grant execute on function public.catalogue_try_int(text) to service_role;
+grant execute on function public.catalogue_try_bool(text) to service_role;
 grant execute on function public.catalogue_shadow_report_v1(text, integer) to service_role;
 
 notify pgrst, 'reload schema';

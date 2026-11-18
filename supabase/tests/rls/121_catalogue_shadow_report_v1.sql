@@ -141,7 +141,7 @@ select tests.eq('identity, in_lists tier is fully covered', (select (j#>'{groups
 select tests.eq('identity, curated tier is not covered (proposed only)', (select (j#>'{groups,identity,curated}') - 'disagree_sample' from r121),
   '{"total":1,"covered":0,"compared":0,"agreed":0}'::jsonb);
 select tests.eq('identity gate counts', (select j->'identity_gate' from r121),
-  '{"accepted_links":4,"proposed_links":1,"duplicate_accepted_links":0,"proposed_only_titles":1}'::jsonb);
+  '{"accepted_links":4,"proposed_links":1,"duplicate_accepted_links":0,"orphan_accepted_links":0,"proposed_only_titles":1}'::jsonb);
 
 -- adult: shadow says: 2 false (today true: becomes non-adult), 3 true (today false: newly adult), 6 true (today true)
 select tests.eq('adult, all tier', (select (j#>'{groups,adult,all}') - 'disagree_sample' from r121),
@@ -154,6 +154,53 @@ create temp table r121b as select public.catalogue_shadow_report_v1('anime', 0) 
 select tests.eq('p_sample 0 gives empty samples but the same counts',
   (select (j#>'{groups,facts_start_year,all}') from r121b),
   '{"total":6,"covered":5,"compared":5,"agreed":4,"disagree_sample":[]}'::jsonb);
+
+-- ---- 3b. invalid shadow values never abort the report -------------------------------------
+-- A shadow year / episode count / adult flag that is not a plain integer / boolean counts as a
+-- compared disagreement (and in invalid_shadow_values) instead of raising a cast error.
+insert into catalogue_shadow_values (medium, media_id, field, value, source) values
+  ('anime', 1210004, 'start_date_year', '"abc"', 'wikidata'),
+  ('anime', 1210004, 'is_adult',        '"maybe"', 'ann'),
+  ('anime', 1210005, 'episodes',        '2.5', 'ann');
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+set local role service_role;
+create temp table r121c as select public.catalogue_shadow_report_v1('anime', 5) as j;
+grant select on r121c to public;
+reset role;
+select tests.eq('invalid year: covered and compared, never agreed',
+  (select (j#>'{groups,facts_start_year,all}') - 'disagree_sample' from r121c), '{"total":6,"covered":6,"compared":6,"agreed":4}'::jsonb);
+select tests.eq('invalid episode count: compared and a disagreement',
+  (select (j#>'{groups,facts_episodes,all}') - 'disagree_sample' from r121c), '{"total":6,"covered":3,"compared":3,"agreed":1}'::jsonb);
+select tests.eq('invalid adult flag: compared and a disagreement',
+  (select (j#>'{groups,adult,all}') - 'disagree_sample' from r121c), '{"total":6,"covered":4,"compared":4,"agreed":1}'::jsonb);
+select tests.eq('the invalid values are counted', (select j->'invalid_shadow_values' from r121c), '3'::jsonb);
+select tests.eq('valid data reports zero invalid values', (select j->'invalid_shadow_values' from r121), '0'::jsonb);
+select tests.eq('safe casts: junk gives null, plain values convert',
+  (select array[public.catalogue_try_int('2000')::text, public.catalogue_try_int('2.5')::text, public.catalogue_try_int('99999999999')::text,
+                public.catalogue_try_bool('true')::text, public.catalogue_try_bool('1')::text]),
+  array['2000', null, null, 'true', null]::text[]);
+delete from catalogue_shadow_values where (media_id, field) in ((1210004, 'start_date_year'), (1210004, 'is_adult'), (1210005, 'episodes'));
+
+-- ---- 3c. the identity gates can fail ---------------------------------------------------------
+-- The unique index and the existence trigger normally make both counts 0; with them bypassed
+-- inside this transaction the gates must report the damage.
+drop index public.catalogue_id_links_accepted_kuro_uq;
+insert into catalogue_id_links (kind, kuro_id, source, source_key, method, confidence, status, decided_at)
+  values ('anime', 1210002, 'ann', '22', 'title_match', 0.95, 'accepted', now());
+set local session_replication_role = replica;
+insert into catalogue_id_links (kind, kuro_id, source, source_key, method, confidence, status, decided_at)
+  values ('anime', 1219999, 'wikidata', 'Q9999', 'wikidata', 1, 'accepted', now());
+set local session_replication_role = origin;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+set local role service_role;
+create temp table r121d as select public.catalogue_shadow_report_v1('anime', 5) as j;
+grant select on r121d to public;
+reset role;
+select tests.eq('one title with two accepted links for one source is counted',
+  (select j#>'{identity_gate,duplicate_accepted_links}' from r121d), '1'::jsonb);
+select tests.eq('an accepted link to a deleted title is counted',
+  (select j#>'{identity_gate,orphan_accepted_links}' from r121d), '1'::jsonb);
+delete from catalogue_id_links where source_key in ('22', 'Q9999');
 
 -- ---- 4. manga and validation ----------------------------------------------------------
 select tests.eq('manga report is separate: only the manga shadow row exists and no manga titles do',
