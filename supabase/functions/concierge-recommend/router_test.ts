@@ -6,6 +6,7 @@
 //      (or bash scripts/quality-gates/test_router_offline.sh). No permissions, no network.
 import { strict as assert } from "node:assert";
 import {
+  inferGimmickTagIds,
   isClassicIntent,
   isGatewayIntent,
   isHiddenGemsIntent,
@@ -135,4 +136,16 @@ Deno.test("fallback modes: only cases targeting the six v8-only modes degrade", 
   }
   console.log(`[router-rules] fallback defaultModes(): ${degraded.length}/${CASES.length} cases lose their v8 mode: ${degraded.join(" ")}`);
   assert.equal(degraded.length, 13);
+});
+
+Deno.test("reincarnat/reborn prefixes match whole words that start with them (gimmick tag + isekai mode)", () => {
+  for (const word of ["reincarnated", "reincarnation", "Reincarnate", "reborn", "tensei", "Wiedergeboren", "reinkarnation"]) {
+    assert.deepEqual(inferGimmickTagIds(`anime about ${word} hero`), [1023], word);
+  }
+  for (const word of ["reincarnated", "reincarnation", "reborn"]) {
+    assert.equal(mapStrongGenreToModeId(`a story of ${word} heroes`), "isekai", word);
+  }
+  // A prefix inside a longer word does not match.
+  assert.deepEqual(inferGimmickTagIds("unreborn tension"), []);
+  assert.deepEqual(inferGimmickTagIds("a quiet slice of life"), []);
 });

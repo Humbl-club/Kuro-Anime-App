@@ -587,7 +587,7 @@ export function mapStrongGenreToModeId(text: string, excludedGenres: string[] = 
   if (!excl.has("romance") && /\b(shounen ai|shonen ai)\b/.test(t)) return "romance_serious";
   // "Magical girl" / mahou shoujo shouldn't be treated as generic fantasy.
   if (/\b(mahou shoujo|magical girl)\b/.test(t)) return "premium_picks";
-  if (!excl.has("isekai") && /\b(isekai|reincarnat|reborn|another world|truck[- ]?kun)\b/.test(t)) return "isekai";
+  if (!excl.has("isekai") && /\b(isekai|reincarnat\w*|reborn\w*|another world|truck[- ]?kun)\b/.test(t)) return "isekai";
   if (!excl.has("romance") && /\b(romcom|rom com|romantic comedy)\b/.test(t)) return "romcom";
   if (!excl.has("romance") && /\b(serious romance|romance drama|bittersweet|heartbreak|deep romance)\b/.test(t)) return "romance_serious";
   // F28 (router_de_005): German 'romantisch' (inflections folded above) routes like English 'romantic'.
@@ -742,7 +742,7 @@ export function inferGimmickTagIds(text: string): number[] {
   const t = text.toLowerCase();
   const ids: number[] = [];
   if (/\b(isekai)\b/.test(t)) ids.push(350);
-  if (/\b(reincarnat|reborn|tensei|wiedergeboren|reinkarnat)\b/.test(t)) ids.push(1023);
+  if (/\b(reincarnat|reborn|tensei|wiedergeboren|reinkarnat)\w*\b/.test(t)) ids.push(1023);
   if (/\b(another world|in another world|isekai)\b/.test(t)) ids.push(350);
   if (/\b(slime)\b/.test(t)) ids.push(350, 1023);
   if (/\b(harem)\b/.test(t)) ids.push(358, 9154, 18064);
