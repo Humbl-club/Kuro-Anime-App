@@ -247,7 +247,8 @@ final class AppComposition {
             malCredentials: malCredentials,
             userDefaults: userDefaults
         )
-        let collection = makeCollection(client: client, accountSession: accountSession)
+        let collection = makeCollection(client: client, accountSession: accountSession, userDefaults: userDefaults,
+                                        groupingEnabled: { shell.flags.collectionSeriesGroupingV1Enabled })
         let support = makeSupport(client: client, accountSession: accountSession)
         // W9 wires its tags and custom-lists providers into `libraryExportSeams` (tagsByKey / customLists) here.
         let libraryExport = makeLibraryExport(
@@ -295,6 +296,7 @@ final class AppComposition {
         clubs.home = home
         collection.home = home
         collection.library = wiring.store
+        collection.catalog = publicData.catalog
         assistant.libraryHook.connect(to: libraryActions)
 
         let identity = IdentityStore(configError: client == nil ? configError : nil)
@@ -612,8 +614,14 @@ final class AppComposition {
     /// The Collection owner over `client` (the single SDK client; never a second one): the account's
     /// card pages and feed (account-scoped). The Collection change sink points at it once it exists
     /// (`LibraryChangeSinks.connect(releases:collection:imports:clubs:)`).
-    static func makeCollection(client: SupabaseClient?, accountSession: AccountSessionCoordinator) -> CollectionStore {
-        CollectionStore(client: client, accountSession: accountSession)
+    static func makeCollection(
+        client: SupabaseClient?,
+        accountSession: AccountSessionCoordinator,
+        userDefaults: UserDefaults = .standard,
+        groupingEnabled: @escaping @MainActor () -> Bool = { false }
+    ) -> CollectionStore {
+        CollectionStore(client: client, accountSession: accountSession,
+                        userDefaults: userDefaults, groupingEnabled: groupingEnabled)
     }
 
     /// The public-data owners over `client` (the single SDK client; never a second one).

@@ -29,19 +29,29 @@ struct FacadeHarness {
     let notifications: FakeNotificationCenter
     private let suiteName: String
 
-    init(backend: FakeLibraryBackend = FakeLibraryBackend()) throws {
+    /// `userDefaults` lets a test "relaunch" over the same device store (the caller removes its domain);
+    /// `launchArguments` feed the graph's FeatureFlags (for example `--ff-on=collection_series_grouping_v1`).
+    init(
+        backend: FakeLibraryBackend = FakeLibraryBackend(),
+        userDefaults: UserDefaults? = nil,
+        launchArguments: [String] = []
+    ) throws {
         server = StubServer()
         self.backend = backend
-        suiteName = "kuro.tests.library-facade.\(UUID().uuidString)"
-        defaults = try #require(UserDefaults(suiteName: suiteName))
+        let name = "kuro.tests.library-facade.\(UUID().uuidString)"
+        suiteName = name
+        defaults = try userDefaults ?? #require(UserDefaults(suiteName: name))
+        ownsDefaults = userDefaults == nil
         notifications = FakeNotificationCenter()
         service = AppComposition.testingGraph(
             testingUserDefaults: defaults,
             notificationCenter: notifications,
             client: StubSupabase.makeClient(server: server),
-            libraryBackend: backend
+            libraryBackend: backend,
+            flags: launchArguments.isEmpty ? nil : FeatureFlags(userDefaults: defaults, launchArguments: launchArguments)
         )
     }
+    private let ownsDefaults: Bool
 
     /// Signs in and waits for the session funnel's Library refresh.
     func signIn(_ userId: String = LifecycleFixtures.userA) async {
@@ -86,7 +96,7 @@ struct FacadeHarness {
 
     func tearDown() async {
         await service.session.endSession()
-        defaults.removePersistentDomain(forName: suiteName)
+        if ownsDefaults { defaults.removePersistentDomain(forName: suiteName) }
         server.shutDown()
     }
 }

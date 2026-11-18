@@ -36,9 +36,17 @@ final class CollectionStore: AccountScopedState {
     /// The shared account coordinator (every publication is checked against it).
     let accountSession: AccountSessionCoordinator
 
-    init(client: SupabaseClient?, accountSession: AccountSessionCoordinator) {
+    /// Device store of the per-account "Group seasons" choice (W6).
+    @ObservationIgnored let userDefaults: UserDefaults
+    /// `collection_series_grouping_v1`, read at call time (default off: no grouping request is ever sent).
+    @ObservationIgnored let groupingEnabled: @MainActor () -> Bool
+
+    init(client: SupabaseClient?, accountSession: AccountSessionCoordinator,
+         userDefaults: UserDefaults = .standard, groupingEnabled: @escaping @MainActor () -> Bool = { false }) {
         self.client = client
         self.accountSession = accountSession
+        self.userDefaults = userDefaults
+        self.groupingEnabled = groupingEnabled
     }
 
     /// The SDK client, or `MissingSupabaseConfiguration` when the app has none.
@@ -79,6 +87,15 @@ final class CollectionStore: AccountScopedState {
     private(set) var importPublicationRevision = 0
     weak var home: HomeStore?
     weak var library: LibraryStore?
+    /// Reviewed series membership (W6); wired like `library`.
+    weak var catalog: CatalogStore?
+    /// Cards of grouped members that are not on the loaded feed (account-scoped; W6).
+    var seriesMemberMedia: [MediaKey: Media] = [:]
+    /// Bumped when the current account's "Group seasons" choice is written (makes the device read observable).
+    var groupSeasonsRevision = 0
+    @ObservationIgnored var seriesRowsMemo: (medium: MediaKind, version: Int, entries: [LibraryEntry], rows: [SeriesListRow])?
+    @ObservationIgnored var seriesPrepareGeneration = 0
+    @ObservationIgnored var seriesChangeTask: Task<Void, Never>?
     var importedTitleKeys: Set<MediaKey>?
     var importedAccount: AccountContext?
     var importedMedia: [Media] = []
@@ -127,6 +144,8 @@ final class CollectionStore: AccountScopedState {
         seriesChildrenLoading = []
         listPreviewGeneration += 1
         listPreviewTask?.cancel(); listPreviewTask = nil
+        seriesPrepareGeneration += 1
+        seriesChangeTask?.cancel(); seriesChangeTask = nil
     }
 
     /// Empties the feed, cursor, flags, filter and error. Account cancellation already invalidated
@@ -147,6 +166,16 @@ final class CollectionStore: AccountScopedState {
         requestedListFilter = nil
         listPreview = [:]; listPreviewFailed = false; listPreviewLoadedAt = nil
         lastListAdvance = nil
+        // W6: the next account's "Group seasons" choice is read from the device store on access.
+        seriesMemberMedia = [:]
+        seriesRowsMemo = nil
+        groupSeasonsRevision += 1
+    }
+
+    /// Confirmed account deletion: removes the deleted account's "Group seasons" choice from this device.
+    func removeDeletedAccountData(userId: String) async throws {
+        userDefaults.removeObject(forKey: Self.groupSeasonsKey(userId: userId))
+        groupSeasonsRevision += 1
     }
 
     // MARK: - Collection feed (anime + manga interleaved)
@@ -399,6 +428,7 @@ final class CollectionStore: AccountScopedState {
     /// projection itself is never re-fetched: the Library store holds it.
     func libraryDidChange(_ change: LibraryChange) {
         guard accountSession.isCurrent(change.account) else { return }
+        startSeriesMembershipRead(for: change)   // W6; nothing while collection_series_grouping_v1 is off
         guard !change.isProgressOnly else { return }
         // Profile's "Your lists" covers are re-read on its next open.
         listPreviewLoadedAt = nil
