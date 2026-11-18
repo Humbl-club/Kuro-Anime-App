@@ -16,6 +16,7 @@ import { acquireImportLock, finishImportRun, releaseImportLock, startImportRun }
 import type { HandlerOutcome, IntakeDeps, RunContext } from "./context.ts";
 import { clampInt, type Medium } from "./store.ts";
 import { runAnn } from "./ann.ts";
+import { runMangaUpdates } from "./mangaupdates.ts";
 import { runWikidata } from "./wikidata.ts";
 
 export type { IntakeDeps } from "./context.ts";
@@ -27,6 +28,7 @@ export type HandlerName = (typeof HANDLER_NAMES)[number];
 export const HANDLERS: Partial<Record<HandlerName, (ctx: RunContext) => Promise<HandlerOutcome>>> = {
   wikidata: runWikidata,
   ann: runAnn,
+  mangaupdates: runMangaUpdates,
 };
 
 /** Which media each handler serves; absent means both. */
