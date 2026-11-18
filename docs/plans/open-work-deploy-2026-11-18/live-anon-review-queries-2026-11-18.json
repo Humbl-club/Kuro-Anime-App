@@ -1,0 +1,248 @@
+{
+  "Q10_club_peer": [
+    {
+      "d": "CREATE OR REPLACE FUNCTION public.club_peer_display_name(p_other uuid)\n RETURNS text\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'extensions'\nAS $function$\ndeclare\n  v_name text;\nbegin\n  if not public.shares_club_at_least(p_other, 'status') then\n    return null;\n  end if;\n  select nullif(trim(coalesce(p.display_name, '')), '') into v_name\n  from public.profiles p\n  where p.id = p_other;\n  return v_name;\nend;\n$function$\n"
+    }
+  ],
+  "Q11_auth_service_only": [
+    {
+      "can": true,
+      "s": "public.get_provider_availability_refresh_candidates(integer,text,integer,integer)"
+    },
+    {
+      "can": true,
+      "s": "public.publish_mapping_revision(uuid)"
+    },
+    {
+      "can": true,
+      "s": "public.recompute_media_realm_llm_deltas(real,text)"
+    }
+  ],
+  "Q12_cron_owners": [
+    {
+      "jobname": "cleanup-cron-history",
+      "username": "postgres"
+    },
+    {
+      "jobname": "concierge_housekeeping_daily",
+      "username": "postgres"
+    },
+    {
+      "jobname": "contact-messages-retention",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-import-anime-hourly",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-import-anime-weekly",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-import-manga-hourly",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-import-manga-weekly",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-import-runs-retention",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-refresh-matviews",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-release-intake-airing-hourly",
+      "username": "postgres"
+    },
+    {
+      "jobname": "kuro-release-intake-manga-daily",
+      "username": "postgres"
+    },
+    {
+      "jobname": "manga-chapter-enrich-15m",
+      "username": "postgres"
+    },
+    {
+      "jobname": "manga-chapter-enrich-nightly-sweep",
+      "username": "postgres"
+    },
+    {
+      "jobname": "manga-source-review-auto-expire-daily",
+      "username": "postgres"
+    },
+    {
+      "jobname": "mirror-images-anime-manga-0",
+      "username": "postgres"
+    },
+    {
+      "jobname": "mirror-images-anime-manga-200",
+      "username": "postgres"
+    },
+    {
+      "jobname": "mirror-images-anime-manga-400",
+      "username": "postgres"
+    },
+    {
+      "jobname": "mirror-images-character",
+      "username": "postgres"
+    },
+    {
+      "jobname": "mirror-images-staff",
+      "username": "postgres"
+    },
+    {
+      "jobname": "outbound-link-ledger-retention",
+      "username": "postgres"
+    },
+    {
+      "jobname": "rag-cache-cleanup",
+      "username": "postgres"
+    },
+    {
+      "jobname": "realm-affinity-refresh",
+      "username": "postgres"
+    },
+    {
+      "jobname": "realm-membership-refresh",
+      "username": "postgres"
+    },
+    {
+      "jobname": "realm-similar-drive-5m",
+      "username": "postgres"
+    },
+    {
+      "jobname": "realm-similar-nightly",
+      "username": "postgres"
+    },
+    {
+      "jobname": "realm-tier-refresh",
+      "username": "postgres"
+    },
+    {
+      "jobname": "taste-profile-drain-15m",
+      "username": "postgres"
+    },
+    {
+      "jobname": "taste-tag-stats-decay",
+      "username": "postgres"
+    },
+    {
+      "jobname": "taste-tag-vectors-refresh",
+      "username": "postgres"
+    }
+  ],
+  "Q1_not_postgres_owned": [],
+  "Q2_policies_anon_calling_funcs": [],
+  "Q3_views_anon_calling_funcs": [],
+  "Q4_defaults_anon_insert": [
+    {
+      "fn": "generate_invite_code(integer)",
+      "rel": "clubs"
+    }
+  ],
+  "Q5_default_acl": [
+    {
+      "defaclacl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "defaclobjtype": "f",
+      "role": "postgres"
+    },
+    {
+      "defaclacl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+      "defaclobjtype": "f",
+      "role": "supabase_admin"
+    }
+  ],
+  "Q6_auth_only_via_public": [],
+  "Q7_ext_funcs_anon": [],
+  "Q8_allowlist_resolves": [
+    {
+      "r": "check_concierge_rate_limit(text,text,integer,integer,integer)",
+      "s": "public.check_concierge_rate_limit(text,text,integer,integer,integer)"
+    },
+    {
+      "r": "get_concierge_config()",
+      "s": "public.get_concierge_config()"
+    },
+    {
+      "r": "search_titles(text,text,integer)",
+      "s": "public.search_titles(text,text,integer)"
+    },
+    {
+      "r": "normalize_title(text)",
+      "s": "public.normalize_title(text)"
+    },
+    {
+      "r": "discover_bundle(integer,integer)",
+      "s": "public.discover_bundle(integer,integer)"
+    },
+    {
+      "r": "discover_section_page_v1(text,text,text,text,text,text,integer,integer)",
+      "s": "public.discover_section_page_v1(text,text,text,text,text,text,integer,integer)"
+    },
+    {
+      "r": "discover_mood_v1(text,text,integer,integer)",
+      "s": "public.discover_mood_v1(text,text,integer,integer)"
+    },
+    {
+      "r": "media_franchise_ids_v1(integer[],integer[])",
+      "s": "public.media_franchise_ids_v1(integer[],integer[])"
+    },
+    {
+      "r": "recommend_ids_similar_to_seeds(text,integer[],integer,boolean)",
+      "s": "public.recommend_ids_similar_to_seeds(text,integer[],integer,boolean)"
+    },
+    {
+      "r": "media_similar_v1(text,integer,integer)",
+      "s": "public.media_similar_v1(text,integer,integer)"
+    },
+    {
+      "r": "browse_anime_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)",
+      "s": "public.browse_anime_page(text,text,integer,integer,text,integer,timestamptz,integer,integer,integer,integer,text)"
+    },
+    {
+      "r": "browse_manga_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)",
+      "s": "public.browse_manga_page(text,text,integer,integer,text,integer,timestamptz,integer,integer,integer,integer,text)"
+    },
+    {
+      "r": "search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)",
+      "s": "public.search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)"
+    },
+    {
+      "r": "search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)",
+      "s": "public.search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)"
+    },
+    {
+      "r": "get_media_ladder(text,integer)",
+      "s": "public.get_media_ladder(text,integer)"
+    },
+    {
+      "r": "get_manga_chapter_status(integer)",
+      "s": "public.get_manga_chapter_status(integer)"
+    },
+    {
+      "r": "media_release_schedule_v1(text,integer,integer)",
+      "s": "public.media_release_schedule_v1(text,integer,integer)"
+    },
+    {
+      "r": "media_themes_v1(integer)",
+      "s": "public.media_themes_v1(integer)"
+    },
+    {
+      "r": "anime_cast_v1(integer,text,integer)",
+      "s": "public.anime_cast_v1(integer,text,integer)"
+    },
+    {
+      "r": "character_voice_actors_v1(integer,text)",
+      "s": "public.character_voice_actors_v1(integer,text)"
+    },
+    {
+      "r": "staff_voice_roles_v1(integer,integer)",
+      "s": "public.staff_voice_roles_v1(integer,integer)"
+    }
+  ]
+}
