@@ -195,7 +195,7 @@ final class ImportWorkflowPresentation {
     }
 
     func match(_ item: ImportReviewItem, mediaId: Int) async {
-        guard let job, job.phase == .reviewing, item.mediaId == nil, item.disposition == .unmatched else { return }
+        guard let job, job.phase == .reviewing, item.mediaId == nil, item.disposition == .unmatched, !item.isAdultNotListed else { return }
         await perform { origin in
             let result = try await self.imports.matchImportItem(jobId: job.jobId, item: item, mediaId: mediaId)
             guard self.isCurrent(origin) else { return }

@@ -9,13 +9,21 @@ extension CollectionStore {
     /// This is a temporary selection over Library, never a second tracking list.
     func showImportedTitles(_ keys: Set<MediaKey>) {
         guard let context = accountSession.current else { return }
-        importedAccount = context; importedTitleKeys = keys
+        importedAccount = context; importedTitleKeys = keys; selectionSource = .imported
         importedGeneration += 1; importedMedia = []; importedOffset = 0; importedHasMore = !keys.isEmpty
         importedLoadTask?.cancel()
     }
 
+    /// A tag filter: the same paging and hydration as an import selection, over keys chosen from the whole
+    /// tag index (never only the loaded pages).
+    func showTaggedTitles(_ tag: String, keys: Set<MediaKey>) {
+        showImportedTitles(keys)
+        if importedTitleKeys != nil { selectionSource = .tag(tag) }
+    }
+
     func clearImportedTitles() {
         importedGeneration += 1; importedLoadTask?.cancel(); importedLoadTask = nil
+        selectionSource = nil
         importedTitleKeys = nil; importedAccount = nil; importedMedia = []; importedOffset = 0; importedHasMore = false
     }
 

@@ -206,4 +206,40 @@ import KuroLibrary
         let plain = try Self.items(adult: [], plainUnmatched: ["7"], new: [])
         #expect(plain.first?.isAdultNotListed == false)
     }
+
+    /// A manual match onto an 18+ row is refused by the server (ADULT_NOT_LISTED); the client must neither
+    /// offer nor send one for a row already marked that way.
+    @Test func manualMatchIsNotSentForAdultNotListedRows() async throws {
+        let harness = try PublicDataHarness()
+        await harness.service.session.applySession(userId: LifecycleFixtures.userA, email: "adult-match@example.com")
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("adult-match-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let hook = LibraryRefreshHook()
+        hook.connect(to: harness.service.libraryActions)
+        let imports = ImportsService(client: StubSupabase.makeClient(server: harness.server),
+            accountSession: harness.service.accountSession, library: harness.service.library,
+            catalog: harness.service.catalog, libraryHook: hook, importJournal: try LibraryImportPageJournal(directory: directory),
+            malCredentials: InMemoryMALCredentialStore())
+        let adult = try #require(try Self.items(adult: ["111"], plainUnmatched: [], new: []).first)
+        do {
+            _ = try await imports.matchImportItem(jobId: "job-adult", item: adult, mediaId: 5)
+            Issue.record("a match for an ADULT_NOT_LISTED row must be refused")
+        } catch let failure as ImportFailure {
+            #expect(failure == .invalidInput("18+ titles are not listed in Kuro."))
+        }
+        #expect(harness.requests(to: "rpc/prepare_import_chunk_v2").isEmpty)
+
+        let outcome = try JSONDecoder().decode(ImportOutcome.self, from: Data(#"""
+            {"job_id":"job-adult","selection":{"provider":"anilist","source_kind":"account","source_identity":"x","media":["anime"],"statuses":[]},
+             "phase":"reviewing","counts":{"unmatched":1,"adult_not_listed":1},"exhausted_media":{"anime":true},"home_revisions":{},
+             "projection_ready":false,"undo_available":false,"undo_action_id":null,"history_available":true}
+            """#.utf8))
+        let screen = ImportWorkflowPresentation(imports: imports, job: outcome)
+        screen.activate()
+        await screen.match(adult, mediaId: 5)
+        #expect(screen.failure == nil, "the presentation does not even attempt the match")
+        #expect(harness.requests(to: "rpc/prepare_import_chunk_v2").isEmpty)
+        screen.close()
+        await harness.tearDown()
+    }
 }

@@ -349,6 +349,9 @@ extension ImportsService {
 
     func matchImportItem(jobId: String, item: ImportReviewItem, mediaId: Int) async throws -> ImportOutcome {
         try await runWorkflow { origin in
+            // The server refuses a manual match onto an 18+ row (ADULT_NOT_LISTED); never send one for a row
+            // already marked that way.
+            guard !item.isAdultNotListed else { throw ImportFailure.invalidInput("18+ titles are not listed in Kuro.") }
             guard mediaId > 0, item.mediaId == nil, item.disposition == .unmatched,
                   var manifest = try await self.localWorkflow(jobId: jobId, origin: origin),
                   manifest.phase == .reviewing, manifest.decisions == nil else {

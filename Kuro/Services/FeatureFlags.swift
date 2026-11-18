@@ -66,6 +66,8 @@ final class FeatureFlags {
     var collectionUpNextV1Enabled: Bool { evaluate("collection_up_next_v1") }
     /// W6: Collection shows one row per reviewed series. Default off (0 %); checked before any membership or card request.
     var collectionSeriesGroupingV1Enabled: Bool { evaluate("collection_series_grouping_v1") }
+    /// W9: tags, custom lists and the tags-and-lists sheet. Default off (0 %); both owners read it at call time, before any request.
+    var libraryOrganiseV1Enabled: Bool { evaluate("library_organise_v1") }
     var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
     /// W4: Search asks `search_*_page_v2` for the hidden 18+ count and shows one plain line (off by default).
     var searchAdultNoticeV1Enabled: Bool { evaluate("search_adult_notice_v1") }

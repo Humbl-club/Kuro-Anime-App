@@ -26,6 +26,9 @@ struct EditorialCollectionView: View {
     @Environment(FeatureFlags.self) private var flags
     /// W10: optional, so hosts that do not inject it keep rendering (the section then hides).
     @Environment(UpNextStore.self) private var upNext: UpNextStore?
+    /// W9: tags and custom lists; absent in hosts that do not inject them (nothing then shows).
+    @Environment(LibraryTagsStore.self) private var libraryTags: LibraryTagsStore?
+    @Environment(CustomListsStore.self) private var customLists: CustomListsStore?
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -47,6 +50,7 @@ struct EditorialCollectionView: View {
     @State private var noticeTask: Task<Void, Never>?
     @State private var pendingAdvance: Set<MediaKey> = []
     @State private var classifyTarget: ClassifyTarget?
+    @State private var organiseTarget: OrganiseTarget?
     @State private var showImportChooser = false
     @State private var mountedAccount: AccountContext?
     @State private var didInitialLoad = false
@@ -55,6 +59,11 @@ struct EditorialCollectionView: View {
     @State private var localOrderingTruncated = false
 
     private struct ClassifyTarget: Identifiable {
+        let media: Media
+        var id: String { media.stableKey }
+    }
+
+    private struct OrganiseTarget: Identifiable {
         let media: Media
         var id: String { media.stableKey }
     }
@@ -171,8 +180,26 @@ struct EditorialCollectionView: View {
                 KuroAccessibility.impactHaptic(.light)
                 if selectedKeys.contains(item.id) { selectedKeys.remove(item.id) } else { selectedKeys.insert(item.id) }
             },
-            keyPhase: { item in keyPhase(item) }
+            keyPhase: { item in keyPhase(item) },
+            organise: organiseAvailable ? { item in organiseTarget = OrganiseTarget(media: item.media) } : nil
         )
+    }
+
+    /// W9: the tags-and-lists entry shows only once both owners loaded (the switch off or the contract not
+    /// deployed keeps both `.unavailable`, so nothing shows).
+    private var organiseAvailable: Bool {
+        libraryTags?.loadState == .loaded && customLists?.loadState == .loaded
+    }
+
+    private var selectedTag: String? {
+        if case .tag(let tag)? = collection.selectionSource { return tag }
+        return nil
+    }
+
+    private func selectTag(_ tag: String?, tags: LibraryTagsStore) {
+        guard let tag else { collection.clearImportedTitles(); return }
+        let tracked = Set(library.allEntries.map(\.key))
+        collection.showTaggedTitles(tag, keys: tags.keys(taggedWith: tag, among: tracked))
     }
 
     // MARK: Body
@@ -238,6 +265,10 @@ struct EditorialCollectionView: View {
         }
         // N10: a deep link collapses this page's own sheets too.
         .kuroNavigationLayer("collection.classify", item: $classifyTarget)
+        .sheet(item: $organiseTarget) { target in
+            TitleOrganiseSheet(media: target.media).kuroLeavesJourney()
+        }
+        .kuroNavigationLayer("collection.organise", item: $organiseTarget)
         .sheet(isPresented: $showImportChooser) {
             ImportSourceChooser { destination in
                 showImportChooser = false
@@ -249,6 +280,11 @@ struct EditorialCollectionView: View {
         }
         .kuroNavigationLayer("collection.import", isPresented: $showImportChooser)
         .onAppear { mountedAccount = collection.accountSession.current }
+        // W9: both owners are account-scoped and flag-gated (a disabled switch sends nothing).
+        .task(id: collection.accountSession.current?.generation ?? -1) {
+            await libraryTags?.load()
+            await customLists?.load()
+        }
         .onDisappear {
             mountedAccount = nil
             noticeTask?.cancel()
@@ -344,7 +380,7 @@ struct EditorialCollectionView: View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             if isImportedView {
                 HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
-                    Text(german ? "Importierte Titel" : "Imported titles")
+                    Text(selectedTag.map { OrganiseCopy.tagged($0) } ?? (german ? "Importierte Titel" : "Imported titles"))
                         .font(.kuroTitle())
                         .foregroundStyle(Color.kuroInk)
                         .accessibilityAddTraits(.isHeader)
@@ -367,6 +403,18 @@ struct EditorialCollectionView: View {
             KuroMediumSwitch(selection: $medium, size: .compact)
                 .padding(.horizontal, gutter)
                 .padding(.top, KuroDesignSpacing.sm)
+
+            if let libraryTags, libraryTags.loadState == .loaded {
+                let words = libraryTags.allTags(kind: medium, isTracked: { library.isTracked($0) })
+                if !words.isEmpty && (!isImportedView || selectedTag != nil) {
+                    FolioTagWords(tags: words, selected: selectedTag, gutter: gutter) { selectTag($0, tags: libraryTags) }
+                }
+            }
+            if let customLists, customLists.loadState == .loaded {
+                FolioListsLink(count: customLists.lists.count, gutter: gutter) {
+                    routes.openPage(CustomListsJourneyPage.page)
+                }
+            }
 
             if !isImportedView {
                 FolioStatusStrip(selection: $status, counts: counts, medium: medium, gutter: gutter)

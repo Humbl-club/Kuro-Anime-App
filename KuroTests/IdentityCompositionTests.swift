@@ -260,10 +260,20 @@ struct CompositionGraphTests {
     /// sets the next user id).
     static func expectedAccountScopedStates(_ g: AppGraph) -> [ObjectIdentifier] {
         let owners: [any AccountScopedState] = [
-            g.libraryActions, g.home, g.collection, g.upNext, g.discovery, g.recommendations, g.releases, g.social, g.availability,
+            g.libraryActions, g.home, g.collection, g.libraryTags, g.customLists, g.upNext, g.discovery, g.recommendations, g.releases, g.social, g.availability,
             g.clubs, g.imports, g.concierge, g.taste, g.support, g.libraryExport, g.widgets, g.songPreview, g.interactionTelemetry,
         ]
         return owners.map { ObjectIdentifier($0) }
+    }
+
+    @Test("W9: the tag and custom-list owners are built once and wired to each other and to the Library",
+          arguments: Graph.allCases)
+    func organisationOwnersAreWiredOnce(kind: Graph) throws {
+        let store = try TestDefaults()
+        let g = Self.graph(kind, defaults: store.defaults)
+        #expect(g.libraryTags.customLists === g.customLists)
+        #expect(g.customLists.library === g.library)
+        store.tearDown()
     }
 
     @Test("The session funnel clears exactly the graph's account-scoped owners, Library actions first and interaction telemetry last",

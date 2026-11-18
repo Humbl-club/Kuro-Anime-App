@@ -97,6 +97,8 @@ final class CollectionStore: AccountScopedState {
     @ObservationIgnored var seriesPrepareGeneration = 0
     @ObservationIgnored var seriesChangeTask: Task<Void, Never>?
     var importedTitleKeys: Set<MediaKey>?
+    /// What the temporary selection is (import result or a tag); nil when there is no selection (W9).
+    var selectionSource: CollectionSelectionSource?
     var importedAccount: AccountContext?
     var importedMedia: [Media] = []
     var importedOffset = 0
@@ -152,6 +154,7 @@ final class CollectionStore: AccountScopedState {
     /// open refresh scopes, so an old batch completion cannot alter the next account's counters.
     func clearPrivateState() {
         importPublicationRevision = 0
+        selectionSource = nil
         importedTitleKeys = nil; importedAccount = nil; importedMedia = []; importedOffset = 0; importedHasMore = false
         collectionRefreshDeferred = false
         resetCollectionFeedPaging()
