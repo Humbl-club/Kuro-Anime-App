@@ -68,3 +68,5 @@
 20261112100401_catalogue_visibility_discover_v1.sql
 # Catalogue Task 15c (transactional create of new titles from allowed sources). Prepared only.
 20261112100450_catalogue_create_v1.sql
+# Catalogue Task 11 (tag source map, tags.description_kuro/retired_at, service-only reader). Prepared only; the 430 descriptions are a later data file.
+20261112100200_catalogue_tag_sources_v1.sql

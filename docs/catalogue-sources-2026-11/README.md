@@ -63,3 +63,11 @@ The project URL comes from `project_public.env` (`SUPABASE_URL` overrides it). `
 `popularityIndex` = `round(views12m/12 * 0.02 + votes * 1 + libraryAdds * 50)`, capped to a Postgres integer; `trendingIndex` = `round(max(0, last30 - prev30) / 100)`; `scoreIndex` = vote-weighted blend of ANN `weighted` and MangaUpdates `bayesian` (each x10), null below 20 combined votes. Compose writes `popularity`, `trending` and `average_score` shadow fields with source `kuro_index` (not counted in `data_sources`). Inputs: the `pageviews` source record, ANN/MangaUpdates vote counts and per-title list-add counts (only the title id of list rows is read).
 
 Calibration (plan Task 10 Step 4) was NOT done: comparing against AniList `popularity` needs gate L4(c), which is not granted. The coefficients above are the plan's starting values. The owner's Discover top-100 review decides whether they change.
+
+## Tag assignments (Task 11)
+
+- `tag-map.csv` (56 rows) is a first draft for owner review: every row has `reviewed=no` and a blank `tag_id`. `tag_name` is only a proposal; the 430 live tag ids were not read (offline task). The top-500 MangaUpdates categories are not included for the same reason (they need live record data).
+- To publish: the owner fills `tag_id` and sets `reviewed=yes` for the rows they accept, then those rows (and only those, see `parseTagMapCsv` in `_shared/catalogue/tags.ts`) are loaded into `catalogue_tag_source_map`. Until then the map table is empty, compose writes no `tags:list`, and nothing is published from the map.
+- Rank is each tag's weighted share of the title's strongest tag (0-100). At most 20 tags per title; a MangaUpdates category counts with at least 2 positive votes.
+- AniDB is excluded (Q6 unreadable, see `sources/anidb.md`).
+- Not done: Step 4's 430 `description_kuro` texts (need the live tag list and review). The migration only adds the column.

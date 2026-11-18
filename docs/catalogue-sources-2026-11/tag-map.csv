@@ -1,0 +1,57 @@
+source,source_label,tag_name,tag_id,weight,reviewed,note
+ann,action,Action,,1,no,ANN genre
+ann,adventure,Adventure,,1,no,ANN genre
+ann,comedy,Comedy,,1,no,ANN genre
+ann,drama,Drama,,1,no,ANN genre
+ann,fantasy,Fantasy,,1,no,ANN genre
+ann,horror,Horror,,1,no,ANN genre
+ann,mystery,Mystery,,1,no,ANN genre
+ann,romance,Romance,,1,no,ANN genre
+ann,science fiction,Sci-Fi,,1,no,ANN genre
+ann,slice of life,Slice of Life,,1,no,ANN genre
+ann,erotica,,,1,no,"ANN genre; adult signal, tag decision for owner"
+ann,mecha,Mecha,,1,no,ANN theme (seen in the Task 4 fixture)
+ann,giant robots,Mecha,,1,no,ANN theme (seen in the Task 4 fixture)
+ann,military,Military,,1,no,ANN theme (seen in the Task 4 fixture)
+ann,real robot,,,1,no,ANN theme (seen in the Task 4 fixture)
+ann,hentai,,,1,no,"ANN theme; adult signal, tag decision for owner"
+mangaupdates,Action,Action,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Adult,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Adventure,Adventure,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Comedy,Comedy,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Doujinshi,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Drama,Drama,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Ecchi,Ecchi,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Fantasy,Fantasy,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Gender Bender,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Harem,Harem,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Hentai,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Historical,Historical,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Horror,Horror,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Josei,Josei,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Lolicon,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Martial Arts,Martial Arts,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Mature,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Mecha,Mecha,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Mystery,Mystery,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Psychological,Psychological,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Romance,Romance,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,School Life,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Sci-fi,Sci-Fi,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Seinen,Seinen,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Shotacon,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Shoujo,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Shoujo Ai,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Shounen,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Shounen Ai,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Slice of Life,Slice of Life,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Smut,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Sports,Sports,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Supernatural,Supernatural,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Tragedy,Tragedy,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Wuxia,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Xianxia,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Xuanhuan,,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Yaoi,Yaoi,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+mangaupdates,Yuri,Yuri,,1,no,"MangaUpdates genre (labels from the public genre list, not read from live data; tag_name is a proposal)"
+wikidata,Q172067,,,1,no,"Wikidata genre 'hentai'; adult signal, tag decision for owner"

@@ -10,12 +10,14 @@
 //                    so, or newly adult)
 //   relations        ComposedRelation[] (targets resolved through accepted links only)
 //   popularity, trending, average_score   Kuro popularity index (Task 10; source `kuro_index`)
+//   tags:list      [{ tag_id, rank }] from the reviewed tag map (Task 11; source `kuro_tag_map`); absent while the map is empty
 //   data_sources     distinct sources used, most fields first
 // Only accepted links feed a title (a Wikidata-only `proposed` ANN id is not used, link-trust rule 2).
 // An unchanged value or source writes nothing, so a second run makes no writes.
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import { composeAdult, DATE_TRIPLES, mapRelations, pick, PRECEDENCE, type RawRelation, type Source, type SourceValue } from "../_shared/catalogue/precedence.ts";
 import { popularityIndex, scoreIndex, trendingIndex } from "../_shared/catalogue/popularity.ts";
+import { assignTags, type SourceLabel, type TagMapRow } from "../_shared/catalogue/tags.ts";
 import type { HandlerOutcome, RunContext } from "./context.ts";
 import { chunk, clampInt, cursorKey, readCursor, selectAll, stableStringify, WRITE_BATCH, writeCursor, type Medium } from "./store.ts";
 import { toRelations as annRelations, toSourceValues as annValues } from "./map_ann.ts";
@@ -76,7 +78,32 @@ export type TitleInputs = {
   relations: RawRelation[];
   /** Raw ANN / MangaUpdates records, kept for the credits composer (Task 7b). */
   records?: { ann?: AnnRecord; mangaupdates?: MuRecord };
+  /** Source labels for tag assignment (ANN genres/themes, MangaUpdates genres/categories, Wikidata genre ids). */
+  tagLabels?: SourceLabel[];
 };
+
+/** Task 11: the tag labels one stored record offers. A category carries its positive-vote count; a genre has none. */
+export function tagLabelsOf(source: Source, payload: unknown): SourceLabel[] {
+  if (source === "ann") {
+    const r = payload as AnnRecord;
+    return [...r.genres, ...r.themes].map((label) => ({ source: "ann" as const, label }));
+  }
+  if (source === "mangaupdates") {
+    const r = payload as MuRecord;
+    return [
+      ...r.genres.map((label) => ({ source: "mangaupdates" as const, label })),
+      ...r.categories.map((c) => ({ source: "mangaupdates" as const, label: c.category, votes: c.votesPlus })),
+    ];
+  }
+  return ((payload as WikidataPayload).props?.P136 ?? []).map((label) => ({ source: "wikidata" as const, label }));
+}
+
+/** Task 11: `tags:list` field for one title; none when no mapped label applies. */
+export function tagFields(t: TitleInputs, map: readonly TagMapRow[]): { field: string; value: unknown; source: string }[] {
+  if (map.length === 0 || !t.tagLabels) return [];
+  const tags = assignTags(t.tagLabels, map);
+  return tags.length > 0 ? [{ field: "tags:list", value: tags, source: "kuro_tag_map" }] : [];
+}
 
 /** Pure composition of one title's shadow fields. Exported for tests of the policy wiring. */
 export function composeTitle(
@@ -182,6 +209,11 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
     libraryAdds.set(r[idCol], (libraryAdds.get(r[idCol]) ?? 0) + 1);
   }
 
+  // Task 11: the reviewed tag map (service-only reader; retired tags are left out in SQL). Empty = no tags written.
+  const { data: tagMapData, error: tagMapError } = await supabase.rpc("catalogue_tag_map_v1");
+  if (tagMapError) throw new Error(`catalogue_tag_map_v1 failed: ${tagMapError.message ?? tagMapError}`);
+  const tagMap = (Array.isArray(tagMapData) ? tagMapData : []) as TagMapRow[];
+
   // Per title: mapped values and raw relations from every linked source.
   const inputs = new Map<number, TitleInputs>();
   const targetKeys = new Map<Source, Set<string>>();
@@ -204,6 +236,7 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
       rels = muRelations(payload as MuRecord);
     }
     t.relations.push(...rels);
+    t.tagLabels = [...(t.tagLabels ?? []), ...tagLabelsOf(l.source as Source, payload)];
     for (const r of rels) targetKeys.set(r.source, (targetKeys.get(r.source) ?? new Set()).add(r.targetKey));
   }
 
@@ -269,6 +302,7 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
       const composed = composeTitle(medium, t, resolve);
       review = composed.review;
       produced.push(...composed.fields);
+      produced.push(...tagFields(t, tagMap));
       produced.push(...popularityFields(t, pageviews.get(mediaId), libraryAdds.get(mediaId) ?? 0));
       const counts = new Map<string, number>();
       for (const f of composed.fields) if (f.source && f.source !== "today") for (const s of f.source.split(",")) counts.set(s, (counts.get(s) ?? 0) + 1);

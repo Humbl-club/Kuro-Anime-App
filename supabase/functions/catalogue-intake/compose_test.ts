@@ -200,6 +200,63 @@ Deno.test("popularityScoreNeedsTwentyVotesAndTitleWithoutInputsGetsNoPopularity"
   assert.equal(shadow(bare, "popularity", 9), undefined);
 });
 
+const TAG_MAP = [
+  { source: "ann", source_label: "Drama", tag_id: 11, weight: 1 },
+  { source: "ann", source_label: "mecha", tag_id: 12, weight: 1 },
+  { source: "wikidata", source_label: "Q777", tag_id: 12, weight: 0.5 },
+  { source: "mangaupdates", source_label: "Action", tag_id: 21, weight: 1 },
+  { source: "mangaupdates", source_label: "Time Travel", tag_id: 22, weight: 1 },
+];
+const tagRpc = (rows: unknown) => ({ catalogue_tag_map_v1: () => ({ data: rows, error: null }) });
+
+Deno.test("tagsListIsShadowedFromTheReviewedMap", async () => {
+  const db = fakeSupabase({
+    tables: {
+      anime: [{ id: 1, is_adult: false }],
+      catalogue_id_links: [link("anime", 1, "wikidata", "Q1"), link("anime", 1, "ann", "4658")],
+      catalogue_source_records: [wd("Q1", "anime", { "label:en": ["Jinki Extend"], P136: ["Q777"] }), rec("ann", "4658", "anime", annRecord)],
+    },
+    rpcHandlers: tagRpc(TAG_MAP),
+  });
+  await compose({ supabase: db.client }, "anime", [1]);
+  const tags = shadow(db, "tags:list");
+  assert.deepEqual(tags?.value, [{ tag_id: 12, rank: 100 }, { tag_id: 11, rank: 67 }]);
+  assert.equal(tags?.source, "kuro_tag_map");
+  const again = await compose({ supabase: db.client }, "anime", [1]);
+  assert.equal(again.written, 0, "second run writes nothing");
+});
+
+Deno.test("noTagsListWhenTheMapIsEmptyOrNothingMatches", async () => {
+  // The map table holds only reviewed rows; an unreviewed map is an empty one.
+  for (const rows of [[], null, [{ source: "ann", source_label: "Nothing", tag_id: 1, weight: 1 }]]) {
+    const db = fakeSupabase({
+      tables: { anime: [{ id: 1, is_adult: false }], catalogue_id_links: [link("anime", 1, "ann", "4658")], catalogue_source_records: [rec("ann", "4658", "anime", annRecord)] },
+      rpcHandlers: tagRpc(rows),
+    });
+    await compose({ supabase: db.client }, "anime", [1]);
+    assert.equal(shadow(db, "tags:list"), undefined);
+  }
+});
+
+Deno.test("mangaTagsCountCategoriesOnlyWithTwoPositiveVotes", async () => {
+  const record = { ...muRecord, categories: [{ category: "Time Travel", votes: 9, votesPlus: 1, votesMinus: 8 }] };
+  const make = (r: unknown) =>
+    fakeSupabase({
+      tables: {
+        manga: [{ id: 5, is_adult: false }],
+        catalogue_id_links: [link("manga", 5, "mangaupdates", String(muRecord.seriesId))],
+        catalogue_source_records: [rec("mangaupdates", String(muRecord.seriesId), "manga", r)],
+      },
+      rpcHandlers: tagRpc(TAG_MAP),
+    });
+  const one = make(record);
+  await compose({ supabase: one.client }, "manga", [5]);
+  assert.deepEqual(shadow(one, "tags:list", 5)?.value, [{ tag_id: 21, rank: 100 }], "one positive vote: the category is ignored, the genre counts");
+  const two = make({ ...record, categories: [{ category: "Time Travel", votes: 9, votesPlus: 2, votesMinus: 7 }] });
+  await compose({ supabase: two.client }, "manga", [5]);
+  assert.deepEqual(shadow(two, "tags:list", 5)?.value, [{ tag_id: 21, rank: 100 }, { tag_id: 22, rank: 100 }]);
+});
+
 Deno.test("mangaPopularityUsesMangaUpdatesVotesAndMangaListAdds", async () => {
   const db = fakeSupabase({
     tables: {
