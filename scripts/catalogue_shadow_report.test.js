@@ -93,6 +93,16 @@ test('identity: 100% of in_lists and curated, 95% anime / 85% manga top5k, zero 
   assert.equal(find(gateEvaluation(r), 'identity', 'duplicate_accepted_links').status, 'fail');
 });
 
+test('orphan accepted links and invalid shadow values fail their gates', () => {
+  const r = report();
+  assert.equal(find(gateEvaluation(r), 'identity', 'orphan_accepted_links').status, 'pass');
+  assert.equal(find(gateEvaluation(r), 'data', 'invalid_shadow_values').status, 'pass');
+  r.identity_gate.orphan_accepted_links = 2;
+  r.invalid_shadow_values = 3;
+  assert.equal(find(gateEvaluation(r), 'identity', 'orphan_accepted_links').status, 'fail');
+  assert.equal(find(gateEvaluation(r), 'data', 'invalid_shadow_values').status, 'fail');
+});
+
 test('identity match precision needs the owner sample and is never pass here', () => {
   const g = find(gateEvaluation(report()), 'identity', 'title_match_precision');
   assert.equal(g.status, 'insufficient');

@@ -71,6 +71,16 @@ function gateEvaluation(report) {
     group: 'identity', metric: 'duplicate_accepted_links', tier: 'all', threshold: 0, value: dup, n: idCell('all').total,
     status: dup > 0 ? 'fail' : idCell('all').total === 0 ? 'insufficient' : 'pass',
   });
+  const orphans = report.identity_gate?.orphan_accepted_links ?? 0;
+  gates.push({
+    group: 'identity', metric: 'orphan_accepted_links', tier: 'all', threshold: 0, value: orphans, n: idCell('all').total,
+    status: orphans > 0 ? 'fail' : 'pass', note: 'accepted links whose target title no longer exists',
+  });
+  const invalid = report.invalid_shadow_values ?? 0;
+  gates.push({
+    group: 'data', metric: 'invalid_shadow_values', tier: 'all', threshold: 0, value: invalid, n: null,
+    status: invalid > 0 ? 'fail' : 'pass', note: 'shadow values that are not a valid integer/boolean for their field',
+  });
   gates.push({
     group: 'identity', metric: 'title_match_precision', tier: 'sample', threshold: 0.99, value: null, n: 0, status: 'insufficient',
     note: 'needs the 200-title owner-reviewed sample; not computable from the shadow report',
