@@ -631,7 +631,8 @@ struct AnimeDetailPage: View {
             showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
                                      title: outcome.error == nil ? KuroLocale.text("Back in your list.", "Wieder in deiner Liste.")
                                                                  : KuroLocale.text("Not restored. Try again from List settings.", "Nicht wiederhergestellt. Versuch es über die Listeneinstellungen."),
-                                     subtitle: nil, actionTitle: nil, onAction: nil))
+                                     subtitle: DetailRemoval.conflictSubtitle(outcome.error, german: KuroLocale.isGerman),
+                                     actionTitle: nil, onAction: nil))
         }
     }
 

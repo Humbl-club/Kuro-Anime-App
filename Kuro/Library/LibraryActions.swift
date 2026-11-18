@@ -371,9 +371,11 @@ final class LibraryActions: AccountScopedState {
     /// Every Undo/restore that goes through an edit (removal Undo, +1 Undo): sends exactly `edit` and never
     /// fills a date, whatever the switch or the projection says. `apply` is for user-initiated writes.
     /// `account` is the account the Undo was offered for; the store refuses it once another account is bound.
+    /// `removed` is the row a removal Undo brings back: the store then refuses to overwrite a different row
+    /// for the title that another device created after the removal (`.conflict(server:)`).
     func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus?,
-                 account: AccountContext) async -> LibraryOutcome {
-        await library.restore(edit, to: key, createIfMissing: createIfMissing, account: account)
+                 account: AccountContext, replacing removed: LibraryEntry? = nil) async -> LibraryOutcome {
+        await library.restore(edit, to: key, createIfMissing: createIfMissing, account: account, replacing: removed)
     }
 
     /// Removes the title (idempotent: removing an untracked title is applied). The change sinks drop it

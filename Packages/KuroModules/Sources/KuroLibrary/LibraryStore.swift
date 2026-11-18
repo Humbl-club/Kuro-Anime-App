@@ -285,11 +285,36 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
 
     /// An Undo or restore: sends exactly `edit` and never fills a date, whatever the projection holds. Every
     /// Undo the app shows that goes through an edit (removal Undo, +1 Undo) uses this, never `apply`.
+    ///
+    /// `replacing` is the row a removal Undo brings back. When given, the restore first makes sure the title is
+    /// not tracked by a DIFFERENT row (re-added on another device after the removal: another row id or
+    /// lifecycle). In that case nothing is written, the server's row becomes the projection, and the outcome is
+    /// `.conflict(server:)`. The check is an insert-if-missing, which never changes an existing row, so it is the
+    /// same on the PATCH path and on the revision-fence path.
     public func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil,
-                        account: AccountContext) async -> LibraryOutcome {
+                        account: AccountContext, replacing removed: LibraryEntry? = nil) async -> LibraryOutcome {
         // Never restore one account's row onto another account's projection.
         guard account == context else { return .failed(.notAuthenticated) }
+        if let removed, let refusal = await refusalForNewerRow(than: removed, key: key) { return refusal }
         return await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: false)
+    }
+
+    /// The same title row: same row id and the same lifecycle (nil on both sides while the fence is off).
+    private static func isSameRow(_ lhs: LibraryEntry, _ rhs: LibraryEntry) -> Bool {
+        lhs.rowId == rhs.rowId && lhs.lifecycleId == rhs.lifecycleId
+    }
+
+    /// nil when the restore may proceed: the title is untracked (it is then created here) or still tracked by the
+    /// removed row itself. A failed probe fails the restore, as any write failure does.
+    private func refusalForNewerRow(than removed: LibraryEntry, key: MediaKey) async -> LibraryOutcome? {
+        if let local = entry(for: key) {
+            return Self.isSameRow(local, removed) ? nil : .failed(.conflict(server: local))
+        }
+        let probe = await save(key, status: removed.status)
+        guard case .applied(let change) = probe else { return probe }
+        if change.kind == .added { return nil }
+        guard let server = change.current else { return nil }
+        return Self.isSameRow(server, removed) ? nil : .failed(.conflict(server: server))
     }
 
     /// `fillsEmptyDates` is `false` for Undo, which must restore exactly and never fill. The release switch is

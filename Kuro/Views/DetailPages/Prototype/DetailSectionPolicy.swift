@@ -481,10 +481,18 @@ enum DetailRemoval {
         LibraryEdit.restoring(entry)
     }
 
+    /// Shown under "Not restored" when the title was re-added elsewhere after the removal: the newer row stays.
+    static func conflictSubtitle(_ error: LibraryError?, german: Bool) -> String? {
+        guard case .conflict = error else { return nil }
+        return german ? "Dieser Titel wurde inzwischen woanders neu hinzugefügt. Der neuere Eintrag bleibt erhalten."
+                      : "This title was added again on another device. The newer entry is kept."
+    }
+
     @MainActor
     static func undo(_ removed: LibraryEntry, _ key: MediaKey, account: AccountContext,
                      actions: LibraryActions) async -> LibraryOutcome {
-        await actions.restore(restoreEdit(removed), to: key, createIfMissing: removed.status, account: account)
+        await actions.restore(restoreEdit(removed), to: key, createIfMissing: removed.status, account: account,
+                              replacing: removed)
     }
 }
 

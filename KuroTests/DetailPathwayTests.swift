@@ -220,6 +220,32 @@ struct DetailPathwayTests {
         #expect(back.sourceMetadata?.finishedRaw == nil)
     }
 
+    @Test("Removal Undo keeps a row that another device added after the removal, and says so")
+    func removalUndoKeepsTheNewerRow() async throws {
+        let backend = FakeLibraryBackend()
+        let graph = try await Self.graph(rows: [Self.tracked(.current, progress: 6, metadata: LibrarySourceMetadata(repeatCount: 0))],
+                                         backend: backend)
+        defer { Task { await graph.session.endSession() } }
+        let key = MediaKey(kind: .anime, id: 5)
+        let removed = try #require(graph.library.entry(for: key))
+        let account = try #require(graph.libraryActions.accountSession.current)
+        #expect((await graph.libraryActions.remove(key)).error == nil)
+        // Another device re-adds the title as a different row (new row id and lifecycle) before the Undo.
+        let newer = LibraryEntry(key: key, rowId: 99, status: .planning, progress: 0, createdAt: Date(), updatedAt: Date(),
+                                 revision: 1, lifecycleId: UUID(), sourceMetadata: LibrarySourceMetadata(repeatCount: 0))
+        backend.setRows([newer], for: LifecycleFixtures.userA)
+
+        let outcome = await DetailRemoval.undo(removed, key, account: account, actions: graph.libraryActions)
+        guard case .failed(.conflict) = outcome else {
+            Issue.record("expected a conflict, got \(outcome)")
+            return
+        }
+        let kept = try #require(graph.library.entry(for: key))
+        #expect(kept.rowId == 99 && kept.status == .planning && kept.progress == 0, "the newer row was overwritten")
+        #expect(DetailRemoval.conflictSubtitle(outcome.error, german: false) != nil)
+        #expect(DetailRemoval.conflictSubtitle(.retryable(message: "x"), german: false) == nil)
+    }
+
     @Test("A Planned title with dates or a repeat count is not a bare plan: removing it asks first")
     func removalConfirmationCountsDatesAndRepeats() {
         #expect(!DetailRemoval.needsConfirmation(Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 0))))
@@ -376,10 +402,10 @@ struct DetailPathwayTests {
 
     // MARK: Harness
 
-    private static func graph(rows: [LibraryEntry], autofill: Bool = false) async throws -> AppGraph {
+    private static func graph(rows: [LibraryEntry], autofill: Bool = false,
+                              backend: FakeLibraryBackend = FakeLibraryBackend()) async throws -> AppGraph {
         let suite = "detail-pathways-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
-        let backend = FakeLibraryBackend()
         backend.setRows(rows, for: LifecycleFixtures.userA)
         let flags = FeatureFlags(userDefaults: defaults, launchArguments: autofill ? ["--ff-on=library_date_autofill_v1"] : [])
         let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
