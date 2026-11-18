@@ -145,9 +145,9 @@ async function crosswalkFor(deps: EntityDeps, kind: "person" | "company", annKey
 
 async function link(deps: EntityDeps, kind: EntityKind, kuroId: number, source: SourceCode, sourceKey: string, method: "wikidata" | "name_match" | "id_match", status: "accepted" | "proposed") {
   if (deps.pendingLinks) {
-    // Queued: composeCredits flushes once per title. The accepted key is usable straight away.
+    // Queued: composeCredits flushes once per title. A queued candidate is NOT cached as accepted: only what
+    // applyLinks persisted is (flushPendingLinks), so link-trust conflicts cannot be bypassed inside a chunk.
     deps.pendingLinks.set(`${kind}|${source}|${sourceKey}|${kuroId}|${status}`, { kind, kuroId, source, sourceKey, method, status });
-    if (status === "accepted") deps.linkMap?.set(`${kind}|${source}|${sourceKey}`, kuroId);
     return;
   }
   const res = await applyLinks(deps.supabase, kind, [{ kuroId, source, sourceKey, method, confidence: method === "name_match" ? 0.9 : 1, status }], deps.nowIso);
@@ -252,8 +252,11 @@ export async function composeCredits(
   const fields: CreditField[] = [];
   const proposed: ProposedNew[] = [];
   const review: { kind: string; source: string; sourceKey: string; name: string; reason: string }[] = [];
+  // Every resolved credit, so it can be checked against what applyLinks actually persisted.
+  const tracked: { list: Credit[]; kuroId: number; role: string | null; p: ProposedNew }[] = [];
   const absorb = (list: Credit[], r: Resolved, role: string | null, p: ProposedNew) => {
     if ("kuroId" in r) {
+      tracked.push({ list, kuroId: r.kuroId, role, p });
       if (!list.some((c) => c.kuro_id === r.kuroId && c.role === role)) list.push({ kuro_id: r.kuroId, role });
     } else if ("proposedNew" in r) {
       if (!proposed.some((x) => x.kind === p.kind && x.source === p.source && x.sourceKey === p.sourceKey)) proposed.push(r.proposedNew);
@@ -267,19 +270,20 @@ export async function composeCredits(
   try {
     const ann = records.ann;
     const sources = new Set<string>();
+    const staff: Credit[] = [];
+    const studios: Credit[] = [];
+    const characters: Credit[] = [];
+    const authors: Credit[] = [];
     if (ann) {
       await preloadCreditMaps(deps, { staff: ann.staff.map((x) => String(x.personId)), studio: ann.companies.filter((c) => PRODUCTION_TASK.test(c.task)).map((x) => String(x.companyId)), author: [] });
-      const staff: Credit[] = [];
       for (const p of ann.staff) {
         checkBudget();
         absorb(staff, await resolvePerson(deps, "ann", String(p.personId), p.name, titleKuroId), p.task || null, { kind: "staff", source: "ann", sourceKey: String(p.personId), name: p.name });
       }
-      const studios: Credit[] = [];
       for (const c of ann.companies.filter((x) => PRODUCTION_TASK.test(x.task))) {
         checkBudget();
         absorb(studios, await resolveStudio(deps, "ann", String(c.companyId), c.name, titleKuroId), c.task || null, { kind: "studio", source: "ann", sourceKey: String(c.companyId), name: c.name });
       }
-      const characters: Credit[] = [];
       const seen = new Set<string>();
       for (const c of ann.cast) {
         const n = normaliseName(c.role);
@@ -288,36 +292,51 @@ export async function composeCredits(
         checkBudget();
         absorb(characters, await resolveCharacter(deps, titleKuroId, c.role), null, { kind: "character", source: "ann", sourceKey: n, name: c.role });
       }
-      if (staff.length) fields.push({ field: "credits:staff", value: staff, source: "ann" });
-      if (studios.length) fields.push({ field: "credits:studios", value: studios, source: "ann" });
-      if (characters.length) fields.push({ field: "credits:characters", value: characters, source: "ann" });
       sources.add("ann");
     }
     const mu = records.mangaupdates;
     if (mu) {
       await preloadCreditMaps(deps, { staff: [], studio: [], author: mu.authors.map((a) => String(a.authorId)) });
-      const authors: Credit[] = [];
       for (const a of mu.authors) {
         checkBudget();
         absorb(authors, await resolveAuthor(deps, "mangaupdates", String(a.authorId), a.name, titleKuroId), a.type || null, { kind: "author", source: "mangaupdates", sourceKey: String(a.authorId), name: a.name });
       }
-      if (authors.length) fields.push({ field: "credits:authors", value: authors, source: "mangaupdates" });
       sources.add("mangaupdates");
     }
+    // Persist the queued links now (applyLinks runs its conflict and trust checks), then keep only the credits whose
+    // link is really accepted for the person they resolved to; the rest go to review.
+    const persisted = await flushPendingLinks(deps);
+    for (const t of tracked) {
+      const key = `${t.p.kind}|${t.p.source}|${t.p.sourceKey}`;
+      const accepted = persisted.get(key);
+      if (accepted === undefined || accepted === t.kuroId) continue;
+      const at = t.list.findIndex((c) => c.kuro_id === t.kuroId && c.role === t.role);
+      if (at >= 0) t.list.splice(at, 1);
+      if (!review.some((r) => r.kind === t.p.kind && r.sourceKey === t.p.sourceKey && r.name === t.p.name)) review.push({ kind: t.p.kind, source: t.p.source, sourceKey: t.p.sourceKey, name: t.p.name, reason: "link_not_accepted" });
+    }
+    if (staff.length) fields.push({ field: "credits:staff", value: staff, source: "ann" });
+    if (studios.length) fields.push({ field: "credits:studios", value: studios, source: "ann" });
+    if (characters.length) fields.push({ field: "credits:characters", value: characters, source: "ann" });
+    if (authors.length) fields.push({ field: "credits:authors", value: authors, source: "mangaupdates" });
     const src = [...sources].join(",");
     if (proposed.length) fields.push({ field: "credits:proposed_entities", value: proposed, source: src });
     if (review.length) fields.push({ field: "credits:review", value: review, source: src });
   } finally {
-    // Links found so far are real whether or not the title finished: one applyLinks per kind.
+    // Links found so far are real whether or not the title finished.
     await flushPendingLinks(deps);
   }
   return { fields };
 }
 
-/** Applies the queued credit links, one applyLinks call (itself batched) per kind. */
-export async function flushPendingLinks(deps: EntityDeps): Promise<void> {
+/**
+ * Applies the queued credit links, one applyLinks call (itself batched) per kind, then reads back what is actually
+ * accepted for the queued keys and caches exactly that in `linkMap`. Returns `kind|source|key` -> accepted Kuro id
+ * (or null) for every key a queued accepted candidate named; queued candidates are never cached unchecked.
+ */
+export async function flushPendingLinks(deps: EntityDeps): Promise<Map<string, number | null>> {
+  const verified = new Map<string, number | null>();
   const pending = deps.pendingLinks;
-  if (!pending || pending.size === 0) return;
+  if (!pending || pending.size === 0) return verified;
   const byKind = new Map<EntityKind, PendingLink[]>();
   for (const l of pending.values()) byKind.set(l.kind, [...(byKind.get(l.kind) ?? []), l]);
   pending.clear();
@@ -328,7 +347,24 @@ export async function flushPendingLinks(deps: EntityDeps): Promise<void> {
       list.map((l) => ({ kuroId: l.kuroId, source: l.source, sourceKey: l.sourceKey, method: l.method, confidence: l.method === "name_match" ? 0.9 : 1, status: l.status })),
       deps.nowIso,
     );
+    const wanted = new Map<string, Set<string>>(); // source -> keys queued as accepted
+    for (const l of list) if (l.status === "accepted") (wanted.get(l.source) ?? wanted.set(l.source, new Set()).get(l.source)!).add(l.sourceKey);
+    for (const [source, keySet] of wanted) {
+      for (const part of chunk([...keySet], WRITE_BATCH)) {
+        const rows = await selectAll<{ kuro_id: number; source_key: string }>(
+          () => deps.supabase.from("catalogue_id_links").select("kuro_id, source_key").eq("kind", kind).eq("source", source).eq("status", "accepted").in("source_key", part),
+          ["id"],
+          "catalogue_id_links",
+        );
+        const found = new Map(rows.map((r) => [r.source_key, r.kuro_id]));
+        for (const k of part) {
+          verified.set(`${kind}|${source}|${k}`, found.get(k) ?? null);
+          deps.linkMap?.set(`${kind}|${source}|${k}`, found.get(k) ?? null);
+        }
+      }
+    }
   }
+  return verified;
 }
 
 /**
