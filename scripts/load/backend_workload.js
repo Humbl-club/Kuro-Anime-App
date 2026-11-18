@@ -1,5 +1,7 @@
 "use strict";
 const { randomUUID } = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
 const ORIGIN = "https://bkdifromsqxkndnllmdj.supabase.co";
 const WEIGHTS = {
   home: 20,
@@ -25,7 +27,12 @@ const LIMITS = {
   parse: 2500,
   recommend: 2500,
 };
-function validateConfig(c, fixture) {
+const EMPTY_SELECTION = Object.freeze({
+  profiles: Object.freeze([]),
+  totalRate: 0,
+  limits: Object.freeze({}),
+});
+function validateConfig(c, fixture, selection = EMPTY_SELECTION) {
   if (
     c.production !== true || fixture.origin !== ORIGIN ||
     !fixture.runId?.startsWith("kuro-load-")
@@ -52,10 +59,19 @@ function validateConfig(c, fixture) {
       !a.token || !a.email?.startsWith(fixture.runId + "-")
     )
   ) throw new Error("Distinct disposable account identities required");
+  if (c.rps + selection.totalRate > 50) throw new Error("Invalid bounded rps");
   if (
     !Number.isInteger(c.vus) || !Number.isInteger(c.maxRequests) ||
     (c.only && !Object.hasOwn(WEIGHTS, c.only))
   ) throw new Error("Invalid VU, budget or operation");
+  const profilePlanned = selection.profiles.reduce(
+    (n, p) => n + Math.ceil(c.duration * p.ratePerSecond),
+    0,
+  );
+  if (
+    Math.min(Math.ceil(c.duration * c.rps), c.maxRequests) + profilePlanned >
+      20000
+  ) throw new Error("Invalid bounded maxRequests");
   if (c.transport && !["node", "curl"].includes(c.transport)) {
     throw new Error("Unsupported workload transport");
   }
@@ -68,9 +84,9 @@ function percentile(xs, p) {
   const s = [...xs].sort((a, b) => a - b);
   return s[Math.max(0, Math.ceil(p * s.length) - 1)];
 }
-function summarize(samples, offered, seconds) {
+function summarize(samples, offered, seconds, limits = LIMITS) {
   const endpoints = {};
-  for (const kind of Object.keys(WEIGHTS)) {
+  for (const kind of Object.keys(limits)) {
     const rows = samples.filter((x) => x.kind === kind);
     if (!rows.length) continue;
     const success = rows.filter((x) => x.ok);
@@ -82,14 +98,14 @@ function summarize(samples, offered, seconds) {
       p50: percentile(lat, .5),
       p95: percentile(lat, .95),
       p99: percentile(lat, .99),
-      p95Target: LIMITS[kind],
+      p95Target: limits[kind],
       statuses: Object.fromEntries(
         [...new Set(rows.map((x) => x.status))].map(
           (s) => [s, rows.filter((x) => x.status === s).length],
         ),
       ),
       pass: rows.length === success.length &&
-        percentile(lat, .95) <= LIMITS[kind],
+        percentile(lat, .95) <= limits[kind],
     };
   }
   const ok = samples.filter((x) => x.ok).length;
@@ -261,7 +277,93 @@ function validateResponse(kind, data, actor, request) {
   }
   return false;
 }
+const PROFILE_MAX_RATE = 10;
+function checkProfile(profile, file) {
+  const name = path.basename(file, ".js");
+  const fail = (why) => {
+    throw new Error(`profile ${name}: ${why}`);
+  };
+  if (!profile || typeof profile !== "object") fail("must export an object");
+  if (profile.name !== name) fail("name must equal the file name");
+  if (Object.hasOwn(profile, "weight")) {
+    fail(
+      "weight is retired: declare ratePerSecond (weight w = 0.2*w rps at the 20 rps base)",
+    );
+  }
+  if (!Object.hasOwn(LIMITS, profile.budgetClass)) {
+    fail("budgetClass must be one of " + Object.keys(LIMITS).join(", "));
+  }
+  const r = profile.ratePerSecond;
+  if (
+    typeof r !== "number" || !Number.isFinite(r) || r <= 0 ||
+    r > PROFILE_MAX_RATE
+  ) fail("ratePerSecond must be a finite number, 0 < r <= " + PROFILE_MAX_RATE);
+  if (typeof profile.validate !== "function") fail("validate must be a function");
+  if (typeof profile.request !== "function") fail("request must be a function");
+}
+// One file per profile under scripts/load/profiles. Never part of WEIGHTS/chooseKind.
+function loadProfiles(dir = path.join(__dirname, "profiles")) {
+  if (!fs.existsSync(dir)) return Object.freeze({});
+  const out = {};
+  for (const f of fs.readdirSync(dir).sort()) {
+    if (!f.endsWith(".js") || f.endsWith(".test.js")) continue;
+    const file = path.join(dir, f);
+    const profile = require(file);
+    checkProfile(profile, file);
+    out[profile.name] = Object.freeze(profile);
+  }
+  return Object.freeze(out);
+}
+const TRACKER_GAP_PROFILES = loadProfiles();
+function selectProfiles(spec = {}, profiles = TRACKER_GAP_PROFILES) {
+  const rates = spec.rates ?? {};
+  let names = spec.names ?? Object.keys(rates);
+  if (names.includes("all")) names = Object.keys(profiles);
+  const chosen = [], limits = {};
+  let totalRate = 0;
+  for (const name of [...new Set(names)]) {
+    const profile = profiles[name];
+    if (!profile) throw new Error("Unknown load profile " + name);
+    const ratePerSecond = rates[name] ?? profile.ratePerSecond;
+    if (
+      typeof ratePerSecond !== "number" || !Number.isFinite(ratePerSecond) ||
+      ratePerSecond <= 0 || ratePerSecond > PROFILE_MAX_RATE
+    ) throw new Error("Invalid rate for profile " + name);
+    chosen.push({ name, ratePerSecond, profile });
+    limits[name] = LIMITS[profile.budgetClass];
+    totalRate += ratePerSecond;
+  }
+  if (!chosen.length) return EMPTY_SELECTION;
+  return Object.freeze({
+    profiles: Object.freeze(chosen),
+    totalRate,
+    limits: Object.freeze(limits),
+  });
+}
+// Profile p's i-th arrival is at i * 1000 / rate, independent of the base --rps.
+function profileSchedule(selection, durationSeconds) {
+  const out = [];
+  for (const p of selection.profiles) {
+    const n = Math.ceil(durationSeconds * p.ratePerSecond);
+    for (let seq = 0; seq < n; seq++) {
+      out.push({ atMs: seq * 1000 / p.ratePerSecond, name: p.name, seq });
+    }
+  }
+  return out.sort((a, b) => a.atMs - b.atMs || (a.name < b.name ? -1 : 1));
+}
+// 0 pass; 1 fail. (Qualification adds 3 for insufficient.)
+function exitCodeFor(report) {
+  const profileSamples = report.lanes?.profiles?.samples ?? [];
+  if (!report.summary?.pass || profileSamples.some((x) => !x.ok)) return 1;
+  return 0;
+}
 module.exports = {
+  loadProfiles,
+  TRACKER_GAP_PROFILES,
+  selectProfiles,
+  profileSchedule,
+  exitCodeFor,
+  EMPTY_SELECTION,
   ORIGIN,
   WEIGHTS,
   LIMITS,

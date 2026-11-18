@@ -189,3 +189,112 @@ test("parser response belongs to the caller; deterministic recommendations conta
     true,
   );
 });
+// ---- F3.1: profile registry and the separate absolute-rate lane ----
+const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
+const crypto = require("node:crypto");
+// Digest of the first 1,000 chooseKind draws (LCG seed 20261109), computed on the
+// unmodified module before F3 touched it.
+const FROZEN_MIX_DIGEST =
+  "21495cda42ce640e9055984d9ba072128756ec210004b71a51cc98af440e209b";
+// Writes one temp profile file per entry. A field value of { $fn: "<source>" }
+// is emitted as code; everything else as JSON.
+function profileDir(t, profiles) {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "kuro-profiles-"));
+  t.after(() => fs.rmSync(d, { recursive: true, force: true }));
+  for (const [name, raw] of Object.entries(profiles)) {
+    const fields = {
+      name,
+      validate: { $fn: "() => true" },
+      request: { $fn: "() => ({ path: '/rest/v1/rpc/x' })" },
+      ...raw,
+    };
+    const file = fields.$file ?? name;
+    delete fields.$file;
+    const src = Object.entries(fields).map(([k, v]) =>
+      `${JSON.stringify(k)}: ${v && typeof v === "object" && "$fn" in v ? v.$fn : JSON.stringify(v)}`
+    ).join(",\n");
+    fs.writeFileSync(path.join(d, file + ".js"), `module.exports = {\n${src}\n};\n`);
+  }
+  return d;
+}
+test("predeclared mix is unchanged", () => {
+  let seed = 20261109;
+  const random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const kinds = Array.from({ length: 1000 }, () => W.chooseKind(random));
+  assert.equal(
+    crypto.createHash("sha256").update(kinds.join(",")).digest("hex"),
+    FROZEN_MIX_DIGEST,
+  );
+  assert.deepEqual(W.WEIGHTS, { home: 20, browse: 20, search: 15, detail: 20,
+    mood: 8, clubs: 5, discover: 5, progress: 5, parse: 1, recommend: 1 });
+  assert.deepEqual(W.LIMITS, { home: 1200, browse: 750, search: 750, detail: 1200,
+    mood: 1500, clubs: 750, discover: 1500, progress: 750, parse: 2500, recommend: 2500 });
+  const s = W.summarize([{ kind: "browse", ms: 1, status: 200, ok: true }], 1, 1);
+  assert.deepEqual(Object.keys(s.endpoints), ["browse"]);
+});
+test("selection is empty without opt-in", () => {
+  assert.deepEqual(W.selectProfiles({}), { profiles: [], totalRate: 0, limits: {} });
+});
+test("profiles keep their absolute rate", (t) => {
+  const P = W.loadProfiles(profileDir(t, {
+    "x-test": { budgetClass: "browse", ratePerSecond: 0.5 },
+    "z-test": { budgetClass: "detail", ratePerSecond: 2 },
+  }));
+  const sel = W.selectProfiles({ names: ["x-test", "z-test"] }, P);
+  const sched = W.profileSchedule(sel, 10);
+  const x = sched.filter((a) => a.name === "x-test"), z = sched.filter((a) => a.name === "z-test");
+  assert.deepEqual(x.map((a) => a.atMs), [0, 2000, 4000, 6000, 8000]);
+  assert.equal(z.length, 20);
+  assert.ok(z.every((a, i) => a.atMs === i * 500));
+  assert.equal(sel.totalRate, 2.5);
+  assert.equal(sel.limits["x-test"], 750);
+  assert.equal(sel.limits["z-test"], 1200);
+  assert.deepEqual(sched.slice(0, 2).map((a) => a.name), ["x-test", "z-test"]);
+  const more = W.selectProfiles({ names: ["x-test"], rates: { "x-test": 1 } }, P);
+  assert.equal(W.profileSchedule(more, 10).length, 10);
+  assert.equal(W.selectProfiles({ names: ["all"] }, P).profiles.length, 2);
+  assert.throws(() => W.selectProfiles({ names: ["nope"] }, P));
+  assert.throws(() => W.selectProfiles({ names: ["x-test"], rates: { "x-test": 11 } }, P));
+  assert.equal(Object.keys(W.WEIGHTS).length, 10);
+});
+test("invalid profiles are refused", (t) => {
+  const ok = { budgetClass: "browse", ratePerSecond: 1 };
+  const bad = [
+    { ...ok, name: "other" },
+    { ...ok, budgetClass: "fast" },
+    { ...ok, ratePerSecond: 0 },
+    { ...ok, ratePerSecond: -1 },
+    { ...ok, ratePerSecond: 10.5 },
+    { ...ok, ratePerSecond: null },
+    { ...ok, ratePerSecond: "1" },
+    { ...ok, validate: 5 },
+    { ...ok, weight: 4 },
+  ];
+  for (const fields of bad) {
+    assert.throws(
+      () => W.loadProfiles(profileDir(t, { "bad-test": fields })),
+      fields.weight ? /ratePerSecond/ : /./,
+      JSON.stringify(fields),
+    );
+  }
+  // JSON cannot carry NaN, so emit it as code.
+  assert.throws(() => W.loadProfiles(profileDir(t, {
+    "nan-test": { ...ok, ratePerSecond: { $fn: "NaN" } },
+  })));
+  const ten = W.loadProfiles(profileDir(t, { "ten-test": { ...ok, ratePerSecond: 10 } }));
+  assert.equal(ten["ten-test"].ratePerSecond, 10);
+  assert.ok(Object.isFrozen(ten));
+});
+test("missing profiles directory yields no profiles", () => {
+  assert.deepEqual(W.loadProfiles("/nonexistent"), {});
+});
+test("config bounds cover both lanes", (t) => {
+  const P = W.loadProfiles(profileDir(t, { "x-test": { budgetClass: "browse", ratePerSecond: 6 } }));
+  const sel = W.selectProfiles({ names: ["x-test"] }, P);
+  assert.throws(() => W.validateConfig({ ...config, rps: 45 }, fixture, sel), /Invalid bounded rps/);
+  assert.doesNotThrow(() => W.validateConfig({ ...config, rps: 20 }, fixture, sel));
+  assert.throws(() => W.validateConfig({ ...config, only: "x-test" }, fixture, sel));
+});
