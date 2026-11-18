@@ -133,6 +133,8 @@ struct KuroMainView: View {
     @Environment(HomeStore.self) private var home
     @Environment(ReleasesStore.self) private var releases
     @Environment(IdentityStore.self) private var identity
+    @Environment(GuestSession.self) private var guest: GuestSession?
+    @Environment(LibraryActions.self) private var libraryActions
     @Environment(InteractionTelemetry.self) private var interactionTelemetry
     @Environment(BannerCenter.self) private var banner
     @Environment(\.kuroRoutes) private var routes
@@ -177,7 +179,9 @@ struct KuroMainView: View {
         }
 
         /// Five pages. The series-home flag replaces Browse with Home and keeps Taste on the left.
-        static func pagerOrder(tasteDeck: Bool, seriesHome: Bool) -> [Section] {
+        static func pagerOrder(tasteDeck: Bool, seriesHome: Bool, guest: Bool = false) -> [Section] {
+            // W5: a guest sees the live signed-in order with invitation pages; Browse is reached from Discover.
+            if guest { return GuestPager.order }
             if seriesHome {
                 return [.taste, .home, .discover, .collection, .clubs]
             }
@@ -234,7 +238,8 @@ struct KuroMainView: View {
 	// Taste-flagged funnel: [Taste] ← [Discover] → Browse → Collection → Clubs.
     // Flag off restores the legacy order with Concierge at index 0 (one DB UPDATE rollback).
     private var swipeOrder: [Section] {
-        Section.pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled)
+        Section.pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled,
+                           guest: guest?.isGuest == true)
     }
 
     /// The mountain invitation. A saved anime or manga shelf is the white page instead.
@@ -593,8 +598,14 @@ struct KuroMainView: View {
             .onDisappear {
                 tapSuppressionResetTask?.cancel()
             }
+            // W5: the title a guest tried to track or add to a club re-opens once, for the same account.
+            // Observation, not `onAppear`: the replay sets the key after this tree appeared.
+            .onChange(of: guest?.reopenAfterSignUp?.key, initial: true) { _, _ in
+                guard let guest, let key = guest.takeReopenTitle(for: libraryActions.accountSession.current) else { return }
+                if let navigation { navigation.collapseThenOpen(.media(MediaRoute(key))) } else { routes.openMedia(MediaRoute(key)) }
+            }
             .onChange(of: scenePhase) { _, phase in
-                guard phase == .active else { return }
+                guard phase == .active, guest?.isGuest != true else { return }
                 home.invalidateClubContent()
                 Task {
                     await home.drain()
@@ -604,7 +615,7 @@ struct KuroMainView: View {
                 }
             }
             .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
-                guard networkMonitor.isConnected else { return }
+                guard networkMonitor.isConnected, guest?.isGuest != true else { return }
                 Task {
                     await home.drain()
                     switch selection {
@@ -637,7 +648,8 @@ struct KuroMainView: View {
                 }
             }
             .onAppear {
-                showOnboarding = !OnboardingView.hasCompletedOnboarding(for: identity.currentUserId)
+                // A guest never sees onboarding; it runs in the new signed-in tree after sign-up.
+                showOnboarding = guest?.isGuest != true && !OnboardingView.hasCompletedOnboarding(for: identity.currentUserId)
                 // Consume a link stashed while logged out (or before this view existed);
                 // onChange does not fire for a value that was already set.
                 if let link = pendingDeepLink {
@@ -716,8 +728,36 @@ struct KuroMainView: View {
     private func handleDeepLink(_ link: DeepLink) {
         // A link (also one stashed before this view existed) decides the page; hydrating flags won't.
         pageChosen = true
-        switch ShellLinkPolicy.action(for: link, onboardingOpen: showOnboarding,
-                                      conciergeInPager: swipeOrder.contains(.concierge)) {
+        let linkAction = ShellLinkPolicy.action(for: link, onboardingOpen: showOnboarding,
+                                                conciergeInPager: swipeOrder.contains(.concierge))
+        // W5: a guest's club and Concierge links open the sign-up sheet instead (the club join is replayed
+        // after sign-up); title, Discover and every other link open normally.
+        if guest?.isGuest == true {
+            switch linkAction {
+            case .joinClub(let code):
+                collapseThen {
+                    selection = .clubs
+                    mountedSections.insert(.clubs)
+                    _ = GuestGate.allows(.joinClub(code: code), guest: guest, routes: routes)
+                }
+                return
+            case .openJourney(let page):
+                if case .club = page {
+                    collapseThen {
+                        selection = .clubs
+                        mountedSections.insert(.clubs)
+                        _ = GuestGate.allows(nil, guest: guest, routes: routes)
+                    }
+                    return
+                }
+            case .openConciergeSheet, .openConciergePage:
+                collapseThen { _ = GuestGate.allows(nil, guest: guest, routes: routes) }
+                return
+            default:
+                break
+            }
+        }
+        switch linkAction {
         case .waitForOnboarding:
             // Replayed from the cover's onDismiss (after its animation), never under it.
             linkAfterOnboarding = link
@@ -785,6 +825,7 @@ extension KuroMainView {
 // MARK: - Interactive section pager (keeps tabs mounted once visited)
 private struct KuroSectionPager: View {
     typealias Section = KuroMainView.Section
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     @Binding var selection: Section
     @Binding var mountedSections: Set<Section>
@@ -855,6 +896,10 @@ private struct KuroSectionPager: View {
 
         if shouldMount {
             Group {
+                if guest?.isGuest == true, GuestPager.invitationSections.contains(section) {
+                    // W5: Taste, Home, Collection and Clubs are accounts' pages; a guest sees an invitation.
+                    GuestInvitationPage(section: section)
+                } else {
                 switch section {
                 case .taste:
                     TastePicksView(medium: $tasteMedium)
@@ -876,6 +921,7 @@ private struct KuroSectionPager: View {
                     EditorialCollectionView(onOpenBrowsePage: onOpenBrowse)
                 case .clubs:
                     ClubsView(pendingJoinCode: $pendingJoinCode)
+                }
                 }
             }
             // iPad: a readable centred column inside the full-width page (spec D3). iPhone: unchanged.
@@ -1058,6 +1104,8 @@ struct KuroHeaderNew: View {
     /// While Discover is the page, tapping the centred name scrolls it to the top (usability §5.10).
     var onTitleTap: (() -> Void)? = nil
     @Environment(IdentityStore.self) private var identity
+    @Environment(GuestSession.self) private var guest: GuestSession?
+    @Environment(\.kuroRoutes) private var routes
     @Environment(SessionController.self) private var session
     @Environment(ClubsStore.self) private var clubs
     @Environment(FeatureFlags.self) private var flags
@@ -1077,7 +1125,8 @@ struct KuroHeaderNew: View {
     private var swipeOrder: [KuroMainView.Section] {
         KuroMainView.Section.pagerOrder(
             tasteDeck: flags.tasteDeckV1Enabled,
-            seriesHome: flags.seriesHomeNativeV1Enabled
+            seriesHome: flags.seriesHomeNativeV1Enabled,
+            guest: guest?.isGuest == true
         )
     }
 
@@ -1227,7 +1276,20 @@ struct KuroHeaderNew: View {
             .buttonStyle(KuroHeaderIconButtonStyle())
             .accessibilityLabel(KuroLocale.text("Search", "Suche"))
             .accessibilityHint(KuroLocale.text("Opens search", "Öffnet die Suche"))
+            .accessibilityIdentifier("header.search")
 
+            if guest?.isGuest == true {
+                // W5: a guest has no profile or sign-out; one "Sign in" opens the sign-up sheet on Sign in.
+                Button(KuroLocale.text("Sign in", "Anmelden")) {
+                    KuroAccessibility.impactHaptic(.light)
+                    _ = GuestGate.allows(nil, guest: guest, routes: routes, mode: .signIn)
+                }
+                .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 20))
+                .foregroundStyle(inkColor)
+                .frame(minWidth: 44, minHeight: 44)
+                .buttonStyle(KuroHeaderIconButtonStyle())
+                .accessibilityIdentifier("header.signIn")
+            } else {
             Menu {
                 Button(KuroLocale.text("Profile", "Profil")) {
                     showProfileSheet = true
@@ -1252,6 +1314,7 @@ struct KuroHeaderNew: View {
             .buttonStyle(KuroHeaderIconButtonStyle())
             .accessibilityLabel(KuroLocale.text("Profile", "Profil"))
             .accessibilityHint(KuroLocale.text("Opens account menu", "Öffnet das Kontomenü"))
+            }
         }
         .padding(.trailing, -6)
     }

@@ -20,9 +20,9 @@ import SwiftUI
 /// route. One rule for both surfaces, so they cannot drift apart.
 enum DiscoverBrowseEntry {
     @MainActor
-    static func isOffered(flags: FeatureFlags) -> Bool {
+    static func isOffered(flags: FeatureFlags, guest: Bool = false) -> Bool {
         !KuroMainView.Section
-            .pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled)
+            .pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled, guest: guest)
             .contains(.browse)
     }
 }
