@@ -104,4 +104,127 @@ struct ReleaseAlertOfferTests {
         #expect(h.defaults.object(forKey: "com.kuro.releaseNotifications.offerDeclined.\(lowerA)") == nil)
         await h.tearDown()
     }
+
+    // MARK: Task 2: pure policy and copy
+
+    nonisolated static let now = Date(timeIntervalSince1970: 1_793_707_200)
+    nonisolated static let key = MediaKey(kind: .anime, id: 501)
+
+    nonisolated static func row(_ unitKind: ReleaseUnitKind = .episode, number: Double? = 5, at: Date? = now.addingTimeInterval(3 * 86_400),
+                    basis: ReleaseBasis = .confirmed, precision: ReleasePrecision? = .instant,
+                    kind: MediaKind = .anime, id: Int = 501, confidence: Double? = nil, isPast: Bool = false) -> ReleaseScheduleItem {
+        ReleaseScheduleItem(medium: kind, mediaId: id, title: "Frieren", unitKind: unitKind, unitNumber: number, releaseAt: at,
+                            basis: basis, confidence: confidence, source: "anilist", isPast: isPast, precision: precision)
+    }
+
+    nonisolated static func base(next: ReleaseScheduleItem? = row()) -> ReleaseAlertOfferPolicy.Input {
+        .init(previousStatus: nil, status: .current, next: next, toggleOn: false, permission: .notDetermined,
+              allowed: [], muted: [], offered: [], declined: [], suppressed: false)
+    }
+
+    @Test func noOfferForEstimatesDaysOrFinishedTitles() {
+        let now = Self.now, key = Self.key
+        func offers(_ input: ReleaseAlertOfferPolicy.Input) -> Bool { ReleaseAlertOfferPolicy.shouldOffer(input, key: key, now: now) }
+        #expect(offers(Self.base()), "control")
+        #expect(!offers(Self.base(next: Self.row(basis: .estimated, precision: .instant, confidence: 0.9))))
+        #expect(!offers(Self.base(next: Self.row(basis: .announced, precision: .day))))
+        #expect(!offers(Self.base(next: Self.row(basis: .announced, precision: .month))))
+        #expect(!offers(Self.base(next: Self.row(at: now.addingTimeInterval(-60), isPast: true))))
+        #expect(!offers(Self.base(next: Self.row(at: now.addingTimeInterval(30)))), "under the 60 s minimum lead")
+        #expect(!offers(Self.base(next: nil)))
+        #expect(!offers(Self.base(next: Self.row(id: 502))), "another title's row")
+        var finished = Self.base()
+        finished.status = .completed
+        #expect(!offers(finished))
+        finished.status = .dropped
+        #expect(!offers(finished))
+    }
+
+    @Test func noOfferForPlanningOrUntrackedStatuses() {
+        let now = Self.now, key = Self.key
+        func offers(prev: ListStatus?, _ status: ListStatus?) -> Bool {
+            var input = Self.base()
+            input.previousStatus = prev
+            input.status = status
+            return ReleaseAlertOfferPolicy.shouldOffer(input, key: key, now: now)
+        }
+        #expect(!offers(prev: nil, .planning))
+        #expect(!offers(prev: nil, .paused))
+        #expect(!offers(prev: nil, nil))
+        #expect(offers(prev: nil, .repeating))
+        #expect(!offers(prev: .current, .current), "an edit of an already watched title")
+        #expect(offers(prev: .planning, .current))
+    }
+
+    @Test func noOfferWhenPermissionDenied() {
+        var input = Self.base()
+        input.permission = .denied
+        #expect(!ReleaseAlertOfferPolicy.shouldOffer(input, key: Self.key, now: Self.now))
+        input.permission = .authorized
+        #expect(ReleaseAlertOfferPolicy.shouldOffer(input, key: Self.key, now: Self.now))
+        input.permission = .notDetermined
+        #expect(ReleaseAlertOfferPolicy.shouldOffer(input, key: Self.key, now: Self.now))
+    }
+
+    @Test func overridesToggleDeclinesAndSuppressionStopTheOffer() {
+        let now = Self.now, key = Self.key
+        func offers(_ change: (inout ReleaseAlertOfferPolicy.Input) -> Void) -> Bool {
+            var input = Self.base()
+            change(&input)
+            return ReleaseAlertOfferPolicy.shouldOffer(input, key: key, now: now)
+        }
+        let others: [MediaKey] = [MediaKey(kind: .anime, id: 1), MediaKey(kind: .anime, id: 2), MediaKey(kind: .anime, id: 3)]
+        #expect(!offers { $0.toggleOn = true })
+        #expect(!offers { $0.allowed = [key] })
+        #expect(!offers { $0.muted = [key] })
+        #expect(!offers { $0.offered = [key] })
+        #expect(offers { $0.declined = Set(others.prefix(2)) })
+        #expect(!offers { $0.declined = Set(others) })
+        #expect(!offers { $0.suppressed = true })
+    }
+
+    @Test func offerImpliesPlannerWouldNotify() {
+        let now = Self.now
+        let units: [ReleaseUnitKind] = [.episode, .chapter, .volume, .season]
+        let bases: [ReleaseBasis] = [.confirmed, .announced, .estimated]
+        let precisions: [ReleasePrecision?] = [.instant, .day, .month, nil]
+        let leads: [TimeInterval] = [-3_600, 30, 90, 7_200, 3 * 86_400]
+        var offered = 0, combos = 0
+        for unit in units { for basis in bases { for precision in precisions { for lead in leads {
+            combos += 1
+            let item = Self.row(unit, number: 7, at: now.addingTimeInterval(lead), basis: basis, precision: precision, confidence: 0.9)
+            let input = Self.base(next: item)
+            guard ReleaseAlertOfferPolicy.shouldOffer(input, key: Self.key, now: now) else { continue }
+            offered += 1
+            let plan = ReleaseNotificationPlanner.plan(
+                items: [item], following: [Self.key], muted: [], now: now, german: false,
+                locale: Locale(identifier: "en_GB"), timeZone: TimeZone(identifier: "UTC") ?? .current)
+            #expect(plan.count == 1, "offered but the planner would not notify: \(item)")
+        } } } }
+        #expect(combos >= 40 && offered > 0, "\(combos) combinations, \(offered) offered")
+    }
+
+    @Test func promptCopyIsEnglishAndGerman() {
+        #expect(ReleaseAlertOfferCopy.prompt(Self.row(), german: false) == "Notify me when episode 5 airs")
+        #expect(ReleaseAlertOfferCopy.prompt(Self.row(), german: true) == "Benachrichtigen, wenn Folge 5 läuft")
+        let chapter = Self.row(.chapter, number: 120, kind: .manga, id: 2)
+        #expect(ReleaseAlertOfferCopy.prompt(chapter, german: false) == "Notify me when chapter 120 is out")
+        #expect(ReleaseAlertOfferCopy.prompt(chapter, german: true) == "Benachrichtigen, wenn Kapitel 120 erscheint")
+        let volume = Self.row(.volume, number: 3, kind: .manga, id: 2)
+        #expect(ReleaseAlertOfferCopy.prompt(volume, german: false) == "Notify me when volume 3 is out")
+        #expect(ReleaseAlertOfferCopy.prompt(volume, german: true) == "Benachrichtigen, wenn Band 3 erscheint")
+        let none = Self.row(.episode, number: nil)
+        #expect(ReleaseAlertOfferCopy.prompt(none, german: false) == "Notify me when the next episode airs")
+        #expect(ReleaseAlertOfferCopy.prompt(none, german: true) == "Benachrichtigen, wenn die nächste Folge läuft")
+        #expect(ReleaseAlertOfferCopy.notifyMe(german: true) == "Benachrichtigen" && ReleaseAlertOfferCopy.notNow(german: true) == "Nicht jetzt")
+        #expect(ReleaseAlertOfferCopy.saved(german: false) == "Saved." && ReleaseAlertOfferCopy.saved(german: true) == "Gespeichert.")
+    }
+
+    @Test func unseenOfferLapsesWithoutCountingAsOffered() {
+        let t = Self.now
+        let offer = ReleaseAlertOffer(id: UUID(), key: Self.key, item: Self.row(), accountUserId: "a", createdAt: t)
+        #expect(!ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: nil, now: t.addingTimeInterval(29)))
+        #expect(ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: nil, now: t.addingTimeInterval(31)))
+        #expect(!ReleaseAlertOfferPolicy.hasLapsed(offer, boundHost: UUID(), now: t.addingTimeInterval(300)))
+    }
 }
