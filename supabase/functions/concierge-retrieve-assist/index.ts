@@ -2,6 +2,7 @@
 // The retrieval run is runRetrieveAssist (run.ts): cache check, lexical RPC, response shape.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { limiterIpBucket, limiterSecretFromEnv } from "../_shared/limiter_ip.ts";
 import { gateRateLimit } from "../_shared/rate_limit_gate.ts";
 import { runRetrieveAssist } from "./run.ts";
 
@@ -62,7 +63,7 @@ serve(async (req) => {
   const blocked = await gateRateLimit(
     authClient.rpc("check_concierge_rate_limit", {
       p_kind: "rag",
-      p_ip: ip,
+      p_ip: await limiterIpBucket(ip, limiterSecretFromEnv((name) => Deno.env.get(name))),
       p_window_seconds: null,
       p_max_user: null,
       p_max_ip: null,

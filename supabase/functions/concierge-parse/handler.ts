@@ -19,6 +19,7 @@
  * No remote imports here (index.ts owns supabase-js and env).
  */
 import { aliasLookupKeys, normalizeAliasKey } from "../_shared/alias_normalization.ts";
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { interpretRateLimit, rateLimitBlockedResponse } from "../_shared/rate_limit_gate.ts";
 import { type ExistingEntry, type ParseRepository, type SupabaseLike, supabaseParseRepository } from "./parse_repository.ts";
 import { type ParsedItem, parseClarificationMap, parseLine, splitItems } from "./rules.ts";
@@ -46,6 +47,8 @@ export interface ParsePlatform {
    * writes finish after the response; when absent they complete before the handler returns.
    */
   waitUntil?: (p: Promise<unknown>) => void;
+  /** HMAC secret for the limiter IP bucket (`limiterSecretFromEnv`); undefined makes an IP-bearing request fail closed. */
+  limiterIpSecret(): string | undefined;
 }
 
 function json(res: unknown, init: ResponseInit = {}) {
@@ -217,12 +220,12 @@ export async function handleParse(req: Request, platform: ParsePlatform): Promis
   }
 
   // Rate-limit check and auth verification run in parallel (they are independent).
-  const ip = clientIp(req);
+  const ipBucket = await limiterIpBucket(clientIp(req), platform.limiterIpSecret());
   const [rlResult, userResult] = await Promise.all([
     Promise.resolve(
       client.rpc("check_concierge_rate_limit", {
         p_kind: "parse",
-        p_ip: ip,
+        p_ip: ipBucket,
         p_window_seconds: null,
         p_max_user: null,
         p_max_ip: null,

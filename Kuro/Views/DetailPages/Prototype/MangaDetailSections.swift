@@ -95,6 +95,7 @@ struct MangaDetailPage: View {
     /// Optional: fixture hosts may not inject one (then "More like this." stays hidden).
     @Environment(RecommendationsReader.self) private var recommendations: RecommendationsReader?
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
     @Environment(\.kuroFoldMemory) private var folds
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -186,7 +187,7 @@ struct MangaDetailPage: View {
     private var credits: [DetailCreditRow] { DetailCreditRow.manga(authors: content.authors, german: german) }
     private var publisher: ProviderSheetItem? { readLink }
     /// `social_activity_v1`: the server kill switch for notes, reactions and the club roster.
-    private var socialEnabled: Bool { flags.isSocialActivityV1Enabled }
+    private var socialEnabled: Bool { flags.isSocialActivityV1Enabled && guest?.isGuest != true }
     private var clubPeople: Int { socialEnabled && !clubs.myClubs.isEmpty ? roster.count : 0 }
     private var clubRails: [ClubMediaActivity] { clubs.clubActivityForMedia(mediaId: manga.id, mediaType: "MANGA") }
     private var isOffline: Bool { network?.isConnected == false }
@@ -519,6 +520,8 @@ struct MangaDetailPage: View {
     /// The live dock's heart: saves to Planned, or removes a saved title. Removing asks first when the
     /// entry holds anything beyond a bare plan; the toast then offers Undo.
     private func toggleSaved() {
+        // W5: a guest has no library; the heart opens the sign-up sheet (Plan intent) instead.
+        guard GuestGate.allows(.plan(manga.libraryKey, title: manga.title), guest: guest, routes: routes) else { return }
         let origin = actionScope.capture(session: libraryActions.accountSession)
         guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         if let entry {
@@ -556,7 +559,8 @@ struct MangaDetailPage: View {
             showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
                                      title: outcome.error == nil ? KuroLocale.text("Back in your list.", "Wieder in deiner Liste.")
                                                                  : KuroLocale.text("Not restored. Try again from List settings.", "Nicht wiederhergestellt. Versuch es über die Listeneinstellungen."),
-                                     subtitle: nil, actionTitle: nil, onAction: nil))
+                                     subtitle: DetailRemoval.conflictSubtitle(outcome.error, german: KuroLocale.isGerman),
+                                     actionTitle: nil, onAction: nil))
         }
     }
 

@@ -164,7 +164,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 316 app Swift files in `/Kuro`; 48 package Swift files in `/Packages`; 254 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 322 app Swift files in `/Kuro`; 48 package Swift files in `/Packages`; 254 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -20168,6 +20168,10 @@ PR #12 merged to `main` (`e944f18`) after serial KuroTests 1,259/1,259 at `63bd2
 
 ### Change Log — 18 November 2026 (night): W6 grouping (dark), manga new-series handler; hosted steps blocked
 W6 one row per series: `SeriesListGrouping` (package), reviewed-membership read (`CatalogStore+SeriesMembership`, requires `continuity='verified'` and approved grouping/section), `CollectionStore` grouping state with a per-account "Group seasons" switch, `FolioGrouping` fold; flag `collection_series_grouping_v1` 0 %; no migration; DB test 111 (21); load profile `collection-series-membership`. Visible effect needs D-G (membership is empty live). Gotcha: `series*` tables carry Supabase default write grants; only RLS blocks writes. Catalogue `mangaupdates_new` handler stores recently added MangaUpdates series for `create` (report mode default; minYear 2024 default). Task 16 source credit held until behind `catalogue_source_credit_v1` (live anime/manga lack `data_sources` until `20261112100000`). Hosted: the session permission layer refused the first production write and the concierge-recommend deploy; ordered runbook `docs/plans/open-work-deploy-2026-11-18/RUNBOOK.md`. BDD gate 52 resolved / 0 unresolved (W2, W3, W4, W6, W10 landed). Inventory 309 app Swift / 46 package / 254 SQL.
+
+### Change Log — 18 November 2026 (late): PR #14; W5 guest browsing (dark); handoff fixes
+PR #14 merged to `main` (W9 tags/custom lists dark, W9/W4 review fixes, handoff `docs/plans/2026-11-18-handoff.md`) after serial KuroTests 1,339/1,339 and full DB 65 files / 1,871. Since: handoff 4b fixes (probe script off `anilist_id` for owner reads; distinct Home card ids per season of one series; removal Undo refuses to overwrite a row re-added on another device, with a lease re-check after its probe; concierge-recommend reincarnat/reborn regex — needs deploy). W5 guest browsing built dark (`guest_browsing_v1` 0 %): `GuestSession`, pending intent with one replay after sign-up, guest pager with invitation pages, signed-out guards; prepared `20261118110000_guest_anon_allowlist_v1` (sha `bc66547e…`) revokes anon EXECUTE from everything except a 23-function allowlist — **live today anon can execute ~110 functions** (each mostly refusing via its own auth check); test 114 (95). Release needs the allowlist migration, full qualification, a `guest-browse` qualify run and the live anon audit. BDD gate: 74 resolved / 0 unresolved / 0 pending (all tracker features landed). Inventory 322 app Swift / 48 package / 254 SQL.
+
 
 
 

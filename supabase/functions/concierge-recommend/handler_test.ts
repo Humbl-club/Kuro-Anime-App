@@ -4,6 +4,7 @@
 // deterministic recommendations, and budget reservation accounting on every narration path.
 import { assertEquals } from "jsr:@std/assert@1";
 import { type FakeOptions, queryFake, type RpcReply } from "../_shared/test_query_fake.ts";
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { handleRecommend } from "./handler.ts";
 import { groqNarrate, narrateWithBudget, supabaseNarrationBudget } from "./narration.ts";
 
@@ -73,7 +74,7 @@ async function recommend(fake: ReturnType<typeof queryFake>, body: Record<string
       headers: { "Content-Type": "application/json", Authorization: "Bearer test", "x-forwarded-for": "203.0.113.9" },
       body: JSON.stringify(body),
     }),
-    { client: () => fake.client, globalBudgetClient: () => fake.client, env: (k) => env[k], fetch: net.fetch, now: () => NOW },
+    { client: () => fake.client, globalBudgetClient: () => fake.client, limiterIpSecret: () => "test-secret", env: (k) => env[k], fetch: net.fetch, now: () => NOW },
   );
   return { res, body: (await res.json()) as Json };
 }
@@ -127,6 +128,14 @@ Deno.test("actual narration transport bounds held headers and body, then release
     await new Promise((resolve) => setTimeout(resolve, 0));
     assertEquals(fake.calls.filter((c) => c.kind === "rpc" && c.name.endsWith("_finalize")).length, 2);
   }
+});
+
+Deno.test("the limiter gets the keyed IP bucket, never the raw client address", async () => {
+  const fake = world();
+  await recommend(fake, { text: PROMPT });
+  const sent = String(fake.rpcCalls("check_concierge_rate_limit")[0].p_ip);
+  assertEquals(sent, await limiterIpBucket("203.0.113.9", "test-secret"));
+  assertEquals(sent.includes("203.0.113.9"), false);
 });
 
 Deno.test("explicit rate denial is 429 with Retry-After and no catalog, cache or narration work", async () => {
@@ -257,7 +266,7 @@ function recommendRaw(fake: ReturnType<typeof queryFake>, waitUntil?: (p: Promis
       headers: { "Content-Type": "application/json", Authorization: "Bearer test", "x-forwarded-for": "203.0.113.9" },
       body: JSON.stringify({ text }),
     }),
-    { client: () => fake.client, globalBudgetClient: () => fake.client, env: (k) => env[k], fetch: groq("ok").fetch, now: () => NOW, waitUntil },
+    { client: () => fake.client, globalBudgetClient: () => fake.client, limiterIpSecret: () => "test-secret", env: (k) => env[k], fetch: groq("ok").fetch, now: () => NOW, waitUntil },
   );
 }
 

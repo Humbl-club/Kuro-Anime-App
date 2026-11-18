@@ -52,6 +52,7 @@ final class AppComposition {
 
     var accountSession: AccountSessionCoordinator { graph.accountSession }
     var identity: IdentityStore { graph.identity }
+    var guest: GuestSession { graph.guest }
     var auth: AuthService { graph.auth }
     var session: SessionController { graph.session }
     var library: LibraryStore { graph.library }
@@ -325,6 +326,11 @@ final class AppComposition {
 
         let identity = IdentityStore(configError: client == nil ? configError : nil)
         let auth = AuthService(client: client, identity: identity)
+        // W5: guest state + the one pending intent (not account-scoped: it holds no account data).
+        let guest = GuestSession(identity: identity, flags: shell.flags, libraryActions: libraryActions,
+                                 library: wiring.store, taste: assistant.taste, clubs: clubs, banner: shell.banner)
+        // Guests send no telemetry (D-W5-T default); the auth wall's own anonymous events are unchanged.
+        shell.interactionTelemetry.suppressesSending = { [weak guest] in guest?.isGuest == true }
         let libraryRealtime = LibraryRealtime(
             channels: userListChannels,
             accountSession: accountSession,
@@ -349,6 +355,7 @@ final class AppComposition {
             clubs: clubs,
             availability: personalData.availability,
             shell: shell,
+            guest: guest,
             accountScopedStates: makeAccountScopedStates(
                 libraryActions: libraryActions,
                 home: home,
@@ -369,6 +376,7 @@ final class AppComposition {
         return AppGraph(
             accountSession: accountSession,
             identity: identity,
+            guest: guest,
             auth: auth,
             session: session,
             library: wiring.store,
@@ -660,7 +668,7 @@ final class AppComposition {
         accountSession: AccountSessionCoordinator,
         library: LibraryStore
     ) -> PublicDataOwners {
-        let catalog = CatalogStore(client: client)
+        let catalog = CatalogStore(client: client, accountSession: accountSession)
         let discovery = DiscoveryStore(client: client, accountSession: accountSession, library: library)
         // "More like this" excludes the caller's own list: per account, cleared on every transition.
         let recommendations = RecommendationsReader(client: client, catalog: catalog, accountSession: accountSession)
@@ -752,6 +760,8 @@ struct AccountSessionLibraryLease: LibraryCredentialLease {
 struct AppGraph {
     let accountSession: AccountSessionCoordinator
     let identity: IdentityStore
+    /// W5: guest state and the pending intent (behind `guest_browsing_v1`).
+    let guest: GuestSession
     let auth: AuthService
     let session: SessionController
     let library: LibraryStore

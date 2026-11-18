@@ -129,8 +129,9 @@ select tests.eq('other user cannot target a row they do not own',
   (:'foreign_write'::jsonb -> 'items' -> 0 ->> 'outcome'), 'invalid_target');
 
 select tests.as_anon();
-select tests.raises('anon cannot read the home bundle',
-  $q$select public.home_bundle_v1('anime')$q$, '%UNAUTHENTICATED%');
+-- W5 (20261118110000): anon no longer holds EXECUTE here, so the call is refused at the grant (42501) before the body's own check; both denials count.
+select tests.ok('anon cannot read the home bundle (UNAUTHENTICATED from the body, or permission denied at the grant)',
+  tests.try_scalar($q$public.home_bundle_v1('anime')$q$) ~ '(UNAUTHENTICATED|permission denied for function home_bundle_v1)');
 
 select tests.as_user(tests.uid(81));
 select public.start_library_import_v1('myanimelist','account','anime','idem-account-1','abcdef0123456789')->>'job_id' as account_job \gset

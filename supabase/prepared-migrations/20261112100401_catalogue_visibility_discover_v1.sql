@@ -50,10 +50,12 @@ stable
 set search_path = public, extensions
 as $$ select exists (select 1 from public.manga m where m.id = p_id and m.catalogue_visibility = 'visible') $$;
 
-revoke all on function public.catalogue_anime_visible(integer) from public;
-revoke all on function public.catalogue_manga_visible(integer) from public;
-grant execute on function public.catalogue_anime_visible(integer) to anon, authenticated, service_role;
-grant execute on function public.catalogue_manga_visible(integer) to anon, authenticated, service_role;
+-- Only the SECURITY DEFINER Discover readers call these (as their owner), so anon needs no EXECUTE; W5
+-- (20261118110000, guest allowlist) keeps anon closed and test 114 asserts the exact anon set.
+revoke all on function public.catalogue_anime_visible(integer) from public, anon;
+revoke all on function public.catalogue_manga_visible(integer) from public, anon;
+grant execute on function public.catalogue_anime_visible(integer) to authenticated, service_role;
+grant execute on function public.catalogue_manga_visible(integer) to authenticated, service_role;
 
 -- discover_bundle: latest definition 20261109200200_discover_newly_added_base_v1.sql; 18 anime/manga/matview references, 18 visibility predicates added
 create or replace function public.discover_bundle(

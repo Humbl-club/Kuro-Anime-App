@@ -238,4 +238,57 @@ struct HomeLaneTests {
                 "a past airing time is never turned into a next date")
         #expect(DetailNextReleaseSection.seed(for: try anime(next: 8, at: nil), now: now).isEmpty)
     }
+
+    private static func seasonCard(_ id: Int, series: String?, ordinal: Int?) throws -> HomeCard {
+        let seriesJSON = series.map { "\"series_id\":\"\($0)\",\"section_ordinal\":\(ordinal ?? 1)," } ?? ""
+        return try decode("""
+        {"media_id":\(id),"list_type":"WATCHING","progress":2,"server_revision":1,\(seriesJSON)
+         "lifecycle_id":"11111111-1111-4111-8111-11111111111\(id % 10)","title":"T\(id)"}
+        """)
+    }
+
+    @Test("Two tracked seasons of one published series never share a Home id; unrelated ids are unchanged")
+    func seasonsOfOneSeriesHaveDistinctIds() throws {
+        let s1 = try Self.seasonCard(3, series: "series-a", ordinal: 1)
+        let s2 = try Self.seasonCard(4, series: "series-a", ordinal: 2)
+        #expect(s1.id != s2.id, "both seasons must be separate ForEach identities")
+        #expect(Set([s1, s2].map(\.id)).count == 2)
+        // Cards of no published series keep exactly the id they always had (caches stay valid).
+        #expect(try Self.seasonCard(7, series: nil, ordinal: nil).id == "entry:7")
+        // The same card keeps the same id between loads.
+        #expect(try Self.seasonCard(3, series: "series-a", ordinal: 1).id == s1.id)
+        let split = HomeShelfPolicy.partition([s1, s2])
+        #expect(split.inProgress.map(\.mediaId) == [3, 4], "both seasons render")
+    }
+
+    @Test("Advancing one tracked season does not move the other season of the same series")
+    func seasonsUpdateIndependently() async throws {
+        let suite = "home-seasons-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let outbox = try ProgressOutbox(path: FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(suite).sqlite").path)
+        let backend = FakeLibraryBackend()
+        let s1 = try Self.seasonCard(3, series: "series-a", ordinal: 1)
+        let s2 = try Self.seasonCard(4, series: "series-a", ordinal: 2)
+        backend.setRows([s1, s2].compactMap { card in
+            UUID(uuidString: card.lifecycleId).map {
+                LibraryEntry(key: MediaKey(kind: .anime, id: card.mediaId), rowId: card.mediaId, status: .current, progress: 2,
+                             createdAt: Date(), updatedAt: Date(), revision: 1, lifecycleId: $0)
+            }
+        }, for: LifecycleFixtures.userA)
+        let graph = AppComposition.testingGraph(
+            testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
+            libraryBackend: backend,
+            flags: FeatureFlags(userDefaults: defaults, launchArguments: ["--ff-on=series_foundation_v1"]),
+            progressOutbox: outbox)
+        _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "seasons@example.com")
+        await graph.libraryActions.libraryRefreshTask?.value
+        await graph.home.advance(s1)
+        #expect(graph.home.displayedProgress(for: s1) == 3)
+        #expect(graph.home.displayedProgress(for: s2) == 2, "season 2 is untouched")
+        await graph.home.advance(s2)
+        #expect(graph.home.displayedProgress(for: s1) == 3)
+        #expect(graph.home.displayedProgress(for: s2) == 3)
+    }
 }

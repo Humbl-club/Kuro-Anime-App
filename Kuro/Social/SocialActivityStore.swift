@@ -171,6 +171,8 @@ final class SocialActivityStore: AccountScopedState {
     /// that asked, or its friend scope (a club revocation meanwhile), is no longer current by the time
     /// the answer (or a failure) arrives.
     func fetchFriendActivityForTitle(mediaType: String, mediaId: Int, paged: Bool = false, commentCursor: FriendActivityResponse.CommentCursor? = nil, friendCursor: String? = nil) async throws -> FriendActivityResponse {
+        // W5: private; a guest never sends it.
+        guard accountSession.current != nil else { throw CancellationError() }
         let scope = currentFriendScope
         do {
             let client = try requiredClient()
@@ -271,6 +273,7 @@ final class SocialActivityStore: AccountScopedState {
     /// made. A key is marked fresh only after its batch answered under the current account and friend
     /// scope.
     func prefetchFriendCounts(items: [(mediaType: String, mediaId: Int)]) {
+        guard accountSession.current != nil else { return }   // W5: private; a guest never sends it
         let pending = Self.friendCountKeysToRequest(
             items.map { Self.friendCountKey(mediaType: $0.mediaType, mediaId: $0.mediaId) },
             fetchedAt: friendCountFetchedAt,

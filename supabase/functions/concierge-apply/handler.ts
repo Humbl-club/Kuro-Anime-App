@@ -24,6 +24,7 @@
  * No remote imports here (index.ts owns supabase-js and env).
  */
 import { normalizeAliasKey } from "../_shared/alias_normalization.ts";
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { interpretRateLimit, rateLimitBlockedResponse } from "../_shared/rate_limit_gate.ts";
 import {
   APPLY_FAILED_BODY,
@@ -51,6 +52,8 @@ export interface ApplyPlatform {
   client(authHeader: string): SupabaseLike | null;
   /** Service-role client for the import transaction RPC, or null when SUPABASE_SERVICE_ROLE_KEY is missing. */
   serviceClient(): SupabaseLike | null;
+  /** HMAC secret for the limiter IP bucket (`limiterSecretFromEnv`); undefined makes an IP-bearing request fail closed. */
+  limiterIpSecret(): string | undefined;
 }
 
 function json(res: unknown, init: ResponseInit = {}) {
@@ -195,14 +198,14 @@ export async function handleApply(req: Request, platform: ApplyPlatform): Promis
       return json({ error: "Missing SUPABASE_URL, a Supabase API key env (SUPABASE_ANON_KEY) or SUPABASE_SERVICE_ROLE_KEY" }, { status: 500 });
     }
 
-    const ip = clientIp(req);
+    const ipBucket = await limiterIpBucket(clientIp(req), platform.limiterIpSecret());
 
     // Auth, rate-limit check and body parsing are independent.
     const [authResult, rlResult, body] = await Promise.all([
       client.auth.getUser(),
       client.rpc("check_concierge_rate_limit", {
         p_kind: "apply",
-        p_ip: ip,
+        p_ip: ipBucket,
         p_window_seconds: null,
         p_max_user: null,
         p_max_ip: null,

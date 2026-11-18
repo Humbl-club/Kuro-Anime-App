@@ -43,7 +43,7 @@ const post = (body: unknown) =>
   new Request("http://local/fn", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer test" }, body: JSON.stringify(body) });
 
 async function parse(db: ReturnType<typeof queryFake>, text: string) {
-  const res = await handleParse(post({ text }), { client: () => db.client });
+  const res = await handleParse(post({ text }), { client: () => db.client, limiterIpSecret: () => "test-secret" });
   return ((await res.json()) as Json).items[0];
 }
 
@@ -65,7 +65,7 @@ Deno.test("record then look up: Apply's alias (strong key) and a legacy-key alia
   });
   const applied = await handleApply(
     post({ items: [{ raw: before.raw, normalized: before.normalized, mediaType: "ANIME", mediaId: 16498, status: "WATCHING", action: "add", progressEpisodes: 3 }] }),
-    { client: () => db.client, serviceClient: () => service.client },
+    { client: () => db.client, serviceClient: () => service.client, limiterIpSecret: () => "test-secret" },
   );
   assertEquals(applied.status, 200);
   const recorded = db.tables.title_aliases.find((r) => r.media_id === 16498);

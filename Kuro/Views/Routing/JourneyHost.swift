@@ -303,7 +303,7 @@ struct JourneyPageView: View {
                     .id(clubId)
             case .browse:
                 JourneyBrowsePage()
-            case .trackingEditor, .addToClub, .journeyPage:
+            case .trackingEditor, .addToClub, .journeyPage, .signUp:
                 // Tools never become pages; `.journeyPage` is resolved by `JourneyPolicy` before this.
                 EmptyView()
             }

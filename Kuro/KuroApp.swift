@@ -13,6 +13,7 @@ struct KuroApp: App {
     /// Installs the notification delegate before launch finishes (a tap that launched the app is seen).
     @UIApplicationDelegateAdaptor(KuroAppDelegate.self) private var appDelegate
     @State private var identity = AppComposition.shared.identity
+    @State private var guest = AppComposition.shared.guest
     @State private var auth = AppComposition.shared.auth
     @State private var session = AppComposition.shared.session
     @State private var library = AppComposition.shared.library
@@ -66,6 +67,7 @@ struct KuroApp: App {
         WindowGroup {
             RootView(pendingDeepLink: $pendingDeepLink)
                 .environment(identity)
+                .environment(guest)
                 .environment(auth)
                 .environment(session)
                 .environment(library)
@@ -148,6 +150,7 @@ struct KuroApp: App {
 private struct RootView: View {
     @Binding var pendingDeepLink: DeepLink?
     @Environment(IdentityStore.self) private var identity
+    @Environment(GuestSession.self) private var guest
     @Environment(NetworkMonitor.self) private var networkMonitor
 
     var body: some View {
@@ -164,7 +167,8 @@ private struct RootView: View {
             }
 
             Group {
-                if let error = identity.configError {
+                switch guest.presentation {
+                case .configError:
                     ZStack {
                         Color.kuroCanvasPage.ignoresSafeArea()
                         VStack(spacing: 16) {
@@ -173,29 +177,33 @@ private struct RootView: View {
                                 .font(.kuroTitle())
                                 .foregroundStyle(Color.kuroInk)
                                 .accessibilityAddTraits(.isHeader)
-                            Text(error)
+                            Text(identity.configError ?? "")
                                 .font(.kuroMeta())
                                 .foregroundStyle(Color.kuroInkSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
                         }
                     }
-                } else if identity.isAuthBootstrapping {
+                case .bootstrapping:
                     // The branded page loader (spec §5.4: launch and bootstrap), on the same white page as
                     // the launch overlay, so launch → bootstrap reads as one surface.
                     ZStack {
                         Color.kuroCanvasPage.ignoresSafeArea()
                         KuroLoadingView(scope: .page)
                     }
-                } else if identity.isAuthenticated && identity.requiresPasswordUpdate {
+                case .setPassword:
                     // A password-reset link signed this account in: a new password comes first (D12).
                     AuthSetPasswordView()
-                } else if identity.isAuthenticated {
+                case .signedIn:
                     // The signed-in subtree's identity is the account: a direct A-to-B switch rebuilds it, so no
                     // A drafts, conversations, selections or tasks survive (a same-user token refresh keeps the id).
                     ContentView(pendingDeepLink: $pendingDeepLink)
                         .id(identity.currentUserId ?? "")
-                } else {
+                case .guest:
+                    // W5 (behind `guest_browsing_v1`): the normal pager with invitation pages and sign-up sheets.
+                    ContentView(pendingDeepLink: $pendingDeepLink)
+                        .id("guest")
+                case .authWall:
                     AuthView()
                 }
             }

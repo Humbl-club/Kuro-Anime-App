@@ -218,7 +218,8 @@ final class NavigationContractUITests: XCTestCase {
         app.terminate()
         app.launchArguments.removeAll { $0 == "--kuro-nav-fixture" }
         app.launch()
-        let search = app.buttons["magnifyingglass"].firstMatch
+        // W5 gave the header's search button the identifier `header.search` (it used to default to its glyph name).
+        let search = app.buttons["header.search"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 15))
         search.tap()
         let searchClose = app.buttons.matching(NSPredicate(format: "label == 'Close'")).firstMatch

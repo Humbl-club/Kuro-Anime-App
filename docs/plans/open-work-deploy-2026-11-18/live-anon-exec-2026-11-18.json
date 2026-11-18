@@ -1,0 +1,82 @@
+{
+  "definer_without_auth_uid": [
+    {
+      "sig": "batch_provider_availability_for_media_v2(text,text,text,boolean)"
+    },
+    {
+      "sig": "batch_providers_for_media(text)"
+    },
+    {
+      "sig": "browse_anime_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)"
+    },
+    {
+      "sig": "browse_manga_page(text,text,integer,integer,text,integer,timestamp with time zone,integer,integer,integer,integer,text)"
+    },
+    {
+      "sig": "club_peer_display_name(uuid)"
+    },
+    {
+      "sig": "enqueue_media_availability_refresh(text,integer,text)"
+    },
+    {
+      "sig": "enqueue_media_relation_refresh(text,integer,text)"
+    },
+    {
+      "sig": "get_concierge_config()"
+    },
+    {
+      "sig": "get_manga_chapter_status(integer)"
+    },
+    {
+      "sig": "get_media_availability_status(text,integer)"
+    },
+    {
+      "sig": "get_media_ladder(text,integer)"
+    },
+    {
+      "sig": "get_media_provider_availability_detail(text,integer,text,text)"
+    },
+    {
+      "sig": "get_provider_availability_refresh_candidates(integer,text,integer,integer)"
+    },
+    {
+      "sig": "get_provider_availability_refresh_queue_summary()"
+    },
+    {
+      "sig": "is_flag_enabled(text)"
+    },
+    {
+      "sig": "list_entry_revision_fence()"
+    },
+    {
+      "sig": "media_franchise_ids_v1(integer[],integer[])"
+    },
+    {
+      "sig": "media_release_schedule_v1(text,integer,integer)"
+    },
+    {
+      "sig": "media_themes_v1(integer)"
+    },
+    {
+      "sig": "publish_mapping_revision(uuid)"
+    },
+    {
+      "sig": "rag_retrieve_candidates(text,text,integer,integer,text,text[],integer)"
+    },
+    {
+      "sig": "recompute_media_realm_llm_deltas(real,text)"
+    },
+    {
+      "sig": "search_anime_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean,boolean,text,integer)"
+    },
+    {
+      "sig": "search_manga_page(text,integer,double precision,integer,integer,boolean,boolean,boolean,boolean)"
+    }
+  ],
+  "summary": [
+    {
+      "definer": 71,
+      "total": 110
+    }
+  ]
+}

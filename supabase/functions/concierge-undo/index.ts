@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleUndo } from "./handler.ts";
+import { limiterSecretFromEnv } from "../_shared/limiter_ip.ts";
 
 serve((req) =>
   handleUndo(req, {
@@ -28,5 +29,6 @@ serve((req) =>
         auth: { persistSession: false, autoRefreshToken: false },
       });
     },
+    limiterIpSecret: () => limiterSecretFromEnv((name) => Deno.env.get(name)),
   })
 );

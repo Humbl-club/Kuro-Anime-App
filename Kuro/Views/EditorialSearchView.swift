@@ -475,6 +475,7 @@ private struct SearchIdleState: View {
 
     @Environment(\.kuroRoutes) private var routes
     @Environment(FeatureFlags.self) private var flags
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
@@ -482,10 +483,11 @@ private struct SearchIdleState: View {
                 // No history: the refinements above, then the empty mark and one invitation (spec §5.3).
                 KuroEmptyView(headline: SearchIdleCopy.noHistory(german: KuroLocale.isGerman)) {
                     // Only where the pager has no Browse page (spec D2).
-                    if DiscoverBrowseEntry.isOffered(flags: flags) {
+                    if DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) {
                         KuroOutlineButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern")) {
                             routes.openBrowse()
                         }
+                        .accessibilityIdentifier("search.browseEntry")
                     }
                 }
             } else {
@@ -538,10 +540,11 @@ private struct SearchIdleState: View {
             }
 
             // Only where the pager has no Browse page (spec D2); with no history it sits in the empty block.
-            if !recentSearches.isEmpty && DiscoverBrowseEntry.isOffered(flags: flags) {
+            if !recentSearches.isEmpty && DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) {
                 KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
                     routes.openBrowse()
                 }
+                .accessibilityIdentifier("search.browseEntry")
                 .padding(.horizontal, gutter)
             }
         }
@@ -566,6 +569,7 @@ private struct SearchNoResultsState: View {
 
     @Environment(\.kuroRoutes) private var routes
     @Environment(FeatureFlags.self) private var flags
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
@@ -582,7 +586,7 @@ private struct SearchNoResultsState: View {
             }
 
             // Only where the pager has no Browse page (spec D2).
-            if DiscoverBrowseEntry.isOffered(flags: flags) {
+            if DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) {
                 KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
                     routes.openBrowse()
                 }

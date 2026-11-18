@@ -854,3 +854,151 @@ private final class CountingLease: LibraryCredentialLease {
         return try await operation()
     }
 }
+
+// MARK: Undo after the title was re-added on another device
+
+/// A one-row server table: insertIfMissing never changes an existing row; edits apply to the row.
+@MainActor
+private final class RowBackend: LibraryBackend {
+    var row: LibraryEntry?
+    var inserts = 0
+    var edits: [LibraryEdit] = []
+    func fetchAll(for account: AccountContext) async throws -> [LibraryEntry] { row.map { [$0] } ?? [] }
+    func insertIfMissing(_ key: MediaKey, status: ListStatus, account: AccountContext) async throws -> LibraryWriteResult {
+        inserts += 1
+        if let row { return LibraryWriteResult(entry: row, created: false) }
+        let created = LibraryEntry(key: key, rowId: 100, status: status, progress: 0, createdAt: .distantPast,
+                                   updatedAt: .distantPast, revision: 1, lifecycleId: UUID(),
+                                   sourceMetadata: LibrarySourceMetadata(repeatCount: 0))
+        row = created
+        return LibraryWriteResult(entry: created, created: true)
+    }
+    func edit(_ edit: LibraryEdit, key: MediaKey, createIfMissing: ListStatus?, mutationId: UUID,
+              baseRevision: Int64?, account: AccountContext) async throws -> LibraryWriteResult {
+        edits.append(edit)
+        guard var current = row else { throw LibraryError.notFound }
+        current = current.applying(edit, at: Date(timeIntervalSince1970: 1_772_407_800))
+        current.revision = (current.revision ?? 0) + 1
+        row = current
+        return LibraryWriteResult(entry: current, created: false)
+    }
+    func remove(_ key: MediaKey, account: AccountContext) async throws { row = nil }
+}
+
+@MainActor
+private final class RecordingSenderBox { var calls = 0 }
+
+@MainActor
+@Suite("Removal Undo never overwrites a row re-added on another device")
+struct RestoreAfterReAddTests {
+    private static let key = MediaKey(kind: .anime, id: 1)
+    private static let account = AccountContext(userId: "account-a", generation: 1)
+
+    private static func removedRow() -> LibraryEntry {
+        LibraryEntry(key: key, rowId: 7, status: .current, progress: 4, createdAt: .distantPast, updatedAt: .distantPast,
+                     revision: 3, lifecycleId: UUID(), sourceMetadata: LibrarySourceMetadata(repeatCount: 0))
+    }
+
+    /// `fenceOn` configures the durable progress outbox (the fence path); off leaves the PATCH path.
+    private static func store(_ backend: RowBackend, fenceOn: Bool, url: URL) async throws -> (LibraryStore, RecordingSenderBox) {
+        let store = LibraryStore(backend: backend, now: { Date(timeIntervalSince1970: 1_772_407_800) },
+                                 calendar: .autoupdatingCurrent, dateAutofillEnabled: { false })
+        store.bind(account)
+        try await store.refresh()
+        let sender = RecordingSenderBox()
+        if fenceOn {
+            let box = try ProgressOutbox(path: url.path)
+            store.configureProgress(outbox: box) { items, _ in
+                sender.calls += 1
+                return items.map { LibraryProgressReceipt(mutationId: $0.mutationId, outcome: "applied", position: $0.position,
+                                                          revision: ($0.baseRevision ?? 0) + 1) }
+            }
+        }
+        return (store, sender)
+    }
+
+    @Test("A newer row for the title (different row id and lifecycle) is kept; nothing is written",
+          .timeLimit(.minutes(1)), arguments: [true, false])
+    func newerRowIsNotOverwritten(fenceOn: Bool) async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("kuro-readd-\(UUID()).sqlite")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let backend = RowBackend()
+        let (store, sender) = try await Self.store(backend, fenceOn: fenceOn, url: url)
+        defer { store.cancelProgressWork() }
+        let removed = Self.removedRow()
+        // Another device re-added the title after this device removed it.
+        let newer = LibraryEntry(key: Self.key, rowId: 9, status: .planning, progress: 0, createdAt: .distantPast,
+                                 updatedAt: .distantFuture, revision: 1, lifecycleId: UUID(),
+                                 sourceMetadata: LibrarySourceMetadata(repeatCount: 0))
+        backend.row = newer
+        let outcome = await store.restore(.restoring(removed), to: Self.key, createIfMissing: removed.status,
+                                          account: Self.account, replacing: removed)
+        #expect(outcome == .failed(.conflict(server: newer)))
+        #expect(backend.edits.isEmpty, "the newer row was edited")
+        #expect(sender.calls == 0, "progress was sent for the newer row")
+        #expect(backend.row == newer)
+        #expect(store.entry(for: Self.key)?.rowId == 9, "the store learns the server's row")
+        #expect(store.entry(for: Self.key)?.status == .planning)
+    }
+
+    @Test("Nothing on the server: the removed row comes back with its fields",
+          .timeLimit(.minutes(1)), arguments: [true, false])
+    func emptyServerRestores(fenceOn: Bool) async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("kuro-readd-\(UUID()).sqlite")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let backend = RowBackend()
+        let (store, sender) = try await Self.store(backend, fenceOn: fenceOn, url: url)
+        defer { store.cancelProgressWork() }
+        let removed = Self.removedRow()
+        let outcome = await store.restore(.restoring(removed), to: Self.key, createIfMissing: removed.status,
+                                          account: Self.account, replacing: removed)
+        #expect(outcome.error == nil)
+        #expect(store.entry(for: Self.key)?.status == .current)
+        #expect(store.entry(for: Self.key)?.progress == 4)
+        // The durable path drains in the background: wait for its send.
+        for _ in 0..<2000 where fenceOn && sender.calls == 0 { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(fenceOn ? sender.calls >= 1 : !backend.edits.isEmpty)
+    }
+
+    @Test("An account switch while the probe is in flight: no write is sent and nothing is published for the new account",
+          .timeLimit(.minutes(1)))
+    func accountSwitchDuringProbeSendsNothing() async throws {
+        try await withHarness { h in
+            let a = h.signIn(Fixture.userA)
+            try await h.load([])
+            let removed = Self.removedRow()
+            let pending = Task {
+                await h.store.restore(.restoring(removed), to: Self.key, createIfMissing: removed.status,
+                                      account: a, replacing: removed)
+            }
+            let probe = try await h.nextCall()
+            #expect(probe.request == .insertIfMissing(removed.status))
+            // B binds while the probe is held.
+            h.signIn(Fixture.userB)
+            try await h.load([])
+            // The probe answers as if it had created the row for A.
+            probe.answer(.write(LibraryWriteResult(entry: removed, created: true)))
+            let outcome = await pending.value
+            #expect(outcome == .failed(.notAuthenticated))
+            #expect(h.store.entry(for: Self.key) == nil, "A's row was published for B")
+            // A write sent for the old account would wait unanswered for the test and keep the entry projected.
+            #expect(h.sink.changes.allSatisfy { $0.account != a || $0.kind == .added }, "a write for the old account was published")
+        }
+    }
+
+    @Test("The server still holds the very row that was removed (the removal never landed): it is restored in place",
+          .timeLimit(.minutes(1)), arguments: [true, false])
+    func sameRowIsRestoredInPlace(fenceOn: Bool) async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("kuro-readd-\(UUID()).sqlite")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let backend = RowBackend()
+        let (store, _) = try await Self.store(backend, fenceOn: fenceOn, url: url)
+        defer { store.cancelProgressWork() }
+        let removed = Self.removedRow()
+        backend.row = removed
+        let outcome = await store.restore(.restoring(removed), to: Self.key, createIfMissing: removed.status,
+                                          account: Self.account, replacing: removed)
+        #expect(outcome.error == nil)
+        #expect(store.entry(for: Self.key)?.rowId == 7)
+    }
+}

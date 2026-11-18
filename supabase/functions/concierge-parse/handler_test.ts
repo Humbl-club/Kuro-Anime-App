@@ -2,7 +2,8 @@
 // against a controlled client (_shared/test_query_fake.ts). One test per boundary outcome: anonymous
 // caller, limiter denial, limiter failure, search failure, ambiguous line, existing-entry projection,
 // and the F31 alias compatibility path.
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals, assertNotEquals, assertRejects } from "jsr:@std/assert@1";
+import { limiterIpBucket } from "../_shared/limiter_ip.ts";
 import { legacyApplyAliasKey, normalizeAliasKey } from "../_shared/alias_normalization.ts";
 import { type FakeOptions, queryFake, type RpcReply } from "../_shared/test_query_fake.ts";
 import { handleParse } from "./handler.ts";
@@ -33,7 +34,7 @@ async function parse(opts: FakeOptions, body: Record<string, unknown>) {
       headers: { "Content-Type": "application/json", Authorization: "Bearer test", "x-forwarded-for": "203.0.113.7" },
       body: JSON.stringify(body),
     }),
-    { client: () => fake.client },
+    { client: () => fake.client, limiterIpSecret: () => "test-secret" },
   );
   return { fake, res, body: (await res.json()) as Json };
 }
@@ -51,7 +52,23 @@ Deno.test("auth error: the parse runs anonymously and does no user-scoped read o
   assertEquals([body.items[0].aliasNorm, body.items[0].existing_entry], [null, null]);
   for (const table of ["title_aliases", "anime_user_lists", "manga_user_lists"]) assertEquals(fake.reads(table), 0, table);
   for (const rpc of ["get_concierge_config", "log_concierge_parse_feedback", "log_concierge_run"]) assertEquals(fake.rpcCalls(rpc).length, 0, rpc);
-  assertEquals(fake.rpcCalls("check_concierge_rate_limit")[0].p_ip, "203.0.113.7");
+  // The limiter receives the keyed bucket, never the raw address (bucket-targeting fix).
+  assertEquals(fake.rpcCalls("check_concierge_rate_limit")[0].p_ip, await limiterIpBucket("203.0.113.7", "test-secret"));
+  assertNotEquals(fake.rpcCalls("check_concierge_rate_limit")[0].p_ip, "203.0.113.7");
+});
+
+Deno.test("an address without a limiter secret fails closed (no raw-IP fallback, no limiter call)", async () => {
+  const fake = queryFake({ user: null, rpc: { check_concierge_rate_limit: ALLOWED } });
+  const res = handleParse(
+    new Request("http://local/concierge-parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.7" },
+      body: JSON.stringify({ text: "Frieren completed" }),
+    }),
+    { client: () => fake.client, limiterIpSecret: () => undefined },
+  );
+  await assertRejects(() => res);
+  assertEquals(fake.rpcCalls("check_concierge_rate_limit").length, 0);
 });
 
 Deno.test("explicit rate denial is 429 with Retry-After and no search or list work", async () => {
@@ -218,7 +235,7 @@ function parseRaw(opts: FakeOptions, waitUntil?: (p: Promise<unknown>) => void) 
       headers: { "Content-Type": "application/json", Authorization: "Bearer test", "x-forwarded-for": "203.0.113.7" },
       body: JSON.stringify({ text: "Frieren completed" }),
     }),
-    { client: () => fake.client, waitUntil },
+    { client: () => fake.client, waitUntil, limiterIpSecret: () => "test-secret" },
   );
   return { fake, res };
 }

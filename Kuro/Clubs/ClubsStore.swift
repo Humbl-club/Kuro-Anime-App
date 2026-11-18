@@ -812,6 +812,7 @@ final class ClubsStore: AccountScopedState {
     func checkClubNotifications() async {
         guard flags.isClubsNotificationsV1Enabled else { return }
         let context = accountSession.current
+        guard context != nil else { return }   // W5: private; a guest never sends it
         let lastCheck = accountScopedDefaultsKey("clubNotificationLastCheck").map { userDefaults.double(forKey: $0) } ?? 0
         let since = lastCheck > 0 ? Date(timeIntervalSince1970: lastCheck) : Date().addingTimeInterval(-86400)
 

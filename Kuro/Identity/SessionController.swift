@@ -67,6 +67,8 @@ final class SessionController {
     @ObservationIgnored private let interactionTelemetry: InteractionTelemetry
     /// The transient banner (rejected auth callbacks).
     @ObservationIgnored private let banner: BannerCenter
+    /// W5: the guest's pending intent, replayed once at the end of the new account's bootstrap.
+    @ObservationIgnored private let guest: GuestSession
     /// The ONE list of owners holding account-scoped state (`AppComposition.makeAccountScopedStates`);
     /// cancelled and cleared on every transition, in this order.
     @ObservationIgnored let accountScopedStates: [any AccountScopedState]
@@ -104,6 +106,7 @@ final class SessionController {
         clubs: ClubsStore,
         availability: ProviderAvailabilityStore,
         shell: ShellOwners,
+        guest: GuestSession,
         accountScopedStates: [any AccountScopedState]
     ) {
         self.client = client
@@ -121,6 +124,7 @@ final class SessionController {
         flags = shell.flags
         interactionTelemetry = shell.interactionTelemetry
         banner = shell.banner
+        self.guest = guest
         self.accountScopedStates = accountScopedStates
     }
 
@@ -325,6 +329,12 @@ final class SessionController {
                     Task { await bootstrapAfterAuth() }
                 } else {
                     await endSessionAfterFailedRestore(storedSessionUserId: client.auth.currentSession?.user.id.uuidString)
+                    // W5: the one signed-out `feature_flags` read that decides whether the app offers guest
+                    // browsing (bounded: the launch screen covers it). Nothing else is sent while signed out.
+                    if isCurrentAttempt(attempt) {
+                        await flags.refreshSignedOut(client: client, accountSession: accountSession,
+                                                     timeout: GuestLaunchPolicy.flagWait)
+                    }
                 }
             }
         }
@@ -980,7 +990,15 @@ final class SessionController {
             && library.allEntries.allSatisfy { $0.revision != nil && $0.lifecycleId != nil }
     }
 
+    /// The new account's bootstrap, then the guest's pending intent (W5), once, as this account.
     private func bootstrapAfterAuth() async {
+        let context = accountSession.current
+        await bootstrapAccountData()
+        guard let context, accountSession.isCurrent(context) else { return }
+        await guest.replayPendingIntent(for: context)
+    }
+
+    private func bootstrapAccountData() async {
         let context = accountSession.current
         if let context, let home = libraryActions.home {
             await home.restorePersonalSnapshot(for: context)

@@ -382,6 +382,8 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// nil on error OR empty rotation (no eligible boosts) — callers fall back
     /// to the legacy hero in both cases.
     func fetchDailyFeature() async -> DailyFeature? {
+        // W5: the RPC needs an account (it raises when signed out), so a guest never sends it.
+        guard accountSession.current != nil else { return nil }
         do {
             let client = try requiredClient()
             let rows: [DailyFeature] = try await client
@@ -402,6 +404,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// account that is no longer current is not handed out (nil).
     func fetchBecauseYouRail(limit: Int = 12) async -> [BecauseYouCard]? {
         let context = accountSession.current
+        guard context != nil else { return nil }   // W5: personal; a guest never sends it
         do {
             let client = try requiredClient()
             let rows: [BecauseYouCard] = try await client
@@ -422,6 +425,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// fetched for an account that is no longer current is not handed out (nil).
     func fetchTonightShelf(limit: Int = 12) async -> [TonightShelfCard]? {
         let context = accountSession.current
+        guard context != nil else { return nil }   // W5: personal; a guest never sends it
         do {
             let client = try requiredClient()
             let rows: [TonightShelfCard] = try await client
@@ -442,6 +446,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// an account that is no longer current is not handed out (nil).
     func fetchRealmHiddenGem() async -> RealmHiddenGem? {
         let context = accountSession.current
+        guard context != nil else { return nil }   // W5: personal; a guest never sends it
         do {
             let client = try requiredClient()
             let rows: [RealmHiddenGem] = try await client

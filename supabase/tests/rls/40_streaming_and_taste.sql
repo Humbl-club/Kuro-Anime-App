@@ -39,7 +39,9 @@ select tests.eq('user 2 RPC only touches own rows (does not delete user 1''s)',
   (public.save_user_streaming_services(array[:'svc_b'])) ->> 'deleted', '0');
 select tests.as_anon();
 select tests.eq('anon reads 0 rows', (select count(*) from public.user_streaming_services), 0::bigint);
-select tests.eq('anon RPC returns unauthenticated', (public.save_user_streaming_services(array[:'svc_a'])) ->> 'error', 'unauthenticated');
+-- W5 (20261118110000): anon no longer holds EXECUTE here, so the call is refused at the grant (42501) before the body's own check; both denials count.
+select tests.ok('anon RPC is refused (unauthenticated from the body, or permission denied at the grant)',
+  tests.try_scalar(format($q$(public.save_user_streaming_services(array[%L])) ->> 'error'$q$, :'svc_a')) ~ '(^unauthenticated$|permission denied for function save_user_streaming_services)');
 select tests.reset();
 select tests.eq('readback: user 1 still has exactly svc_a', (select count(*) from public.user_streaming_services where user_id = tests.uid(1) and service = :'svc_a'), 1::bigint);
 

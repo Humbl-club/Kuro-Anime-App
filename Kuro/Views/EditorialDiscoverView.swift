@@ -35,6 +35,7 @@ struct EditorialDiscoverView: View {
     @Environment(IdentityStore.self) private var identity
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(FeatureFlags.self) private var flags
+    @Environment(GuestSession.self) private var guest: GuestSession?
     @Environment(InteractionTelemetry.self) private var telemetry: InteractionTelemetry?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -138,7 +139,7 @@ struct EditorialDiscoverView: View {
 
     /// Browse is a pager page in the live order; where the pager has none (series Home), Discover
     /// offers the catalogue through the Browse route (spec D2).
-    private var offersBrowseEntry: Bool { DiscoverBrowseEntry.isOffered(flags: flags) }
+    private var offersBrowseEntry: Bool { DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) }
 
     /// A visit runs while Discover is the current page and the app is active (D18).
     private var visitIsLive: Bool { isCurrent && scenePhase == .active }
@@ -251,6 +252,9 @@ struct EditorialDiscoverView: View {
         .discoverPageHost(feedback, hides: hides, plans: plans)
         .environment(\.discoverMissingArt, HomeInk.posterFill)
         .environment(\.discoverKindKicker, selectedMediaType == .all)
+        // The page root in every load state (loading, offline, failed included): the guest UI test waits on it.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("discover.page")
     }
 
     // MARK: Page

@@ -149,7 +149,9 @@ select tests.raises('outsider leave_club raises NOT_A_MEMBER',        format($q$
 select tests.as_anon();
 select tests.eq('anon reads 0 clubs',   (select count(*) from public.clubs), 0::bigint);
 select tests.eq('anon reads 0 members', (select count(*) from public.club_members), 0::bigint);
-select tests.raises('anon create_club raises UNAUTHENTICATED', $q$select public.create_club('x', null, 'status')$q$, '%UNAUTHENTICATED%');
+-- W5 (20261118110000): anon no longer holds EXECUTE here, so the call is refused at the grant (42501) before the body's own check; both denials count.
+select tests.ok('anon create_club is refused (UNAUTHENTICATED from the body, or permission denied at the grant)',
+  tests.try_scalar($q$public.create_club('x', null, 'status')$q$) ~ '(UNAUTHENTICATED|permission denied for function create_club)');
 
 -- ---- REVOCATION: owner removes user 4 (club_members_delete_self_or_admin) ----
 select tests.as_user(tests.uid(1));

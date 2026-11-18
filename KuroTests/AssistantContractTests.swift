@@ -1027,6 +1027,8 @@ struct TasteContractTests {
             request.resource == Self.signalRPC ? Self.ok : .emptyArray
         }
         let taste = harness.service.taste
+        // W5: the personalised NEW TO YOU read is an account read; a signed-out caller (a guest) sends nothing.
+        _ = harness.service.accountSession.begin(userId: StubAuth.userA)
 
         #expect(await taste.fetchTasteDeckBatch(limit: 7)?.isEmpty == true)
         #expect(await taste.fetchPersonalizedNewToYou(limit: 5, mediaType: "MANGA")?.isEmpty == true)

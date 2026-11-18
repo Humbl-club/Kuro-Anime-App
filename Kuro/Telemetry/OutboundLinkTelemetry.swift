@@ -38,6 +38,8 @@ final class OutboundLinkTelemetry {
             p_provider: provider
         )
         let context = accountSession?.current
+        // W5: the RPC writes a per-account row and is not anonymous; a guest's link still opens, unrecorded.
+        if accountSession != nil, context == nil { return Task {} }
         return Task { [weak self] in
             guard let self, let client = self.client else { return }
             do {

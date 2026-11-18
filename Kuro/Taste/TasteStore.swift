@@ -281,6 +281,7 @@ final class TasteStore: AccountScopedState {
     /// no longer current is not handed out (nil).
     func fetchPersonalizedNewToYou(limit: Int = 20, mediaType: String = "ANIME") async -> [TasteDeckCard]? {
         let context = accountSession.current
+        guard context != nil else { return nil }   // W5: personal; a guest never sends it
         do {
             let client = try requiredClient()
             let params = RPCFetchPersonalizedNewToYouParams(p_limit: limit, p_media_type: mediaType)

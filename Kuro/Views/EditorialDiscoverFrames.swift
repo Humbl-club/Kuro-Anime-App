@@ -20,9 +20,9 @@ import SwiftUI
 /// route. One rule for both surfaces, so they cannot drift apart.
 enum DiscoverBrowseEntry {
     @MainActor
-    static func isOffered(flags: FeatureFlags) -> Bool {
+    static func isOffered(flags: FeatureFlags, guest: Bool = false) -> Bool {
         !KuroMainView.Section
-            .pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled)
+            .pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled, guest: guest)
             .contains(.browse)
     }
 }
@@ -220,6 +220,7 @@ struct DiscoverFrame: View {
     @Environment(SocialActivityStore.self) private var social
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     private var isSaved: Bool { library.isTracked(media.libraryKey) }
 
@@ -294,11 +295,12 @@ struct DiscoverFrameMenu: View {
 
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
 
     var body: some View {
         Button {
             KuroAccessibility.impactHaptic(.light)
-            LibraryViewActions.toggleTracked(media.libraryKey, actions: libraryActions)
+            LibraryViewActions.toggleTracked(media.libraryKey, title: media.title, actions: libraryActions, guest: guest, routes: routes)
         } label: {
             Label(
                 isSaved

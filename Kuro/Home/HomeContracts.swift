@@ -15,7 +15,9 @@ struct HomeMaterial: Codable, Equatable, Sendable {
 }
 
 struct HomeCard: Codable, Equatable, Identifiable, Sendable {
-    var id: String { seriesId ?? "entry:\(mediaId)" }
+    /// Several tracked seasons of one published series arrive with the same `series_id`, so the series id alone
+    /// is not unique in a list. Cards of no published series keep the id `entry:<mediaId>` they always had.
+    var id: String { seriesId.map { "\($0)/entry:\(mediaId)" } ?? "entry:\(mediaId)" }
     let mediaId: Int
     let listType: String
     let progress: Int
