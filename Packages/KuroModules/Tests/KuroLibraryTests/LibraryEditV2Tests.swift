@@ -599,11 +599,11 @@ struct LibraryEditV2Tests {
           .timeLimit(.minutes(1)))
     func restoreNeverFillsDates() async throws {
         try await withHarness(now: Self.nearMidnight, calendar: Self.berlin, dateAutofill: true) { h in
-            h.signIn(Fixture.userA)
+            let account = h.signIn(Fixture.userA)
             try await h.load([])
             let removed = Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .current)
             let restore = LibraryEdit.restoring(removed)
-            let pending = Task { await h.store.restore(restore, to: Self.key, createIfMissing: removed.status) }
+            let pending = Task { await h.store.restore(restore, to: Self.key, createIfMissing: removed.status, account: account) }
             let call = try await h.nextCall()
             guard case .edit(let sent, _, _) = call.request else {
                 Issue.record("expected an edit request, got \(call.request)")
@@ -629,6 +629,53 @@ struct LibraryEditV2Tests {
         #expect(rebuilt.sourceMetadata?.repeatCount == 3)
         #expect(!restore.isEmpty && restore.touchesDatesOrRepeat)
         #expect(restore.patchBodyOmittingProgress.finishedRawVerbatim == "not-a-date")
+    }
+
+    @Test("A verbatim raw date must be non-empty after trimming and at most 32 characters",
+          arguments: ["", "   ", "\n", String(repeating: "x", count: 33)])
+    func verbatimDatesAreValidated(raw: String) {
+        #expect(LibraryEdit(startedRawVerbatim: raw).validationError == .invalidValue(field: "startedRawVerbatim"))
+        #expect(LibraryEdit(finishedRawVerbatim: raw).validationError == .invalidValue(field: "finishedRawVerbatim"))
+        #expect(LibraryEdit(startedRawVerbatim: "not-a-date").validationError == nil)
+        #expect(LibraryEdit(finishedRawVerbatim: String(repeating: "x", count: 32)).validationError == nil)
+    }
+
+    @Test("A verbatim date is a restore-only field: the user-facing apply refuses it and sends nothing",
+          .timeLimit(.minutes(1)))
+    func applyRefusesVerbatimDates() async throws {
+        try await withHarness { h in
+            h.signIn(Fixture.userA)
+            try await h.load([Self.entry(LibrarySourceMetadata(repeatCount: 0))])
+            let outcome = await h.store.apply(LibraryEdit(startedRawVerbatim: "2019-05-00"), to: Self.key)
+            #expect(outcome == .failed(.invalidValue(field: "startedRawVerbatim")))
+            #expect(h.store.entry(for: Self.key)?.sourceMetadata?.startedRaw == nil)
+        }
+    }
+
+    @Test("fillingEmptyDates treats a verbatim date as present", arguments: [true, false])
+    func verbatimDateCountsAsPresent(creating: Bool) throws {
+        let today = try Self.date("2026-03-02")
+        let current = creating ? nil : Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .planning)
+        let started = LibraryEdit(status: .set(.current), startedRawVerbatim: "not-a-date")
+            .fillingEmptyDates(current: current, creating: creating, today: today)
+        #expect(!started.autoFilled && started.edit.startedOn == .unchanged)
+        let finished = LibraryEdit(status: .set(.completed), finishedRawVerbatim: "2019-05-00")
+            .fillingEmptyDates(current: current, creating: creating, today: today)
+        #expect(!finished.autoFilled && finished.edit.finishedOn == .unchanged)
+    }
+
+    @Test("restore with a stale account is refused and sends nothing", .timeLimit(.minutes(1)))
+    func restoreIsBoundToTheCallersAccount() async throws {
+        try await withHarness { h in
+            let a = h.signIn(Fixture.userA)
+            try await h.load([])
+            h.signIn(Fixture.userB)
+            try await h.load([])
+            let removed = Self.entry(LibrarySourceMetadata(repeatCount: 0), status: .current)
+            let outcome = await h.store.restore(.restoring(removed), to: Self.key, createIfMissing: removed.status, account: a)
+            #expect(outcome == .failed(.notAuthenticated))
+            #expect(h.store.entry(for: Self.key) == nil)
+        }
     }
 
     @Test("While the projection is not loaded, a status change to Completed never fills a date",

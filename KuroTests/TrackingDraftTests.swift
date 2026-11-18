@@ -246,6 +246,22 @@ struct TrackingDraftTests {
         #expect(edit.startedRawVerbatim == nil && edit.finishedRawVerbatim == nil)
     }
 
+    @Test func untrackedTitleWithUnloadedProjectionHasUnknownDates() throws {
+        var draft = TrackingDraft(entry: nil, projectionLoaded: false)
+        #expect(!draft.datesKnown, "an unloaded projection does not make the title new")
+        draft.repeatCount = 4
+        draft.startedOn = try Self.date("2024-05-07")
+        let edit = draft.edit(maxProgress: 12)
+        #expect(edit.repeatCount == .unchanged && edit.startedOn == .unchanged && edit.finishedOn == .unchanged)
+        // Once the projection is loaded and the title is still not tracked, it is new: dates are editable.
+        var loaded = TrackingDraft(entry: nil, projectionLoaded: false)
+        loaded.adoptLoadedProjection(entry: nil)
+        #expect(loaded.datesKnown)
+        loaded.repeatCount = 2
+        #expect(loaded.edit(maxProgress: 12).repeatCount == .set(2))
+        #expect(TrackingDraft(entry: nil).datesKnown, "a loaded projection without the title: new, dates known")
+    }
+
     @Test func valuesBecomeEditableOnceTheyAreKnown() throws {
         var cached = Self.entry()
         cached.sourceMetadata = nil

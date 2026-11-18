@@ -414,13 +414,16 @@ enum DetailAdvance {
 
     /// Sends the +1's Undo through the restore path: it never fills a date.
     @MainActor
-    static func undo(_ edit: LibraryEdit, _ key: MediaKey, actions: LibraryActions) async -> LibraryOutcome {
-        await actions.restore(edit, to: key, createIfMissing: nil)
+    static func undo(_ edit: LibraryEdit, _ key: MediaKey, account: AccountContext,
+                     actions: LibraryActions) async -> LibraryOutcome {
+        await actions.restore(edit, to: key, createIfMissing: nil, account: account)
     }
 
     /// The compensating edit for an applied +1: the count and, when the +1 promoted the title, its
     /// saved status. nil when nothing differs (or the change created the row: Undo removes it).
-    static func undoEdit(_ change: LibraryChange) -> LibraryEdit? {
+    /// `projection` is the entry as it stands now: a date is cleared only while it still holds exactly what
+    /// the +1's fill wrote (a date the user set afterwards is never wiped; no projection clears no date).
+    static func undoEdit(_ change: LibraryChange, projection: LibraryEntry?) -> LibraryEdit? {
         guard let previous = change.previous, let current = change.current else { return nil }
         var edit = LibraryEdit()
         var touched = false
@@ -430,10 +433,13 @@ enum DetailAdvance {
         // one. A date the title already had, or one the user set, is never named.
         if previous.datesKnown {
             func empty(_ raw: String?) -> Bool { raw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true }
-            if empty(previous.sourceMetadata?.startedRaw), !empty(current.sourceMetadata?.startedRaw) {
+            let now = projection?.sourceMetadata
+            if empty(previous.sourceMetadata?.startedRaw), !empty(current.sourceMetadata?.startedRaw),
+               let now, now.startedRaw == current.sourceMetadata?.startedRaw {
                 edit.startedOn = .clear; touched = true
             }
-            if empty(previous.sourceMetadata?.finishedRaw), !empty(current.sourceMetadata?.finishedRaw) {
+            if empty(previous.sourceMetadata?.finishedRaw), !empty(current.sourceMetadata?.finishedRaw),
+               let now, now.finishedRaw == current.sourceMetadata?.finishedRaw {
                 edit.finishedOn = .clear; touched = true
             }
         }
@@ -452,9 +458,21 @@ enum DetailRemoval {
 
     static func confirmTitle(german: Bool) -> String { german ? "Von deiner Liste entfernen?" : "Remove from your list?" }
     static func confirmAction(german: Bool) -> String { german ? "Entfernen" : "Remove" }
-    static func confirmMessage(kind: MediaKind, german: Bool) -> String {
-        german ? "Fortschritt, Wertung, Notizen und Urteil zu diesem Titel werden mit entfernt. Direkt danach kannst du es rückgängig machen."
-               : "Your progress, score, notes and verdict for this title go with it. You can undo right after."
+    /// Names what goes with the title: the dates and the repeat count only when the entry holds them.
+    static func confirmMessage(kind: MediaKind, entry: LibraryEntry, german: Bool) -> String {
+        func present(_ raw: String?) -> Bool { !(raw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) }
+        let metadata = entry.datesKnown ? entry.sourceMetadata : nil
+        let hasDates = present(metadata?.startedRaw) || present(metadata?.finishedRaw)
+        let hasRepeats = (metadata?.repeatCount ?? 0) > 0
+        var items = german ? ["Fortschritt", "Wertung", "Notizen", "Urteil"] : ["progress", "score", "notes", "verdict"]
+        if hasDates { items.append(german ? "Daten" : "dates") }
+        if hasRepeats {
+            items.append(german ? "Wiederholungen" : (kind == .manga ? "reread count" : "rewatch count"))
+        }
+        let last = items.removeLast()
+        let list = items.joined(separator: ", ") + (german ? " und " : " and ") + last
+        return german ? "\(list) zu diesem Titel werden mit entfernt. Direkt danach kannst du es rückgängig machen."
+                      : "Your \(list) for this title go with it. You can undo right after."
     }
 
     /// The Undo after a removal: every field of the removed row, re-saved (the store's own restore rule),
@@ -464,8 +482,9 @@ enum DetailRemoval {
     }
 
     @MainActor
-    static func undo(_ removed: LibraryEntry, _ key: MediaKey, actions: LibraryActions) async -> LibraryOutcome {
-        await actions.restore(restoreEdit(removed), to: key, createIfMissing: removed.status)
+    static func undo(_ removed: LibraryEntry, _ key: MediaKey, account: AccountContext,
+                     actions: LibraryActions) async -> LibraryOutcome {
+        await actions.restore(restoreEdit(removed), to: key, createIfMissing: removed.status, account: account)
     }
 }
 

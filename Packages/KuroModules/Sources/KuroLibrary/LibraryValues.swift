@@ -215,6 +215,8 @@ public struct LibraryEdit: Sendable, Equatable {
 
     /// The largest repeat count the store accepts (`repeatCount` is `0...999`).
     public static let maxRepeatCount = 999
+    /// The longest verbatim raw date text accepted (`started_raw` / `finished_raw` hold short date text).
+    public static let maxVerbatimDateLength = 32
 
     public init(
         status: FieldChange<ListStatus> = .unchanged,
@@ -287,8 +289,15 @@ public struct LibraryEdit: Sendable, Equatable {
         switch repeatCount {
         case .clear: return .invalidValue(field: "repeatCount")
         case .set(let value) where !(0...Self.maxRepeatCount).contains(value): return .invalidValue(field: "repeatCount")
-        default: return nil
+        default: break
         }
+        func invalid(_ raw: String?) -> Bool {
+            guard let raw else { return false }
+            return raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || raw.count > Self.maxVerbatimDateLength
+        }
+        if invalid(startedRawVerbatim) { return .invalidValue(field: "startedRawVerbatim") }
+        if invalid(finishedRawVerbatim) { return .invalidValue(field: "finishedRawVerbatim") }
+        return nil
     }
 
     /// An absolute edit that restores every field of `entry` (re-save after a removal). The repeat count
@@ -363,9 +372,9 @@ extension LibraryEdit {
         }
         var filled = self
         switch new {
-        case .current where startedOn.isUnchanged && isEmpty({ $0.startedRaw }):
+        case .current where startedOn.isUnchanged && startedRawVerbatim == nil && isEmpty({ $0.startedRaw }):
             filled.startedOn = .set(today)
-        case .completed where finishedOn.isUnchanged && isEmpty({ $0.finishedRaw }):
+        case .completed where finishedOn.isUnchanged && finishedRawVerbatim == nil && isEmpty({ $0.finishedRaw }):
             filled.finishedOn = .set(today)
         default:
             return (self, false)

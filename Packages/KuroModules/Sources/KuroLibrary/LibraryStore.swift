@@ -277,13 +277,19 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     }
 
     public func apply(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil) async -> LibraryOutcome {
-        await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: true)
+        // A verbatim date is restore-only: a user-facing write never carries one.
+        if edit.startedRawVerbatim != nil { return .failed(.invalidValue(field: "startedRawVerbatim")) }
+        if edit.finishedRawVerbatim != nil { return .failed(.invalidValue(field: "finishedRawVerbatim")) }
+        return await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: true)
     }
 
     /// An Undo or restore: sends exactly `edit` and never fills a date, whatever the projection holds. Every
     /// Undo the app shows that goes through an edit (removal Undo, +1 Undo) uses this, never `apply`.
-    public func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil) async -> LibraryOutcome {
-        await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: false)
+    public func restore(_ edit: LibraryEdit, to key: MediaKey, createIfMissing: ListStatus? = nil,
+                        account: AccountContext) async -> LibraryOutcome {
+        // Never restore one account's row onto another account's projection.
+        guard account == context else { return .failed(.notAuthenticated) }
+        return await apply(edit, to: key, createIfMissing: createIfMissing, fillsEmptyDates: false)
     }
 
     /// `fillsEmptyDates` is `false` for Undo, which must restore exactly and never fill. The release switch is

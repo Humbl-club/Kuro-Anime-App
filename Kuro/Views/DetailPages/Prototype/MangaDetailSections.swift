@@ -308,8 +308,8 @@ struct MangaDetailPage: View {
                             titleVisibility: .visible, presenting: pendingRemoval) { removed in
             Button(DetailRemoval.confirmAction(german: german), role: .destructive) { remove(removed) }
             Button(KuroLocale.text("Cancel", "Abbrechen"), role: .cancel) {}
-        } message: { _ in
-            Text(DetailRemoval.confirmMessage(kind: .manga, german: german))
+        } message: { removed in
+            Text(DetailRemoval.confirmMessage(kind: .manga, entry: removed, german: german))
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(title: KuroLocale.text("Read on", "Lesen bei"),
@@ -499,8 +499,8 @@ struct MangaDetailPage: View {
             let outcome: LibraryOutcome
             if change.kind == .added {
                 outcome = await libraryActions.remove(key)
-            } else if let edit = DetailAdvance.undoEdit(change) {
-                outcome = await DetailAdvance.undo(edit, key, actions: libraryActions)
+            } else if let edit = DetailAdvance.undoEdit(change, projection: entry) {
+                outcome = await DetailAdvance.undo(edit, key, account: change.account, actions: libraryActions)
             } else {
                 return
             }
@@ -547,7 +547,7 @@ struct MangaDetailPage: View {
         guard entry == nil else { return }
         let key = manga.libraryKey
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
-            let outcome = await DetailRemoval.undo(removed, key, actions: libraryActions)
+            let outcome = await DetailRemoval.undo(removed, key, account: ticket.account, actions: libraryActions)
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             showToast(KuroToastState(kind: outcome.error == nil ? .success : .error,
                                      title: outcome.error == nil ? KuroLocale.text("Back in your list.", "Wieder in deiner Liste.")

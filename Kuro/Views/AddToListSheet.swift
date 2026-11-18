@@ -193,8 +193,9 @@ struct AddToListSheet: View {
             // realtime hints): fill the editor from it without a network round trip.
             let entry = library.entry(for: media.libraryKey)
             isExistingEntry = entry != nil
-            baseline = TrackingDraft(entry: entry)
-            draft = TrackingDraft(entry: entry, initialStatus: entry == nil ? initialStatus : nil)
+            let loaded = library.loadState == .loaded
+            baseline = TrackingDraft(entry: entry, projectionLoaded: loaded)
+            draft = TrackingDraft(entry: entry, initialStatus: entry == nil ? initialStatus : nil, projectionLoaded: loaded)
         }
         .onChange(of: library.entry(for: media.libraryKey)?.datesKnown ?? false) { _, known in
             // The stored dates arrived after the editor opened on a cached row: unlock them without touching
@@ -202,6 +203,13 @@ struct AddToListSheet: View {
             guard known, !draft.datesKnown, let entry = library.entry(for: media.libraryKey) else { return }
             draft.adoptDates(from: entry)
             baseline.adoptDates(from: entry)
+        }
+        .onChange(of: library.loadState) { _, state in
+            // The rows arrived while the editor was open on an untracked title: it is new, unlock its dates.
+            guard state == .loaded else { return }
+            let entry = library.entry(for: media.libraryKey)
+            draft.adoptLoadedProjection(entry: entry)
+            baseline.adoptLoadedProjection(entry: entry)
         }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected, saveError == offlineMutationMessage {

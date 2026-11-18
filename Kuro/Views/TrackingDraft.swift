@@ -56,10 +56,17 @@ struct TrackingDraft: Equatable {
         datesKnown = true
     }
 
+    /// The projection finished loading and the title is still not tracked: it is new, so its dates and repeat
+    /// count are editable. No-op when already known or when the title turned out to be tracked.
+    mutating func adoptLoadedProjection(entry: LibraryEntry?) {
+        guard !datesKnown, entry == nil else { return }
+        datesKnown = true
+    }
+
     /// A draft filled from `entry`; a title that is not tracked starts as Planned with nothing set,
     /// or at `initialStatus` when the caller preset one (Discover "Add as Completed ›"). An entry's own
     /// status always wins over the preset.
-    init(entry: LibraryEntry?, initialStatus: ListStatus? = nil) {
+    init(entry: LibraryEntry?, initialStatus: ListStatus? = nil, projectionLoaded: Bool = true) {
         status = entry?.status ?? initialStatus ?? .planning
         progress = entry?.progress ?? 0
         score = entry?.rating?.value ?? 0
@@ -72,7 +79,9 @@ struct TrackingDraft: Equatable {
         originalRepeatCount = entry?.repeatCount ?? 0
         originalStartedOn = entry?.startedOn
         originalFinishedOn = entry?.finishedOn
-        datesKnown = entry?.datesKnown ?? true
+        // No entry: a new title only when the account's rows are loaded; otherwise it may exist with values
+        // this device has not read, so its repeat count and dates are unknown (locked, never sent).
+        datesKnown = entry?.datesKnown ?? projectionLoaded
     }
 
     /// The status a missing entry is created with.

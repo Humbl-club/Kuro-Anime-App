@@ -56,7 +56,7 @@ struct DetailPathwayTests {
                                                  scene: scene, otherMediumOccupied: false))
 
         // Undo reverts the whole change: the count and the saved status.
-        let undoEdit = try #require(DetailAdvance.undoEdit(change))
+        let undoEdit = try #require(DetailAdvance.undoEdit(change, projection: graph.library.entry(for: key)))
         #expect(undoEdit == LibraryEdit(status: .set(.planning), progress: .set(0)))
         let undone = await graph.libraryActions.apply(undoEdit, to: key, createIfMissing: nil)
         #expect(undone.error == nil)
@@ -129,7 +129,7 @@ struct DetailPathwayTests {
         let outcome = await DetailAdvance.advance(key, from: .current, to: 5, actions: graph.libraryActions)
         let change = try #require(outcome.change)
         #expect(graph.library.entry(for: key)?.status == .current)
-        #expect(DetailAdvance.undoEdit(change) == LibraryEdit(progress: .set(4)))
+        #expect(DetailAdvance.undoEdit(change, projection: graph.library.entry(for: key)) == LibraryEdit(progress: .set(4)))
     }
 
     // MARK: Remove from list
@@ -160,6 +160,7 @@ struct DetailPathwayTests {
         defer { Task { await graph.session.endSession() } }
         let key = MediaKey(kind: .manga, id: 9)
         let previous = try #require(graph.library.entry(for: key))
+        let account = try #require(graph.libraryActions.accountSession.current)
         let removed = await graph.libraryActions.remove(key)
         #expect(removed.error == nil)
         #expect(graph.library.entry(for: key) == nil)
@@ -193,9 +194,10 @@ struct DetailPathwayTests {
         defer { Task { await graph.session.endSession() } }
         let key = MediaKey(kind: .anime, id: 5)
         let previous = try #require(graph.library.entry(for: key))
+        let account = try #require(graph.libraryActions.accountSession.current)
         #expect((await graph.libraryActions.remove(key)).error == nil)
 
-        let outcome = await graph.libraryActions.restore(DetailRemoval.restoreEdit(previous), to: key, createIfMissing: previous.status)
+        let outcome = await graph.libraryActions.restore(DetailRemoval.restoreEdit(previous), to: key, createIfMissing: previous.status, account: account)
         #expect(outcome.error == nil)
         let back = try #require(graph.library.entry(for: key))
         #expect(back.sourceMetadata?.repeatCount == 2)
@@ -209,8 +211,9 @@ struct DetailPathwayTests {
         defer { Task { await graph.session.endSession() } }
         let key = MediaKey(kind: .anime, id: 5)
         let previous = try #require(graph.library.entry(for: key))
+        let account = try #require(graph.libraryActions.accountSession.current)
         _ = await graph.libraryActions.remove(key)
-        let outcome = await graph.libraryActions.restore(DetailRemoval.restoreEdit(previous), to: key, createIfMissing: previous.status)
+        let outcome = await graph.libraryActions.restore(DetailRemoval.restoreEdit(previous), to: key, createIfMissing: previous.status, account: account)
         #expect(outcome.error == nil)
         let back = try #require(graph.library.entry(for: key))
         #expect(back.sourceMetadata?.startedRaw == nil, "Undo filled today's date: \(String(describing: back.sourceMetadata))")
@@ -234,8 +237,8 @@ struct DetailPathwayTests {
         let change = try #require(outcome.change)
         #expect(graph.library.entry(for: key)?.startedOn != nil, "the fill added a start date")
 
-        let undoEdit = try #require(DetailAdvance.undoEdit(change))
-        let undone = await DetailAdvance.undo(undoEdit, key, actions: graph.libraryActions)
+        let undoEdit = try #require(DetailAdvance.undoEdit(change, projection: graph.library.entry(for: key)))
+        let undone = await DetailAdvance.undo(undoEdit, key, account: change.account, actions: graph.libraryActions)
         #expect(undone.error == nil)
         let restored = try #require(graph.library.entry(for: key))
         #expect(restored.status == .planning && restored.progress == 0)
@@ -250,10 +253,47 @@ struct DetailPathwayTests {
         defer { Task { await graph.session.endSession() } }
         let key = MediaKey(kind: .anime, id: 5)
         let change = try #require((await DetailAdvance.advance(key, from: .planning, to: 1, actions: graph.libraryActions)).change)
-        let undoEdit = try #require(DetailAdvance.undoEdit(change))
+        let undoEdit = try #require(DetailAdvance.undoEdit(change, projection: graph.library.entry(for: key)))
         #expect(undoEdit.startedOn == .unchanged && undoEdit.finishedOn == .unchanged)
-        _ = await DetailAdvance.undo(undoEdit, key, actions: graph.libraryActions)
+        _ = await DetailAdvance.undo(undoEdit, key, account: change.account, actions: graph.libraryActions)
         #expect(graph.library.entry(for: key)?.sourceMetadata?.startedRaw == "2020-01-00")
+    }
+
+    @Test("+1 fills today, the user then saves another start date: Undo keeps the user's date")
+    func plusOneUndoKeepsADateTheUserSetAfterwards() async throws {
+        let graph = try await Self.graph(rows: [Self.tracked(.planning, metadata: LibrarySourceMetadata(repeatCount: 0))], autofill: true)
+        defer { Task { await graph.session.endSession() } }
+        let key = MediaKey(kind: .anime, id: 5)
+        let change = try #require((await DetailAdvance.advance(key, from: .planning, to: 1, actions: graph.libraryActions)).change)
+        let filled = try #require(graph.library.entry(for: key)?.sourceMetadata?.startedRaw)
+        let chosen = try #require(PartialDate(raw: "2026-11-01"))
+        #expect(filled != "2026-11-01")
+        #expect((await graph.libraryActions.apply(LibraryEdit(startedOn: .set(chosen)), to: key, createIfMissing: nil)).error == nil)
+
+        let undoEdit = try #require(DetailAdvance.undoEdit(change, projection: graph.library.entry(for: key)))
+        #expect(undoEdit.startedOn == .unchanged, "Undo would wipe the date the user set")
+        _ = await DetailAdvance.undo(undoEdit, key, account: change.account, actions: graph.libraryActions)
+        #expect(graph.library.entry(for: key)?.sourceMetadata?.startedRaw == "2026-11-01")
+    }
+
+    @Test("Removal confirmation names dates and the repeat count only when the entry holds them")
+    func removalMessageMentionsDatesAndRepeats() {
+        let bare = Self.tracked(.current, progress: 3, metadata: LibrarySourceMetadata(repeatCount: 0))
+        let dated = Self.tracked(.current, progress: 3, metadata: LibrarySourceMetadata(repeatCount: 0, startedRaw: "2024"))
+        let repeated = Self.tracked(.current, progress: 3, metadata: LibrarySourceMetadata(repeatCount: 2))
+        let both = Self.tracked(.completed, progress: 3, metadata: LibrarySourceMetadata(repeatCount: 2, finishedRaw: "garbled"))
+        let unknown = Self.tracked(.current, progress: 3, metadata: nil)
+        for german in [false, true] {
+            let dates = german ? "Daten" : "dates"
+            let repeats = german ? "Wiederholungen" : "rewatch count"
+            let message = { (entry: LibraryEntry) in DetailRemoval.confirmMessage(kind: .anime, entry: entry, german: german) }
+            #expect(!message(bare).contains(dates) && !message(bare).contains(repeats))
+            #expect(!message(unknown).contains(dates) && !message(unknown).contains(repeats))
+            #expect(message(dated).contains(dates) && !message(dated).contains(repeats))
+            #expect(message(repeated).contains(repeats) && !message(repeated).contains(dates))
+            #expect(message(both).contains(dates) && message(both).contains(repeats))
+        }
+        #expect(DetailRemoval.confirmMessage(kind: .manga, entry: repeated, german: false).contains("reread count"))
     }
 
     // MARK: Reads, rows, chrome
