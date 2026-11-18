@@ -248,6 +248,10 @@ struct MangaDetailPage: View {
                             .padding(.top, 12)
                             .transition(.opacity)
                         }
+                        if pending.isEmpty {
+                            DetailSourceCreditLine(sources: manga.dataSources, mediaType: "MANGA", mediaId: manga.id)
+                                .padding(.top, 28)
+                        }
                     }
                     .animation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion), value: pending.isEmpty)
                     .padding(.horizontal, 24)

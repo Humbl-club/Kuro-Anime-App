@@ -586,3 +586,38 @@ struct DetailToastOverlay: ViewModifier {
         }
     }
 }
+
+// MARK: - Source credit (catalogue Task 16)
+
+/// The page's last line: "Data: Anime News Network, Wikidata" (German: "Daten: ..."), naming the sources that
+/// supplied this title's published values. ANN's name links to the title's ANN page (the encyclopedia when it has
+/// none): ANN's terms ask for a credit and a link. No line when `data_sources` is nil or names no outside source.
+/// The ANN link is read from the title's external links only when ANN is credited (cached by the catalogue).
+struct DetailSourceCreditLine: View {
+    let sources: [String]?
+    /// "ANIME" or "MANGA".
+    let mediaType: String
+    let mediaId: Int
+
+    @Environment(CatalogStore.self) private var catalog
+    @State private var links: [ExternalLink] = []
+
+    private var german: Bool { KuroLocale.isGerman }
+    private var creditsAnn: Bool { DataSourceCredit.displayNames(for: sources).contains("Anime News Network") }
+
+    var body: some View {
+        if let text = DataSourceCredit.attributed(for: sources, externalLinks: links, german: german) {
+            Text(text)
+                .font(.kuroMeta())
+                .foregroundStyle(Color.kuroInkSecondary)
+                .tint(Color.kuroInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("detail.sourceCredit")
+                .task(id: "\(mediaType)-\(mediaId)-\(creditsAnn)") {
+                    guard creditsAnn else { return }
+                    links = await catalog.fetchExternalLinks(mediaType: mediaType, mediaId: mediaId)
+                }
+        }
+    }
+}

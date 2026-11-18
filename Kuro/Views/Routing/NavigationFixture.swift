@@ -49,7 +49,7 @@ enum NavigationFixture {
         let object: [String: Any] = [
             "id": 990_001, "is_adult": false, "genres": ["Drama"], "created_at": 0, "updated_at": 0,
             "title_english": "Fixture Title", "format": "TV", "status": "FINISHED", "episodes": 12,
-            "season_year": 2024, "cover_image_color": "#2b3a55",
+            "season_year": 2024, "cover_image_color": "#2b3a55", "data_sources": ["ann", "wikidata"],
             "description": String(repeating: "A long fixture synopsis line that keeps the story folded. ", count: 24)
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return nil }
