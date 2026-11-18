@@ -17,6 +17,8 @@ field or below) or real replies captured once, read-only, on 2026-11-18 with the
 | `mu_series_berserk.json` | live `GET /v1/series/51239621230` (13:01), unmodified |
 | `pageviews_berserk_en.json` | live `.../per-article/en.wikipedia/all-access/user/Berserk_(manga)/daily/20251118/20261117` (13:02), unmodified |
 | `pageviews_missing_404.json` | live 404 body for a nonexistent ja.wikipedia article (13:02) |
+| `wikidata_people_live.json` | live WDQS reply, ANN person ids 3610, 668, 3086, 68814, 4422 via P1982 with optional P11227 (13:23:08); only 68814 has an item, without an AniList staff id (Task 7b) |
+| `wikidata_companies_live.json` | live WDQS reply, ANN company ids 8883, 160, 1850 via P1983 with en label (13:23:10): Feel, TV Asahi (Task 7b) |
 | `ann_fixtures.ts` | GENERATED: the three ANN files above as strings (`deno test --no-prompt` has no file read permission); regenerate if a capture changes |
 
 ## Live requests made while building Tasks 3-6 (15 in total, all listed here)
@@ -35,3 +37,18 @@ field or below) or real replies captured once, read-only, on 2026-11-18 with the
 The first WDQS design (a subselect with all property branches as UNIONs) timed out at
 the gateway for six ids; the named-subquery form (`WITH {...} AS %items`, `INCLUDE %items`)
 answers 500 ids in about 3 s. AniList was never called; no Supabase or Kuro resource was touched.
+
+## Live requests made while building Tasks 7 and 7b (6 in total, all Wikidata Query Service, 2026-11-18)
+
+All `POST https://query.wikidata.org/sparql` (application/sparql-query), at least 2 s apart, with the User-Agent above. No other source was called; AniList never.
+
+| Time (UTC) | Purpose | Result |
+|---|---|---|
+| 13:22:15 | label lookup of adult genre items (`VALUES ?l { "hentai"@en "erotic anime and manga"@en "ecchi"@en ... }`) | 200: Q172067 hentai, Q219559 ecchi, Q242488 yaoi, Q3249257 adult animation; "erotic anime and manga" did not resolve |
+| 13:22:23 | usage count of those items as P136 on items with an AniList anime/manga id | 200: ecchi 432, hentai 143, yaoi 143; Q3249257 none |
+| 13:22:37 | property label search "anilist" | 200: P8729, P8731, P11736 (character), P11227 (staff); no AniList studio property exists |
+| 13:22:54 | first ANN person/company crosswalk draft (not kept: its OPTIONAL/BIND shape bound `?p` when `?v` was unbound) | 200 |
+| 13:23:08 | people crosswalk, production query shape (`wikidata_people_live.json`) | 200 |
+| 13:23:10 | company crosswalk, production query shape (`wikidata_companies_live.json`) | 200 |
+
+Adult genre decision recorded in `map_wikidata.ts` (`WIKIDATA_ADULT_GENRES`): only hentai (Q172067) counts as adult.

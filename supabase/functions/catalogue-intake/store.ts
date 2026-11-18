@@ -4,6 +4,8 @@
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 
 export type Medium = "anime" | "manga";
+/** Kinds a catalogue_id_links row can have (titles and credited entities). */
+export type LinkKind = Medium | "staff" | "studio" | "character" | "author";
 export type SourceCode = "wikidata" | "ann" | "mangaupdates" | "pageviews" | "episodes_provider" | "editorial";
 
 export const WRITE_BATCH = 500;
@@ -125,7 +127,7 @@ export type LinkCandidate = {
 };
 
 export type Conflict = {
-  kind: Medium;
+  kind: LinkKind;
   source: SourceCode;
   /** The contested source key, or null when one Kuro title has several keys. */
   sourceKey: string | null;
@@ -135,7 +137,7 @@ export type Conflict = {
 
 type ExistingLink = { id: number; kuro_id: number; source: string; source_key: string; status: string };
 
-async function readExistingLinks(supabase: SupabaseLike, kind: Medium, source: string, kuroIds: number[], keys: string[]): Promise<ExistingLink[]> {
+async function readExistingLinks(supabase: SupabaseLike, kind: LinkKind, source: string, kuroIds: number[], keys: string[]): Promise<ExistingLink[]> {
   const seen = new Map<number, ExistingLink>();
   const run = async (col: "kuro_id" | "source_key", values: (number | string)[]) => {
     for (const part of chunk(values, WRITE_BATCH)) {
@@ -163,7 +165,7 @@ async function readExistingLinks(supabase: SupabaseLike, kind: Medium, source: s
  */
 export async function applyLinks(
   supabase: SupabaseLike,
-  kind: Medium,
+  kind: LinkKind,
   candidates: LinkCandidate[],
   nowIso: string = new Date().toISOString(),
 ): Promise<{ accepted: number; proposed: number; skipped: number; conflicts: Conflict[] }> {

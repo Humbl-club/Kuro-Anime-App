@@ -46,7 +46,7 @@ Deno.test("writesDataSources", async () => {
   assert.deepEqual([...(ds?.value as string[])].sort(), ["ann", "wikidata"]);
   // ordered by number of fields used, most first
   const counts = new Map<string, number>();
-  for (const r of db.tables.catalogue_shadow_values) if (r.field !== "data_sources" && typeof r.source === "string") counts.set(r.source as string, (counts.get(r.source as string) ?? 0) + 1);
+  for (const r of db.tables.catalogue_shadow_values) if (r.field !== "data_sources" && !String(r.field).startsWith("credits:proposed") && !String(r.field).startsWith("credits:review") && typeof r.source === "string") counts.set(r.source as string, (counts.get(r.source as string) ?? 0) + 1);
   const ordered = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([s]) => s);
   assert.deepEqual(ds?.value, ordered);
 });
@@ -143,4 +143,22 @@ Deno.test("runComposeAdvancesCursorOverLinkedTitles", async () => {
   const out = await runCompose({ supabase: db.client, clients: {} as never, medium: "anime", limit: 10, deadlineMs: Date.now() + 10_000, now: Date.now });
   assert.equal((out.results as { titles: number }).titles, 1);
   assert.ok(db.tables.import_track_state?.some((r) => r.track_key === "catalogue-intake:compose:anime"));
+});
+
+Deno.test("composeWritesCreditsInShadowWithoutInsertingEntities", async () => {
+  const db = animeDb();
+  db.tables.staff = [{ id: 8, anilist_id: 1, name_full: "Toshiro Tsuchida", name_native: null, name_romaji: null }];
+  const person = annRecord.staff[0];
+  db.tables.staff[0].name_full = person.name;
+  db.tables.anime_staff = [{ anime_id: 1, staff_id: 8 }];
+  await compose({ supabase: db.client }, "anime", [1]);
+  const credits = shadow(db, "credits:staff")?.value as { kuro_id: number; role: string }[];
+  assert.ok(credits.some((c) => c.kuro_id === 8));
+  assert.equal(db.opsOn("staff").length, 0);
+  assert.equal(db.opsOn("studios").length, 0);
+  assert.ok(shadow(db, "credits:proposed_entities"), "unmatched credits are proposals");
+  const before = db.opsOn("catalogue_shadow_values").length;
+  const again = await compose({ supabase: db.client }, "anime", [1]);
+  assert.equal(again.written, 0, "second run writes nothing, credits included");
+  assert.equal(db.opsOn("catalogue_shadow_values").length, before);
 });

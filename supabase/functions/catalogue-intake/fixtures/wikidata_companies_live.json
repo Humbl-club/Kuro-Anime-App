@@ -1,0 +1,36 @@
+{
+  "head" : {
+    "vars" : [ "key", "item", "label" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q307291"
+      },
+      "label" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Feel"
+      },
+      "key" : {
+        "type" : "literal",
+        "value" : "8883"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q908436"
+      },
+      "label" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "TV Asahi"
+      },
+      "key" : {
+        "type" : "literal",
+        "value" : "160"
+      }
+    } ]
+  }
+}

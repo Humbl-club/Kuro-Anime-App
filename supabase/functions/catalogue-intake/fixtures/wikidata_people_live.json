@@ -1,0 +1,17 @@
+{
+  "head" : {
+    "vars" : [ "key", "item", "al" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "key" : {
+        "type" : "literal",
+        "value" : "68814"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q20038518"
+      }
+    } ]
+  }
+}

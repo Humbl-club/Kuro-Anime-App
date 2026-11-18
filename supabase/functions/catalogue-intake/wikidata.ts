@@ -24,6 +24,7 @@ import { isPoliteCleanStop, type PoliteClient } from "../_shared/polite_fetch.ts
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import type { HandlerOutcome, RunContext } from "./context.ts";
 import { readKuroRows } from "./context.ts";
+import { crosswalkKey, type CrosswalkPayload } from "./entities.ts";
 import {
   applyLinks,
   chunk,
@@ -34,6 +35,7 @@ import {
   writeCursor,
   type LinkCandidate,
   type Medium,
+  readExistingRecords,
   upsertRecords,
 } from "./store.ts";
 
@@ -246,6 +248,127 @@ async function persistBatch(
 }
 
 // ---------------------------------------------------------------------------------------------
+// People and company crosswalk (Task 7b): ANN person id (P1982) / company id (P1983) to the Wikidata
+// item, and for people the AniList staff id (P11227). One query per <= 500 ANN keys, stored as one
+// record per key (`person:ann:<key>` / `company:ann:<key>`, medium anime), a negative record
+// ({qid: null}) when Wikidata has no item so a key is asked once. Duplicate items for one key are stored
+// as a conflict and never used for linking.
+
+export type EntityCrosswalkKind = "person" | "company";
+const ENTITY_PROPERTY: Record<EntityCrosswalkKind, string> = { person: "P1982", company: "P1983" };
+
+export function buildEntityQuery(kind: EntityCrosswalkKind, annKeys: readonly string[]): string {
+  const values = annKeys.map((k) => `"${String(k).replace(/[^0-9]/g, "")}"`).join(" ");
+  const optional = kind === "person" ? "OPTIONAL { ?item wdt:P11227 ?al }" : `OPTIONAL { ?item rdfs:label ?label . FILTER(LANG(?label) = "en") }`;
+  return `SELECT ?key ?item ${kind === "person" ? "?al" : "?label"} WHERE { VALUES ?key { ${values} } ?item wdt:${ENTITY_PROPERTY[kind]} ?key . ${optional} }`;
+}
+
+export function parseEntityBindings(json: unknown): Map<string, CrosswalkPayload> {
+  type B = { key?: { value: string }; item?: { value: string }; al?: { value: string }; label?: { value: string } };
+  const bindings = ((json as { results?: { bindings?: B[] } } | null)?.results?.bindings ?? []) as B[];
+  const byKey = new Map<string, { items: Set<string>; al: Set<number>; label: string | null }>();
+  for (const b of bindings) {
+    if (!b.key?.value || !b.item?.value) continue;
+    const e = byKey.get(b.key.value) ?? { items: new Set<string>(), al: new Set<number>(), label: null };
+    byKey.set(b.key.value, e);
+    e.items.add(entityId(b.item.value));
+    const al = Number(b.al?.value);
+    if (b.al?.value && Number.isSafeInteger(al) && al > 0) e.al.add(al);
+    if (b.label?.value && e.label === null) e.label = b.label.value;
+  }
+  const out = new Map<string, CrosswalkPayload>();
+  for (const [key, e] of byKey) {
+    if (e.items.size > 1) out.set(key, { qid: null, conflict: true });
+    else out.set(key, { qid: [...e.items][0], anilistStaffId: e.al.size === 1 ? [...e.al][0] : null, label: e.label });
+  }
+  return out;
+}
+
+export async function wikidataEntityCrosswalk(
+  deps: WikidataDeps,
+  kind: EntityCrosswalkKind,
+  annKeys: string[],
+): Promise<{ queries: number; recordsWritten: number; completedKeys: number; stoppedEarly?: "budget" | "rate_limited" }> {
+  const out: { queries: number; recordsWritten: number; completedKeys: number; stoppedEarly?: "budget" | "rate_limited" } = { queries: 0, recordsWritten: 0, completedKeys: 0 };
+  for (const batch of chunk([...new Set(annKeys)], WIKIDATA_BATCH)) {
+    let json: unknown;
+    try {
+      const res = await deps.client.request(WDQS_ENDPOINT, { method: "POST", body: buildEntityQuery(kind, batch), contentType: "application/sparql-query" }, deps.deadlineMs);
+      if (res.status !== 200) throw new Error(`wikidata http ${res.status}`);
+      json = res.json;
+    } catch (e) {
+      if (isPoliteCleanStop(e)) {
+        out.stoppedEarly = (e as { kind: "budget" | "rate_limited" }).kind;
+        break;
+      }
+      throw e;
+    }
+    out.queries++;
+    const found = parseEntityBindings(json);
+    const records = batch.map((key) => ({
+      source: "wikidata" as const,
+      sourceKey: crosswalkKey(kind, key),
+      medium: "anime" as const,
+      licence: WIKIDATA_LICENCE,
+      payload: { annKey: key, ...(found.get(key) ?? { qid: null }) },
+    }));
+    out.recordsWritten += (await upsertRecords(deps.supabase, records)).written;
+    out.completedKeys += batch.length;
+  }
+  return out;
+}
+
+const ENTITY_RECORD_LIMIT = 100;
+const PRODUCTION_TASK = /animation|production/i;
+
+/** Crosswalks the ANN people and production companies of the next ANN records that have no crosswalk record yet. */
+export async function runEntityCrosswalk(ctx: RunContext): Promise<{ records: number; people: number; companies: number; queries: number; stoppedEarly?: "budget" | "rate_limited" }> {
+  const key = cursorKey("wikidata-entities", "anime");
+  const cursor = await readCursor<{ after_key?: string }>(ctx.supabase, key);
+  const after = typeof cursor?.after_key === "string" ? cursor.after_key : "";
+  const { data, error } = await ctx.supabase
+    .from("catalogue_source_records")
+    .select("source_key, payload")
+    .eq("source", "ann")
+    .eq("medium", "anime")
+    .gt("source_key", after)
+    .order("source_key", { ascending: true })
+    .limit(ENTITY_RECORD_LIMIT);
+  if (error) throw new Error(`catalogue_source_records read failed: ${error.message ?? error}`);
+  const rows = ((data ?? []) as { source_key: string; payload: { staff?: { personId: number }[]; companies?: { companyId: number; task: string }[] } }[]).filter((r) => /^\d+$/.test(r.source_key));
+  const result: { records: number; people: number; companies: number; queries: number; stoppedEarly?: "budget" | "rate_limited" } = { records: rows.length, people: 0, companies: 0, queries: 0 };
+  if (rows.length === 0) return result;
+
+  const people = [...new Set(rows.flatMap((r) => (r.payload.staff ?? []).map((s) => String(s.personId))))];
+  const companies = [...new Set(rows.flatMap((r) => (r.payload.companies ?? []).filter((c) => PRODUCTION_TASK.test(c.task)).map((c) => String(c.companyId))))];
+  const pending = async (kind: EntityCrosswalkKind, keys: string[]) => {
+    const have = await readExistingRecords(ctx.supabase, "wikidata", "anime", keys.map((k) => crosswalkKey(kind, k)));
+    return keys.filter((k) => !have.has(crosswalkKey(kind, k)));
+  };
+  const deps = { supabase: ctx.supabase, client: ctx.clients.wikidata, deadlineMs: ctx.deadlineMs };
+  let complete = true;
+  for (const [kind, keys] of [["person", people], ["company", companies]] as const) {
+    const todo = await pending(kind, keys);
+    if (todo.length === 0) continue;
+    const r = await wikidataEntityCrosswalk(deps, kind, todo);
+    result.queries += r.queries;
+    if (kind === "person") result.people += r.completedKeys;
+    else result.companies += r.completedKeys;
+    if (r.stoppedEarly) {
+      result.stoppedEarly = r.stoppedEarly;
+      complete = false;
+      break;
+    }
+  }
+  // The cursor only moves past records whose people and companies were all asked.
+  if (complete) {
+    const last = rows[rows.length - 1].source_key;
+    await writeCursor(ctx.supabase, key, "anime", { after_key: rows.length < ENTITY_RECORD_LIMIT ? "" : last }, { ...result }, null);
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------------------------
 // Handler run (cursor: import_track_state `catalogue-intake:wikidata:<medium>`, { last_id })
 
 export const WIKIDATA_DEFAULT_LIMIT = 2000;
@@ -273,5 +396,13 @@ export async function runWikidata(ctx: RunContext): Promise<HandlerOutcome> {
     pass_completed: finished && rows.length < limit,
   };
   await writeCursor(ctx.supabase, key, ctx.medium, { last_id: nextLast }, results, cross.stoppedEarly ? `stopped_early:${cross.stoppedEarly}` : null);
-  return { results: { ...results, conflict_sample: cross.conflicts.slice(0, 20) }, stoppedEarly: cross.stoppedEarly };
+  // Task 7b: after the title crosswalk, ask Wikidata about the people and companies ANN credits (anime only).
+  let entities: Awaited<ReturnType<typeof runEntityCrosswalk>> | undefined;
+  let stoppedEarly = cross.stoppedEarly;
+  if (ctx.medium === "anime" && !cross.stoppedEarly && ctx.now() < ctx.deadlineMs) {
+    const e = await runEntityCrosswalk(ctx);
+    if (e.records > 0) entities = e;
+    stoppedEarly = e.stoppedEarly;
+  }
+  return { results: { ...results, ...(entities ? { entities } : {}), conflict_sample: cross.conflicts.slice(0, 20) }, stoppedEarly };
 }

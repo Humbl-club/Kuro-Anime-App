@@ -122,7 +122,8 @@ export function fakeSupabase(opts: FakeOptions = {}) {
         return q;
       },
       gt(c: string, v: unknown) {
-        filters.push((r) => Number(r[c]) > Number(v));
+        // Numeric columns compare as numbers; text keys (ANN/MU source keys) compare as strings.
+        filters.push((r) => (typeof r[c] === "string" && Number.isNaN(Number(r[c])) ? String(r[c]) > String(v) : Number(r[c]) > Number(v)));
         filterText.push(`${c}>${v}`);
         return q;
       },

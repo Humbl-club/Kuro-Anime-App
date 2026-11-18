@@ -21,8 +21,14 @@ import { toRelations as muRelations, toSourceValues as muValues } from "./map_ma
 import { toRelations as wdRelations, toSourceValues as wdValues, type WikidataPayload } from "./map_wikidata.ts";
 import type { AnnRecord } from "./ann.ts";
 import type { MuRecord } from "./mangaupdates.ts";
+import { composeCredits } from "./entities.ts";
 
-export type ComposeDeps = { supabase: SupabaseLike; now?: () => number };
+export type ComposeDeps = {
+  supabase: SupabaseLike;
+  now?: () => number;
+  /** Insert new people/companies/characters (credits group switched, Task 15). Default false: shadow proposes only. */
+  allowCreate?: boolean;
+};
 export type ComposeResult = { titles: number; written: number; unchanged: number; reviews: number };
 
 type ShadowRow = { medium: Medium; media_id: number; field: string; value: unknown; source: string | null; computed_at: string };
@@ -48,6 +54,8 @@ export type TitleInputs = {
   /** Per-source column values from the mappers. */
   bySource: Partial<Record<Source, Record<string, unknown>>>;
   relations: RawRelation[];
+  /** Raw ANN / MangaUpdates records, kept for the credits composer (Task 7b). */
+  records?: { ann?: AnnRecord; mangaupdates?: MuRecord };
 };
 
 /** Pure composition of one title's shadow fields. Exported for tests of the policy wiring. */
@@ -128,9 +136,11 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
       rels = wdRelations(payload as WikidataPayload);
     } else if (l.source === "ann") {
       t.bySource.ann = annValues(payload as AnnRecord);
+      t.records = { ...t.records, ann: payload as AnnRecord };
       rels = annRelations(payload as AnnRecord);
     } else if (l.source === "mangaupdates") {
       t.bySource.mangaupdates = muValues(payload as MuRecord);
+      t.records = { ...t.records, mangaupdates: payload as MuRecord };
       rels = muRelations(payload as MuRecord);
     }
     t.relations.push(...rels);
@@ -173,6 +183,13 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
     for (const f of composed.fields) {
       consider(t.mediaId, f.field, f.value, f.source);
       if (f.source && f.source !== "today") for (const s of f.source.split(",")) counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+    if (t.records) {
+      const credits = await composeCredits({ supabase, medium, allowCreate: deps.allowCreate, nowIso }, t.mediaId, t.records);
+      for (const f of credits.fields) {
+        consider(t.mediaId, f.field, f.value, f.source);
+        for (const s of f.source.split(",")) if (!f.field.startsWith("credits:proposed") && !f.field.startsWith("credits:review")) counts.set(s, (counts.get(s) ?? 0) + 1);
+      }
     }
     if (composed.review) {
       result.reviews++;
