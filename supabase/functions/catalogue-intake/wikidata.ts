@@ -36,6 +36,7 @@ import {
   type LinkCandidate,
   type Medium,
   readExistingRecords,
+  selectAll,
   upsertRecords,
 } from "./store.ts";
 
@@ -217,6 +218,40 @@ async function persistBatch(
   for (const [qid, kids] of kuroByItem) if (kids.size > 1) implicated.add(qid);
   for (const qids of itemsByKuro.values()) if (qids.size > 1) qids.forEach((q) => implicated.add(q));
 
+  // Duplicate claims are judged on the item's FULL fetched AniList id list (the P8729/P8731 branch returns every
+  // value), not on this batch: an item claiming two AniList ids that both map to Kuro rows links nothing, even when
+  // the two titles fall in different batches. Ids outside this batch are resolved with one paged Kuro read.
+  const claimedAids = (item: WikidataItem): string[] => [...new Set([...(item.props[aidProp] ?? []), ...item.matchedAids])];
+  const outside = new Set<string>();
+  for (const item of items.values()) {
+    const claimed = claimedAids(item);
+    if (claimed.length > 1) for (const a of claimed) if (!kuroByAid.has(a) && /^[0-9]+$/.test(a)) outside.add(a);
+  }
+  const kuroOutside = new Map<string, number[]>();
+  for (const part of chunk([...outside].map(Number), 500)) {
+    const found = await selectAll<{ id: number; anilist_id: number }>(() => deps.supabase.from(medium).select("id, anilist_id").in("anilist_id", part), ["id"], medium);
+    for (const f of found) kuroOutside.set(String(f.anilist_id), [...(kuroOutside.get(String(f.anilist_id)) ?? []), f.id]);
+  }
+  const claimConflict = new Map<string, string>(); // qid -> reason
+  for (const item of items.values()) {
+    const titles = new Set<number>();
+    for (const a of claimedAids(item)) for (const kid of kuroByAid.get(a) ?? kuroOutside.get(a) ?? []) titles.add(kid);
+    // Several titles inside this batch are already handled by applyLinks (one_key_for_several_titles).
+    if (titles.size > 1 && !implicated.has(item.qid)) claimConflict.set(item.qid, "item_claims_several_titles");
+  }
+  // An item that another title already holds in a stored accepted link is not this title's either.
+  for (const part of chunk([...items.keys()], 500)) {
+    const held = await selectAll<{ kuro_id: number; source_key: string }>(
+      () => deps.supabase.from("catalogue_id_links").select("kuro_id, source_key").eq("kind", medium).eq("source", "wikidata").eq("status", "accepted").in("source_key", part),
+      ["id"],
+      "catalogue_id_links",
+    );
+    for (const h of held) {
+      const kids = kuroByItem.get(h.source_key);
+      if (kids && [...kids].some((k) => k !== h.kuro_id)) claimConflict.set(h.source_key, "item_held_by_another_title");
+    }
+  }
+
   const records = [...items.values()].map((item) => ({
     source: "wikidata" as const,
     sourceKey: item.qid,
@@ -226,15 +261,23 @@ async function persistBatch(
   }));
 
   const candidates: LinkCandidate[] = [];
+  const claimConflicts: Conflict[] = [];
   for (const [qid, kids] of kuroByItem) {
     const item = items.get(qid)!;
     for (const kid of kids) {
+      const reason = claimConflict.get(qid);
+      if (reason) {
+        // Contested item: stored for review as proposed, never accepted, and no ANN / MangaUpdates id is derived from it.
+        candidates.push({ kuroId: kid, source: "wikidata", sourceKey: qid, method: "wikidata", confidence: 1, status: "proposed" });
+        claimConflicts.push({ kind: medium, source: "wikidata", sourceKey: qid, kuroIds: [kid], reason });
+        continue;
+      }
       candidates.push({ kuroId: kid, source: "wikidata", sourceKey: qid, method: "wikidata", confidence: 1, status: "accepted" });
       if (implicated.has(qid)) continue;
       // A single value only: several ANN / MangaUpdates ids on one item are ambiguous and stay in the raw record.
       if (medium === "anime") {
         const ann = item.props["P1985"] ?? [];
-        if (ann.length === 1 && /^\d+$/.test(ann[0])) candidates.push({ kuroId: kid, source: "ann", sourceKey: ann[0], method: "wikidata", confidence: 1, status: "proposed" });
+        if (ann.length === 1 && /^[0-9]+$/.test(ann[0])) candidates.push({ kuroId: kid, source: "ann", sourceKey: ann[0], method: "wikidata", confidence: 1, status: "proposed" });
       } else {
         const mu = (item.props["P11149"] ?? []).map(muSeriesIdFromWikidata).filter((x): x is string => x !== null);
         if (mu.length === 1) candidates.push({ kuroId: kid, source: "mangaupdates", sourceKey: mu[0], method: "wikidata", confidence: 1, status: "proposed" });
@@ -244,7 +287,7 @@ async function persistBatch(
 
   const rec = await upsertRecords(deps.supabase, records);
   const links = await applyLinks(deps.supabase, medium, candidates);
-  return { accepted: links.accepted, proposed: links.proposed, conflicts: links.conflicts, recordsWritten: rec.written };
+  return { accepted: links.accepted, proposed: links.proposed, conflicts: [...claimConflicts, ...links.conflicts], recordsWritten: rec.written };
 }
 
 // ---------------------------------------------------------------------------------------------

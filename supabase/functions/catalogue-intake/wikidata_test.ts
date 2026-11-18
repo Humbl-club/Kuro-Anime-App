@@ -194,3 +194,54 @@ Deno.test("changedWikidataItemDoesNotReplaceAcceptedLink", async () => {
   assert.ok(res.conflicts.some((c) => c.source === "wikidata" && c.reason === "title_already_linked_to_other_key"));
   assert.equal(res.linked, 0);
 });
+
+// ---- review fixes (2026-11-18) ---------------------------------------------------------------
+
+Deno.test("duplicateClaimAcrossBatchesLinksNothing", async () => {
+  // Item Q7 lists AniList ids 1000 and 1500; Kuro has a row for each, 500 rows apart so they fall in different batches.
+  const rows = Array.from({ length: 501 }, (_, i) => ({ id: i + 1, anilist_id: 1000 + i }));
+  const { db, deps } = setup(
+    [
+      sparql([row("1000", "Q7", "P8729", "1000"), row("1000", "Q7", "P8729", "1500"), row("1000", "Q7", "P1985", "777")]),
+      sparql([row("1500", "Q7", "P8729", "1000"), row("1500", "Q7", "P8729", "1500"), row("1500", "Q7", "P1985", "777")]),
+    ],
+    { anime: rows },
+  );
+  const res = await wikidataCrosswalk(deps, "anime", rows);
+  const links = db.tables.catalogue_id_links ?? [];
+  assert.equal(links.filter((l) => l.status === "accepted").length, 0, "no accepted link from a duplicate claim, whatever the batch");
+  assert.deepEqual(
+    links.filter((l) => l.source === "wikidata").map((l) => [l.kuro_id, l.source_key, l.status]).sort(),
+    [[1, "Q7", "proposed"], [501, "Q7", "proposed"]],
+  );
+  assert.ok(!links.some((l) => l.source === "ann"), "no ANN id is derived from a contested item");
+  assert.equal(res.linked, 0);
+  assert.equal(res.conflicts.length, 2, JSON.stringify(res.conflicts));
+  assert.ok(res.conflicts.every((c) => c.reason === "item_claims_several_titles" && c.sourceKey === "Q7"));
+  // The raw record is still kept once.
+  assert.equal(db.tables.catalogue_source_records.filter((r) => r.source_key === "Q7").length, 1);
+});
+
+Deno.test("claimingSeveralIdsWhereOnlyOneMapsToKuroStillLinks", async () => {
+  // Q8 also lists AniList id 424242, which Kuro does not hold: that is not a duplicate claim between Kuro titles.
+  const { db, deps } = setup([sparql([row("10", "Q8", "P8729", "10"), row("10", "Q8", "P8729", "424242")])], { anime: [{ id: 1, anilist_id: 10 }] });
+  const res = await wikidataCrosswalk(deps, "anime", [{ id: 1, anilist_id: 10 }]);
+  assert.equal(res.conflicts.length, 0);
+  assert.equal(db.tables.catalogue_id_links.filter((l) => l.status === "accepted").length, 1);
+});
+
+Deno.test("itemAlreadyHeldByAnotherTitleLinksNothing", async () => {
+  const stored = [{ id: 1, kind: "anime", kuro_id: 2, source: "wikidata", source_key: "Q9", method: "wikidata", status: "accepted" }];
+  const { db, deps } = setup([sparql([row("10", "Q9", "P8729", "10"), row("10", "Q9", "P1985", "55")])], { anime: [{ id: 1, anilist_id: 10 }, { id: 2, anilist_id: 11 }], catalogue_id_links: stored });
+  const res = await wikidataCrosswalk(deps, "anime", [{ id: 1, anilist_id: 10 }]);
+  assert.equal(db.tables.catalogue_id_links.filter((l) => l.status === "accepted").length, 1, "only the stored link stays accepted");
+  assert.ok(db.tables.catalogue_id_links.some((l) => l.kuro_id === 1 && l.source_key === "Q9" && l.status === "proposed"));
+  assert.ok(!db.tables.catalogue_id_links.some((l) => l.source === "ann"), "no derived ANN id from an item another title holds");
+  assert.ok(res.conflicts.length >= 1);
+});
+
+Deno.test("wikidataReadsOnlyWhenAnItemClaimsSeveralIds", async () => {
+  const { db, deps } = setup([sparql(q123.results.bindings)], { anime: [{ id: 7, anilist_id: 16498 }] });
+  await wikidataCrosswalk(deps, "anime", [{ id: 7, anilist_id: 16498 }]);
+  assert.equal(db.reads.filter((r) => r.table === "anime").length, 0, "single-claim items need no extra Kuro read");
+});
