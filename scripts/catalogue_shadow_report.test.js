@@ -45,7 +45,8 @@ test('gateEvaluation passes every measured gate on a clean large report', () => 
   const ev = gateEvaluation(report());
   // identity also holds the owner-sample precision gate, which this report cannot decide.
   assert.equal(ev.summary.identity, 'insufficient');
-  assert.deepEqual(ev.gates.filter((g) => g.group === 'identity' && g.metric !== 'title_match_precision').map((g) => g.status), ['pass', 'pass', 'pass', 'pass']);
+  assert.equal(ev.summary.data, 'pass');
+  assert.deepEqual(ev.gates.filter((g) => g.group === 'identity' && g.metric !== 'title_match_precision').map((g) => g.status), ['pass', 'pass', 'pass', 'pass', 'pass']);
   assert.equal(ev.summary.facts, 'pass');
   assert.equal(ev.summary.adult, 'pass');
   assert.equal(ev.summary.titles, 'pass');
