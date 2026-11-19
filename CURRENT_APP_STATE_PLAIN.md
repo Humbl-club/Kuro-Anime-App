@@ -166,7 +166,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 322 app Swift files, 48 package Swift files and 254 SQL migrations are in the repo today.
+**Current inventory:** 322 app Swift files, 48 package Swift files and 266 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2382,3 +2382,6 @@ You decided to stop using AniList now and keep what we already have.
 - **Old terms:** under AniList's terms before August, copying their whole catalogue was already not allowed. A tracker could only have been approved on request, and Kuro never asked.
 
 Plan: docs/superpowers/plans/2026-11-09-catalogue-sources.md.
+
+### 19 November 2026 — A new TestFlight build is uploaded
+The App Store agreement is accepted, so uploads work again. Build 27 contains everything on `main` today (the home-screen widget is still left out because its App Group is not registered). Once you are using build 27, the older test builds can be switched off, and then the last two database steps (hiding AniList ids from public reads) can run.

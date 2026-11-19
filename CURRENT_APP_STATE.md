@@ -164,7 +164,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 322 app Swift files in `/Kuro`; 48 package Swift files in `/Packages`; 254 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 322 app Swift files in `/Kuro`; 48 package Swift files in `/Packages`; 266 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -20174,6 +20174,9 @@ PR #14 merged to `main` (W9 tags/custom lists dark, W9/W4 review fixes, handoff 
 
 ### Change Log — 18 November 2026 (latest): PR #15; security hardening prepared
 PR #15 merged to `main` (`d498841`) after serial KuroTests 1,358/1,358, full DB 68 files / 2,075, gates. Contents: W5 guest browsing (dark), handoff fixes, and prepared security hardening — `20261118110000` anon EXECUTE allowlist (110 → 22; two independent reviews; live read-only pre-checks recorded), `20261118140000` keyed Concierge rate limits (all 8 callers HMAC the IP; deploy the functions before the migration), `20261118150000` refresh-queue bounds; `20261112100401` no longer grants anon. Runbook A0–A0c lead the hosted order. Nothing applied (production writes refused by the session permission layer).
+
+### Change Log — 19 November 2026: TestFlight 27 uploaded (App Store Connect agreement accepted)
+The account holder accepted the pending App Store Connect agreement. Build 27 (widget-less variant: `release/testflight-27`, tag `testflight-27`, = `main` 473cb8d plus the TestFlight 25 widget/App Group exclusion and the build-number bump) archived and uploaded with ASC key `4Y9VLAQLQN` (Release, arm64, `ITSAppUsesNonExemptEncryption` false). Internal group "Me" (2 testers, access to all builds) receives it after processing. Older active builds 20–25 still active; B8 (`20261112100401` then `20261112100500`) stays blocked until testers are on 27 and builds before the 15d change (no AniList-id reads) are expired. App Group still unregistered, so the widget is not in this build.
 
 ### Change Log — 19 November 2026: Manga create OOM fixed; create paging + fresh comparator
 `catalogue-intake` create no longer loads the full Kuro catalogue into Edge memory (manga uses exact-title lookup; anime pages). Deployed v3+. Manga create insert works (limit ≤40); anime create continued (527 titles with null anilist_id). Fresh comparator runs `2026-11-19-*-post-create` still fail identity/titles (coverage growing, not cutover-ready). Create-manga cron capped to insert minYear 2024 limit 25.

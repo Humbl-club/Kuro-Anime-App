@@ -1784,3 +1784,6 @@ Owner authorized decision lock + Part B. Applied visibility/create/publish and W
 - **App:** blocks `*.anilist.co` images from the next build on (commit 5669731). Unsaved character and staff photos (117k) show a placeholder.
 - **Plan:** catalogue-sources plan updated (commit 0df234d) with the early stop and Task 15d (AniList ids leave public reads).
 - **Open:** Task 15c (new titles) and Task 9 (airing, L1) now have priority. Owner to decide on the user AniList list import.
+
+### Change Log — 19 November 2026: TestFlight 27 uploaded
+App Store Connect agreement accepted by the account holder; build 27 (widget-less variant of `main` 473cb8d, tag `testflight-27`) uploaded. Next: testers on 27, expire builds 20–25, then B8 (`100401` → `100500`).

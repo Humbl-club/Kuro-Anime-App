@@ -50,4 +50,5 @@ no longer grants `catalogue_anime_visible` / `catalogue_manga_visible` to anon, 
 
 ## C. Outside Supabase
 
-- TestFlight: App Store Connect returns `403 REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`. The account holder accepts the agreement (Business → Agreements); then a new build from `main` (widget-less variant unless the App Group is registered) is archived and uploaded.
+- **2026-11-19: agreement accepted; TestFlight 27 uploaded** (widget-less, `main` 473cb8d, tag `testflight-27`). Remaining: testers move to 27, expire builds 20–25, then B8.
+- (History) TestFlight: App Store Connect returned `403 REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`. The account holder accepts the agreement (Business → Agreements); then a new build from `main` (widget-less variant unless the App Group is registered) is archived and uploaded.
