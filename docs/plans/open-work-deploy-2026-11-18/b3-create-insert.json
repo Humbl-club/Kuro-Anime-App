@@ -1,0 +1,174 @@
+{
+  "generated_at": "2026-11-18T23:50:14.970180+00:00",
+  "created_total": 19,
+  "linked_total": 28,
+  "pages": [
+    {
+      "i": 0,
+      "status": 200,
+      "next": "6114",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 494,
+      "scanned": 500,
+      "elapsed_s": 0.57
+    },
+    {
+      "i": 1,
+      "status": 200,
+      "next": "7145",
+      "created": 0,
+      "linked": 1,
+      "skippedYear": 497,
+      "scanned": 500,
+      "elapsed_s": 1.93
+    },
+    {
+      "i": 2,
+      "status": 200,
+      "next": "8422",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 499,
+      "scanned": 500,
+      "elapsed_s": 1.62
+    },
+    {
+      "i": 3,
+      "status": 200,
+      "next": "10449",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 500,
+      "scanned": 500,
+      "elapsed_s": 1.16
+    },
+    {
+      "i": 4,
+      "status": 200,
+      "next": "11725",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 500,
+      "scanned": 500,
+      "elapsed_s": 1.69
+    },
+    {
+      "i": 5,
+      "status": 200,
+      "next": "13906",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 498,
+      "scanned": 500,
+      "elapsed_s": 0.59
+    },
+    {
+      "i": 6,
+      "status": 200,
+      "next": "15248",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 498,
+      "scanned": 500,
+      "elapsed_s": 0.36
+    },
+    {
+      "i": 7,
+      "status": 200,
+      "next": "16242",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 496,
+      "scanned": 500,
+      "elapsed_s": 0.52
+    },
+    {
+      "i": 8,
+      "status": 200,
+      "next": "17788",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 500,
+      "scanned": 500,
+      "elapsed_s": 0.52
+    },
+    {
+      "i": 9,
+      "status": 200,
+      "next": "19412",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 498,
+      "scanned": 500,
+      "elapsed_s": 0.45
+    },
+    {
+      "i": 10,
+      "status": 200,
+      "next": "20849",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 499,
+      "scanned": 500,
+      "elapsed_s": 0.44
+    },
+    {
+      "i": 11,
+      "status": 200,
+      "next": "22439",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 500,
+      "scanned": 500,
+      "elapsed_s": 0.41
+    },
+    {
+      "i": 12,
+      "status": 200,
+      "next": "23386",
+      "created": 0,
+      "linked": 0,
+      "skippedYear": 498,
+      "scanned": 500,
+      "elapsed_s": 0.45
+    },
+    {
+      "i": 13,
+      "status": 200,
+      "next": "24243",
+      "created": 0,
+      "linked": 1,
+      "skippedYear": 497,
+      "scanned": 500,
+      "elapsed_s": 1.85
+    },
+    {
+      "i": 14,
+      "status": 200,
+      "next": "25243",
+      "created": 2,
+      "linked": 4,
+      "skippedYear": 482,
+      "scanned": 500,
+      "elapsed_s": 1.91
+    },
+    {
+      "i": 15,
+      "status": 200,
+      "next": "26935",
+      "created": 17,
+      "linked": 22,
+      "skippedYear": 432,
+      "scanned": 500,
+      "elapsed_s": 3.02
+    }
+  ],
+  "final_counts": [
+    {
+      "anime_no_anilist": 19,
+      "anime_max_id": 135564,
+      "anime_created_2h": 19
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "migration": {
+    "version": "20261112100400",
+    "name": "catalogue_visibility_v1",
+    "file": "supabase/prepared-migrations/20261112100400_catalogue_visibility_v1.sql",
+    "md5": "3e9be6e8b68a64856102ad06453994fb",
+    "sha256": "e020415cb5a44c55257a49bdce54fb4d4cf14d25c13521fec50cb467c824bbbf",
+    "bytes": 140850
+  },
+  "started_at": "2026-11-18T23:45:35.081979+00:00",
+  "finished_at": "2026-11-18T23:45:36.010173+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261112100400",
+      "name": "catalogue_visibility_v1",
+      "n": 1,
+      "s1_md5": "3e9be6e8b68a64856102ad06453994fb",
+      "s1_len": 140829
+    }
+  ],
+  "note": "applied with extensions.similarity touch + 300s statement_timeout"
+}

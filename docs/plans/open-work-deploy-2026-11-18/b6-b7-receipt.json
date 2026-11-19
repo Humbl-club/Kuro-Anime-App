@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-11-18T23:50:46.483248+00:00",
+  "b6_flags": [
+    [
+      "search_adult_notice_v1",
+      "W4: Search shows quiet 18+ hidden count",
+      true,
+      100
+    ],
+    [
+      "collection_up_next_v1",
+      "W10: Up next section on Completed",
+      true,
+      100
+    ],
+    [
+      "library_export_v1",
+      "W2: Export your list",
+      true,
+      100
+    ],
+    [
+      "library_date_autofill_v1",
+      "F2: date autofill on status changes",
+      true,
+      100
+    ]
+  ],
+  "b7_deployed": {
+    "bulk-import-anime": {
+      "version": 88,
+      "verify_jwt": true
+    },
+    "mirror-images": {
+      "version": 21,
+      "verify_jwt": true
+    },
+    "bulk-import-manga": {
+      "version": 86,
+      "verify_jwt": true
+    },
+    "catalogue-intake": {
+      "version": 1,
+      "verify_jwt": false
+    },
+    "release-intake": {
+      "version": 6,
+      "verify_jwt": true
+    }
+  },
+  "cutover_unchanged": true,
+  "b8_skipped": "100401/100500 blocked until app build without anilist_id reads ships and older TestFlight builds retire (ASC agreement).",
+  "b6_flags_extra": [
+    [
+      "library_organise_v1",
+      true,
+      100
+    ],
+    [
+      "catalogue_source_credit_v1",
+      true,
+      100
+    ]
+  ],
+  "anime_created": 19,
+  "manga_create": "WORKER_RESOURCE_LIMIT / OOM at current catalogue size"
+}

@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261118100000",
+    "name": "search_hidden_adult_v1",
+    "file": "supabase/prepared-migrations/20261118100000_search_hidden_adult_v1.sql",
+    "md5": "4bbd100fd124a5afc5b25a8a64c17208",
+    "sha256": "0d8b656d4b5889a1913dcf05693d9b0c20e9ac4d6e3a5539f62bb37b6f3366d3",
+    "bytes": 28244
+  },
+  "started_at": "2026-11-18T23:47:41.622846+00:00",
+  "finished_at": "2026-11-18T23:47:42.074184+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261118100000",
+      "name": "search_hidden_adult_v1",
+      "n": 1,
+      "s1_md5": "4bbd100fd124a5afc5b25a8a64c17208",
+      "s1_len": 28244
+    }
+  ]
+}

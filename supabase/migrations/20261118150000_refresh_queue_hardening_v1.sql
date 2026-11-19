@@ -18,20 +18,21 @@
 --        relation: detail_open, concierge_recommend, discover_primary, on_demand
 --          (app: AnimeDetailSections/MangaDetailSections 'detail_open', ConciergeView 'concierge_recommend',
 --           EditorialDiscoverView 'discover_primary'; SQL default 'on_demand')
---   3. Rows in progress are never reset. Relation queue: a 'processing' row is left untouched. Availability
---      state has no 'processing' status (pending/ok/error/unresolved); an already-pending row that already
---      carries a priority reason (detail_open/user_tap) is left untouched, so repeated calls cannot keep
---      re-pinning it or moving its next_refresh_at; a pending row with a lower-priority reason may still be
---      upgraded once.
---   4. Authenticated callers get a per-user bucket: 30 calls per 5 minutes per function, through the existing
---      public.rate_limit_hit / rate_limit_buckets (keys 'user:<uid>:enqueue_availability:300' and
---      '...:enqueue_relation:300'). Over the limit: availability {"error":"rate_limited","retry_after_s":n};
+--   3. Rows in progress are never reset while fresh. Relation queue: a 'processing' row updated within the
+--      last 30 minutes is left untouched; a 'processing' row older than 30 minutes (crashed worker) is
+--      reclaimed. Availability state has no 'processing' status (pending/ok/error/unresolved); an
+--      already-pending row that already carries a priority reason (detail_open/user_tap) is left untouched,
+--      so repeated calls cannot keep re-pinning it or moving its next_refresh_at; a pending row with a
+--      lower-priority reason may still be upgraded once.
+--   4. Non-service-role callers get a per-user bucket: 30 calls per 5 minutes per function, through the
+--      existing public.rate_limit_hit / rate_limit_buckets (keys 'user:<uid|anon>:enqueue_availability:300'
+--      and '...:enqueue_relation:300'). Over the limit: availability {"error":"rate_limited","retry_after_s":n};
 --      relation returns silently (the app ignores the result; the cooldown/prefetch paths just retry later).
---      Service-role calls (auth.uid() is null) are not limited.
---   5. Grants restated: availability authenticated + service_role (as deployed); relation authenticated +
---      service_role. anon is revoked from the relation function: the guest build sends none (CatalogStore guards
---      on the account), and 20261118110000 removes it from the anon allowlist anyway; here it cannot be used
---      unauthenticated even if applied alone.
+--      Service-role calls (auth.role() = 'service_role') are not limited.
+--   5. Grants restated: availability authenticated + service_role; relation authenticated + service_role.
+--      anon is explicitly revoked from BOTH functions: the guest build sends no relation enqueue (CatalogStore
+--      guards on the account), any guest availability enqueue fails harmlessly, and 20261118110000 removes both
+--      from the anon allowlist anyway; here neither can be used unauthenticated even if applied alone.
 -- Limits: availability_refresh_state has no per-user attribution, so a signed-in user can still queue up to
 -- 30 distinct existing titles per function per 5 minutes; it is bounded, not zero.
 -- Idempotent: CREATE OR REPLACE. All functions plpgsql, search_path = public, extensions.
@@ -73,8 +74,8 @@ begin
     return jsonb_build_object('error', 'unknown_media');
   end if;
 
-  if uid is not null then
-    hits := public.rate_limit_hit('user:' || uid::text || ':enqueue_availability:300', 300);
+  if coalesce(auth.role(), 'anon') <> 'service_role' then
+    hits := public.rate_limit_hit('user:' || coalesce(uid::text, 'anon') || ':enqueue_availability:300', 300);
     if hits > 30 then
       return jsonb_build_object(
         'error', 'rate_limited',
@@ -113,6 +114,7 @@ end;
 $$;
 
 revoke all on function public.enqueue_media_availability_refresh(text, int, text) from public;
+revoke all on function public.enqueue_media_availability_refresh(text, int, text) from anon;
 grant execute on function public.enqueue_media_availability_refresh(text, int, text) to authenticated, service_role;
 
 create or replace function public.enqueue_media_relation_refresh(
@@ -152,8 +154,8 @@ begin
     return;
   end if;
 
-  if uid is not null then
-    hits := public.rate_limit_hit('user:' || uid::text || ':enqueue_relation:300', 300);
+  if coalesce(auth.role(), 'anon') <> 'service_role' then
+    hits := public.rate_limit_hit('user:' || coalesce(uid::text, 'anon') || ':enqueue_relation:300', 300);
     if hits > 30 then
       return;
     end if;
@@ -174,7 +176,8 @@ begin
     requested_at = now(),
     last_error = null,
     updated_at = now()
-  where public.media_relation_refresh_queue.status <> 'processing';
+  where public.media_relation_refresh_queue.status <> 'processing'
+     or public.media_relation_refresh_queue.updated_at < now() - interval '30 minutes';
 end;
 $$;
 

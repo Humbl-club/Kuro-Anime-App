@@ -1,0 +1,1460 @@
+{
+  "run_id": "2026-11-19-anime-post-create",
+  "medium": "anime",
+  "generated_at": "2026-11-19T00:22:16.432Z",
+  "rpc": "catalogue_shadow_report_v1",
+  "report": {
+    "adult": {
+      "newly_adult": 0,
+      "review_size": 1,
+      "becomes_non_adult": 0
+    },
+    "tiers": {
+      "all": 22417,
+      "top1k": 1000,
+      "top5k": 5000,
+      "curated": 564,
+      "in_lists": 34
+    },
+    "groups": {
+      "adult": {
+        "all": {
+          "total": 22417,
+          "agreed": 285,
+          "covered": 285,
+          "compared": 285,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 285,
+          "covered": 285,
+          "compared": 285,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 285,
+          "covered": 285,
+          "compared": 285,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 161,
+          "covered": 161,
+          "compared": 161,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 18,
+          "covered": 18,
+          "compared": 18,
+          "disagree_sample": []
+        }
+      },
+      "titles": {
+        "all": {
+          "total": 22417,
+          "agreed": 294,
+          "covered": 1010,
+          "compared": 482,
+          "disagree_sample": [
+            {
+              "id": 2,
+              "today": "Attack on Titan",
+              "shadow": "Attack on Titan, season 1"
+            },
+            {
+              "id": 3,
+              "today": "Demon Slayer: Kimetsu no Yaiba",
+              "shadow": "Demon Slayer: Kimetsu no Yaiba, season 1"
+            },
+            {
+              "id": 5,
+              "today": "JUJUTSU KAISEN",
+              "shadow": "Jujutsu Kaisen, season 1"
+            },
+            {
+              "id": 6,
+              "today": "My Hero Academia",
+              "shadow": "My Hero Academia, season 1"
+            },
+            {
+              "id": 7,
+              "today": "Hunter x Hunter (2011)",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 8,
+              "today": "One-Punch Man",
+              "shadow": "One-Punch Man, season 1"
+            },
+            {
+              "id": 13,
+              "today": "Sword Art Online",
+              "shadow": "Sword Art Online, season 1"
+            },
+            {
+              "id": 19,
+              "today": "The Promised Neverland",
+              "shadow": "The Promised Neverland, season 1"
+            },
+            {
+              "id": 20,
+              "today": "Attack on Titan Final Season",
+              "shadow": "Attack on Titan: The Final Season"
+            },
+            {
+              "id": 22,
+              "today": "Mob Psycho 100",
+              "shadow": "Mob Psycho 100, season 1"
+            },
+            {
+              "id": 28,
+              "today": "Re:ZERO -Starting Life in Another World-",
+              "shadow": "Re:Zero, season 1"
+            },
+            {
+              "id": 30,
+              "today": "HAIKYU!!",
+              "shadow": "Haikyu!!, season 1"
+            },
+            {
+              "id": 91,
+              "today": "Black Clover",
+              "shadow": "Black Clover, season 1"
+            },
+            {
+              "id": 92,
+              "today": "Noragami",
+              "shadow": "Noragami, season 1"
+            },
+            {
+              "id": 94,
+              "today": "Kaguya-sama: Love is War",
+              "shadow": "Kaguya-sama: Love Is War, season 1"
+            },
+            {
+              "id": 95,
+              "today": "Dr. STONE",
+              "shadow": "Dr. Stone, season 1"
+            },
+            {
+              "id": 101,
+              "today": "The Seven Deadly Sins",
+              "shadow": "The Seven Deadly Sins, season 1"
+            },
+            {
+              "id": 102,
+              "today": "Vinland Saga",
+              "shadow": "Vinland Saga, season 1"
+            },
+            {
+              "id": 103,
+              "today": "KONOSUBA -God's blessing on this wonderful world!",
+              "shadow": "KonoSuba, season 1"
+            },
+            {
+              "id": 113,
+              "today": "Blue Exorcist",
+              "shadow": "Blue Exorcist, season 1"
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 294,
+          "covered": 483,
+          "compared": 482,
+          "disagree_sample": [
+            {
+              "id": 2,
+              "today": "Attack on Titan",
+              "shadow": "Attack on Titan, season 1"
+            },
+            {
+              "id": 3,
+              "today": "Demon Slayer: Kimetsu no Yaiba",
+              "shadow": "Demon Slayer: Kimetsu no Yaiba, season 1"
+            },
+            {
+              "id": 5,
+              "today": "JUJUTSU KAISEN",
+              "shadow": "Jujutsu Kaisen, season 1"
+            },
+            {
+              "id": 6,
+              "today": "My Hero Academia",
+              "shadow": "My Hero Academia, season 1"
+            },
+            {
+              "id": 7,
+              "today": "Hunter x Hunter (2011)",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 8,
+              "today": "One-Punch Man",
+              "shadow": "One-Punch Man, season 1"
+            },
+            {
+              "id": 13,
+              "today": "Sword Art Online",
+              "shadow": "Sword Art Online, season 1"
+            },
+            {
+              "id": 19,
+              "today": "The Promised Neverland",
+              "shadow": "The Promised Neverland, season 1"
+            },
+            {
+              "id": 20,
+              "today": "Attack on Titan Final Season",
+              "shadow": "Attack on Titan: The Final Season"
+            },
+            {
+              "id": 22,
+              "today": "Mob Psycho 100",
+              "shadow": "Mob Psycho 100, season 1"
+            },
+            {
+              "id": 28,
+              "today": "Re:ZERO -Starting Life in Another World-",
+              "shadow": "Re:Zero, season 1"
+            },
+            {
+              "id": 30,
+              "today": "HAIKYU!!",
+              "shadow": "Haikyu!!, season 1"
+            },
+            {
+              "id": 91,
+              "today": "Black Clover",
+              "shadow": "Black Clover, season 1"
+            },
+            {
+              "id": 92,
+              "today": "Noragami",
+              "shadow": "Noragami, season 1"
+            },
+            {
+              "id": 94,
+              "today": "Kaguya-sama: Love is War",
+              "shadow": "Kaguya-sama: Love Is War, season 1"
+            },
+            {
+              "id": 95,
+              "today": "Dr. STONE",
+              "shadow": "Dr. Stone, season 1"
+            },
+            {
+              "id": 101,
+              "today": "The Seven Deadly Sins",
+              "shadow": "The Seven Deadly Sins, season 1"
+            },
+            {
+              "id": 102,
+              "today": "Vinland Saga",
+              "shadow": "Vinland Saga, season 1"
+            },
+            {
+              "id": 103,
+              "today": "KONOSUBA -God's blessing on this wonderful world!",
+              "shadow": "KonoSuba, season 1"
+            },
+            {
+              "id": 113,
+              "today": "Blue Exorcist",
+              "shadow": "Blue Exorcist, season 1"
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 294,
+          "covered": 483,
+          "compared": 482,
+          "disagree_sample": [
+            {
+              "id": 2,
+              "today": "Attack on Titan",
+              "shadow": "Attack on Titan, season 1"
+            },
+            {
+              "id": 3,
+              "today": "Demon Slayer: Kimetsu no Yaiba",
+              "shadow": "Demon Slayer: Kimetsu no Yaiba, season 1"
+            },
+            {
+              "id": 5,
+              "today": "JUJUTSU KAISEN",
+              "shadow": "Jujutsu Kaisen, season 1"
+            },
+            {
+              "id": 6,
+              "today": "My Hero Academia",
+              "shadow": "My Hero Academia, season 1"
+            },
+            {
+              "id": 7,
+              "today": "Hunter x Hunter (2011)",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 8,
+              "today": "One-Punch Man",
+              "shadow": "One-Punch Man, season 1"
+            },
+            {
+              "id": 13,
+              "today": "Sword Art Online",
+              "shadow": "Sword Art Online, season 1"
+            },
+            {
+              "id": 19,
+              "today": "The Promised Neverland",
+              "shadow": "The Promised Neverland, season 1"
+            },
+            {
+              "id": 20,
+              "today": "Attack on Titan Final Season",
+              "shadow": "Attack on Titan: The Final Season"
+            },
+            {
+              "id": 22,
+              "today": "Mob Psycho 100",
+              "shadow": "Mob Psycho 100, season 1"
+            },
+            {
+              "id": 28,
+              "today": "Re:ZERO -Starting Life in Another World-",
+              "shadow": "Re:Zero, season 1"
+            },
+            {
+              "id": 30,
+              "today": "HAIKYU!!",
+              "shadow": "Haikyu!!, season 1"
+            },
+            {
+              "id": 91,
+              "today": "Black Clover",
+              "shadow": "Black Clover, season 1"
+            },
+            {
+              "id": 92,
+              "today": "Noragami",
+              "shadow": "Noragami, season 1"
+            },
+            {
+              "id": 94,
+              "today": "Kaguya-sama: Love is War",
+              "shadow": "Kaguya-sama: Love Is War, season 1"
+            },
+            {
+              "id": 95,
+              "today": "Dr. STONE",
+              "shadow": "Dr. Stone, season 1"
+            },
+            {
+              "id": 101,
+              "today": "The Seven Deadly Sins",
+              "shadow": "The Seven Deadly Sins, season 1"
+            },
+            {
+              "id": 102,
+              "today": "Vinland Saga",
+              "shadow": "Vinland Saga, season 1"
+            },
+            {
+              "id": 103,
+              "today": "KONOSUBA -God's blessing on this wonderful world!",
+              "shadow": "KonoSuba, season 1"
+            },
+            {
+              "id": 113,
+              "today": "Blue Exorcist",
+              "shadow": "Blue Exorcist, season 1"
+            }
+          ]
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 144,
+          "covered": 241,
+          "compared": 240,
+          "disagree_sample": [
+            {
+              "id": 2,
+              "today": "Attack on Titan",
+              "shadow": "Attack on Titan, season 1"
+            },
+            {
+              "id": 3,
+              "today": "Demon Slayer: Kimetsu no Yaiba",
+              "shadow": "Demon Slayer: Kimetsu no Yaiba, season 1"
+            },
+            {
+              "id": 5,
+              "today": "JUJUTSU KAISEN",
+              "shadow": "Jujutsu Kaisen, season 1"
+            },
+            {
+              "id": 6,
+              "today": "My Hero Academia",
+              "shadow": "My Hero Academia, season 1"
+            },
+            {
+              "id": 7,
+              "today": "Hunter x Hunter (2011)",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 8,
+              "today": "One-Punch Man",
+              "shadow": "One-Punch Man, season 1"
+            },
+            {
+              "id": 19,
+              "today": "The Promised Neverland",
+              "shadow": "The Promised Neverland, season 1"
+            },
+            {
+              "id": 22,
+              "today": "Mob Psycho 100",
+              "shadow": "Mob Psycho 100, season 1"
+            },
+            {
+              "id": 28,
+              "today": "Re:ZERO -Starting Life in Another World-",
+              "shadow": "Re:Zero, season 1"
+            },
+            {
+              "id": 30,
+              "today": "HAIKYU!!",
+              "shadow": "Haikyu!!, season 1"
+            },
+            {
+              "id": 91,
+              "today": "Black Clover",
+              "shadow": "Black Clover, season 1"
+            },
+            {
+              "id": 92,
+              "today": "Noragami",
+              "shadow": "Noragami, season 1"
+            },
+            {
+              "id": 94,
+              "today": "Kaguya-sama: Love is War",
+              "shadow": "Kaguya-sama: Love Is War, season 1"
+            },
+            {
+              "id": 95,
+              "today": "Dr. STONE",
+              "shadow": "Dr. Stone, season 1"
+            },
+            {
+              "id": 102,
+              "today": "Vinland Saga",
+              "shadow": "Vinland Saga, season 1"
+            },
+            {
+              "id": 114,
+              "today": "JoJo's Bizarre Adventure (TV)",
+              "shadow": "JoJo's Bizarre Adventure, season 1"
+            },
+            {
+              "id": 121,
+              "today": "The Rising of the Shield Hero",
+              "shadow": "The Rising of the Shield Hero, season 1"
+            },
+            {
+              "id": 124,
+              "today": "Tokyo Revengers",
+              "shadow": "Tokyo Revengers, season 1"
+            },
+            {
+              "id": 125,
+              "today": "That Time I Got Reincarnated as a Slime",
+              "shadow": "That Time I Got Reincarnated as a Slime, season 1"
+            },
+            {
+              "id": 127,
+              "today": "Kaguya-sama: Love is War?",
+              "shadow": "Kaguya-sama: Love Is War, season 2"
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 16,
+          "covered": 27,
+          "compared": 27,
+          "disagree_sample": [
+            {
+              "id": 2,
+              "today": "Attack on Titan",
+              "shadow": "Attack on Titan, season 1"
+            },
+            {
+              "id": 8,
+              "today": "One-Punch Man",
+              "shadow": "One-Punch Man, season 1"
+            },
+            {
+              "id": 92,
+              "today": "Noragami",
+              "shadow": "Noragami, season 1"
+            },
+            {
+              "id": 102,
+              "today": "Vinland Saga",
+              "shadow": "Vinland Saga, season 1"
+            },
+            {
+              "id": 113,
+              "today": "Blue Exorcist",
+              "shadow": "Blue Exorcist, season 1"
+            },
+            {
+              "id": 118,
+              "today": "Kakegurui",
+              "shadow": "Kakegurui, season 1"
+            },
+            {
+              "id": 131,
+              "today": "Classroom of the Elite",
+              "shadow": "Classroom of the Elite, season 1"
+            },
+            {
+              "id": 138,
+              "today": "Anohana: The Flower We Saw That Day",
+              "shadow": "Anohana"
+            },
+            {
+              "id": 145,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren, season 1"
+            },
+            {
+              "id": 147,
+              "today": "Solo Leveling",
+              "shadow": "Solo Leveling, season 1"
+            },
+            {
+              "id": 720,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            }
+          ]
+        }
+      },
+      "identity": {
+        "all": {
+          "total": 22417,
+          "agreed": 0,
+          "covered": 4217,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 922,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 3429,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 0,
+          "covered": 434,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 0,
+          "covered": 32,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_format": {
+        "all": {
+          "total": 22417,
+          "agreed": 540,
+          "covered": 540,
+          "compared": 540,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 13,
+          "covered": 13,
+          "compared": 13,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 13,
+          "covered": 13,
+          "compared": 13,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 12,
+          "covered": 12,
+          "compared": 12,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 6,
+          "covered": 6,
+          "compared": 6,
+          "disagree_sample": []
+        }
+      },
+      "facts_status": {
+        "all": {
+          "total": 22417,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "titles_native": {
+        "all": {
+          "total": 22417,
+          "agreed": 0,
+          "covered": 471,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 471,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 471,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 0,
+          "covered": 239,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 0,
+          "covered": 26,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_episodes": {
+        "all": {
+          "total": 22417,
+          "agreed": 343,
+          "covered": 381,
+          "compared": 380,
+          "disagree_sample": [
+            {
+              "id": 21,
+              "today": 22,
+              "shadow": 47
+            },
+            {
+              "id": 29,
+              "today": 24,
+              "shadow": 26
+            },
+            {
+              "id": 108,
+              "today": 366,
+              "shadow": 406
+            },
+            {
+              "id": 128,
+              "today": 23,
+              "shadow": 24
+            },
+            {
+              "id": 149,
+              "today": 175,
+              "shadow": 328
+            },
+            {
+              "id": 158,
+              "today": 22,
+              "shadow": 41
+            },
+            {
+              "id": 171,
+              "today": 24,
+              "shadow": 48
+            },
+            {
+              "id": 179,
+              "today": 12,
+              "shadow": 24
+            },
+            {
+              "id": 195,
+              "today": 11,
+              "shadow": 35
+            },
+            {
+              "id": 201,
+              "today": 24,
+              "shadow": 25
+            },
+            {
+              "id": 207,
+              "today": 201,
+              "shadow": 353
+            },
+            {
+              "id": 210,
+              "today": 24,
+              "shadow": 47
+            },
+            {
+              "id": 217,
+              "today": 25,
+              "shadow": 75
+            },
+            {
+              "id": 220,
+              "today": 13,
+              "shadow": 14
+            },
+            {
+              "id": 277,
+              "today": 25,
+              "shadow": 62
+            },
+            {
+              "id": 289,
+              "today": 25,
+              "shadow": 50
+            },
+            {
+              "id": 293,
+              "today": 12,
+              "shadow": 24
+            },
+            {
+              "id": 306,
+              "today": 12,
+              "shadow": 16
+            },
+            {
+              "id": 317,
+              "today": 13,
+              "shadow": 21
+            },
+            {
+              "id": 323,
+              "today": 12,
+              "shadow": 24
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 343,
+          "covered": 381,
+          "compared": 380,
+          "disagree_sample": [
+            {
+              "id": 21,
+              "today": 22,
+              "shadow": 47
+            },
+            {
+              "id": 29,
+              "today": 24,
+              "shadow": 26
+            },
+            {
+              "id": 108,
+              "today": 366,
+              "shadow": 406
+            },
+            {
+              "id": 128,
+              "today": 23,
+              "shadow": 24
+            },
+            {
+              "id": 149,
+              "today": 175,
+              "shadow": 328
+            },
+            {
+              "id": 158,
+              "today": 22,
+              "shadow": 41
+            },
+            {
+              "id": 171,
+              "today": 24,
+              "shadow": 48
+            },
+            {
+              "id": 179,
+              "today": 12,
+              "shadow": 24
+            },
+            {
+              "id": 195,
+              "today": 11,
+              "shadow": 35
+            },
+            {
+              "id": 201,
+              "today": 24,
+              "shadow": 25
+            },
+            {
+              "id": 207,
+              "today": 201,
+              "shadow": 353
+            },
+            {
+              "id": 210,
+              "today": 24,
+              "shadow": 47
+            },
+            {
+              "id": 217,
+              "today": 25,
+              "shadow": 75
+            },
+            {
+              "id": 220,
+              "today": 13,
+              "shadow": 14
+            },
+            {
+              "id": 277,
+              "today": 25,
+              "shadow": 62
+            },
+            {
+              "id": 289,
+              "today": 25,
+              "shadow": 50
+            },
+            {
+              "id": 293,
+              "today": 12,
+              "shadow": 24
+            },
+            {
+              "id": 306,
+              "today": 12,
+              "shadow": 16
+            },
+            {
+              "id": 317,
+              "today": 13,
+              "shadow": 21
+            },
+            {
+              "id": 323,
+              "today": 12,
+              "shadow": 24
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 343,
+          "covered": 381,
+          "compared": 380,
+          "disagree_sample": [
+            {
+              "id": 21,
+              "today": 22,
+              "shadow": 47
+            },
+            {
+              "id": 29,
+              "today": 24,
+              "shadow": 26
+            },
+            {
+              "id": 108,
+              "today": 366,
+              "shadow": 406
+            },
+            {
+              "id": 128,
+              "today": 23,
+              "shadow": 24
+            },
+            {
+              "id": 149,
+              "today": 175,
+              "shadow": 328
+            },
+            {
+              "id": 158,
+              "today": 22,
+              "shadow": 41
+            },
+            {
+              "id": 171,
+              "today": 24,
+              "shadow": 48
+            },
+            {
+              "id": 179,
+              "today": 12,
+              "shadow": 24
+            },
+            {
+              "id": 195,
+              "today": 11,
+              "shadow": 35
+            },
+            {
+              "id": 201,
+              "today": 24,
+              "shadow": 25
+            },
+            {
+              "id": 207,
+              "today": 201,
+              "shadow": 353
+            },
+            {
+              "id": 210,
+              "today": 24,
+              "shadow": 47
+            },
+            {
+              "id": 217,
+              "today": 25,
+              "shadow": 75
+            },
+            {
+              "id": 220,
+              "today": 13,
+              "shadow": 14
+            },
+            {
+              "id": 277,
+              "today": 25,
+              "shadow": 62
+            },
+            {
+              "id": 289,
+              "today": 25,
+              "shadow": 50
+            },
+            {
+              "id": 293,
+              "today": 12,
+              "shadow": 24
+            },
+            {
+              "id": 306,
+              "today": 12,
+              "shadow": 16
+            },
+            {
+              "id": 317,
+              "today": 13,
+              "shadow": 21
+            },
+            {
+              "id": 323,
+              "today": 12,
+              "shadow": 24
+            }
+          ]
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 173,
+          "covered": 189,
+          "compared": 188,
+          "disagree_sample": [
+            {
+              "id": 21,
+              "today": 22,
+              "shadow": 47
+            },
+            {
+              "id": 29,
+              "today": 24,
+              "shadow": 26
+            },
+            {
+              "id": 108,
+              "today": 366,
+              "shadow": 406
+            },
+            {
+              "id": 158,
+              "today": 22,
+              "shadow": 41
+            },
+            {
+              "id": 195,
+              "today": 11,
+              "shadow": 35
+            },
+            {
+              "id": 201,
+              "today": 24,
+              "shadow": 25
+            },
+            {
+              "id": 207,
+              "today": 201,
+              "shadow": 353
+            },
+            {
+              "id": 217,
+              "today": 25,
+              "shadow": 75
+            },
+            {
+              "id": 220,
+              "today": 13,
+              "shadow": 14
+            },
+            {
+              "id": 323,
+              "today": 12,
+              "shadow": 24
+            },
+            {
+              "id": 338,
+              "today": 47,
+              "shadow": 50
+            },
+            {
+              "id": 344,
+              "today": 13,
+              "shadow": 16
+            },
+            {
+              "id": 370,
+              "today": 11,
+              "shadow": 22
+            },
+            {
+              "id": 437,
+              "today": 11,
+              "shadow": 29
+            },
+            {
+              "id": 546,
+              "today": 12,
+              "shadow": 13
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 16,
+          "covered": 22,
+          "compared": 21,
+          "disagree_sample": [
+            {
+              "id": 21,
+              "today": 22,
+              "shadow": 47
+            },
+            {
+              "id": 29,
+              "today": 24,
+              "shadow": 26
+            },
+            {
+              "id": 108,
+              "today": 366,
+              "shadow": 406
+            },
+            {
+              "id": 128,
+              "today": 23,
+              "shadow": 24
+            },
+            {
+              "id": 217,
+              "today": 25,
+              "shadow": 75
+            }
+          ]
+        }
+      },
+      "facts_start_year": {
+        "all": {
+          "total": 22417,
+          "agreed": 968,
+          "covered": 971,
+          "compared": 971,
+          "disagree_sample": [
+            {
+              "id": 127,
+              "today": 2020,
+              "shadow": 2022
+            },
+            {
+              "id": 286,
+              "today": 1998,
+              "shadow": 1997
+            },
+            {
+              "id": 540,
+              "today": 2023,
+              "shadow": 2022
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 441,
+          "covered": 444,
+          "compared": 444,
+          "disagree_sample": [
+            {
+              "id": 127,
+              "today": 2020,
+              "shadow": 2022
+            },
+            {
+              "id": 286,
+              "today": 1998,
+              "shadow": 1997
+            },
+            {
+              "id": 540,
+              "today": 2023,
+              "shadow": 2022
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 441,
+          "covered": 444,
+          "compared": 444,
+          "disagree_sample": [
+            {
+              "id": 127,
+              "today": 2020,
+              "shadow": 2022
+            },
+            {
+              "id": 286,
+              "today": 1998,
+              "shadow": 1997
+            },
+            {
+              "id": 540,
+              "today": 2023,
+              "shadow": 2022
+            }
+          ]
+        },
+        "curated": {
+          "total": 564,
+          "agreed": 222,
+          "covered": 225,
+          "compared": 225,
+          "disagree_sample": [
+            {
+              "id": 127,
+              "today": 2020,
+              "shadow": 2022
+            },
+            {
+              "id": 286,
+              "today": 1998,
+              "shadow": 1997
+            },
+            {
+              "id": 540,
+              "today": 2023,
+              "shadow": 2022
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 34,
+          "agreed": 27,
+          "covered": 27,
+          "compared": 27,
+          "disagree_sample": []
+        }
+      }
+    },
+    "medium": "anime",
+    "sample": 20,
+    "generated_at": "2026-11-19T00:22:16.536949+00:00",
+    "identity_gate": {
+      "accepted_links": 6155,
+      "proposed_links": 1589,
+      "proposed_only_titles": 233,
+      "orphan_accepted_links": 0,
+      "duplicate_accepted_links": 0
+    },
+    "invalid_shadow_values": 0
+  },
+  "evaluation": {
+    "gates": [
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "in_lists",
+        "threshold": 1,
+        "value": 0.9411764705882353,
+        "n": 34,
+        "status": "fail",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "curated",
+        "threshold": 1,
+        "value": 0.7695035460992907,
+        "n": 564,
+        "status": "fail",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "top5k",
+        "threshold": 0.95,
+        "value": 0.6858,
+        "n": 5000,
+        "status": "fail",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "duplicate_accepted_links",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 22417,
+        "status": "pass"
+      },
+      {
+        "group": "identity",
+        "metric": "orphan_accepted_links",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 22417,
+        "status": "pass",
+        "note": "accepted links whose target title no longer exists"
+      },
+      {
+        "group": "data",
+        "metric": "invalid_shadow_values",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": null,
+        "status": "pass",
+        "note": "shadow values that are not a valid integer/boolean for their field"
+      },
+      {
+        "group": "identity",
+        "metric": "title_match_precision",
+        "tier": "sample",
+        "threshold": 0.99,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "needs the 200-title owner-reviewed sample; not computable from the shadow report"
+      },
+      {
+        "group": "titles",
+        "metric": "display_title_of_linked",
+        "tier": "all",
+        "threshold": 1,
+        "value": 0.239506758359023,
+        "n": 4217,
+        "status": "fail"
+      },
+      {
+        "group": "titles",
+        "metric": "native_title",
+        "tier": "top5k",
+        "threshold": 0.95,
+        "value": 0.0942,
+        "n": 5000,
+        "status": "fail"
+      },
+      {
+        "group": "facts",
+        "metric": "start_year_exact",
+        "tier": "all",
+        "threshold": 0.98,
+        "value": 0.9969104016477858,
+        "n": 971,
+        "status": "pass"
+      },
+      {
+        "group": "facts",
+        "metric": "format_mapped",
+        "tier": "all",
+        "threshold": 0.97,
+        "value": 1,
+        "n": 540,
+        "status": "pass"
+      },
+      {
+        "group": "facts",
+        "metric": "episodes_finished",
+        "tier": "all",
+        "threshold": 0.97,
+        "value": 0.9026315789473685,
+        "n": 380,
+        "status": "fail"
+      },
+      {
+        "group": "adult",
+        "metric": "becomes_non_adult",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 285,
+        "status": "pass",
+        "note": "newly adult (to list for review): 0; review list size: 1"
+      },
+      {
+        "group": "relations",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": ">= 90% of today's SEQUEL/PREQUEL pairs among linked titles reproduced (not in the shadow report yet)"
+      },
+      {
+        "group": "popularity",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "Spearman >= 0.7 on top 5k (Task 10)"
+      },
+      {
+        "group": "tags",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "median top-5 tag overlap >= 60% (Task 11)"
+      },
+      {
+        "group": "episodes",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "next airing within 24 h of the provider (Task 9, gate L1)"
+      },
+      {
+        "group": "synopsis",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "own synopsis on >= 95% of top 5k (Task 12, gate L2)"
+      },
+      {
+        "group": "images",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "licensed or Kuro artwork on 100% of visible titles (Task 13, gate L3)"
+      }
+    ],
+    "summary": {
+      "identity": "fail",
+      "data": "pass",
+      "titles": "fail",
+      "facts": "fail",
+      "adult": "pass",
+      "relations": "insufficient",
+      "popularity": "insufficient",
+      "tags": "insufficient",
+      "episodes": "insufficient",
+      "synopsis": "insufficient",
+      "images": "insufficient"
+    },
+    "min_compared": 30
+  }
+}

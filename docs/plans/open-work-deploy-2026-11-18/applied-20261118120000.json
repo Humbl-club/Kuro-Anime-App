@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261118120000",
+    "name": "library_tags_custom_lists_v1",
+    "file": "supabase/prepared-migrations/20261118120000_library_tags_custom_lists_v1.sql",
+    "md5": "3257fee461a21adf2ce8aaf95aa3419e",
+    "sha256": "244a662a730d7c764fa577e5df3e332cf7d5e78152f2cb81c841c5b15e73b04d",
+    "bytes": 28101
+  },
+  "started_at": "2026-11-18T23:47:42.906224+00:00",
+  "finished_at": "2026-11-18T23:47:44.465395+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261118120000",
+      "name": "library_tags_custom_lists_v1",
+      "n": 1,
+      "s1_md5": "3257fee461a21adf2ce8aaf95aa3419e",
+      "s1_len": 28101
+    }
+  ]
+}

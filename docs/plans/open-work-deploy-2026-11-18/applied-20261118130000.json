@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261118130000",
+    "name": "library_up_next_v1",
+    "file": "supabase/prepared-migrations/20261118130000_library_up_next_v1.sql",
+    "md5": "6e7323d37290286dbabd901e1cca8056",
+    "sha256": "83e021acc33f7130a35bf76c305cb7ed3ff485a2a2260ed9d3821e79114d83aa",
+    "bytes": 7366
+  },
+  "started_at": "2026-11-18T23:48:27.443982+00:00",
+  "finished_at": "2026-11-18T23:48:27.856690+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261118130000",
+      "name": "library_up_next_v1",
+      "n": 1,
+      "s1_md5": "6e7323d37290286dbabd901e1cca8056",
+      "s1_len": 7366
+    }
+  ]
+}

@@ -54,4 +54,5 @@ end $$;
 revoke all on function public.catalogue_tag_map_v1() from public, anon, authenticated;
 grant execute on function public.catalogue_tag_map_v1() to service_role;
 
+notify pgrst, 'reload schema';
 commit;

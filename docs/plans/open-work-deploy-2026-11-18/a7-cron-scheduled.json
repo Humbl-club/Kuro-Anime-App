@@ -1,0 +1,241 @@
+{
+  "scheduled_count": 18,
+  "jobs": [
+    {
+      "name": "catalogue-intake-wikidata-anime",
+      "schedule": "0,30 * * * *",
+      "payload": {
+        "handler": "wikidata",
+        "medium": "anime"
+      }
+    },
+    {
+      "name": "catalogue-intake-wikidata-manga",
+      "schedule": "15,45 * * * *",
+      "payload": {
+        "handler": "wikidata",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-ann-anime",
+      "schedule": "10,40 * * * *",
+      "payload": {
+        "handler": "ann",
+        "medium": "anime"
+      }
+    },
+    {
+      "name": "catalogue-intake-mangaupdates-a",
+      "schedule": "*/2 0-2,5-23 * * *",
+      "payload": {
+        "handler": "mangaupdates",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-mangaupdates-b",
+      "schedule": "0-28/2 3 * * *",
+      "payload": {
+        "handler": "mangaupdates",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-mangaupdates-c",
+      "schedule": "22-58/2 4 * * *",
+      "payload": {
+        "handler": "mangaupdates",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-mangaupdates-new-a",
+      "schedule": "7,37 0-2,5-23 * * *",
+      "payload": {
+        "handler": "mangaupdates_new",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-mangaupdates-new-b",
+      "schedule": "7 3 * * *",
+      "payload": {
+        "handler": "mangaupdates_new",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-mangaupdates-new-c",
+      "schedule": "37 4 * * *",
+      "payload": {
+        "handler": "mangaupdates_new",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-create-manga",
+      "schedule": "20 * * * *",
+      "payload": {
+        "handler": "create",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-pageviews-anime-initial",
+      "schedule": "0-50/10 * * * *",
+      "payload": {
+        "handler": "pageviews",
+        "medium": "anime"
+      }
+    },
+    {
+      "name": "catalogue-intake-pageviews-manga-initial",
+      "schedule": "5-55/10 * * * *",
+      "payload": {
+        "handler": "pageviews",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-pageviews-anime-weekly",
+      "schedule": "0-50/10 0-11 * * 0",
+      "payload": {
+        "handler": "pageviews",
+        "medium": "anime"
+      }
+    },
+    {
+      "name": "catalogue-intake-pageviews-manga-weekly",
+      "schedule": "5-55/10 0-11 * * 0",
+      "payload": {
+        "handler": "pageviews",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-compose-anime",
+      "schedule": "55 * * * *",
+      "payload": {
+        "handler": "compose",
+        "medium": "anime"
+      }
+    },
+    {
+      "name": "catalogue-intake-compose-manga",
+      "schedule": "56 * * * *",
+      "payload": {
+        "handler": "compose",
+        "medium": "manga"
+      }
+    },
+    {
+      "name": "catalogue-intake-publish-anime",
+      "schedule": "58 * * * *",
+      "payload": {
+        "handler": "publish",
+        "medium": "anime"
+      }
+    },
+    {
+      "name": "catalogue-intake-publish-manga",
+      "schedule": "59 * * * *",
+      "payload": {
+        "handler": "publish",
+        "medium": "manga"
+      }
+    }
+  ],
+  "verify": [
+    {
+      "jobname": "catalogue-intake-ann-anime",
+      "schedule": "10,40 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-compose-anime",
+      "schedule": "55 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-compose-manga",
+      "schedule": "56 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-create-manga",
+      "schedule": "20 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-a",
+      "schedule": "*/2 0-2,5-23 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-b",
+      "schedule": "0-28/2 3 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-c",
+      "schedule": "22-58/2 4 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-new-a",
+      "schedule": "7,37 0-2,5-23 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-new-b",
+      "schedule": "7 3 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-mangaupdates-new-c",
+      "schedule": "37 4 * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-anime-initial",
+      "schedule": "0-50/10 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-anime-weekly",
+      "schedule": "0-50/10 0-11 * * 0",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-manga-initial",
+      "schedule": "5-55/10 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-pageviews-manga-weekly",
+      "schedule": "5-55/10 0-11 * * 0",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-publish-anime",
+      "schedule": "58 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-publish-manga",
+      "schedule": "59 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-wikidata-anime",
+      "schedule": "0,30 * * * *",
+      "active": true
+    },
+    {
+      "jobname": "catalogue-intake-wikidata-manga",
+      "schedule": "15,45 * * * *",
+      "active": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261112100450",
+    "name": "catalogue_create_v1",
+    "file": "supabase/prepared-migrations/20261112100450_catalogue_create_v1.sql",
+    "md5": "8c40f5666d6fc159bb6f5f8f76ba8123",
+    "sha256": "1d8f4734e275eb1accb78858831e3ba4f70a1fb23e5901298a8ea48dd93c7fc1",
+    "bytes": 4860
+  },
+  "started_at": "2026-11-18T23:45:48.895451+00:00",
+  "finished_at": "2026-11-18T23:45:49.258507+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261112100450",
+      "name": "catalogue_create_v1",
+      "n": 1,
+      "s1_md5": "8c40f5666d6fc159bb6f5f8f76ba8123",
+      "s1_len": 4860
+    }
+  ]
+}

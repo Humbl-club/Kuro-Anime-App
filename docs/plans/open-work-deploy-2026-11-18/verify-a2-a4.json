@@ -1,0 +1,127 @@
+{
+  "anon_count": [
+    {
+      "c": 20
+    }
+  ],
+  "tables": [
+    {
+      "relname": "catalogue_cutover",
+      "rls": true,
+      "anon_sel": false,
+      "auth_sel": false,
+      "svc_sel": true
+    },
+    {
+      "relname": "catalogue_id_links",
+      "rls": true,
+      "anon_sel": false,
+      "auth_sel": false,
+      "svc_sel": true
+    },
+    {
+      "relname": "catalogue_rollback_snapshots",
+      "rls": true,
+      "anon_sel": false,
+      "auth_sel": false,
+      "svc_sel": true
+    },
+    {
+      "relname": "catalogue_shadow_values",
+      "rls": true,
+      "anon_sel": false,
+      "auth_sel": false,
+      "svc_sel": true
+    },
+    {
+      "relname": "catalogue_source_records",
+      "rls": true,
+      "anon_sel": false,
+      "auth_sel": false,
+      "svc_sel": true
+    },
+    {
+      "relname": "catalogue_tag_source_map",
+      "rls": true,
+      "anon_sel": false,
+      "auth_sel": false,
+      "svc_sel": true
+    }
+  ],
+  "cutover": [
+    {
+      "field_group": "adult",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "credits",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "episodes",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "facts",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "identity",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "images",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "links",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "popularity",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "relations",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "synopsis",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "tags",
+      "mode": "anilist"
+    },
+    {
+      "field_group": "titles",
+      "mode": "anilist"
+    }
+  ],
+  "rpc_exec": [
+    {
+      "sig": "catalogue_norm_title(text)",
+      "anon_x": false,
+      "auth_x": false,
+      "svc_x": true
+    },
+    {
+      "sig": "catalogue_shadow_report_v1(text,integer)",
+      "anon_x": false,
+      "auth_x": false,
+      "svc_x": true
+    },
+    {
+      "sig": "catalogue_tag_map_v1()",
+      "anon_x": false,
+      "auth_x": false,
+      "svc_x": true
+    }
+  ],
+  "anime_data_sources": [
+    {
+      "anime_has": true,
+      "manga_has": true
+    }
+  ]
+}

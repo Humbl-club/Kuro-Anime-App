@@ -1,0 +1,677 @@
+{
+  "run_id": "2026-11-18-manga-first-shadow",
+  "medium": "manga",
+  "generated_at": "2026-11-18T23:16:17.242Z",
+  "rpc": "catalogue_shadow_report_v1",
+  "report": {
+    "adult": {
+      "newly_adult": 0,
+      "review_size": 0,
+      "becomes_non_adult": 0
+    },
+    "tiers": {
+      "all": 42029,
+      "top1k": 1000,
+      "top5k": 5000,
+      "curated": 429,
+      "in_lists": 12
+    },
+    "groups": {
+      "adult": {
+        "all": {
+          "total": 42029,
+          "agreed": 46,
+          "covered": 46,
+          "compared": 46,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 46,
+          "covered": 46,
+          "compared": 46,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 46,
+          "covered": 46,
+          "compared": 46,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 43,
+          "covered": 43,
+          "compared": 43,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 9,
+          "covered": 9,
+          "compared": 9,
+          "disagree_sample": []
+        }
+      },
+      "titles": {
+        "all": {
+          "total": 42029,
+          "agreed": 43,
+          "covered": 50,
+          "compared": 50,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 43,
+          "covered": 50,
+          "compared": 50,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 43,
+          "covered": 50,
+          "compared": 50,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            }
+          ]
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 40,
+          "covered": 47,
+          "compared": 47,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 8,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": [
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            }
+          ]
+        }
+      },
+      "identity": {
+        "all": {
+          "total": 42029,
+          "agreed": 0,
+          "covered": 50,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 50,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 50,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 0,
+          "covered": 47,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 0,
+          "covered": 10,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_format": {
+        "all": {
+          "total": 42029,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 5,
+          "covered": 5,
+          "compared": 5,
+          "disagree_sample": []
+        }
+      },
+      "facts_status": {
+        "all": {
+          "total": 42029,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 5,
+          "covered": 5,
+          "compared": 5,
+          "disagree_sample": []
+        }
+      },
+      "titles_native": {
+        "all": {
+          "total": 42029,
+          "agreed": 0,
+          "covered": 50,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 50,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 50,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 0,
+          "covered": 47,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 0,
+          "covered": 10,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_episodes": {
+        "all": {
+          "total": 42029,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_start_year": {
+        "all": {
+          "total": 42029,
+          "agreed": 48,
+          "covered": 48,
+          "compared": 48,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 48,
+          "covered": 48,
+          "compared": 48,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 48,
+          "covered": 48,
+          "compared": 48,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 45,
+          "covered": 45,
+          "compared": 45,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 12,
+          "agreed": 10,
+          "covered": 10,
+          "compared": 10,
+          "disagree_sample": []
+        }
+      }
+    },
+    "medium": "manga",
+    "sample": 20,
+    "generated_at": "2026-11-18T23:16:13.802787+00:00",
+    "identity_gate": {
+      "accepted_links": 60,
+      "proposed_links": 40,
+      "proposed_only_titles": 0,
+      "orphan_accepted_links": 0,
+      "duplicate_accepted_links": 0
+    },
+    "invalid_shadow_values": 0
+  },
+  "evaluation": {
+    "gates": [
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "in_lists",
+        "threshold": 1,
+        "value": 0.8333333333333334,
+        "n": 12,
+        "status": "insufficient",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "curated",
+        "threshold": 1,
+        "value": 0.10955710955710955,
+        "n": 429,
+        "status": "fail",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "top5k",
+        "threshold": 0.85,
+        "value": 0.01,
+        "n": 5000,
+        "status": "fail",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "duplicate_accepted_links",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 42029,
+        "status": "pass"
+      },
+      {
+        "group": "identity",
+        "metric": "orphan_accepted_links",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 42029,
+        "status": "pass",
+        "note": "accepted links whose target title no longer exists"
+      },
+      {
+        "group": "data",
+        "metric": "invalid_shadow_values",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": null,
+        "status": "pass",
+        "note": "shadow values that are not a valid integer/boolean for their field"
+      },
+      {
+        "group": "identity",
+        "metric": "title_match_precision",
+        "tier": "sample",
+        "threshold": 0.99,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "needs the 200-title owner-reviewed sample; not computable from the shadow report"
+      },
+      {
+        "group": "titles",
+        "metric": "display_title_of_linked",
+        "tier": "all",
+        "threshold": 1,
+        "value": 1,
+        "n": 50,
+        "status": "pass"
+      },
+      {
+        "group": "titles",
+        "metric": "native_title",
+        "tier": "top5k",
+        "threshold": 0.95,
+        "value": 0.01,
+        "n": 5000,
+        "status": "fail"
+      },
+      {
+        "group": "facts",
+        "metric": "start_year_exact",
+        "tier": "all",
+        "threshold": 0.98,
+        "value": 1,
+        "n": 48,
+        "status": "pass"
+      },
+      {
+        "group": "facts",
+        "metric": "format_mapped",
+        "tier": "all",
+        "threshold": 0.97,
+        "value": 1,
+        "n": 10,
+        "status": "insufficient"
+      },
+      {
+        "group": "adult",
+        "metric": "becomes_non_adult",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 46,
+        "status": "pass",
+        "note": "newly adult (to list for review): 0; review list size: 0"
+      },
+      {
+        "group": "relations",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": ">= 90% of today's SEQUEL/PREQUEL pairs among linked titles reproduced (not in the shadow report yet)"
+      },
+      {
+        "group": "popularity",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "Spearman >= 0.7 on top 5k (Task 10)"
+      },
+      {
+        "group": "tags",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "median top-5 tag overlap >= 60% (Task 11)"
+      },
+      {
+        "group": "episodes",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "next airing within 24 h of the provider (Task 9, gate L1)"
+      },
+      {
+        "group": "synopsis",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "own synopsis on >= 95% of top 5k (Task 12, gate L2)"
+      },
+      {
+        "group": "images",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "licensed or Kuro artwork on 100% of visible titles (Task 13, gate L3)"
+      }
+    ],
+    "summary": {
+      "identity": "fail",
+      "data": "pass",
+      "titles": "fail",
+      "facts": "insufficient",
+      "adult": "pass",
+      "relations": "insufficient",
+      "popularity": "insufficient",
+      "tags": "insufficient",
+      "episodes": "insufficient",
+      "synopsis": "insufficient",
+      "images": "insufficient"
+    },
+    "min_compared": 30
+  }
+}

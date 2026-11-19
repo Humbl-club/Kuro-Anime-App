@@ -1,0 +1,667 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 356]
+[Planning deferred tasks]
+[76 / 172]
+[77 / 173] KuroCore
+[87 / 212]
+[92 / 212]
+[95 / 212]
+[96 / 212]
+[100 / 212]
+[102 / 212]
+[105 / 212]
+[108 / 212]
+[110 / 212]
+[111 / 212]
+[116 / 212] KuroCore
+[126 / 214] KuroWidgetSupport
+[130 / 237]
+[139 / 237] KuroWidgetSupport
+[139 / 237] KuroLibrary
+[153 / 237] KuroLibrary
+[156 / 237] KuroCore
+[165 / 238] KuroCoreTests-product
+[178 / 240]
+[178 / 240] KuroLibrary
+[179 / 248] KuroSupabase
+[184 / 253] KuroSupabase
+[192 / 253]
+[199 / 253] KuroSupabase
+[199 / 253] KuroCoreTests-product
+[210 / 253] KuroLibrary
+[221 / 255] KuroWidgetSupportTests-product
+[225 / 255] KuroSupabaseTests-product
+[238 / 271] KuroLibraryTests-product
+[238 / 271] KuroSupabaseTests-product
+[240 / 271] KuroSupabaseTests-product
+[246 / 271] KuroSupabaseTests-product
+[248 / 271]
+[250 / 271] KuroWidgetSupportTests-product
+[254 / 271] KuroLibraryTests-product
+[259 / 271] KuroLibraryTests-product
+[261 / 271] KuroSupabaseTests-product
+[265 / 271] KuroLibraryTests-product
+[267 / 271] KuroLibraryTests-product
+Build complete! (15,04 sec)
+Test Suite 'All tests' started at 2026-11-18 21:45:23.505.
+Test Suite 'All tests' passed at 2026-11-18 21:45:23.513.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.007) seconds
+Test Suite 'All tests' started at 2026-11-18 21:45:23.788.
+Test Suite 'All tests' passed at 2026-11-18 21:45:23.794.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.007) seconds
+Test Suite 'All tests' started at 2026-11-18 21:45:24.204.
+Test Suite 'All tests' passed at 2026-11-18 21:45:24.211.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.007) seconds
+Test Suite 'All tests' started at 2026-11-18 21:45:24.503.
+Test Suite 'All tests' passed at 2026-11-18 21:45:24.510.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.007) seconds
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite "Widget account tag" started.
+◇ Suite "Widget +1 hand-off queue" started.
+◇ Suite "Widget snapshot" started.
+◇ Test "the install salt is created once and reused" started.
+◇ Test "expired requests are dropped; the queue is bounded" started.
+◇ Test "remove(ids:) and retainOnly(account:) clear exactly what they name" started.
+◇ Test "the tag is stable, case-insensitive on the user id, salt-dependent and never contains the id" started.
+◇ Test "enqueue is idempotent per (account, title, target unit)" started.
+◇ Test "queued +1 taps overlay the shown position (same account and lifecycle only, never past the total)" started.
+◇ Test "expired releases are dropped at render time; windows without an end stay" started.
+◇ Test "a snapshot of another schema is ignored; thumbnail names cannot escape thumbs/" started.
+◇ Test "malformed requests are rejected: no positive target, past the total" started.
+◇ Test "write / read round-trips exactly; clear removes the snapshot and thumbnails" started.
+◇ Test "one corrupt element never drops the others" started.
+◇ Test "a caught-up title offers no +1; otherwise the request names the next unit of this lifecycle" started.
+✔ Test "expired releases are dropped at render time; windows without an end stay" passed after 0.001 seconds.
+✔ Test "a caught-up title offers no +1; otherwise the request names the next unit of this lifecycle" passed after 0.001 seconds.
+✔ Test "queued +1 taps overlay the shown position (same account and lifecycle only, never past the total)" passed after 0.001 seconds.
+✔ Test "the tag is stable, case-insensitive on the user id, salt-dependent and never contains the id" passed after 0.001 seconds.
+✔ Test "the install salt is created once and reused" passed after 0.004 seconds.
+✔ Suite "Widget account tag" passed after 0.004 seconds.
+✔ Test "one corrupt element never drops the others" passed after 0.010 seconds.
+✔ Test "malformed requests are rejected: no positive target, past the total" passed after 0.012 seconds.
+✔ Test "a snapshot of another schema is ignored; thumbnail names cannot escape thumbs/" passed after 0.015 seconds.
+✔ Test "write / read round-trips exactly; clear removes the snapshot and thumbnails" passed after 0.024 seconds.
+✔ Suite "Widget snapshot" passed after 0.024 seconds.
+✔ Test "enqueue is idempotent per (account, title, target unit)" passed after 0.031 seconds.
+✔ Test "remove(ids:) and retainOnly(account:) clear exactly what they name" passed after 0.038 seconds.
+✔ Test "expired requests are dropped; the queue is bounded" passed after 0.155 seconds.
+✔ Suite "Widget +1 hand-off queue" passed after 0.155 seconds.
+✔ Test run with 12 tests in 3 suites passed after 0.155 seconds.
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite "SupabaseLibraryBackend: mapping rules" started.
+◇ Suite "SupabaseLibraryBackend: request contract" started.
+◇ Suite "Library contract v2 mapping" started.
+◇ Test importedMetadataProjectsOnlyBehindFencedColumns() started.
+◇ Test emptyFoundationLibraryValidatesEachMediumSchemaBeforeReadiness() started.
+◇ Test "With the fence on, progress and status use the receipt RPC and notes stay on PATCH" started.
+◇ Test "A stale progress base returns conflict and does not PATCH" started.
+◇ Test "The repeat count and both dates map to repeat_count, started_raw and finished_raw; clear is an explicit null" started.
+◇ Test "anime 7 and manga 7 use their own tables and map to distinct keys even with equal row ids" started.
+◇ Test "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" started.
+◇ Test "An edit that names no field never sends PATCH {}: it reads the row, or saves it when createIfMissing" started.
+◇ Test "Editing a removed entry is notFound and never inserts a row" started.
+◇ Test "With the fence on, the date columns appear once and the fence columns follow" started.
+◇ Test "A row whose date columns are null reads as known and empty" started.
+◇ Test "A date-only edit sends exactly one PATCH carrying only the date column" started.
+◇ Test "createIfMissing: PATCH, then insert-ignore-duplicates, then re-PATCH when the insert lost a race" started.
+◇ Test "With the fence off, every select still carries the repeat count and date columns" started.
+◇ Test "A notes-only PATCH with the fence off keeps the stored dates, and an imported spelling parses by value" started.
+◇ Test "With the fence on, a status edit with a date goes through the receipt and the date rides a side PATCH" started.
+◇ Test "Transport failures map to typed library errors" started.
+◇ Test "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test "With the fence on, the side PATCH carries the verbatim dates and the receipt RPC takes the status" started.
+◇ Test "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" started.
+◇ Test "A verbatim date is carried exactly, also unparseable text, and wins over the parsed date" started.
+◇ Test "save never overwrites: insert-ignore-duplicates, then the existing row is read back unchanged" started.
+◇ Test "fetchAll pages by id in finite ranges and stops at the page cap instead of looping" started.
+◇ Test case passing 1 argument createIfMissing → nil to "An edit that names no field never sends PATCH {}: it reads the row, or saves it when createIfMissing" started.
+◇ Test "With the fence off, an entry's source metadata holds only the repeat count and dates" started.
+◇ Test case passing 1 argument createIfMissing → .planning to "An edit that names no field never sends PATCH {}: it reads the row, or saves it when createIfMissing" started.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.set(5), rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), expectedBody → "{"progress":5}" to "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" started.
+◇ Test case passing 1 argument insertLostRace → true to "createIfMissing: PATCH, then insert-ignore-duplicates, then re-PATCH when the insert lost a race" started.
+◇ Test case passing 1 argument insertLostRace → false to "createIfMissing: PATCH, then insert-ignore-duplicates, then re-PATCH when the insert lost a race" started.
+◇ Test case passing 2 arguments listType → "READING", expected → .current to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments listType → "WATCHING", expected → .current to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments listType → "watching", expected → .current to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments listType → "PLANNING", expected → .planning to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.set(KuroLibrary.UserRating(value: 8)), notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), expectedBody → "{"rating":8}" to "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" started.
+◇ Test case passing 2 arguments listType → "COMPLETED", expected → .completed to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments failure → .server(status: Optional(401), code: nil, message: "Unauthorized"), expected → .notAuthenticated to "Transport failures map to typed library errors" started.
+◇ Test case passing 1 argument rowExists → true to "save never overwrites: insert-ignore-duplicates, then the existing row is read back unchanged" started.
+◇ Test case passing 1 argument rowExists → false to "save never overwrites: insert-ignore-duplicates, then the existing row is read back unchanged" started.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.clear, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.clear, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), expectedBody → "{"rating":null,"verdict":null}" to "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" started.
+◇ Test case passing 2 arguments listType → "DROPPED", expected → .dropped to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments listType → "PAUSED", expected → .paused to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments listType → "REPEATING", expected → .planning to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments listType → "", expected → .planning to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("PGRST301"), message: "JWT expired"), expected → .notAuthenticated to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: nil, message: "JWT expired"), expected → .notAuthenticated to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments listType → "CURRENT", expected → .planning to "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" started.
+✔ Test "The repeat count and both dates map to repeat_count, started_raw and finished_raw; clear is an explicit null" passed after 0.001 seconds.
+◇ Test case passing 3 arguments status → .repeating, kind → .anime, listType → "WATCHING" to "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" started.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.clear, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), expectedBody → "{"notes":null}" to "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" started.
+◇ Test case passing 3 arguments status → .planning, kind → .manga, listType → "PLANNING" to "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" started.
+◇ Test case passing 3 arguments status → .current, kind → .anime, listType → "WATCHING" to "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" started.
+✔ Test "With the fence on, progress and status use the receipt RPC and notes stay on PATCH" passed after 0.001 seconds.
+✔ Test "Editing a removed entry is notFound and never inserts a row" passed after 0.001 seconds.
+◇ Test case passing 3 arguments status → .paused, kind → .anime, listType → "PAUSED" to "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" started.
+✔ Test "anime 7 and manga 7 use their own tables and map to distinct keys even with equal row ids" passed after 0.001 seconds.
+✔ Test "An edit that names no field never sends PATCH {}: it reads the row, or saves it when createIfMissing" with 2 test cases passed after 0.001 seconds.
+✔ Test "A stale progress base returns conflict and does not PATCH" passed after 0.001 seconds.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.set(KuroLibrary.ListStatus.completed), progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.set(KuroLibrary.Verdict.masterpiece), repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), expectedBody → "{"list_type":"COMPLETED","verdict":"MASTERPIECE"}" to "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" started.
+✔ Test "With the fence off, every select still carries the repeat count and date columns" passed after 0.001 seconds.
+◇ Test case passing 3 arguments status → .repeating, kind → .manga, listType → "READING" to "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" started.
+✔ Test "A notes-only PATCH with the fence off keeps the stored dates, and an imported spelling parses by value" passed after 0.001 seconds.
+✔ Test "With the fence on, a status edit with a date goes through the receipt and the date rides a side PATCH" passed after 0.001 seconds.
+✔ Test "With the fence on, the date columns appear once and the fence columns follow" passed after 0.001 seconds.
+◇ Test case passing 3 arguments status → .current, kind → .manga, listType → "READING" to "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" started.
+✔ Test "A row whose date columns are null reads as known and empty" passed after 0.001 seconds.
+✔ Test "A date-only edit sends exactly one PATCH carrying only the date column" passed after 0.001 seconds.
+✔ Test "A verbatim date is carried exactly, also unparseable text, and wins over the parsed date" passed after 0.001 seconds.
+◇ Test case passing 2 arguments failure → .server(status: Optional(400), code: Optional("23514"), message: "new row for relation \"anime_user_lists\" violates check constraint \"anime_user_lists_rating_check\""), expected → .invalidValue(field: "rating") to "Transport failures map to typed library errors" started.
+✔ Test "createIfMissing: PATCH, then insert-ignore-duplicates, then re-PATCH when the insert lost a race" with 2 test cases passed after 0.001 seconds.
+✔ Test "Database list_type values map to ListStatus exactly as the app's statusFromDB (unknown -> planning)" with 10 test cases passed after 0.001 seconds.
+✔ Test "With the fence on, the side PATCH carries the verbatim dates and the receipt RPC takes the status" passed after 0.001 seconds.
+✔ Test "An edit PATCHes only its own columns, with explicit null for cleared fields and ratings on the 1...10 scale" with 5 test cases passed after 0.001 seconds.
+✔ Test importedMetadataProjectsOnlyBehindFencedColumns() passed after 0.001 seconds.
+✔ Test "save never overwrites: insert-ignore-duplicates, then the existing row is read back unchanged" with 2 test cases passed after 0.001 seconds.
+◇ Test case passing 2 arguments failure → .network(message: "The request timed out."), expected → .retryable(message: "The request timed out.") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: Optional(503), code: nil, message: "Service Unavailable"), expected → .retryable(message: "Service Unavailable") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: Optional(403), code: Optional("42501"), message: "new row violates row-level security policy"), expected → .unavailable(message: "new row violates row-level security policy") to "Transport failures map to typed library errors" started.
+✔ Test "fetchAll pages by id in finite ranges and stops at the page cap instead of looping" passed after 0.001 seconds.
+✔ Test "ListStatus maps to list_type per medium; repeating is stored as WATCHING/READING" with 6 test cases passed after 0.001 seconds.
+✔ Test "With the fence off, an entry's source metadata holds only the repeat count and dates" passed after 0.001 seconds.
+✔ Suite "SupabaseLibraryBackend: request contract" passed after 0.002 seconds.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("57014"), message: "canceling statement due to statement timeout"), expected → .retryable(message: "canceling statement due to statement timeout") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("53300"), message: "too many connections"), expected → .retryable(message: "too many connections") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: Optional(409), code: Optional("23505"), message: "duplicate key"), expected → .unavailable(message: "duplicate key") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("08006"), message: "connection failure"), expected → .retryable(message: "connection failure") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("PGRST003"), message: "Timed out acquiring connection"), expected → .retryable(message: "Timed out acquiring connection") to "Transport failures map to typed library errors" started.
+✔ Suite "Library contract v2 mapping" passed after 0.002 seconds.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("40P01"), message: "deadlock detected"), expected → .retryable(message: "deadlock detected") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("PGRST116"), message: "no rows"), expected → .unavailable(message: "no rows") to "Transport failures map to typed library errors" started.
+◇ Test case passing 2 arguments failure → .server(status: nil, code: Optional("XX000"), message: "internal error"), expected → .unavailable(message: "internal error") to "Transport failures map to typed library errors" started.
+✔ Test emptyFoundationLibraryValidatesEachMediumSchemaBeforeReadiness() passed after 0.002 seconds.
+✔ Test "Transport failures map to typed library errors" with 15 test cases passed after 0.004 seconds.
+✔ Suite "SupabaseLibraryBackend: mapping rules" passed after 0.005 seconds.
+✔ Test run with 24 tests in 3 suites passed after 0.005 seconds.
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite MALInputFidelityTests started.
+◇ Suite "Custom list order" started.
+◇ Suite "Library contract v2: repeat count and dates" started.
+◇ Suite "MAL export parser: manga element names" started.
+◇ Suite "PartialDate: stored forms, validation, precision" started.
+◇ Suite "Removal Undo never overwrites a row re-added on another device" started.
+◇ Suite "LibraryStore: sequencing, stale reads and account binding" started.
+◇ Suite ImportWorkflowJournalTests started.
+◇ Suite SeriesListGroupingTests started.
+◇ Suite "Library durable progress authority" started.
+◇ Suite "Library export: CSV cell encoder and failed formats" started.
+◇ Suite "Shared Home/Library mutation admission" started.
+◇ Suite "LibraryStore: load state" started.
+◇ Test importBatchCollapsesDuplicatesAndDropsPrivateNotesAndZeroScores() started.
+◇ Test importRetainsShelfOrderAndSourceOptionsAcrossJournal() started.
+◇ Suite "LibraryStore: field ownership, rating scale and identity" started.
+◇ Test authoritativeNilClearsHeldDetailIdentity() started.
+◇ Test conflictReapplyRetainsFractionalUnitAndNewestIntent() started.
+◇ Test adultNotListedStaysOutOfNeedsReviewAndOldPayloadsDecodeAsZero() started.
+◇ Suite "Library export: value types and RFC 4180 encoder" started.
+◇ Suite "LibraryStore: Undo and change fan-out" started.
+◇ Test malExportKeepsRawScoreNotesAndRejectsEntities() started.
+◇ Test outboxDrainStaysInsideTheAccount() started.
+◇ Test malAccountPagingRejectsCredentialDiversionAndMissingTerminalProof() started.
+◇ Test providerPageJournalReplaysExactPrivatePayloadAndAtomicCursor() started.
+◇ Test malAnimeCompletionCannotHideAnIncompleteMangaStream() started.
+◇ Test concurrentAdvancesUseDurableProjectionAndCap() started.
+◇ Test releasingPartialBatchNeverReopensAcknowledgedRequests() started.
+◇ Test conflictSurvivesReopenAndKeepCancelsEverySuccessor() started.
+◇ Test importActionIdentityIsAtomicDurableAndAccountBound() started.
+◇ Test unsentFieldMasksPreserveExplicitStatusAndUnitIdentity() started.
+◇ Test confirmedAccountDeletionPurgesOnlyThatAccountsProgress() started.
+◇ Test confirmationsPreferLatestLifecycleEvenWhenItsRevisionIsLower() started.
+◇ Test malExportPreservesCDATAAndRejectsSilentRowOrNoteLoss() started.
+◇ Test confirmedDeletionPurgesOnlyAttributedImportFiles() started.
+◇ Test twentyTapsCollapseToTheLatestPositionAndSurviveReopen() started.
+◇ Test malAccountListPreservesMediumFieldsAndUnavailableNotes() started.
+◇ Test coalescedUnitExactlyMatchesDiskAndReturn() started.
+◇ Test groupingRequiresReviewedContinuityAndIgnoresCalendarSeasons() started.
+◇ Test importUndoAuthoritativeRefreshReplacesRowsInsideReservation() started.
+◇ Test abortedDiskWriteRollsBackAndConnectionRemainsUsable() started.
+◇ Test attemptedPayloadIsImmutableAndFailedSendRetriesInProcess() started.
+◇ Test invalidNumericStatusAndHierarchyRejectInsteadOfDefaulting() started.
+◇ Test importFingerprintIncludesEveryRetainedFieldAndIdentity() started.
+◇ Test expiredClaimRecoversWithoutAnotherPendingTitle() started.
+◇ Test onMoveOffsetsMapToFinalIndex() started.
+◇ Test tiesBreakByItemIdLikeTheServer() started.
+◇ Test headAndTailMoves() started.
+◇ Test moveWritesOnePositionAndKeepsOrder() started.
+◇ Test accountPageTitleZeroScoreAndTypedInvalidCursor() started.
+◇ Test exhaustedGapRebalances() started.
+◇ Test "Flag off: a status change adds no date leg; a hand-edited date is still one normal write" started.
+◇ Test "A date edit on a cached row is projected at once, and its pre-image keeps the dates unknown" started.
+◇ Test "restoring carries the repeat count and every date's raw text exactly, also an unparseable one" started.
+◇ Test "A change that differs only in a date or the repeat count is not progress-only" started.
+◇ Test "A lease that refuses (account switched) sends no date leg and keeps the status" started.
+◇ Test "reverting never writes dates back to a pre-image whose dates were never read" started.
+◇ Test scoresAndMissingFieldsRemainDistinctAndTitlesSurvive() started.
+◇ Test emptyImportCountersDecodeAsZero() started.
+◇ Test "A position-only change, and a change whose dates differ only in spelling, stay progress-only" started.
+◇ Test importUndoReservationClosesOnlyAffectedAdmissionAndReleasesOnFailure() started.
+◇ Test "Undo of a date edit writes the previous date back, by value" started.
+◇ Test "A verbatim date is a restore-only field: the user-facing apply refuses it and sends nothing" started.
+◇ Test "Fence on: the fill is a second leg; a failed leg keeps the durable status and drops the date" started.
+◇ Test "Moving a title to Watching fills an empty start date with today; Undo restores both without refilling" started.
+◇ Test "An optimistic edit that names no date leaves a cached row's dates unknown" started.
+◇ Test "Undo of a removal (restore) never fills a date, even with the switch on and an empty projection" started.
+◇ Test appendPositionIsLastPlusSpacing() started.
+◇ Test "A date the user has just set, still in flight, is not overwritten by the fill" started.
+◇ Test "reverting restores a previous date and repeat count by value" started.
+◇ Test "Undo never fills dates: it restores the status and clears only the date the fill added" started.
+◇ Test "fillingEmptyDates treats a verbatim date as present" started.
+◇ Test "Creating a title as Watching fills its start date" started.
+◇ Test "restoring a removed entry re-sends its dates when known, clears an empty one, and sends nothing when unknown" started.
+◇ Test "Repeat count and dates (year, year-month, full) are edited through LibraryEdit and read back from LibraryEntry" started.
+◇ Test "The bounds 0 and 999 are valid, and dates can be set and cleared" started.
+◇ Test oauthAttemptCorrelatesAccountGenerationExpiryAndRFCChallenge() started.
+◇ Test animeRowsStillNeedSeriesAnimedbId() started.
+◇ Test rejectsAMangaRowWhoseTwoIdElementsDisagree() started.
+◇ Test parsesARowShapedLikeARealMangaExport() started.
+◇ Test "Unknown, unparseable or unchanged-status dates are never filled" started.
+◇ Test "Fence on: a caller's own notes failing still reports the old retryable message" started.
+◇ Test mangaTitlePrefersMangaTitleAndFallsBackToSeriesTitle() started.
+◇ Test "A repeat count outside 0...999, or cleared, fails before any request or projection change" started.
+◇ Test stillParsesTheOlderSeriesMangaElements() started.
+◇ Test "A verbatim raw date must be non-empty after trimming and at most 32 characters" started.
+◇ Test "patchBodyOmittingProgress keeps the repeat count and both dates with the other side fields" started.
+◇ Test "Completing fills only the finish date" started.
+◇ Test "restore with a stale account is refused and sends nothing" started.
+◇ Test "The fill uses the injected calendar: the same instant is the 1st in UTC" started.
+◇ Test "While the projection is not loaded, a status change to Completed never fills a date" started.
+◇ Test "A date named by the edit beats the fill" started.
+◇ Test "Fence on: the date leg is dispatched only after the durable status intent is committed" started.
+◇ Test "A cached row that first gets an optimistic notes edit stays unknown, so a later status change fills nothing" started.
+◇ Test "Restoring or reverting over an unparseable stored date never writes null; a blank one clears" started.
+◇ Test "reverting restores an empty date with .clear and moves nothing else" started.
+◇ Test rejectsImpossibleDatesAndKeepsPrecision() started.
+◇ Test "fillingEmptyDates: repeating fills nothing, and an unchanged status fills nothing" started.
+◇ Test dayOfDateUsesTheGivenCalendar() started.
+◇ Test equalityIsByValueNotSpelling() started.
+◇ Test acceptsEveryStoredImportForm() started.
+◇ Test codableRoundTripsRawAndRejectsGarbage() started.
+◇ Test "Nothing on the server: the removed row comes back with its fields" started.
+◇ Test "An account switch while the probe is in flight: no write is sent and nothing is published for the new account" started.
+◇ Test "A failed refresh keeps the projection and returns the typed error" started.
+◇ Test "A newer row for the title (different row id and lifecycle) is kept; nothing is written" started.
+◇ Test "A failed mutation withdraws only itself; a later queued mutation still applies" started.
+◇ Test "A refresh that started before a local mutation cannot overwrite that title" started.
+◇ Test "The server still holds the very row that was removed (the removal never landed): it is restored in place" started.
+◇ Test "Work started before a reset stays stale even if the same context is bound again" started.
+◇ Test "Undo of another account's change is refused without a request" started.
+◇ Test "Overlapping edits of one title run in issue order and end on the last canonical row" started.
+◇ Test "A failed mutation restores the prior projection and returns the typed error" started.
+◇ Test "An older refresh that returns late cannot replace a newer refresh's rows" started.
+◇ Test "A completion for a replaced account is rejected and never touches the new account's projection" started.
+◇ Test sectionLabelComesOnlyFromReviewedOrdinal() started.
+◇ Test advanceTargetsActiveMember() started.
+◇ Test groupStatusFallsBackWithoutActiveMember() started.
+◇ Test activeMemberDecidesGroupStatus() started.
+◇ Test groupingTwoThousandEntriesWithinBudget() started.
+◇ Test "Failed disk admission reports failure before projection and a later write remains usable" started.
+◇ Test "Cancellation and account replacement never publish an old receipt to the next account" started.
+◇ Test frozenPageAndApprovalSurviveRestartWithoutReplacingIntent() started.
+◇ Test groupingNeverChangesEntries() started.
+◇ Test "An online notes leg cannot reorder later progress/status gestures" started.
+◇ Test unreviewedRelationsStayOwnRows() started.
+◇ Test "Overlapping actions share the Library projection and an older ACK cannot clear a newer action" started.
+◇ Test advanceTargetIsAlwaysTheAnchor() started.
+◇ Test "A mixed action cannot resume under a replacement account or lifecycle" started.
+◇ Test theProductionSerialiserProducesTheJsonFileAndNoFailure() started.
+◇ Test onlyVerifiedApprovedSameMediumMembershipJoins() started.
+◇ Test "A lost response retries the same body in process and then sends its newer successor" started.
+◇ Test "A queued Library edit uses the Home receipt's confirmed revision and preserves its optimistic fields" started.
+◇ Test aFormatThatWasNotRequestedIsNeverReportedAsFailed() started.
+◇ Test reviewedContinuityMembersShareOneRow() started.
+◇ Test csvFieldIsTheRfcEncoderPlusQuotesAroundSemicolonAndTab() started.
+◇ Test jsonSerialisationFailureIsRecordedAndTheFileIsAbsent() started.
+◇ Test "Account switch mid-load: the previous account's late answer never marks the new binding loaded or failed" started.
+◇ Test "An old lifecycle or account receipt cannot enter a replacement row" started.
+◇ Test "bind -> notLoaded (unknown); first refresh -> loading -> loaded; same-user rebind keeps it; reset -> notLoaded" started.
+◇ Test "A failed first load is failed (titles stay unknown) until a retry loads; a failure after a load keeps it loaded" started.
+◇ Test "A progress edit carries only progress; rating, notes and status keep their values" started.
+◇ Test "allEntries is newest first, stable across repeated reads and follows every projection change" started.
+◇ Test "Editing an entry removed elsewhere fails with notFound, never asks to recreate it and drops the stale entry" started.
+◇ Test "Edits that clear status/progress or set negative progress fail before any request or projection change" started.
+◇ Test "Ratings 1...10 keep the legacy 0-100 projection and the score >= 90 favourite rule" started.
+◇ Test "Legacy 0-100 scores and out-of-range values are not ratings" started.
+◇ Test "anime 7 and manga 7 are distinct keys with independent projections" started.
+◇ Test "Saving an already tracked title never overwrites it" started.
+◇ Test csvCellsFollowTheDocumentedValues() started.
+◇ Test timestampsAreIso8601UtcWithoutFractionsAcrossTheCalendar() started.
+◇ Test malXmlWritesOnlyEntriesWithAMalIdSortedByMalId() started.
+◇ Test kuroCSVHasNoAniListColumn() started.
+◇ Test "Undo of a removal re-saves every prior field" started.
+◇ Test jsonTopLevelShapeAndDateRawStayVerbatim() started.
+◇ Test "Change sinks receive added/updated/removed after the projection reflects them; refresh and failures are not fanned out" started.
+◇ Test "Undo of an edit is a compensating edit of only the changed fields" started.
+◇ Test "Undo never acts without a known prior state, and a no-op change undoes without a request" started.
+◇ Test csvQuotesEveryCellThatHoldsASemicolonOrTab() started.
+◇ Test unreadTrackingDetailMakesTheExportIncompleteAndIsNamed() started.
+◇ Test missingSourceMetadataExportsNullNotZero() started.
+◇ Test case passing 2 arguments before → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(0), scoreRaw: nil, scoreScale: nil, startedRaw: nil, finishedRaw: nil, isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil), after → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(0), scoreRaw: nil, scoreScale: nil, startedRaw: Optional("2024"), finishedRaw: nil, isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil) to "A change that differs only in a date or the repeat count is not progress-only" started.
+✔ Test adultNotListedStaysOutOfNeedsReviewAndOldPayloadsDecodeAsZero() passed after 0.018 seconds.
+◇ Test "Undo of a save that created the entry removes it" started.
+◇ Test malXmlNotesSurviveEscapingAndAreReportedWhenAdjusted() started.
+◇ Test csvHasDocumentedHeaderAndEscapesText() started.
+◇ Test mangaRowsUseMalsOwnElementNames() started.
+◇ Test case passing 2 arguments before → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(0), scoreRaw: nil, scoreScale: nil, startedRaw: nil, finishedRaw: Optional("2024-05"), isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil), after → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(0), scoreRaw: nil, scoreScale: nil, startedRaw: nil, finishedRaw: nil, isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil) to "A change that differs only in a date or the repeat count is not progress-only" started.
+✔ Test importRetainsShelfOrderAndSourceOptionsAcrossJournal() passed after 0.018 seconds.
+◇ Test missingCatalogueTitleOmitsTheTitleElementButKeepsTheReportFallback() started.
+◇ Test fileNamesUseLocalDateAroundMidnight() started.
+◇ Test case passing 1 argument creating → true to "fillingEmptyDates treats a verbatim date as present" started.
+◇ Test case passing 2 arguments before → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(0), scoreRaw: nil, scoreScale: nil, startedRaw: nil, finishedRaw: nil, isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil), after → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(3), scoreRaw: nil, scoreScale: nil, startedRaw: nil, finishedRaw: nil, isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil) to "A change that differs only in a date or the repeat count is not progress-only" started.
+◇ Test jsonExportsListsInManualOrderWithItemsOutsideTheLibrary() started.
+◇ Test case passing 1 argument creating → false to "fillingEmptyDates treats a verbatim date as present" started.
+◇ Test exportInputDefaultsAndFormatRawValues() started.
+◇ Test repeatingExportsAsWatchingOrReadingWithTheRewatchFlag() started.
+✔ Test importBatchCollapsesDuplicatesAndDropsPrivateNotesAndZeroScores() passed after 0.018 seconds.
+◇ Test malXmlRoundTripPreservesEveryMappedEntry() started.
+◇ Test summaryDistinguishesCompleteIdentityAndOrganisationGaps() started.
+◇ Test jsonCarriesIdsTagsListsAndDates() started.
+◇ Test case passing 2 arguments metadata → nil, status → .planning to "Unknown, unparseable or unchanged-status dates are never filled" started.
+◇ Test case passing 2 arguments metadata → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(0), scoreRaw: nil, scoreScale: nil, startedRaw: Optional("not-a-date"), finishedRaw: nil, isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil), status → .planning to "Unknown, unparseable or unchanged-status dates are never filled" started.
+◇ Test case passing 1 argument raw → "" to "A verbatim raw date must be non-empty after trimming and at most 32 characters" started.
+◇ Test case passing 1 argument raw → "   " to "A verbatim raw date must be non-empty after trimming and at most 32 characters" started.
+◇ Test case passing 1 argument edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.set(0), startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil) to "The bounds 0 and 999 are valid, and dates can be set and cleared" started.
+◇ Test case passing 1 argument raw → "
+" to "A verbatim raw date must be non-empty after trimming and at most 32 characters" started.
+◇ Test case passing 1 argument raw → "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" to "A verbatim raw date must be non-empty after trimming and at most 32 characters" started.
+◇ Test case passing 1 argument failedLoad → false to "While the projection is not loaded, a status change to Completed never fills a date" started.
+◇ Test case passing 1 argument failedLoad → true to "While the projection is not loaded, a status change to Completed never fills a date" started.
+◇ Test malXmlSplitsLargeLibrariesIntoReimportableParts() started.
+◇ Test case passing 1 argument edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.set(-1), startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil) to "A repeat count outside 0...999, or cleared, fails before any request or projection change" started.
+◇ Test malDatesZeroPadEveryPrecisionAndOmitUnparseable() started.
+◇ Test csvHasNoFormulaTriggerForReadersThatHonourAQuoteAtFieldStart() started.
+◇ Test case passing 1 argument edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.set(999), startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil) to "The bounds 0 and 999 are valid, and dates can be set and cleared" started.
+◇ Test buildProducesOnlyTheRequestedFormatsInAFixedOrder() started.
+◇ Test csvNeutralisesFormulaCellsAndJsonKeepsExactText() started.
+✔ Test malAnimeCompletionCannotHideAnIncompleteMangaStream() passed after 0.019 seconds.
+◇ Test entriesWithoutMalIdAreReportedNotDropped() started.
+◇ Test xmlTextEscapesEntitiesAndDropsIllegalCharacters() started.
+◇ Test rfc4180FieldQuotesOnlyWhenNeeded() started.
+◇ Test case passing 2 arguments metadata → LibrarySourceMetadata(volumesProgress: nil, repeatCount: Optional(0), scoreRaw: nil, scoreScale: nil, startedRaw: nil, finishedRaw: nil, isPrivate: nil, customLists: nil, hiddenFromStatusLists: nil, sourceListOptions: nil), status → .current to "Unknown, unparseable or unchanged-status dates are never filled" started.
+◇ Test summaryGapsFollowTheTwoIndependentCauses() started.
+◇ Test csvSafeTextPropertyHoldsForGeneratedText() started.
+◇ Test csvHasNoFormulaTriggerAfterAnyDelimiterForReadersThatIgnoreQuotes() started.
+◇ Test case passing 1 argument edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.set(1000), startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil) to "A repeat count outside 0...999, or cleared, fails before any request or projection change" started.
+◇ Test malXmlSplitsAtTheParserItemLimit() started.
+◇ Test malIdsOutsideTheWritableRangeAreReportedAsWithoutMalId() started.
+◇ Test statusTableCoversEveryListStatusAndMedium() started.
+◇ Test rfc4180FieldHandlesGraphemeClustersAndEmptyValues() started.
+◇ Test case passing 1 argument fenceOn → true to "Nothing on the server: the removed row comes back with its fields" started.
+◇ Test case passing 1 argument fenceOn → false to "Nothing on the server: the removed row comes back with its fields" started.
+◇ Test case passing 1 argument edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.clear, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil) to "The bounds 0 and 999 are valid, and dates can be set and cleared" started.
+✔ Test malExportKeepsRawScoreNotesAndRejectsEntities() passed after 0.019 seconds.
+◇ Test case passing 1 argument fenceOn → true to "A newer row for the title (different row id and lifecycle) is kept; nothing is written" started.
+◇ Test case passing 1 argument fenceOn → false to "A newer row for the title (different row id and lifecycle) is kept; nothing is written" started.
+◇ Test case passing 1 argument edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.clear, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil) to "A repeat count outside 0...999, or cleared, fails before any request or projection change" started.
+◇ Test case passing 1 argument race → .mutationIssuedAfterRefreshStarted to "A refresh that started before a local mutation cannot overwrite that title" started.
+◇ Test case passing 1 argument race → .mutationStillPendingWhenRefreshReturns to "A refresh that started before a local mutation cannot overwrite that title" started.
+◇ Test case passing 1 argument race → .mutationIssuedBeforeRefreshStarted to "A refresh that started before a local mutation cannot overwrite that title" started.
+◇ Test case passing 1 argument fenceOn → true to "The server still holds the very row that was removed (the removal never landed): it is restored in place" started.
+◇ Test case passing 1 argument edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.clear, startedRawVerbatim: nil, finishedRawVerbatim: nil) to "The bounds 0 and 999 are valid, and dates can be set and cleared" started.
+◇ Test case passing 1 argument fenceOn → false to "The server still holds the very row that was removed (the removal never landed): it is restored in place" started.
+✔ Test malAccountPagingRejectsCredentialDiversionAndMissingTerminalProof() passed after 0.020 seconds.
+◇ Test case passing 1 argument mutation → .saveOfUntrackedTitle to "A failed mutation restores the prior projection and returns the typed error" started.
+◇ Test case passing 1 argument previousAccountFails → false to "A completion for a replaced account is rejected and never touches the new account's projection" started.
+◇ Test case passing 1 argument previousAccountFails → true to "A completion for a replaced account is rejected and never touches the new account's projection" started.
+◇ Test case passing 1 argument mutation → .editOfTrackedTitle to "A failed mutation restores the prior projection and returns the typed error" started.
+✔ Test malExportPreservesCDATAAndRejectsSilentRowOrNoteLoss() passed after 0.020 seconds.
+✔ Test malAccountListPreservesMediumFieldsAndUnavailableNotes() passed after 0.020 seconds.
+◇ Test case passing 1 argument replaceAccount → false to "A mixed action cannot resume under a replacement account or lifecycle" started.
+◇ Test case passing 1 argument replaceAccount → true to "A mixed action cannot resume under a replacement account or lifecycle" started.
+✔ Test groupingRequiresReviewedContinuityAndIgnoresCalendarSeasons() passed after 0.023 seconds.
+◇ Test case passing 1 argument previousAccountFails → false to "Account switch mid-load: the previous account's late answer never marks the new binding loaded or failed" started.
+◇ Test case passing 1 argument previousAccountFails → true to "Account switch mid-load: the previous account's late answer never marks the new binding loaded or failed" started.
+✔ Test providerPageJournalReplaysExactPrivatePayloadAndAtomicCursor() passed after 0.023 seconds.
+✔ Test invalidNumericStatusAndHierarchyRejectInsteadOfDefaulting() passed after 0.023 seconds.
+✔ Test importFingerprintIncludesEveryRetainedFieldAndIdentity() passed after 0.023 seconds.
+✔ Test onMoveOffsetsMapToFinalIndex() passed after 0.023 seconds.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.clear, progress: KuroLibrary.FieldChange<Swift.Int>.unchanged, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), field → "status" to "Edits that clear status/progress or set negative progress fail before any request or projection change" started.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.clear, rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), field → "progress" to "Edits that clear status/progress or set negative progress fail before any request or projection change" started.
+◇ Test case passing 2 arguments edit → LibraryEdit(status: KuroLibrary.FieldChange<KuroLibrary.ListStatus>.unchanged, progress: KuroLibrary.FieldChange<Swift.Int>.set(-1), rating: KuroLibrary.FieldChange<KuroLibrary.UserRating>.unchanged, notes: KuroLibrary.FieldChange<Swift.String>.unchanged, verdict: KuroLibrary.FieldChange<KuroLibrary.Verdict>.unchanged, repeatCount: KuroLibrary.FieldChange<Swift.Int>.unchanged, startedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, finishedOn: KuroLibrary.FieldChange<KuroLibrary.PartialDate>.unchanged, startedRawVerbatim: nil, finishedRawVerbatim: nil), field → "progress" to "Edits that clear status/progress or set negative progress fail before any request or projection change" started.
+◇ Test case passing 2 arguments value → 1, favourite → false to "Ratings 1...10 keep the legacy 0-100 projection and the score >= 90 favourite rule" started.
+◇ Test case passing 2 arguments value → 8, favourite → false to "Ratings 1...10 keep the legacy 0-100 projection and the score >= 90 favourite rule" started.
+◇ Test case passing 2 arguments value → 9, favourite → true to "Ratings 1...10 keep the legacy 0-100 projection and the score >= 90 favourite rule" started.
+◇ Test case passing 2 arguments value → 10, favourite → true to "Ratings 1...10 keep the legacy 0-100 projection and the score >= 90 favourite rule" started.
+◇ Test case passing 1 argument value → 0 to "Legacy 0-100 scores and out-of-range values are not ratings" started.
+◇ Test case passing 1 argument value → 11 to "Legacy 0-100 scores and out-of-range values are not ratings" started.
+◇ Test case passing 1 argument value → 80 to "Legacy 0-100 scores and out-of-range values are not ratings" started.
+◇ Test case passing 1 argument value → 100 to "Legacy 0-100 scores and out-of-range values are not ratings" started.
+◇ Test case passing 1 argument value → -1 to "Legacy 0-100 scores and out-of-range values are not ratings" started.
+✔ Test tiesBreakByItemIdLikeTheServer() passed after 0.023 seconds.
+✔ Test exhaustedGapRebalances() passed after 0.023 seconds.
+✔ Test headAndTailMoves() passed after 0.024 seconds.
+✔ Test accountPageTitleZeroScoreAndTypedInvalidCursor() passed after 0.024 seconds.
+✔ Test emptyImportCountersDecodeAsZero() passed after 0.024 seconds.
+✔ Test appendPositionIsLastPlusSpacing() passed after 0.024 seconds.
+✔ Test authoritativeNilClearsHeldDetailIdentity() passed after 0.026 seconds.
+✔ Test oauthAttemptCorrelatesAccountGenerationExpiryAndRFCChallenge() passed after 0.026 seconds.
+✔ Test animeRowsStillNeedSeriesAnimedbId() passed after 0.025 seconds.
+✔ Test scoresAndMissingFieldsRemainDistinctAndTitlesSurvive() passed after 0.026 seconds.
+✔ Test parsesARowShapedLikeARealMangaExport() passed after 0.026 seconds.
+✔ Test rejectsAMangaRowWhoseTwoIdElementsDisagree() passed after 0.026 seconds.
+✔ Test stillParsesTheOlderSeriesMangaElements() passed after 0.026 seconds.
+✔ Test mangaTitlePrefersMangaTitleAndFallsBackToSeriesTitle() passed after 0.026 seconds.
+✔ Test moveWritesOnePositionAndKeepsOrder() passed after 0.027 seconds.
+✔ Test rejectsImpossibleDatesAndKeepsPrecision() passed after 0.027 seconds.
+✔ Test equalityIsByValueNotSpelling() passed after 0.027 seconds.
+✔ Test acceptsEveryStoredImportForm() passed after 0.028 seconds.
+✔ Test sectionLabelComesOnlyFromReviewedOrdinal() passed after 0.025 seconds.
+✔ Test groupStatusFallsBackWithoutActiveMember() passed after 0.017 seconds.
+✔ Test activeMemberDecidesGroupStatus() passed after 0.017 seconds.
+✔ Test codableRoundTripsRawAndRejectsGarbage() passed after 0.028 seconds.
+✔ Test dayOfDateUsesTheGivenCalendar() passed after 0.029 seconds.
+✔ Test unreviewedRelationsStayOwnRows() passed after 0.017 seconds.
+✔ Test groupingNeverChangesEntries() passed after 0.017 seconds.
+✔ Test onlyVerifiedApprovedSameMediumMembershipJoins() passed after 0.017 seconds.
+✔ Test csvFieldIsTheRfcEncoderPlusQuotesAroundSemicolonAndTab() passed after 0.017 seconds.
+✔ Test aFormatThatWasNotRequestedIsNeverReportedAsFailed() passed after 0.017 seconds.
+✔ Test theProductionSerialiserProducesTheJsonFileAndNoFailure() passed after 0.017 seconds.
+✔ Test reviewedContinuityMembersShareOneRow() passed after 0.017 seconds.
+✔ Test advanceTargetIsAlwaysTheAnchor() passed after 0.017 seconds.
+✔ Test csvCellsFollowTheDocumentedValues() passed after 0.013 seconds.
+✔ Test jsonSerialisationFailureIsRecordedAndTheFileIsAbsent() passed after 0.017 seconds.
+✔ Test csvQuotesEveryCellThatHoldsASemicolonOrTab() passed after 0.012 seconds.
+✔ Test kuroCSVHasNoAniListColumn() passed after 0.012 seconds.
+✔ Test malXmlWritesOnlyEntriesWithAMalIdSortedByMalId() passed after 0.012 seconds.
+✔ Test timestampsAreIso8601UtcWithoutFractionsAcrossTheCalendar() passed after 0.013 seconds.
+✔ Test csvHasDocumentedHeaderAndEscapesText() passed after 0.012 seconds.
+✔ Test fileNamesUseLocalDateAroundMidnight() passed after 0.012 seconds.
+✔ Test missingSourceMetadataExportsNullNotZero() passed after 0.012 seconds.
+✔ Test mangaRowsUseMalsOwnElementNames() passed after 0.012 seconds.
+✔ Test missingCatalogueTitleOmitsTheTitleElementButKeepsTheReportFallback() passed after 0.012 seconds.
+✔ Test repeatingExportsAsWatchingOrReadingWithTheRewatchFlag() passed after 0.012 seconds.
+✔ Test jsonCarriesIdsTagsListsAndDates() passed after 0.012 seconds.
+✔ Test unreadTrackingDetailMakesTheExportIncompleteAndIsNamed() passed after 0.012 seconds.
+✔ Test exportInputDefaultsAndFormatRawValues() passed after 0.012 seconds.
+✔ Test malDatesZeroPadEveryPrecisionAndOmitUnparseable() passed after 0.011 seconds.
+✔ Test jsonExportsListsInManualOrderWithItemsOutsideTheLibrary() passed after 0.012 seconds.
+✔ Test jsonTopLevelShapeAndDateRawStayVerbatim() passed after 0.013 seconds.
+✔ Test buildProducesOnlyTheRequestedFormatsInAFixedOrder() passed after 0.011 seconds.
+✔ Test summaryGapsFollowTheTwoIndependentCauses() passed after 0.011 seconds.
+✔ Test rfc4180FieldQuotesOnlyWhenNeeded() passed after 0.011 seconds.
+✔ Test entriesWithoutMalIdAreReportedNotDropped() passed after 0.011 seconds.
+✔ Test xmlTextEscapesEntitiesAndDropsIllegalCharacters() passed after 0.011 seconds.
+✔ Test csvNeutralisesFormulaCellsAndJsonKeepsExactText() passed after 0.012 seconds.
+✔ Test statusTableCoversEveryListStatusAndMedium() passed after 0.012 seconds.
+✔ Test rfc4180FieldHandlesGraphemeClustersAndEmptyValues() passed after 0.012 seconds.
+✔ Test malIdsOutsideTheWritableRangeAreReportedAsWithoutMalId() passed after 0.012 seconds.
+✔ Suite MALInputFidelityTests passed after 0.032 seconds.
+✔ Suite "Custom list order" passed after 0.032 seconds.
+✔ Test summaryDistinguishesCompleteIdentityAndOrganisationGaps() passed after 0.012 seconds.
+✔ Suite "MAL export parser: manga element names" passed after 0.032 seconds.
+✔ Test importUndoAuthoritativeRefreshReplacesRowsInsideReservation() passed after 0.032 seconds.
+✔ Suite "PartialDate: stored forms, validation, precision" passed after 0.032 seconds.
+✔ Suite "Library export: CSV cell encoder and failed formats" passed after 0.032 seconds.
+✔ Test malXmlRoundTripPreservesEveryMappedEntry() passed after 0.013 seconds.
+✔ Test csvHasNoFormulaTriggerAfterAnyDelimiterForReadersThatIgnoreQuotes() passed after 0.014 seconds.
+✔ Test malXmlNotesSurviveEscapingAndAreReportedWhenAdjusted() passed after 0.015 seconds.
+✔ Test csvHasNoFormulaTriggerForReadersThatHonourAQuoteAtFieldStart() passed after 0.015 seconds.
+✔ Test expiredClaimRecoversWithoutAnotherPendingTitle() passed after 0.040 seconds.
+✔ Test importActionIdentityIsAtomicDurableAndAccountBound() passed after 0.045 seconds.
+✔ Test coalescedUnitExactlyMatchesDiskAndReturn() passed after 0.045 seconds.
+✔ Test releasingPartialBatchNeverReopensAcknowledgedRequests() passed after 0.046 seconds.
+✔ Test conflictReapplyRetainsFractionalUnitAndNewestIntent() passed after 0.047 seconds.
+✔ Test outboxDrainStaysInsideTheAccount() passed after 0.046 seconds.
+✔ Test confirmedAccountDeletionPurgesOnlyThatAccountsProgress() passed after 0.047 seconds.
+✔ Test abortedDiskWriteRollsBackAndConnectionRemainsUsable() passed after 0.050 seconds.
+✔ Test unsentFieldMasksPreserveExplicitStatusAndUnitIdentity() passed after 0.050 seconds.
+✔ Test frozenPageAndApprovalSurviveRestartWithoutReplacingIntent() passed after 0.040 seconds.
+◇ Test terminalMarkerPrecedesRepeatablePayloadCleanup() started.
+✔ Test confirmedDeletionPurgesOnlyAttributedImportFiles() passed after 0.053 seconds.
+✔ Test confirmationsPreferLatestLifecycleEvenWhenItsRevisionIsLower() passed after 0.054 seconds.
+✔ Test attemptedPayloadIsImmutableAndFailedSendRetriesInProcess() passed after 0.054 seconds.
+✔ Test conflictSurvivesReopenAndKeepCancelsEverySuccessor() passed after 0.054 seconds.
+✔ Test twentyTapsCollapseToTheLatestPositionAndSurviveReopen() passed after 0.055 seconds.
+✔ Test concurrentAdvancesUseDurableProjectionAndCap() passed after 0.063 seconds.
+✔ Test "restoring carries the repeat count and every date's raw text exactly, also an unparseable one" passed after 0.084 seconds.
+✔ Test "reverting never writes dates back to a pre-image whose dates were never read" passed after 0.084 seconds.
+✔ Test "A position-only change, and a change whose dates differ only in spelling, stay progress-only" passed after 0.084 seconds.
+✔ Test "A change that differs only in a date or the repeat count is not progress-only" with 3 test cases passed after 0.084 seconds.
+✔ Test "reverting restores a previous date and repeat count by value" passed after 0.084 seconds.
+✔ Test "fillingEmptyDates treats a verbatim date as present" with 2 test cases passed after 0.084 seconds.
+✔ Test "patchBodyOmittingProgress keeps the repeat count and both dates with the other side fields" passed after 0.084 seconds.
+✔ Test "restoring a removed entry re-sends its dates when known, clears an empty one, and sends nothing when unknown" passed after 0.084 seconds.
+✔ Test "A verbatim raw date must be non-empty after trimming and at most 32 characters" with 4 test cases passed after 0.084 seconds.
+✔ Test "reverting restores an empty date with .clear and moves nothing else" passed after 0.084 seconds.
+✔ Test "Restoring or reverting over an unparseable stored date never writes null; a blank one clears" passed after 0.084 seconds.
+✔ Test "The bounds 0 and 999 are valid, and dates can be set and cleared" with 4 test cases passed after 0.084 seconds.
+✔ Test "fillingEmptyDates: repeating fills nothing, and an unchanged status fills nothing" passed after 0.084 seconds.
+✔ Test "Ratings 1...10 keep the legacy 0-100 projection and the score >= 90 favourite rule" with 4 test cases passed after 0.068 seconds.
+✔ Test "Legacy 0-100 scores and out-of-range values are not ratings" with 5 test cases passed after 0.068 seconds.
+✔ Test "A newer row for the title (different row id and lifecycle) is kept; nothing is written" with 2 test cases passed after 0.087 seconds.
+✔ Test "A verbatim date is a restore-only field: the user-facing apply refuses it and sends nothing" passed after 0.089 seconds.
+✔ Test "bind -> notLoaded (unknown); first refresh -> loading -> loaded; same-user rebind keeps it; reset -> notLoaded" passed after 0.076 seconds.
+✔ Test "A repeat count outside 0...999, or cleared, fails before any request or projection change" with 3 test cases passed after 0.088 seconds.
+✔ Test "Edits that clear status/progress or set negative progress fail before any request or projection change" with 3 test cases passed after 0.073 seconds.
+✔ Test "Fence on: a caller's own notes failing still reports the old retryable message" passed after 0.090 seconds.
+✔ Test "Undo never acts without a known prior state, and a no-op change undoes without a request" passed after 0.074 seconds.
+✔ Test "A lease that refuses (account switched) sends no date leg and keeps the status" passed after 0.092 seconds.
+✔ Test "Fence on: the fill is a second leg; a failed leg keeps the durable status and drops the date" passed after 0.093 seconds.
+✔ Test "Fence on: the date leg is dispatched only after the durable status intent is committed" passed after 0.092 seconds.
+✔ Test "restore with a stale account is refused and sends nothing" passed after 0.092 seconds.
+✔ Test "A failed refresh keeps the projection and returns the typed error" passed after 0.092 seconds.
+✔ Test "An old lifecycle or account receipt cannot enter a replacement row" passed after 0.080 seconds.
+✔ Test "An older refresh that returns late cannot replace a newer refresh's rows" passed after 0.092 seconds.
+✔ Test "The server still holds the very row that was removed (the removal never landed): it is restored in place" with 2 test cases passed after 0.092 seconds.
+✔ Test "Account switch mid-load: the previous account's late answer never marks the new binding loaded or failed" with 2 test cases passed after 0.081 seconds.
+✔ Test advanceTargetsActiveMember() passed after 0.082 seconds.
+✔ Test "A date edit on a cached row is projected at once, and its pre-image keeps the dates unknown" passed after 0.097 seconds.
+✔ Test "Undo of a removal (restore) never fills a date, even with the switch on and an empty projection" passed after 0.097 seconds.
+✔ Test "Creating a title as Watching fills its start date" passed after 0.097 seconds.
+✔ Test "An optimistic edit that names no date leaves a cached row's dates unknown" passed after 0.097 seconds.
+✔ Test "Completing fills only the finish date" passed after 0.097 seconds.
+✔ Test "While the projection is not loaded, a status change to Completed never fills a date" with 2 test cases passed after 0.097 seconds.
+✔ Test "Work started before a reset stays stale even if the same context is bound again" passed after 0.097 seconds.
+✔ Test "A date named by the edit beats the fill" passed after 0.097 seconds.
+✔ Test "A failed mutation restores the prior projection and returns the typed error" with 2 test cases passed after 0.097 seconds.
+✔ Test "Editing an entry removed elsewhere fails with notFound, never asks to recreate it and drops the stale entry" passed after 0.082 seconds.
+✔ Test "allEntries is newest first, stable across repeated reads and follows every projection change" passed after 0.082 seconds.
+✔ Test "anime 7 and manga 7 are distinct keys with independent projections" passed after 0.081 seconds.
+✔ Test "Saving an already tracked title never overwrites it" passed after 0.081 seconds.
+✔ Test "Repeat count and dates (year, year-month, full) are edited through LibraryEdit and read back from LibraryEntry" passed after 0.098 seconds.
+✔ Test "A progress edit carries only progress; rating, notes and status keep their values" passed after 0.082 seconds.
+✔ Suite "LibraryStore: field ownership, rating scale and identity" passed after 0.099 seconds.
+✔ Test "The fill uses the injected calendar: the same instant is the 1st in UTC" passed after 0.098 seconds.
+✔ Test "Unknown, unparseable or unchanged-status dates are never filled" with 3 test cases passed after 0.098 seconds.
+✔ Test "A mixed action cannot resume under a replacement account or lifecycle" with 2 test cases passed after 0.086 seconds.
+✔ Test "A failed first load is failed (titles stay unknown) until a retry loads; a failure after a load keeps it loaded" passed after 0.084 seconds.
+✔ Suite "LibraryStore: load state" passed after 0.100 seconds.
+✔ Test "Undo of another account's change is refused without a request" passed after 0.098 seconds.
+✔ Test "An account switch while the probe is in flight: no write is sent and nothing is published for the new account" passed after 0.098 seconds.
+✔ Test "A refresh that started before a local mutation cannot overwrite that title" with 3 test cases passed after 0.099 seconds.
+✔ Test "A queued Library edit uses the Home receipt's confirmed revision and preserves its optimistic fields" passed after 0.087 seconds.
+✔ Suite "Shared Home/Library mutation admission" passed after 0.101 seconds.
+✔ Test "Overlapping edits of one title run in issue order and end on the last canonical row" passed after 0.099 seconds.
+✔ Test "A failed mutation withdraws only itself; a later queued mutation still applies" passed after 0.099 seconds.
+✔ Test "A date the user has just set, still in flight, is not overwritten by the fill" passed after 0.100 seconds.
+✔ Test "A cached row that first gets an optimistic notes edit stays unknown, so a later status change fills nothing" passed after 0.099 seconds.
+✔ Test "Undo of a date edit writes the previous date back, by value" passed after 0.100 seconds.
+✔ Test "Moving a title to Watching fills an empty start date with today; Undo restores both without refilling" passed after 0.100 seconds.
+✔ Test "Undo never fills dates: it restores the status and clears only the date the fill added" passed after 0.100 seconds.
+✔ Test "Cancellation and account replacement never publish an old receipt to the next account" passed after 0.088 seconds.
+✔ Test "Undo of an edit is a compensating edit of only the changed fields" passed after 0.083 seconds.
+✔ Test "Undo of a save that created the entry removes it" passed after 0.083 seconds.
+✔ Test "Undo of a removal re-saves every prior field" passed after 0.083 seconds.
+✔ Test "A completion for a replaced account is rejected and never touches the new account's projection" with 2 test cases passed after 0.097 seconds.
+✔ Suite "LibraryStore: sequencing, stale reads and account binding" passed after 0.102 seconds.
+✔ Test "Failed disk admission reports failure before projection and a later write remains usable" passed after 0.089 seconds.
+✔ Test importUndoReservationClosesOnlyAffectedAdmissionAndReleasesOnFailure() passed after 0.103 seconds.
+✔ Test "Change sinks receive added/updated/removed after the projection reflects them; refresh and failures are not fanned out" passed after 0.085 seconds.
+✔ Suite "LibraryStore: Undo and change fan-out" passed after 0.104 seconds.
+✔ Test "Flag off: a status change adds no date leg; a hand-edited date is still one normal write" passed after 0.104 seconds.
+✔ Suite "Library contract v2: repeat count and dates" passed after 0.104 seconds.
+✔ Test "An online notes leg cannot reorder later progress/status gestures" passed after 0.092 seconds.
+✔ Test "Overlapping actions share the Library projection and an older ACK cannot clear a newer action" passed after 0.092 seconds.
+✔ Test "A lost response retries the same body in process and then sends its newer successor" passed after 0.094 seconds.
+✔ Suite "Library durable progress authority" passed after 0.107 seconds.
+✔ Test "Nothing on the server: the removed row comes back with its fields" with 2 test cases passed after 0.108 seconds.
+✔ Suite "Removal Undo never overwrites a row re-added on another device" passed after 0.110 seconds.
+✔ Test groupingTwoThousandEntriesWithinBudget() passed after 0.110 seconds.
+✔ Suite SeriesListGroupingTests passed after 0.123 seconds.
+✔ Test terminalMarkerPrecedesRepeatablePayloadCleanup() passed after 0.101 seconds.
+◇ Test recordAndActiveAccountBudgetsRejectBeforeChangingFrozenData() started.
+✔ Test csvSafeTextPropertyHoldsForGeneratedText() passed after 0.202 seconds.
+✔ Test recordAndActiveAccountBudgetsRejectBeforeChangingFrozenData() passed after 0.529 seconds.
+◇ Test exactAccountDeletionIgnoresOtherCorruptionAndPreventsRecreation() started.
+✔ Test exactAccountDeletionIgnoresOtherCorruptionAndPreventsRecreation() passed after 0.058 seconds.
+◇ Test terminalRetentionCompactsApprovalsWithoutDiscardingActiveRecovery() started.
+✔ Test terminalRetentionCompactsApprovalsWithoutDiscardingActiveRecovery() passed after 0.268 seconds.
+◇ Test interruptedRetirementKeepsDiscoveryAndCleanupRecoverable() started.
+✔ Test interruptedRetirementKeepsDiscoveryAndCleanupRecoverable() passed after 0.143 seconds.
+◇ Test reviewDedupUnionsShelvesButNeverSilentlyOverwritesCoreFields() started.
+✔ Test reviewDedupUnionsShelvesButNeverSilentlyOverwritesCoreFields() passed after 0.001 seconds.
+✔ Suite ImportWorkflowJournalTests passed after 1.155 seconds.
+✔ Test malXmlSplitsAtTheParserItemLimit() passed after 4.618 seconds.
+✔ Test malXmlSplitsLargeLibrariesIntoReimportableParts() passed after 23.106 seconds.
+✔ Suite "Library export: value types and RFC 4180 encoder" passed after 23.126 seconds.
+✔ Test run with 178 tests in 16 suites passed after 23.126 seconds.
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite "Presentation action admission" started.
+◇ Suite "Credential leases (F33)" started.
+◇ Suite "Account session coordinator" started.
+◇ Suite "Account-scoped in-flight loads" started.
+◇ Test "An operation ignoring cancellation cannot publish after its presentation ends" started.
+◇ Test "Stale contexts are rejected after switch, sign-out and re-sign-in; a same-user refresh keeps the context" started.
+◇ Test "A credential change waits until every lease in flight has finished and admits none until it ends" started.
+◇ Test "A lease runs only while its context is current: refused at admission when obsolete, and never started when its context ended after admission (it starts on a later turn)" started.
+◇ Test "runFresh never joins an earlier entry, leaves it running, and later run calls join the fresh one" started.
+◇ Test "A queued intent cannot dispatch under another account or a remounted screen" started.
+◇ Test "An obsolete completion cannot clear or cancel its successor's slot" started.
+◇ Test "A transition cancels a running lease of the replaced context; it ends in CancellationError whatever its request reported" started.
+◇ Test "A load is joined only for the same key and the same account context" started.
+◇ Test case passing 1 argument change → "remount" to "A queued intent cannot dispatch under another account or a remounted screen" started.
+◇ Test case passing 1 argument change → "account" to "A queued intent cannot dispatch under another account or a remounted screen" started.
+✔ Test "Stale contexts are rejected after switch, sign-out and re-sign-in; a same-user refresh keeps the context" passed after 0.001 seconds.
+✔ Suite "Account session coordinator" passed after 0.001 seconds.
+✔ Test "An operation ignoring cancellation cannot publish after its presentation ends" passed after 0.001 seconds.
+✔ Test "A queued intent cannot dispatch under another account or a remounted screen" with 2 test cases passed after 0.001 seconds.
+✔ Test "A lease runs only while its context is current: refused at admission when obsolete, and never started when its context ended after admission (it starts on a later turn)" passed after 0.001 seconds.
+✔ Suite "Presentation action admission" passed after 0.001 seconds.
+✔ Test "A transition cancels a running lease of the replaced context; it ends in CancellationError whatever its request reported" passed after 0.001 seconds.
+✔ Test "A load is joined only for the same key and the same account context" passed after 0.001 seconds.
+✔ Test "A credential change waits until every lease in flight has finished and admits none until it ends" passed after 0.001 seconds.
+✔ Test "An obsolete completion cannot clear or cancel its successor's slot" passed after 0.001 seconds.
+✔ Test "runFresh never joins an earlier entry, leaves it running, and later run calls join the fresh one" passed after 0.001 seconds.
+✔ Suite "Credential leases (F33)" passed after 0.001 seconds.
+✔ Suite "Account-scoped in-flight loads" passed after 0.001 seconds.
+✔ Test run with 9 tests in 4 suites passed after 0.001 seconds.

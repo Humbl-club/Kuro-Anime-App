@@ -1,0 +1,284 @@
+{
+  "manga_passes": [
+    {
+      "i": 0,
+      "status": 200,
+      "elapsed_s": 1.86,
+      "results": {
+        "mode": "insert",
+        "medium": "manga",
+        "scanned": 25,
+        "skippedLinked": 0,
+        "skippedUnusable": 0,
+        "skippedYear": 20,
+        "linked": 0,
+        "review": 0,
+        "wouldCreate": 5,
+        "created": 5,
+        "alreadyExisted": 0,
+        "sample": [
+          {
+            "source": "mangaupdates",
+            "key": "14651459293",
+            "title": "Muchimuchi Hitozuma \u2642 Onii-san, Suiei Kyoushitsu de NTR-reru.",
+            "year": 2025,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "15762791136",
+            "title": "Sakusei Houmonbu Succubus ~Namaiki na Shinjin Succubus ni Shakaijin ga SEX de Eigyou Shidou Suru Hanashi~",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "15998239209",
+            "title": "Ornamental Yuri Couple",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "16508909711",
+            "title": "Once Upon a Destiny",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "16867383625",
+            "title": "Yoru ni Kazahana",
+            "year": 2026,
+            "format": "MANGA"
+          }
+        ],
+        "next": "17036345354"
+      }
+    },
+    {
+      "i": 1,
+      "status": 200,
+      "elapsed_s": 0.89,
+      "results": {
+        "mode": "insert",
+        "medium": "manga",
+        "scanned": 25,
+        "skippedLinked": 0,
+        "skippedUnusable": 0,
+        "skippedYear": 19,
+        "linked": 0,
+        "review": 0,
+        "wouldCreate": 6,
+        "created": 6,
+        "alreadyExisted": 0,
+        "sample": [
+          {
+            "source": "mangaupdates",
+            "key": "18239172104",
+            "title": "Plaything (OZAKI Kaho)",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "18242052795",
+            "title": "Mondaiji no Majutsushi, Majutsu no Nai Kuni e Haken Sareru",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "18361279405",
+            "title": "Devil's Servant",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "19092394891",
+            "title": "Nipple Detective",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "194563484",
+            "title": "Her Majesty the Queen's Contract Marriage",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "19621709056",
+            "title": "Tensai Majutsushi ni SAMEN ~Renzoku Zecchou San Tai Ichi~",
+            "year": 2026,
+            "format": "MANGA"
+          }
+        ],
+        "next": "19621709056"
+      }
+    },
+    {
+      "i": 2,
+      "status": 200,
+      "elapsed_s": 0.6,
+      "results": {
+        "mode": "insert",
+        "medium": "manga",
+        "scanned": 25,
+        "skippedLinked": 0,
+        "skippedUnusable": 0,
+        "skippedYear": 21,
+        "linked": 0,
+        "review": 0,
+        "wouldCreate": 4,
+        "created": 4,
+        "alreadyExisted": 0,
+        "sample": [
+          {
+            "source": "mangaupdates",
+            "key": "20874846833",
+            "title": "Pabongan",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "21977178327",
+            "title": "Runaga-chan wa Sukisugiru",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "22871704656",
+            "title": "Living Ghost",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "23087705489",
+            "title": "Miruku to Amagami ~Mouko ni Aisaremashite~",
+            "year": 2026,
+            "format": "MANGA"
+          }
+        ],
+        "next": "2375329672"
+      }
+    },
+    {
+      "i": 3,
+      "status": 200,
+      "elapsed_s": 0.89,
+      "results": {
+        "mode": "insert",
+        "medium": "manga",
+        "scanned": 25,
+        "skippedLinked": 0,
+        "skippedUnusable": 0,
+        "skippedYear": 23,
+        "linked": 0,
+        "review": 0,
+        "wouldCreate": 2,
+        "created": 2,
+        "alreadyExisted": 0,
+        "sample": [
+          {
+            "source": "mangaupdates",
+            "key": "26556463909",
+            "title": "Shin'ai Nostalgia - Shiitagerareta Reijou wa Ichizu ni Koi o Tsumugareru",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "2722416957",
+            "title": "Kyou kara Idol Yamemashita",
+            "year": 2026,
+            "format": "MANGA"
+          }
+        ],
+        "next": "27558584427"
+      }
+    },
+    {
+      "i": 4,
+      "status": 200,
+      "elapsed_s": 0.64,
+      "results": {
+        "mode": "insert",
+        "medium": "manga",
+        "scanned": 25,
+        "skippedLinked": 0,
+        "skippedUnusable": 0,
+        "skippedYear": 21,
+        "linked": 0,
+        "review": 0,
+        "wouldCreate": 4,
+        "created": 4,
+        "alreadyExisted": 0,
+        "sample": [
+          {
+            "source": "mangaupdates",
+            "key": "27664328079",
+            "title": "Kon'ya, Himitsu no Kitchen de",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "2853344834",
+            "title": "Bokutotsu Cool to Yurufuwa Yankee",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "29839858656",
+            "title": "Secretary Scandal",
+            "year": 2026,
+            "format": "MANGA"
+          },
+          {
+            "source": "mangaupdates",
+            "key": "30083181998",
+            "title": "Lewd Hole Locker Room",
+            "year": 2026,
+            "format": "MANGA"
+          }
+        ],
+        "next": "30535847369"
+      }
+    },
+    {
+      "i": 5,
+      "status": 200,
+      "elapsed_s": 0.48,
+      "results": {
+        "mode": "insert",
+        "medium": "manga",
+        "scanned": 25,
+        "skippedLinked": 0,
+        "skippedUnusable": 0,
+        "skippedYear": 24,
+        "linked": 0,
+        "review": 0,
+        "wouldCreate": 1,
+        "created": 1,
+        "alreadyExisted": 0,
+        "sample": [
+          {
+            "source": "mangaupdates",
+            "key": "33778608890",
+            "title": "How to Tame a Dog",
+            "year": 2026,
+            "format": "MANGA"
+          }
+        ],
+        "next": "34780720357"
+      }
+    }
+  ]
+}

@@ -137,27 +137,100 @@ function muCandidate(key: string, rec: MuRecord): Candidate | null {
 // ---- matching against existing Kuro rows ------------------------------------------------------
 
 type Matched = { accepted: LinkCandidate[]; proposed: LinkCandidate[] };
+type Scored = { kuroId: number; score: number };
 
-function matchAnn(kuroRows: Record<string, unknown>[], cands: Candidate[]): Matched {
-  const report: AnnReportRow[] = cands.map((c) => ({ id: Number(c.key), type: c.type, name: c.title, vintage: c.year ? String(c.year) : null }));
-  const kuro: AnnKuroTitle[] = kuroRows.map((r) => ({ id: Number(r.id), titles: titlesOf(r), year: typeof r.start_date_year === "number" ? r.start_date_year : null, format: typeof r.format === "string" ? r.format : null }));
-  return annMatch(kuro, report);
+/** Edge workers OOM if create loads the whole catalogue (~42k manga) into one match index.
+ *  Page Kuro rows and keep only the top scores per candidate (few candidates per run). */
+/** Keep pages small: a 1k-row manga page of titles/synonyms is already heavy on Edge. */
+const KURO_MATCH_PAGE = 500;
+const TOP_SCORES = 40;
+/** Manga matching is heavier than ANN; Edge OOMs above ~50 candidates per run. */
+const MANGA_CREATE_LIMIT_MAX = 40;
+
+function mergeTop(into: Map<string, Scored[]>, key: string, add: Scored[]): void {
+  if (add.length === 0) return;
+  const merged = [...(into.get(key) ?? []), ...add].sort((a, b) => b.score - a.score || a.kuroId - b.kuroId);
+  const seen = new Set<number>();
+  const top: Scored[] = [];
+  for (const s of merged) {
+    if (seen.has(s.kuroId)) continue;
+    seen.add(s.kuroId);
+    top.push(s);
+    if (top.length >= TOP_SCORES) break;
+  }
+  into.set(key, top);
 }
 
-/** Matching of manga candidates: candidate Kuro rows by exact or shared uncommon title tokens, scored with muScore. */
-function matchMu(kuroRows: Record<string, unknown>[], cands: Candidate[]): Matched {
+function decideFromScores(
+  cands: Candidate[],
+  tops: Map<string, Scored[]>,
+  source: "ann" | "mangaupdates",
+): Matched {
+  const accepted: LinkCandidate[] = [];
+  const proposed: LinkCandidate[] = [];
+  for (const c of cands) {
+    const scored = tops.get(c.key) ?? [];
+    const link = (s: Scored, status: "accepted" | "proposed"): LinkCandidate => ({
+      kuroId: s.kuroId,
+      source,
+      sourceKey: c.key,
+      method: "title_match",
+      confidence: Math.round(s.score * 1000) / 1000,
+      status,
+    });
+    if (scored.length > 0 && scored[0].score >= ACCEPT_SCORE && (scored[1]?.score ?? 0) < RUNNER_UP_MAX) {
+      accepted.push(link(scored[0], "accepted"));
+    } else {
+      for (const s of scored.filter((x) => x.score >= PROPOSE_FLOOR).slice(0, 3)) proposed.push(link(s, "proposed"));
+    }
+  }
+  return { accepted, proposed };
+}
+
+/** Score one Kuro page against ANN candidates via annMatch (indexes the small candidate set). */
+function scoreAnnPage(kuroRows: Record<string, unknown>[], cands: Candidate[]): Map<string, Scored[]> {
+  const report: AnnReportRow[] = cands.map((c) => ({ id: Number(c.key), type: c.type, name: c.title, vintage: c.year ? String(c.year) : null }));
+  const kuro: AnnKuroTitle[] = kuroRows.map((r) => ({
+    id: Number(r.id),
+    titles: titlesOf(r),
+    year: typeof r.start_date_year === "number" ? r.start_date_year : null,
+    format: typeof r.format === "string" ? r.format : null,
+  }));
+  const matched = annMatch(kuro, report);
+  const out = new Map<string, Scored[]>();
+  for (const m of [...matched.accepted, ...matched.proposed]) {
+    const list = out.get(m.sourceKey) ?? [];
+    list.push({ kuroId: m.kuroId, score: Number(m.confidence) || 0 });
+    out.set(m.sourceKey, list);
+  }
+  return out;
+}
+
+/** Score one Kuro page against MangaUpdates candidates (local token index for the page only). */
+function scoreMuPage(kuroRows: Record<string, unknown>[], cands: Candidate[]): Map<string, Scored[]> {
   const MAX_DF = 300;
   const byToken = new Map<string, number[]>();
   const byNorm = new Map<string, number[]>();
-  const kuro: MuKuro[] = kuroRows.map((r) => ({ id: Number(r.id), titles: titlesOf(r), year: typeof r.start_date_year === "number" ? r.start_date_year : null, format: typeof r.format === "string" ? r.format : null, country: typeof r.country_of_origin === "string" ? r.country_of_origin : null }));
+  const kuro: MuKuro[] = kuroRows.map((r) => ({
+    id: Number(r.id),
+    titles: titlesOf(r),
+    year: typeof r.start_date_year === "number" ? r.start_date_year : null,
+    format: typeof r.format === "string" ? r.format : null,
+    country: typeof r.country_of_origin === "string" ? r.country_of_origin : null,
+  }));
   kuro.forEach((k, i) => {
     for (const norm of new Set(k.titles.map(normaliseTitle).filter(Boolean))) {
-      byNorm.set(norm, [...(byNorm.get(norm) ?? []), i]);
-      for (const t of titleTokens(norm)) byToken.set(t, [...(byToken.get(t) ?? []), i]);
+      const norms = byNorm.get(norm);
+      if (norms) norms.push(i);
+      else byNorm.set(norm, [i]);
+      for (const t of titleTokens(norm)) {
+        const hits = byToken.get(t);
+        if (hits) hits.push(i);
+        else byToken.set(t, [i]);
+      }
     }
   });
-  const accepted: LinkCandidate[] = [];
-  const proposed: LinkCandidate[] = [];
+  const out = new Map<string, Scored[]>();
   for (const c of cands) {
     const hit: MuHit = { seriesId: Number(c.key), titles: c.titles, year: c.year, type: c.type };
     const shared = new Map<number, number>();
@@ -169,14 +242,60 @@ function matchMu(kuroRows: Record<string, unknown>[], cands: Candidate[]): Match
         for (const i of hits) if ((shared.get(i) ?? 0) !== Number.MAX_SAFE_INTEGER) shared.set(i, (shared.get(i) ?? 0) + 1);
       }
     }
-    const scored = [...shared.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40)
-      .map(([i]) => ({ k: kuro[i], score: muScore(kuro[i], hit) }))
-      .sort((a, b) => b.score - a.score || a.k.id - b.k.id);
-    const link = (s: { k: MuKuro; score: number }, status: "accepted" | "proposed"): LinkCandidate => ({ kuroId: s.k.id, source: "mangaupdates", sourceKey: c.key, method: "title_match", confidence: Math.round(s.score * 1000) / 1000, status });
-    if (scored.length > 0 && scored[0].score >= ACCEPT_SCORE && (scored[1]?.score ?? 0) < RUNNER_UP_MAX) accepted.push(link(scored[0], "accepted"));
-    else for (const s of scored.filter((x) => x.score >= PROPOSE_FLOOR).slice(0, 3)) proposed.push(link(s, "proposed"));
+    const scored = [...shared.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, TOP_SCORES)
+      .map(([i]) => ({ kuroId: kuro[i].id, score: muScore(kuro[i], hit) }));
+    out.set(c.key, scored);
   }
-  return { accepted, proposed };
+  return out;
+}
+
+/** Manga: never scan the full 42k-row table on Edge. Pull only rows whose titles equal a candidate title. */
+async function loadMangaByExactTitles(
+  supabase: SupabaseLike,
+  cands: Candidate[],
+): Promise<(Record<string, unknown> & { id: number })[]> {
+  const titles = [...new Set(cands.flatMap((c) => c.titles.map((t) => t.trim()).filter(Boolean)))];
+  const byId = new Map<number, Record<string, unknown> & { id: number }>();
+  for (const col of ["title_english", "title_romaji", "title_native"] as const) {
+    for (const part of chunk(titles, 80)) {
+      const { data, error } = await supabase.from("manga").select(KURO_COLUMNS.manga).in(col, part);
+      if (error) throw new Error(`manga title lookup failed: ${error.message ?? error}`);
+      for (const r of (data ?? []) as (Record<string, unknown> & { id: number })[]) byId.set(Number(r.id), r);
+    }
+  }
+  return [...byId.values()];
+}
+
+async function matchAgainstCatalogue(
+  supabase: SupabaseLike,
+  medium: Medium,
+  cands: Candidate[],
+): Promise<Matched> {
+  if (cands.length === 0) return { accepted: [], proposed: [] };
+  const tops = new Map<string, Scored[]>();
+  if (medium === "manga") {
+    const pool = await loadMangaByExactTitles(supabase, cands);
+    for (const [key, scored] of scoreMuPage(pool, cands)) mergeTop(tops, key, scored);
+    return decideFromScores(cands, tops, "mangaupdates");
+  }
+  // Anime: page the catalogue (ANN match indexes the small candidate set, so pages stay cheap).
+  let after = 0;
+  for (;;) {
+    const page = await readKuroRows<Record<string, unknown> & { id: number }>(
+      supabase,
+      medium,
+      KURO_COLUMNS[medium],
+      after,
+      KURO_MATCH_PAGE,
+    );
+    if (page.length === 0) break;
+    for (const [key, scored] of scoreAnnPage(page, cands)) mergeTop(tops, key, scored);
+    after = page[page.length - 1].id;
+    if (page.length < KURO_MATCH_PAGE) break;
+  }
+  return decideFromScores(cands, tops, "ann");
 }
 
 // ---- create ------------------------------------------------------------------------------------
@@ -188,7 +307,8 @@ export async function create(deps: CreateDeps, medium: Medium, opts: CreateOptio
   }
   const supabase = deps.supabase;
   const nowIso = new Date((deps.now ?? Date.now)()).toISOString();
-  const limit = clampInt(opts.limit, 300, 1, 1000);
+  const limitCap = medium === "manga" ? MANGA_CREATE_LIMIT_MAX : 1000;
+  const limit = clampInt(opts.limit, medium === "manga" ? 25 : 300, 1, limitCap);
   const sampleMax = clampInt(opts.sample, 25, 0, 200);
   const source = SOURCE_FOR[medium];
 
@@ -230,9 +350,8 @@ export async function create(deps: CreateDeps, medium: Medium, opts: CreateOptio
   result.skippedLinked = cands.length - fresh.length;
   if (fresh.length === 0) return result;
 
-  // 3. match against existing Kuro rows
-  const kuroRows = await readKuroRows<Record<string, unknown> & { id: number }>(supabase, medium, KURO_COLUMNS[medium], 0, 200_000);
-  const matched = medium === "anime" ? matchAnn(kuroRows, fresh) : matchMu(kuroRows, fresh);
+  // 3. match against existing Kuro rows (paged — never load the whole catalogue into Edge memory)
+  const matched = await matchAgainstCatalogue(supabase, medium, fresh);
   // One source key that two or more Kuro titles accept is ambiguous (the same rule applyLinks enforces): review, no row.
   const kuroPerKey = new Map<string, Set<number>>();
   for (const m of matched.accepted) kuroPerKey.set(m.sourceKey, (kuroPerKey.get(m.sourceKey) ?? new Set<number>()).add(m.kuroId));

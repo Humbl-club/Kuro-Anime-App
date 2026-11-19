@@ -1,0 +1,22 @@
+{
+  "migration": {
+    "version": "20261118140000",
+    "name": "concierge_rate_limit_bounds_v1",
+    "file": "supabase/prepared-migrations/20261118140000_concierge_rate_limit_bounds_v1.sql",
+    "md5": "3b79aca82a51ece7658f4ec59bc77ef2",
+    "sha256": "3d10ea86a3a9c63280292275f5c870a82bdba506788477c224a13261417f7178",
+    "bytes": 7355
+  },
+  "started_at": "2026-11-18T23:12:34.362304+00:00",
+  "finished_at": "2026-11-18T23:12:34.752399+00:00",
+  "api_result": [],
+  "verify": [
+    {
+      "version": "20261118140000",
+      "name": "concierge_rate_limit_bounds_v1",
+      "n": 1,
+      "s1_md5": "3b79aca82a51ece7658f4ec59bc77ef2",
+      "s1_len": 7355
+    }
+  ]
+}

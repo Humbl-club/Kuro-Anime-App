@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "workstream": "F2",
+  "testedCommit": "6e5afed3aa6b0c88736695d44d1078e7247ae418",
+  "recordedAt": "2026-11-18T20:50:33Z",
+  "runs": [
+    {
+      "id": "pkg-1",
+      "layer": "pkg",
+      "command": "cd Packages/KuroModules && swift test",
+      "context": {
+        "kind": "local"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-pkg.txt"
+    },
+    {
+      "id": "swift-1",
+      "layer": "swift",
+      "command": "xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,id=CF3DD8D6-E63F-4157-8229-43ED1370215B' -parallel-testing-enabled NO -only-testing:KuroTests/LibraryExportFlowTests -only-testing:KuroTests/ReleaseAlertOfferTests -only-testing:KuroTests/AdultNoticeTests -only-testing:KuroTests/GuestModeTests -only-testing:KuroTests/SeriesGroupingFolioTests -only-testing:KuroTests/SeriesGroupingCollectionTests -only-testing:KuroTests/LibraryTagsStoreTests -only-testing:KuroTests/CustomListsStoreTests -only-testing:KuroTests/OrganiseCredentialLeaseTests -only-testing:KuroTests/UpNextStoreTests -only-testing:KuroTests/FirstRunLaneTests test",
+      "context": {
+        "kind": "simulator",
+        "simulator": "CF3DD8D6-E63F-4157-8229-43ED1370215B"
+      },
+      "exitCode": 0,
+      "log": "docs/tracker-gaps-2026-11/acceptance/logs/ACCEPT-swift.txt"
+    }
+  ],
+  "scenarios": [
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Editing repeat count and dates",
+      "tag": "@pkg:LibraryEditV2Tests/repeatCountAndDatesTravelThroughLibraryEdit",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Status changes fill empty dates",
+      "tag": "@pkg:LibraryEditV2Tests/statusChangeFillsEmptyDatesWithUndo",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Partial dates are validated",
+      "tag": "@pkg:PartialDateTests/rejectsImpossibleDatesAndKeepsPrecision",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Date auto-fill sends nothing extra while its switch is off",
+      "tag": "@pkg:LibraryEditV2Tests/flagOffSendsNoRequest",
+      "result": "pass",
+      "run": "pkg-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Undo of a one-tap plan keeps a plan I have since dated",
+      "tag": "@swift:FirstRunLaneTests/planUndoKeepsADatedPlan",
+      "result": "pass",
+      "run": "swift-1"
+    },
+    {
+      "feature": "W9-lists.feature",
+      "scenario": "Status changes with a date fill stay within budget",
+      "tag": "@load:status-with-date-fill",
+      "result": "blocked",
+      "run": null,
+      "note": "load qualification (--qualify) not run; no qualification evidence exists"
+    }
+  ],
+  "unresolvedGates": [
+    "load scenarios: no qualification run exists (blocked, not run by acceptance)"
+  ]
+}

@@ -2354,6 +2354,19 @@ The second batch went into the main branch after every test passed (1,259 app te
 ### 18 November 2026 (late) — Every tracker feature is built
 Tags and custom lists went into the main branch. Guest browsing (looking around without an account) is now built too, switched off. While building it we found that signed-out visitors can currently call around 110 server functions (most refuse because they check sign-in, but it is wider than it should be); the prepared fix narrows that to 23 safe ones. Smaller fixes landed as well (Undo no longer overwrites a title you re-added on another phone).
 
+### 19 November 2026 — First production steps from the runbook are live
+With your go-ahead, the safe “no visible change” steps ran on the live servers:
+- Signed-out visitors can no longer call the wide set of server functions; only the small allowlist remains. Guest browsing itself is still switched off.
+- Concierge rate limits now use secret-keyed IP buckets, and the background refresh queues no longer accept arbitrary titles or reasons.
+- The new catalogue shadow tables are live, the intake function is deployed, the first small source runs finished, and the scheduled jobs that keep shadow data fresh are on. Nothing from the new sources is shown to users yet; AniList values stay published until you approve each later step.
+Still waiting on you: App Store Connect agreement (TestFlight), the product/legal decisions in the handoff, approval for the production load test, and each visible Part B step.
+
+### 19 November 2026 — New manga titles can be created again
+The server was running out of memory when adding new manga. That is fixed: new manga and anime from 2024 onward keep being added in the background. A fresh comparison of the shadow catalogue still says it is too early to switch published fields away from the frozen AniList values.
+
+### 19 November 2026 (later) — Decisions locked and the visible Part B steps ran
+You asked for the legal/product calls to be taken and for Part B to run. Locked: keep the AniList list import (it predates their policy change), new titles from 2024 on, airing stays frozen until a paid provider deal, and no switching published catalogue fields until the shadow checks pass. Live now: browse visibility + new-title create, Up next / tags / 18+ search notice / export / date autofill turned on, 19 new anime titles added without AniList ids, and the importer functions updated so they will skip a field group only after a future switch. Still waiting: App Store Connect agreement (TestFlight), removing AniList ids from public reads (needs a new build and old builds retired), guest browsing (still off), and a fix so new manga create does not run out of memory on the server.
+
 
 
 

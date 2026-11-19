@@ -1,0 +1,47 @@
+{
+  "raw_ip_rejected": {
+    "status": 400,
+    "body": "{\"code\":\"22023\",\"details\":null,\"hint\":null,\"message\":\"check_concierge_rate_limit: p_ip must be a keyed bucket value\"}"
+  },
+  "unknown_kind_rejected": {
+    "status": 400,
+    "body": "{\"code\":\"22023\",\"details\":null,\"hint\":null,\"message\":\"check_concierge_rate_limit: unknown kind\"}"
+  },
+  "keyed_ok": {
+    "status": 200,
+    "body": {
+      "max_ip": 5,
+      "allowed": true,
+      "ip_hits": 1,
+      "max_user": 5,
+      "user_hits": null,
+      "retry_after_s": 2836,
+      "window_seconds": 3600
+    }
+  },
+  "anon_window_override_ignored": {
+    "status": 200,
+    "body": {
+      "max_ip": 300,
+      "allowed": true,
+      "ip_hits": 1,
+      "max_user": 120,
+      "user_hits": null,
+      "retry_after_s": 16,
+      "window_seconds": 60
+    }
+  },
+  "contact_submit": {
+    "status": 400,
+    "body": "{\"error\":\"invalid\",\"fields\":[\"email\"]}"
+  },
+  "parse_anon": {
+    "status": 200,
+    "body": "{\"success\":true,\"userId\":null,\"items\":[{\"raw\":\"watching One Piece\",\"normalized\":\"One Piece\",\"parsed\":{\"mediaTypeHint\":\"ANIME\",\"status\":\"WATCHING\",\"progressEpisodes\":null,\"progressChapters\":null,\"progressVolumes\":null,\"progressTotal\":null,\"progressUnit\":null,\"seasonNumber\":null,\"episodeInSeason\":null"
+  },
+  "anon_count": [
+    {
+      "c": 20
+    }
+  ]
+}
