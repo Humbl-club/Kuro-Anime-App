@@ -240,6 +240,29 @@ nonisolated enum DiscoverIssueCopy {
         }
     }
 
+    static func purposeNewlyAdded(manga: Bool, german: Bool) -> String {
+        switch (manga, german) {
+        case (false, false): return "Fresh additions to the anime catalogue."
+        case (false, true): return "Frisch im Anime-Katalog."
+        case (true, false): return "Fresh additions to the manga catalogue."
+        case (true, true): return "Frisch im Manga-Katalog."
+        }
+    }
+
+    // MARK: Quick find (Search + Filters bar)
+
+    static func quickSearchPlaceholder(german: Bool) -> String {
+        german ? "Anime & Manga suchen" : "Search anime & manga"
+    }
+
+    static func quickFilterLabel(german: Bool) -> String {
+        german ? "Filter" : "Filters"
+    }
+
+    static func quickFilterSpoken(german: Bool) -> String {
+        german ? "Katalog filtern und durchstöbern" : "Filter and browse catalogue"
+    }
+
     static func purposeTonightShelf(german: Bool) -> String {
         german ? "Eine Stimmung für heute Abend, nach deinem Geschmack." : "One mood for tonight, picked from your taste."
     }
@@ -444,6 +467,8 @@ nonisolated enum DiscoverIssueCopy {
         case (.essentials, true), (.essentialsManga, true): return "Kanon"
         case (.trending, false), (.trendingManga, false): return "Trending"
         case (.trending, true), (.trendingManga, true): return "Im Trend"
+        case (.newlyAdded, false), (.newlyAddedManga, false): return "Just added"
+        case (.newlyAdded, true), (.newlyAddedManga, true): return "Frisch"
         case (.classics, false), (.classicsManga, false): return "Classics"
         case (.classics, true), (.classicsManga, true): return "Klassiker"
         case (.tonightShelf, false): return "Shelf"

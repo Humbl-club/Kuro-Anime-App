@@ -166,7 +166,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 322 app Swift files, 48 package Swift files and 266 SQL migrations are in the repo today.
+**Current inventory:** 322 app Swift files, 48 package Swift files and 267 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2385,3 +2385,19 @@ Plan: docs/superpowers/plans/2026-11-09-catalogue-sources.md.
 
 ### 19 November 2026 — A new TestFlight build is uploaded
 The App Store agreement is accepted, so uploads work again. Build 27 contains everything on `main` today (the home-screen widget is still left out because its App Group is not registered). Once you are using build 27, the older test builds can be switched off, and then the last two database steps (hiding AniList ids from public reads) can run.
+
+### 19 November 2026 (latest) — Existing-parts UX polish across Home, Discover, and Clubs (local build only)
+Refined the existing components across all three areas to feel calmer and closer to the Anime/Manga detail pages, without changing backend code or uploading a new TestFlight build yet:
+- **Home:** Titles added to Plan to Watch / Plan to Read now show up on Home right away instead of leaving Home stuck on the empty-account screen. Empty "Nothing scheduled" boxes stay hidden when nothing is scheduled, and your planned anime/manga appear in the Poster Home cards with a one-tap `+` button (with Undo) to start episode/chapter 1 plus "Show all" folds.
+- **Discover:** Replaced the repeated tall "Plan to watch" boxes under small cards with compact `+ Plan` / `Planned` pills, condensed "In the mood for" and the jump index into sleek horizontal strips so "New to you." fits higher on screen, and softened inline cover cards to warm tinted paper.
+- **Clubs & Club Rails:** Replaced the cramped 2-column thumbnail grid inside Club Rails with true horizontal 2:3 poster rails (with sharp covers, clean progress lines, header `+ Add` pills, and full-width inline note expansion below the rail) and softened the action buttons beneath the club hero and clubs list.
+
+### 19 November 2026 (Phase 2) — Faster Discover curation, Search & Filters bar, 3-choice quick-add, and live cross-medium Home sync (local build only)
+- **Discover curation:** Discover now opens with what is airing and trending first (**This season → Trending → Essential anime → New to you → Just added → Manga new to you** on All; **Trending manga → Manga just added → Essential manga → Manga new to you → Manga classics** on Manga).
+- **Search & Filters right at the top:** Added a clean warm-paper **Search anime & manga** + **Filters** bar directly under `All · Anime · Manga` so you can jump straight to search or full genre/year/season/format filters in one tap.
+- **One-tap status picker on Discover cards:** Tapping `+ Add` (or a saved status pill) on any Discover card opens a fast 3-choice menu (**Watching / Reading**, **Plan to watch / Plan to read**, or **Completed**) with immediate save and an **Undo** toast (plus **Edit details…** and **Remove from list** when already tracked).
+- **Immediate Home sync across Anime & Manga:** Adding, changing status, or removing either anime or manga now updates Home immediately in-session without waiting to log out and back in, including when switching between Anime and Manga on Home.
+
+### 19–20 November 2026 (Phase 3) — Faster multi-source intake deployed to Supabase; 0 ms Home first-add & snappier title pages on Simulator
+- **Live on Supabase production:** Applied the new Postgres matching function (`catalogue_find_title_candidates_v1`) and season/year creation whitelist (`20261119120000`), and deployed `catalogue-intake` v5 — so new MangaUpdates and ANN titles match against existing Kuro rows (including synonyms and older AniList-seeded titles) inside Postgres without hitting Edge Function memory limits, and new ANN anime automatically get their season, season year, and release status (`Upcoming`, `Airing`, `Finished`).
+- **Local iOS app (not yet uploaded to TestFlight):** Adding your very first anime or manga now shows up on Home immediately at 0 ms using the metadata already on screen (before the server finishes refreshing), and opening a detail page no longer waits on background relation writes or bottom-of-page "More like this" calls.

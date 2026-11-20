@@ -15,7 +15,7 @@
 // Only accepted links feed a title (a Wikidata-only `proposed` ANN id is not used, link-trust rule 2).
 // An unchanged value or source writes nothing, so a second run makes no writes.
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
-import { composeAdult, DATE_TRIPLES, mapRelations, pick, PRECEDENCE, type RawRelation, type Source, type SourceValue } from "../_shared/catalogue/precedence.ts";
+import { composeAdult, DATE_TRIPLES, deriveAnimeSeason, deriveAnimeStatus, mapRelations, pick, PRECEDENCE, type PartialDate, type RawRelation, type Source, type SourceValue } from "../_shared/catalogue/precedence.ts";
 import { popularityIndex, scoreIndex, trendingIndex } from "../_shared/catalogue/popularity.ts";
 import { assignTags, type SourceLabel, type TagMapRow } from "../_shared/catalogue/tags.ts";
 import type { HandlerOutcome, RunContext } from "./context.ts";
@@ -110,16 +110,21 @@ export function composeTitle(
   medium: Medium,
   t: TitleInputs,
   resolve: (source: Source, key: string) => { kind: Medium; id: number } | null,
+  nowMs: number = Date.now(),
 ): { fields: { field: string; value: unknown; source: string | null }[]; review: { reason: string } | null } {
   const fields: { field: string; value: unknown; source: string | null }[] = [];
   const valuesFor = (column: string): SourceValue[] =>
     (Object.entries(t.bySource) as [Source, Record<string, unknown>][]).filter(([, v]) => column in v).map(([source, v]) => ({ source, value: v[column] }));
 
   const done = new Set<string>();
+  let startDateSource: Source | null = null;
+  let endDateSource: Source | null = null;
   // A date triple is taken from one source as a unit: year decides, month and day follow it.
   for (const triple of DATE_TRIPLES) {
     const winner = pick(triple[0], medium, valuesFor(triple[0]));
     if (!winner) continue;
+    if (triple[0] === "start_date_year") startDateSource = winner.source;
+    if (triple[0] === "end_date_year") endDateSource = winner.source;
     for (const column of triple) {
       const v = t.bySource[winner.source]?.[column];
       if (v !== null && v !== undefined) fields.push({ field: column, value: v, source: winner.source });
@@ -130,6 +135,31 @@ export function composeTitle(
     if (done.has(column) || column === "is_adult") continue;
     const winner = pick(column, medium, valuesFor(column));
     if (winner) fields.push({ field: column, value: winner.value, source: winner.source });
+  }
+
+  // Derive anime season, season_year and release status from canonical composed dates so Discover's
+  // "This season" and upcoming views stay fresh without AniList.
+  if (medium === "anime") {
+    const byField = new Map(fields.map((f) => [f.field, f.value]));
+    const num = (k: string): number | null => (typeof byField.get(k) === "number" ? (byField.get(k) as number) : null);
+    const startYear = num("start_date_year");
+    const endYear = num("end_date_year");
+    const start: PartialDate | null = startYear !== null
+      ? { year: startYear, month: num("start_date_month"), day: num("start_date_day") }
+      : null;
+    const end: PartialDate | null = endYear !== null
+      ? { year: endYear, month: num("end_date_month"), day: num("end_date_day") }
+      : null;
+    const derivedSeason = deriveAnimeSeason(start);
+    if (derivedSeason && !byField.has("season")) {
+      fields.push({ field: "season", value: derivedSeason.season, source: startDateSource });
+      fields.push({ field: "season_year", value: derivedSeason.season_year, source: startDateSource });
+    }
+    const format = typeof byField.get("format") === "string" ? (byField.get("format") as string) : null;
+    const derivedStatus = deriveAnimeStatus(start, end, format, nowMs);
+    if (derivedStatus && !byField.has("status")) {
+      fields.push({ field: "status", value: derivedStatus, source: endDateSource ?? startDateSource });
+    }
   }
 
   // Adult: one boolean per source that carries adult data.
@@ -299,7 +329,7 @@ export async function compose(deps: ComposeDeps, medium: Medium, mediaIds: numbe
     const produced: { field: string; value: unknown; source: string | null }[] = [];
     let review: { reason: string } | null = null;
     try {
-      const composed = composeTitle(medium, t, resolve);
+      const composed = composeTitle(medium, t, resolve, clock());
       review = composed.review;
       produced.push(...composed.fields);
       produced.push(...tagFields(t, tagMap));

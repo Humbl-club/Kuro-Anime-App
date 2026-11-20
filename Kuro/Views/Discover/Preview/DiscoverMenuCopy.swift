@@ -148,7 +148,7 @@ nonisolated enum DiscoverMenuCopy {
 
     /// The section reasons the preview names (§8 "Why it's here").
     enum Reason: Equatable {
-        case unseen, unread, canon, airing, popular, classic
+        case unseen, unread, canon, airing, popular, classic, newlyAdded
         case closeTo(String)
 
         func text(german: Bool) -> String {
@@ -159,6 +159,7 @@ nonisolated enum DiscoverMenuCopy {
             case .airing: return german ? "läuft gerade" : "airing now"
             case .popular: return german ? "diese Woche beliebt" : "popular this week"
             case .classic: return german ? "ein Klassiker" : "a classic"
+            case .newlyAdded: return german ? "neu im Katalog" : "newly added"
             case .closeTo(let title): return german ? "nah an \(title)" : "close to \(title)"
             }
         }

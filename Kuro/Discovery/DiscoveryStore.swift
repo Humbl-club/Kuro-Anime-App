@@ -95,6 +95,53 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// `discoverUndeployedRetryInterval`).
     @ObservationIgnored var undeployedDiscoverContracts: [String: Date] = [:]
 
+    /// Zero-I/O metadata lookup over the in-memory Discover bundle for 0 ms optimistic Home inserts.
+    func cachedHomeCardSeed(for key: MediaKey) -> HomeCardSeed? {
+        for entry in discoverBundleCache.values {
+            let bundle = entry.value
+            switch key.kind {
+            case .anime:
+                let pools = [
+                    bundle.anime.currentSeason, bundle.anime.trending, bundle.anime.essentials,
+                    bundle.anime.newToYou, bundle.anime.newlyAdded, bundle.anime.classics,
+                    bundle.anime.topRated, bundle.anime.airingToday,
+                ]
+                for pool in pools {
+                    if let card = pool.first(where: { $0.id == key.id }) {
+                        return HomeCardSeed(
+                            title: card.title,
+                            coverImage: card.imageURL,
+                            bannerImage: card.bannerImage,
+                            format: card.format,
+                            episodes: card.episodes,
+                            chapters: nil,
+                            volumes: nil
+                        )
+                    }
+                }
+            case .manga:
+                let pools = [
+                    bundle.manga.trending, bundle.manga.newlyAdded, bundle.manga.essentials,
+                    bundle.manga.newToYou, bundle.manga.classics, bundle.manga.topRated,
+                ]
+                for pool in pools {
+                    if let card = pool.first(where: { $0.id == key.id }) {
+                        return HomeCardSeed(
+                            title: card.title,
+                            coverImage: card.imageURL,
+                            bannerImage: nil,
+                            format: card.format,
+                            episodes: nil,
+                            chapters: card.chapters,
+                            volumes: nil
+                        )
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {

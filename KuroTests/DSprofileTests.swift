@@ -48,12 +48,12 @@ struct DSprofileTests {
         typealias Sections = DiscoverIssueSections
         let all = Sections.Inputs(issue: .all, realmRails: false, newToYou: true, essentials: true,
                                   mangaNewToYou: true, trending: true, essentialsManga: true, classicsManga: true)
-        #expect(Sections.main(all) == [.newToYou, .essentials, .mangaNewToYou, .trending])
+        #expect(Sections.main(all) == [.trending, .essentials, .newToYou, .mangaNewToYou])
         // Usability spec D17: the fold is retired; Essential manga is the first More-lists link on All.
         #expect(Sections.moreLists(all, dropped: []).first == .route(.mangaEssentials))
         var manga = all
         manga.issue = .manga
-        #expect(Sections.main(manga) == [.mangaNewToYou, .essentialsManga, .classicsManga])
+        #expect(Sections.main(manga) == [.essentialsManga, .mangaNewToYou, .classicsManga])
         #expect(!Sections.moreLists(manga, dropped: []).contains(.route(.mangaEssentials)))
         var anime = all
         anime.issue = .anime

@@ -229,18 +229,49 @@ struct ClubsView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: ClubRoomLayout.linkRowGap) {
-                ClubLinkRow(kicker: KuroLocale.text("New", "Neu"),
-                            title: KuroLocale.text("Start a club.", "Gründe einen Club."),
-                            action: openCreate)
-                ClubLinkRow(kicker: KuroLocale.text("Invite code", "Einladungscode"),
-                            title: KuroLocale.text("Join a club.", "Tritt einem Club bei."),
-                            action: openJoin)
-            }
-            .padding(.top, 16)
+            clubsSecondaryActions
+                .padding(.top, 12)
 
             HomeFooter()
         }
+    }
+
+    @ViewBuilder
+    private var clubsSecondaryActions: some View {
+        let startLabel = KuroLocale.text("Start a club", "Club gründen")
+        let joinLabel = KuroLocale.text("Join a club", "Club beitreten")
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                secondaryClubPill(title: startLabel, glyph: "plus", action: openCreate)
+                secondaryClubPill(title: joinLabel, glyph: "arrow.up.right", action: openJoin)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                secondaryClubPill(title: startLabel, glyph: "plus", action: openCreate)
+                secondaryClubPill(title: joinLabel, glyph: "arrow.up.right", action: openJoin)
+            }
+        }
+    }
+
+    private func secondaryClubPill(title: String, glyph: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: glyph)
+                    .font(.system(size: 11, weight: .medium))
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 24))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Color.kuroInk)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 38)
+            .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(HomeContactStyle())
+        .accessibilityLabel(title)
     }
 
     // MARK: - Actions

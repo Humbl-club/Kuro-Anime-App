@@ -47,13 +47,61 @@ struct DiscoverMoodKeys: View {
                 .textCase(.uppercase)
                 .foregroundStyle(HomeInk.kicker)
                 .accessibilityAddTraits(.isHeader)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Self.gap, alignment: .top), count: columns),
-                      alignment: .leading, spacing: Self.gap) {
-                ForEach(moods, id: \.self) { mood in
-                    key(mood, compact: compact)
+            if dynamicTypeSize.isAccessibilitySize {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Self.gap, alignment: .top), count: columns),
+                          alignment: .leading, spacing: Self.gap) {
+                    ForEach(moods, id: \.self) { mood in
+                        key(mood, compact: compact)
+                    }
                 }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(moods, id: \.self) { mood in
+                            compactPill(mood)
+                        }
+                    }
+                }
+                .scrollClipDisabled()
+                .kuroSwipeExclusionZone()
             }
         }
+    }
+
+    private func compactPill(_ mood: DiscoverMood) -> some View {
+        let title = DiscoverIssueCopy.moodTitle(mood, likeTitle: likeTitle, german: german)
+        let subtitle = DiscoverIssueCopy.moodSubtitle(mood, german: german)
+        return Button {
+            KuroAccessibility.impactHaptic(.light)
+            onOpen(mood)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: DiscoverIssueCopy.moodSymbol(mood))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.kuroInk)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 24))
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(.kuroCustom(9.5, relativeTo: .caption2, maxSize: 18))
+                        .foregroundStyle(Color.kuroMuted)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .frame(minHeight: 44, alignment: .leading)
+            .background(Color.white.opacity(0.74), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(HomeContactStyle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title). \(subtitle)")
+        .accessibilityAddTraits(.isButton)
     }
 
     /// In the compact column the words take two lines instead of truncating (288 pt, two columns).

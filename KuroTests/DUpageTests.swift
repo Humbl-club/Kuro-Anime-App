@@ -389,16 +389,16 @@ struct DiscoverIssueTests {
                 #expect(main.count <= DiscoverIssueLayout.sectionCap, "\(issue) realm \(realm): \(main.count) sections")
             }
         }
-        #expect(Sections.main(full(.all, realm: false)) == [.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics])
-        #expect(Sections.main(full(.all, realm: true)) == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
-        #expect(Sections.main(full(.anime, realm: true)) == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
-        #expect(Sections.main(full(.manga, realm: true)) == [.mangaNewToYou, .essentialsManga, .hiddenGem, .trendingManga, .classicsManga])
+        #expect(Sections.main(full(.all, realm: false)) == [.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou])
+        #expect(Sections.main(full(.all, realm: true)) == [.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .newlyAdded])
+        #expect(Sections.main(full(.anime, realm: true)) == [.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .newlyAdded])
+        #expect(Sections.main(full(.manga, realm: true)) == [.trendingManga, .newlyAddedManga, .essentialsManga, .mangaNewToYou, .hiddenGem, .classicsManga])
         // Nothing becomes unreachable: every dropped section is a More list.
         let dropped = Sections.cap(Sections.candidates(full(.anime, realm: true))).dropped
-        #expect(dropped == [.classics])
+        #expect(dropped == [.hiddenGem, .classics])
         #expect(Sections.moreLists(full(.anime, realm: true), dropped: dropped).contains(.route(.animeClassics)))
         // The drop order beyond the shipped lists: Hidden gem, then Tonight's shelf.
-        #expect(Sections.cap([.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending], limit: 4).dropped
+        #expect(Sections.cap([.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .hiddenGem], limit: 4).dropped
                 == [.tonightShelf, .hiddenGem])
         #expect(Sections.moreLists(full(.all, realm: false), dropped: [.hiddenGem, .tonightShelf]).suffix(2) == [.hiddenGem, .tonightShelf])
     }
@@ -426,14 +426,14 @@ struct DiscoverIssueTests {
         #expect(!Sections.Section.trending.isCanon)
     }
 
-    @Test("Pinned words EN / DE (§8): Essentials / Kanon, Trending / Im Trend; Manga beside New on All")
+    @Test("Pinned words EN / DE (§8): Essentials / Kanon, Trending / Im Trend, Just added / Frisch; Manga beside New on All")
     func pinnedWords() {
-        let en = [Sections.Section.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics]
+        let en = [Sections.Section.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou, .classics]
             .map { DiscoverIssueCopy.pinnedWord($0, issue: .all, german: false) }
-        #expect(en == ["New", "Season", "Essentials", "Manga", "Trending", "Classics"])
-        let de = [Sections.Section.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics]
+        #expect(en == ["Season", "Trending", "Essentials", "New", "Just added", "Manga", "Classics"])
+        let de = [Sections.Section.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou, .classics]
             .map { DiscoverIssueCopy.pinnedWord($0, issue: .all, german: true) }
-        #expect(de == ["Neu", "Season", "Kanon", "Manga", "Im Trend", "Klassiker"])
+        #expect(de == ["Season", "Im Trend", "Kanon", "Neu", "Frisch", "Manga", "Klassiker"])
         #expect(DiscoverIssueCopy.pinnedWord(.mangaNewToYou, issue: .manga, german: false) == "New")
         #expect(DiscoverIssueCopy.pinnedWord(.tonightShelf, german: true) == "Regal")
         #expect(DiscoverIssueCopy.pinnedWord(.hiddenGem, german: false) == "Gem")
@@ -851,5 +851,66 @@ struct DiscoverReviewFixTests {
                                         length: false, german: false, kindShown: true) == "2018")
         #expect(DiscoverIssueCopy.facts(kind: .manga, year: "2018", formatRaw: "MANGA", episodes: nil, chapters: nil,
                                         length: false, german: false) == "2018 · Manga")
+    }
+
+    @Test("Discover compact leaf plan key labels and quick-menu status copy stay concise in EN and DE")
+    func discoverPlanKeyCompactLabels() {
+        #expect(DiscoverPlanKey.compactLabel(action: .plan, status: nil, kind: .anime, german: false) == "Add")
+        #expect(DiscoverPlanKey.compactLabel(action: .plan, status: nil, kind: .manga, german: true) == "Liste")
+        #expect(DiscoverPlanKey.compactLabel(action: .unplan, status: .planning, kind: .anime, german: false) == "Planned")
+        #expect(DiscoverPlanKey.compactLabel(action: .unplan, status: .planning, kind: .anime, german: true) == "Geplant")
+        #expect(DiscoverPlanKey.compactLabel(action: .edit, status: .current, kind: .anime, german: false) == "Watching")
+        #expect(DiscoverPlanKey.compactLabel(action: .edit, status: .completed, kind: .manga, german: true) == "Abgeschlossen")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.current, kind: .anime, german: false) == "Watching")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.current, kind: .manga, german: false) == "Reading")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.planning, kind: .anime, german: false) == "Plan to watch")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.planning, kind: .manga, german: false) == "Plan to read")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.completed, kind: .anime, german: true) == "Abgeschlossen")
+    }
+
+    @Test("Quick-add menu setStatus saves Watching/Completed, preserves existing progress, and supports Undo")
+    func quickAddSetStatusAndUndo() async throws {
+        let harness = try FacadeHarness()
+        let service = harness.service
+        await harness.signIn()
+        let card = try TasteCard(anime: FirstRunLaneTests.animeCard(77, title: "Frieren"))
+        let plans = TastePlanController()
+
+        // 1. Untracked -> Watching, then Undo removes the bare row.
+        let addWatching = plans.setStatus(card, to: .current, library: service.library, actions: service.libraryActions, german: false)
+        await addWatching?.value
+        #expect(service.library.entry(for: card.key)?.status == .current)
+        #expect(plans.toast?.message == "Added to Watching.")
+        #expect(plans.toast?.undo?.step == .removeNew(.current))
+
+        let undoAdd = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        await undoAdd?.value
+        #expect(service.library.entry(for: card.key) == nil)
+
+        // 2. Existing Watching entry -> Completed preserves progress and Undo restores .current.
+        let savePlan = plans.setStatus(card, to: .planning, library: service.library, actions: service.libraryActions, german: false)
+        await savePlan?.value
+        let markCompleted = plans.setStatus(card, to: .completed, library: service.library, actions: service.libraryActions, german: false)
+        await markCompleted?.value
+        #expect(service.library.entry(for: card.key)?.status == .completed)
+        #expect(plans.toast?.message == "Marked as Completed.")
+        #expect(plans.toast?.undo?.step == .restoreStatus(.planning))
+
+        let undoSwitch = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        await undoSwitch?.value
+        #expect(service.library.entry(for: card.key)?.status == .planning)
+
+        // 3. Removing a bare entry removes it and Undo re-adds the same status.
+        let remove = plans.removeEntry(card, library: service.library, actions: service.libraryActions, german: false)
+        await remove?.value
+        #expect(service.library.entry(for: card.key) == nil)
+        #expect(plans.toast?.undo?.step == .readdBare(.planning))
+
+        let undoRemove = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        await undoRemove?.value
+        #expect(service.library.entry(for: card.key)?.status == .planning)
+
+        await harness.settleSinks()
+        await harness.tearDown()
     }
 }

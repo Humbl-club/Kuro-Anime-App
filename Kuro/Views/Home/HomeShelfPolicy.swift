@@ -45,25 +45,17 @@ enum HomeShelfPolicy {
 
     /// Whether Home shows the prototype's new-account block (`HomeNewAccount`) instead of the shelf.
     /// `latched` is `TastePageCopy.latchNewAccount` over the whole Library, decided once when it first
-    /// loads (ContentView holds it, so the page background and Home agree): while latched, the block
-    /// stays through the block's own one-tap Plans (a planned title never unmounts it under the finger)
-    /// and gives way as soon as the Library holds anything else (an import of watching, completed or
-    /// paused titles; the Library stays `.loaded` through an import, so the latch alone would not end).
-    /// `onlyPlannedTitles`: every Library entry, in both media, is a bare plan (`onlyBarePlans`: what the
-    /// block's Plan key writes; true for an empty Library). Unlatched (not known, or the Library had titles), an
-    /// empty medium shows the block only when the other medium is empty too; with the other medium
-    /// occupied the approved invitation ("Go to your anime") stays.
-    /// `onlyPlannedTitles` for `showsNewAccount`: every entry is a bare plan (`TastePlanAction.isBarePlan`:
-    /// planned, no progress, rating, verdict, notes, repeat count or dates), exactly what the block's Plan key writes. A
-    /// planned title the reader has started (Up next on its page keeps the status PLANNING) ends the
-    /// block, so the started title shows on Home.
+    /// loads (ContentView holds it, so the page background and Home agree): while `starterHold` is active
+    /// (the user tapped a starter pick inside `HomeNewAccount` during this visit), the block stays in
+    /// place so it never unmounts under their finger. Outside `starterHold`, saved Plan-to-Watch / Plan-
+    /// to-Read titles added from Discover, Taste, Search or Collection immediately populate Home.
     static func onlyBarePlans(_ entries: [LibraryEntry]) -> Bool {
         entries.allSatisfy { TastePlanAction.isBarePlan($0) }
     }
 
     static func showsNewAccount(latched: Bool?, onlyPlannedTitles: Bool, scene: HomeShelfScene,
-                                otherMediumOccupied: Bool) -> Bool {
-        if latched == true, onlyPlannedTitles, scene != .inProgress { return true }
+                                otherMediumOccupied: Bool, starterHold: Bool = false) -> Bool {
+        if starterHold, latched == true, onlyPlannedTitles, scene != .inProgress { return true }
         return scene == .invitation && !otherMediumOccupied
     }
 
@@ -122,9 +114,10 @@ enum HomeShelfPolicy {
     }
 
     /// The card whose art may stand for the shelf (the medium word's picture): the first title in
-    /// progress, never a planned one.
+    /// progress, falling back to the first planned title when nothing is in progress.
     static func leadCard(_ cards: [HomeCard]) -> HomeCard? {
         cards.first { isInProgress(listType: $0.listType) }
+            ?? cards.first { $0.listType.uppercased() == "PLANNING" }
     }
 
     // MARK: Anime scenes (prototype Poster Home, PROTOTYPE_SPEC.md §4 "Scene card" / "Also watching")
@@ -137,6 +130,36 @@ enum HomeShelfPolicy {
     static func scenes(_ cards: [HomeCard]) -> (scenes: [HomeCard], alsoWatching: [HomeCard]) {
         let active = cards.filter { isInProgress(listType: $0.listType) }
         return (Array(active.prefix(sceneCount)), Array(active.dropFirst(sceneCount)))
+    }
+
+    /// Splits a Planned-only shelf across up to `foldLimit` items (`sceneCount` lead scene cards +
+    /// up to `foldLimit - sceneCount` grid tiles) and puts the rest behind the disclosure fold.
+    static func plannedStage(_ planned: [HomeCard], foldLimit: Int = 6) -> (scenes: [HomeCard], grid: [HomeCard], overflow: [HomeCard]) {
+        let lead = Array(planned.prefix(sceneCount))
+        let rest = Array(planned.dropFirst(sceneCount))
+        let gridCap = max(0, foldLimit - lead.count)
+        return (lead, Array(rest.prefix(gridCap)), Array(rest.dropFirst(gridCap)))
+    }
+
+    /// Honest metadata line for quiet rows (`"TV · 26 episodes"` / `"Manga · 120 chapters"`), skipping missing fields.
+    static func quietMeta(format: String?, episodes: Int?, chapters: Int?, medium: MediaKind,
+                          german: Bool = KuroLocale.isGerman) -> String? {
+        var parts: [String] = []
+        if let raw = format?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+            let formatted = raw.uppercased() == "TV" ? "TV" : raw.replacingOccurrences(of: "_", with: " ").capitalized
+            parts.append(formatted)
+        }
+        let count = medium == .manga ? chapters : episodes
+        if let count, count > 0 {
+            if medium == .manga {
+                parts.append(german ? (count == 1 ? "1 Kapitel" : "\(count) Kapitel")
+                                    : (count == 1 ? "1 chapter" : "\(count) chapters"))
+            } else {
+                parts.append(german ? (count == 1 ? "1 Folge" : "\(count) Folgen")
+                                    : (count == 1 ? "1 episode" : "\(count) episodes"))
+            }
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// Units released so far, when Home can know it; nil when it cannot (never a guess):

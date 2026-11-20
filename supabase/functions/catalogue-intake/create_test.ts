@@ -176,3 +176,73 @@ Deno.test("the scan window pages with a cursor and runCreate keeps it", async ()
   assert.equal(c.results.next, null, "the end of the list resets the cursor");
   assert.equal((b.results.sample as unknown[]).length, 3);
 });
+
+Deno.test("manga: indexed match RPC links existing AniList-seeded row via case-insensitive synonym without duplicating", async () => {
+  const log: Row[] = [];
+  const rpcCalls: Row[] = [];
+  const rec = {
+    seriesId: 901,
+    title: "chainsaw man",
+    url: "https://www.mangaupdates.com/series/cm",
+    associated: ["Chainsawman"],
+    type: "Manga",
+    year: 2018,
+    status: "18 Volumes (Ongoing)",
+    completed: false,
+    genres: ["Action"],
+    categories: [],
+    authors: [],
+    publishers: [],
+    related: [],
+    bayesianRating: null,
+    ratingVotes: null,
+  };
+  const db = fakeSupabase({
+    tables: {
+      catalogue_source_records: [{ source: "mangaupdates", source_key: "901", medium: "manga", payload: rec }],
+      catalogue_id_links: [],
+      manga: [
+        { id: 42, anilist_id: 105778, title_english: "Chainsaw Man", title_synonyms: ["Chainsawman"], start_date_year: 2018, format: "MANGA" },
+      ],
+    },
+    rpcHandlers: {
+      ...createModel(log),
+      catalogue_find_title_candidates_v1(args: Row, tables: Record<string, Row[]>) {
+        rpcCalls.push(args);
+        const titles = new Set((args.p_titles as string[]).map((t) => t.trim().toLowerCase()));
+        const rows = (tables[String(args.p_medium)] ?? []).filter((r) => {
+          const pool = [r.title_english, r.title_romaji, r.title_native, ...((r.title_synonyms as string[] | undefined) ?? [])]
+            .filter((x): x is string => typeof x === "string")
+            .map((x) => x.trim().toLowerCase());
+          return pool.some((p) => titles.has(p));
+        });
+        return { data: rows, error: null };
+      },
+    } as never,
+  });
+  const r = await create({ supabase: db.client }, "manga", { mode: "insert", minYear: 2015 });
+  assert.equal(rpcCalls.length, 1, "used the indexed Postgres candidate RPC");
+  assert.equal(r.linked, 1);
+  assert.equal(r.created, 0, "existing AniList-seeded manga was linked, never duplicated");
+  assert.equal(db.tables.manga.length, 1);
+  assert.equal(db.tables.catalogue_id_links.find((l) => l.source_key === "901")?.kuro_id, 42);
+});
+
+Deno.test("anime: newly created ANN rows derive season, season_year and release status", async () => {
+  const log: Row[] = [];
+  const db = fakeSupabase({
+    tables: {
+      catalogue_source_records: [REPORT([item(888, "Winter Premiere Show", "2027-01-08", "TV")])],
+      catalogue_id_links: [],
+      anime: [],
+    },
+    rpcHandlers: createModel(log) as never,
+  });
+  const nowMs = Date.UTC(2026, 10, 19);
+  const r = await create({ supabase: db.client, now: () => nowMs }, "anime", { mode: "insert", minYear: 2024 });
+  assert.equal(r.created, 1);
+  const row = db.tables.anime.find((a) => a.title_romaji === "Winter Premiere Show");
+  assert.equal(row?.season, "WINTER");
+  assert.equal(row?.season_year, 2027);
+  assert.equal(row?.status, "NOT_YET_RELEASED");
+});

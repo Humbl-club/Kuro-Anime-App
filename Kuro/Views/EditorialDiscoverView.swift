@@ -321,6 +321,14 @@ struct EditorialDiscoverView: View {
                 DiscoverIssueSwitch(selection: issueBinding, column: column, artRaw: lead?.artRaw)
                     .padding(.top, DiscoverIssueLayout.openingToSwitch)
 
+                DiscoverQuickFindBar(
+                    canSearch: onOpenSearch != nil,
+                    canFilter: true,
+                    onSearch: { onOpenSearch?() },
+                    onFilter: { routes.openBrowse() }
+                )
+                .padding(.top, DiscoverIssueLayout.openingStack)
+
                 DiscoverMoodKeys(kind: moodKind, likeTitle: likeSeed?.kind == moodKind ? likeSeed?.title : nil,
                                  column: column, onOpen: openMood)
                     .padding(.top, DiscoverIssueLayout.moods)
@@ -527,6 +535,7 @@ struct EditorialDiscoverView: View {
         case .essentials, .essentialsManga: return DiscoverMenuCopy.Reason.canon.text(german: german)
         case .currentSeason: return DiscoverMenuCopy.Reason.airing.text(german: german)
         case .trending, .trendingManga: return DiscoverMenuCopy.Reason.popular.text(german: german)
+        case .newlyAdded, .newlyAddedManga: return DiscoverMenuCopy.Reason.newlyAdded.text(german: german)
         case .classics, .classicsManga: return DiscoverMenuCopy.Reason.classic.text(german: german)
         case .tonightShelf, .hiddenGem: return nil
         }
@@ -622,6 +631,10 @@ struct EditorialDiscoverView: View {
                               refines: section == .trending, ownCards: built.ownCards, refinePool: built.refinePool,
                               onSeeAll: { openSeeAll(section) },
                               onSeeAllRefined: { filter in openSeeAll(section, refine: filter) })
+        case .newlyAdded, .newlyAddedManga:
+            DiscoverIssueRail(anchor: anchor(section), title: title, purpose: purpose(section), newMarker: marker,
+                              cards: built.cards, total: built.total, exactCount: countIsExact(section), column: column, gutter: gutter,
+                              onSeeAll: { openSeeAll(section) })
         case .hiddenGem:
             if let gem = vm.hiddenGem {
                 VStack(alignment: .leading, spacing: 0) {
@@ -863,9 +876,11 @@ struct EditorialDiscoverView: View {
             return [DiscoverStory(feature: gem, eyebrow: DiscoverIssueCopy.hiddenGem(german: KuroLocale.isGerman)).card]
         case .mangaNewToYou: return vm.newToYouManga.map { TasteCard(manga: $0) }
         case .trending: return vm.trending.map { TasteCard(anime: $0) }
+        case .newlyAdded: return vm.newlyAdded.map { TasteCard(anime: $0) }
         case .classics: return vm.classics.map { TasteCard(anime: $0) }
         case .essentialsManga: return vm.essentialsManga.map { TasteCard(manga: $0) }
         case .trendingManga: return vm.trendingManga.map { TasteCard(manga: $0) }
+        case .newlyAddedManga: return vm.newlyAddedManga.map { TasteCard(manga: $0) }
         case .classicsManga: return vm.classicsManga.map { TasteCard(manga: $0) }
         }
     }
@@ -1089,9 +1104,9 @@ struct EditorialDiscoverView: View {
         }
 
         // Prefetch covers at the frames' decode size so the next scroll feels instant.
-        let anime = (vm.essentials.prefix(14) + vm.newToYou.prefix(14) + vm.trending.prefix(14) + vm.currentSeason.prefix(10))
+        let anime = (vm.currentSeason.prefix(10) + vm.trending.prefix(14) + vm.essentials.prefix(12) + vm.newToYou.prefix(10) + vm.newlyAdded.prefix(10))
             .compactMap { URL(string: $0.imageURL ?? "") }
-        let manga = (vm.essentialsManga.prefix(14) + vm.newToYouManga.prefix(14) + vm.trendingManga.prefix(14) + vm.classicsManga.prefix(10))
+        let manga = (vm.trendingManga.prefix(14) + vm.newlyAddedManga.prefix(10) + vm.essentialsManga.prefix(12) + vm.newToYouManga.prefix(10))
             .compactMap { URL(string: $0.imageURL ?? "") }
         let urls = Array((anime + manga).prefix(70))
         if !urls.isEmpty {
@@ -1102,8 +1117,8 @@ struct EditorialDiscoverView: View {
     /// Every title the page could show (the franchise reader's batch).
     private var allKeys: [MediaKey] {
         var keys: [MediaKey] = []
-        keys += (vm.essentials + vm.classics + vm.newToYou + vm.trending + vm.currentSeason).map { MediaKey(kind: .anime, id: $0.id) }
-        keys += (vm.essentialsManga + vm.classicsManga + vm.newToYouManga + vm.trendingManga).map { MediaKey(kind: .manga, id: $0.id) }
+        keys += (vm.essentials + vm.classics + vm.newToYou + vm.trending + vm.currentSeason + vm.newlyAdded).map { MediaKey(kind: .anime, id: $0.id) }
+        keys += (vm.essentialsManga + vm.classicsManga + vm.newToYouManga + vm.trendingManga + vm.newlyAddedManga).map { MediaKey(kind: .manga, id: $0.id) }
         keys += (vm.becauseYou + vm.tonightShelf).map(\.libraryKey)
         if let featured = vm.featured { keys.append(MediaKey(kind: .anime, id: featured.id)) }
         if let feature = vm.dailyFeature { keys.append(MediaKey(kind: feature.kind, id: feature.mediaId)) }
@@ -1390,7 +1405,7 @@ enum DiscoverIssueSections {
 
     enum Section: Hashable, CaseIterable {
         case becauseYou, newToYou, tonightShelf, currentSeason, essentials, hiddenGem, mangaNewToYou, trending,
-             classics, essentialsManga, trendingManga, classicsManga
+             newlyAdded, classics, essentialsManga, trendingManga, newlyAddedManga, classicsManga
 
         /// The section's See all route (nil: Tonight's shelf and the Hidden gem have none).
         var route: EditorialDiscoverRoute? {
@@ -1401,9 +1416,11 @@ enum DiscoverIssueSections {
             case .essentials: return .animeEssentials
             case .mangaNewToYou: return .mangaNewToYou
             case .trending: return .animeTrending
+            case .newlyAdded: return .animeNewlyAdded
             case .classics: return .animeClassics
             case .essentialsManga: return .mangaEssentials
             case .trendingManga: return .mangaTrending
+            case .newlyAddedManga: return .mangaNewlyAdded
             case .classicsManga: return .mangaClassics
             case .tonightShelf, .hiddenGem: return nil
             }
@@ -1483,18 +1500,24 @@ enum DiscoverIssueSections {
         return .none
     }
 
-    /// The D7 cap candidates in page order (sections with content only; flagged ones behind their flag).
+    /// The D7 cap candidates in curated AniList-style first-look order (what's airing & trending
+    /// right now, what's essential, personal picks, then fresh catalogue additions; flagged rails
+    /// behind their flag).
     static func candidates(_ input: Inputs) -> [Section] {
         var sections: [Section] = []
         let gem = input.realmRails && input.hiddenGemKind.map { matches(input.issue, kind: $0) } == true
         switch input.issue {
         case .manga:
-            if input.mangaNewToYou { sections.append(.mangaNewToYou) }
-            if input.essentialsManga { sections.append(.essentialsManga) }
-            if gem { sections.append(.hiddenGem) }
             if input.trendingManga { sections.append(.trendingManga) }
+            if input.newlyAddedManga { sections.append(.newlyAddedManga) }
+            if input.essentialsManga { sections.append(.essentialsManga) }
+            if input.mangaNewToYou { sections.append(.mangaNewToYou) }
+            if gem { sections.append(.hiddenGem) }
             if input.classicsManga { sections.append(.classicsManga) }
         case .all, .anime:
+            if input.currentSeason { sections.append(.currentSeason) }
+            if input.trending { sections.append(.trending) }
+            if input.essentials { sections.append(.essentials) }
             // Because-You replaces New to you when the taste rail has enough signal (mixed anime +
             // manga feed: All only).
             if input.issue == .all, input.becauseYou {
@@ -1503,11 +1526,9 @@ enum DiscoverIssueSections {
                 sections.append(.newToYou)
             }
             if input.realmRails, input.tonightShelf { sections.append(.tonightShelf) }
-            if input.currentSeason { sections.append(.currentSeason) }
-            if input.essentials { sections.append(.essentials) }
+            if input.newlyAdded { sections.append(.newlyAdded) }
             if gem { sections.append(.hiddenGem) }
             if input.issue == .all, input.mangaNewToYou { sections.append(.mangaNewToYou) }
-            if input.trending { sections.append(.trending) }
             if input.classics { sections.append(.classics) }
         }
         return sections
@@ -1541,13 +1562,10 @@ enum DiscoverIssueSections {
         case .all:
             if input.essentialsManga { links.append(.route(.mangaEssentials)) }
             if input.topRated { links.append(.route(.animeTopRated)) }
-            if input.newlyAdded { links.append(.route(.animeNewlyAdded)) }
         case .anime:
             if input.topRated { links.append(.route(.animeTopRated)) }
-            if input.newlyAdded { links.append(.route(.animeNewlyAdded)) }
         case .manga:
             if input.topRatedManga { links.append(.route(.mangaTopRated)) }
-            if input.newlyAddedManga { links.append(.route(.mangaNewlyAdded)) }
         }
         for section in dropped {
             switch section {
@@ -1575,6 +1593,8 @@ enum DiscoverIssueSections {
         case .mangaNewToYou: return DiscoverIssueCopy.purposeMangaNewToYou(german: german)
         case .trending: return DiscoverIssueCopy.purposeTrending(manga: false, german: german)
         case .trendingManga: return DiscoverIssueCopy.purposeTrending(manga: true, german: german)
+        case .newlyAdded: return DiscoverIssueCopy.purposeNewlyAdded(manga: false, german: german)
+        case .newlyAddedManga: return DiscoverIssueCopy.purposeNewlyAdded(manga: true, german: german)
         case .classics: return DiscoverIssueCopy.purposeClassics(manga: false, german: german)
         case .classicsManga: return DiscoverIssueCopy.purposeClassics(manga: true, german: german)
         }
@@ -1591,7 +1611,7 @@ enum DiscoverIssueSections {
         case .mangaNewToYou: return drawsMangaNewToYouAsRail(issue) ? DiscoverIssueLayout.railCap : 1 + trioColumns
         case .currentSeason: return trioColumns
         case .essentials, .essentialsManga, .classics, .classicsManga: return indexRows
-        case .trending, .trendingManga, .tonightShelf: return DiscoverIssueLayout.railCap
+        case .trending, .trendingManga, .newlyAdded, .newlyAddedManga, .tonightShelf: return DiscoverIssueLayout.railCap
         case .hiddenGem: return 1
         }
     }

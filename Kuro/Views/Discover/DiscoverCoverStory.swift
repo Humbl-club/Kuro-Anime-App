@@ -103,6 +103,10 @@ struct DiscoverCoverStory: View {
         kind == .lead ? DiscoverIssueLayout.coverBannerAspect : DiscoverIssueLayout.featureBannerAspect
     }
 
+    private var usesWarmPaperSpread: Bool {
+        kind == .feature && (story.bannerRaw == nil || story.bannerRaw?.isEmpty == true)
+    }
+
     var body: some View {
         let material = material
         Group {
@@ -112,11 +116,21 @@ struct DiscoverCoverStory: View {
                 spread(material: material)
             }
         }
-        .background(
-            LinearGradient(colors: [material.base.color, material.deep.color],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .background {
+            if usesWarmPaperSpread {
+                material.wash.color
+            } else {
+                LinearGradient(colors: [material.base.color, material.deep.color],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 5))
+        .overlay {
+            if usesWarmPaperSpread {
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(material.edge.color, lineWidth: 1)
+            }
+        }
         .shadow(color: Color(hex: "19221B", opacity: Double(0x0A) / 255), radius: 1, y: 1)
         .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil, value: material)
     }
@@ -309,7 +323,7 @@ struct DiscoverCoverStory: View {
                             .font(.kuroCustom(kind == .feature ? 17 : (compact ? 18 : 20), weight: .semibold,
                                               relativeTo: .headline, maxSize: 36))
                             .tracking(kind == .feature ? -0.35 : -0.5)
-                            .foregroundStyle(HomeInk.footTitle)
+                            .foregroundStyle(usesWarmPaperSpread ? Color.kuroInk : HomeInk.footTitle)
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : (compact ? 2 : 3))
                         if kind != .feature, let argument = story.argument {
                             Text(argument)
@@ -330,15 +344,19 @@ struct DiscoverCoverStory: View {
                 Spacer(minLength: 8)
 
                 let facts = withKind(story.facts(length: kind == .feature, german: german, kindShown: kindKicker))
+                let spreadPlanKey = DiscoverPlanKey(card: story.card,
+                                                    variant: usesWarmPaperSpread ? .leaf : .landscape,
+                                                    compact: compact,
+                                                    trailingAligned: false)
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .center, spacing: 8) {
                         if let facts { factText(facts) }
                         Spacer(minLength: 0)
-                        planKey.fixedSize()
+                        spreadPlanKey.fixedSize()
                     }
                     VStack(alignment: .leading, spacing: 6) {
                         if let facts { factText(facts) }
-                        planKey
+                        spreadPlanKey
                     }
                 }
             }
@@ -351,7 +369,7 @@ struct DiscoverCoverStory: View {
     private func factText(_ facts: String) -> some View {
         Text(facts)
             .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 22))
-            .foregroundStyle(HomeInk.footFact)
+            .foregroundStyle(usesWarmPaperSpread ? Color.kuroMuted : HomeInk.footFact)
             .lineLimit(1)
             .accessibilityHidden(true)
     }

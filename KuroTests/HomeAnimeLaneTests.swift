@@ -34,23 +34,31 @@ struct HomeAnimeLaneTests {
         #expect(HomeOpeningLine.kicker(newAccount: false, medium: .anime, german: false) == "Now watching")
         #expect(HomeOpeningLine.kicker(newAccount: false, medium: .manga, german: false) == "Now reading")
         #expect(HomeOpeningLine.kicker(newAccount: true, medium: .anime, german: false) == "Your collection")
+        #expect(HomeOpeningLine.plannedKicker(medium: .anime, german: false) == "Plan to watch")
+        #expect(HomeOpeningLine.plannedKicker(medium: .manga, german: false) == "Plan to read")
+        #expect(HomeOpeningLine.plannedKicker(medium: .anime, german: true) == "Vorgemerkt")
+        #expect(HomeOpeningLine.plannedHeadline(count: 1, german: false) == "1 ready to start.")
+        #expect(HomeOpeningLine.plannedHeadline(count: 4, german: false) == "4 ready to start.")
+        #expect(HomeOpeningLine.plannedHeadline(count: 4, german: true) == "4 bereit zum Starten.")
     }
 
-    @Test("New-account Home (Task 10): latched new accounts keep the block through Plans; the invitation stays for an empty medium beside an occupied one")
+    @Test("New-account Home (Task 10): starter picks keep the block when held; saved plans elsewhere show on Home")
     func newAccountPresentation() {
-        func shows(_ latched: Bool?, planned: Bool = true, _ scene: HomeShelfScene, other: Bool = false) -> Bool {
+        func shows(_ latched: Bool?, planned: Bool = true, _ scene: HomeShelfScene, other: Bool = false, starterHold: Bool = false) -> Bool {
             HomeShelfPolicy.showsNewAccount(latched: latched, onlyPlannedTitles: planned, scene: scene,
-                                            otherMediumOccupied: other)
+                                            otherMediumOccupied: other, starterHold: starterHold)
         }
-        // Latched new account: the block stays through its own Plans (planned titles only).
+        // Latched new account: empty invitation stays; tapping starter picks in-place holds the block.
         #expect(shows(true, .invitation))
-        #expect(shows(true, .saved), "the first one-tap Plan must not unmount the block")
-        #expect(shows(true, .invitation, other: true), "a Plan in the other medium keeps the block here too")
+        #expect(shows(true, .saved, starterHold: true), "starter picks tapped inside HomeNewAccount must not unmount it")
+        #expect(!shows(true, .saved, starterHold: false), "plans saved on Discover/Taste/Search immediately show on Home")
+        #expect(shows(true, .invitation, other: true, starterHold: true), "tapping starter picks keeps the block here when held")
+        #expect(!shows(true, .invitation, other: true, starterHold: false), "saved plans in the other medium show the approved invitation")
         // It gives way to a title in progress, and to an import of anything but planned titles (the
         // Library stays `.loaded` through an import, so the latch itself does not end).
-        #expect(!shows(true, .inProgress, other: true))
-        #expect(!shows(true, planned: false, .saved), "an import of completed titles ends the block")
-        #expect(!shows(true, planned: false, .invitation, other: true),
+        #expect(!shows(true, .inProgress, other: true, starterHold: true))
+        #expect(!shows(true, planned: false, .saved, starterHold: true), "an import of completed titles ends the block")
+        #expect(!shows(true, planned: false, .invitation, other: true, starterHold: true),
                 "an import into the other medium leaves the approved invitation here")
         // Not latched: an empty medium with the other occupied keeps the approved invitation.
         #expect(!shows(false, .invitation, other: true))

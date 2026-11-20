@@ -178,7 +178,7 @@ struct DiscoverCoverTile: View {
             if showsPlanKey {
                 DiscoverPlanKey(card: card, variant: .leaf, compact: true)
                     .frame(width: width)
-                    .padding(.top, 6)
+                    .padding(.top, 2)
             }
         }
         .frame(width: width, alignment: .topLeading)

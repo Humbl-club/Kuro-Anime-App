@@ -43,7 +43,10 @@ struct DetailPathwayTests {
         #expect(before.status == .planning)
         #expect(HomeShelfPolicy.showsNewAccount(latched: true, onlyPlannedTitles: true,
                                                 scene: HomeShelfPolicy.scene(activeListTypes: [], libraryStatuses: [before.status]),
-                                                otherMediumOccupied: false))
+                                                otherMediumOccupied: false, starterHold: true))
+        #expect(!HomeShelfPolicy.showsNewAccount(latched: true, onlyPlannedTitles: true,
+                                                 scene: HomeShelfPolicy.scene(activeListTypes: [], libraryStatuses: [before.status]),
+                                                 otherMediumOccupied: false))
 
         let outcome = await DetailAdvance.advance(key, from: before.status, to: 1, actions: graph.libraryActions)
         let change = try #require(outcome.change, "the +1 was not applied: \(String(describing: outcome.error))")

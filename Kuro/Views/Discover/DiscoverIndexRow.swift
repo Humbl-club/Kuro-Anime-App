@@ -109,7 +109,7 @@ struct DiscoverIndexRow: View {
     }
 
     private var key: some View {
-        DiscoverPlanKey(card: card, variant: .leaf, compact: true)
+        DiscoverPlanKey(card: card, variant: .leaf, compact: true, trailingAligned: !dynamicTypeSize.isAccessibilitySize)
     }
 
     private var openButton: some View {

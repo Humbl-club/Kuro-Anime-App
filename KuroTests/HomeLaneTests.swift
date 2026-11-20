@@ -35,8 +35,9 @@ struct HomeLaneTests {
         #expect(split.planned.map(\.mediaId) == [1, 3])
         #expect(split.paused.map(\.mediaId) == [5], "paused titles get their own labelled row")
         #expect(split.saved.isEmpty)
-        #expect(HomeShelfPolicy.leadCard(cards)?.mediaId == 2, "a planned title never stands for the shelf")
-        #expect(HomeShelfPolicy.leadCard(try [Self.card(1, "PLANNING")]) == nil)
+        #expect(HomeShelfPolicy.leadCard(cards)?.mediaId == 2, "an in-progress title always wins over a planned one")
+        #expect(HomeShelfPolicy.leadCard(try [Self.card(1, "PLANNING")])?.mediaId == 1,
+                "a planned-only shelf lights the medium switch with its first planned card")
         #expect(HomeShelfPolicy.isInProgress(listType: "current"))
         #expect(!HomeShelfPolicy.isInProgress(listType: "PLANNING"))
     }

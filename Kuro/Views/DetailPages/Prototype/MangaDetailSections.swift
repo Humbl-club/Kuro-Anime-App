@@ -665,7 +665,12 @@ struct MangaDetailPage: View {
             content.bundle = bundle
         }
         #endif
-        await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "MANGA", mediaId: manga.id, ladder: ladder, reason: "detail_open")
+        pending.remove(.ladder)
+        // Post-paint background enqueue: never block the detail skeleton on a server write RPC.
+        let refreshMangaId = manga.id
+        Task { [catalog] in
+            await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "MANGA", mediaId: refreshMangaId, ladder: ladder, reason: "detail_open")
+        }
     }
 
     #if canImport(Supabase)
@@ -703,10 +708,12 @@ struct MangaDetailPage: View {
     }
 
     /// "More like this." once per account and title; an empty answer hides the section.
+    /// Yields briefly so above-the-fold hero/chapters/read-links win the initial connection burst.
     private func loadSimilar() async {
         guard preview == nil, let recommendations else { return }
         let key = DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id)
         if similarKey != key { similar = []; similarKey = nil }
+        do { try await Task.sleep(for: .milliseconds(120)) } catch { return }
         let items = await recommendations.fetchSimilar(kind: .manga, id: manga.id, limit: 12)
         guard !Task.isCancelled, key == DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id) else { return }
         similar = items

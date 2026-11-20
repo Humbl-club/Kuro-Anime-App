@@ -284,7 +284,7 @@ struct DiscoverUsabilitySnapshotTests {
     private static func page(_ issue: EditorialDiscoverView.DiscoverMediaTypeFilter, harness: DCDiscoverHarness,
                              visits: UserDefaults, monitor: NetworkMonitor? = nil) -> AnyView {
         let canvas = issue == .manga ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
-        return inject(EditorialDiscoverView(issue: .constant(issue)).background(canvas),
+        return inject(EditorialDiscoverView(issue: .constant(issue), onOpenSearch: {}).background(canvas),
                       graph: harness.graph, visits: visits, monitor: monitor ?? NetworkMonitor())
     }
 

@@ -2,15 +2,15 @@ import KuroCore
 import SwiftUI
 import UIKit
 
-/// The one Home field: mountain when the shelf is empty (or nothing is in progress), the first
-/// in-progress title's art when it is not.
+/// The one Home field: mountain when the shelf is empty (or has no lead cover), the lead
+/// in-progress or first planned title's art when it is not.
 /// Pinned behind the status bar and header on Home; the selected Anime/Manga word masks the same image.
 struct HomePagePicture: View {
     @Environment(HomeStore.self) private var home
     var isActive: Bool = true
     var magnify: CGFloat = 1.7
 
-    /// The first title in progress; a planned title never stands for the shelf.
+    /// The first title in progress, falling back to the first planned title.
     private var coverCard: HomeCard? {
         HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
     }
@@ -68,7 +68,7 @@ struct HomePagePictureFill: View {
     @Environment(HomeStore.self) private var home
     var fallback: Fallback = .solid
 
-    /// The first title in progress; a planned title never stands for the shelf.
+    /// The first title in progress, falling back to the first planned title.
     private var coverCard: HomeCard? {
         HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
     }

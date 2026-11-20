@@ -99,7 +99,7 @@ struct ClubRoomCard: View {
     private var fan: some View {
         HStack(spacing: ClubRoomLayout.fanOverlap) {
             ForEach(Array(covers.enumerated()), id: \.offset) { _, url in
-                KuroCachedAsyncImage(url: url, maxPixelSize: 120) { phase in
+                KuroCachedAsyncImage(url: url, maxPixelSize: 180) { phase in
                     if case .success(let image) = phase { image.resizable().scaledToFill() }
                     else { HomeInk.posterFill }
                 }

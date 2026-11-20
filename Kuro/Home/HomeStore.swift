@@ -58,6 +58,8 @@ final class HomeStore: AccountScopedState {
     private var activePageToken: UUID?
     private var loadingPending = false
     private var refreshTask: Task<Void,Never>?
+    private var otherMediumRefreshTask: Task<Void,Never>?
+    private var staleMedia: Set<String> = []
     private var refreshDeferrals = 0
     private var refreshDeferred = false
     private var snapshotAccount: AccountContext?
@@ -69,6 +71,8 @@ final class HomeStore: AccountScopedState {
     #endif
     private let accountSession: AccountSessionCoordinator
     private let library: LibraryStore
+    /// Zero-I/O in-memory lookup wired by composition so adding a brand-new title populates Home at 0 ms.
+    @ObservationIgnored var cardSeedLookup: (@MainActor (MediaKey) -> HomeCardSeed?)?
 
     #if canImport(Supabase)
     init(client: SupabaseClient?, accountSession: AccountSessionCoordinator, library: LibraryStore, outbox: ProgressOutbox? = nil, progressSender: (any HomeProgressSending)? = nil, progressWritesEnabled: @escaping @MainActor @Sendable () -> Bool = { true }, personalSnapshots: HomePersonalSnapshotCache = HomePersonalSnapshotCache()) {
@@ -134,6 +138,8 @@ final class HomeStore: AccountScopedState {
         library.cancelProgressWork()
         refreshTask?.cancel()
         refreshTask = nil
+        otherMediumRefreshTask?.cancel()
+        otherMediumRefreshTask = nil
         refreshDeferrals = 0
         refreshDeferred = false
         eventPageToken = nil
@@ -158,6 +164,7 @@ final class HomeStore: AccountScopedState {
         permissionGeneration += 1
         anime = nil
         manga = nil
+        staleMedia.removeAll()
         snapshotAccount = nil
         cachedSnapshotDates = [:]
         loadState = .idle
@@ -168,6 +175,8 @@ final class HomeStore: AccountScopedState {
         medium = "anime"
         mediumSelectionGeneration = 0
     }
+
+    func isStale(medium target: String) -> Bool { staleMedia.contains(target) }
 
     var hasCachedFoundationMetadata: Bool {
         guard snapshotAccount == accountSession.current, !cachedSnapshotDates.isEmpty else { return false }
@@ -280,7 +289,7 @@ final class HomeStore: AccountScopedState {
         if let userId = accountSession.current?.userId.lowercased() {
             UserDefaults.standard.set(next, forKey: "kuro.home.medium.\(userId)")
         }
-        if bundle == nil { Task { await load() } }
+        if bundle == nil || staleMedia.contains(next) { Task { await load() } }
     }
 
     func restoreMedium() {
@@ -330,6 +339,7 @@ final class HomeStore: AccountScopedState {
             }
             loadState = .loaded
             failureIsOffline = false
+            staleMedia.remove(requested)
             cachedSnapshotDates[requested] = nil
             statusMessage = nil
             await persistPersonalSnapshot(bundle, for: account)
@@ -379,6 +389,7 @@ final class HomeStore: AccountScopedState {
                     if loaded.homeRevision >= (prior?.homeRevision ?? 0) {
                         if requested == "manga" { manga=loaded } else { anime=loaded }
                     }
+                    staleMedia.remove(requested)
                     cachedSnapshotDates[requested] = nil
                     await persistPersonalSnapshot(loaded, for: account)
                     adopted=true; break
@@ -588,24 +599,99 @@ final class HomeStore: AccountScopedState {
     func libraryDidChange(_ change: LibraryChange) {
         guard accountSession.isCurrent(change.account) else { return }
         guard !change.isProgressOnly else { return }
-        // Progress receipts patch locally. Add/remove/status changes need a fresh bounded bundle.
-        if !change.isProgressOnly { requestLibraryRefresh() }
+        let changedMedium = change.key.kind == .manga ? "manga" : "anime"
+        applyLocalLibraryChange(change, medium: changedMedium)
+        staleMedia.insert(changedMedium)
+        // Progress receipts patch locally. Add/remove/status changes need a fresh bounded bundle
+        // for whichever medium changed so switching Anime <-> Manga never shows stale shelves.
+        if changedMedium == medium {
+            requestLibraryRefresh()
+        } else {
+            requestBackgroundMediumRefresh(changedMedium)
+        }
+    }
+
+    private func applyLocalLibraryChange(_ change: LibraryChange, medium target: String) {
+        let currentBundle = target == "manga" ? manga : anime
+        let seed = change.current != nil ? cardSeedLookup?(change.key) : nil
+        guard let patched = currentBundle?.applyingLibraryChange(
+            mediaId: change.key.id,
+            status: change.current?.status,
+            progress: change.current?.progress,
+            seed: seed
+        ) else { return }
+        if target == "manga" { manga = patched } else { anime = patched }
     }
 
     func beginLibraryBatch() { refreshDeferrals += 1 }
     func endLibraryBatch() {
         refreshDeferrals = max(0,refreshDeferrals-1)
-        if refreshDeferrals == 0,refreshDeferred { refreshDeferred=false; requestLibraryRefresh() }
+        if refreshDeferrals == 0,refreshDeferred {
+            refreshDeferred=false
+            if staleMedia.contains(medium) { requestLibraryRefresh() }
+            let other = medium == "manga" ? "anime" : "manga"
+            if staleMedia.contains(other) { requestBackgroundMediumRefresh(other) }
+        }
     }
     private func requestLibraryRefresh() {
         if refreshDeferrals > 0 { refreshDeferred=true; return }
         refreshTask?.cancel()
         let account=accountSession.current
         refreshTask=Task { [weak self] in
-            do { try await Task.sleep(for:.milliseconds(150)) } catch { return }
+            do { try await Task.sleep(for:.milliseconds(60)) } catch { return }
             guard let self,!Task.isCancelled,self.accountSession.isCurrent(account) else { return }
             await self.load()
         }
+    }
+
+    private func requestBackgroundMediumRefresh(_ target: String) {
+        if refreshDeferrals > 0 { refreshDeferred = true; return }
+        // Only refresh the non-selected medium in the background when it already has a loaded bundle;
+        // an unloaded medium stays marked in `staleMedia` and fetches on first selection.
+        guard (target == "manga" ? manga : anime) != nil else { return }
+        otherMediumRefreshTask?.cancel()
+        let account = accountSession.current
+        otherMediumRefreshTask = Task { [weak self] in
+            do { try await Task.sleep(for: .milliseconds(60)) } catch { return }
+            guard let self, !Task.isCancelled, self.accountSession.isCurrent(account) else { return }
+            await self.refreshOtherMedium(target, for: account)
+        }
+    }
+
+    private func refreshOtherMedium(_ requested: String, for account: AccountContext?) async {
+        guard let account, accountSession.isCurrent(account) else { return }
+        let generation = account.generation
+        let permissions = permissionGeneration
+        #if canImport(Supabase)
+        guard let client else { return }
+        do {
+            let loaded: HomeBundle = try await accountSession.withCredentialLease(for: account) {
+                try await client.rpc("home_bundle_v1", params: RPCHomeBundleParams(
+                    p_medium: requested,
+                    p_window_days: 7,
+                    p_active_limit: 12,
+                    p_event_limit: 20,
+                    p_cursor: nil
+                ))
+                .execute()
+                .value
+            }
+            guard accountSession.current?.generation == generation,
+                  permissions == permissionGeneration else { return }
+            let prior = requested == "manga" ? manga : anime
+            if loaded.homeRevision >= (prior?.homeRevision ?? 0) {
+                if requested == "manga" { manga = loaded } else { anime = loaded }
+            }
+            staleMedia.remove(requested)
+            cachedSnapshotDates[requested] = nil
+            await persistPersonalSnapshot(loaded, for: account)
+        } catch {
+            // Keep `requested` in `staleMedia` so switching to it retries cleanly.
+            #if DEBUG
+            print("[Home] background \(requested) refresh failed: \(error.localizedDescription)")
+            #endif
+        }
+        #endif
     }
 
     func restorePendingProjection() async {

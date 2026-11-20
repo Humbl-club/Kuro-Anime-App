@@ -286,6 +286,35 @@ final class AppComposition {
         let home = HomeStore(client: client, accountSession: accountSession, library: wiring.store,
             outbox: progressOutbox,
             progressWritesEnabled: { shell.flags.seriesFoundationV1Enabled })
+        home.cardSeedLookup = { [weak catalog = publicData.catalog, weak discovery = publicData.discovery] key in
+            switch key.kind {
+            case .anime:
+                if let anime = catalog?.animeDetailCache[key.id] {
+                    return HomeCardSeed(
+                        title: anime.displayTitle,
+                        coverImage: anime.coverImageLarge ?? anime.coverImageMedium,
+                        bannerImage: anime.bannerImage,
+                        format: anime.format,
+                        episodes: anime.episodeCount,
+                        chapters: nil,
+                        volumes: nil
+                    )
+                }
+            case .manga:
+                if let manga = catalog?.mangaDetailCache[key.id] {
+                    return HomeCardSeed(
+                        title: manga.displayTitle,
+                        coverImage: manga.coverImageLarge ?? manga.coverImageMedium,
+                        bannerImage: nil,
+                        format: manga.format,
+                        episodes: nil,
+                        chapters: manga.chapterCount,
+                        volumes: manga.volumeCount
+                    )
+                }
+            }
+            return discovery?.cachedHomeCardSeed(for: key)
+        }
         let libraryActions = makeLibraryActions(
             accountSession: accountSession,
             library: wiring.store,

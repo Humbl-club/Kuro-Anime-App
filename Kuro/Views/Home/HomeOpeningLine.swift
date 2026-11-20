@@ -44,6 +44,18 @@ enum HomeOpeningLine {
         }
     }
 
+    /// Kicker for a shelf holding planned titles when nothing is currently in progress.
+    static func plannedKicker(medium: MediaKind, german: Bool = KuroLocale.isGerman) -> String {
+        if german { return "Vorgemerkt" }
+        return medium == .manga ? "Plan to read" : "Plan to watch"
+    }
+
+    /// Right-aligned opening headline for a Planned-only shelf.
+    static func plannedHeadline(count: Int, german: Bool = KuroLocale.isGerman) -> String {
+        if german { return count == 1 ? "1 bereit zum Starten." : "\(count) bereit zum Starten." }
+        return count == 1 ? "1 ready to start." : "\(count) ready to start."
+    }
+
     /// The caught-up quiet card's line (amendment 3).
     static func quietLine(german: Bool = KuroLocale.isGerman) -> String {
         german ? "Heute nichts Neues. Bleib in deinem Tempo." : "Nothing new today. Stay at your own pace."

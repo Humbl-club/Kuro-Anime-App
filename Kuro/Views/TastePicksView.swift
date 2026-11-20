@@ -631,6 +631,28 @@ nonisolated enum TastePlanCopy {
 
     static func undo(german: Bool) -> String { german ? "Rückgängig" : "Undo" }
     static func dismiss(german: Bool) -> String { german ? "Schließen" : "Dismiss" }
+
+    static func statusMessage(_ status: ListStatus, kind: MediaKind, german: Bool) -> String {
+        switch (status, kind, german) {
+        case (.current, .anime, false): return "Added to Watching."
+        case (.current, .anime, true): return "Zu Schaue ich hinzugefügt."
+        case (.current, .manga, false): return "Added to Reading."
+        case (.current, .manga, true): return "Zu Lese ich hinzugefügt."
+        case (.planning, .anime, false): return "Added to Plan to Watch."
+        case (.planning, .manga, false): return "Added to Plan to Read."
+        case (.planning, _, true): return "Zu Geplant hinzugefügt."
+        case (.completed, _, false): return "Marked as Completed."
+        case (.completed, _, true): return "Als Abgeschlossen markiert."
+        case (.paused, _, false): return "Moved to Paused."
+        case (.paused, _, true): return "Auf Pausiert gesetzt."
+        case (.dropped, _, false): return "Moved to Dropped."
+        case (.dropped, _, true): return "Auf Abgebrochen gesetzt."
+        case (.repeating, .anime, false): return "Marked as Rewatching."
+        case (.repeating, .anime, true): return "Als Rewatch markiert."
+        case (.repeating, .manga, false): return "Marked as Rereading."
+        case (.repeating, .manga, true): return "Als Reread markiert."
+        }
+    }
 }
 
 /// The Plan keys' writer for one page (Taste, or the new-account Home): plans through
@@ -648,10 +670,27 @@ final class TastePlanController {
     }
 
     struct Undo: Equatable {
-        enum Step: Equatable { case remove, replan }
+        enum Step: Equatable {
+            case remove
+            case replan
+            case removeNew(ListStatus)
+            case restoreStatus(ListStatus)
+            case readdBare(ListStatus)
+        }
         let key: MediaKey
         let step: Step
         let account: AccountContext
+    }
+
+    /// True when the row has no progress, notes, rating, verdict, repeats or dates that removal would lose.
+    static func isBareEntry(_ entry: LibraryEntry) -> Bool {
+        entry.progress == 0
+            && (entry.notes?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && entry.rating == nil
+            && entry.verdict == nil
+            && entry.repeatCount == 0
+            && (entry.sourceMetadata?.startedRaw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && (entry.sourceMetadata?.finishedRaw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
 
     /// One durable Plan result (Discover usability 2026-11-04, R4): the key with `stampsOnConfirm`
@@ -708,6 +747,65 @@ final class TastePlanController {
         }
     }
 
+    /// Sets one title's status directly from a quick-add menu (Watching/Reading, Planned, Completed).
+    /// Existing entries are updated with `LibraryEdit(status: .set(status))` so progress, notes and
+    /// ratings are preserved; Undo restores the previous status or removes a newly created bare row.
+    @discardableResult
+    func setStatus(_ card: TasteCard, to status: ListStatus, library: LibraryStore, actions: LibraryActions,
+                   german: Bool) -> Task<Void, Never>? {
+        let key = card.key
+        let previous = library.entry(for: key)
+        if previous?.status == status { return nil }
+        guard let account = actions.accountSession.current, !inFlight.contains(key) else { return nil }
+        inFlight.insert(key)
+        let kind = card.media.kind
+        return Task.immediate { @MainActor [weak self] in
+            let outcome: LibraryOutcome
+            if previous == nil {
+                outcome = await actions.save(key, status: status)
+            } else {
+                outcome = await actions.apply(LibraryEdit(status: .set(status)), to: key, createIfMissing: status)
+            }
+            guard let self else { return }
+            self.inFlight.remove(key)
+            guard actions.accountSession.isCurrent(account) else { return }
+            guard case .applied = outcome else {
+                self.record(key, .failed)
+                self.show(TastePlanCopy.message(.failed, german: german), undo: nil)
+                return
+            }
+            self.record(key, .added)
+            let undoStep: Undo.Step = previous.map { .restoreStatus($0.status) } ?? .removeNew(status)
+            self.show(TastePlanCopy.statusMessage(status, kind: kind, german: german),
+                      undo: Undo(key: key, step: undoStep, account: account))
+        }
+    }
+
+    /// Removes a bare entry from a quick-add menu, with 1-tap Undo restoring the same status.
+    @discardableResult
+    func removeEntry(_ card: TasteCard, library: LibraryStore, actions: LibraryActions,
+                     german: Bool) -> Task<Void, Never>? {
+        let key = card.key
+        guard let previous = library.entry(for: key), Self.isBareEntry(previous) else { return nil }
+        guard let account = actions.accountSession.current, !inFlight.contains(key) else { return nil }
+        inFlight.insert(key)
+        let previousStatus = previous.status
+        return Task.immediate { @MainActor [weak self] in
+            let outcome = await actions.remove(key)
+            guard let self else { return }
+            self.inFlight.remove(key)
+            guard actions.accountSession.isCurrent(account) else { return }
+            guard case .applied = outcome else {
+                self.record(key, .failed)
+                self.show(TastePlanCopy.message(.failed, german: german), undo: nil)
+                return
+            }
+            self.record(key, .removed)
+            self.show(TastePlanCopy.message(.removed, german: german),
+                      undo: Undo(key: key, step: .readdBare(previousStatus), account: account))
+        }
+    }
+
     /// The toast's Undo: reverses the change it reports, once.
     @discardableResult
     func undo(library: LibraryStore, actions: LibraryActions, german: Bool) -> Task<Void, Never>? {
@@ -722,6 +820,56 @@ final class TastePlanController {
         case .replan:
             guard library.entry(for: undo.key) == nil else { return nil }
             return write(undo.key, step: .undoPlan, actions: actions, german: german)
+        case .removeNew(let expectedStatus):
+            guard let entry = library.entry(for: undo.key),
+                  entry.status == expectedStatus,
+                  Self.isBareEntry(entry) else { return nil }
+            return write(undo.key, step: .undoRemove, actions: actions, german: german)
+        case .restoreStatus(let previousStatus):
+            guard library.entry(for: undo.key) != nil else { return nil }
+            return writeUndoRestore(undo.key, status: previousStatus, account: undo.account, actions: actions, german: german)
+        case .readdBare(let previousStatus):
+            guard library.entry(for: undo.key) == nil else { return nil }
+            return writeUndoReadd(undo.key, status: previousStatus, account: undo.account, actions: actions, german: german)
+        }
+    }
+
+    private func writeUndoRestore(_ key: MediaKey, status: ListStatus, account: AccountContext,
+                                  actions: LibraryActions, german: Bool) -> Task<Void, Never>? {
+        guard actions.accountSession.isCurrent(account), !inFlight.contains(key) else { return nil }
+        inFlight.insert(key)
+        return Task.immediate { @MainActor [weak self] in
+            let outcome = await actions.restore(LibraryEdit(status: .set(status)), to: key,
+                                                createIfMissing: nil, account: account)
+            guard let self else { return }
+            self.inFlight.remove(key)
+            guard actions.accountSession.isCurrent(account) else { return }
+            guard case .applied = outcome else {
+                self.record(key, .failed)
+                self.show(TastePlanCopy.message(.failed, german: german), undo: nil)
+                return
+            }
+            self.record(key, .undone)
+            self.show(TastePlanCopy.message(.undone, german: german), undo: nil)
+        }
+    }
+
+    private func writeUndoReadd(_ key: MediaKey, status: ListStatus, account: AccountContext,
+                                actions: LibraryActions, german: Bool) -> Task<Void, Never>? {
+        guard actions.accountSession.isCurrent(account), !inFlight.contains(key) else { return nil }
+        inFlight.insert(key)
+        return Task.immediate { @MainActor [weak self] in
+            let outcome = await actions.save(key, status: status)
+            guard let self else { return }
+            self.inFlight.remove(key)
+            guard actions.accountSession.isCurrent(account) else { return }
+            guard case .applied = outcome else {
+                self.record(key, .failed)
+                self.show(TastePlanCopy.message(.failed, german: german), undo: nil)
+                return
+            }
+            self.record(key, .undone)
+            self.show(TastePlanCopy.message(.undone, german: german), undo: nil)
         }
     }
 

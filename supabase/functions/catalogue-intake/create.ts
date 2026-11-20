@@ -20,6 +20,7 @@
 // encyclopedia holds many entries AniList never had).
 import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 import { normaliseTitle, titleTokens } from "../_shared/catalogue/normalise_title.ts";
+import { deriveAnimeSeason, deriveAnimeStatus } from "../_shared/catalogue/precedence.ts";
 import { ACCEPT_SCORE, type AnnKuroTitle, annMatch, type AnnReportRow, PROPOSE_FLOOR, RUNNER_UP_MAX } from "./ann.ts";
 import { annDates, annFormat } from "./map_ann.ts";
 import { muFormat, toSourceValues as muValues } from "./map_mangaupdates.ts";
@@ -113,16 +114,28 @@ async function annCandidates(supabase: SupabaseLike, after: number, limit: numbe
   return { rows: sorted, scanned: sorted.length, last: sorted.length > 0 ? sorted[sorted.length - 1].id : null, reportMissing: false };
 }
 
-function annCandidate(r: AnnReportRow): Candidate | null {
+function annCandidate(r: AnnReportRow, nowMs: number): Candidate | null {
   const format = annFormat(r.type);
   if (!format || !r.name?.trim()) return null;
-  const start = annDates(r.vintage).start;
+  const { start, end } = annDates(r.vintage);
   const row: Record<string, unknown> = { title_romaji: r.name.trim(), format, data_sources: ["ann"] };
   if (start) {
     row.start_date_year = start.year;
     if (start.month) row.start_date_month = start.month;
     if (start.day) row.start_date_day = start.day;
   }
+  if (end) {
+    row.end_date_year = end.year;
+    if (end.month) row.end_date_month = end.month;
+    if (end.day) row.end_date_day = end.day;
+  }
+  const derivedSeason = deriveAnimeSeason(start);
+  if (derivedSeason) {
+    row.season = derivedSeason.season;
+    row.season_year = derivedSeason.season_year;
+  }
+  const derivedStatus = deriveAnimeStatus(start, end, format, nowMs);
+  if (derivedStatus) row.status = derivedStatus;
   return { source: "ann", key: String(r.id), title: r.name.trim(), titles: [r.name], year: start?.year ?? null, format, type: r.type, row, shadow: { ...row } };
 }
 
@@ -268,6 +281,48 @@ async function loadMangaByExactTitles(
   return [...byId.values()];
 }
 
+/**
+ * Server-side indexed candidate lookup (`catalogue_find_title_candidates_v1`, prepared 2026-11-19):
+ * matches case-insensitively across title_english/romaji/native AND title_synonyms bounded by year
+ * window, keeping Edge memory O(candidates) instead of loading 42k manga or 22k anime rows.
+ * Returns null if the RPC is not yet deployed so callers fall back cleanly.
+ */
+async function loadCandidatesViaRpc(
+  supabase: SupabaseLike,
+  medium: Medium,
+  cands: Candidate[],
+): Promise<(Record<string, unknown> & { id: number })[] | null> {
+  if (typeof supabase.rpc !== "function") return null;
+  const titles = [...new Set(cands.flatMap((c) => c.titles.map((t) => t.trim()).filter(Boolean)))];
+  if (titles.length === 0) return [];
+  const years = cands.map((c) => c.year).filter((y): y is number => typeof y === "number");
+  const yearMin = years.length > 0 ? Math.min(...years) - 2 : null;
+  const yearMax = years.length > 0 ? Math.max(...years) + 2 : null;
+  const byId = new Map<number, Record<string, unknown> & { id: number }>();
+  for (const part of chunk(titles, 120)) {
+    const { data, error } = await supabase.rpc("catalogue_find_title_candidates_v1", {
+      p_medium: medium,
+      p_titles: part,
+      p_year_min: yearMin,
+      p_year_max: yearMax,
+      p_limit: 200,
+    });
+    if (error) {
+      const code = String((error as { code?: unknown }).code ?? "");
+      const msg = String((error as { message?: unknown }).message ?? error);
+      if (code === "PGRST202" || /catalogue_find_title_candidates_v1|no rpc handler|does not exist/i.test(msg)) {
+        return null;
+      }
+      throw new Error(`catalogue_find_title_candidates_v1 failed: ${msg}`);
+    }
+    if (!Array.isArray(data)) return null;
+    for (const r of data as (Record<string, unknown> & { id: number })[]) {
+      byId.set(Number(r.id), r);
+    }
+  }
+  return [...byId.values()];
+}
+
 async function matchAgainstCatalogue(
   supabase: SupabaseLike,
   medium: Medium,
@@ -275,12 +330,18 @@ async function matchAgainstCatalogue(
 ): Promise<Matched> {
   if (cands.length === 0) return { accepted: [], proposed: [] };
   const tops = new Map<string, Scored[]>();
+  const rpcPool = await loadCandidatesViaRpc(supabase, medium, cands);
+  if (rpcPool !== null) {
+    const scored = medium === "manga" ? scoreMuPage(rpcPool, cands) : scoreAnnPage(rpcPool, cands);
+    for (const [key, list] of scored) mergeTop(tops, key, list);
+    return decideFromScores(cands, tops, medium === "manga" ? "mangaupdates" : "ann");
+  }
   if (medium === "manga") {
     const pool = await loadMangaByExactTitles(supabase, cands);
     for (const [key, scored] of scoreMuPage(pool, cands)) mergeTop(tops, key, scored);
     return decideFromScores(cands, tops, "mangaupdates");
   }
-  // Anime: page the catalogue (ANN match indexes the small candidate set, so pages stay cheap).
+  // Fallback when RPC is not yet deployed: page the anime catalogue.
   let after = 0;
   for (;;) {
     const page = await readKuroRows<Record<string, unknown> & { id: number }>(
@@ -306,7 +367,8 @@ export async function create(deps: CreateDeps, medium: Medium, opts: CreateOptio
     throw new Error("create: insert mode needs minYear (the ANN encyclopedia holds many entries AniList never had)");
   }
   const supabase = deps.supabase;
-  const nowIso = new Date((deps.now ?? Date.now)()).toISOString();
+  const nowMs = (deps.now ?? Date.now)();
+  const nowIso = new Date(nowMs).toISOString();
   const limitCap = medium === "manga" ? MANGA_CREATE_LIMIT_MAX : 1000;
   const limit = clampInt(opts.limit, medium === "manga" ? 25 : 300, 1, limitCap);
   const sampleMax = clampInt(opts.sample, 25, 0, 200);
@@ -320,7 +382,7 @@ export async function create(deps: CreateDeps, medium: Medium, opts: CreateOptio
     result.scanned = win.scanned;
     result.next = win.scanned < limit ? null : String(win.last);
     for (const r of win.rows) {
-      const c = annCandidate(r);
+      const c = annCandidate(r, nowMs);
       if (c) cands.push(c);
       else unusable++;
     }

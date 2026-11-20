@@ -1787,3 +1787,19 @@ Owner authorized decision lock + Part B. Applied visibility/create/publish and W
 
 ### Change Log — 19 November 2026: TestFlight 27 uploaded
 App Store Connect agreement accepted by the account holder; build 27 (widget-less variant of `main` 473cb8d, tag `testflight-27`) uploaded. Next: testers on 27, expire builds 20–25, then B8 (`100401` → `100500`).
+
+### Change Log — 19 November 2026 (latest): Existing-parts UX polish (Home, Discover, Clubs & Club Rails)
+Implemented and locally verified (`155` tests across `16` focused suites on `iPhone 17 Pro Kuro Qualification`, 390pt simulator snapshots inspected; not yet uploaded to TestFlight):
+- **Home:** `starterHold` isolates `HomeNewAccount` to in-place starter picks so Plan-to-Watch items appear immediately on Home; `leadCard` falls back to first `PLANNING` title; Planned-only Poster Home stage + `DetailAdvance` one-tap `+` Start keys + fold caps + empty schedule hiding + polished mixed `quietShelf` rows.
+- **Discover:** Compact `.leaf` `DiscoverPlanKey` capsule pills inside 44pt targets, horizontal `DiscoverMoodKeys` & `DiscoverContentsLine` strips with `.kuroSwipeExclusionZone()` (AX vertical fallbacks preserved), and warm-wash `.feature` cover spreads.
+- **Clubs & Club Rails:** Horizontal 2:3 `JournalRailSection` / `JournalRailTile` poster rails (`detailRailBleed`), header `+ Add` pills, full-width below-rail inline note quote card (AX vertical fallback preserved), and refined `ClubKeyRow` / `ClubsView` secondary pills. Specs `2026-11-19-home-redesign-design.md` and `2026-11-04-discover-usability-design.md` §16 updated.
+
+### Change Log — 19 November 2026 (Phase 2): Discover curation, Search+Filters bar, 3-choice quick-add & cross-medium Home sync
+Implemented and locally verified (`165` tests across `17` focused suites on `iPhone 17 Pro Kuro Qualification`, fresh 390pt Discover snapshots inspected; not uploaded to TestFlight):
+- **Home:** `HomeLibrarySink` covers both media, `HomeBundle.applyingLibraryChange` patches loaded shelves immediately, and `HomeStore` tracks `staleMedia` + background `otherMediumRefreshTask` + stale-aware `selectMedium(_:)`.
+- **Discover:** AniList-style section order with `.newlyAdded` / `.newlyAddedManga` rails, `DiscoverQuickFindBar` (Search + Filters) beneath `DiscoverIssueSwitch`, and 3-choice quick-add `Menu` (`Watching`/`Reading`, `Plan to watch`/`Plan to read`, `Completed`, plus `Edit details…` / bare `Remove from list`) with Undo via `TastePlanController.setStatus` / `removeEntry`. Specs updated.
+
+### Change Log — 19–20 November 2026 (Phase 3): Catalogue consolidation, OOM-proof matching, season/status derivation & 0ms Home / PDP latency
+Backend deployed to production (`20261119120000_catalogue_intake_match_and_season_v1.sql` applied atomically `md5=70bdb634310395dc4853bea8d94fcc8f`, live posture/grants/smoke passed; `catalogue-intake` v5 active with `--no-verify-jwt`, 401 without secret; `286/286` offline Deno tests). iOS verified locally (`140/140` focused iOS tests on `7FC4B58A-430C-457D-A017-6B0095723F3F`; not uploaded to TestFlight):
+- **Backend (live):** `catalogue_find_title_candidates_v1` RPC + `season`/`season_year` create whitelist; RPC match-first lookup in `create.ts`; pure `deriveAnimeSeason`, `deriveAnimeStatus`, and Hot/Warm/Cold `prioritizeRefreshTier` in `_shared/catalogue/precedence.ts` and `compose.ts`.
+- **iOS (local):** 0 ms optimistic `HomeCardSeed` insertion on `LibraryChange(.added)` in `HomeStore` + post-paint PDP relation enqueue & 120ms `loadSimilar()` yield in `AnimeDetailSections`/`MangaDetailSections`.
