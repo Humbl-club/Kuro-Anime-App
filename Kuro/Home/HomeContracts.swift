@@ -51,6 +51,67 @@ struct HomeCard: Codable, Equatable, Identifiable, Sendable {
     let sectionKind: String?
     let sectionName: String?
     let material: HomeMaterial?
+    let latestChapter: Double?
+    let nextEpisodeNumber: Int?
+    let nextAiringAt: Date?
+    let nextChapterNumber: Int?
+    let nextChapterAt: Date?
+
+    init(
+        mediaId: Int,
+        listType: String,
+        progress: Int,
+        progressLabel: String?,
+        volumesProgress: Int?,
+        serverRevision: Int64,
+        lifecycleId: String,
+        unitId: String?,
+        title: String,
+        bannerImage: String?,
+        coverImage: String?,
+        format: String?,
+        episodes: Int?,
+        chapters: Int?,
+        volumes: Int?,
+        catalogueStatus: String?,
+        seriesId: String?,
+        sectionOrdinal: Int?,
+        sectionKind: String?,
+        sectionName: String?,
+        material: HomeMaterial?,
+        latestChapter: Double? = nil,
+        nextEpisodeNumber: Int? = nil,
+        nextAiringAt: Date? = nil,
+        nextChapterNumber: Int? = nil,
+        nextChapterAt: Date? = nil
+    ) {
+        self.mediaId = mediaId
+        self.listType = listType
+        self.progress = progress
+        self.progressLabel = progressLabel
+        self.volumesProgress = volumesProgress
+        self.serverRevision = serverRevision
+        self.lifecycleId = lifecycleId
+        self.unitId = unitId
+        self.title = title
+        self.bannerImage = bannerImage
+        self.coverImage = coverImage
+        self.format = format
+        self.episodes = episodes
+        self.chapters = chapters
+        self.volumes = volumes
+        self.catalogueStatus = catalogueStatus
+        self.seriesId = seriesId
+        self.sectionOrdinal = sectionOrdinal
+        self.sectionKind = sectionKind
+        self.sectionName = sectionName
+        self.material = material
+        self.latestChapter = latestChapter
+        self.nextEpisodeNumber = nextEpisodeNumber
+        self.nextAiringAt = nextAiringAt
+        self.nextChapterNumber = nextChapterNumber
+        self.nextChapterAt = nextChapterAt
+    }
 
     enum CodingKeys: String, CodingKey {
         case mediaId = "media_id"
@@ -71,6 +132,11 @@ struct HomeCard: Codable, Equatable, Identifiable, Sendable {
         case sectionKind = "section_kind"
         case sectionName = "section_name"
         case material
+        case latestChapter = "latest_chapter"
+        case nextEpisodeNumber = "next_episode_number"
+        case nextAiringAt = "next_airing_at"
+        case nextChapterNumber = "next_chapter_number"
+        case nextChapterAt = "next_chapter_at"
     }
 
     var seasonStamp: String? {
@@ -108,7 +174,12 @@ struct HomeCard: Codable, Equatable, Identifiable, Sendable {
             sectionOrdinal: sectionOrdinal,
             sectionKind: sectionKind,
             sectionName: sectionName,
-            material: material
+            material: material,
+            latestChapter: latestChapter,
+            nextEpisodeNumber: nextEpisodeNumber,
+            nextAiringAt: nextAiringAt,
+            nextChapterNumber: nextChapterNumber,
+            nextChapterAt: nextChapterAt
         )
     }
 }

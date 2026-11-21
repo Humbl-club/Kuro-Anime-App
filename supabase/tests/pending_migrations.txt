@@ -75,3 +75,4 @@
 # 2026-11-18 refresh queue hardening (prepared only; owner approval required).
 
 # 2026-11-21 Waves 1/3/4 migrations (20261121100000, 20261121110000, 20261121120000): applied 2026-11-21 after explicit owner approval and promoted byte-identically to supabase/migrations/.
+# 2026-11-21 Build 29 live chapters & airing schedule (20261121200000): promoted byte-identically to supabase/migrations/ for approved deploy.

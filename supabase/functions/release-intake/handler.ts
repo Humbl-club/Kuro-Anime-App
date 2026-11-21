@@ -97,6 +97,10 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
     } else if (mode === "syoboi") {
       results = await runSyoboiAiring(supabase, {
         limit: clampInt(payload?.limit, 250, 1, 500),
+        discover: payload?.discover === true ? true : payload?.discover === false ? false : undefined,
+        days: payload?.days === undefined ? undefined : clampInt(payload.days, 14, 1, 14),
+        maxDiscoverTids: payload?.maxDiscoverTids === undefined ? undefined : clampInt(payload.maxDiscoverTids, 120, 1, 200),
+        staleSweep: payload?.staleSweep !== false,
         dryRun,
         deadlineMs,
         nowMs: startedMs,
@@ -106,9 +110,9 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
       });
     } else {
       const ids = Array.isArray(payload?.mangaIds)
-        ? payload.mangaIds.map(Number).filter((n: number) => Number.isInteger(n) && n > 0).slice(0, 40)
+        ? payload.mangaIds.map(Number).filter((n: number) => Number.isInteger(n) && n > 0).slice(0, 60)
         : null;
-      const limit = clampInt(payload?.limit, 15, 1, 40);
+      const limit = clampInt(payload?.limit, 15, 1, 60);
       results = await runMangaReleases(supabase, deps.mangaUpdates, deps.readMangaDexLinks, {
         limit,
         offset: clampInt(payload?.offset, Math.floor(startedMs / 3_600_000) * limit, 0, Number.MAX_SAFE_INTEGER),

@@ -1,6 +1,9 @@
 import Foundation
 
 enum KuroCardText {
+    private static let trailingYearRegex = try? NSRegularExpression(pattern: #"\s*\(\s*(?:19|20)\d{2}\s*\)\s*$"#)
+    private static let multiWhitespaceRegex = try? NSRegularExpression(pattern: #"\s+"#)
+
     static let countFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
@@ -15,11 +18,10 @@ enum KuroCardText {
     static func sanitizeTitleForCard(_ raw: String) -> String {
         var t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         // Remove "(2011)" / "(1999)" style suffixes; the year is shown in the metadata line.
-        t = t.replacingOccurrences(
-            of: #"\s*\(\s*(?:19|20)\d{2}\s*\)\s*$"#,
-            with: "",
-            options: .regularExpression
-        )
+        if let trailingYearRegex {
+            let range = NSRange(t.startIndex..<t.endIndex, in: t)
+            t = trailingYearRegex.stringByReplacingMatches(in: t, range: range, withTemplate: "")
+        }
         // Encourage elegant breaks for long subtitles.
         if t.count >= 22 {
             if let range = t.range(of: ": ") {
@@ -28,7 +30,10 @@ enum KuroCardText {
                 t.replaceSubrange(range, with: "\n")
             }
         }
-        t = t.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        if let multiWhitespaceRegex {
+            let range = NSRange(t.startIndex..<t.endIndex, in: t)
+            t = multiWhitespaceRegex.stringByReplacingMatches(in: t, range: range, withTemplate: " ")
+        }
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

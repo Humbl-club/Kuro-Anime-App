@@ -18,6 +18,8 @@ struct FolioRowActions {
     var keyPhase: (FolioItem) -> FolioKeyPhase?
     /// W9: opens the tags-and-lists sheet; nil hides the menu item (switch off, or owners absent).
     var organise: ((FolioItem) -> Void)? = nil
+    /// Quick inline/swipe status switch directly from a Collection card or row.
+    var setStatus: (FolioItem, ListStatus) -> Void = { _, _ in }
 }
 
 extension FolioKeyPhase {
@@ -308,8 +310,15 @@ private struct FolioMemberRow: View {
                                 .multilineTextAlignment(.leading)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        let position = FolioPolicy.positionLine(medium: item.media.kind, progress: item.progress,
-                                                                total: item.total, german: german)
+                        let position: String? = {
+                            if item.media.kind == .manga,
+                               item.media.statusRaw?.uppercased() == "RELEASING",
+                               let out = item.total, out > 0, item.progress < out {
+                                return german ? "Kap. \(item.progress) · \(out) ersch." : "Ch. \(item.progress) · \(out) out"
+                            }
+                            return FolioPolicy.positionLine(medium: item.media.kind, progress: item.progress,
+                                                            total: item.total, german: german)
+                        }()
                         Text([item.status.title(medium: item.media.kind, german: german), position]
                             .compactMap { $0 }.joined(separator: " · "))
                             .font(.kuroMeta())
@@ -328,6 +337,9 @@ private struct FolioMemberRow: View {
             .accessibilityHint(isSelecting ? "" : (german ? "Öffnet die Details" : "Opens details"))
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
 
+            if !isSelecting {
+                FolioStatusPillMenu(item: item, actions: actions, style: .row)
+            }
             if let phase {
                 KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
                                accessibilityText: FolioAccessibility.keyLabel(item, phase: phase, german: german)) {
@@ -376,8 +388,14 @@ private struct FolioCoverCell: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                let position = item.group?.label
-                    ?? FolioPolicy.shelfPositionLine(medium: .manga, progress: item.progress, german: german)
+                let position: String? = {
+                    if let groupLabel = item.group?.label { return groupLabel }
+                    if item.media.statusRaw?.uppercased() == "RELEASING",
+                       let out = item.total, out > 0, item.progress < out {
+                        return german ? "Kap. \(item.progress) · \(out) ersch." : "Ch. \(item.progress) · \(out) out"
+                    }
+                    return FolioPolicy.shelfPositionLine(medium: .manga, progress: item.progress, german: german)
+                }()
                 if phase == nil {
                     positionText(position)
                 } else {
@@ -402,6 +420,12 @@ private struct FolioCoverCell: View {
         .accessibilityLabel(FolioAccessibility.label(item, german: german))
         .accessibilityHint(isSelecting ? "" : (german ? "Öffnet die Details" : "Opens details"))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .overlay(alignment: .topLeading) {
+            if !isSelecting {
+                FolioStatusPillMenu(item: item, actions: actions, style: .badgeOnCover)
+                    .padding(6)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             if let phase {
                 KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
@@ -462,7 +486,7 @@ private struct FolioSceneCell: View {
                             .monospacedDigit()
                     }
                     if let next = item.next {
-                        KuroReleaseLine(next)
+                        KuroReleaseLine(next, liveCountdown: true)
                     }
                 }
                 .padding(.trailing, phase == nil ? 0 : 56)
@@ -476,6 +500,12 @@ private struct FolioSceneCell: View {
         .accessibilityLabel(FolioAccessibility.label(item, german: german))
         .accessibilityHint(isSelecting ? "" : (german ? "Öffnet die Details" : "Opens details"))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .overlay(alignment: .topTrailing) {
+            if !isSelecting {
+                FolioStatusPillMenu(item: item, actions: actions, style: .badgeOnCover)
+                    .padding(8)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             if let phase {
                 KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
@@ -501,9 +531,11 @@ struct FolioIndex: View {
         let gutter = FolioPolicy.gutter(forWidth: width)
         LazyVStack(spacing: 0) {
             ForEach(items) { item in
-                FolioIndexRow(item: item, isSelecting: isSelecting, isSelected: selectedKeys.contains(item.id), actions: actions)
-                    .padding(.horizontal, gutter)
-                    .modifier(FolioContextMenu(item: item, actions: actions, enabled: !isSelecting))
+                FolioSwipeIndexRow(item: item, gutter: gutter, isSelecting: isSelecting, actions: actions) {
+                    FolioIndexRow(item: item, isSelecting: isSelecting, isSelected: selectedKeys.contains(item.id), actions: actions)
+                        .padding(.horizontal, gutter)
+                }
+                .modifier(FolioContextMenu(item: item, actions: actions, enabled: !isSelecting))
                 if let group = item.group {
                     FolioIndexSeasons(group: group, isSelecting: isSelecting, selectedKeys: selectedKeys,
                                       actions: actions, gutter: gutter)
@@ -589,6 +621,9 @@ private struct FolioIndexRow: View {
             .accessibilityHint(isSelecting ? "" : (german ? "Öffnet die Details" : "Opens details"))
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
 
+            if !isSelecting {
+                FolioStatusPillMenu(item: item, actions: actions, style: .row)
+            }
             if let phase {
                 KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
                                accessibilityText: FolioAccessibility.keyLabel(item, phase: phase, german: german)) {
@@ -597,6 +632,18 @@ private struct FolioIndexRow: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityAction(named: Text(DiscoverPlanKey.menuChoiceTitle(.completed, kind: item.media.kind, german: german))) {
+            actions.setStatus(item, .completed)
+        }
+        .accessibilityAction(named: Text(DiscoverPlanKey.menuChoiceTitle(.current, kind: item.media.kind, german: german))) {
+            actions.setStatus(item, .current)
+        }
+        .accessibilityAction(named: Text(DiscoverPlanKey.menuChoiceTitle(.paused, kind: item.media.kind, german: german))) {
+            actions.setStatus(item, .paused)
+        }
+        .accessibilityAction(named: Text(DiscoverPlanKey.menuChoiceTitle(.dropped, kind: item.media.kind, german: german))) {
+            actions.setStatus(item, .dropped)
+        }
     }
 
     private func titleText(lineLimit: Int) -> some View {
@@ -632,7 +679,14 @@ private struct FolioIndexRow: View {
     @ViewBuilder
     private func secondaryLine(german: Bool) -> some View {
         if let next = item.next, next.isDisplayable {
-            KuroReleaseLine(next)
+            KuroReleaseLine(next, liveCountdown: true)
+        } else if item.media.kind == .manga,
+                  item.media.statusRaw?.uppercased() == "RELEASING",
+                  let out = item.total, out > 0, item.progress < out {
+            Text(german ? "Kap. \(item.progress) · \(out) ersch." : "Ch. \(item.progress) · \(out) out")
+                .font(.kuroMeta())
+                .monospacedDigit()
+                .foregroundStyle(Color.kuroInkSecondary)
         } else if item.entry.status == .completed, let verdict = item.entry.verdict {
             Text(verdict.name(german: german))
                 .font(.kuroMeta())
@@ -644,6 +698,236 @@ private struct FolioIndexRow: View {
                 .font(.kuroMeta())
                 .foregroundStyle(Color.kuroInkSecondary)
         }
+    }
+}
+
+// MARK: - Inline status pill Menu & Swipeable Index Row
+
+private struct FolioStatusPillMenu: View {
+    enum Style { case badgeOnCover, row }
+
+    let item: FolioItem
+    let actions: FolioRowActions
+    let style: Style
+
+    var body: some View {
+        let german = KuroLocale.isGerman
+        let kind = item.media.kind
+        let shortTitle = DiscoverPlanKey.menuChoiceTitle(item.entry.status, kind: kind, german: german)
+        let choices: [(ListStatus, String)] = [
+            (.current, kind == .manga ? "book" : "play"),
+            (.completed, "checkmark.circle"),
+            (.planning, "bookmark"),
+            (.paused, "pause.circle"),
+            (.dropped, "xmark.circle"),
+        ]
+        Menu {
+            ForEach(choices, id: \.0) { choice, symbol in
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    actions.setStatus(item, choice)
+                } label: {
+                    Label(DiscoverPlanKey.menuChoiceTitle(choice, kind: kind, german: german),
+                          systemImage: item.entry.status == choice ? "checkmark" : symbol)
+                }
+            }
+            Divider()
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                actions.edit(item)
+            } label: {
+                Label(german ? "Eintrag bearbeiten…" : "Edit entry…", systemImage: "slider.horizontal.3")
+            }
+            if let organise = actions.organise {
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    organise(item)
+                } label: {
+                    Label(OrganiseCopy.string(.tagsAndLists, german: german), systemImage: "tag.circle")
+                }
+            }
+            Button(role: .destructive) {
+                KuroAccessibility.impactHaptic(.light)
+                actions.remove(item)
+            } label: {
+                Label(german ? "Aus der Liste entfernen" : "Remove from list", systemImage: "trash")
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(shortTitle)
+                    .font(.kuroCustom(style == .badgeOnCover ? 9.5 : 10.5, weight: .semibold, relativeTo: .caption2, maxSize: 18))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: style == .badgeOnCover ? 7.5 : 8, weight: .bold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(style == .badgeOnCover ? Color.white : Color.kuroInk)
+            .padding(.horizontal, style == .badgeOnCover ? 7 : 8)
+            .padding(.vertical, style == .badgeOnCover ? 4 : 5)
+            .background(
+                style == .badgeOnCover ? Color.kuroControlInk.opacity(0.84) : Color.kuroControlFill,
+                in: Capsule(style: .continuous)
+            )
+            .overlay(
+                Capsule(style: .continuous).strokeBorder(
+                    style == .badgeOnCover ? Color.white.opacity(0.18) : Color.black.opacity(0.12),
+                    lineWidth: 0.75
+                )
+            )
+            .frame(minHeight: 34)
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.96))
+        .accessibilityLabel(german ? "\(item.media.title): Status \(shortTitle). Status ändern"
+                                 : "\(item.media.title): Status \(shortTitle). Change status")
+    }
+}
+
+private struct FolioSwipeIndexRow<Content: View>: View {
+    let item: FolioItem
+    let gutter: CGFloat
+    let isSelecting: Bool
+    let actions: FolioRowActions
+    @ViewBuilder let content: () -> Content
+
+    @State private var offsetX: CGFloat = 0
+    @GestureState private var dragX: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var german: Bool { KuroLocale.isGerman }
+    private let revealWidth: CGFloat = 136
+
+    private var effectiveOffset: CGFloat {
+        isSelecting ? 0 : max(-revealWidth, min(revealWidth, offsetX + dragX))
+    }
+
+    var body: some View {
+        ZStack {
+            if effectiveOffset > 2 {
+                HStack(spacing: 6) {
+                    if item.entry.status != .completed {
+                        swipeActionButton(
+                            title: german ? "Fertig" : "Done",
+                            symbol: "checkmark",
+                            fill: Color.kuroControlInk,
+                            foreground: .white
+                        ) {
+                            closeAndRun { actions.setStatus(item, .completed) }
+                        }
+                    }
+                    if item.entry.status != .current {
+                        swipeActionButton(
+                            title: item.media.kind == .manga ? (german ? "Lesen" : "Reading") : (german ? "Schauen" : "Watching"),
+                            symbol: item.media.kind == .manga ? "book" : "play",
+                            fill: Color.kuroControlFill,
+                            foreground: .kuroInk
+                        ) {
+                            closeAndRun { actions.setStatus(item, .current) }
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, gutter)
+            } else if effectiveOffset < -2 {
+                HStack(spacing: 6) {
+                    Spacer()
+                    if item.entry.status != .paused {
+                        swipeActionButton(
+                            title: german ? "Pause" : "Pause",
+                            symbol: "pause",
+                            fill: Color.kuroControlFill,
+                            foreground: .kuroInk
+                        ) {
+                            closeAndRun { actions.setStatus(item, .paused) }
+                        }
+                    }
+                    if item.entry.status != .dropped {
+                        swipeActionButton(
+                            title: german ? "Abbruch" : "Drop",
+                            symbol: "xmark",
+                            fill: Color.kuroControlInk.opacity(0.82),
+                            foreground: .white
+                        ) {
+                            closeAndRun { actions.setStatus(item, .dropped) }
+                        }
+                    }
+                }
+                .padding(.horizontal, gutter)
+            }
+
+            content()
+                .background(Color.kuroCanvasPage)
+                .offset(x: effectiveOffset)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if abs(offsetX) > 1 {
+                        withAnimation(reduceMotion ? nil : KuroMotion.contact) { offsetX = 0 }
+                    }
+                }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 18, coordinateSpace: .local)
+                        .updating($dragX) { value, state, _ in
+                            guard !isSelecting else { return }
+                            let dx = value.translation.width
+                            let dy = value.translation.height
+                            guard abs(dx) > abs(dy) * 1.35 else { return }
+                            state = dx
+                        }
+                        .onEnded { value in
+                            guard !isSelecting else { return }
+                            let dx = value.translation.width
+                            let dy = value.translation.height
+                            guard abs(dx) > abs(dy) * 1.25 else {
+                                withAnimation(reduceMotion ? nil : KuroMotion.contact) { offsetX = 0 }
+                                return
+                            }
+                            let target = offsetX + dx
+                            withAnimation(reduceMotion ? nil : KuroMotion.contact) {
+                                if target > 64 {
+                                    offsetX = revealWidth
+                                } else if target < -64 {
+                                    offsetX = -revealWidth
+                                } else {
+                                    offsetX = 0
+                                }
+                            }
+                        }
+                )
+        }
+        .clipped()
+        .kuroSwipeExclusionZone()
+        .onChange(of: isSelecting) { _, selecting in
+            if selecting { offsetX = 0 }
+        }
+    }
+
+    private func closeAndRun(_ block: @escaping () -> Void) {
+        KuroAccessibility.impactHaptic(.light)
+        withAnimation(reduceMotion ? nil : KuroMotion.contact) { offsetX = 0 }
+        block()
+    }
+
+    private func swipeActionButton(
+        title: String,
+        symbol: String,
+        fill: Color,
+        foreground: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(title)
+                    .font(.kuroCustom(10, weight: .medium, relativeTo: .caption2, maxSize: 16))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(foreground)
+            .frame(width: 60, height: 54)
+            .background(fill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(KuroPressStyle(pressedScale: 0.95))
     }
 }
 

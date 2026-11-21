@@ -19,25 +19,42 @@ struct KuroReleaseLine: View {
     var undatedFallback: Bool = false
     var font: Font = .kuroMeta()
     var color: Color = .kuroInkSecondary
+    /// Renders a minute-ticking relative countdown (`"Ep. 8 · in 42m"`) for upcoming `.instant` releases.
+    var liveCountdown: Bool = false
     /// The reference time for "today"/"tomorrow" (previews and tests pin it).
     var now: Date = Date()
 
     init(_ item: ReleaseScheduleItem, showsSource: Bool = false, undatedFallback: Bool = false,
-         font: Font = .kuroMeta(), color: Color = .kuroInkSecondary, now: Date = Date()) {
+         font: Font = .kuroMeta(), color: Color = .kuroInkSecondary, liveCountdown: Bool = false,
+         now: Date = Date()) {
         self.item = item
         self.showsSource = showsSource
         self.undatedFallback = undatedFallback
         self.font = font
         self.color = color
+        self.liveCountdown = liveCountdown
         self.now = now
     }
 
     var body: some View {
-        let copy = ReleaseCopy.current(now: now)
+        if liveCountdown && item.effectivePrecision == .instant && item.releaseAt != nil {
+            TimelineView(.everyMinute) { context in
+                content(copy: ReleaseCopy.current(now: context.date))
+            }
+        } else {
+            content(copy: ReleaseCopy.current(now: now))
+        }
+    }
+
+    @ViewBuilder
+    private func content(copy: ReleaseCopy) -> some View {
         if item.isDisplayable, item.isPast || copy.isAhead(item) {
+            let text = liveCountdown ? copy.liveLine(item, undatedFallback: undatedFallback)
+                                     : copy.line(item, undatedFallback: undatedFallback)
             VStack(alignment: .leading, spacing: 2) {
-                Text(copy.line(item, undatedFallback: undatedFallback))
+                Text(text)
                     .font(font)
+                    .monospacedDigit()
                     .foregroundStyle(color)
                     .fixedSize(horizontal: false, vertical: true)
                 if showsSource, let source = copy.sourceAttribution(item) {

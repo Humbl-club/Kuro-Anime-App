@@ -23,6 +23,8 @@ struct HomeMangaLeafReadout: Equatable {
     let caughtUp: Bool
     /// VoiceOver: "Chapter 24 of 120" / "Caught up".
     let spoken: String
+    /// Short monochrome indicator for chapters released right now on ongoing manga (e.g. "1198 out" / "1198 out · +3").
+    var outNow: String? = nil
 }
 
 struct HomeMangaLeaves<Key: View>: View {
@@ -110,6 +112,14 @@ struct HomeMangaLeaves<Key: View>: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                         .kuroCountRoll(value: state.label, pageTurn: true)
+                    if let outNow = state.outNow {
+                        Text(outNow)
+                            .font(.kuroCustom(8, weight: .medium, relativeTo: .caption2, maxSize: 14))
+                            .monospacedDigit()
+                            .foregroundStyle(Color(hex: "59665A"))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, minHeight: HomeMangaLeafMetrics.readoutHeight, alignment: .topLeading)

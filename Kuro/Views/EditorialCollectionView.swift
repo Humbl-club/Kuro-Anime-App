@@ -192,7 +192,8 @@ struct EditorialCollectionView: View {
                 if selectedKeys.contains(item.id) { selectedKeys.remove(item.id) } else { selectedKeys.insert(item.id) }
             },
             keyPhase: { item in keyPhase(item) },
-            organise: organiseAvailable ? { item in organiseTarget = OrganiseTarget(media: item.media) } : nil
+            organise: organiseAvailable ? { item in organiseTarget = OrganiseTarget(media: item.media) } : nil,
+            setStatus: { item, status in changeItemStatus(item, to: status) }
         )
     }
 
@@ -815,6 +816,8 @@ struct EditorialCollectionView: View {
             undoUpNextPlan(receipt)
         case .upNextDismiss(let receipt)?:
             _ = upNext?.undoDismiss(receipt)
+        case .statusChange(let key, let prevStatus, let prevProgress)?:
+            undoStatusChange(key: key, previousStatus: prevStatus, previousProgress: prevProgress)
         case .advance?, nil:
             undoLastAdvance()
         }
@@ -862,6 +865,59 @@ struct EditorialCollectionView: View {
     }
 
     // MARK: Removal and batch
+
+    private func changeItemStatus(_ item: FolioItem, to newStatus: ListStatus) {
+        guard let context = activeAccount, newStatus != item.entry.status, !pendingAdvance.contains(item.key) else { return }
+        let prevStatus = item.entry.status
+        let prevProgress = item.progress
+        let autoTotal: Int? = {
+            guard newStatus == .completed, prevProgress == 0,
+                  let total = item.total, total > 0,
+                  item.media.statusRaw?.uppercased() != "RELEASING" else { return nil }
+            return total
+        }()
+        let edit = autoTotal.map { LibraryEdit(status: .set(.completed), progress: .set($0)) }
+            ?? LibraryEdit(status: .set(newStatus))
+        pendingAdvance.insert(item.key)
+        Task {
+            defer { pendingAdvance.remove(item.key) }
+            let outcome = await libraryActions.apply(edit, to: item.key, createIfMissing: newStatus)
+            guard collection.accountSession.isCurrent(context) else { return }
+            if outcome.change != nil {
+                KuroAccessibility.successHaptic()
+                show(
+                    FolioNotice(
+                        tone: .confirmation,
+                        message: TastePlanCopy.statusMessage(newStatus, kind: item.media.kind, german: german),
+                        actionTitle: FolioCopy.undoTitle(german: german),
+                        undo: .statusChange(key: item.key, previousStatus: prevStatus, previousProgress: prevProgress)
+                    ),
+                    seconds: UIAccessibility.isVoiceOverRunning ? 12 : 4
+                )
+            } else {
+                KuroAccessibility.errorHaptic()
+                show(FolioNotice(tone: .problem, message: FolioCopy.advanceFailed(german: german), actionTitle: nil))
+            }
+        }
+    }
+
+    private func undoStatusChange(key: MediaKey, previousStatus: ListStatus, previousProgress: Int) {
+        guard let context = activeAccount else { return }
+        Task {
+            let outcome = await libraryActions.restore(
+                LibraryEdit(status: .set(previousStatus), progress: .set(previousProgress)),
+                to: key,
+                createIfMissing: nil,
+                account: context
+            )
+            guard collection.accountSession.isCurrent(context) else { return }
+            if outcome.change != nil {
+                show(FolioNotice(tone: .confirmation, message: TastePlanCopy.message(.undone, german: german), actionTitle: nil))
+            } else {
+                show(FolioNotice(tone: .problem, message: FolioCopy.undoFailed(german: german), actionTitle: nil))
+            }
+        }
+    }
 
     private func removeOne(_ item: FolioItem) {
         guard let context = activeAccount else { return }

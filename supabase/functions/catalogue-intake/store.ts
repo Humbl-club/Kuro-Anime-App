@@ -6,7 +6,7 @@ import type { SupabaseLike } from "../_shared/catalogue/intake_persistence.ts";
 export type Medium = "anime" | "manga";
 /** Kinds a catalogue_id_links row can have (titles and credited entities). */
 export type LinkKind = Medium | "staff" | "studio" | "character" | "author";
-export type SourceCode = "wikidata" | "ann" | "mangaupdates" | "pageviews" | "episodes_provider" | "editorial";
+export type SourceCode = "wikidata" | "ann" | "mangaupdates" | "pageviews" | "episodes_provider" | "editorial" | "syoboi";
 
 export const WRITE_BATCH = 500;
 

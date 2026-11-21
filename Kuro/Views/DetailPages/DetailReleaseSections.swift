@@ -77,7 +77,8 @@ struct DetailNextReleaseSection: View {
                 ForEach(Array(upcoming.enumerated()), id: \.element.id) { index, item in
                     KuroReleaseLine(item, showsSource: index == 0, undatedFallback: true,
                                     font: index == 0 ? .kuroBody(weight: .regular) : .kuroMeta(),
-                                    color: index == 0 ? .kuroInk : .kuroInkSecondary)
+                                    color: index == 0 ? .kuroInk : .kuroInkSecondary,
+                                    liveCountdown: index == 0)
                 }
                 if let lastReleased {
                     KuroReleaseLine(lastReleased, color: .kuroInkQuiet)
@@ -95,6 +96,13 @@ struct DetailNextReleaseSection: View {
         return [ReleaseScheduleItem(medium: .anime, mediaId: anime.id, title: anime.displayTitle,
                                     unitKind: .episode, unitNumber: Double(episode), releaseAt: at,
                                     basis: .confirmed, source: "anilist", precision: .instant)]
+    }
+
+    static func seed(for manga: Manga, now: Date = Date()) -> [ReleaseScheduleItem] {
+        guard let at = manga.nextChapterAt, at > now, let chapter = manga.nextChapterNumber, chapter > 0 else { return [] }
+        return [ReleaseScheduleItem(medium: .manga, mediaId: manga.id, title: manga.displayTitle,
+                                    unitKind: .chapter, unitNumber: Double(chapter), releaseAt: at,
+                                    basis: .estimated, confidence: 0.85, source: "kuro_estimate", precision: .day)]
     }
 }
 

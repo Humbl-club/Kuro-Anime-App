@@ -79,6 +79,7 @@ struct FolioUpNextSection: View {
                 }
                 .padding(.horizontal, gutter)
             }
+            .kuroSwipeExclusionZone()
         }
         .padding(.bottom, KuroDesignSpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)

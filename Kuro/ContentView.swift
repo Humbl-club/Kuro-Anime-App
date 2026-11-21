@@ -209,8 +209,6 @@ struct KuroMainView: View {
 	@State private var discoverScroll = ScrollPosition(edge: .top)
 	/// Counts header-title taps on Discover (scroll to top, usability §5.10).
 	@State private var discoverTopTick = 0
-	/// Every swipe-exclusion frame reported in `kuro_root` space (filtered to the viewport on use).
-	@State private var swipeExclusions: [CGRect] = []
     /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
     @State private var rootSize: CGSize = .zero
     @State private var suppressCardTaps = false
@@ -273,7 +271,6 @@ struct KuroMainView: View {
                                                             entryCount: library.allEntries.count)
     }
     private let swipeThreshold: CGFloat = 40
-    private let swipeEdgeMargin: CGFloat = KuroGesturePolicy.edgeMarginPt
 
     private var conciergeEditorialV1Enabled: Bool {
         // Concierge has fully migrated to the editorial shell.
@@ -301,15 +298,12 @@ struct KuroMainView: View {
 
     // MARK: - Swipe conflict helpers (deduplicated from onChanged/onEnded)
 
-    /// The root container's measured width (0 until the first layout; then no drag is excluded).
+    /// The root container's measured width (0 until the first layout).
     private var rootWidth: CGFloat { rootSize.width }
 
-    /// Returns true when the drag starts inside an exclusion zone and is NOT on a screen edge.
+    /// Returns true when the global touch-down point sits inside a mounted horizontal rail or deck zone.
     private func isSwipeExcluded(start: CGPoint) -> Bool {
-        let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
-        let viewport = CGRect(origin: .zero, size: rootSize)
-        let expanded = swipeExclusions.filter { $0.intersects(viewport) }.map { $0.insetBy(dx: -14, dy: -14) }
-        return expanded.contains(where: { $0.contains(start) }) && !edgeAllowed
+        KuroGestureCoordinator.shared.isTouchInExclusionZone(start)
     }
 
     private func scheduleTapSuppressionReset(delayNs: UInt64 = 120_000_000) {
@@ -320,14 +314,6 @@ struct KuroMainView: View {
             suppressCardTaps = false
             pagerTapGate.isSuppressed = false
         }
-    }
-
-    private func isFastFlingOverride(_ value: DragGesture.Value) -> Bool {
-        let dx = abs(value.translation.width)
-        let dy = abs(value.translation.height)
-        let predictedDx = abs(value.predictedEndTranslation.width)
-        guard dx > dy * KuroGesturePolicy.fastFlingDirectionRatio else { return false }
-        return predictedDx >= KuroGesturePolicy.fastFlingPredictedDxPt
     }
     
     var body: some View {
@@ -437,11 +423,6 @@ struct KuroMainView: View {
                 rootSize = size
             }
             .environment(\.kuroPagerWidth, rootSize.width)
-	        .onPreferenceChange(KuroSwipeExclusionPreferenceKey.self) { v in
-	            if v != swipeExclusions {
-	                swipeExclusions = v
-	            }
-	        }
             .onAppear { latchHomeNewAccount() }
             .onChange(of: library.loadState) { _, state in
                 // Leaving `.loaded` (sign-out, account switch, reload) ends the decision; it is made
@@ -483,12 +464,11 @@ struct KuroMainView: View {
                 }
             }
 	        .simultaneousGesture(
-            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
+            DragGesture(minimumDistance: 10, coordinateSpace: .global)
                     .onChanged { value in
                         guard flags.isSwipeTapGuardEnabled else { return }
                         guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
-                        let excluded = isSwipeExcluded(start: value.startLocation)
-                        if excluded && !isFastFlingOverride(value) { return }
+                        guard !isSwipeExcluded(start: value.startLocation) else { return }
 
                         let dx = abs(value.translation.width)
                         let dy = abs(value.translation.height)
@@ -515,16 +495,10 @@ struct KuroMainView: View {
                         if shouldManageSuppression && suppressCardTaps {
                             scheduleTapSuppressionReset()
                         }
-                        // Fast intentional flings override BOTH the rail-drag guards
-                        // and the exclusion zones — checked first so a full-page
-                        // exclusion zone (the deck card rail-marks every horizontal
-                        // drag) can never trap paging.
-                        let fastFling = isFastFlingOverride(value)
-                        if !fastFling {
-                            guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
-                            guard !KuroGestureCoordinator.shared.recentlyDraggedRail(withinMs: KuroGesturePolicy.postSwipeTapCooldownMs) else { return }
-                            guard !isSwipeExcluded(start: value.startLocation) else { return }
-                        }
+                        // Horizontal rails and swipeable decks own every flick inside their bounds.
+                        guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
+                        guard !KuroGestureCoordinator.shared.recentlyDraggedRail(withinMs: KuroGesturePolicy.postSwipeTapCooldownMs) else { return }
+                        guard !isSwipeExcluded(start: value.startLocation) else { return }
 
 	                    let dx = value.translation.width
 	                    let dy = value.translation.height
@@ -945,8 +919,8 @@ private struct KuroSectionPager: View {
     private func page(for section: Section) -> some View {
         let sectionIdx = order.firstIndex(of: section) ?? 0
         let distance = abs(selectionIndex - sectionIdx)
-        // Mount current page + immediate neighbors; unmount distant pages to save memory.
-        let shouldMount = distance <= 1 || mountedSections.contains(section)
+        // Mount only the active page and its immediate neighbors to keep layout and 120 Hz scrolling lean.
+        let shouldMount = distance <= 1
 
         if shouldMount {
             Group {

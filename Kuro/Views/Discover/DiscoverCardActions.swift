@@ -101,6 +101,7 @@ struct DiscoverPlanKey: View {
     @Environment(BannerCenter.self) private var banner: BannerCenter?
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @State private var localController = TastePlanController()
+    @State private var showRemoveConfirm = false
 
     private static let savedLeafFace = Color.kuroControlInk
 
@@ -138,6 +139,10 @@ struct DiscoverPlanKey: View {
         case (.planning, .manga, true): return "Will ich lesen"
         case (.completed, _, false): return "Completed"
         case (.completed, _, true): return "Abgeschlossen"
+        case (.paused, _, false): return "Paused"
+        case (.paused, _, true): return "Pausiert"
+        case (.dropped, _, false): return "Dropped"
+        case (.dropped, _, true): return "Abgebrochen"
         default: return DiscoverIssueCopy.statusWord(status, progress: 0, kind: kind, german: german)
         }
     }
@@ -166,21 +171,44 @@ struct DiscoverPlanKey: View {
                 }
                 .buttonStyle(KuroPressStyle(pressedScale: badge ? 0.94 : 0.97))
             } else {
-                Button {
-                    guard TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps) else { return }
-                    KuroAccessibility.impactHaptic(.light)
-                    controller.tap(card, library: library, actions: libraryActions, routes: routes, german: german)
+                Menu {
+                    Self.statusMenuContent(
+                        card: card,
+                        entry: entry,
+                        status: status,
+                        library: library,
+                        libraryActions: libraryActions,
+                        controller: controller,
+                        routes: routes,
+                        german: german,
+                        onRequestNonBareRemove: { showRemoveConfirm = true }
+                    )
                 } label: {
                     keyLabel(status: status, controller: controller, german: german)
                 }
+                .menuStyle(.button)
                 .buttonStyle(KuroPressStyle(pressedScale: badge ? 0.94 : 0.97))
             }
         }
         .accessibilityLabel(Self.spokenMenuLabel(status: status, kind: card.media.kind, title: card.media.title, german: german))
         .accessibilityHint(status == nil
-                           ? KuroLocale.text("Saves to your list", "Merkt den Titel vor")
-                           : "")
+                           ? KuroLocale.text("Choose list status", "Listenstatus wählen")
+                           : KuroLocale.text("Changes list status", "Ändert Listenstatus"))
         .accessibilityAddTraits(status != nil ? [.isSelected] : [])
+        .confirmationDialog(
+            german ? "„\(card.media.title)“ von deiner Liste entfernen?"
+                   : "Remove “\(card.media.title)” from your list?",
+            isPresented: $showRemoveConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(german ? "Entfernen" : "Remove", role: .destructive) {
+                controller.removeEntry(card, library: library, actions: libraryActions, german: german, forceNonBare: true)
+            }
+            Button(german ? "Abbrechen" : "Cancel", role: .cancel) {}
+        } message: {
+            Text(german ? "Status, Fortschritt und Notizen werden gelöscht."
+                        : "Your status, progress and notes will be deleted.")
+        }
         .onChange(of: localController.toast?.id) { _, _ in
             guard hostController == nil, let message = localController.toast?.message else { return }
             banner?.show(message)
@@ -188,14 +216,24 @@ struct DiscoverPlanKey: View {
     }
 
     @ViewBuilder
-    private func quickStatusMenu(entry: LibraryEntry?, status: ListStatus?, controller: TastePlanController, german: Bool) -> some View {
+    static func statusMenuContent(
+        card: TasteCard,
+        entry: LibraryEntry?,
+        status: ListStatus?,
+        library: LibraryStore,
+        libraryActions: LibraryActions,
+        controller: TastePlanController,
+        routes: KuroRoutes,
+        german: Bool,
+        onRequestNonBareRemove: @escaping () -> Void
+    ) -> some View {
         let kind = card.media.kind
-        let choices: [(ListStatus, String)] = [
+        let primaryChoices: [(ListStatus, String)] = [
             (.current, kind == .manga ? "book" : "play"),
-            (.planning, "bookmark"),
             (.completed, "checkmark.circle"),
+            (.planning, "bookmark"),
         ]
-        ForEach(choices, id: \.0) { choice, symbol in
+        ForEach(primaryChoices, id: \.0) { choice, symbol in
             Button {
                 KuroAccessibility.impactHaptic(.light)
                 controller.setStatus(card, to: choice, library: library, actions: libraryActions, german: german)
@@ -205,6 +243,19 @@ struct DiscoverPlanKey: View {
             }
         }
         if let entry {
+            let secondaryChoices: [(ListStatus, String)] = [
+                (.paused, "pause.circle"),
+                (.dropped, "xmark.circle"),
+            ]
+            ForEach(secondaryChoices, id: \.0) { choice, symbol in
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    controller.setStatus(card, to: choice, library: library, actions: libraryActions, german: german)
+                } label: {
+                    Label(Self.menuChoiceTitle(choice, kind: kind, german: german),
+                          systemImage: status == choice ? "checkmark" : symbol)
+                }
+            }
             Divider()
             Button {
                 KuroAccessibility.impactHaptic(.light)
@@ -212,13 +263,15 @@ struct DiscoverPlanKey: View {
             } label: {
                 Label(german ? "Details bearbeiten…" : "Edit details…", systemImage: "slider.horizontal.3")
             }
-            if TastePlanController.isBareEntry(entry) {
-                Button(role: .destructive) {
-                    KuroAccessibility.impactHaptic(.light)
+            Button(role: .destructive) {
+                KuroAccessibility.impactHaptic(.light)
+                if TastePlanController.isBareEntry(entry) {
                     controller.removeEntry(card, library: library, actions: libraryActions, german: german)
-                } label: {
-                    Label(german ? "Von Liste entfernen" : "Remove from list", systemImage: "trash")
+                } else {
+                    onRequestNonBareRemove()
                 }
+            } label: {
+                Label(german ? "Von Liste entfernen" : "Remove from list", systemImage: "trash")
             }
         }
     }

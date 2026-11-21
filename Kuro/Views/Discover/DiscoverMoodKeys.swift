@@ -27,6 +27,7 @@ struct DiscoverMoodKeys: View {
     /// Per-mood artwork URLs selected from renderable loaded pools (no duplicates).
     var moodArtwork: [DiscoverMood: String] = [:]
     let column: CGFloat
+    var gutter: CGFloat = 0
     let onOpen: (DiscoverMood) -> Void
 
     init(
@@ -34,12 +35,14 @@ struct DiscoverMoodKeys: View {
         likeTitle: String?,
         moodArtwork: [DiscoverMood: String] = [:],
         column: CGFloat,
+        gutter: CGFloat = 0,
         onOpen: @escaping (DiscoverMood) -> Void
     ) {
         self.kind = kind
         self.likeTitle = likeTitle
         self.moodArtwork = moodArtwork
         self.column = column
+        self.gutter = gutter
         self.onOpen = onOpen
     }
 
@@ -142,6 +145,7 @@ struct DiscoverMoodKeys: View {
                 .font(.kuroCustom(15, weight: .semibold, relativeTo: .subheadline, maxSize: 28))
                 .tracking(-0.2)
                 .foregroundStyle(Color.kuroInk)
+                .padding(.horizontal, gutter)
                 .accessibilityAddTraits(.isHeader)
             if dynamicTypeSize.isAccessibilitySize {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Self.gap, alignment: .top), count: columns),
@@ -150,6 +154,7 @@ struct DiscoverMoodKeys: View {
                         key(mood, compact: compact)
                     }
                 }
+                .padding(.horizontal, gutter)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -157,8 +162,9 @@ struct DiscoverMoodKeys: View {
                             compactPill(mood)
                         }
                     }
+                    .padding(.horizontal, gutter)
                 }
-                .scrollClipDisabled()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .kuroSwipeExclusionZone()
             }
         }

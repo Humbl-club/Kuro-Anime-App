@@ -326,3 +326,22 @@ Deno.test("parsesAnimeAdaptationSpanFromMangaUpdatesRecord", () => {
   assert.deepEqual(values.anime_adaptation_span, span);
   assert.equal(parseMuAnimeSpan(null, "Ends before finale"), null);
 });
+
+Deno.test("parsesLatestChapterFromDirectFieldOrStatus", () => {
+  const withDirect = parseMuSeries({
+    series_id: 55099564912,
+    title: "One Piece",
+    status: "115 Volumes (Ongoing)",
+    latest_chapter: 1198,
+    completed: false,
+  });
+  assert.equal(withDirect?.latestChapter, 1198);
+
+  const fromStatus = parseMuSeries({
+    series_id: 10001137810,
+    title: "Ongoing Example",
+    status: "3 Volumes // 16 Chapters + 2 Extras (Ongoing)",
+    completed: false,
+  });
+  assert.equal(fromStatus?.latestChapter, 16);
+});

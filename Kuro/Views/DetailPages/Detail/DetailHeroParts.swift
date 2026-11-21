@@ -88,10 +88,22 @@ struct DetailNextReleaseRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let copy = ReleaseCopy.current()
+        if previewBellOn == nil && item.effectivePrecision == .instant && item.releaseAt != nil {
+            TimelineView(.everyMinute) { context in
+                content(copy: ReleaseCopy.current(now: context.date), useCountdown: true)
+            }
+        } else {
+            content(copy: ReleaseCopy.current(), useCountdown: false)
+        }
+    }
+
+    @ViewBuilder
+    private func content(copy: ReleaseCopy, useCountdown: Bool) -> some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
                              : AnyLayout(HStackLayout(alignment: .center, spacing: 10))
+        let rightBadge = (useCountdown ? copy.countdownPhrase(item) : nil)
+            ?? DetailNextRelease.dayCount(copy.daysFromToday(item), german: copy.german)
         layout {
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -109,9 +121,10 @@ struct DetailNextReleaseRow: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                if !stacked, let days = DetailNextRelease.dayCount(copy.daysFromToday(item), german: copy.german) {
-                    Text(days)
-                        .font(.detailSF(10, relativeTo: .caption1))
+                if !stacked, let rightBadge {
+                    Text(rightBadge)
+                        .font(.detailSF(10, .medium, relativeTo: .caption1))
+                        .monospacedDigit()
                         .foregroundStyle(HomeInk.footFact)
                         .lineLimit(1)
                         .fixedSize()
@@ -120,9 +133,10 @@ struct DetailNextReleaseRow: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(copy.accessibilityLine(item))
             .accessibilityValue(DetailNextRelease.spokenValue(item, copy: copy))
-            if stacked, let days = DetailNextRelease.dayCount(copy.daysFromToday(item), german: copy.german) {
-                Text(days)
-                    .font(.detailSF(10, relativeTo: .caption1))
+            if stacked, let rightBadge {
+                Text(rightBadge)
+                    .font(.detailSF(10, .medium, relativeTo: .caption1))
+                    .monospacedDigit()
                     .foregroundStyle(HomeInk.footFact)
                     .accessibilityHidden(true)
             }

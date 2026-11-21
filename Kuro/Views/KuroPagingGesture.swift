@@ -5,24 +5,20 @@ import UIKit
 #endif
 
 // MARK: - Paging swipe exclusions
-// We want "swipe anywhere" paging, but horizontal carousels (ScrollView(.horizontal))
-// must remain scrollable without accidentally switching pages.
+// We want "swipe anywhere" paging on whitespace, while horizontal carousels and swipeable
+// card stacks own horizontal gestures cleanly across their full bounds (zero scroll-time
+// PreferenceKey invalidation at 120 Hz).
 
 struct KuroSwipeExclusionZone: ViewModifier {
+    @State private var zoneID = UUID()
     @State private var markedHorizontalDrag = false
-    /// The pager root's measured width (same source as ContentView.rootWidth); 0 outside the pager.
-    @Environment(\.kuroPagerWidth) private var pagerWidth
 
     func body(content: Content) -> some View {
         content
             .background(
-                GeometryReader { proxy in
-                    Color.clear
-                        .preference(
-                            key: KuroSwipeExclusionPreferenceKey.self,
-                            value: [proxy.frame(in: .named("kuro_root"))]
-                        )
-                }
+                KuroExclusionAnchorView(zoneID: zoneID)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             )
             .simultaneousGesture(
                 DragGesture(minimumDistance: 4, coordinateSpace: .global)
@@ -30,16 +26,6 @@ struct KuroSwipeExclusionZone: ViewModifier {
                         let dx = abs(value.translation.width)
                         let dy = abs(value.translation.height)
                         guard dx > max(4, dy * 1.1) else { return }
-                        // Drags starting in the outer screen-edge margin belong to the
-                        // root pager (ContentView's swipeEdgeMargin): never rail-mark
-                        // them, or a full-page zone (the deck card) would trap paging.
-                        // Global start location vs the pager width: on iPhone the pager spans the
-                        // screen. Outside the pager (width 0) every drag may mark the rail.
-                        let x = value.startLocation.x
-                        if pagerWidth > 0 {
-                            guard x > KuroGesturePolicy.edgeMarginPt,
-                                  x < pagerWidth - KuroGesturePolicy.edgeMarginPt else { return }
-                        }
                         if !markedHorizontalDrag {
                             markedHorizontalDrag = true
                             KuroGestureCoordinator.shared.beginHorizontalRailDrag()
@@ -53,6 +39,7 @@ struct KuroSwipeExclusionZone: ViewModifier {
                     }
             )
             .onDisappear {
+                KuroGestureCoordinator.shared.unregisterExclusionZone(id: zoneID)
                 if markedHorizontalDrag {
                     KuroGestureCoordinator.shared.endHorizontalRailDrag(afterMs: 0)
                     markedHorizontalDrag = false
@@ -61,17 +48,84 @@ struct KuroSwipeExclusionZone: ViewModifier {
     }
 }
 
+#if canImport(UIKit)
+private struct KuroExclusionAnchorView: UIViewRepresentable {
+    let zoneID: UUID
+
+    final class AnchorUIView: UIView {
+        var zoneID: UUID
+
+        init(zoneID: UUID) {
+            self.zoneID = zoneID
+            super.init(frame: .zero)
+            isUserInteractionEnabled = false
+            backgroundColor = .clear
+            isOpaque = false
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { nil }
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            let id = zoneID
+            if window != nil {
+                Task { @MainActor in
+                    KuroGestureCoordinator.shared.registerExclusionZone(id: id) { [weak self] in
+                        guard let self, self.window != nil, !self.isHidden, self.alpha > 0.01 else {
+                            return nil
+                        }
+                        return self.convert(self.bounds, to: nil)
+                    }
+                }
+            } else {
+                Task { @MainActor in
+                    KuroGestureCoordinator.shared.unregisterExclusionZone(id: id)
+                }
+            }
+        }
+    }
+
+    func makeUIView(context: Context) -> AnchorUIView {
+        let view = AnchorUIView(zoneID: zoneID)
+        KuroGestureCoordinator.shared.registerExclusionZone(id: zoneID) { [weak view] in
+            guard let view, view.window != nil, !view.isHidden, view.alpha > 0.01 else {
+                return nil
+            }
+            return view.convert(view.bounds, to: nil)
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: AnchorUIView, context: Context) {
+        if uiView.zoneID != zoneID {
+            let oldID = uiView.zoneID
+            uiView.zoneID = zoneID
+            KuroGestureCoordinator.shared.unregisterExclusionZone(id: oldID)
+            KuroGestureCoordinator.shared.registerExclusionZone(id: zoneID) { [weak uiView] in
+                guard let uiView, uiView.window != nil, !uiView.isHidden, uiView.alpha > 0.01 else {
+                    return nil
+                }
+                return uiView.convert(uiView.bounds, to: nil)
+            }
+        }
+    }
+
+    static func dismantleUIView(_ uiView: AnchorUIView, coordinator: ()) {
+        KuroGestureCoordinator.shared.unregisterExclusionZone(id: uiView.zoneID)
+    }
+}
+#else
+private struct KuroExclusionAnchorView: View {
+    let zoneID: UUID
+    var body: some View { Color.clear }
+}
+#endif
+
 extension View {
     /// Marks this view's frame as a "do not page-swipe" zone (used for horizontal carousels).
     func kuroSwipeExclusionZone() -> some View {
         modifier(KuroSwipeExclusionZone())
-    }
-}
-
-struct KuroSwipeExclusionPreferenceKey: PreferenceKey {
-    static var defaultValue: [CGRect] = []
-    static func reduce(value: inout [CGRect], nextValue: () -> [CGRect]) {
-        value.append(contentsOf: nextValue())
     }
 }
 
@@ -83,9 +137,7 @@ private struct KuroPagerWidthKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// The root pager's measured width (set by `KuroMainView`; 0 outside it), in the pager's global
-    /// coordinates. For the gesture edge check only (`KuroSwipeExclusionZone`): it is NOT a layout
-    /// width. On iPad each page's content is a readable column (`.kuroReadableWidth()`, max 680 pt)
-    /// narrower than this, so size cards from the container you are in (`onGeometryChange`,
+    /// coordinates. Layout sizing always uses container geometry (`onGeometryChange`,
     /// `containerRelativeFrame`, `GeometryReader`).
     var kuroPagerWidth: CGFloat {
         get { self[KuroPagerWidthKey.self] }

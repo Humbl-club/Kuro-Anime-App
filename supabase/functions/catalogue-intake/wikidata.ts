@@ -49,7 +49,7 @@ const ANILIST_PROPERTY: Record<Medium, string> = { anime: "P8729", manga: "P8731
 
 /** Identifier properties kept per medium (raw, in the record payload). */
 const ID_PROPERTIES: Record<Medium, readonly string[]> = {
-  anime: ["P4086", "P1985", "P5646", "P4835", "P4983", "P4947"],
+  anime: ["P4086", "P1985", "P5646", "P4835", "P4983", "P4947", "P10802"],
   manga: ["P4087", "P1984", "P11149", "P648"],
 };
 
@@ -327,6 +327,8 @@ async function persistBatch(
       if (medium === "anime") {
         const ann = item.props["P1985"] ?? [];
         if (ann.length === 1 && /^[0-9]+$/.test(ann[0])) candidates.push({ kuroId: kid, source: "ann", sourceKey: ann[0], method: "wikidata", confidence: 1, status: "proposed" });
+        const syoboi = item.props["P10802"] ?? [];
+        if (syoboi.length === 1 && /^[1-9][0-9]{0,7}$/.test(syoboi[0])) candidates.push({ kuroId: kid, source: "syoboi", sourceKey: syoboi[0], method: "wikidata", confidence: 1, status: "proposed" });
       } else {
         const mu = (item.props["P11149"] ?? []).map(muSeriesIdFromWikidata).filter((x): x is string => x !== null);
         if (mu.length === 1) candidates.push({ kuroId: kid, source: "mangaupdates", sourceKey: mu[0], method: "wikidata", confidence: 1, status: "proposed" });

@@ -711,6 +711,7 @@ struct CreateClubSheet: View {
                     }
                 }
             }
+            .kuroSwipeExclusionZone()
         }
     }
 

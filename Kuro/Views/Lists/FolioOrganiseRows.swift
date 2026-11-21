@@ -35,6 +35,7 @@ struct FolioTagWords: View {
             }
             .padding(.horizontal, gutter)
         }
+        .kuroSwipeExclusionZone()
         .accessibilityElement(children: .contain)
     }
 }

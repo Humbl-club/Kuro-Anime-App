@@ -328,16 +328,20 @@ struct EditorialDiscoverView: View {
                     onFilter: { routes.openBrowse() }
                 )
                 .padding(.top, DiscoverIssueLayout.openingStack)
+            }
+            .padding(.horizontal, gutter)
 
-                DiscoverMoodKeys(
-                    kind: moodKind,
-                    likeTitle: likeSeed?.kind == moodKind ? likeSeed?.title : nil,
-                    moodArtwork: moodArtworkForCurrentMedium,
-                    column: column,
-                    onOpen: openMood
-                )
-                    .padding(.top, DiscoverIssueLayout.moods)
+            DiscoverMoodKeys(
+                kind: moodKind,
+                likeTitle: likeSeed?.kind == moodKind ? likeSeed?.title : nil,
+                moodArtwork: moodArtworkForCurrentMedium,
+                column: column,
+                gutter: gutter,
+                onOpen: openMood
+            )
+            .padding(.top, DiscoverIssueLayout.moods)
 
+            Group {
                 if let lead {
                     DiscoverCoverStory(story: lead, kind: .lead, column: column)
                         .id(lead.key)

@@ -297,6 +297,7 @@ struct DiscoverWordRow<Word: Hashable>: View {
             }
         }
         .scrollClipDisabled()
+        .kuroSwipeExclusionZone()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(label)
     }

@@ -432,6 +432,7 @@ struct ProfileView: View {
                         }
                     }
                 }
+                .kuroSwipeExclusionZone()
             }
         }
     }

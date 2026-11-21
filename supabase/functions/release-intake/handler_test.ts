@@ -665,3 +665,32 @@ Deno.test("manga: the volume count is not written while the facts group is new",
   assert.equal(out.results.processed, 1, "the title was processed");
   assert.equal(fake.tables.manga[0].volumes, null);
 });
+
+Deno.test("manga: resolves directly from catalogue_id_links without MangaDex and writes monotonic latest_chapter", async () => {
+  const { fake } = mangaFake({
+    manga: [{ id: 5, status: "RELEASING", popularity: 100, chapters: null, volumes: 114, latest_chapter: 1190 }],
+    manga_source_links: [],
+    catalogue_id_links: [
+      { kind: "manga", kuro_id: 5, source: "mangaupdates", source_key: "55099564912", status: "accepted" },
+    ],
+  });
+  let dexCalls = 0;
+  const c = clients([], [{ body: ONE_PIECE_SERIES }, { body: weeklyReleases("2026-10-25", 10, 1196) }]);
+  const res = await run({ mode: "manga" }, {
+    supabase: fake.client,
+    ...c,
+    muOfficialGroupIds: [OFFICIAL_GROUP],
+    readMangaDexLinks: () => {
+      dexCalls++;
+      return Promise.resolve(null);
+    },
+  });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(dexCalls, 0);
+  assert.equal(out.results.processed, 1);
+  assert.equal(fake.tables.manga[0].latest_chapter, 1196);
+  assert.equal(fake.tables.manga[0].chapters, null);
+  assert.equal(fake.tables.manga[0].volumes, 115);
+  assert.equal(fake.tables.manga[0].next_chapter_number, 1197);
+});

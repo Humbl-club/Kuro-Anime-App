@@ -48,8 +48,7 @@ struct HomeView: View {
     @State private var showImportRecovery = false
     @State private var showImportChooser = false
     @State private var importRecoveryJob: ImportOutcome?
-    @State private var animeScrollOffset: CGFloat = 0
-    @State private var mangaScrollOffset: CGFloat = 0
+    @State private var scrollMemory = HomeScrollMemory()
     @State private var presentationAccount: AccountContext?
     @State private var containerSize: CGSize = .zero
     /// The release schedule has been asked for at least once (until then Coming up says so).
@@ -95,7 +94,17 @@ struct HomeView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            HomeMediumScroll(offset: scrollBinding) {
+            let currentMedium = home.medium
+            HomeMediumScroll(
+                initialOffset: currentMedium == "manga" ? scrollMemory.manga : scrollMemory.anime,
+                onOffsetChange: { value in
+                    if currentMedium == "manga" {
+                        scrollMemory.manga = value
+                    } else {
+                        scrollMemory.anime = value
+                    }
+                }
+            ) {
                 VStack(alignment: .leading, spacing: 12) {
                     mediumSwitch
                     importRecoveryBanner
@@ -237,18 +246,11 @@ struct HomeView: View {
 
     // MARK: State
 
-    private var scrollBinding: Binding<CGFloat> {
-        let medium = home.medium
-        return Binding(get: { medium == "manga" ? mangaScrollOffset : animeScrollOffset }, set: {
-            if medium == "manga" { mangaScrollOffset = $0 } else { animeScrollOffset = $0 }
-        })
-    }
-
     private func resetPresentationForAccount() {
         let account = libraryActions.accountSession.current
         guard presentationAccount != account else { return }
         presentationAccount = account
-        animeScrollOffset = 0; mangaScrollOffset = 0
+        scrollMemory.anime = 0; scrollMemory.manga = 0
         calendarFocused = false
         // The new account's schedule is not known yet: "Checking dates", never "Nothing scheduled".
         scheduleChecked = skipNetworkLoad
@@ -825,6 +827,7 @@ struct HomeView: View {
             fact: fact,
             compact: compactColumn,
             zoomSourceID: zID,
+            nextRelease: nextReleaseForCard(card),
             onOpen: { open(card, zoomSourceID: zID) },
             onSeason: { routes.openPage(HomeSeasonJourney.page(for: card)) },
             onClub: { open(card, zoomSourceID: zID) }
@@ -896,7 +899,58 @@ struct HomeView: View {
         let candidates = [releases.nextRelease(for: key)].compactMap { $0 }
             + releases.scheduleItems(for: mediumKind).filter { $0.key == key }
         let nextUnit = HomeShelfPolicy.nextUnitNumber(candidates, medium: mediumKind)
-        return HomeShelfPolicy.availableUnits(catalogueStatus: card.catalogueStatus, total: total, nextUnit: nextUnit)
+        let policyUnits = HomeShelfPolicy.availableUnits(catalogueStatus: card.catalogueStatus, total: total, nextUnit: nextUnit)
+        if mediumKind == .manga, let latest = card.latestChapter, latest > 0 {
+            let latestFloor = Int(floor(latest))
+            let capped = total.map { min($0, latestFloor) } ?? latestFloor
+            return max(policyUnits ?? 0, capped)
+        }
+        return policyUnits
+    }
+
+    private func nextReleaseForCard(_ card: HomeCard) -> ReleaseScheduleItem? {
+        let key = MediaKey(kind: mediumKind, id: card.mediaId)
+        return releases.nextRelease(for: key) ?? cardFallbackRelease(card)
+    }
+
+    private func cardFallbackRelease(_ card: HomeCard, now: Date = Date()) -> ReleaseScheduleItem? {
+        if mediumKind == .anime, let at = card.nextAiringAt, at > now {
+            return ReleaseScheduleItem(
+                medium: .anime,
+                mediaId: card.mediaId,
+                title: card.title,
+                coverImage: card.coverImage ?? card.bannerImage,
+                unitKind: .episode,
+                unitNumber: card.nextEpisodeNumber.map(Double.init),
+                unitLabel: card.nextEpisodeNumber.map { "Ep. \($0)" },
+                releaseAt: at,
+                basis: .confirmed,
+                confidence: nil,
+                source: "anilist",
+                sourceURL: nil,
+                isPast: false,
+                precision: .instant
+            )
+        }
+        if mediumKind == .manga, let at = card.nextChapterAt, at > now {
+            return ReleaseScheduleItem(
+                medium: .manga,
+                mediaId: card.mediaId,
+                title: card.title,
+                coverImage: card.coverImage ?? card.bannerImage,
+                unitKind: .chapter,
+                unitNumber: card.nextChapterNumber.map(Double.init),
+                unitLabel: card.nextChapterNumber.map { "Ch. \($0)" },
+                releaseAt: at,
+                basis: .estimated,
+                confidence: 0.85,
+                source: "kuro_estimate",
+                sourceURL: nil,
+                isPast: false,
+                precision: .day
+            )
+        }
+        return nil
     }
 
     /// What the opening line may claim (`HomeShelfPolicy.opening`), over every title in progress in
@@ -940,6 +994,7 @@ struct HomeView: View {
             fact: fact,
             compact: compactColumn,
             zoomSourceID: zID,
+            nextRelease: nextReleaseForCard(card),
             onOpen: { open(card, zoomSourceID: zID) },
             // The season overview is a journey (navigation contract N8): its rows push titles.
             onSeason: { routes.openPage(HomeSeasonJourney.page(for: card)) },
@@ -989,11 +1044,28 @@ struct HomeView: View {
         }
     }
 
-    /// One leaf's "Ch. N" readout: the same count, caught-up rule and spoken label as the key.
+    /// One leaf's "Ch. N" readout: the same count, caught-up rule and spoken label as the key,
+    /// plus a concise monochrome indicator of chapters currently released on ongoing manga.
     private func mangaReadout(_ card: HomeCard) -> HomeMangaLeafReadout {
         let state = keyState(card)
-        return HomeMangaLeafReadout(label: state.label, caughtUp: state.caughtUp,
-                                    spoken: progressSpoken(card, state: state))
+        return HomeMangaLeafReadout(
+            label: state.label,
+            caughtUp: state.caughtUp,
+            spoken: progressSpoken(card, state: state),
+            outNow: mangaLeafOutNow(card, progress: state.progress)
+        )
+    }
+
+    private func mangaLeafOutNow(_ card: HomeCard, progress: Int) -> String? {
+        guard mediumKind == .manga,
+              card.catalogueStatus?.uppercased() == "RELEASING" || card.chapters == nil,
+              let latest = card.latestChapter, latest > 0 else { return nil }
+        let out = Int(floor(latest))
+        let unread = max(0, out - progress)
+        if KuroLocale.isGerman {
+            return unread > 0 ? "\(out) da · +\(unread)" : "\(out) da"
+        }
+        return unread > 0 ? "\(out) out · +\(unread)" : "\(out) out"
     }
 
     // MARK: Progress and the advance key
@@ -1152,9 +1224,12 @@ struct HomeView: View {
             if let cap = card.chapters, cap > 0 {
                 return KuroLocale.text("Planned, \(cap) chapters", "Vorgemerkt, \(cap) Kapitel")
             }
+            if let latest = card.latestChapter, latest > 0 {
+                return KuroLocale.text("Planned, \(Int(floor(latest))) chapters out", "Vorgemerkt, \(Int(floor(latest))) Kapitel erschienen")
+            }
             return KuroLocale.text("Planned, not started yet", "Vorgemerkt, noch nicht begonnen")
         }()
-        return HomeMangaLeafReadout(label: "0", caughtUp: false, spoken: spoken)
+        return HomeMangaLeafReadout(label: "0", caughtUp: false, spoken: spoken, outNow: mangaLeafOutNow(card, progress: 0))
     }
 
     @ViewBuilder
@@ -1378,7 +1453,19 @@ struct HomeView: View {
     // MARK: Coming up and the calendar (the account's release schedule, with certainty)
 
     private var scheduleItems: [ReleaseScheduleItem] {
-        releases.scheduleItems(for: mediumKind)
+        let base = releases.scheduleItems(for: mediumKind)
+        guard let active = home.bundle?.active, !active.isEmpty else { return base }
+        let coveredIds = Set(base.map(\.mediaId))
+        let now = Date()
+        let fallbacks = active.compactMap { card -> ReleaseScheduleItem? in
+            guard !coveredIds.contains(card.mediaId) else { return nil }
+            let isEligibleStatus = HomeShelfPolicy.isInProgress(listType: card.listType)
+                || card.listType.uppercased() == "PLANNING"
+                || HomeShelfPolicy.isPaused(listType: card.listType)
+            guard isEligibleStatus else { return nil }
+            return cardFallbackRelease(card, now: now)
+        }
+        return fallbacks.isEmpty ? base : (base + fallbacks)
     }
 
     /// The row's cover: the schedule's own, else the matching Home card's (fallback rows carry none).
@@ -1393,10 +1480,21 @@ struct HomeView: View {
         skipNetworkLoad ? .complete : releases.scheduleCoverage(for: mediumKind)
     }
 
+    @ViewBuilder
     private func comingUpLine(proxy: ScrollViewProxy) -> some View {
         let items = scheduleItems
+        let hasInstant = !skipNetworkLoad && items.contains { $0.effectivePrecision == .instant && $0.releaseAt != nil }
+        if hasInstant {
+            TimelineView(.everyMinute) { context in
+                comingUpLineContent(items: items, copy: ReleaseCopy.current(now: context.date), proxy: proxy)
+            }
+        } else {
+            comingUpLineContent(items: items, copy: ReleaseCopy.current(), proxy: proxy)
+        }
+    }
+
+    private func comingUpLineContent(items: [ReleaseScheduleItem], copy: ReleaseCopy, proxy: ScrollViewProxy) -> some View {
         let offline = !network.isConnected
-        let copy = ReleaseCopy.current()
         let coverage = scheduleCoverage
         let summary = HomeGlanceSummary.make(items: items, copy: copy, offline: offline, coverage: coverage,
                                              checked: scheduleChecked)
@@ -1452,7 +1550,8 @@ struct HomeView: View {
                              coverFor: { coverURL(for: $0) },
                              titleFor: { item in home.bundle?.active.first { $0.mediaId == item.mediaId }?.title ?? "" },
                              seasonFor: { item in seasonPrefix(for: item) },
-                             medium: mediumKind)
+                             medium: mediumKind,
+                             liveCountdown: !skipNetworkLoad)
                 // 32 pt above the heading (the shelf's 24 pt spacing plus 8).
                 .padding(.top, 8)
                 // The paper feed's 22 pt side padding (18 on small phones): 2 pt inside the gutter.
@@ -1554,10 +1653,17 @@ enum HomeFeedInsets {
     static let room: CGFloat = -3
 }
 
+/// Non-observable reference storage so 120 Hz vertical scroll updates never invalidate `HomeView.body`.
+private final class HomeScrollMemory {
+    var anime: CGFloat = 0
+    var manga: CGFloat = 0
+}
+
 /// ScrollPosition alone discards its absolute point after a user drag. Keep the observed
-/// offset in the account-keyed parent; each medium restores its own offset on remount.
+/// offset in the account-keyed reference box; each medium restores its own offset on remount.
 private struct HomeMediumScroll<Content: View>: View {
-    @Binding var offset: CGFloat
+    let initialOffset: CGFloat
+    let onOffsetChange: (CGFloat) -> Void
     @ViewBuilder let content: () -> Content
     @State private var position = ScrollPosition(edge: .top)
     @State private var restored = false
@@ -1568,10 +1674,10 @@ private struct HomeMediumScroll<Content: View>: View {
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 max(0, geometry.contentOffset.y + geometry.contentInsets.top)
             } action: { _, value in
-                if restored { offset = value }
+                if restored { onOffsetChange(value) }
             }
             .task {
-                position.scrollTo(y: offset)
+                position.scrollTo(y: initialOffset)
                 restored = true
             }
     }

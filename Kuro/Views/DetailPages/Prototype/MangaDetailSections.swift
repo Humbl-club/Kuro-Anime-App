@@ -153,16 +153,43 @@ struct MangaDetailPage: View {
         return DetailMoreLikeThisRule.filtered(items, key: \.key, excluding: ownLadder)
     }
 
-    /// Year · format · status · volumes · chapters (finished) · score (details-songs §7.2).
+    /// Year · format · status · volumes · chapters (finished / out now) · score (details-songs §7.2).
     private var facts: [DetailFacts.Part] {
-        DetailFacts.manga(year: manga.startDateYear, format: manga.format, status: manga.status,
+        var parts = DetailFacts.manga(year: manga.startDateYear, format: manga.format, status: manga.status,
                           volumes: manga.volumeCount, chapters: manga.chapterCount,
                           averageScore: manga.averageScore, german: german, locale: KuroLocale.locale)
+        if manga.chapterCount == nil, let latest = manga.latestChapter, latest > 0 {
+            let out = Int(floor(latest))
+            let label = german ? "\(out) Kap. da" : "\(out) ch out"
+            let insertAt = parts.last?.isScore == true ? parts.count - 1 : parts.count
+            parts.insert(DetailFacts.Part(text: label, isScore: false), at: insertAt)
+        }
+        return parts
     }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { MangaDetailSections.bookmarkTotal(chapterCount: manga.chapterCount) }
+    private var bookmarkCaption: String? {
+        if let total {
+            return MangaDetailSections.bookmarkCaption(total: total,
+                                                       releasing: manga.status?.uppercased() == "RELEASING",
+                                                       german: german)
+        }
+        if let latest = manga.latestChapter, latest > 0 {
+            let out = Int(floor(latest))
+            let unread = max(0, out - progress)
+            if unread > 0 {
+                return german ? "\(out) Kap. erschienen · \(unread) ungelesen" : "\(out) chapters out · \(unread) unread"
+            }
+            return german ? "\(out) Kap. erschienen" : "\(out) chapters out"
+        }
+        return MangaDetailSections.bookmarkCaption(total: nil,
+                                                   releasing: manga.status?.uppercased() == "RELEASING",
+                                                   german: german)
+    }
     private var upcoming: [ReleaseScheduleItem] {
-        DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil) ?? content.schedule)
+        DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil)
+                                          ?? (content.schedule.isEmpty ? nil : content.schedule)
+                                          ?? DetailNextReleaseSection.seed(for: manga))
     }
     private var nextChapter: Int? {
         MangaDetailSections.nextChapter(progress: progress, chapterCount: manga.chapterCount, status: manga.status,
@@ -382,9 +409,7 @@ struct MangaDetailPage: View {
             .padding(.bottom, 15)
         case .progress:
             MangaBookmarkCard(progress: progress, total: total,
-                              caption: MangaDetailSections.bookmarkCaption(total: total,
-                                                                           releasing: manga.status?.uppercased() == "RELEASING",
-                                                                           german: german),
+                              caption: bookmarkCaption,
                               material: material)
                 .padding(.top, 16)
                 .overlay(alignment: .top) {
@@ -1084,8 +1109,20 @@ struct MangaChaptersSection: View {
         let german = KuroLocale.isGerman
         VStack(alignment: .leading, spacing: 0) {
             DetailSectionHeading(title: KuroLocale.text("Chapters", "Kapitel"))
+            if total == nil, let latest = manga.latestChapter, latest > 0 {
+                let out = Int(floor(latest))
+                let unread = isTracked ? max(0, out - progress) : 0
+                let summary = unread > 0
+                    ? (german ? "\(out) Kapitel erschienen · \(unread) ungelesen" : "\(out) chapters out · \(unread) unread")
+                    : (german ? "\(out) Kapitel erschienen" : "\(out) chapters out")
+                Text(summary)
+                    .font(.detailSF(10, relativeTo: .footnote))
+                    .monospacedDigit()
+                    .foregroundStyle(DetailInk.progressCaption)
+                    .padding(.top, 4)
+            }
             if let nextRelease {
-                KuroReleaseLine(nextRelease, font: .detailSF(10, relativeTo: .footnote), color: DetailInk.progressCaption)
+                KuroReleaseLine(nextRelease, font: .detailSF(10, relativeTo: .footnote), color: DetailInk.progressCaption, liveCountdown: true)
                     .padding(.top, 4)
             }
             if let upNext {

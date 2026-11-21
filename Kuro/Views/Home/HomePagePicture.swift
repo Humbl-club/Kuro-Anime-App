@@ -332,6 +332,7 @@ struct KuroBlurredArtworkFill: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
+            .drawingGroup()
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

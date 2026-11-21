@@ -33,6 +33,7 @@ struct JournalTabBar: View {
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .kuroTrailingOverflowFade()
+        .kuroSwipeExclusionZone()
         .background(Color.kuroCanvasHome)
         .overlay(alignment: .bottom) {
             // Inset to the gutter like Home's switch rule; the pinned background stays full width.
@@ -409,6 +410,7 @@ struct JournalRailSection: View {
                 }
                 .scrollClipDisabled()
                 .detailRailBleed(visible: $visibleWidth, gutter: gutter)
+                .kuroSwipeExclusionZone()
                 .padding(.top, 10)
 
                 if let openId = openNoteItemId,

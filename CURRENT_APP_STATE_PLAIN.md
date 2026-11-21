@@ -166,7 +166,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 323 app Swift files, 48 package Swift files and 270 SQL migrations are in the repo today.
+**Current inventory:** 323 app Swift files, 48 package Swift files and 271 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2437,3 +2437,10 @@ Refined the existing components across all three areas to feel calmer and closer
 - **Local Checks Passing (`migrations=270`):** Cleared stale macOS shared-memory locks and added a `--fast` cache mode to the local database runner so all new SQL security checks (`114`, `129`–`131`, and 9 regression suites) now pass locally alongside **293/293** Edge Function tests, **224/224** Swift package tests, **49/49** Python checks, **163/163** focused iOS simulator tests, and **32/32** release-schedule tests across all 4 suites.
 - **Live on Supabase (`bkdifromsqxkndnllmdj`):** Applied the 3 database updates (`20261121100000`, `20261121110000`, `20261121120000`) atomically and deployed updated `catalogue-intake` (v6) and `release-intake` (v7); verified live guest permissions, spoiler-safe tag rules, and live search smoke checks.
 - **TestFlight Build 28 uploaded:** Built, signed, and uploaded version `1.0 (28)` from the new local work (keeping the home-screen widget excluded as in builds 25–27 until its `group.com.Kuro.app` App Group is registered in Apple Developer Portal). Installing and testing on a physical device remains open (`installed_native_qualification: PENDING`), and local commits stay unpushed.
+
+### 2026-11-21 — Build 29: Smoother Scrolling, Multi-State Quick-Add, Live Manga Chapters Out & Episode Countdowns
+- **120 Hz Scrolling & Touch Fixes:** Horizontal card rows scroll edge-to-edge and never accidentally trigger the main page swipe from anywhere along their width, heavy blurred backdrops are cached, and only neighboring tabs stay mounted.
+- **Multi-State `+` Quick-Add & Collection Status Switching:** Tapping `+` on Discover/Search/Taste opens a menu to set Watching/Reading, Completed (auto-filling known totals), Planned, Paused, or Dropped, and Collection cards/rows let you switch status inline or by swiping with Undo.
+- **Live Chapters Out & Ticking Countdowns (`bkdifromsqxkndnllmdj` Live):** Ongoing manga now track `latest_chapter` from imported chapters and MangaUpdates (`15,378` titles populated), anime airing schedules auto-sync every 30 minutes via Syoboi (`38` links, `72` upcoming anime), Home `Coming up` refreshes immediately when you track a show, and episode countdowns tick live by the minute across Home, Discover, Collection, and Detail screens.
+- **Taste `Deck · Feed` Mode:** Signed-in users get a swipeable 3-card triage deck on Taste (`Skip`, `Completed`, `Watching/Reading`, `Plan`, plus `Undo`) right above their curated `For You` feed.
+- **What was tested (`migrations=271`):** **307/307** Edge Function tests (Deno), **199/199** Swift package tests, **235/235** iOS simulator tests (`21` suites), **197/197** local database security assertions (`114`, `125`, `126`, `132`), and live Supabase deployment + initial backfill verification. `TestFlight 29`: pending archive/upload in next step.

@@ -75,9 +75,24 @@ serve(async (req) => {
   });
 });
 
-/** "123,456" -> [123, 456]; anything else is ignored (unset = no official groups). */
+/** Verified official English publisher group IDs on MangaUpdates (VIZ, MANGA Plus, K MANGA, Kodansha USA, Yen Press, Tapas, J-Novel Club). */
+export const DEFAULT_MU_OFFICIAL_GROUP_IDS = [
+  45251742061,
+  49204242348,
+  20977306229,
+  67085909306,
+  56980946982,
+  4290065293,
+  31439080110,
+] as const;
+
+/** "123,456" -> [123, 456]; "none" -> []; unset/empty falls back to the verified 7 official publishers. */
 function parseGroupIds(raw: string | undefined): number[] {
-  return (raw ?? "").split(",").map((v) => Number(v.trim())).filter((n) => Number.isInteger(n) && n > 0);
+  const trimmed = (raw ?? "").trim();
+  if (trimmed.toLowerCase() === "none") return [];
+  if (!trimmed) return [...DEFAULT_MU_OFFICIAL_GROUP_IDS];
+  const parsed = trimmed.split(",").map((v) => Number(v.trim())).filter((n) => Number.isInteger(n) && n > 0);
+  return parsed.length > 0 ? parsed : [...DEFAULT_MU_OFFICIAL_GROUP_IDS];
 }
 
 function json(body: unknown, status = 200): Response {

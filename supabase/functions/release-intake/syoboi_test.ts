@@ -8,7 +8,7 @@ import { createPoliteClient, PoliteLimiter } from "../_shared/polite_fetch.ts";
 import { queryFake as baseQueryFake, type FakeOptions } from "../_shared/test_query_fake.ts";
 import type { ReleaseEventRow } from "./contract.ts";
 import { run } from "./handler.ts";
-import { parseSyoboiProgItems } from "./syoboi.ts";
+import { parseSyoboiCalChkXml, parseSyoboiProgItems, parseSyoboiTitleMedium } from "./syoboi.ts";
 
 const NOW = Date.parse("2026-11-01T10:00:00Z");
 const NOW_S = Math.floor(NOW / 1000);
@@ -187,4 +187,64 @@ Deno.test("syoboi mode stops cleanly with rate_limited on HTTP 429 and releases 
   assert.equal(out.results.stoppedEarly, "rate_limited");
   assert.equal(out.results.events, 0);
   assert.equal(locks.held.size, 0);
+});
+
+Deno.test("syoboi cal_chk.php XML parses JST StTime, filters rerun marathons, and auto-links RELEASING anime", async () => {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<syobocal>
+<ProgItems>
+<ProgItem PID="10" TID="8001" StTime="20261102003000" Count="8" Title="テストアニメ(2026)"/>
+<ProgItem PID="11" TID="8001" StTime="20261102010000" Count="8" Title="テストアニメ(2026)"/>
+<ProgItem PID="12" TID="8002" StTime="20261102020000" Count="" Title="Re-run Marathon"/>
+<ProgItem PID="13" TID="8001" StTime="20261102030000" Count="9" Deleted="1" Title="テストアニメ(2026)"/>
+</ProgItems>
+</syobocal>`;
+  const parsedXml = parseSyoboiCalChkXml(xml);
+  assert.equal(parsedXml.length, 2);
+  assert.equal(parsedXml[0].tid, "8001");
+  assert.equal(parsedXml[0].episode, 8);
+  // 2026-11-02 00:30:00 JST = 2026-11-01 15:30:00 UTC
+  assert.equal(parsedXml[0].stTimeSeconds, Math.floor(Date.parse("2026-11-01T15:30:00Z") / 1000));
+
+  const titleMeta = parseSyoboiTitleMedium({
+    Titles: { "8001": { TID: "8001", Title: "テストアニメ", TitleEN: "Test Anime", FirstYear: "2026" } },
+  });
+  assert.equal(titleMeta.get("8001")?.firstYear, 2026);
+
+  const locks = { held: new Set<string>() };
+  const fake = queryFake({
+    tables: {
+      anime: [{ id: 500, status: "RELEASING", title_native: "テストアニメ", start_date_year: 2026, next_episode_number: 7, next_airing_at: null }],
+      catalogue_id_links: [],
+    },
+    rpc: {
+      ...lockRpc(locks),
+      catalogue_find_title_candidates_v1: () => ({
+        data: [{ id: 500, title_native: "テストアニメ", title_english: "Test Anime", start_date_year: 2026 }],
+        error: null,
+      }),
+    },
+  });
+
+  const syoboiFetch: typeof fetch = (input) => {
+    const url = String(input);
+    if (url.includes("cal_chk.php")) {
+      return Promise.resolve(new Response(xml, { status: 200 }));
+    }
+    return Promise.resolve(new Response(JSON.stringify({
+      Titles: { "8001": { TID: "8001", Title: "テストアニメ", TitleEN: "Test Anime", FirstYear: "2026" } },
+    }), { status: 200 }));
+  };
+
+  const res = await run({ mode: "syoboi", discover: true }, { supabase: fake.client, ...noopClients(), syoboiFetch });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(out.results.discoveredTids, 1);
+  assert.equal(out.results.linked, 1);
+  assert.equal(out.results.events, 1);
+  assert.equal(out.results.animePatched, 1);
+  assert.equal(fake.tables.anime[0].next_episode_number, 8);
+  assert.equal(fake.tables.anime[0].next_airing_at, "2026-11-01T15:30:00.000Z");
+  assert.equal(fake.tables.catalogue_id_links.length, 1);
+  assert.equal(fake.tables.catalogue_id_links[0].source_key, "8001");
 });

@@ -160,6 +160,7 @@ struct HomeSceneCard<Key: View>: View {
     let fact: HomeSceneFact?
     let compact: Bool
     var zoomSourceID: String? = nil
+    var nextRelease: ReleaseScheduleItem? = nil
     let onOpen: () -> Void
     let onSeason: () -> Void
     let onClub: () -> Void
@@ -197,6 +198,9 @@ struct HomeSceneCard<Key: View>: View {
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5, style: .continuous))
             foot
             if let fact { factRow(fact) }
+            if let nextRelease {
+                releaseStrip(nextRelease)
+            }
         }
         .background(
             LinearGradient(colors: [material.base.color, material.deep.color],
@@ -327,6 +331,30 @@ struct HomeSceneCard<Key: View>: View {
         .padding(.leading, compact ? 11 : 14)
         .padding(.trailing, compact ? 10 : 12)
         .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Double(0x0D) / 255)).frame(height: 1) }
+    }
+
+    @ViewBuilder
+    private func releaseStrip(_ item: ReleaseScheduleItem) -> some View {
+        let copy = ReleaseCopy.current()
+        if item.isDisplayable && copy.isAhead(item) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                    .font(.kuroCustom(compact ? 8 : 9, weight: .medium, relativeTo: .caption2, maxSize: 16))
+                    .foregroundStyle(HomeInk.footSecondary)
+                    .accessibilityHidden(true)
+                KuroReleaseLine(
+                    item,
+                    font: .kuroCustom(compact ? 9 : 10, weight: .medium, relativeTo: .caption2, maxSize: 20),
+                    color: HomeInk.footFact,
+                    liveCountdown: true
+                )
+            }
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+            .padding(.leading, compact ? 11 : 14)
+            .padding(.trailing, compact ? 10 : 12)
+            .padding(.vertical, 3)
+            .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Double(0x0D) / 255)).frame(height: 1) }
+        }
     }
 }
 

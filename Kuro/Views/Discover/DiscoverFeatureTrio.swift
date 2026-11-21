@@ -130,18 +130,43 @@ struct DiscoverCoverTile: View {
 
     private var german: Bool { KuroLocale.isGerman }
 
-    private var episodeDisplay: DiscoverIssueCopy.SeasonEpisodeDisplay? {
+    private func episodeDisplay(now: Date) -> DiscoverIssueCopy.SeasonEpisodeDisplay? {
         guard showsEpisodeBadge, card.media.kind == .anime else { return nil }
         return DiscoverIssueCopy.seasonEpisodePresentation(
             slot: airing,
-            now: Date(),
+            now: now,
             german: german,
             locale: KuroLocale.locale,
             timeZone: KuroLocale.timeZone
         )
     }
 
-    private var line: String? {
+    private func captionLine(now: Date, episodeDisplay: DiscoverIssueCopy.SeasonEpisodeDisplay?) -> String? {
+        if let airing, airing.airingAt > now {
+            let item = ReleaseScheduleItem(
+                medium: .anime,
+                mediaId: card.media.id,
+                title: card.media.title,
+                coverImage: card.media.imageURL,
+                unitKind: .episode,
+                unitNumber: airing.episode.map(Double.init),
+                unitLabel: airing.episode.map { "Ep. \($0)" },
+                releaseAt: airing.airingAt,
+                basis: .confirmed,
+                confidence: nil,
+                source: "anilist",
+                sourceURL: nil,
+                isPast: false,
+                precision: .instant
+            )
+            if let countdown = ReleaseCopy(now: now, german: german, locale: KuroLocale.locale, timeZone: KuroLocale.timeZone)
+                .countdownPhrase(item) {
+                if let episode = airing.episode, episode > 0 {
+                    return german ? "Folge \(episode) · \(countdown)" : "Ep. \(episode) · \(countdown)"
+                }
+                return countdown
+            }
+        }
         if let epLine = episodeDisplay?.line {
             return epLine
         }
@@ -160,7 +185,19 @@ struct DiscoverCoverTile: View {
     }
 
     var body: some View {
-        let line = line
+        if card.media.kind == .anime, airing != nil {
+            TimelineView(.everyMinute) { context in
+                tileBody(now: context.date)
+            }
+        } else {
+            tileBody(now: Date())
+        }
+    }
+
+    @ViewBuilder
+    private func tileBody(now: Date) -> some View {
+        let epDisplay = episodeDisplay(now: now)
+        let line = captionLine(now: now, episodeDisplay: epDisplay)
         let isNew = section?.newKeys.contains(card.key) ?? false
         VStack(alignment: .leading, spacing: 0) {
             Button {
@@ -183,7 +220,7 @@ struct DiscoverCoverTile: View {
                         .kuroZoomSource(zoomID)
                         .overlay(alignment: .topLeading) { if isNew { DiscoverNewTab() } }
                         .overlay(alignment: .bottomLeading) {
-                            if let badge = episodeDisplay?.badge {
+                            if let badge = epDisplay?.badge {
                                 Text(badge)
                                     .font(.kuroCustom(8, weight: .bold, relativeTo: .caption2, maxSize: 14))
                                     .tracking(0.25)
