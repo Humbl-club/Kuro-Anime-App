@@ -588,8 +588,9 @@ struct DUpreviewSeeAllTests {
 struct DUpreviewMoodTests {
     @Test("Moods: Like only with a seed; one page per mood (N5)")
     func moods() {
-        #expect(DiscoverMoodRoute.moods(hasSeed: false) == [.short, .cozy, .intense])
-        #expect(DiscoverMoodRoute.moods(hasSeed: true) == [.short, .cozy, .intense, .likeLastLoved])
+        #expect(DiscoverMoodRoute.moods(hasSeed: false) == [.short, .cozy, .intense, .action, .heartfelt, .mindBending, .acclaimed])
+        #expect(DiscoverMoodRoute.moods(hasSeed: true) == [.likeLastLoved, .short, .cozy, .intense, .action, .heartfelt,
+                                                           .mindBending, .acclaimed])
         #expect(DiscoverMoodRoute.pageID(.cozy) == "discover:mood:cozy")
         let page = DiscoverMoodRoute.journeyPage(.short, kind: .anime, german: false)
         #expect(page.id == "custom:discover:mood:short")

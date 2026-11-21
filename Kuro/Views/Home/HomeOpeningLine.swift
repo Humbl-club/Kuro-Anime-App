@@ -92,6 +92,7 @@ struct HomeOpeningLineView: View {
             Text(headline)
                 .font(.kuroCustom(compact ? 13 : 14, weight: .semibold, relativeTo: .subheadline, maxSize: 28))
                 .tracking(-0.3)
+                .monospacedDigit()
                 .foregroundStyle(Color.kuroInk)
                 .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
                 .fixedSize(horizontal: false, vertical: true)
@@ -115,7 +116,7 @@ struct HomeQuietCard: View {
             // 10 pt padding around the prototype's 15.4 pt line.
             .padding(.vertical, 12)
             .padding(.horizontal, 12)
-            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
     }
 }

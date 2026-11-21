@@ -130,8 +130,8 @@ struct ClubOfflineBand: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
         .frame(minHeight: 44)
-        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
         .accessibilityElement(children: .contain)
     }
 }

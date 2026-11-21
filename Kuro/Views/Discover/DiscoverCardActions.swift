@@ -87,6 +87,10 @@ struct DiscoverPlanKey: View {
     var variant: TastePlanKey.Variant = .leaf
     var compact: Bool = true
     var trailingAligned: Bool = false
+    /// The corner badge face (cover tiles and index rows): a 30 pt circle in a 44 pt target.
+    var badge: Bool = false
+    /// True when placed inside a light `#FFFFFF` placard rather than a dark material foot.
+    var onLightSurface: Bool = false
 
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var libraryActions
@@ -98,7 +102,7 @@ struct DiscoverPlanKey: View {
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @State private var localController = TastePlanController()
 
-    private static let savedLeafFace = Color(hex: "2B342E")
+    private static let savedLeafFace = Color.kuroControlInk
 
     static func compactLabel(action: TastePlanAction, status: ListStatus?, kind: MediaKind, german: Bool) -> String {
         switch status {
@@ -151,10 +155,8 @@ struct DiscoverPlanKey: View {
         let status = entry?.status
         let german = germanOverride ?? KuroLocale.isGerman
         let controller = hostController ?? localController
-        let useGuestGate = guest?.isGuest == true || !TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps)
-
         Group {
-            if useGuestGate {
+            if guest?.isGuest == true || !TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps) {
                 Button {
                     guard TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps) else { return }
                     KuroAccessibility.impactHaptic(.light)
@@ -162,18 +164,22 @@ struct DiscoverPlanKey: View {
                 } label: {
                     keyLabel(status: status, controller: controller, german: german)
                 }
-                .buttonStyle(KuroPressStyle(pressedScale: 0.97))
+                .buttonStyle(KuroPressStyle(pressedScale: badge ? 0.94 : 0.97))
             } else {
-                Menu {
-                    quickStatusMenu(entry: entry, status: status, controller: controller, german: german)
+                Button {
+                    guard TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps) else { return }
+                    KuroAccessibility.impactHaptic(.light)
+                    controller.tap(card, library: library, actions: libraryActions, routes: routes, german: german)
                 } label: {
                     keyLabel(status: status, controller: controller, german: german)
                 }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
+                .buttonStyle(KuroPressStyle(pressedScale: badge ? 0.94 : 0.97))
             }
         }
         .accessibilityLabel(Self.spokenMenuLabel(status: status, kind: card.media.kind, title: card.media.title, german: german))
+        .accessibilityHint(status == nil
+                           ? KuroLocale.text("Saves to your list", "Merkt den Titel vor")
+                           : "")
         .accessibilityAddTraits(status != nil ? [.isSelected] : [])
         .onChange(of: localController.toast?.id) { _, _ in
             guard hostController == nil, let message = localController.toast?.message else { return }
@@ -219,30 +225,78 @@ struct DiscoverPlanKey: View {
 
     @ViewBuilder
     private func keyLabel(status: ListStatus?, controller: TastePlanController, german: Bool) -> some View {
-        if variant == .landscape {
+        if badge {
+            badgeFace(status: status, controller: controller)
+        } else if variant == .landscape {
             landscapeFace(status: status, controller: controller, german: german)
         } else {
             compactPillFace(status: status, controller: controller, german: german)
         }
     }
 
+    /// The glyph a tracked badge shows: what the title is on the list as.
+    static func badgeSymbol(status: ListStatus?, kind: MediaKind) -> String {
+        switch status {
+        case nil: return "plus"
+        case .planning: return "bookmark.fill"
+        case .current, .repeating: return kind == .manga ? "book.fill" : "play.fill"
+        case .some: return "checkmark"
+        }
+    }
+
+    /// The corner quick-add badge (2026-11-20 Discover pass): a 30 pt circle in a 44 pt target that
+    /// floats on the cover's bottom-trailing corner. White with a crisp `plus` when the title is not on
+    /// the list; near-black with the status glyph once it is. Opens the same 3-choice status menu.
+    private func badgeFace(status: ListStatus?, controller: TastePlanController) -> some View {
+        let saved = status != nil
+        let stamp = TastePlanKey.stampTokens(controller.stampCounts[card.key])
+        return ZStack {
+            Circle()
+                .fill(saved ? Color.kuroControlInk : Color.white)
+                .overlay(Circle().strokeBorder(saved ? Color.white.opacity(0.18) : Color.black.opacity(0.16),
+                                               lineWidth: saved ? 0.5 : 1))
+                .shadow(color: Color.black.opacity(saved ? 0.22 : 0.28), radius: saved ? 4 : 5, y: saved ? 1.5 : 2)
+                .frame(width: 30, height: 30)
+            ZStack {
+                Image(systemName: Self.badgeSymbol(status: status, kind: card.media.kind))
+                    .font(.system(size: saved ? 11 : 13, weight: .semibold))
+                    .kuroRestore(trigger: stamp.restore)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .kuroConfirmStamp(trigger: stamp.confirm)
+            }
+            .foregroundStyle(saved ? Color.white : Color.kuroControlInk)
+            .accessibilityHidden(true)
+            .sensoryFeedback(.success, trigger: stamp.confirm)
+            .sensoryFeedback(.warning, trigger: stamp.failure)
+        }
+        .frame(width: 44, height: 44)
+        .contentShape(Circle())
+        .kuroAnimation(KuroMotion.contact, value: status)
+    }
+
     private func landscapeFace(status: ListStatus?, controller: TastePlanController, german: Bool) -> some View {
         let saved = status != nil
         let stamp = TastePlanKey.stampTokens(controller.stampCounts[card.key])
         let label = Self.landscapeLabel(status: status, kind: card.media.kind, german: german)
+        let artRaw = card.bannerURL ?? card.media.imageURL
+        let foreground: Color = (saved || onLightSurface) ? .white : .kuroControlInk
+        let border: Color = saved
+            ? Color.white.opacity(0.26)
+            : (onLightSurface ? Color.white.opacity(0.20) : Color.white.opacity(0.92))
 
         return HStack(spacing: 6) {
             Text(label)
-                .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 20))
+                .font(.kuroCustom(12, weight: .semibold, relativeTo: .caption1, maxSize: 20))
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
             Spacer(minLength: 4)
             ZStack {
-                Image(systemName: saved ? "bookmark.fill" : "plus")
-                    .font(.system(size: 12, weight: saved ? .regular : .medium))
+                Image(systemName: saved ? "checkmark" : "plus")
+                    .font(.system(size: 13, weight: .semibold))
                     .kuroRestore(trigger: stamp.restore)
                 Image(systemName: "checkmark")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .kuroConfirmStamp(trigger: stamp.confirm)
             }
             .frame(width: 22, height: 28)
@@ -250,19 +304,29 @@ struct DiscoverPlanKey: View {
             .sensoryFeedback(.success, trigger: stamp.confirm)
             .sensoryFeedback(.warning, trigger: stamp.failure)
         }
-        .foregroundStyle(saved ? Color.white : Color(hex: "36433A"))
-        .padding(.horizontal, 12)
+        .foregroundStyle(foreground)
+        .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 44)
-        .background(saved ? Color(hex: "303932") : Color(hex: "F4F6F5"), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(saved ? Color(hex: "303932") : Color(hex: "E0E5E1"), lineWidth: 1)
-        )
-        .overlay(alignment: .top) {
-            if !saved {
-                Rectangle().fill(Color.white).frame(height: 1).padding(.horizontal, 10).padding(.top, 1)
+        .background {
+            if saved {
+                Color.kuroControlInk
+            } else if onLightSurface {
+                KuroBlurredArtworkFill(
+                    raw: artRaw,
+                    top: Color(hex: "222634"),
+                    bottom: Color(hex: "151821"),
+                    leadingScrim: 0.56,
+                    trailingScrim: 0.38
+                )
+            } else {
+                KuroBlurredArtworkFill(raw: artRaw, frostedLight: true)
             }
         }
+        .clipShape(Capsule(style: .continuous))
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(border, lineWidth: 1)
+        )
         .kuroAnimation(KuroMotion.contact, value: status)
     }
 
@@ -306,7 +370,7 @@ struct DiscoverPlanKey: View {
         )
         .overlay(
             Capsule()
-                .strokeBorder(isDarkFace ? Self.savedLeafFace : HomeInk.quietBorder, lineWidth: 1)
+                .strokeBorder(isDarkFace ? Self.savedLeafFace : Color.black.opacity(0.10), lineWidth: 1)
         )
         .frame(maxWidth: .infinity, minHeight: 44, alignment: trailingAligned ? .trailing : .leading)
         .contentShape(Rectangle())

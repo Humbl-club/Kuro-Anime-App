@@ -85,15 +85,23 @@ public struct LibrarySourceMetadata: Equatable, Sendable {
     public var customLists: [String]?
     public var hiddenFromStatusLists: Bool?
     public var sourceListOptions: String?
+    public var startedAtProgress: Int?
     public init(volumesProgress: Int? = nil, repeatCount: Int? = nil, scoreRaw: String? = nil,
         scoreScale: String? = nil, startedRaw: String? = nil, finishedRaw: String? = nil,
         isPrivate: Bool? = nil, customLists: [String]? = nil, hiddenFromStatusLists: Bool? = nil,
-        sourceListOptions: String? = nil) {
+        sourceListOptions: String? = nil, startedAtProgress: Int? = nil) {
         self.volumesProgress = volumesProgress; self.repeatCount = repeatCount
         self.scoreRaw = scoreRaw; self.scoreScale = scoreScale; self.startedRaw = startedRaw
         self.finishedRaw = finishedRaw; self.isPrivate = isPrivate; self.customLists = customLists
         self.hiddenFromStatusLists = hiddenFromStatusLists; self.sourceListOptions = sourceListOptions
+        self.startedAtProgress = startedAtProgress
     }
+}
+
+/// Computes net units genuinely consumed by subtracting any anime-to-manga bridge start offset.
+public func effectiveUnitsConsumed(progress: Int, startedAt: Int?) -> Int {
+    let clampedStart = max(0, startedAt ?? 0)
+    return max(0, progress - clampedStart)
 }
 
 /// One tracked title as projected by `LibraryStore`.
@@ -201,6 +209,12 @@ public struct LibraryEdit: Sendable, Equatable {
     public var rating: FieldChange<UserRating>
     public var notes: FieldChange<String>
     public var verdict: FieldChange<Verdict>
+    /// Fractional or custom unit display label (`progress_label`, e.g. `"42.5"`).
+    public var progressLabel: FieldChange<String>
+    /// Completed volumes (`volumes_progress`, manga only). `0...99999`; never `.clear`.
+    public var volumesProgress: FieldChange<Int>
+    /// Honest start offset (`started_at_progress`, e.g. jumping to Ch. 64 from anime stores `63`).
+    public var startedAtProgress: FieldChange<Int>
     /// Extra watches or reads (`repeat_count`, NOT NULL DEFAULT 0). `0...999`; never `.clear`.
     public var repeatCount: FieldChange<Int>
     /// The date the user started the title (`started_raw`); `.clear` writes `null`.
@@ -221,6 +235,9 @@ public struct LibraryEdit: Sendable, Equatable {
     public init(
         status: FieldChange<ListStatus> = .unchanged,
         progress: FieldChange<Int> = .unchanged,
+        progressLabel: FieldChange<String> = .unchanged,
+        volumesProgress: FieldChange<Int> = .unchanged,
+        startedAtProgress: FieldChange<Int> = .unchanged,
         rating: FieldChange<UserRating> = .unchanged,
         notes: FieldChange<String> = .unchanged,
         verdict: FieldChange<Verdict> = .unchanged,
@@ -232,6 +249,9 @@ public struct LibraryEdit: Sendable, Equatable {
     ) {
         self.status = status
         self.progress = progress
+        self.progressLabel = progressLabel
+        self.volumesProgress = volumesProgress
+        self.startedAtProgress = startedAtProgress
         self.rating = rating
         self.notes = notes
         self.verdict = verdict
@@ -253,11 +273,10 @@ public struct LibraryEdit: Sendable, Equatable {
         return false
     }
 
-    /// Notes, rating, verdict, repeat count and dates. These stay on direct PATCH (the durable progress
-    /// outbox and `apply_progress_mutations_v1` carry only position and status) and still advance
-    /// `server_revision`.
+    /// Notes, rating, verdict, repeat count, volumes, start offset and dates.
     package var patchBodyOmittingProgress: LibraryEdit {
         LibraryEdit(
+            volumesProgress: volumesProgress, startedAtProgress: startedAtProgress,
             rating: rating, notes: notes, verdict: verdict,
             repeatCount: repeatCount, startedOn: startedOn, finishedOn: finishedOn,
             startedRawVerbatim: startedRawVerbatim, finishedRawVerbatim: finishedRawVerbatim
@@ -266,15 +285,17 @@ public struct LibraryEdit: Sendable, Equatable {
 
     /// `true` when the edit names no field.
     var isEmpty: Bool {
-        status.isUnchanged && progress.isUnchanged && rating.isUnchanged
-            && notes.isUnchanged && verdict.isUnchanged
+        status.isUnchanged && progress.isUnchanged && progressLabel.isUnchanged
+            && volumesProgress.isUnchanged && startedAtProgress.isUnchanged
+            && rating.isUnchanged && notes.isUnchanged && verdict.isUnchanged
             && repeatCount.isUnchanged && startedOn.isUnchanged && finishedOn.isUnchanged
             && startedRawVerbatim == nil && finishedRawVerbatim == nil
     }
 
-    /// Whether the edit names the repeat count or either date, the fields held in `sourceMetadata`.
+    /// Whether the edit names fields held inside `sourceMetadata`.
     var touchesDatesOrRepeat: Bool {
-        !(repeatCount.isUnchanged && startedOn.isUnchanged && finishedOn.isUnchanged
+        !(repeatCount.isUnchanged && volumesProgress.isUnchanged && startedAtProgress.isUnchanged
+            && startedOn.isUnchanged && finishedOn.isUnchanged
             && startedRawVerbatim == nil && finishedRawVerbatim == nil)
     }
 
@@ -284,6 +305,22 @@ public struct LibraryEdit: Sendable, Equatable {
         switch progress {
         case .clear: return .invalidValue(field: "progress")
         case .set(let value) where value < 0: return .invalidValue(field: "progress")
+        default: break
+        }
+        if case .set(let label) = progressLabel {
+            let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty || trimmed.count > Self.maxVerbatimDateLength {
+                return .invalidValue(field: "progressLabel")
+            }
+        }
+        switch volumesProgress {
+        case .clear: return .invalidValue(field: "volumesProgress")
+        case .set(let value) where value < 0: return .invalidValue(field: "volumesProgress")
+        default: break
+        }
+        switch startedAtProgress {
+        case .clear: return .invalidValue(field: "startedAtProgress")
+        case .set(let value) where value < 0: return .invalidValue(field: "startedAtProgress")
         default: break
         }
         switch repeatCount {
@@ -307,10 +344,17 @@ public struct LibraryEdit: Sendable, Equatable {
         var edit = LibraryEdit(
             status: .set(entry.status),
             progress: .set(entry.progress),
+            progressLabel: entry.progressLabel.map { .set($0) } ?? .unchanged,
             rating: entry.rating.map { .set($0) } ?? .clear,
             notes: entry.notes.map { .set($0) } ?? .clear,
             verdict: entry.verdict.map { .set($0) } ?? .clear
         )
+        if entry.key.kind == .manga, let vol = entry.sourceMetadata?.volumesProgress {
+            edit.volumesProgress = .set(vol)
+        }
+        if let start = entry.sourceMetadata?.startedAtProgress {
+            edit.startedAtProgress = .set(start)
+        }
         if entry.datesKnown {
             edit.repeatCount = .set(entry.repeatCount)
             if let raw = entry.sourceMetadata?.startedRaw, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { edit.startedRawVerbatim = raw } else { edit.startedOn = .clear }
@@ -336,6 +380,18 @@ public struct LibraryEdit: Sendable, Equatable {
         var edit = LibraryEdit()
         if current.status != previous.status { edit.status = .set(previous.status) }
         if current.progress != previous.progress { edit.progress = .set(previous.progress) }
+        if current.progressLabel != previous.progressLabel {
+            edit.progressLabel = previous.progressLabel.map { .set($0) } ?? .clear
+        }
+        if current.key.kind == .manga,
+           let prevVol = previous.sourceMetadata?.volumesProgress,
+           current.sourceMetadata?.volumesProgress != prevVol {
+            edit.volumesProgress = .set(prevVol)
+        }
+        if let prevStart = previous.sourceMetadata?.startedAtProgress,
+           current.sourceMetadata?.startedAtProgress != prevStart {
+            edit.startedAtProgress = .set(prevStart)
+        }
         if current.rating != previous.rating { edit.rating = previous.rating.map { .set($0) } ?? .clear }
         if current.notes != previous.notes { edit.notes = previous.notes.map { .set($0) } ?? .clear }
         if current.verdict != previous.verdict { edit.verdict = previous.verdict.map { .set($0) } ?? .clear }
@@ -409,6 +465,11 @@ extension LibraryEntry {
             entry.progress = progress
             if edit.touchesProgress { entry.progressLabel = nil; entry.unitId = nil }
         }
+        switch edit.progressLabel {
+        case .set(let label): entry.progressLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .clear: entry.progressLabel = nil
+        case .unchanged: break
+        }
         entry.rating = edit.rating.resolved(rating)
         entry.notes = edit.notes.resolved(notes)
         entry.verdict = edit.verdict.resolved(verdict)
@@ -416,6 +477,8 @@ extension LibraryEntry {
             // Metadata is created only here: an edit that names none of these fields leaves a cached row's
             // nil metadata nil, so an optimistic edit never turns unknown dates into known-empty ones.
             var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
+            if case .set(let vol) = edit.volumesProgress { metadata.volumesProgress = vol }
+            if case .set(let start) = edit.startedAtProgress { metadata.startedAtProgress = start }
             if case .set(let count) = edit.repeatCount { metadata.repeatCount = count }
             if !edit.startedOn.isUnchanged { metadata.startedRaw = edit.startedOn.resolved(nil)?.raw }
             if !edit.finishedOn.isUnchanged { metadata.finishedRaw = edit.finishedOn.resolved(nil)?.raw }
@@ -442,13 +505,20 @@ extension LibraryEntry {
                 entry.sourceMetadata = nil
             } else {
                 var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
+                if !edit.volumesProgress.isUnchanged { metadata.volumesProgress = prior.sourceMetadata?.volumesProgress }
+                if !edit.startedAtProgress.isUnchanged { metadata.startedAtProgress = prior.sourceMetadata?.startedAtProgress }
                 if !edit.repeatCount.isUnchanged { metadata.repeatCount = prior.sourceMetadata?.repeatCount }
                 if !edit.startedOn.isUnchanged || edit.startedRawVerbatim != nil { metadata.startedRaw = prior.sourceMetadata?.startedRaw }
                 if !edit.finishedOn.isUnchanged || edit.finishedRawVerbatim != nil { metadata.finishedRaw = prior.sourceMetadata?.finishedRaw }
                 entry.sourceMetadata = metadata
             }
         }
-        if edit.touchesProgress { entry.progressLabel = prior.progressLabel; entry.unitId = prior.unitId }
+        if edit.touchesProgress || !edit.progressLabel.isUnchanged {
+            entry.progressLabel = prior.progressLabel
+        }
+        if edit.touchesProgress {
+            entry.unitId = prior.unitId
+        }
         entry.updatedAt = prior.updatedAt
         entry.revision = prior.revision
         return entry

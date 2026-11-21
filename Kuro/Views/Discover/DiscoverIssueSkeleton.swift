@@ -38,8 +38,8 @@ struct DiscoverIssueSkeleton: View {
             VStack(spacing: DiscoverMoodKeys.gap) {
                 ForEach(0..<2, id: \.self) { _ in
                     HStack(spacing: DiscoverMoodKeys.gap) {
-                        RoundedRectangle(cornerRadius: 10).fill(block).frame(height: DiscoverMoodKeys.keyHeight)
-                        RoundedRectangle(cornerRadius: 10).fill(block).frame(height: DiscoverMoodKeys.keyHeight)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(block).frame(height: DiscoverMoodKeys.keyHeight)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(block).frame(height: DiscoverMoodKeys.keyHeight)
                     }
                 }
             }
@@ -48,16 +48,16 @@ struct DiscoverIssueSkeleton: View {
                 Rectangle().fill(block)
                     .frame(height: DiscoverIssueLayout.artHeight(column: column, aspect: DiscoverIssueLayout.coverBannerAspect))
                 HStack(spacing: KuroDesignSpacing.sm) {
-                    RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.18)).frame(height: 12)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.white.opacity(0.18)).frame(height: 12)
                     Spacer(minLength: 64)
-                    RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.18)).frame(width: 96, height: 34)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(0.18)).frame(width: 96, height: 34)
                 }
                 .padding(.leading, 14)
                 .padding(.trailing, 10)
                 .frame(height: 58)
                 .background(deepBlock)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             .padding(.top, DiscoverIssueLayout.openingStack)
             // The contents block: three jump rows.
             VStack(alignment: .leading, spacing: 0) {
@@ -76,13 +76,13 @@ struct DiscoverIssueSkeleton: View {
                 ForEach(0..<2, id: \.self) { _ in
                     HStack(spacing: 12) {
                         bar(width: 18, height: 10)
-                        RoundedRectangle(cornerRadius: 2).fill(block).frame(width: 40, height: 60)
+                        RoundedRectangle(cornerRadius: 2, style: .continuous).fill(block).frame(width: 40, height: 60)
                         VStack(alignment: .leading, spacing: 8) {
                             bar(width: nil, height: 12)
                             bar(width: 72, height: 9)
                         }
                         Spacer(minLength: 0)
-                        RoundedRectangle(cornerRadius: 10).fill(deepBlock).frame(width: 84, height: 34)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(deepBlock).frame(width: 84, height: 34)
                     }
                     .frame(minHeight: DiscoverIssueLayout.indexRowMinHeight)
                 }
@@ -97,7 +97,7 @@ struct DiscoverIssueSkeleton: View {
     }
 
     private func bar(width: CGFloat?, height: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: height / 2)
+        RoundedRectangle(cornerRadius: height / 2, style: .continuous)
             .fill(block)
             .frame(width: width, height: height)
             .frame(maxWidth: width == nil ? .infinity : nil, alignment: .leading)
@@ -140,8 +140,8 @@ struct DiscoverOfflineBand: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 2)
-        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
         .accessibilityElement(children: .contain)
     }
 }
@@ -157,7 +157,7 @@ struct DiscoverStorySkeleton: View {
             Rectangle().fill(Color.kuroInk.opacity(KuroSkeleton.deepBlockInkOpacity))
                 .frame(height: 58)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(KuroBrandedCopy.loadingLabel(german: KuroLocale.isGerman))
     }

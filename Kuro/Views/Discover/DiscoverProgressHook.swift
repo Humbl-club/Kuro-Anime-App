@@ -65,10 +65,12 @@ struct DiscoverProgressHook: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(DiscoverIssueCopy.progressHead(seen: model.seen, of: model.total, manga: manga, german: german))
                     .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 24))
+                    .monospacedDigit()
                     .foregroundStyle(HomeInk.glanceInk)
                 Text(model.underWay.map { DiscoverIssueCopy.progressUnderWay($0, german: german) }
                      ?? DiscoverIssueCopy.progressToGo(model.remaining, german: german))
                     .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                    .monospacedDigit()
                     .foregroundStyle(HomeInk.glanceMuted)
                     .lineLimit(2)
                 segments
@@ -78,8 +80,8 @@ struct DiscoverProgressHook: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
-        .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
+        .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(DiscoverIssueCopy.progressSpoken(seen: model.seen, of: model.total, manga: manga, german: german))
     }

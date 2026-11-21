@@ -187,10 +187,16 @@ extension LibraryStore {
         do {
             let status: String?
             if case .set(let value) = edit.status { status = value.rawValue } else { status = nil }
+            let writesPosition = edit.touchesProgress || !edit.progressLabel.isUnchanged
+            let positionLabel: String? = switch edit.progressLabel {
+            case .set(let value): value
+            case .clear: nil
+            case .unchanged: edit.touchesProgress ? nil : previous.progressLabel
+            }
             let intent = try await storeProgress(ProgressIntent(accountId: account.userId.lowercased(),
                 medium: key.kind.rawValue.lowercased(), mediaId: key.id, lifecycleId: lifecycle,
-                baseRevision: revision, position: position, writesPosition: edit.touchesProgress,
-                status: status, priorPosition: previous.progress))
+                baseRevision: revision, position: position, writesPosition: writesPosition,
+                positionLabel: positionLabel, status: status, priorPosition: previous.progress))
             guard context == account, activeBindingEpoch == epoch else { return .failed(.notAuthenticated) }
             return .applied(LibraryChange(key: key, kind: .updated, previous: previous,
                 current: entry(for: key), mutationId: intent.mutationId, account: account))

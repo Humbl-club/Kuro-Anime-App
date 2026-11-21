@@ -252,7 +252,7 @@ struct ClubDetailView: View {
         .kuroNavigationLayer("club.createPoll", isPresented: $showCreatePoll)
         .sheet(isPresented: $showInvite) {
             if let bundle, let code = bundle.club.invite_code {
-                ClubInviteSheet(clubName: bundle.club.name, code: code)
+                ClubInviteSheet(clubName: bundle.club.name, code: code, clubId: bundle.club.id)
                     .kuroLeavesJourney()
             }
         }

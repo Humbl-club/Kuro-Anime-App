@@ -385,4 +385,21 @@ struct FirstRunLaneTests {
         #expect(SearchIdleCopy.noHistory(german: false) == "Start with a title you love.")
         #expect(SearchIdleCopy.noHistory(german: true) == "Fang mit einem Titel an, den du liebst.")
     }
+
+    @Test("TasteCard preserves because-you reasonTitle provenance across hydration and localizes EN/DE")
+    func tasteProvenanceAndCopy() throws {
+        let json = """
+        {"media_type":"ANIME","media_id":88,"title":"Mononoke","format":"TV","genres":["Mystery"],
+         "synopsis":"A medicine seller travels feudal Japan.","reason_title":"  Mushishi  "}
+        """
+        let row = try JSONDecoder().decode(BecauseYouCard.self, from: Data(json.utf8))
+        let base = TasteCard(because: row)
+        #expect(base.provenance == "Mushishi")
+        #expect(base.withBanner("https://example.invalid/banner.jpg").provenance == "Mushishi")
+        #expect(base.hydrated(banner: "https://example.invalid/banner.jpg", synopsis: nil).provenance == "Mushishi")
+        #expect(TastePageCopy.becauseLine(seedTitle: base.provenance, german: false) == "Because you liked Mushishi")
+        #expect(TastePageCopy.becauseLine(seedTitle: base.provenance, german: true) == "Weil dir Mushishi gefiel")
+        #expect(TastePageCopy.becauseLine(seedTitle: "   ", german: false) == nil)
+        #expect(TastePageCopy.becauseLine(seedTitle: "Unknown", german: false) == nil)
+    }
 }

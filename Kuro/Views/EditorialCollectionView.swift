@@ -38,6 +38,9 @@ struct EditorialCollectionView: View {
     @State private var status: FolioStatus = .watching
     @State private var sort: FolioSort = .recent
     @State private var verdictFilter: FolioVerdictFilter = .all
+    @State private var planningFilter: FolioPlanningFilter = .all
+    @State private var tonightReshuffle: Int = 0
+    @State private var startingPlannedKeys: Set<MediaKey> = []
     @AppStorage("kuro.folio.density.anime") private var animeDensity: FolioDensity = .index
     @AppStorage("kuro.folio.density.manga") private var mangaDensity: FolioDensity = .shelf
     @State private var isSearching = false
@@ -137,12 +140,20 @@ struct EditorialCollectionView: View {
 
     /// The rows the list shows: status (Library authority), verdict, search, then sort. A search spans
     /// every status of the medium. Computed once per render (`body`).
+    private var plannedPoolItems: [FolioItem] {
+        guard status == .planned, !isImportedView, !isQueryActive else { return [] }
+        let rows = loadedItems.filter { status.listStatuses.contains($0.entry.status) }
+        return FolioPolicy.sorted(rows, by: sort)
+    }
+
     private var visibleItems: [FolioItem] {
         var rows = loadedItems
         if !isImportedView && !isQueryActive {
             rows = rows.filter { status.listStatuses.contains($0.entry.status) }
             if status == .completed {
                 rows = rows.filter { verdictFilter.includes($0.entry.verdict) }
+            } else if status == .planned, !isSearching, !isSelecting {
+                rows = rows.filter { planningFilter.matches($0) }
             }
         }
         rows = rows.filter { FolioGrouping.matches($0, query: searchText) }
@@ -326,6 +337,7 @@ struct EditorialCollectionView: View {
         .onChange(of: status) { _, _ in
             selectedKeys.removeAll()
             verdictFilter = .all
+            planningFilter = .all
             // Choosing a status ends a search (which spans every status); the query change reloads.
             if isQueryActive {
                 searchText = ""
@@ -441,6 +453,34 @@ struct EditorialCollectionView: View {
                 FolioVerdictWords(selection: $verdictFilter, unsortedCount: unsortedCompleted, gutter: gutter)
             }
 
+            if status == .planned && !isImportedView && !isSearching && !isQueryActive && !isSelecting, plannedPoolItems.count >= 2 {
+                FolioPlanningTrayView(
+                    allPlannedItems: plannedPoolItems,
+                    medium: medium,
+                    accountId: activeAccount?.userId,
+                    activeFilter: $planningFilter,
+                    reshuffleSeed: $tonightReshuffle,
+                    startingKeys: startingPlannedKeys,
+                    gutter: gutter,
+                    onOpen: { actions.open($0) },
+                    onStart: { startPlanned($0) }
+                )
+            }
+
+            if let conflict = library.progressConflict {
+                KuroProgressConflictBanner(
+                    localPosition: conflict.localPosition,
+                    serverPosition: conflict.serverPosition,
+                    onKeepServer: {
+                        Task { await libraryActions.resolveProgressConflict(reapply: false, expected: conflict) }
+                    },
+                    onUseMine: {
+                        Task { await libraryActions.resolveProgressConflict(reapply: true, expected: conflict) }
+                    }
+                )
+                .padding(.horizontal, gutter)
+            }
+
             Rectangle()
                 .fill(Color.kuroHairline)
                 .frame(height: 0.5)
@@ -466,18 +506,45 @@ struct EditorialCollectionView: View {
                                   layout: .inline, retry: offline ? nil : { Task { await reload(refreshLibrary: true) } })
                         .padding(.horizontal, gutter)
                 }
+                let hiatusSplit = isQueryActive || isImportedView
+                    ? (active: rows, onHiatus: [FolioItem]())
+                    : FolioPolicy.partitionHiatusManga(rows, medium: medium, status: status)
+                let primaryRows = hiatusSplit.active.isEmpty ? hiatusSplit.onHiatus : hiatusSplit.active
                 Group {
                     if density.wrappedValue == .shelf {
-                        FolioShelf(items: rows, medium: medium, width: width, isSelecting: isSelecting,
+                        FolioShelf(items: primaryRows, medium: medium, width: width, isSelecting: isSelecting,
                                    selectedKeys: selectedKeys, actions: actions)
                     } else {
-                        FolioIndex(items: rows, width: width, isSelecting: isSelecting,
+                        FolioIndex(items: primaryRows, width: width, isSelecting: isSelecting,
                                    selectedKeys: selectedKeys, actions: actions)
                     }
                 }
                 // The density switch is a crossfade, never rows travelling between layouts (§8).
                 .id(density.wrappedValue)
                 .transition(.opacity)
+                if !hiatusSplit.active.isEmpty && !hiatusSplit.onHiatus.isEmpty {
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                        HStack {
+                            Text(german ? "AUF HIATUS" : "ON HIATUS")
+                                .kuroKicker()
+                                .accessibilityAddTraits(.isHeader)
+                            Spacer()
+                            Text("\(hiatusSplit.onHiatus.count)")
+                                .font(.kuroCustom(11, relativeTo: .caption2, maxSize: 18))
+                                .monospacedDigit()
+                                .foregroundStyle(Color.kuroMuted)
+                        }
+                        .padding(.horizontal, gutter)
+                        .padding(.top, KuroDesignSpacing.md)
+                        if density.wrappedValue == .shelf {
+                            FolioShelf(items: hiatusSplit.onHiatus, medium: medium, width: width, isSelecting: isSelecting,
+                                       selectedKeys: selectedKeys, actions: actions)
+                        } else {
+                            FolioIndex(items: hiatusSplit.onHiatus, width: width, isSelecting: isSelecting,
+                                       selectedKeys: selectedKeys, actions: actions)
+                        }
+                    }
+                }
                 if sort == .recent && !isQueryActive {
                     KuroLoadMoreSentinel(
                         itemCount: collection.displayedFeedItems.count,
@@ -622,6 +689,7 @@ struct EditorialCollectionView: View {
         searchText = ""
         isSearching = false
         verdictFilter = .all
+        planningFilter = .all
     }
 
     /// Reads the selected medium and status from the feed (the Library store keeps the tracking values).
@@ -802,6 +870,26 @@ struct EditorialCollectionView: View {
             guard collection.accountSession.isCurrent(context) else { return }
             show(FolioNotice(tone: removed ? .confirmation : .problem,
                              message: FolioCopy.removed(removed ? 1 : 0, of: 1, german: german), actionTitle: nil))
+        }
+    }
+
+    private func startPlanned(_ item: FolioItem) {
+        guard let context = activeAccount, !startingPlannedKeys.contains(item.key) else { return }
+        startingPlannedKeys.insert(item.key)
+        Task {
+            defer { startingPlannedKeys.remove(item.key) }
+            let target = item.total.map { min(1, max(1, $0)) } ?? 1
+            let outcome = await DetailAdvance.advance(item.key, from: item.entry.status, to: target, actions: libraryActions)
+            guard collection.accountSession.isCurrent(context) else { return }
+            if outcome.change != nil {
+                KuroAccessibility.successHaptic()
+                show(FolioNotice(tone: .confirmation,
+                                 message: FolioCopy.advanced(medium: item.key.kind, to: target, german: german),
+                                 actionTitle: nil))
+            } else {
+                KuroAccessibility.errorHaptic()
+                show(FolioNotice(tone: .problem, message: FolioCopy.advanceFailed(german: german), actionTitle: nil))
+            }
         }
     }
 

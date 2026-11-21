@@ -25,6 +25,7 @@ import {
 import { groupIsAniListOwned, readCutoverModes } from "../_shared/catalogue/field_groups.ts";
 import { runAiringWindow } from "./airing.ts";
 import { type MangaDexLinkReader, runMangaReleases } from "./manga.ts";
+import { runSyoboiAiring } from "./syoboi.ts";
 
 export interface ReleaseIntakeDeps {
   // deno-lint-ignore no-explicit-any
@@ -34,6 +35,7 @@ export interface ReleaseIntakeDeps {
   readMangaDexLinks: MangaDexLinkReader;
   /** Official-publisher MangaUpdates group ids whose release dates may be used (default none). */
   muOfficialGroupIds?: number[];
+  syoboiFetch?: typeof fetch;
   now?: () => number;
 }
 
@@ -50,8 +52,8 @@ function clampInt(raw: unknown, fallback: number, min: number, max: number): num
 // deno-lint-ignore no-explicit-any
 export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Response> {
   const mode = String(payload?.mode ?? "").trim().toLowerCase();
-  if (mode !== "airing" && mode !== "manga") {
-    return json({ success: false, error: "mode must be 'airing' or 'manga'" }, 400);
+  if (mode !== "airing" && mode !== "manga" && mode !== "syoboi") {
+    return json({ success: false, error: "mode must be 'airing', 'manga' or 'syoboi'" }, 400);
   }
   const now = deps.now ?? Date.now;
   const supabase = deps.supabase;
@@ -60,7 +62,7 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
   const startedMs = now();
   const deadlineMs = startedMs + timeBudgetMs;
   const lockKey = `release-intake:${mode}`;
-  const mediaType = mode === "airing" ? "ANIME" : "MANGA";
+  const mediaType = mode === "manga" ? "MANGA" : "ANIME";
   const runId = dryRun ? null : await startImportRun(supabase, mediaType, `release_intake_${mode}`, payload);
 
   const lock = await acquireImportLock(supabase, lockKey, clampInt(payload?.lockTtlSeconds, 900, 60, 3600));
@@ -91,6 +93,16 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
         deadlineMs,
         nowMs: startedMs,
         writeNextAiring: groupIsAniListOwned("episodes", modes),
+      });
+    } else if (mode === "syoboi") {
+      results = await runSyoboiAiring(supabase, {
+        limit: clampInt(payload?.limit, 250, 1, 500),
+        dryRun,
+        deadlineMs,
+        nowMs: startedMs,
+        writeNextAiring: groupIsAniListOwned("episodes", modes),
+        fetchFn: deps.syoboiFetch,
+        nowFn: now,
       });
     } else {
       const ids = Array.isArray(payload?.mangaIds)

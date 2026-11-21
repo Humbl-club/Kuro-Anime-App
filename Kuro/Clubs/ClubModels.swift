@@ -34,6 +34,8 @@ struct ClubRailItem: Decodable, Sendable, Identifiable {
     let media_id: Int
     let sort_order: Int
     let note: String?
+    let is_spoiler: Bool?
+    let spoiler_through_unit: Int?
     /// Nil when the member who added the item has been deleted.
     let added_by: String?
     let title_display: String
@@ -246,4 +248,88 @@ struct ClubMediaActivity: Sendable {
 struct ClubActivityCheckResponse: Decodable, Sendable {
     let has_new_activity: Bool
     let latest_activity_at: String?
+}
+
+/// Parses inline/server spoiler metadata on club rail item notes and computes
+/// progress-gated reveal prompts so members are never spoiled ahead of their progress.
+nonisolated enum ClubSpoilerGate {
+    struct ParsedNote: Equatable, Sendable {
+        let cleanText: String
+        let isSpoiler: Bool
+        let unitGate: Int?
+    }
+
+    static func parse(note: String?, serverIsSpoiler: Bool?, serverThroughUnit: Int?) -> ParsedNote {
+        var working = (note ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        var sawSpoilerTag = false
+        var tagUnit: Int? = nil
+
+        while working.hasPrefix("[") {
+            guard let closeIdx = working.firstIndex(of: "]") else { break }
+            let innerStart = working.index(after: working.startIndex)
+            let token = String(working[innerStart..<closeIdx])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+
+            var matched = false
+            if token == "spoiler" {
+                sawSpoilerTag = true
+                matched = true
+            } else if token.hasPrefix("ep:") || token.hasPrefix("ch:") {
+                let rawNum = token.dropFirst(3).trimmingCharacters(in: .whitespacesAndNewlines)
+                if let value = Int(rawNum), value >= 0 {
+                    tagUnit = value
+                    matched = true
+                }
+            }
+
+            guard matched else { break }
+            let afterClose = working.index(after: closeIdx)
+            working = String(working[afterClose...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return ParsedNote(
+            cleanText: working,
+            isSpoiler: (serverIsSpoiler ?? false) || sawSpoilerTag,
+            unitGate: serverThroughUnit ?? tagUnit
+        )
+    }
+
+    static func maskReason(
+        item: ClubRailItem,
+        viewerStatus: String?,
+        viewerProgress: Int?,
+        german: Bool
+    ) -> String? {
+        if viewerStatus?.uppercased() == "COMPLETED" {
+            return nil
+        }
+
+        let parsed = parse(
+            note: item.note,
+            serverIsSpoiler: item.is_spoiler,
+            serverThroughUnit: item.spoiler_through_unit
+        )
+
+        if let gate = parsed.unitGate {
+            let current = max(0, viewerProgress ?? 0)
+            if current >= gate {
+                return nil
+            }
+            let isManga = item.media_type.uppercased() == "MANGA"
+            let unit = isManga ? (german ? "Kap." : "Ch.") : (german ? "F." : "Ep.")
+            if german {
+                return "Spoiler bis \(unit) \(gate) · Du bist bei \(current) — Tippen zum Öffnen"
+            }
+            return "Spoiler through \(unit) \(gate) · You're at \(current) — Tap to reveal"
+        }
+
+        if parsed.isSpoiler {
+            return german
+                ? "Kann Spoiler enthalten — Tippen zum Öffnen"
+                : "May contain spoilers — Tap to reveal"
+        }
+
+        return nil
+    }
 }

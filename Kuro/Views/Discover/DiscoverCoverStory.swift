@@ -72,6 +72,7 @@ struct DiscoverCoverStory: View {
     @Environment(FeatureFlags.self) private var flags
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroZoomNamespace) private var zoomNamespace
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(DiscoverPageFeedback.self) private var feedback: DiscoverPageFeedback?
@@ -89,9 +90,14 @@ struct DiscoverCoverStory: View {
     }
     private var german: Bool { KuroLocale.isGerman }
 
+    private var zoomID: String? {
+        guard zoomNamespace != nil, !reduceMotion else { return nil }
+        return "discover-story-\(section?.id ?? story.eyebrow)-\(story.card.id)"
+    }
+
     private var material: ArtworkMaterial {
         let url = story.artRaw.flatMap { URL(string: $0) }
-        return materials?.material(for: url, seedHex: nil) ?? .neutral
+        return materials?.material(for: url, seedHex: story.card.media.coverImageColor) ?? .neutral
     }
 
     private var friendCount: Int {
@@ -118,22 +124,27 @@ struct DiscoverCoverStory: View {
         }
         .background {
             if usesWarmPaperSpread {
-                material.wash.color
+                Color.white
             } else {
                 LinearGradient(colors: [material.base.color, material.deep.color],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
         .overlay {
             if usesWarmPaperSpread {
-                RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(material.edge.color, lineWidth: 1)
+                RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
+                    .strokeBorder(Color.black.opacity(0.10), lineWidth: 1)
             }
         }
-        .shadow(color: Color(hex: "19221B", opacity: Double(0x0A) / 255), radius: 1, y: 1)
+        .shadow(color: Color.black.opacity(usesWarmPaperSpread ? 0.06 : 0.10),
+                radius: usesWarmPaperSpread ? 8 : 10,
+                y: usesWarmPaperSpread ? 3 : 4)
         .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil, value: material)
     }
+
+    /// The card's continuous corner radius (2026-11-20: 14 pt, was 5).
+    static let radius: CGFloat = 14
 
     // MARK: Banner
 
@@ -145,12 +156,13 @@ struct DiscoverCoverStory: View {
                         .aspectRatio(aspect, contentMode: .fit)
                         .overlay { HomeArtwork(url: URL(string: banner), maxPixelSize: 1200, placeholder: material.base.color) }
                         .clipped()
+                        .kuroZoomSource(zoomID)
                         .overlay {
                             // A 1 pt light rim and a soft shade over the lower half.
                             ZStack {
                                 LinearGradient(colors: [.clear, Color.black.opacity(0.18)],
                                                startPoint: .center, endPoint: .bottom)
-                                UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5)
+                                UnevenRoundedRectangle(topLeadingRadius: Self.radius, topTrailingRadius: Self.radius, style: .continuous)
                                     .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
                             }
                             .allowsHitTesting(false)
@@ -162,7 +174,7 @@ struct DiscoverCoverStory: View {
                 .discoverMenu(for: DiscoverCardItem(card: story.card, position: 0))
                 if kind != .feature { tab }
             }
-            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5))
+            .clipShape(UnevenRoundedRectangle(topLeadingRadius: Self.radius, topTrailingRadius: Self.radius, style: .continuous))
             foot
             if kind != .feature { factRow }
         }
@@ -186,7 +198,7 @@ struct DiscoverCoverStory: View {
         .padding(.horizontal, 8)
         .frame(minHeight: 31)
         .fixedSize(horizontal: false, vertical: true)
-        .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8))
+        .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous))
         .shadow(color: Color.white.opacity(Double(0x65) / 255), radius: 0, y: -1)
         .padding(.leading, 12)
         .accessibilityHidden(true)
@@ -199,9 +211,8 @@ struct DiscoverCoverStory: View {
     private var titleButton: some View {
         Button(action: open) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(story.card.media.title)
-                    .font(.kuroCustom(17, weight: .semibold, relativeTo: .headline, maxSize: 34))
-                    .tracking(-0.35)
+                Text(KuroCardText.balancedHeadline(KuroCardText.sanitizeTitleForCard(story.card.media.title)))
+                    .font(.kuroEditorial(size: 20, weight: .regular))
                     .foregroundStyle(HomeInk.footTitle)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
                 if let line = secondaryLine {
@@ -296,13 +307,54 @@ struct DiscoverCoverStory: View {
         let cover = kind == .feature
             ? DiscoverIssueLayout.featureSpreadCover(compact: compact)
             : DiscoverIssueLayout.spreadCover(compact: compact)
+        let insetCoverHeight = usesWarmPaperSpread ? max(80, cover.height - 20) : cover.height
+        let featureFacts = withKind(story.facts(length: kind == .feature, german: german, kindShown: kindKicker))
+        let isMangaLeaf = usesWarmPaperSpread && story.card.media.kind == .manga
         return HStack(alignment: .top, spacing: 0) {
             Button(action: open) {
-                HomeArtwork(url: story.coverRaw.flatMap { URL(string: $0) }, maxPixelSize: 600,
-                            placeholder: HomeInk.posterFill)
-                    .frame(width: cover.width, height: cover.height)
-                    .clipped()
-                    .homeEntrance()
+                Group {
+                    if isMangaLeaf {
+                        HomeArtwork(url: story.coverRaw.flatMap { URL(string: $0) }, maxPixelSize: 600,
+                                    placeholder: HomeInk.posterFill, seedHex: story.card.media.coverImageColor,
+                                    usesMaterialWash: true)
+                            .frame(width: cover.width - 8, height: insetCoverHeight - 8)
+                            .padding(4)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.10), lineWidth: 1))
+                            .kuroZoomSource(zoomID)
+                            .background(alignment: .topLeading) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                        .fill(Color(hex: "E4E4E6"))
+                                        .offset(x: 2, y: 2)
+                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                        .fill(Color(hex: "FAFAFA"))
+                                        .padding(1)
+                                        .offset(x: 2, y: 2)
+                                }
+                            }
+                            .padding(.leading, 10)
+                            .padding(.vertical, 10)
+                    } else {
+                        HomeArtwork(url: story.coverRaw.flatMap { URL(string: $0) }, maxPixelSize: 600,
+                                    placeholder: HomeInk.posterFill, seedHex: story.card.media.coverImageColor,
+                                    usesMaterialWash: true)
+                            .frame(width: cover.width, height: insetCoverHeight)
+                            .clipShape(RoundedRectangle(cornerRadius: usesWarmPaperSpread ? 8 : 0, style: .continuous))
+                            .overlay {
+                                if usesWarmPaperSpread {
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5)
+                                }
+                            }
+                            .kuroZoomSource(zoomID)
+                            .padding(.leading, usesWarmPaperSpread ? 10 : 0)
+                            .padding(.vertical, usesWarmPaperSpread ? 10 : 0)
+                    }
+                }
+                .homeEntrance()
             }
             .buttonStyle(HomeArtworkPressStyle())
             .accessibilityHidden(true)
@@ -310,22 +362,26 @@ struct DiscoverCoverStory: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Button(action: open) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if kind != .feature {
+                    VStack(alignment: .leading, spacing: 5) {
+                        if usesWarmPaperSpread || kind != .feature {
                             Text(story.eyebrow)
-                                .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))
-                                .tracking(1.4)
+                                .font(.kuroCustom(usesWarmPaperSpread ? 9 : 7, weight: usesWarmPaperSpread ? .medium : .regular,
+                                                  relativeTo: .caption2, maxSize: 16))
+                                .tracking(usesWarmPaperSpread ? 1.0 : 1.4)
                                 .textCase(.uppercase)
-                                .foregroundStyle(HomeInk.footSecondary)
+                                .foregroundStyle(usesWarmPaperSpread ? Color.kuroMuted : HomeInk.footSecondary)
                                 .lineLimit(1)
                         }
-                        Text(story.card.media.title)
-                            .font(.kuroCustom(kind == .feature ? 17 : (compact ? 18 : 20), weight: .semibold,
-                                              relativeTo: .headline, maxSize: 36))
-                            .tracking(kind == .feature ? -0.35 : -0.5)
+                        Text(KuroCardText.balancedHeadline(KuroCardText.sanitizeTitleForCard(story.card.media.title)))
+                            .font(.kuroEditorial(size: kind == .feature ? 19 : (compact ? 20 : 22), weight: .regular))
                             .foregroundStyle(usesWarmPaperSpread ? Color.kuroInk : HomeInk.footTitle)
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : (compact ? 2 : 3))
-                        if kind != .feature, let argument = story.argument {
+                        if usesWarmPaperSpread, let featureFacts {
+                            Text(featureFacts)
+                                .font(.kuroCustom(compact ? 10 : 11, relativeTo: .caption1, maxSize: 22))
+                                .foregroundStyle(Color.kuroMuted)
+                                .lineLimit(1)
+                        } else if kind != .feature, let argument = story.argument {
                             Text(argument)
                                 .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 22))
                                 .foregroundStyle(HomeInk.footSecondary)
@@ -343,20 +399,24 @@ struct DiscoverCoverStory: View {
 
                 Spacer(minLength: 8)
 
-                let facts = withKind(story.facts(length: kind == .feature, german: german, kindShown: kindKicker))
                 let spreadPlanKey = DiscoverPlanKey(card: story.card,
-                                                    variant: usesWarmPaperSpread ? .leaf : .landscape,
+                                                    variant: .landscape,
                                                     compact: compact,
-                                                    trailingAligned: false)
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: 8) {
-                        if let facts { factText(facts) }
-                        Spacer(minLength: 0)
-                        spreadPlanKey.fixedSize()
-                    }
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let facts { factText(facts) }
-                        spreadPlanKey
+                                                    trailingAligned: false,
+                                                    onLightSurface: usesWarmPaperSpread)
+                if usesWarmPaperSpread {
+                    spreadPlanKey
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .center, spacing: 8) {
+                            if let featureFacts { factText(featureFacts) }
+                            Spacer(minLength: 0)
+                            spreadPlanKey.fixedSize()
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            if let featureFacts { factText(featureFacts) }
+                            spreadPlanKey
+                        }
                     }
                 }
             }
@@ -390,7 +450,7 @@ struct DiscoverCoverStory: View {
         guard !suppressCardTaps else { return }
         KuroAccessibility.impactHaptic(.light)
         feedback?.trackOpen(story.key, slot: section.map { DiscoverCardSlot(section: $0.id, position: 0) }, via: "card")
-        routes.openMedia(MediaRoute(story.key))
+        routes.openMedia(MediaRoute(story.key, zoomSourceID: zoomID))
     }
 }
 

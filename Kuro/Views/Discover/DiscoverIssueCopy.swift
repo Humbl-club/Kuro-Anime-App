@@ -160,6 +160,66 @@ nonisolated enum DiscoverIssueCopy {
         return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
+    struct SeasonEpisodeDisplay: Equatable {
+        let badge: String?
+        let line: String?
+    }
+
+    /// Episode badge + schedule subtitle for "This season" and airing "Just added" tiles.
+    /// Elapsed slots never present as upcoming (Spec D10): when `airingAt <= now`, shows "EP. N NEW"
+    /// / "Ep. N out now"; upcoming weekly airings surface `episode - 1` as currently out alongside the
+    /// next episode's weekday.
+    static func seasonEpisodePresentation(
+        slot: DiscoverAiringSlot?,
+        now: Date,
+        german: Bool,
+        locale: Locale = KuroLocale.locale,
+        timeZone: TimeZone = berlin
+    ) -> SeasonEpisodeDisplay? {
+        guard let slot else { return nil }
+        let ep = slot.episode ?? 0
+        if slot.airingAt <= now {
+            guard ep > 0 else { return nil }
+            return SeasonEpisodeDisplay(
+                badge: german ? "FOLGE \(ep) NEU" : "EP. \(ep) NEW",
+                line: german ? "Folge \(ep) jetzt da" : "Ep. \(ep) out now"
+            )
+        }
+        if DiscoverAiringOrder.todaysSlot(slot, now: now, timeZone: timeZone) != nil {
+            let time = DiscoverFrameCopy.timeText(slot.airingAt, locale: locale, timeZone: timeZone)
+            if ep > 0 {
+                return SeasonEpisodeDisplay(
+                    badge: german ? "FOLGE \(ep) HEUTE" : "EP. \(ep) TODAY",
+                    line: german ? "Folge \(ep) · \(time)" : "Ep. \(ep) · \(time)"
+                )
+            }
+            return SeasonEpisodeDisplay(badge: german ? "HEUTE" : "TODAY", line: time)
+        }
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "EEE"
+        let weekday = formatter.string(from: slot.airingAt)
+        if ep > 1 {
+            let latestOut = ep - 1
+            let recentDrop = slot.airingAt.timeIntervalSince(now) >= 5 * 86_400
+            let badge = recentDrop
+                ? (german ? "FOLGE \(latestOut) NEU" : "EP. \(latestOut) NEW")
+                : (german ? "FOLGE \(latestOut)" : "EP. \(latestOut)")
+            let line = german
+                ? "Folge \(latestOut) da · Folge \(ep) \(weekday)"
+                : "Ep. \(latestOut) out · Ep. \(ep) \(weekday)"
+            return SeasonEpisodeDisplay(badge: badge, line: line)
+        }
+        if ep == 1 {
+            return SeasonEpisodeDisplay(
+                badge: german ? "FOLGE 1 BALD" : "EP. 1 SOON",
+                line: german ? "Folge 1 · \(weekday)" : "Ep. 1 · \(weekday)"
+            )
+        }
+        return nil
+    }
+
     // MARK: Contents and Browse (usability spec §5.10)
 
     /// "In this issue · 6 sections" / "In dieser Ausgabe · 6 Rubriken" (the view sets it in capitals).
@@ -183,6 +243,8 @@ nonisolated enum DiscoverIssueCopy {
     /// The Browse link row: kicker "Everything" / "Alles" (new) and the shipped title.
     static func browseKicker(german: Bool) -> String { german ? "Alles" : "Everything" }
     static func browseTitle(german: Bool) -> String { german ? "Den Katalog durchstöbern" : "Browse the catalogue" }
+    static func filterExploreKicker(german: Bool) -> String { german ? "Filtern & Sortieren" : "Filter & sort" }
+    static func filterExploreTitle(german: Bool) -> String { german ? "Nach Genre, Jahr & Format entdecken" : "Explore by genre, year & format" }
 
     // MARK: Header (§5.10)
 
@@ -372,6 +434,14 @@ nonisolated enum DiscoverIssueCopy {
         case (.cozy, true): return "Gemütlich"
         case (.intense, false): return "Intense"
         case (.intense, true): return "Intensiv"
+        case (.action, false): return "Big action"
+        case (.action, true): return "Volle Action"
+        case (.heartfelt, false): return "Heartfelt"
+        case (.heartfelt, true): return "Herzergreifend"
+        case (.mindBending, false): return "Mind-bending"
+        case (.mindBending, true): return "Verzwickt"
+        case (.acclaimed, false): return "Acclaimed"
+        case (.acclaimed, true): return "Gefeiert"
         case (.likeLastLoved, false): return "Like \(likeTitle ?? "")"
         case (.likeLastLoved, true): return "Wie \(likeTitle ?? "")"
         }
@@ -387,6 +457,14 @@ nonisolated enum DiscoverIssueCopy {
         case (.cozy, true): return "Ruhig, warm, sanft"
         case (.intense, false): return "Dark and gripping"
         case (.intense, true): return "Düster und packend"
+        case (.action, false): return "Fights, stakes, momentum"
+        case (.action, true): return "Kämpfe, Einsatz, Tempo"
+        case (.heartfelt, false): return "Love and longing"
+        case (.heartfelt, true): return "Liebe und Sehnsucht"
+        case (.mindBending, false): return "Twists that stay with you"
+        case (.mindBending, true): return "Wendungen, die bleiben"
+        case (.acclaimed, false): return "The highest rated"
+        case (.acclaimed, true): return "Am besten bewertet"
         case (.likeLastLoved, false): return "Because you finished it"
         case (.likeLastLoved, true): return "Weil du es beendet hast"
         }
@@ -398,6 +476,10 @@ nonisolated enum DiscoverIssueCopy {
         case .short: return "timer"
         case .cozy: return "cup.and.saucer"
         case .intense: return "bolt"
+        case .action: return "flame"
+        case .heartfelt: return "heart.text.square"
+        case .mindBending: return "brain"
+        case .acclaimed: return "star"
         case .likeLastLoved: return "heart"
         }
     }

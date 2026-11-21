@@ -37,12 +37,12 @@ struct NavshellTests {
         #expect(action(.authCallback(AuthCallbackPayload(code: "x"))) == .none)
     }
 
-    @Test("Concierge links: the sheet in the Taste/Home orders, the pager page in the legacy order")
+    @Test("Concierge links route safely to Discover now that Concierge UI is retired")
     func conciergeLinks() {
         #expect(ShellLinkPolicy.action(for: .concierge(prompt: "mood"), onboardingOpen: false, conciergeInPager: false)
-                == .openConciergeSheet(prompt: "mood"))
+                == .switchPage(.discover))
         #expect(ShellLinkPolicy.action(for: .concierge(prompt: nil), onboardingOpen: false, conciergeInPager: true)
-                == .openConciergePage(prompt: nil))
+                == .switchPage(.discover))
     }
 
     @Test("While onboarding shows, every app link waits for the cover (auth callbacks never reach the shell)")

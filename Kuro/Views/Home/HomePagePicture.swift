@@ -67,10 +67,12 @@ struct HomePagePictureFill: View {
 
     @Environment(HomeStore.self) private var home
     var fallback: Fallback = .solid
+    /// When set, forces the word fill to match the prioritized lead card displayed below.
+    var leadOverride: HomeCard? = nil
 
-    /// The first title in progress, falling back to the first planned title.
+    /// The prioritized hero card (or fallback to first in-progress / planned card).
     private var coverCard: HomeCard? {
-        HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
+        leadOverride ?? HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
     }
 
     var body: some View {
@@ -104,6 +106,7 @@ struct KuroArtWordFill: View {
                     Image(uiImage: art)
                         .resizable()
                         .scaledToFill()
+                        .saturation(1.20)
                     // Non-linear (sRGB) compositing: black at 1 − k scales every encoded channel by k.
                     Color.black.opacity(1 - multiplier)
                     // Highlights only: no channel lighter than the ceiling, so a white sky or page in
@@ -154,6 +157,7 @@ struct KuroPosterMediumSwitch<Fill: View>: View {
     /// The content column's width (the word size follows it, never the screen).
     let contentWidth: CGFloat
     let onSelect: (MediaKind) -> Void
+    /// Artwork-masked or tonal fill clipped inside the selected word's letterforms.
     let fill: Fill
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -206,9 +210,6 @@ struct KuroPosterMediumSwitch<Fill: View>: View {
                     }
                     .padding(.top, wordTop)
                 Spacer(minLength: 4)
-                // A fixed rule that fades in place on the hairline: it never travels between the words.
-                // Its bottom row is the hairline's row (`ref-home-new-anime-390.png` rows 133–134 over
-                // hairline row 134), so the two overlap into one 2 pt stroke.
                 Rectangle()
                     .fill(HomeInk.switchMark)
                     .frame(width: 28, height: 2)
@@ -285,5 +286,54 @@ enum HomeMediumWordInk {
             total += 0.299 * Double(pixels[index]) + 0.587 * Double(pixels[index + 1]) + 0.114 * Double(pixels[index + 2])
         }
         return total / Double(sampleWidth * sampleHeight) / 255
+    }
+}
+
+/// Softly blurred, saturated artwork depiction over a rich two-stop atmospheric base gradient,
+/// used behind Discover mood pills and "Add to list" / "Plan to watch" action capsules.
+struct KuroBlurredArtworkFill: View {
+    let raw: String?
+    var top: Color = Color(hex: "202430")
+    var bottom: Color = Color(hex: "141720")
+    var leadingScrim: Double = 0.56
+    var trailingScrim: Double = 0.34
+    var frostedLight: Bool = false
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                if frostedLight {
+                    Color.white
+                    if let raw, let url = URL(string: raw), !raw.isEmpty {
+                        HomeArtwork(url: url, maxPixelSize: 240, placeholder: .clear)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .scaleEffect(1.45)
+                            .saturation(1.35)
+                            .blur(radius: 14)
+                            .opacity(0.45)
+                    }
+                    Color.white.opacity(0.76)
+                } else {
+                    LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    if let raw, let url = URL(string: raw), !raw.isEmpty {
+                        HomeArtwork(url: url, maxPixelSize: 240, placeholder: .clear)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .scaleEffect(1.38)
+                            .saturation(1.28)
+                            .blur(radius: 14)
+                            .opacity(0.68)
+                    }
+                    LinearGradient(
+                        colors: [top.opacity(leadingScrim), Color.black.opacity(trailingScrim)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

@@ -97,11 +97,16 @@ nonisolated struct ProfileStats: Equatable, Sendable {
     /// Statuses whose titles count toward the genres ("started, completed, paused, repeating").
     static let genreStatuses: Set<ListStatus> = [.current, .completed, .repeating, .paused]
 
-    /// Units of `entry` that count: its progress, capped at the catalogue total when one is known.
-    static func countedUnits(progress: Int, total: Int?) -> Int {
+    /// Units of `entry` that count: its progress capped at catalogue total, minus any anime-to-manga bridge start offset.
+    static func countedUnits(progress: Int, total: Int?, startedAt: Int? = nil) -> Int {
         guard progress > 0 else { return 0 }
-        guard let total, total > 0 else { return progress }
-        return min(progress, total)
+        let capped: Int
+        if let total, total > 0 {
+            capped = min(progress, total)
+        } else {
+            capped = progress
+        }
+        return effectiveUnitsConsumed(progress: capped, startedAt: startedAt)
     }
 
     static func make(
@@ -115,14 +120,21 @@ nonisolated struct ProfileStats: Equatable, Sendable {
         // Library-only totals: a failed (or loading) catalogue still caps nothing, so raw progress.
         let useFacts = catalogue == .loaded
         func fact(_ key: MediaKey) -> ProfileTitleFacts? { useFacts ? facts[key] : nil }
+        func netUnits(_ entry: LibraryEntry) -> Int {
+            countedUnits(
+                progress: entry.progress,
+                total: fact(entry.key)?.total,
+                startedAt: entry.sourceMetadata?.startedAtProgress
+            )
+        }
 
-        let anime = entries.filter { $0.key.kind == .anime && $0.progress > 0 }
-        let manga = entries.filter { $0.key.kind == .manga && $0.progress > 0 }
+        let anime = entries.filter { $0.key.kind == .anime && netUnits($0) > 0 }
+        let manga = entries.filter { $0.key.kind == .manga && netUnits($0) > 0 }
         let episodes = anime.isEmpty ? nil : Total(
-            units: anime.reduce(0) { $0 + countedUnits(progress: $1.progress, total: fact($1.key)?.total) },
+            units: anime.reduce(0) { $0 + netUnits($1) },
             titles: anime.count)
         let chapters = manga.isEmpty ? nil : Total(
-            units: manga.reduce(0) { $0 + countedUnits(progress: $1.progress, total: fact($1.key)?.total) },
+            units: manga.reduce(0) { $0 + netUnits($1) },
             titles: manga.count)
 
         var time: Time?
@@ -131,7 +143,7 @@ nonisolated struct ProfileStats: Equatable, Sendable {
             var missing = 0
             for entry in anime {
                 if let length = facts[entry.key]?.duration, length > 0 {
-                    minutes += countedUnits(progress: entry.progress, total: facts[entry.key]?.total) * length
+                    minutes += netUnits(entry) * length
                 } else {
                     missing += 1
                 }
@@ -165,9 +177,9 @@ nonisolated struct ProfileStats: Equatable, Sendable {
         if !inYear.isEmpty {
             var most: MostTime?
             if useFacts {
-                for entry in inYear where entry.key.kind == .anime && entry.progress > 0 {
+                for entry in inYear where entry.key.kind == .anime && netUnits(entry) > 0 {
                     guard let info = facts[entry.key], let length = info.duration, length > 0 else { continue }
-                    let minutes = countedUnits(progress: entry.progress, total: info.total) * length
+                    let minutes = netUnits(entry) * length
                     guard minutes > 0 else { continue }
                     if let best = most, best.minutes > minutes || (best.minutes == minutes && best.key.id < entry.key.id) {
                         continue

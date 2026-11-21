@@ -353,7 +353,7 @@ private struct ClubMemberStatusList: View {
                             .foregroundColor(.kuroInkQuiet)
                             .frame(width: 22, height: 22)
                             .background(
-                                RoundedRectangle(cornerRadius: KuroRadius.xs)
+                                RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
                                     .fill(Color.kuroBlack06)
                             )
 
@@ -405,10 +405,10 @@ private struct ClubMemberStatusList: View {
                     if let fraction = progressFraction(ms), fraction > 0 {
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 1)
+                                RoundedRectangle(cornerRadius: 1, style: .continuous)
                                     .fill(Color.kuroBlack06)
                                     .frame(height: 2)
-                                RoundedRectangle(cornerRadius: 1)
+                                RoundedRectangle(cornerRadius: 1, style: .continuous)
                                     .fill(Color.kuroBlack25)
                                     .frame(width: geo.size.width * fraction, height: 2)
                             }

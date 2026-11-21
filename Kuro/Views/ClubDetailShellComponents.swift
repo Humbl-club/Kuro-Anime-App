@@ -164,7 +164,7 @@ struct JournalHeroSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: compact ? 8 : 10) {
-                ClubSeal(ring: ClubSeal.ring(compact: compact))
+                ClubSeal(ring: ClubSeal.ring(compact: compact), crest: ClubCrestStore.crest(for: bundle.club.id))
                     .accessibilityHidden(true)
                 Text(ClubRoomCopy.heroKicker(sharingLevel: bundle.club.sharing_level, german: german))
                     .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))

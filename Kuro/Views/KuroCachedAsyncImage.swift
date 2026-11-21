@@ -14,6 +14,7 @@ struct KuroCachedAsyncImage<Content: View>: View {
     private let content: (AsyncImagePhase) -> Content
 
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: AsyncImagePhase = .empty
 
     init(
@@ -66,12 +67,24 @@ struct KuroCachedAsyncImage<Content: View>: View {
                 maxPx = maxPixelSize ?? 900
 #endif
 
+                let started = ContinuousClock.now
                 let ui = await ImagePipeline.shared.image(url: url, maxPixelSize: maxPx)
+                let shouldCrossfade = (ContinuousClock.now - started) >= .milliseconds(16) && !reduceMotion
 #if canImport(UIKit)
                 if let ui {
                     let img = Image(uiImage: ui)
-                    withTransaction(transaction) {
-                        phase = .success(img)
+                    if shouldCrossfade {
+                        var crossfadeTransaction = transaction
+                        if crossfadeTransaction.animation == nil {
+                            crossfadeTransaction.animation = .easeOut(duration: 0.18)
+                        }
+                        withTransaction(crossfadeTransaction) {
+                            phase = .success(img)
+                        }
+                    } else {
+                        withTransaction(transaction) {
+                            phase = .success(img)
+                        }
                     }
                 } else {
                     withTransaction(transaction) {

@@ -485,4 +485,46 @@ struct DetailProviderLinksTests {
         #expect(snapshot.note == DetailLinkCopy.catalogWhileChecking)
         await harness.tearDown()
     }
+
+    @Test("Account-scoped sub/dub watch preference sets preferred audio language to original language for sub and locale for dub")
+    func accountScopedSubDubWatchLinks() async throws {
+        let harness = try DetailLinksHarness(streamingAvailability: true) { request in
+            switch request.resource {
+            case "external_links":
+                return Self.animeCatalog
+            case "rpc/get_media_availability_status":
+                return Self.freshStatus
+            case "rpc/batch_provider_availability_for_media_v2":
+                return Self.providerBatch(mediaType: "ANIME", mediaId: Self.animeId, url: Self.crunchyrollURL, isStale: false)
+            default:
+                return .emptyArray
+            }
+        }
+
+        _ = harness.service.accountSession.begin(userId: "User-Sub-1")
+        harness.defaults.defaults.set("sub", forKey: "com.kuro.releaseNotifications.audioVariant.user-sub-1")
+        _ = try #require(await harness.availability.resolveWatchLinks(
+            animeId: Self.animeId,
+            originalLanguage: "JP",
+            progress: nil,
+            locale: "en_US"
+        ))
+
+        let firstCall = try #require(harness.requests(to: "rpc/batch_provider_availability_for_media_v2").first)
+        #expect(firstCall.jsonObject?["p_audio_lang"] as? String == "ja")
+
+        _ = harness.service.accountSession.begin(userId: "User-Dub-2")
+        harness.defaults.defaults.set("dub", forKey: "com.kuro.releaseNotifications.audioVariant.user-dub-2")
+        _ = try #require(await harness.availability.resolveWatchLinks(
+            animeId: Self.animeId,
+            originalLanguage: "JP",
+            progress: nil,
+            locale: "de_DE"
+        ))
+
+        let calls = harness.requests(to: "rpc/batch_provider_availability_for_media_v2")
+        #expect(calls.count == 2)
+        #expect(calls.last?.jsonObject?["p_audio_lang"] as? String == "de")
+        await harness.tearDown()
+    }
 }

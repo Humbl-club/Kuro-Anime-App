@@ -27,10 +27,16 @@ struct DiscoverGlanceCard: View {
         } label: {
             HStack(alignment: .center, spacing: compact ? 8 : 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.kuroCustom(14, weight: .semibold, relativeTo: .subheadline, maxSize: 28))
-                        .tracking(-0.3)
-                        .foregroundStyle(HomeInk.glanceInk)
+                    HStack(alignment: .center, spacing: 6) {
+                        Circle()
+                            .fill(Color.kuroControlInk)
+                            .frame(width: 6, height: 6)
+                            .accessibilityHidden(true)
+                        Text(title)
+                            .font(.kuroCustom(14, weight: .semibold, relativeTo: .subheadline, maxSize: 28))
+                            .tracking(-0.3)
+                            .foregroundStyle(HomeInk.glanceInk)
+                    }
                     if let caption {
                         Text(caption)
                             .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 22))
@@ -45,9 +51,10 @@ struct DiscoverGlanceCard: View {
                         ForEach(Array(thumbs.prefix(3).enumerated()), id: \.offset) { _, url in
                             HomeArtwork(url: url, maxPixelSize: 160, placeholder: HomeInk.posterFill)
                                 .frame(width: 27, height: compact ? 34 : 38)
-                                .clipShape(RoundedRectangle(cornerRadius: 2))
-                                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(HomeInk.glanceFill, lineWidth: 1))
-                                .shadow(color: Color(hex: "26352B", opacity: Double(0x14) / 255), radius: 1, y: 1)
+                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .strokeBorder(Color.white, lineWidth: 1))
+                                .shadow(color: Color.black.opacity(0.10), radius: 1, y: 1)
                         }
                     }
                     .padding(.trailing, 2)
@@ -70,12 +77,13 @@ struct DiscoverGlanceCard: View {
                     .foregroundStyle(HomeInk.glanceMuted)
                     .accessibilityHidden(true)
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, compact ? 10 : 12)
+            .padding(.vertical, 12)
+            .padding(.horizontal, compact ? 12 : 14)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
-            .shadow(color: HomeInk.glanceShadow, radius: 1, y: 1)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.06), radius: 8, y: 3)
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())

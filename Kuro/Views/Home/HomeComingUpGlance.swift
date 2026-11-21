@@ -125,6 +125,7 @@ struct HomeComingUpGlance: View {
                     .foregroundStyle(HomeInk.glanceInk)
                 Text(summary.caption)
                     .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 22))
+                    .monospacedDigit()
                     .foregroundStyle(HomeInk.glanceMuted)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                     .fixedSize(horizontal: false, vertical: true)
@@ -160,8 +161,8 @@ struct HomeComingUpGlance: View {
         .padding(.vertical, 10)
         .padding(.horizontal, compact ? 10 : 12)
         .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-        .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
+        .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
         .shadow(color: HomeInk.glanceShadow, radius: 1, y: 1)
         .contentShape(Rectangle())
     }
@@ -170,10 +171,10 @@ struct HomeComingUpGlance: View {
         // 69 pt strip at 390: three 27 pt thumbnails overlapping by 7.
         HStack(spacing: -7) {
             ForEach(summary.art) { item in
-                HomeArtwork(url: artURL(item), maxPixelSize: 160, placeholder: HomeInk.posterFill)
+                HomeArtwork(url: artURL(item), maxPixelSize: 160, placeholder: HomeInk.posterFill, usesMaterialWash: true)
                     .frame(width: 27, height: compact ? 34 : 38)
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
-                    .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(HomeInk.glanceFill, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 2, style: .continuous).strokeBorder(HomeInk.glanceFill, lineWidth: 1))
                     .shadow(color: Color(hex: "26352B", opacity: Double(0x14) / 255), radius: 1, y: 1)
             }
         }

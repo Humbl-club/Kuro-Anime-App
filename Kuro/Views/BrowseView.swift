@@ -48,13 +48,32 @@ struct BrowseView: View {
         "Slice of Life", "Sports", "Supernatural", "Thriller"
     ]
 
+    static let curatedTags: [String] = [
+        "Seinen", "Josei", "Shounen", "Shoujo", "Iyashikei",
+        "Cyberpunk", "Workplace", "Isekai", "Time Manipulation"
+    ]
+
     enum LengthFilter: String, CaseIterable {
         case short = "SHORT (1-13)"
         case standard = "STANDARD (14-26)"
         case long = "LONG (27-99)"
         case epic100 = "100+ EPS"
         case epic200 = "200+ EPS"
+        case mangaShort = "1-30 CH"
+        case mangaMedium = "31-100 CH"
+        case mangaLong = "101-199 CH"
         case manga200 = "200+ CH"
+
+        var isMangaBracket: Bool {
+            switch self {
+            case .mangaShort, .mangaMedium, .mangaLong, .manga200: return true
+            case .short, .standard, .long, .epic100, .epic200: return false
+            }
+        }
+
+        func applies(toAnime: Bool) -> Bool {
+            toAnime ? !isMangaBracket : isMangaBracket
+        }
 
         func title(german: Bool) -> String {
             switch self {
@@ -63,6 +82,9 @@ struct BrowseView: View {
             case .long: return german ? "27\u{2013}99 Folgen" : "27\u{2013}99 eps"
             case .epic100: return german ? "100+ Folgen" : "100+ eps"
             case .epic200: return german ? "200+ Folgen" : "200+ eps"
+            case .mangaShort: return german ? "1\u{2013}30 Kapitel" : "1\u{2013}30 ch"
+            case .mangaMedium: return german ? "31\u{2013}100 Kapitel" : "31\u{2013}100 ch"
+            case .mangaLong: return german ? "101\u{2013}199 Kapitel" : "101\u{2013}199 ch"
             case .manga200: return german ? "200+ Kapitel" : "200+ chapters"
             }
         }
@@ -74,12 +96,15 @@ struct BrowseView: View {
             case .long: return (27, 99)
             case .epic100: return (100, nil)
             case .epic200: return (200, nil)
-            case .manga200: return nil
+            case .mangaShort, .mangaMedium, .mangaLong, .manga200: return nil
             }
         }
 
         var chapterRange: (min: Int, max: Int?)? {
             switch self {
+            case .mangaShort: return (1, 30)
+            case .mangaMedium: return (31, 100)
+            case .mangaLong: return (101, 199)
             case .manga200: return (200, nil)
             default: return nil
             }
@@ -89,6 +114,16 @@ struct BrowseView: View {
     enum StatusFilter: String, CaseIterable {
         case finished = "FINISHED"
         case airing = "AIRING"
+        case hiatus = "HIATUS"
+        case cancelled = "CANCELLED"
+
+        static func visibleCases(anime: Bool) -> [StatusFilter] {
+            anime ? [.finished, .airing, .cancelled] : [.finished, .airing, .hiatus, .cancelled]
+        }
+
+        func applies(toAnime: Bool) -> Bool {
+            toAnime ? self != .hiatus : true
+        }
 
         func title(german: Bool, anime: Bool) -> String {
             switch self {
@@ -96,6 +131,10 @@ struct BrowseView: View {
             case .airing:
                 if german { return anime ? "Läuft" : "Erscheint" }
                 return anime ? "Airing" : "Publishing"
+            case .hiatus:
+                return german ? "Auf Hiatus" : "On hiatus"
+            case .cancelled:
+                return german ? "Abgebrochen" : "Cancelled"
             }
         }
 
@@ -103,6 +142,8 @@ struct BrowseView: View {
             switch self {
             case .finished: return "FINISHED"
             case .airing: return "RELEASING"
+            case .hiatus: return "HIATUS"
+            case .cancelled: return "CANCELLED"
             }
         }
     }
@@ -141,10 +182,34 @@ struct BrowseView: View {
         case ova = "OVA"
         case ona = "ONA"
         case special = "SPECIAL"
+        case manga = "MANGA"
+        case oneShot = "ONE_SHOT"
+        case novel = "NOVEL"
+
+        func applies(toAnime: Bool) -> Bool {
+            switch self {
+            case .tv, .movie, .ova, .ona, .special: return toAnime
+            case .manga, .oneShot, .novel: return !toAnime
+            }
+        }
 
         func title(german: Bool) -> String {
             DiscoverFrameCopy.formatName(rawValue, german: german)
         }
+    }
+
+    /// Display name for a genre or `"tag:<Name>"` curated theme filter.
+    static func genreOrTagTitle(_ raw: String, german: Bool) -> String {
+        if raw.hasPrefix("tag:") {
+            let tag = String(raw.dropFirst(4))
+            guard german else { return tag }
+            switch tag {
+            case "Workplace": return "Arbeitswelt"
+            case "Time Manipulation": return "Zeitreise"
+            default: return tag
+            }
+        }
+        return genreTitle(raw, german: german)
     }
 
     /// A genre's reading name (the AniList genre stays the filter value).
@@ -207,7 +272,7 @@ struct BrowseView: View {
         var parts: [String] = []
         if let s = selectedStatusFilter { parts.append(s.title(german: german, anime: showAnime)) }
         if let l = selectedLengthFilter { parts.append(l.title(german: german)) }
-        if let g = selectedGenre { parts.append(Self.genreTitle(g, german: german)) }
+        if let g = selectedGenre { parts.append(Self.genreOrTagTitle(g, german: german)) }
         if selectedSort != .popular { parts.append(selectedSort.title(german: german)) }
         if let d = selectedDecade { parts.append(d.title(german: german)) }
         if let f = selectedFormat { parts.append(f.title(german: german)) }
@@ -349,16 +414,20 @@ struct BrowseView: View {
             }
         }
         .onChange(of: showAnime) { _, isAnime in
-            if isAnime {
-                if selectedLengthFilter == .manga200 {
-                    selectedLengthFilter = nil
-                    return
-                }
-            } else if let selectedLengthFilter, selectedLengthFilter != .manga200 {
-                self.selectedLengthFilter = nil
-                return
+            var cleared = false
+            if let length = selectedLengthFilter, !length.applies(toAnime: isAnime) {
+                selectedLengthFilter = nil
+                cleared = true
             }
-            scheduleReload()
+            if let status = selectedStatusFilter, !status.applies(toAnime: isAnime) {
+                selectedStatusFilter = nil
+                cleared = true
+            }
+            if let format = selectedFormat, !format.applies(toAnime: isAnime) {
+                selectedFormat = nil
+                cleared = true
+            }
+            if !cleared { scheduleReload() }
         }
         .onChange(of: selectedGenre) { _, _ in
             scheduleReload()
@@ -431,7 +500,10 @@ struct BrowseView: View {
                 hasMore = false
                 return
             }
-            animeResults = page0
+            let visibleAnime = selectedSort == .newlyAdded
+                ? page0.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
+                : page0
+            animeResults = visibleAnime
             loadError = fetched == nil
 
             hasMore = page0.count == pageSize
@@ -439,11 +511,11 @@ struct BrowseView: View {
                 updateAnimeCursor(from: last)
             }
 
-            let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = visibleAnime.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
-            if flags.isSocialActivityV1Enabled, !page0.isEmpty {
-                social.prefetchFriendCounts(items: page0.map { (mediaType: "ANIME", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !visibleAnime.isEmpty {
+                social.prefetchFriendCounts(items: visibleAnime.map { (mediaType: "ANIME", mediaId: $0.id) })
             }
         } else {
             mangaCursorInt = nil
@@ -462,7 +534,10 @@ struct BrowseView: View {
                 hasMore = false
                 return
             }
-            mangaResults = page0
+            let visibleManga = selectedSort == .newlyAdded
+                ? page0.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
+                : page0
+            mangaResults = visibleManga
             loadError = fetched == nil
 
             hasMore = page0.count == pageSize
@@ -470,11 +545,11 @@ struct BrowseView: View {
                 updateMangaCursor(from: last)
             }
 
-            let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = visibleManga.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
-            if flags.isSocialActivityV1Enabled, !page0.isEmpty {
-                social.prefetchFriendCounts(items: page0.map { (mediaType: "MANGA", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !visibleManga.isEmpty {
+                social.prefetchFriendCounts(items: visibleManga.map { (mediaType: "MANGA", mediaId: $0.id) })
             }
         }
     }
@@ -495,17 +570,20 @@ struct BrowseView: View {
                 showBanner(KuroLocale.text("Couldn't load more. Pull to refresh.", "Konnte nicht mehr laden. Zum Aktualisieren ziehen."))
                 return
             }
-            animeResults.append(contentsOf: page)
+            let visible = selectedSort == .newlyAdded
+                ? page.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
+                : page
+            animeResults.append(contentsOf: visible)
             hasMore = page.count == pageSize
             if let last = page.last {
                 updateAnimeCursor(from: last)
             }
 
-            let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = visible.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
-            if flags.isSocialActivityV1Enabled, !page.isEmpty {
-                social.prefetchFriendCounts(items: page.map { (mediaType: "ANIME", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !visible.isEmpty {
+                social.prefetchFriendCounts(items: visible.map { (mediaType: "ANIME", mediaId: $0.id) })
             }
         } else {
             let fetched = await fetchMangaPage(cursorInt: mangaCursorInt, cursorDate: mangaCursorDate, cursorId: mangaCursorId)
@@ -515,17 +593,20 @@ struct BrowseView: View {
                 showBanner(KuroLocale.text("Couldn't load more. Pull to refresh.", "Konnte nicht mehr laden. Zum Aktualisieren ziehen."))
                 return
             }
-            mangaResults.append(contentsOf: page)
+            let visible = selectedSort == .newlyAdded
+                ? page.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
+                : page
+            mangaResults.append(contentsOf: visible)
             hasMore = page.count == pageSize
             if let last = page.last {
                 updateMangaCursor(from: last)
             }
 
-            let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = visible.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
-            if flags.isSocialActivityV1Enabled, !page.isEmpty {
-                social.prefetchFriendCounts(items: page.map { (mediaType: "MANGA", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !visible.isEmpty {
+                social.prefetchFriendCounts(items: visible.map { (mediaType: "MANGA", mediaId: $0.id) })
             }
         }
     }

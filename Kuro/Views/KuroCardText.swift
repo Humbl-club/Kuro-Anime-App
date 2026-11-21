@@ -31,4 +31,30 @@ enum KuroCardText {
         t = t.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// Balances the trailing words of multi-word editorial headlines by pairing a short trailing word
+    /// with its predecessor using a non-breaking space so headlines never end on a single-word orphan line.
+    static func balancedHeadline(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+        let prefix: String
+        let lastLine: String
+        if let newline = trimmed.lastIndex(of: "\n") {
+            let next = trimmed.index(after: newline)
+            prefix = String(trimmed[..<next])
+            lastLine = String(trimmed[next...])
+        } else {
+            prefix = ""
+            lastLine = trimmed
+        }
+        let words = lastLine.split(separator: " ", omittingEmptySubsequences: true)
+        guard words.count >= 3 else { return trimmed }
+        let previous = words[words.count - 2]
+        let last = words[words.count - 1]
+        guard !last.contains("\u{00A0}"), last.count <= 10, previous.count + 1 + last.count <= 18 else {
+            return trimmed
+        }
+        let balancedLine = (words.dropLast(2).map(String.init) + ["\(previous)\u{00A0}\(last)"]).joined(separator: " ")
+        return prefix + balancedLine
+    }
 }

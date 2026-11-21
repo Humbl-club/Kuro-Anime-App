@@ -22,6 +22,8 @@ struct TastePicksView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     /// The picks' premise and banner (`TasteCardDetails`); nil in fixtures without one.
     @Environment(CatalogStore.self) private var catalog: CatalogStore?
+    /// Personal taste feedback recording & Undo for "Seen it" / "Not for me" on recommendations.
+    @Environment(TasteStore.self) private var taste: TasteStore?
 
     /// The selected medium, owned by the pager (`ContentView`) so its canvas and the header follow it.
     @Binding var medium: MediaKind
@@ -43,7 +45,7 @@ struct TastePicksView: View {
     /// The Plan keys' writes, their double-tap guard and the result toast with Undo.
     @State private var plans = TastePlanController()
 
-    private let cap = 4
+    private let cap = 8
 
     var body: some View {
         GeometryReader { geo in
@@ -55,7 +57,8 @@ struct TastePicksView: View {
                     newAccount: startedAsNewAccount ?? false,
                     switchArt: switchArt,
                     width: width,
-                    retry: { Task { await load() } }
+                    retry: { Task { await load() } },
+                    onFeedback: { card, feedback in recordFeedback(feedback, card: card) }
                 )
             }
             .scrollDisabled(false)
@@ -78,6 +81,46 @@ struct TastePicksView: View {
         .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
             guard networkMonitor.isConnected, animeFailed || mangaFailed else { return }
             Task { await load() }
+        }
+    }
+
+    private func recordFeedback(_ feedback: DiscoverFeedback, card: TasteCard) {
+        let currentMedium = card.media.kind
+        let german = KuroLocale.isGerman
+        let removedIndex: Int?
+        switch currentMedium {
+        case .anime:
+            removedIndex = animePicks.firstIndex { $0.id == card.id }
+            if let idx = removedIndex { animePicks.remove(at: idx) }
+        case .manga:
+            removedIndex = mangaPicks.firstIndex { $0.id == card.id }
+            if let idx = removedIndex { mangaPicks.remove(at: idx) }
+        }
+        let receipt = taste?.recordDiscoverFeedback(feedback, for: card.key)
+        let message: String = switch feedback {
+        case .seenIt:
+            card.media.kind == .manga
+                ? (german ? "Als gelesen markiert." : "Marked as read.")
+                : (german ? "Als gesehen markiert." : "Marked as seen.")
+        case .notInterested:
+            german ? "Aus Geschmack entfernt." : "Removed from Taste."
+        }
+        plans.showFeedbackToast(message) { [card, removedIndex, currentMedium, receipt] in
+            if let idx = removedIndex {
+                switch currentMedium {
+                case .anime:
+                    if !animePicks.contains(where: { $0.id == card.id }) {
+                        animePicks.insert(card, at: min(idx, animePicks.count))
+                    }
+                case .manga:
+                    if !mangaPicks.contains(where: { $0.id == card.id }) {
+                        mangaPicks.insert(card, at: min(idx, mangaPicks.count))
+                    }
+                }
+            }
+            if let receipt {
+                _ = taste?.undoDiscoverFeedback(receipt)
+            }
         }
     }
 
@@ -183,10 +226,11 @@ struct TastePicksView: View {
         }
     }
 
-    /// Real titles not on the list yet, once each (`FirstFavouritePicks`).
+    /// Real titles not on the list or hidden on Taste/Discover yet, once each (`FirstFavouritePicks`).
     private func open(_ cards: [TasteCard]) -> [TasteCard] {
-        let tracked = Set(cards.map(\.key).filter { library.isTracked($0) })
-        return FirstFavouritePicks.pick(from: cards, max: Int.max, excluding: tracked)
+        let excluded = Set(cards.map(\.key).filter { library.isTracked($0) })
+            .union(taste?.discoverHiddenKeys ?? [])
+        return FirstFavouritePicks.pick(from: cards, max: Int.max, excluding: excluded)
     }
 }
 
@@ -209,6 +253,7 @@ struct TastePageContent: View {
     var switchArt: String?
     let width: CGFloat
     var retry: () -> Void = {}
+    var onFeedback: ((TasteCard, DiscoverFeedback) -> Void)? = { _, _ in }
 
     /// The page canvas: the warm Home canvas for anime, the manga Home canvas for manga
     /// (`ref-taste-*-manga-390.png`; amendment 8, "Taste follows its reference").
@@ -244,7 +289,8 @@ struct TastePageContent: View {
                             title: TastePageCopy.heading(medium: medium, newAccount: newAccount, german: german),
                             medium: medium, metrics: metrics, top: metrics.headingTopAfterOpening
                         )
-                        TasteStoryList(cards: cards, medium: medium, metrics: metrics)
+                        TasteStoryList(cards: cards, medium: medium, metrics: metrics,
+                                       onFeedback: newAccount ? nil : onFeedback)
                     }
                 }
             }
@@ -309,6 +355,13 @@ nonisolated enum TastePageCopy {
             return medium == .manga ? "Plan to read" : "Plan to watch"
         default: return german ? "Auf deiner Liste" : "On your list"
         }
+    }
+
+    static func becauseLine(seedTitle: String?, german: Bool) -> String? {
+        guard let cleaned = seedTitle?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !cleaned.isEmpty,
+              !TasteCard.isPlaceholderText(cleaned) else { return nil }
+        return german ? "Weil dir \(cleaned) gefiel" : "Because you liked \(cleaned)"
     }
 
     /// The kind kicker over a story card's title ("FILM · ROMANCE", "MANGA · HISTORICAL"): the
@@ -426,36 +479,64 @@ struct TasteCard: Identifiable {
     let media: Media
     let bannerURL: String?
     let premise: String?
+    let provenance: String?
 
     var id: String { media.stableKey }
     var key: MediaKey { media.libraryKey }
 
-    init(media: Media, bannerURL: String? = nil, premise: String? = nil) {
+    init(media: Media, bannerURL: String? = nil, premise: String? = nil, provenance: String? = nil) {
         self.media = media
         let banner = bannerURL?.trimmingCharacters(in: .whitespaces)
         self.bannerURL = (banner?.isEmpty ?? true) ? nil : banner
         self.premise = premise.flatMap { TastePicksCopy.storySentence($0) }
+        let reason = provenance?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.provenance = (reason.map { !$0.isEmpty && !Self.isPlaceholderText($0) } ?? false) ? reason : nil
     }
 
     /// A Discover bundle anime row. Its `displayDescription` is a placeholder, so there is no premise.
     init(anime card: AnimeCard) {
         self.init(media: Self.media(kind: .anime, id: card.id, title: card.title, imageURL: card.imageURL,
                                     year: card.year, episodes: card.episodes, chapters: nil, rating: card.rating,
-                                    genres: card.genres, statusRaw: card.statusRaw, formatRaw: card.formatRaw),
-                  bannerURL: card.bannerImage, premise: nil)
+                                    genres: card.genres, statusRaw: card.statusRaw, formatRaw: card.formatRaw,
+                                    coverImageColor: card.coverImageColor),
+                  bannerURL: card.bannerImage, premise: nil, provenance: nil)
     }
 
     /// A Discover bundle manga row (no premise, no banner).
     init(manga card: MangaCard) {
         self.init(media: Self.media(kind: .manga, id: card.id, title: card.title, imageURL: card.imageURL,
                                     year: card.year, episodes: nil, chapters: card.chapters, rating: card.rating,
-                                    genres: card.genres, statusRaw: card.statusRaw, formatRaw: card.formatRaw),
-                  bannerURL: nil, premise: nil)
+                                    genres: card.genres, statusRaw: card.statusRaw, formatRaw: card.formatRaw,
+                                    coverImageColor: card.coverImageColor),
+                  bannerURL: nil, premise: nil, provenance: nil)
     }
 
-    /// A because-you row: carries the synopsis, so its first sentence is the premise.
+    /// A because-you row: carries the synopsis, so its first sentence is the premise, plus `reasonTitle`.
     init(because card: BecauseYouCard) {
-        self.init(media: card.toMedia(), bannerURL: nil, premise: card.synopsis)
+        self.init(media: card.toMedia(), bannerURL: nil, premise: card.synopsis, provenance: card.reasonTitle)
+    }
+
+    /// Any `MediaDisplayable` (Search results and other lightweight rows).
+    init(displayable item: any MediaDisplayable) {
+        if let media = item as? Media {
+            self.init(media: media, bannerURL: nil, premise: nil, provenance: nil)
+        } else if let anime = item as? AnimeCard {
+            self.init(anime: anime)
+        } else if let manga = item as? MangaCard {
+            self.init(manga: manga)
+        } else {
+            self.init(
+                media: Self.media(
+                    kind: item.kind, id: item.id, title: item.title, imageURL: item.imageURL,
+                    year: item.year, episodes: item.episodes, chapters: item.chapters, rating: item.rating,
+                    genres: item.genres, statusRaw: item.statusRaw, formatRaw: item.formatRaw,
+                    coverImageColor: item.coverImageColor
+                ),
+                bannerURL: nil,
+                premise: nil,
+                provenance: nil
+            )
+        }
     }
 
     /// The card with what a catalogue read adds: `banner` when it has none, and the first sentence of
@@ -463,14 +544,15 @@ struct TasteCard: Identifiable {
     /// always stays.
     func hydrated(banner: String?, synopsis: String?) -> TasteCard {
         TasteCard(media: media, bannerURL: bannerURL ?? banner,
-                  premise: premise ?? synopsis.flatMap { TastePicksCopy.storySentence($0) })
+                  premise: premise ?? synopsis.flatMap { TastePicksCopy.storySentence($0) },
+                  provenance: provenance)
     }
 
     /// The same card with `banner` when it has none yet (the because-you rows carry no banner).
     func withBanner(_ banner: String?) -> TasteCard {
         guard bannerURL == nil, let banner else { return self }
         // `premise` is already one sentence; `storySentence` leaves it as it is.
-        return TasteCard(media: media, bannerURL: banner, premise: premise)
+        return TasteCard(media: media, bannerURL: banner, premise: premise, provenance: provenance)
     }
 
     /// The catalogue's stand-ins for a missing title or description (never shown as content).
@@ -481,10 +563,11 @@ struct TasteCard: Identifiable {
 
     private static func media(kind: MediaKind, id: Int, title: String, imageURL: String?, year: String,
                               episodes: Int?, chapters: Int?, rating: Double?, genres: [String]?,
-                              statusRaw: String?, formatRaw: String?) -> Media {
+                              statusRaw: String?, formatRaw: String?, coverImageColor: String? = nil) -> Media {
         Media(id: id, kind: kind, title: title, imageURL: imageURL, year: year, displayDescription: "",
               episodes: episodes, chapters: chapters, rating: rating, genres: genres, statusRaw: statusRaw,
-              formatRaw: formatRaw, popularityValue: nil, trendingValue: nil, createdAtValue: nil)
+              formatRaw: formatRaw, popularityValue: nil, trendingValue: nil, createdAtValue: nil,
+              coverImageColor: coverImageColor)
     }
 }
 
@@ -667,6 +750,7 @@ final class TastePlanController {
         let id = UUID()
         let message: String
         let undo: Undo?
+        var hasCustomUndo: Bool = false
     }
 
     struct Undo: Equatable {
@@ -721,6 +805,7 @@ final class TastePlanController {
     }
 
     @ObservationIgnored private var dismissTask: Task<Void, Never>?
+    @ObservationIgnored private var customUndoHandler: (id: UUID, action: () -> Void)? = nil
     @ObservationIgnored private let holdSeconds: Double
     @ObservationIgnored private let assistiveTechnologyRunning: @MainActor () -> Bool
 
@@ -876,6 +961,7 @@ final class TastePlanController {
     func dismiss() {
         dismissTask?.cancel()
         toast = nil
+        customUndoHandler = nil
     }
 
     private enum WriteStep { case plan, remove, undoPlan, undoRemove }
@@ -928,6 +1014,7 @@ final class TastePlanController {
     /// (`KuroToastHold`); otherwise it leaves after the hold.
     func show(_ message: String, undo: Undo?) {
         dismissTask?.cancel()
+        customUndoHandler = nil
         let toast = Toast(message: message, undo: undo)
         self.toast = toast
         guard !assistiveTechnologyRunning() else { dismissTask = nil; return }
@@ -937,6 +1024,36 @@ final class TastePlanController {
             guard !Task.isCancelled, let self, self.toast?.id == toast.id else { return }
             self.toast = nil
         }
+    }
+
+    func showFeedbackToast(_ message: String, onUndo: @escaping () -> Void) {
+        dismissTask?.cancel()
+        let toast = Toast(message: message, undo: nil, hasCustomUndo: true)
+        customUndoHandler = (toast.id, onUndo)
+        self.toast = toast
+        guard !assistiveTechnologyRunning() else { dismissTask = nil; return }
+        let hold = holdSeconds
+        dismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(hold))
+            guard !Task.isCancelled, let self, self.toast?.id == toast.id else { return }
+            self.toast = nil
+            self.customUndoHandler = nil
+        }
+    }
+
+    func triggerUndo(library: LibraryStore, actions: LibraryActions, german: Bool) {
+        guard let current = toast else { return }
+        if current.hasCustomUndo {
+            let handler = customUndoHandler
+            toast = nil
+            customUndoHandler = nil
+            if handler?.id == current.id {
+                handler?.action()
+            }
+            show(TastePlanCopy.message(.undone, german: german), undo: nil)
+            return
+        }
+        undo(library: library, actions: actions, german: german)
     }
 }
 
@@ -961,7 +1078,7 @@ struct TastePlanToastView: View {
 
     init(toast: TastePlanController.Toast, german: Bool, onUndo: @escaping () -> Void,
          onDismiss: @escaping () -> Void) {
-        self.init(message: toast.message, showsUndo: toast.undo != nil, german: german,
+        self.init(message: toast.message, showsUndo: toast.undo != nil || toast.hasCustomUndo, german: german,
                   onUndo: onUndo, onDismiss: onDismiss)
     }
 
@@ -995,9 +1112,9 @@ struct TastePlanToastView: View {
         }
         .padding(.leading, 14)
         .padding([.top, .bottom, .trailing], 5)
-        .background(Color(hex: "282F2B", opacity: Double(0xF5) / 255),
+        .background(Color.kuroControlInk.opacity(0.96),
                     in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color(hex: "18241C", opacity: Double(0x30) / 255), radius: 15, y: 8)
+        .shadow(color: Color.black.opacity(0.16), radius: 15, y: 8)
         .padding(.horizontal, 13)
         .padding(.bottom, 12)
         .accessibilityElement(children: .contain)
@@ -1034,7 +1151,7 @@ struct TastePlanHost: ViewModifier {
     private func toastView(german: Bool) -> some View {
         if let toast = controller.toast {
             TastePlanToastView(toast: toast, german: german,
-                               onUndo: { controller.undo(library: library, actions: actions, german: german) },
+                               onUndo: { controller.triggerUndo(library: library, actions: actions, german: german) },
                                onDismiss: { controller.dismiss() })
                 .id(toast.id)
                 .transition(.opacity)
@@ -1139,14 +1256,13 @@ struct TasteOpening: View {
         Text(kicker)
             .font(.kuroCustom(metrics.compact ? 8 : 9, relativeTo: .caption2, maxSize: 16))
             .tracking(1.05)
-            .foregroundStyle(Color(hex: "666C68"))
+            .foregroundStyle(Color(hex: "6B6B6B"))
             .lineLimit(1)
     }
 
     private var headlineText: some View {
-        Text(headline)
-            .font(.kuroCustom(metrics.compact ? 13 : 14, weight: .semibold, relativeTo: .subheadline, maxSize: 24))
-            .tracking(-0.3)
+        Text(KuroCardText.balancedHeadline(headline))
+            .font(.kuroEditorial(size: metrics.compact ? 15 : 16).italic())
             .foregroundStyle(Color.kuroInk)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
@@ -1248,42 +1364,46 @@ struct TasteStoryList: View {
     let cards: [TasteCard]
     let medium: MediaKind
     let metrics: TasteMetrics
+    var onFeedback: ((TasteCard, DiscoverFeedback) -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        if medium == .manga && dynamicTypeSize.isAccessibilitySize {
-            // Accessibility sizes: one leaf per row, so titles and keys keep the full width.
-            VStack(alignment: .leading, spacing: 28) {
-                ForEach(cards) { card in
-                    TasteLeafCard(card: card, metrics: metrics)
+        Group {
+            if medium == .manga && dynamicTypeSize.isAccessibilitySize {
+                // Accessibility sizes: one leaf per row, so titles and keys keep the full width.
+                VStack(alignment: .leading, spacing: 28) {
+                    ForEach(cards) { card in
+                        TasteLeafCard(card: card, metrics: metrics, onFeedback: onFeedback)
+                    }
                 }
-            }
-        } else if medium == .manga {
-            VStack(alignment: .leading, spacing: 28) {
-                ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { index in
-                    TasteLeafRowLayout(spacing: metrics.mangaColumnSpacing) {
-                        TasteLeafCard(card: cards[index], metrics: metrics)
-                        if index + 1 < cards.count {
-                            TasteLeafCard(card: cards[index + 1], metrics: metrics)
+            } else if medium == .manga {
+                VStack(alignment: .leading, spacing: 28) {
+                    ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { index in
+                        TasteLeafRowLayout(spacing: metrics.mangaColumnSpacing) {
+                            TasteLeafCard(card: cards[index], metrics: metrics, onFeedback: onFeedback)
+                            if index + 1 < cards.count {
+                                TasteLeafCard(card: cards[index + 1], metrics: metrics, onFeedback: onFeedback)
+                            } else {
+                                Color.clear
+                            }
+                        }
+                    }
+                }
+            } else {
+                let landscapeId = cards.first(where: { $0.bannerURL != nil })?.id
+                VStack(alignment: .leading, spacing: metrics.listSpacing) {
+                    ForEach(cards) { card in
+                        if card.id == landscapeId {
+                            TasteLandscapeCard(card: card, metrics: metrics, onFeedback: onFeedback)
                         } else {
-                            Color.clear
+                            TastePortraitCard(card: card, metrics: metrics, onFeedback: onFeedback)
                         }
                     }
                 }
             }
-        } else {
-            let landscapeId = cards.first(where: { $0.bannerURL != nil })?.id
-            VStack(alignment: .leading, spacing: metrics.listSpacing) {
-                ForEach(cards) { card in
-                    if card.id == landscapeId {
-                        TasteLandscapeCard(card: card, metrics: metrics)
-                    } else {
-                        TastePortraitCard(card: card, metrics: metrics)
-                    }
-                }
-            }
         }
+        .kuroAnimation(KuroMotion.settle, value: cards.map(\.id))
     }
 }
 
@@ -1325,8 +1445,8 @@ private enum TasteType {
     /// iOS draws the 8–12 pt strokes thinner than the browser the references were captured in (a 3x
     /// device capture, block-averaged, carries about 20% less ink than the reference at the same
     /// colour), so the slightly deeper ink keeps the line's weight (FIDELITY_REVIEW round 3).
-    static let kindInk = Color(hex: "5A635B")
-    static let premiseInk = Color(hex: "4F5451")
+    static let kindInk = Color(hex: "5C5C5E")
+    static let premiseInk = Color(hex: "4A4A4C")
 
     static func kind(_ text: String, size: CGFloat, tracking: CGFloat) -> some View {
         Text(text)
@@ -1339,12 +1459,24 @@ private enum TasteType {
     /// Titles are w550 in every card: `.semibold`, the system's nearest weight that keeps the
     /// reference's glyph width (w500 sets them about 2% narrow).
     static func title(_ text: String, size: CGFloat, tracking: CGFloat) -> some View {
-        Text(KuroCardText.sanitizeTitleForCard(text))
-            .font(.kuroCustom(size, weight: .semibold, relativeTo: .title2, maxSize: size * 1.6))
-            .tracking(tracking)
+        Text(KuroCardText.balancedHeadline(KuroCardText.sanitizeTitleForCard(text)))
+            .font(.kuroEditorial(size: size, weight: .regular))
+            .tracking(-0.2)
             .foregroundStyle(Color.kuroInk)
             .lineLimit(3)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    static func because(_ text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 9, weight: .semibold))
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.kuroCustom(10.5, weight: .medium, relativeTo: .caption2, maxSize: 18))
+                .lineLimit(1)
+        }
+        .foregroundStyle(Color.kuroInkSecondary)
     }
 
     static func premise(_ text: String, size: CGFloat, lineSpacing: CGFloat) -> some View {
@@ -1406,15 +1538,29 @@ struct TastePremiseText: UIViewRepresentable {
     }
 }
 
-/// The artwork inside a story card (cover or banner), on the prototype's `#f0f0ed` well.
+/// The artwork inside a story card (cover or banner), on a soft material-tinted well.
 private struct TasteArt: View {
     let url: String?
     var fill: Bool = false
     /// The well behind a contained cover: `#f0f0ed` on the anime cards, white inside the manga leaf.
-    var well: Color = Color(hex: "F0F0ED")
+    var well: Color = Color(hex: "F2F2F4")
+    var seedHex: String? = nil
+
+    @Environment(ArtworkMaterialStore.self) private var materials: ArtworkMaterialStore?
+
+    private var resolvedWell: Color {
+        let imageURL = url.flatMap(URL.init(string:))
+        if let materials {
+            return materials.placeholderFill(for: imageURL, seedHex: seedHex, fallback: well)
+        }
+        if let seedHex, let rgb = KuroRGB(hex: seedHex) {
+            return ArtworkMaterial(base: ArtworkMaterial.clamped(rgb), method: "seed-hex").wash.color
+        }
+        return well
+    }
 
     var body: some View {
-        well
+        resolvedWell
             .overlay {
                 KuroCachedAsyncImage(url: url.flatMap(URL.init(string:)), maxPixelSize: 520) { phase in
                     switch phase {
@@ -1437,10 +1583,13 @@ private struct TasteArt: View {
 /// The open target of a card: the whole card except the Plan key opens the title.
 private struct TasteOpenButton<Label: View>: View {
     let card: TasteCard
+    var zoomSourceID: String? = nil
     @ViewBuilder let label: () -> Label
 
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroZoomNamespace) private var zoomNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tasteGerman) private var germanOverride
 
     var body: some View {
@@ -1448,7 +1597,8 @@ private struct TasteOpenButton<Label: View>: View {
         Button {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            routes.openMedia(MediaRoute(card.key))
+            let activeZoomID = (zoomNamespace != nil && !reduceMotion) ? zoomSourceID : nil
+            routes.openMedia(MediaRoute(card.key, zoomSourceID: activeZoomID))
         } label: {
             label().contentShape(Rectangle())
         }
@@ -1464,22 +1614,35 @@ private struct TasteOpenButton<Label: View>: View {
 private struct TasteLandscapeCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
+    var onFeedback: ((TasteCard, DiscoverFeedback) -> Void)? = nil
 
     @Environment(\.tasteGerman) private var germanOverride
+    @Environment(\.kuroZoomNamespace) private var zoomNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// `max-width: 29ch` at 12 pt, growing with the premise's text size.
     @ScaledMetric(relativeTo: .footnote) private var premiseWidth: CGFloat = 245
 
+    private var zoomID: String? {
+        guard zoomNamespace != nil, !reduceMotion else { return nil }
+        return "taste-\(card.id)"
+    }
+
     var body: some View {
+        let german = germanOverride ?? KuroLocale.isGerman
         VStack(alignment: .leading, spacing: 0) {
-            TasteOpenButton(card: card) {
+            TasteOpenButton(card: card, zoomSourceID: zoomID) {
                 VStack(alignment: .leading, spacing: 0) {
-                    TasteArt(url: card.bannerURL ?? card.media.imageURL, fill: true)
+                    TasteArt(url: card.bannerURL ?? card.media.imageURL, fill: true, seedHex: card.media.coverImageColor)
                         .aspectRatio(2.8, contentMode: .fit)
                         .frame(maxWidth: .infinity)
+                        .kuroZoomSource(zoomID)
                     VStack(alignment: .leading, spacing: 0) {
-                        if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
-                                                         german: germanOverride ?? KuroLocale.isGerman) {
+                        if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres, german: german) {
                             TasteType.kind(kind, size: 8, tracking: 0.5)
+                        }
+                        if let because = TastePageCopy.becauseLine(seedTitle: card.provenance, german: german) {
+                            TasteType.because(because)
+                                .padding(.top, 5)
                         }
                         TasteType.title(card.media.title, size: 26, tracking: -0.6)
                             .padding(.top, 6)
@@ -1495,9 +1658,16 @@ private struct TasteLandscapeCard: View {
                     .padding(.bottom, 12)
                 }
             }
-            TastePlanKey(card: card, variant: .landscape, compact: metrics.compact)
-                .padding(.horizontal, 17)
-                .padding(.bottom, 12)
+            HStack(spacing: 8) {
+                TastePlanKey(card: card, variant: .landscape, compact: metrics.compact)
+                if let onFeedback {
+                    TasteFeedbackKey(card: card, compact: false) { feedback in
+                        onFeedback(card, feedback)
+                    }
+                }
+            }
+            .padding(.horizontal, 17)
+            .padding(.bottom, 12)
         }
         .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
         .background { TasteCardFace() }
@@ -1509,9 +1679,17 @@ private struct TasteLandscapeCard: View {
 private struct TastePortraitCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
+    var onFeedback: ((TasteCard, DiscoverFeedback) -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.tasteGerman) private var germanOverride
+    @Environment(\.kuroZoomNamespace) private var zoomNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var zoomID: String? {
+        guard zoomNamespace != nil, !reduceMotion else { return nil }
+        return "taste-\(card.id)"
+    }
 
     var body: some View {
         Group {
@@ -1519,7 +1697,7 @@ private struct TastePortraitCard: View {
                 VStack(alignment: .leading, spacing: 0) {
                     art
                     copy.padding(.horizontal, 4)
-                    TastePlanKey(card: card, variant: .portrait, compact: metrics.compact)
+                    actionsRow
                         .padding(.top, 12)
                         .padding(.horizontal, 4)
                         .padding(.bottom, 4)
@@ -1530,7 +1708,7 @@ private struct TastePortraitCard: View {
                     VStack(alignment: .leading, spacing: 0) {
                         copy.padding(.trailing, 9)
                         Spacer(minLength: 12)
-                        TastePlanKey(card: card, variant: .portrait, compact: metrics.compact)
+                        actionsRow
                             .padding(.trailing, 4)
                             .padding(.bottom, 4)
                     }
@@ -1543,25 +1721,41 @@ private struct TastePortraitCard: View {
         .background { TasteCardFace() }
     }
 
+    private var actionsRow: some View {
+        HStack(spacing: 8) {
+            TastePlanKey(card: card, variant: .portrait, compact: metrics.compact)
+            if let onFeedback {
+                TasteFeedbackKey(card: card, compact: metrics.compact) { feedback in
+                    onFeedback(card, feedback)
+                }
+            }
+        }
+    }
+
     private var art: some View {
-        TasteOpenButton(card: card) {
-            TasteArt(url: card.media.imageURL)
+        TasteOpenButton(card: card, zoomSourceID: zoomID) {
+            TasteArt(url: card.media.imageURL, seedHex: card.media.coverImageColor)
                 .frame(width: metrics.portraitArtWidth, height: 180)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .kuroZoomSource(zoomID)
         }
         // The copy is the same open target; VoiceOver hears the title once.
         .accessibilityHidden(true)
     }
 
     private var copy: some View {
-        TasteOpenButton(card: card) {
+        let german = germanOverride ?? KuroLocale.isGerman
+        return TasteOpenButton(card: card, zoomSourceID: zoomID) {
             VStack(alignment: .leading, spacing: 0) {
-                if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
-                                                 german: germanOverride ?? KuroLocale.isGerman) {
+                if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres, german: german) {
                     TasteType.kind(kind, size: 9, tracking: 0.5)
                 }
+                if let because = TastePageCopy.becauseLine(seedTitle: card.provenance, german: german) {
+                    TasteType.because(because)
+                        .padding(.top, 5)
+                }
                 TasteType.title(card.media.title, size: metrics.compact ? 19 : 21, tracking: -0.6)
-                    .padding(.top, 8)
+                    .padding(.top, 6)
                 if let premise = card.premise {
                     TasteType.premise(premise, size: metrics.compact ? 11 : 12, lineSpacing: 3.6)
                         .padding(.top, 9)
@@ -1573,18 +1767,19 @@ private struct TastePortraitCard: View {
     }
 }
 
-/// The white story-card face and its soft drop (`0 4px 14px -11px #14222540`), behind the content so
-/// the text never carries the shadow. The −11 spread is a shadow cast by a shape 11 pt smaller on
-/// every side (blur 14, so radius 7), so the drop shows under the card only, never at its sides.
+/// The white story-card face on the gallery-white page (2026-11-20): a crisp 1 pt neutral hairline
+/// and a soft neutral drop under the card, behind the content so the text never carries the shadow.
 private struct TasteCardFace: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 19, style: .continuous)
                 .fill(Color.white)
                 .padding(11)
-                .shadow(color: Color(hex: "142225", opacity: Double(0x40) / 255), radius: 7, y: 4)
+                .shadow(color: Color.black.opacity(0.10), radius: 9, y: 5)
             RoundedRectangle(cornerRadius: 19, style: .continuous)
                 .fill(Color.white)
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .strokeBorder(Color.black.opacity(0.07), lineWidth: 1)
         }
     }
 }
@@ -1593,46 +1788,50 @@ private struct TasteCardFace: View {
 private struct TasteLeafCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
+    var onFeedback: ((TasteCard, DiscoverFeedback) -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     @Environment(\.tasteGerman) private var germanOverride
+    @Environment(\.kuroZoomNamespace) private var zoomNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var zoomID: String? {
+        guard zoomNamespace != nil, !reduceMotion else { return nil }
+        return "taste-\(card.id)"
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            TasteOpenButton(card: card) {
+        let german = germanOverride ?? KuroLocale.isGerman
+        return VStack(alignment: .leading, spacing: 0) {
+            TasteOpenButton(card: card, zoomSourceID: zoomID) {
                 VStack(alignment: .leading, spacing: 0) {
-                    // `.story-art`: white, a 1 pt #d9dbd3 border, then 9 pt padding (the border is drawn
-                    // inside the frame, so the cover sits 10 pt in), the cover contained on white.
-                    TasteArt(url: card.media.imageURL, well: .white)
+                    TasteArt(url: card.media.imageURL, well: .white, seedHex: card.media.coverImageColor)
                         .padding(10)
                         .modifier(TasteLeafArtSize(height: dynamicTypeSize.isAccessibilitySize ? nil : metrics.leafArtHeight))
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .strokeBorder(Color(hex: "D9DBD3"), lineWidth: 1))
+                            .strokeBorder(Color.black.opacity(0.10), lineWidth: 1))
+                        .kuroZoomSource(zoomID)
                         .background(alignment: .topLeading) {
-                            // The leaf behind the cover (`#fafbf6 2px 2px 0 -1px, #e1e3da 2px 2px 0 0`):
-                            // a 1 pt light line against the border, then the 1 pt #e1e3da edge.
                             ZStack {
                                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                    .fill(Color(hex: "E1E3DA"))
+                                    .fill(Color(hex: "E4E4E6"))
                                     .offset(x: 2, y: 2)
                                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                    .fill(Color(hex: "FAFBF6"))
+                                    .fill(Color(hex: "FAFAFA"))
                                     .padding(1)
                                     .offset(x: 2, y: 2)
                             }
                         }
                     VStack(alignment: .leading, spacing: 0) {
-                        if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
-                                                         german: germanOverride ?? KuroLocale.isGerman) {
+                        if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres, german: german) {
                             TasteType.kind(kind, size: 9, tracking: 0.2)
                         }
-                        // SF's own line boxes are shorter than the prototype's (kind 10.7 against 12.6,
-                        // premise lines 13.1 against 15.95): the copy starts 14 pt under the frame (13 in
-                        // CSS) and the key sits 14 pt under the copy (12), so the kicker, title, premise
-                        // and key land on the reference's rows (measured).
+                        if let because = TastePageCopy.becauseLine(seedTitle: card.provenance, german: german) {
+                            TasteType.because(because)
+                                .padding(.top, 5)
+                        }
                         TasteType.title(card.media.title, size: metrics.compact ? 18 : 20, tracking: -0.5)
                             .padding(.top, 7)
                         if let premise = card.premise {
@@ -1646,9 +1845,60 @@ private struct TasteLeafCard: View {
                 }
             }
             Spacer(minLength: 0)
-            TastePlanKey(card: card, variant: .leaf, compact: metrics.compact)
+            HStack(spacing: 4) {
+                TastePlanKey(card: card, variant: .leaf, compact: metrics.compact)
+                if let onFeedback {
+                    TasteFeedbackKey(card: card, compact: true) { feedback in
+                        onFeedback(card, feedback)
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+/// Secondary recommendation feedback menu ("Already seen / read" or "Not for me") beside `TastePlanKey`.
+private struct TasteFeedbackKey: View {
+    let card: TasteCard
+    let compact: Bool
+    let onFeedback: (DiscoverFeedback) -> Void
+
+    @Environment(\.tasteGerman) private var germanOverride
+
+    var body: some View {
+        let german = germanOverride ?? KuroLocale.isGerman
+        let seenTitle = card.media.kind == .manga
+            ? (german ? "Schon gelesen" : "Already read")
+            : (german ? "Schon gesehen" : "Already seen")
+        let passTitle = german ? "Nicht mein Fall" : "Not for me"
+        let size: CGFloat = compact ? 34 : 36
+        Menu {
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                onFeedback(.seenIt)
+            } label: {
+                Label(seenTitle, systemImage: "eye")
+            }
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                onFeedback(.notInterested)
+            } label: {
+                Label(passTitle, systemImage: "hand.thumbsdown")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .frame(width: size, height: size)
+                .background(Color.kuroControlFill, in: Circle())
+                .overlay(Circle().strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5))
+                .frame(width: compact ? 36 : 44, height: 44)
+                .contentShape(Circle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.95))
+        .accessibilityLabel(german ? "Empfehlung bewerten" : "Feedback on recommendation")
     }
 }
 
@@ -1677,19 +1927,20 @@ struct TastePlanKey: View {
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @State private var localController = TastePlanController()
 
-    private static let ink = Color(hex: "36433A")
+    /// Neutral ink on the light face (2026-11-20 gallery pass; the sage #36433a is retired).
+    private static let ink = Color.kuroControlInk
 
     private var status: ListStatus? { library.entry(for: card.key)?.status }
 
+    /// The light face: a quiet neutral fill with a hairline, the same on every card variant.
     private var face: (fill: Color, border: Color) {
         switch variant {
-        case .landscape: return (Color(hex: "F4F6F5"), Color(hex: "E0E5E1"))
-        case .portrait: return (Color(hex: "F7F9F6"), Color(hex: "BCC5BE"))
-        case .leaf: return (Color(hex: "FFFFFC"), Color(hex: "BEC5B8"))
+        case .landscape, .portrait: return (Color.kuroControlFill, Color.black.opacity(0.06))
+        case .leaf: return (Color.white, Color.black.opacity(0.14))
         }
     }
 
-    private var savedFace: Color { variant == .leaf ? Color(hex: "30352B") : Color(hex: "303932") }
+    private var savedFace: Color { Color.kuroControlInk }
 
     var body: some View {
         let status = status
@@ -1706,49 +1957,60 @@ struct TastePlanKey: View {
         } label: {
             HStack(spacing: 5) {
                 Text(TastePageCopy.planLabel(medium: card.media.kind, status: status, german: german))
-                    .font(.kuroCustom(variant == .leaf ? (compact ? 9 : 10) : 11, weight: .medium,
+                    .font(.kuroCustom(variant == .leaf ? (compact ? 10 : 11) : 12, weight: .semibold,
                                       relativeTo: .caption1, maxSize: 20))
                     .lineLimit(1)
-                    // The compact leaf key (98 pt in a detail More-like-this rail, 84–96 pt in Discover's
-                    // index) gives its label more room so "Plan to watch" never truncates.
-                    .minimumScaleFactor(variant == .leaf && compact ? 0.7 : 0.85)
-                Spacer(minLength: variant == .leaf && compact ? 2 : 4)
+                    // The leaf key (especially inside the 2-column 390pt row beside the feedback menu)
+                    // trims inner padding and icon well width so "Plan to read" / "Plan to watch" never truncates.
+                    .minimumScaleFactor(variant == .leaf ? 0.72 : 0.85)
+                Spacer(minLength: variant == .leaf ? 2 : 4)
+                // Modern glyphs (2026-11-20): a crisp `plus` to add, a `checkmark` once on the list.
                 if stampsOnConfirm {
                     let stamp = Self.stampTokens(controller.stampCounts[card.key])
                     ZStack {
-                        Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                            .font(.system(size: 13, weight: .light))
+                        Image(systemName: saved ? "checkmark" : "plus")
+                            .font(.system(size: 13, weight: .semibold))
                             .kuroRestore(trigger: stamp.restore)
                         Image(systemName: "checkmark")
                             .font(.system(size: 13, weight: .semibold))
                             .kuroConfirmStamp(trigger: stamp.confirm)
                     }
-                    .frame(width: variant == .leaf && compact ? 18 : 26, height: 28)
+                    .frame(width: variant == .leaf ? 16 : 26, height: 28)
                     .accessibilityHidden(true)
                     .sensoryFeedback(.success, trigger: stamp.confirm)
                     .sensoryFeedback(.warning, trigger: stamp.failure)
                 } else {
-                    Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                        .font(.system(size: 13, weight: .light))
-                        .frame(width: variant == .leaf && compact ? 18 : 26, height: 28)
+                    Image(systemName: saved ? "checkmark" : "plus")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: variant == .leaf ? 16 : 26, height: 28)
                         .accessibilityHidden(true)
                 }
             }
-            .foregroundStyle(saved ? Color.white : Self.ink)
-            .padding(.horizontal, variant == .leaf && compact ? 8 : 12)
+            .foregroundStyle(saved ? Color.kuroControlInk : Color.white)
+            .padding(.horizontal, variant == .leaf ? (compact ? 10 : 12) : 14)
             .frame(maxWidth: .infinity, minHeight: 44)
-            .background(saved ? savedFace : face.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(saved ? savedFace : face.border, lineWidth: 1)
-            )
-            .overlay(alignment: .top) {
-                // `box-shadow: inset 0 1px #fff` (the raised top edge), only on the light face.
-                if !saved {
-                    Rectangle().fill(Color.white).frame(height: 1).padding(.horizontal, 10).padding(.top, 1)
+            .background {
+                if saved {
+                    Color.kuroControlFill
+                } else {
+                    KuroBlurredArtworkFill(
+                        raw: card.bannerURL ?? card.media.imageURL,
+                        top: Color(hex: "222634"),
+                        bottom: Color(hex: "151821"),
+                        leadingScrim: 0.54,
+                        trailingScrim: 0.34
+                    )
                 }
             }
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(Capsule(style: .continuous))
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(
+                        saved ? Color.kuroControlInk.opacity(0.22) : Color.white.opacity(0.18),
+                        lineWidth: 1
+                    )
+            )
+            .contentShape(Capsule(style: .continuous))
             .kuroAnimation(KuroMotion.contact, value: saved)
         }
         .buttonStyle(KuroPressStyle(pressedScale: 0.97))
@@ -1802,7 +2064,7 @@ private struct TasteStorySkeleton: View {
                     ForEach(0..<2, id: \.self) { _ in
                         VStack(alignment: .leading, spacing: 10) {
                             Rectangle().fill(Color.white).aspectRatio(2 / 3, contentMode: .fit)
-                                .overlay(Rectangle().strokeBorder(Color(hex: "D9DBD3"), lineWidth: 1))
+                                .overlay(Rectangle().strokeBorder(Color.black.opacity(0.10), lineWidth: 1))
                             line(width: 90, height: 9)
                             line(width: nil, height: 16)
                             RoundedRectangle(cornerRadius: 10, style: .continuous).fill(block).frame(height: 44)
@@ -1856,7 +2118,7 @@ struct TasteFooter: View {
         }
         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 18))
         // A step deeper than `kuroMuted` (#696c6b), for the same reason as `TasteType.premiseInk`.
-        .foregroundStyle(Color(hex: "606362"))
+        .foregroundStyle(Color(hex: "6B6B6B"))
         .padding(.horizontal, 22)
         .padding(.top, 20)
         .padding(.bottom, 28)

@@ -187,7 +187,7 @@ struct KuroMainView: View {
             }
             return tasteDeck
                 ? [.taste, .discover, .browse, .collection, .clubs]
-                : [.concierge, .discover, .browse, .collection, .clubs]
+                : [.discover, .browse, .collection, .clubs]
         }
     }
 
@@ -417,14 +417,19 @@ struct KuroMainView: View {
                             },
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
-	                    .offset(x: edgeBounceOffset)
-	                    .background(Color.clear)
-	                    // Full-bleed for the Deck: the pager reaches the screen's
-	                    // bottom edge; other sections restore the inset as padding.
-	                    .ignoresSafeArea(.container, edges: .bottom)
-	                }
-	            }
-	        }
+                    .offset(x: edgeBounceOffset)
+                    .background(Color.clear)
+                    // Extend the pager to the screen's bottom edge; individual sections restore
+                    // `bottomInset` cleanly inside the pager.
+                    .ignoresSafeArea(.container, edges: .bottom)
+                }
+            }
+        }
+        .background {
+            if keyboardShortcutsEnabled {
+                keyboardShortcutCommands
+            }
+        }
 	        .coordinateSpace(name: "kuro_root")
             .onGeometryChange(for: CGSize.self) { proxy in
                 proxy.size
@@ -804,6 +809,55 @@ struct KuroMainView: View {
 }
 
 extension KuroMainView {
+    private var keyboardShortcutsEnabled: Bool {
+        !showOnboarding && !showSearchSheet && !showProfileSheet && !showConciergeSheet && navigation?.slot.presented == nil
+    }
+
+    @ViewBuilder
+    private var keyboardShortcutCommands: some View {
+        ZStack {
+            Button("") {
+                openQuickSearchShortcut()
+            }
+            .keyboardShortcut("k", modifiers: .command)
+
+            sectionShortcut("1", index: 0)
+            sectionShortcut("2", index: 1)
+            sectionShortcut("3", index: 2)
+            sectionShortcut("4", index: 3)
+        }
+        .frame(width: 0, height: 0)
+        .clipped()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func sectionShortcut(_ key: KeyEquivalent, index: Int) -> some View {
+        if swipeOrder.indices.contains(index) {
+            Button("") {
+                let target = swipeOrder[index]
+                pageChosen = true
+                selection = target
+                mountedSections.insert(target)
+            }
+            .keyboardShortcut(key, modifiers: .command)
+        }
+    }
+
+    private func openQuickSearchShortcut() {
+        switch selection {
+        case .discover:
+            pendingSearchScope = discoverIssue == .manga ? .manga : (discoverIssue == .anime ? .anime : .all)
+        case .home:
+            pendingSearchScope = flags.seriesHomeNativeV1Enabled ? (home.medium == "manga" ? .manga : .anime) : .all
+        default:
+            pendingSearchScope = .all
+        }
+        searchSession += 1
+        showSearchSheet = true
+    }
+
     /// The page after `series_home_native_v1` hydrates or flips; `nil` keeps the current page.
     /// Flag on: Home only while nothing chose a page yet (a start argument, a deep link, onboarding or
     /// the user's own paging win), otherwise only when the current page left the order. Flag off: a
@@ -871,9 +925,9 @@ private struct KuroSectionPager: View {
             HStack(spacing: 0) {
                 ForEach(order, id: \.self) { section in
                     page(for: section)
-                        // The Deck keeps the full height (its art reaches the screen's
-                        // bottom edge); other pages restore their safe-area edge here.
-                        .padding(.bottom, section == .taste ? 0 : bottomInset)
+                        // Restore the bottom safe-area inset for every pager section so bottom
+                        // toasts and scroll ends clear the Home Indicator cleanly.
+                        .padding(.bottom, bottomInset)
                         .frame(width: width, height: height)
                 }
             }
@@ -1191,20 +1245,20 @@ struct KuroHeaderNew: View {
                 onPicture: onPicture
             )
 
-            // Smaller position dots (3 pt).
+            // Position indicators (active pill capsule vs. 3 pt dots).
             HStack(spacing: 4) {
                 ForEach(swipeOrder, id: \.self) { section in
                     ZStack {
-                        Circle()
+                        Capsule(style: .continuous)
                             .fill(section == selection
-                                  ? inkColor
-                                  : inkColor.opacity(onPicture ? 0.28 : 0.18))
-                            .frame(width: 3, height: 3)
+                                  ? Color.kuroControlInk
+                                  : inkColor.opacity(onPicture ? 0.30 : 0.20))
+                            .frame(width: section == selection ? 12 : 3, height: 3)
 
                         // Badge dot for Clubs when unseen activity exists (monochrome).
                         if section == .clubs && clubs.hasUnseenClubActivity && selection != .clubs {
                             Circle()
-                                .fill(Color.kuroBlack70)
+                                .fill(Color.kuroControlInk)
                                 .frame(width: 5, height: 5)
                                 .offset(x: 4, y: -3)
                         }
@@ -1274,6 +1328,7 @@ struct KuroHeaderNew: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(KuroHeaderIconButtonStyle())
+            .keyboardShortcut("f", modifiers: .command)
             .accessibilityLabel(KuroLocale.text("Search", "Suche"))
             .accessibilityHint(KuroLocale.text("Opens search", "Öffnet die Suche"))
             .accessibilityIdentifier("header.search")

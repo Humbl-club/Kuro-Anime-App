@@ -41,7 +41,9 @@ struct AddToListSheet: View {
     }
 
     private var showsProgress: Bool {
-        (draft.status == .current || draft.status == .completed || draft.status == .repeating) && maxProgress > 0
+        draft.status == .current
+            || draft.status == .repeating
+            || (draft.status == .completed && (maxProgress > 0 || draft.progress > 0))
     }
 
     private var german: Bool { forcedGerman ?? KuroLocale.isGerman }
@@ -122,7 +124,10 @@ struct AddToListSheet: View {
                             isEditing: $isEditingProgress,
                             maxProgress: maxProgress,
                             unitLabel: progressUnitLabel,
-                            german: german
+                            german: german,
+                            isManga: media.kind == .manga,
+                            hasHalfUnit: $draft.hasHalfUnit,
+                            volumesProgress: $draft.volumesProgress
                         )
 
                         EditorialLayout.divider()
@@ -379,7 +384,43 @@ private struct SpreadProgressSection: View {
     let maxProgress: Int
     let unitLabel: String
     let german: Bool
+    let isManga: Bool
+    @Binding var hasHalfUnit: Bool
+    @Binding var volumesProgress: Int
     @FocusState private var fieldFocused: Bool
+
+    private var canHalfUnit: Bool {
+        isManga && (maxProgress == 0 || progress < maxProgress)
+    }
+
+    private var displayedProgress: String {
+        if hasHalfUnit && canHalfUnit {
+            return "\(progress).5"
+        }
+        return "\(progress)"
+    }
+
+    private var maxEditableProgress: Int {
+        maxProgress > 0 ? maxProgress : 99_999
+    }
+
+    private var canIncrementProgress: Bool {
+        progress < maxEditableProgress
+    }
+
+    private var progressRangeSummary: String {
+        if maxProgress > 0 {
+            return german ? "von \(maxProgress) \(unitLabel)" : "of \(maxProgress) \(unitLabel)"
+        }
+        return unitLabel
+    }
+
+    private var progressAccessibilityLabel: String {
+        if maxProgress > 0 {
+            return german ? "Fortschritt: \(displayedProgress) von \(maxProgress)" : "Progress: \(displayedProgress) of \(maxProgress)"
+        }
+        return german ? "Fortschritt: \(displayedProgress) \(unitLabel)" : "Progress: \(displayedProgress) \(unitLabel)"
+    }
 
     var body: some View {
         VStack(spacing: KuroSpacing.sm) {
@@ -396,7 +437,8 @@ private struct SpreadProgressSection: View {
                     .accessibilityLabel(german ? "Fortschritt" : "Progress")
 
                 Button {
-                    progress = min(max(0, progress), maxProgress)
+                    progress = min(max(0, progress), maxEditableProgress)
+                    hasHalfUnit = false
                     isEditing = false
                 } label: {
                     Text(german ? "Fertig" : "Done")
@@ -412,20 +454,27 @@ private struct SpreadProgressSection: View {
                 Button {
                     isEditing = true
                 } label: {
-                    Text("\(progress)")
+                    Text(displayedProgress)
                         .font(.kuroCustom(34, weight: .light, design: .serif, relativeTo: .largeTitle, maxSize: 56))
                         .foregroundStyle(Color.kuroInk)
                         .monospacedDigit()
                         .frame(minWidth: 44, minHeight: 44)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(german ? "Fortschritt: \(progress) von \(maxProgress)" : "Progress: \(progress) of \(maxProgress)")
+                .accessibilityLabel(progressAccessibilityLabel)
                 .accessibilityHint(german ? "Zum Eingeben tippen" : "Tap to type a number")
             }
 
-            Text(german ? "von \(maxProgress) \(unitLabel)" : "of \(maxProgress) \(unitLabel)")
-                .font(.kuroMeta())
-                .foregroundStyle(Color.kuroInkSecondary)
+            HStack(spacing: 6) {
+                Text(progressRangeSummary)
+                if isManga && volumesProgress > 0 {
+                    Text(verbatim: "·")
+                    Text(german ? "Bd. \(volumesProgress)" : "Vol. \(volumesProgress)")
+                        .monospacedDigit()
+                }
+            }
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroInkSecondary)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -446,9 +495,10 @@ private struct SpreadProgressSection: View {
             .frame(height: 2)
             .padding(.horizontal, KuroSpacing.xxl)
 
-            HStack(spacing: KuroSpacing.xxl) {
+            HStack(spacing: isManga ? KuroSpacing.lg : KuroSpacing.xxl) {
                 Button {
                     progress = max(0, progress - 1)
+                    hasHalfUnit = false
                     KuroAccessibility.impactHaptic(.light)
                 } label: {
                     Image(systemName: "minus")
@@ -462,8 +512,32 @@ private struct SpreadProgressSection: View {
                 .disabled(progress <= 0)
                 .accessibilityLabel(german ? "Eins weniger" : "One less")
 
+                if isManga {
+                    let halfActive = hasHalfUnit && canHalfUnit
+                    Button {
+                        hasHalfUnit.toggle()
+                        KuroAccessibility.impactHaptic(.light)
+                    } label: {
+                        Text(verbatim: ".5")
+                            .font(.kuroMeta(weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(halfActive ? Color.kuroWhite : Color.kuroInk)
+                            .padding(.horizontal, 14)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .background(Capsule().fill(halfActive ? Color.kuroInk : Color.clear))
+                            .overlay(Capsule().strokeBorder(halfActive ? Color.kuroInk : Color.kuroKeyRim, lineWidth: 1))
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(KuroPressStyle())
+                    .disabled(!canHalfUnit)
+                    .opacity(canHalfUnit ? 1.0 : 0.35)
+                    .accessibilityLabel(german ? "Halbes Kapitel (.5)" : "Half chapter (.5)")
+                    .accessibilityAddTraits(halfActive ? [.isSelected] : [])
+                }
+
                 Button {
-                    progress = min(maxProgress, progress + 1)
+                    progress = min(maxEditableProgress, progress + 1)
+                    hasHalfUnit = false
                     KuroAccessibility.impactHaptic(.light)
                 } label: {
                     Image(systemName: "plus")
@@ -474,14 +548,74 @@ private struct SpreadProgressSection: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(KuroPressStyle())
-                .disabled(progress >= maxProgress)
+                .disabled(!canIncrementProgress)
                 .accessibilityLabel(german ? "Eins mehr" : "One more")
             }
             .padding(.top, KuroSpacing.xs)
+
+            if isManga {
+                volumeStepper
+                    .padding(.top, KuroSpacing.xs)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, KuroSpacing.lg)
         .padding(.vertical, KuroSpacing.lg)
+    }
+
+    private var volumeStepper: some View {
+        let title = german ? "Bände" : "Volumes"
+        let controls = HStack(spacing: KuroSpacing.sm) {
+            Button {
+                volumesProgress = max(0, volumesProgress - 1)
+                KuroAccessibility.impactHaptic(.light)
+            } label: {
+                Image(systemName: "minus")
+                    .font(.kuroCustom(13, weight: .medium, relativeTo: .body, maxSize: 20))
+                    .foregroundStyle(Color.kuroInk)
+                    .frame(width: 44, height: 44)
+                    .overlay(Circle().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(KuroPressStyle())
+            .disabled(volumesProgress <= 0)
+            .accessibilityLabel(german ? "Ein Band weniger" : "One volume less")
+
+            Text("\(volumesProgress)")
+                .font(.kuroMeta(weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.kuroInk)
+                .frame(minWidth: 28)
+
+            Button {
+                volumesProgress = min(99999, volumesProgress + 1)
+                KuroAccessibility.impactHaptic(.light)
+            } label: {
+                Image(systemName: "plus")
+                    .font(.kuroCustom(13, weight: .medium, relativeTo: .body, maxSize: 20))
+                    .foregroundStyle(Color.kuroInk)
+                    .frame(width: 44, height: 44)
+                    .overlay(Circle().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(german ? "Ein Band mehr" : "One volume more")
+        }
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: KuroSpacing.md) {
+                Text(title)
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkSecondary)
+                controls
+            }
+            VStack(spacing: KuroSpacing.xs) {
+                Text(title)
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkSecondary)
+                controls
+            }
+        }
     }
 }
 
@@ -659,7 +793,7 @@ private struct SpreadNotesSection: View {
                 .accessibilityAddTraits(.isHeader)
 
             HStack(alignment: .top, spacing: KuroSpacing.md) {
-                RoundedRectangle(cornerRadius: 1)
+                RoundedRectangle(cornerRadius: 1, style: .continuous)
                     .fill(Color.kuroKeyRim)
                     .frame(width: 2)
                     .accessibilityHidden(true)

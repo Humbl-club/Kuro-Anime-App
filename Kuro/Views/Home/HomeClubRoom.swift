@@ -313,7 +313,7 @@ struct HomeClubRoom: View {
     private var masthead: some View {
         Button { routes.openClub(club.id) } label: {
             HStack(alignment: .center, spacing: compact ? 8 : 10) {
-                ClubSeal(ring: ClubSeal.ring(compact: compact))
+                ClubSeal(ring: ClubSeal.ring(compact: compact), crest: ClubCrestStore.crest(for: club.id))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(KuroLocale.text("Your private club", "Dein privater Club"))

@@ -312,17 +312,36 @@ struct DiscoverSeeAllQuery: Hashable, Sendable {
 
 /// The mood entry points at the top of Discover (`p_mood`).
 enum DiscoverMood: String, CaseIterable, Sendable {
+    /// First when seeded: the one personal mood leads the row (2026-11-20).
+    case likeLastLoved = "like_last_loved"
     case short
     case cozy
     case intense
-    case likeLastLoved = "like_last_loved"
+    /// 2026-11-20 moods: resolved on the client over the live Browse reader (no server contract).
+    case action
+    case heartfelt
+    case mindBending = "mind_bending"
+    case acclaimed
 
-    /// The one Browse genre a mood falls back to while `discover_mood_v1` is not deployed.
+    /// The moods the prepared `discover_mood_v1` reader understands; the others always read Browse,
+    /// so a deployed reader never answers an unknown `p_mood` with an error.
+    var isServerMood: Bool {
+        switch self {
+        case .short, .cozy, .intense, .likeLastLoved: return true
+        case .action, .heartfelt, .mindBending, .acclaimed: return false
+        }
+    }
+
+    /// The one Browse genre a mood falls back to while `discover_mood_v1` is not deployed (and,
+    /// for the client moods, always).
     var fallbackGenre: String? {
         switch self {
         case .cozy: return "Slice of Life"
         case .intense: return "Thriller"
-        case .short, .likeLastLoved: return nil
+        case .action: return "Action"
+        case .heartfelt: return "Romance"
+        case .mindBending: return "Psychological"
+        case .short, .acclaimed, .likeLastLoved: return nil
         }
     }
 }
@@ -410,6 +429,7 @@ struct DiscoverPageRow: Decodable, Sendable {
     let titleNative: String?
     let coverImageLarge: String?
     let coverImageMedium: String?
+    let coverImageColor: String?
     let bannerImage: String?
     let format: String?
     let status: String?
@@ -437,6 +457,7 @@ struct DiscoverPageRow: Decodable, Sendable {
         case titleNative = "title_native"
         case coverImageLarge = "cover_image_large"
         case coverImageMedium = "cover_image_medium"
+        case coverImageColor = "cover_image_color"
         case bannerImage = "banner_image"
         case format, status
         case episodeCount = "episode_count"
@@ -471,14 +492,15 @@ struct DiscoverPageRow: Decodable, Sendable {
                 coverImageLarge: coverImageLarge, coverImageMedium: coverImageMedium, bannerImage: bannerImage,
                 format: format, status: status, episodeCount: episodeCount, seasonYear: seasonYear,
                 startDateYear: startDateYear, averageScore: averageScore, popularity: popularity,
-                trending: trending, favourites: favourites, genreList: genres, createdAt: createdAt, rank: nil))
+                trending: trending, favourites: favourites, genreList: genres, createdAt: createdAt,
+                rank: nil, coverImageColor: coverImageColor))
         case .manga:
             card = .manga(MangaCard(
                 id: id, titleEnglish: titleEnglish, titleRomaji: titleRomaji, titleNative: titleNative,
                 coverImageLarge: coverImageLarge, coverImageMedium: coverImageMedium,
                 format: format, status: status, chapterCount: chapterCount, startDateYear: startDateYear,
                 averageScore: averageScore, popularity: popularity, trending: trending, favourites: favourites,
-                genreList: genres, createdAt: createdAt, rank: nil))
+                genreList: genres, createdAt: createdAt, rank: nil, coverImageColor: coverImageColor))
         }
         return DiscoverPageItem(card: card, franchiseId: franchiseId,
                                 serverListStatus: listStatus.flatMap(ListStatus.init(rawValue:)))

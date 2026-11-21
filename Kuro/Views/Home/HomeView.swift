@@ -40,6 +40,7 @@ struct HomeView: View {
     /// The new-account block's first pick cover per medium (the selected medium word's art).
     @State private var newAccountArt: [MediaKind: String] = [:]
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroZoomNamespace) private var zoomNamespace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -98,6 +99,24 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     mediumSwitch
                     importRecoveryBanner
+                    if let conflict = library.progressConflict {
+                        KuroProgressConflictBanner(
+                            localPosition: conflict.localPosition,
+                            serverPosition: conflict.serverPosition,
+                            onKeepServer: {
+                                let origin = actionScope.capture(session: libraryActions.accountSession)
+                                perform(origin: origin) {
+                                    await libraryActions.resolveProgressConflict(reapply: false, expected: conflict)
+                                }
+                            },
+                            onUseMine: {
+                                let origin = actionScope.capture(session: libraryActions.accountSession)
+                                perform(origin: origin) {
+                                    await libraryActions.resolveProgressConflict(reapply: true, expected: conflict)
+                                }
+                            }
+                        )
+                    }
                     shelfBody(proxy: proxy)
                     if showsFooter {
                         // The page footer, last in the scroll content (PROTOTYPE_SPEC.md §4 "Footer"),
@@ -345,7 +364,7 @@ struct HomeView: View {
                 .foregroundStyle(Color.kuroInk)
                 .padding(KuroDesignSpacing.md)
                 .frame(minHeight: 44)
-                .background(Color.kuroCanvasQuiet, in: RoundedRectangle(cornerRadius: KuroRadius.md))
+                .background(Color.kuroCanvasQuiet, in: RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
                 .contentShape(Rectangle())
             }
             .buttonStyle(HomeContactStyle())
@@ -362,12 +381,17 @@ struct HomeView: View {
     /// first starter pick, as Taste does (one rule for both pages); the invitation (this medium empty,
     /// the other occupied) shows the mountain behind it.
     private var mediumSwitch: some View {
-        KuroPosterMediumSwitch(selection: mediumKind, contentWidth: contentWidth,
-                               onSelect: { home.selectMedium($0 == .manga ? "manga" : "anime") }) {
+        let split = HomeShelfPolicy.partition(home.bundle?.active ?? [])
+        let leadOverride: HomeCard? = mediumKind == .anime
+            ? HomeShelfPolicy.prioritizedScenes(split.inProgress) { keyState($0).caughtUp }.scenes.first
+            : split.inProgress.first
+        return KuroPosterMediumSwitch(selection: mediumKind, contentWidth: contentWidth,
+                                      onSelect: { home.selectMedium($0 == .manga ? "manga" : "anime") }) {
             if showsNewAccount {
                 KuroArtWordFill(raw: newAccountArt[mediumKind])
             } else {
-                HomePagePictureFill(fallback: shelfScene == .invitation ? .mountain : .solid)
+                HomePagePictureFill(fallback: shelfScene == .invitation ? .mountain : .solid,
+                                    leadOverride: leadOverride)
             }
         }
     }
@@ -472,9 +496,11 @@ struct HomeView: View {
         let awaitingInProgress = split.inProgress.isEmpty && scene == .inProgress
             && (wantsPage || pagingForInProgress) && !skipNetworkLoad
         let opening = openingState(split.inProgress)
-        let hasScheduleContent = !scheduleItems.isEmpty || scheduleCoverage == .failed
-        let showComingUp = !split.inProgress.isEmpty || hasScheduleContent
-        let showCalendar = !split.inProgress.isEmpty || !scheduleItems.isEmpty || !(home.bundle?.pending.isEmpty ?? true)
+        // Coming up and the calendar appear only for real upcoming dates (or a retryable failure):
+        // titles in progress alone never raise an empty "Nothing scheduled" glance (2026-11-20).
+        let showComingUp = HomeCalendarPresentation.showsComingUp(
+            items: scheduleItems, copy: ReleaseCopy.current(), offline: !network.isConnected, coverage: scheduleCoverage)
+        let showCalendar = !scheduleItems.isEmpty || !(home.bundle?.pending.isEmpty ?? true)
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
             // The prototype's opening block: glance, 12, opening line, then 18 to the feed; the
             // caught-up quiet card opens the feed with 20 under it.
@@ -494,13 +520,15 @@ struct HomeView: View {
                             .padding(.bottom, 8)
                     }
                     if mediumKind == .anime {
-                        let lanes = HomeShelfPolicy.scenes(split.inProgress)
+                        let lanes = HomeShelfPolicy.prioritizedScenes(split.inProgress) { keyState($0).caughtUp }
                         animeScenes(lanes.scenes)
                         animeAlsoWatching(lanes.alsoWatching)
                     } else if containerSize.width > 0 {
+                        let hiatusSplit = HomeShelfPolicy.splitHiatusCards(split.inProgress)
+                        let primaryManga = hiatusSplit.active.isEmpty ? hiatusSplit.onHiatus : hiatusSplit.active
                         // The manga activity stage has no top margin: the covers start 21 pt under the
                         // opening row (the stack's 12 plus the opening's 6 and the line box).
-                        mangaLeaves(split.inProgress)
+                        mangaLeaves(primaryManga)
                     } else {
                         // Covers are sized from the measured column: wait for the first measurement.
                         sceneLoadingShape
@@ -522,6 +550,14 @@ struct HomeView: View {
             quietShelf(sectionKey: "paused", title: KuroLocale.text("Paused", "Pausiert"),
                        cards: split.paused, state: KuroLocale.text("paused", "pausiert"),
                        allowStart: false, proxy: proxy)
+            if mediumKind == .manga {
+                let hiatusSplit = HomeShelfPolicy.splitHiatusCards(split.inProgress)
+                if !hiatusSplit.active.isEmpty, !hiatusSplit.onHiatus.isEmpty {
+                    quietShelf(sectionKey: "hiatus", title: KuroLocale.text("On hiatus", "Auf Hiatus"),
+                               cards: hiatusSplit.onHiatus, state: KuroLocale.text("on hiatus", "auf Hiatus"),
+                               allowStart: false, proxy: proxy)
+                }
+            }
             quietShelf(sectionKey: "saved", title: KuroLocale.text("Saved", "Gespeichert"),
                        cards: split.saved, state: nil, allowStart: false, proxy: proxy)
             moreTitlesButton(origin: origin)
@@ -629,6 +665,7 @@ struct HomeView: View {
                     Spacer(minLength: 8)
                     Text(HomeAlsoWatchingHeading.countLine(cards.count))
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                        .monospacedDigit()
                         .foregroundStyle(Color.kuroMuted)
                 }
                 .id("home-quiet-\(sectionKey)")
@@ -720,12 +757,14 @@ struct HomeView: View {
                             Spacer(minLength: 8)
                             Text(HomeAlsoWatchingHeading.countLine(stage.grid.count + stage.overflow.count))
                                 .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                                .monospacedDigit()
                                 .foregroundStyle(Color.kuroMuted)
                         }
                         .frame(minHeight: 21)
 
                         HomeAlsoWatchingGrid(compact: compactColumn) {
                             ForEach(gridCards) { card in
+                                let zID = zoomID(surface: "planned-tile", card: card)
                                 HomeAlsoWatchingTile(
                                     title: card.title,
                                     posterURL: (card.coverImage ?? card.bannerImage).flatMap(URL.init(string:)),
@@ -733,7 +772,8 @@ struct HomeView: View {
                                     stamp: HomeSeasonTab.make(card),
                                     readout: plannedReadout(card, onTile: true),
                                     compact: compactColumn,
-                                    onOpen: { open(card) }
+                                    zoomSourceID: zID,
+                                    onOpen: { open(card, zoomSourceID: zID) }
                                 ) {
                                     startPlannedKey(card, style: .material(material(card)))
                                 }
@@ -775,6 +815,7 @@ struct HomeView: View {
     private func plannedAnimeScene(_ card: HomeCard) -> some View {
         let names = clubNames(card)
         let fact: HomeSceneFact? = names.isEmpty ? nil : .club(names: Array(names.prefix(2)))
+        let zID = zoomID(surface: "planned-scene", card: card)
         return HomeSceneCard(
             title: card.title,
             artURL: artworkURL(card),
@@ -783,9 +824,10 @@ struct HomeView: View {
             readout: plannedReadout(card),
             fact: fact,
             compact: compactColumn,
-            onOpen: { open(card) },
+            zoomSourceID: zID,
+            onOpen: { open(card, zoomSourceID: zID) },
             onSeason: { routes.openPage(HomeSeasonJourney.page(for: card)) },
-            onClub: { open(card) }
+            onClub: { open(card, zoomSourceID: zID) }
         ) {
             startPlannedKey(card, style: .light)
         }
@@ -888,6 +930,7 @@ struct HomeView: View {
             // The same rule as the key and the readout, so the card never says "Up to date" beside a +1.
             knownCaughtUp: state.caughtUp,
             clubNames: clubNames(card), medium: mediumKind)
+        let zID = zoomID(surface: "scene", card: card)
         return HomeSceneCard(
             title: card.title,
             artURL: artworkURL(card),
@@ -896,10 +939,11 @@ struct HomeView: View {
             readout: readout(card, state: state),
             fact: fact,
             compact: compactColumn,
-            onOpen: { open(card) },
+            zoomSourceID: zID,
+            onOpen: { open(card, zoomSourceID: zID) },
             // The season overview is a journey (navigation contract N8): its rows push titles.
             onSeason: { routes.openPage(HomeSeasonJourney.page(for: card)) },
-            onClub: { open(card) }
+            onClub: { open(card, zoomSourceID: zID) }
         ) {
             advanceKey(card, style: .light, onArt: true)
         }
@@ -913,6 +957,7 @@ struct HomeView: View {
                 HomeAlsoWatchingGrid(compact: compactColumn) {
                     ForEach(cards) { card in
                         let state = keyState(card)
+                        let zID = zoomID(surface: "also", card: card)
                         HomeAlsoWatchingTile(
                             title: card.title,
                             posterURL: (card.coverImage ?? card.bannerImage).flatMap(URL.init(string:)),
@@ -920,7 +965,8 @@ struct HomeView: View {
                             stamp: HomeSeasonTab.make(card),
                             readout: readout(card, state: state, onTile: true),
                             compact: compactColumn,
-                            onOpen: { open(card) }
+                            zoomSourceID: zID,
+                            onOpen: { open(card, zoomSourceID: zID) }
                         ) {
                             advanceKey(card, style: .material(material(card)), onArt: false)
                         }
@@ -1476,8 +1522,13 @@ struct HomeView: View {
 
     // MARK: Helpers
 
-    private func open(_ card: HomeCard) {
-        routes.openMedia(MediaRoute(kind: mediumKind, id: card.mediaId))
+    private func zoomID(surface: String, card: HomeCard) -> String? {
+        guard zoomNamespace != nil, !reduceMotion else { return nil }
+        return "home-\(surface)-\(home.medium)-\(card.lifecycleId)-\(card.mediaId)"
+    }
+
+    private func open(_ card: HomeCard, zoomSourceID: String? = nil) {
+        routes.openMedia(MediaRoute(kind: mediumKind, id: card.mediaId, zoomSourceID: zoomSourceID))
     }
 
     @ViewBuilder
@@ -1659,7 +1710,7 @@ private struct HomeSeasonOverview: View {
                     }
                     .frame(width: 96, height: 54)
                     .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
                     .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: 4) {

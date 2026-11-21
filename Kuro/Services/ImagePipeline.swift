@@ -43,6 +43,18 @@ actor ImagePipeline {
         return host == "anilist.co" || host.hasSuffix(".anilist.co")
     }
 
+    /// True when `raw` is a non-empty HTTP(S) URL not pointing at a retired AniList host.
+    nonisolated static func hasRenderableArtwork(_ raw: String?) -> Bool {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty,
+              let url = URL(string: raw),
+              let scheme = url.scheme?.lowercased(),
+              (scheme == "https" || scheme == "http"),
+              !isBlockedSource(url)
+        else { return false }
+        return true
+    }
+
     /// The bucket a request decodes at: nil (full image) stays nil; otherwise the requested size is
     /// clamped to [min, max] and rounded up to the next bucket.
     nonisolated static func pixelBucket(for requested: Int?) -> Int? {

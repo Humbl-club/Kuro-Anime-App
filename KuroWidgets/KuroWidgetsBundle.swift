@@ -24,7 +24,7 @@ struct NextReleaseWidget: Widget {
         }
         .configurationDisplayName(WidgetCopy.upNext(WidgetCopy.preferredGerman()))
         .description(WidgetCopy.upNextDescription(WidgetCopy.preferredGerman()))
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
     }
 }
 

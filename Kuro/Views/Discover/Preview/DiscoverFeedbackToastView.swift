@@ -54,9 +54,9 @@ struct DiscoverFeedbackToastView: View {
         }
         .padding(.leading, 14)
         .padding([.top, .bottom, .trailing], 5)
-        .background(Color(hex: "282F2B", opacity: Double(0xF5) / 255),
+        .background(Color.kuroControlInk.opacity(0.95),
                     in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color(hex: "18241C", opacity: Double(0x30) / 255), radius: 15, y: 8)
+        .shadow(color: Color.black.opacity(0.22), radius: 15, y: 8)
         .padding(.horizontal, 13)
         .padding(.bottom, 12)
         .accessibilityElement(children: .contain)

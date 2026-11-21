@@ -202,13 +202,28 @@ enum FolioPolicy {
         return value
     }
 
-    /// Titles per status word for one medium, from the whole Library (not a loaded page).
+    /// Counts per status word for one medium, from the whole Library (not a loaded page).
     static func counts(_ entries: [LibraryEntry], medium: MediaKind) -> [FolioStatus: Int] {
         var counts: [FolioStatus: Int] = [:]
         for entry in entries where entry.key.kind == medium {
             counts[FolioStatus(listStatus: entry.status), default: 0] += 1
         }
         return counts
+    }
+
+    /// Separates multi-year `HIATUS` manga from active weekly reading without altering the user's status.
+    static func partitionHiatusManga(_ items: [FolioItem], medium: MediaKind, status: FolioStatus) -> (active: [FolioItem], onHiatus: [FolioItem]) {
+        guard medium == .manga, status == .watching else { return (items, []) }
+        var active: [FolioItem] = []
+        var onHiatus: [FolioItem] = []
+        for item in items {
+            if item.media.statusRaw?.uppercased() == "HIATUS" {
+                onHiatus.append(item)
+            } else {
+                active.append(item)
+            }
+        }
+        return (active, onHiatus)
     }
 
     /// Case- and diacritic-insensitive title match; an empty query matches everything.

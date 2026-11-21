@@ -36,13 +36,15 @@ struct ClubSheetTitle: View {
     }
 }
 
-/// A labelled text field on the quiet surface, with a live count when `limit` is set.
+/// A labelled text field on `#f4f4f5`, with a live count when `limit` is set.
 struct ClubFormField: View {
     let label: String
     let prompt: String
     @Binding var text: String
     var limit: Int? = nil
     var axis: Axis = .horizontal
+
+    @FocusState private var isFocused: Bool
 
     /// The length the server checks: Postgres `char_length` counts Unicode code points, not the
     /// grapheme clusters of `String.count` (an emoji with joiners is several code points).
@@ -74,23 +76,27 @@ struct ClubFormField: View {
                 .font(.kuroBody(weight: .regular))
                 .foregroundStyle(Color.kuroInk)
                 .lineLimit(axis == .vertical ? 3...6 : 1...1)
+                .focused($isFocused)
                 .padding(.horizontal, KuroDesignSpacing.md)
                 .padding(.vertical, 14)
                 .frame(minHeight: 48)
                 .background(
-                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .fill(Color.kuroCanvasQuiet)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.kuroControlFill)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .strokeBorder(isOverLimit ? Color.kuroError : Color.clear, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(
+                            isOverLimit ? Color.kuroError : (isFocused ? Color.kuroControlInk.opacity(0.28) : Color.black.opacity(0.06)),
+                            lineWidth: 1
+                        )
                 )
                 .accessibilityLabel(label)
         }
     }
 }
 
-/// One option of a typographic single choice: a title, one explanatory line, an ink check.
+/// One option of a rounded card single choice: title, explanatory line, radio indicator.
 struct ClubChoiceRow: View {
     let title: String
     let detail: String
@@ -99,10 +105,10 @@ struct ClubChoiceRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: KuroDesignSpacing.md) {
+            HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
                     Text(title)
-                        .font(.kuroBody(weight: isSelected ? .semibold : .regular))
+                        .font(.kuroBody(weight: isSelected ? .semibold : .medium))
                         .foregroundStyle(Color.kuroInk)
                     Text(detail)
                         .font(.kuroMeta())
@@ -110,17 +116,26 @@ struct ClubChoiceRow: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "checkmark")
-                    .font(.kuroMeta(weight: .semibold))
-                    .foregroundStyle(Color.kuroInk)
-                    .opacity(isSelected ? 1 : 0)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundStyle(isSelected ? Color.kuroControlInk : Color.kuroInkQuiet.opacity(0.5))
                     .accessibilityHidden(true)
             }
-            .padding(.vertical, KuroDesignSpacing.md)
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(minHeight: 56)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.white : Color.kuroControlFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(isSelected ? Color.kuroControlInk : Color.black.opacity(0.06),
+                                  lineWidth: isSelected ? 1.5 : 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .buttonStyle(KuroPressStyle())
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }

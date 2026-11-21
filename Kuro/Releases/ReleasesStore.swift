@@ -167,6 +167,11 @@ final class ReleasesStore: AccountScopedState {
     /// Writers that save without a confirmation on screen (Folio batch, widget +1) raise this while they run.
     @ObservationIgnored var alertOfferSuppression = 0
 
+    /// Account-scoped opt-in for morning (09:00 local) alerts on confirmed day-precision manga releases.
+    var mangaDayAlertsEnabled = false
+    /// Account-scoped preferred audio variant ("sub" default or "dub").
+    var preferredAudioVariant: String = "sub"
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {
@@ -197,6 +202,8 @@ final class ReleasesStore: AccountScopedState {
         scheduleCache = [:]
         themesCache = [:]
         releaseNotificationsEnabled = false
+        mangaDayAlertsEnabled = false
+        preferredAudioVariant = "sub"
         notificationPermission = .notDetermined
         mutedReleaseNotificationKeys = []
         allowedReleaseNotificationKeys = []

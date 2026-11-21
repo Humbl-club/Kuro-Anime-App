@@ -55,7 +55,13 @@ struct NextReleaseWidgetContent: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             case .rows:
-                if family == .systemSmall, let item = rows.first {
+                if family == .accessoryInline, let item = rows.first {
+                    NextReleaseAccessoryInline(item: item)
+                        .widgetURL(item.deepLink)
+                } else if family == .accessoryRectangular, let item = rows.first {
+                    NextReleaseAccessoryRectangular(item: item, german: german)
+                        .widgetURL(item.deepLink)
+                } else if family == .systemSmall, let item = rows.first {
                     NextReleaseSmall(item: item, german: german)
                         .widgetURL(item.deepLink)
                 } else {
@@ -201,5 +207,56 @@ struct NextReleaseRow: View {
         .padding(.vertical, verticalPadding)
         .frame(minHeight: 36)
         .contentShape(Rectangle())
+    }
+}
+
+/// Lock Screen rectangular widget: next release title, unit and relative countdown or date.
+struct NextReleaseAccessoryRectangular: View {
+    let item: WidgetReleaseItem
+    let german: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(WidgetLayout.releaseEyebrow([item], german: german).uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(0.6)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text(item.title)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+            HStack(spacing: 4) {
+                Text(item.unitLabel)
+                    .font(.system(size: 11, weight: .medium))
+                if let target = WidgetLayout.countdownTarget(item) {
+                    Text(verbatim: "·")
+                    Text(target, style: .relative)
+                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                        .lineLimit(1)
+                } else if let phrase = item.datePhrase {
+                    Text(verbatim: "·")
+                    Text(phrase)
+                        .font(.system(size: 11, weight: .regular))
+                        .lineLimit(1)
+                }
+            }
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(WidgetCopy.releaseRowLabel(title: item.title, accessibilityLine: item.accessibilityLine))
+    }
+}
+
+/// Lock Screen inline widget above the time.
+struct NextReleaseAccessoryInline: View {
+    let item: WidgetReleaseItem
+
+    var body: some View {
+        if let target = WidgetLayout.countdownTarget(item) {
+            Text("\(item.title) \(item.unitLabel) · \(target, style: .relative)")
+        } else {
+            Text("\(item.title) · \(item.unitLabel)")
+        }
     }
 }

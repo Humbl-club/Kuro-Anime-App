@@ -146,6 +146,9 @@ export type MuRecord = {
   related: { relationType: string; seriesId: number; name: string }[];
   bayesianRating: number | null;
   ratingVotes: number | null;
+  /** Optional anime adaptation span strings reported by MangaUpdates (`d.anime.start` / `d.anime.end`). */
+  animeStart?: string | null;
+  animeEnd?: string | null;
 };
 
 type J = Record<string, unknown>;
@@ -188,6 +191,8 @@ export function parseMuSeries(json: unknown): MuRecord | null {
       .filter((r) => r.relationType && Number.isSafeInteger(r.seriesId)),
     bayesianRating: numOrNull(d.bayesian_rating),
     ratingVotes: numOrNull(d.rating_votes),
+    animeStart: str((d.anime as J | undefined)?.start).trim() || null,
+    animeEnd: str((d.anime as J | undefined)?.end).trim() || null,
   };
 }
 

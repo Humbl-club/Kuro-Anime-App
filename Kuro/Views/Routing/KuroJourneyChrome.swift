@@ -192,6 +192,17 @@ struct KuroJourneyChromeKey: View {
     var material: ArtworkMaterial? = nil
     let action: () -> Void
 
+    @Environment(\.kuroJourney) private var journey
+
+    private var isCancelShortcut: Bool {
+        switch kind {
+        case .back:
+            return journey?.isPushed == true
+        case .close:
+            return journey?.isPushed != true
+        }
+    }
+
     /// The glyph colour: white on a material key, ink on the neutral key and on the bar (one at a time).
     nonisolated static func glyphIsWhite(progress: CGFloat, hasMaterial: Bool) -> Bool {
         hasMaterial && KuroCollapse.controlsOnArt(progress)
@@ -214,9 +225,22 @@ struct KuroJourneyChromeKey: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(KuroPressStyle())
+        .modifier(OptionalCancelShortcutModifier(enabled: isCancelShortcut))
         .accessibilityLabel(kind.label)
         // Stable handles for the navigation UI tests (KuroUITests/NavigationContractUITests).
         .accessibilityIdentifier(kind == .back ? "journey.back" : "journey.close")
+    }
+}
+
+private struct OptionalCancelShortcutModifier: ViewModifier {
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.keyboardShortcut(.cancelAction)
+        } else {
+            content
+        }
     }
 }
 

@@ -91,14 +91,13 @@ struct DiscoverIndexRow: View {
             if accessibility {
                 VStack(alignment: .leading, spacing: 8) {
                     openButton
-                    key.padding(.leading, 22 + 12)
+                    key.padding(.leading, 26 + 12)
                 }
                 .padding(.vertical, 10)
             } else {
-                HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .center, spacing: 10) {
                     openButton
-                    DiscoverAtLeastWidth(minimum: DiscoverIssueLayout.indexKeyWidth(compact: compact),
-                                         maximum: DiscoverIssueLayout.indexKeyMaxWidth(compact: compact)) { key }
+                    key
                 }
                 .frame(minHeight: DiscoverIssueLayout.indexRowMinHeight)
             }
@@ -108,8 +107,15 @@ struct DiscoverIndexRow: View {
         }
     }
 
+    /// The trailing quick add: the same corner badge as the cover tiles (2026-11-20), so the index
+    /// reads as a clean list instead of a column of boxed pills. At accessibility sizes the labelled pill.
+    @ViewBuilder
     private var key: some View {
-        DiscoverPlanKey(card: card, variant: .leaf, compact: true, trailingAligned: !dynamicTypeSize.isAccessibilitySize)
+        if dynamicTypeSize.isAccessibilitySize {
+            DiscoverPlanKey(card: card, variant: .leaf, compact: true, trailingAligned: false)
+        } else {
+            DiscoverPlanKey(card: card, variant: .leaf, compact: true, badge: true)
+        }
     }
 
     private var openButton: some View {
@@ -123,21 +129,24 @@ struct DiscoverIndexRow: View {
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 Text(DiscoverIssueCopy.indexNumber(position))
-                    .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 24))
+                    .font(.kuroEditorial(size: 16).italic())
                     .monospacedDigit()
-                    .foregroundStyle(Color.kuroMuted)
-                    .frame(width: 22, alignment: .leading)
-                HomeArtwork(url: card.media.imageURL.flatMap { URL(string: $0) }, maxPixelSize: 160,
-                            placeholder: HomeInk.posterFill)
-                    .frame(width: 40, height: 60)
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .frame(width: 26, alignment: .leading)
+                HomeArtwork(url: card.media.imageURL.flatMap { URL(string: $0) }, maxPixelSize: 180,
+                            placeholder: HomeInk.posterFill, seedHex: card.media.coverImageColor,
+                            usesMaterialWash: true)
+                    .frame(width: 46, height: 66)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5))
                     .overlay(alignment: .topLeading) {
                         if isNew { DiscoverNewTab().scaleEffect(0.85, anchor: .topLeading).padding(-4) }
                     }
                 VStack(alignment: .leading, spacing: 3) {
                     if kindKicker { DiscoverKindKicker(kind: card.media.kind) }
                     Text(KuroCardText.sanitizeTitleForCard(card.media.title))
-                        .font(.kuroCustom(15, weight: .medium, relativeTo: .subheadline, maxSize: 30))
+                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .subheadline, maxSize: 30))
                         .tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
@@ -147,7 +156,8 @@ struct DiscoverIndexRow: View {
                         // Two lines: a long status word ("Abgeschlossen", "Schaue ich · F. 5") never
                         // cuts the format and the episode count.
                         Text(meta)
-                            .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                            .font(.kuroCustom(11, relativeTo: .caption2, maxSize: 20))
+                            .monospacedDigit()
                             .foregroundStyle(Color.kuroMuted)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)

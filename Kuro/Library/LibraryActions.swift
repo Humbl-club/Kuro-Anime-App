@@ -384,6 +384,26 @@ final class LibraryActions: AccountScopedState {
         await library.remove(key)
     }
 
+    /// Bookmarks an anime-to-manga (or sequel) continuation point while recording honest start offset.
+    func bookmarkAdaptationHandoff(key: MediaKey, nextChapter: Int) async -> LibraryOutcome {
+        let completedPrior = max(0, nextChapter - 1)
+        return await library.apply(
+            LibraryEdit(
+                status: .set(.current),
+                progress: .set(completedPrior),
+                startedAtProgress: completedPrior > 0 ? .set(completedPrior) : .unchanged
+            ),
+            to: key,
+            createIfMissing: .current
+        )
+    }
+
+    /// Resolves an outbox progress conflict by reapplying local progress (`true`) or keeping server (`false`).
+    func resolveProgressConflict(reapply: Bool, expected: LibraryProgressConflict? = nil) async {
+        guard accountSession.current != nil else { return }
+        try? await library.resolveProgressConflict(reapply: reapply, expected: expected)
+    }
+
     /// Maps a store outcome onto the legacy channel: `true` when the write was applied; on failure
     /// `errorMessage` describes it. Nothing is published once `context` is no longer current.
     private func finishLibraryWrite(_ outcome: LibraryOutcome, context: AccountContext, failure: String) -> Bool {

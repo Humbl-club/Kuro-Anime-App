@@ -224,7 +224,7 @@ struct DetailSeasonTab: View {
             .padding(.horizontal, 8)
             .frame(minHeight: 31)
             .fixedSize(horizontal: false, vertical: true)
-            .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8))
+            .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous))
             .shadow(color: Color.white.opacity(Double(0x65) / 255), radius: 0, y: -1)
             .frame(minWidth: 44, minHeight: 44, alignment: .bottomLeading)
             .contentShape(Rectangle())
@@ -334,5 +334,51 @@ enum DetailReminderToast {
             return KuroToastState(kind: .error, title: DetailReminderRule.toast(change, german: german),
                                   subtitle: nil, actionTitle: nil, onAction: nil)
         }
+    }
+}
+
+// MARK: Official Trailer / PV Rule & Pill (Tier 1.2)
+
+nonisolated enum DetailTrailerRule {
+    static func officialTrailerURL(from links: [ExternalLink]) -> URL? {
+        for link in links where !link.isDisabled {
+            let trimmed = link.url.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let url = URL(string: trimmed),
+                  let scheme = url.scheme?.lowercased(), scheme == "https",
+                  let host = url.host?.lowercased() else { continue }
+            let siteLower = (link.site ?? "").lowercased()
+            let isYouTube = host == "youtu.be" || host == "youtube.com" || host == "www.youtube.com" || host == "m.youtube.com"
+            if isYouTube || siteLower.contains("trailer") {
+                return url
+            }
+        }
+        return nil
+    }
+}
+
+struct DetailTrailerPill: View {
+    let german: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            KuroAccessibility.impactHaptic(.light)
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "play.fill")
+                    .font(.detailSF(10, .semibold, relativeTo: .caption2))
+                Text(german ? "Trailer ansehen" : "Watch trailer")
+                    .font(.detailSF(11, .medium, relativeTo: .footnote))
+            }
+            .foregroundStyle(Color.kuroInk)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 36)
+            .background(Capsule(style: .continuous).fill(Color.kuroControlFill))
+            .overlay(Capsule(style: .continuous).strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(KuroPressStyle())
+        .accessibilityLabel(german ? "Offiziellen Trailer auf YouTube ansehen" : "Watch official trailer on YouTube")
     }
 }

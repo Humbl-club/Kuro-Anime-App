@@ -117,25 +117,30 @@ extension Color {
     // The approved prototype's component palette returns (owner, 2026-11-01). Statuses stay
     // monochrome; red stays reserved for destructive actions. Artwork colour comes from
     // `ArtworkMaterial`, never from a fixed per-title table.
-    /// The Home (Poster) canvas, also the Taste page: warm paper white `#fffef8`.
-    static let kuroCanvasHome = Color(hex: "FFFEF8")
-    /// The manga Home canvas `#f5f5f3` (poster manga Home, computed). The header and pager take it
-    /// while Home shows manga, crossfading over `KuroMotion.medium` on a medium switch.
-    static let kuroCanvasHomeManga = Color(hex: "F5F5F3")
-    /// The detail sheet paper `#f5f5f4` (`--paper`).
-    static let kuroPaper = Color(hex: "F5F5F4")
-    /// Secondary text, e.g. the header's page name (`--muted` #696c6b, about 5.3:1 on white).
-    static let kuroMuted = Color(hex: "696C6B")
-    /// Hairlines (`--line`: CSS `#272b2920`, i.e. #272b29 at alpha 0x20).
-    static let kuroLine = Color(hex: "272B29", opacity: Double(0x20) / 255)
-    /// Top of the raised light key face (`--key-face` light: #f1f4f2 → #d5ded8).
-    static let kuroKeyLightTop = Color(hex: "F1F4F2")
-    /// Bottom of the raised light key face.
-    static let kuroKeyLightBottom = Color(hex: "D5DED8")
-    /// Top of the raised dark key face where no artwork material exists (#444a47 → #2c322f).
-    static let kuroKeyDarkTop = Color(hex: "444A47")
-    /// Bottom of the raised dark key face.
-    static let kuroKeyDarkBottom = Color(hex: "2C322F")
+    // Gallery-white pass (owner, 2026-11-20): every page sits on the Collection's pure white. The
+    // warm cream (#fffef8), grey-beige (#f5f5f3) and sage key tints are retired for neutral greys.
+    /// The Home canvas, also Taste, Discover and Clubs: pure gallery white (as Collection).
+    static let kuroCanvasHome = Color(hex: "FFFFFF")
+    /// The manga canvas: the same pure white (the medium switch no longer tints the page).
+    static let kuroCanvasHomeManga = Color(hex: "FFFFFF")
+    /// The detail sheet paper: pure white, as Collection.
+    static let kuroPaper = Color(hex: "FFFFFF")
+    /// Secondary text, e.g. the header's page name (neutral #6b6b6b, about 5.3:1 on white).
+    static let kuroMuted = Color(hex: "6B6B6B")
+    /// Hairlines: neutral black at 11 %.
+    static let kuroLine = Color.black.opacity(0.11)
+    /// Quiet neutral control surface (search fields, light chips): #f4f4f5.
+    static let kuroControlFill = Color(hex: "F4F4F5")
+    /// The selected / saved control face: near-black #18181a.
+    static let kuroControlInk = Color(hex: "18181A")
+    /// Top of the light key face: a clean white with a faint neutral fall-off.
+    static let kuroKeyLightTop = Color(hex: "FFFFFF")
+    /// Bottom of the light key face.
+    static let kuroKeyLightBottom = Color(hex: "F1F1F3")
+    /// Top of the dark key face where no artwork material exists.
+    static let kuroKeyDarkTop = Color(hex: "2A2A2D")
+    /// Bottom of the dark key face.
+    static let kuroKeyDarkBottom = Color(hex: "161618")
 }
 
 // MARK: - Dynamic Type Scaling

@@ -1,4 +1,5 @@
 import Foundation
+import KuroCore
 
 #if canImport(Supabase)
 
@@ -35,6 +36,26 @@ struct ProviderLinkSnapshot: Equatable {
 
 extension ProviderAvailabilityStore {
 
+    /// Normalizes common catalog/Iso original-language strings (e.g. `"JP"`, `"japanese"`, `"ja"`)
+    /// to lowercase ISO-639-1 audio codes used by verified provider rows.
+    nonisolated static func normalizedAudioLanguageCode(_ raw: String?) -> String? {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+              !trimmed.isEmpty else { return nil }
+        switch trimmed {
+        case "ja", "jp", "jpn", "japanese": return "ja"
+        case "ko", "kr", "kor", "korean": return "ko"
+        case "zh", "cn", "zho", "chinese": return "zh"
+        case "en", "eng", "english": return "en"
+        case "de", "deu", "ger", "german": return "de"
+        default:
+            let prefix = trimmed.prefix(2)
+            if prefix.count == 2, prefix.allSatisfy({ $0.isASCII && $0.isLetter }) {
+                return String(prefix)
+            }
+            return nil
+        }
+    }
+
     /// The watch links of an anime detail page, keyed on the viewer's `progress`: the primary is the
     /// item matching the stream site of episode `progress + 1` (else the first item). Returns nil when
     /// the calling task was cancelled (a superseded `.task(id:)` run must not publish).
@@ -44,7 +65,25 @@ extension ProviderAvailabilityStore {
         progress: Int?,
         locale: String = Locale.current.identifier
     ) async -> ProviderLinkSnapshot? {
-        let preferredAudio = locale.lowercased().hasPrefix("de") ? "de" : "en"
+        let localeLang = locale.lowercased().hasPrefix("de") ? "de" : "en"
+        let explicitVariant: String? = accountSession.current.flatMap { context in
+            let key = "com.kuro.releaseNotifications.audioVariant.\(context.userId.lowercased())"
+            return userDefaults.string(forKey: key)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+        }
+        let preferredAudio: String
+        let preferredSubtitle: String?
+        if explicitVariant == "sub" {
+            preferredAudio = Self.normalizedAudioLanguageCode(originalLanguage) ?? "ja"
+            preferredSubtitle = localeLang
+        } else if explicitVariant == "dub" {
+            preferredAudio = localeLang
+            preferredSubtitle = nil
+        } else {
+            preferredAudio = localeLang
+            preferredSubtitle = localeLang
+        }
         let nextEpisode = max(1, (progress ?? 0) + 1)
         let episodeLink = await catalog.getStreamLinkForEpisode(animeId: animeId, episodeNumber: nextEpisode)
         let links = await fetchLegalWatchLinks(mediaId: animeId, locale: locale)
@@ -54,7 +93,7 @@ extension ProviderAvailabilityStore {
             links: links,
             ranking: animeProviderRanking,
             preferredAudio: preferredAudio,
-            preferredSubtitle: preferredAudio,
+            preferredSubtitle: preferredSubtitle,
             originalLanguage: originalLanguage,
             catalogSubtitle: KuroLocale.text("From the provider's catalogue. Availability may vary by region.", "Aus dem Katalog des Anbieters. Die Verfügbarkeit kann je nach Region abweichen."),
             unverifiedNote: KuroLocale.text("Availability, audio and subtitles may vary by region.", "Verfügbarkeit, Ton und Untertitel können je nach Region abweichen."),

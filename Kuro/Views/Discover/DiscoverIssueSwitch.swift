@@ -32,13 +32,14 @@ struct DiscoverIssueSwitch: View {
                     }
                 }
             } else {
-                ZStack {
+                // Non-overlapping HStack so each word owns strictly its own hit region and MANGA never
+                // swallows taps on ALL or ANIME.
+                HStack(spacing: 0) {
                     word(.all, alignment: .leading, stacked: false)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: 8)
                     word(.anime, alignment: .center, stacked: false)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    Spacer(minLength: 8)
                     word(.manga, alignment: .trailing, stacked: false)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
         }
@@ -80,7 +81,9 @@ struct DiscoverIssueSwitch: View {
                     .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil,
                                value: selected)
             }
+            .padding(.horizontal, stacked ? 0 : 2)
             .frame(minHeight: stacked ? 46 : DiscoverIssueLayout.switchMinHeight)
+            .fixedSize(horizontal: !stacked, vertical: false)
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())

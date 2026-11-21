@@ -30,7 +30,7 @@
 // Licensing D11: rows always carry source + source_url (credit). Nothing here is scheduled.
 
 export type ReleaseBasis = "confirmed" | "announced" | "estimated";
-export type ReleaseSource = "anilist" | "mangaupdates" | "kuro_estimate";
+export type ReleaseSource = "anilist" | "mangaupdates" | "kuro_estimate" | "publisher";
 
 export type ReleaseEventRow = {
   medium: "anime" | "manga";

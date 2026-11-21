@@ -57,7 +57,7 @@ struct ClubRoomCard: View {
     private var masthead: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         HStack(alignment: .center, spacing: compact ? 8 : 10) {
-            ClubSeal(ring: ClubSeal.ring(compact: compact))
+            ClubSeal(ring: ClubSeal.ring(compact: compact), crest: ClubCrestStore.crest(for: club.id))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(ClubsListCardRules.audienceLabel(sharingLevel: club.sharing_level, german: german))
@@ -128,6 +128,7 @@ struct ClubRoomCard: View {
             if !meta.isEmpty {
                 Text(meta)
                     .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                    .monospacedDigit()
                     .foregroundStyle(ClubRoomPalette.rowSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -149,6 +150,7 @@ struct ClubRoomCard: View {
                 if let ago {
                     Text(ago)
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                        .monospacedDigit()
                         .foregroundStyle(ClubRoomPalette.rowSecondary)
                 }
             }
@@ -186,7 +188,7 @@ struct ClubRoomSkeleton: View {
                             Capsule().fill(deep).frame(width: 150, height: 16)
                         }
                         Spacer(minLength: 0)
-                        RoundedRectangle(cornerRadius: 2).fill(block).frame(width: 30, height: 44)
+                        RoundedRectangle(cornerRadius: 2, style: .continuous).fill(block).frame(width: 30, height: 44)
                     }
                     HStack(spacing: 8) {
                         Circle().fill(block).frame(width: 22, height: 22)

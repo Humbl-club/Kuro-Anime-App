@@ -41,6 +41,12 @@ final class JourneyNavigator {
     /// The page on top.
     var top: JourneyPage { JourneyPolicy.top(root: root, path: path) }
 
+    /// Optional zoom-transition source identifier for root `.media` sheets.
+    var zoomSourceID: String? {
+        if case .media(let route) = root { return route.zoomSourceID }
+        return nil
+    }
+
     /// Opens a route inside the journey: a page is pushed (or popped to, N5), a tool is presented over
     /// the current page (N7). A page opened from inside the host's own tool closes the tool first.
     func open(_ route: AppRoute) {
@@ -239,6 +245,7 @@ struct JourneyHost: View {
                 }
         }
         .environment(\.kuroRoutes, navigator.routes)
+        .environment(\.kuroZoomNamespace, nil)
         // N8: every journey sheet shows its grabber (pages that set it themselves also say `.visible`).
         .presentationDragIndicator(.visible)
         .sheet(item: $navigator.tool) { route in

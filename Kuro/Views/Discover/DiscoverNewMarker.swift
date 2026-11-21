@@ -99,7 +99,7 @@ struct DiscoverNewTab: View {
             .foregroundStyle(HomeInk.tabInk)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
-            .background(HomeInk.tabFace, in: RoundedRectangle(cornerRadius: 3))
+            .background(HomeInk.tabFace, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
             .padding(6)
             .accessibilityHidden(true)
     }
@@ -112,7 +112,7 @@ struct DiscoverNewSince: View {
     var body: some View {
         HStack(spacing: 5) {
             Circle().fill(Color.kuroInk.opacity(0.7)).frame(width: 5, height: 5)
-            Text(text)
+            Text(text).monospacedDigit()
         }
         .accessibilityElement(children: .combine)
     }

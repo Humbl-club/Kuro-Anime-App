@@ -18,6 +18,7 @@ struct DiscoverQuickFindBar: View {
     let onFilter: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     private var german: Bool { KuroLocale.isGerman }
@@ -44,22 +45,28 @@ struct DiscoverQuickFindBar: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 22))
-                    .foregroundStyle(Color.kuroMuted)
+                    .font(.kuroCustom(14, weight: .semibold, relativeTo: .footnote, maxSize: 22))
+                    .foregroundStyle(Color.kuroInkSecondary)
                     .accessibilityHidden(true)
                 Text(DiscoverIssueCopy.quickSearchPlaceholder(german: german))
-                    .font(.kuroCustom(13, weight: .regular, relativeTo: .footnote, maxSize: 24))
-                    .foregroundStyle(Color.kuroMuted)
+                    .font(.kuroCustom(15, weight: .regular, relativeTo: .body, maxSize: 26))
+                    .foregroundStyle(Color.kuroInkSecondary)
                     .lineLimit(1)
                 Spacer(minLength: 4)
+                if horizontalSizeClass == .regular && !dynamicTypeSize.isAccessibilitySize {
+                    Text("⌘K")
+                        .font(.kuroCustom(11, weight: .medium, relativeTo: .caption2, maxSize: 16))
+                        .foregroundStyle(Color.kuroMuted)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background(Color.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Color.kuroKeyRim, lineWidth: 0.8))
+                        .accessibilityHidden(true)
+                }
             }
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .background(Color.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(HomeInk.quietBorder, lineWidth: 1)
-            )
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+            .background(Color.kuroControlFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())
@@ -74,23 +81,23 @@ struct DiscoverQuickFindBar: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "slider.horizontal.3")
-                    .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 22))
-                    .foregroundStyle(Color.kuroInk)
+                    .font(.kuroCustom(13, weight: .semibold, relativeTo: .footnote, maxSize: 22))
+                    .foregroundStyle(Color.kuroControlInk)
                     .accessibilityHidden(true)
                 Text(DiscoverIssueCopy.quickFilterLabel(german: german))
-                    .font(.kuroCustom(12.5, weight: .medium, relativeTo: .footnote, maxSize: 24))
-                    .foregroundStyle(Color.kuroInk)
+                    .font(.kuroCustom(14, weight: .semibold, relativeTo: .footnote, maxSize: 24))
+                    .foregroundStyle(Color.kuroControlInk)
                     .lineLimit(1)
-                    .fixedSize(horizontal: !fullWidth, vertical: false)
-                if fullWidth { Spacer(minLength: 4) }
+                if fullWidth {
+                    Spacer(minLength: 4)
+                }
             }
-            .padding(.horizontal, 12)
-            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 44, alignment: .leading)
-            .background(Color.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(HomeInk.quietBorder, lineWidth: 1)
-            )
+            .padding(.horizontal, 14)
+            .frame(height: 46)
+            .frame(maxWidth: fullWidth ? .infinity : nil, alignment: .leading)
+            .background(Color.kuroControlFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.kuroKeyRim, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())
@@ -216,6 +223,7 @@ struct DiscoverContentsLine: View {
                 Spacer(minLength: 4)
                 Text(DiscoverContents.trailing(entry, german: german))
                     .font(.kuroCustom(10, weight: entry.newCount > 0 ? .medium : .regular, relativeTo: .caption2, maxSize: 20))
+                    .monospacedDigit()
                     .foregroundStyle(entry.newCount > 0 ? Color.kuroInk : Color.kuroMuted)
                     .lineLimit(1)
                     .fixedSize()

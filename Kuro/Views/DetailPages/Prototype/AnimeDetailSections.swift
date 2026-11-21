@@ -50,6 +50,10 @@ struct AnimeDetailContent {
     var similar: [SimilarTitle] = []
     /// Renders: the bell's state without the release store (nil: the store's answer).
     var reminderOn: Bool? = nil
+    /// Official YouTube / trailer link loaded alongside watch links.
+    var trailerURL: URL? = nil
+    /// Story tags split into spoiler-free and spoiler-gated themes (max 8 each).
+    var tagSplit: CatalogStore.TitleTagSplit = .empty
 }
 
 /// A credit row of "Behind the frames." (only rows with a real name exist).
@@ -291,6 +295,13 @@ struct AnimeDetailPage: View {
                             .kuroReadableWidth()
                     }
                     VStack(alignment: .leading, spacing: 0) {
+                        if let trailerURL = content.trailerURL {
+                            DetailTrailerPill(german: german) {
+                                outboundLinks.recordOutboundLink(mediaType: "ANIME", mediaId: anime.id, linkKind: "trailer", provider: "YouTube")
+                                openURL(trailerURL)
+                            }
+                            .padding(.bottom, 16)
+                        }
                         ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
                                 .detailFoldAnchor(section, above: $foldsAbove)
@@ -409,13 +420,16 @@ struct AnimeDetailPage: View {
                 seasonContent(showsProgress: true, showsUnits: false, origin: origin, proxy: proxy)
             }
         case .story:
-            DetailStorySection(eyebrow: seasonNumber.map { DetailPageCopy.seasonEyebrow($0, german: german) },
-                               hook: hook,
-                               synopsis: anime.hasMeaningfulSynopsis ? anime.displayDescription : nil,
-                               aboutTitle: DetailPageCopy.aboutTitle(isSeason: seasonNumber != nil, german: german),
-                               expectation: (anime.genreList ?? []).prefix(3).joined(separator: " · ").detailNonEmpty,
-                               expanded: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.story),
-                               onCollapse: { foldCollapsed(.story, proxy: proxy) })
+            VStack(alignment: .leading, spacing: 0) {
+                DetailStorySection(eyebrow: seasonNumber.map { DetailPageCopy.seasonEyebrow($0, german: german) },
+                                   hook: hook,
+                                   synopsis: anime.hasMeaningfulSynopsis ? anime.displayDescription : nil,
+                                   aboutTitle: DetailPageCopy.aboutTitle(isSeason: seasonNumber != nil, german: german),
+                                   expectation: (anime.genreList ?? []).prefix(3).joined(separator: " · ").detailNonEmpty,
+                                   expanded: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.story),
+                                   onCollapse: { foldCollapsed(.story, proxy: proxy) })
+                DetailThemesStrip(split: content.tagSplit, bookish: false)
+            }
         case .clubPresence:
             DetailClubPresence(names: DetailBetweenUs.rosterNames(roster), count: clubPeople) {
                 // Reduce Motion: the jump is instant (prototype §6).
@@ -433,8 +447,14 @@ struct AnimeDetailPage: View {
             seasonContent(showsProgress: sections.contains(.progress), showsUnits: true, origin: origin, proxy: proxy)
         case .source:
             if let source = content.source {
+                let sourceKey = DetailNavigation.ladderKey(source)
+                let mangaEntry = sourceKey.flatMap { $0.kind == .manga ? library.entry(for: $0) : nil }
                 DetailSourceCard(item: source, coverage: content.bundle?.coverage, seasonNumber: seasonNumber,
                                  showsCoverage: folds.binding(page: DetailFold.page(anime.libraryKey), section: DetailFold.coverage),
+                                 currentMangaProgress: mangaEntry?.progress,
+                                 onBookmarkChapter: sourceKey?.kind == .manga ? { nextChapter in
+                                     bookmarkSourceChapter(mediaId: source.mediaId, nextChapter: nextChapter, origin: origin)
+                                 } : nil,
                                  onCollapse: { foldCollapsed(.source, proxy: proxy) }) {
                     if let page = DetailNavigation.ladderPage(source) { routes.openPage(page) }
                 }
@@ -686,6 +706,31 @@ struct AnimeDetailPage: View {
         DetailShare.present(url: url, subject: anime.displayTitle)
     }
 
+    private func bookmarkSourceChapter(mediaId: Int, nextChapter: Int, origin: AccountActionScope.Ticket?) {
+        let targetKey = MediaKey(kind: .manga, id: mediaId)
+        guard GuestGate.allows(.plan(targetKey, title: content.source?.title ?? anime.title), guest: guest, routes: routes) else { return }
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.bookmarkAdaptationHandoff(key: targetKey, nextChapter: nextChapter)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            if outcome.change != nil {
+                KuroAccessibility.successHaptic()
+                showToast(KuroToastState(
+                    kind: .success,
+                    title: KuroLocale.text("Continue from Ch. \(nextChapter).", "Weiter bei Kap. \(nextChapter)."),
+                    subtitle: nil, actionTitle: nil, onAction: nil
+                ))
+            } else {
+                KuroAccessibility.errorHaptic()
+                showToast(KuroToastState(
+                    kind: .error,
+                    title: KuroLocale.text("Not saved. Try again.", "Nicht gespeichert. Versuch es erneut."),
+                    subtitle: nil, actionTitle: nil, onAction: nil
+                ))
+            }
+        }
+    }
+
     @MainActor
     private func showToast(_ next: KuroToastState) {
         toastTask?.cancel()
@@ -750,12 +795,16 @@ struct AnimeDetailPage: View {
         defer { pending.remove(.credits) }
         let generation = UUID()
         creditsGeneration = generation
+        async let storyTags = catalog.fetchStoryTagSplit(kind: .anime, id: anime.id)
         guard flags.isCreditsCastV1Enabled else {
             // The flag turned off: the sections go with it.
             content.studios = []
             content.staff = []
             content.characters = []
             content.cast = []
+            let loadedTags = await storyTags
+            guard !Task.isCancelled, creditsGeneration == generation else { return }
+            content.tagSplit = loadedTags
             return
         }
         async let studios = catalog.fetchStudiosForAnime(animeId: anime.id)
@@ -763,8 +812,10 @@ struct AnimeDetailPage: View {
         // The cast with Japanese voice actors (anime_cast_v1 when live; until then the characters
         // without voices, from the same table the old rail read).
         async let cast = catalog.fetchCast(forAnime: anime.id)
-        let (loadedStudios, loadedStaff, loadedCast) = await (studios, staff, cast)
-        guard !Task.isCancelled, creditsGeneration == generation, flags.isCreditsCastV1Enabled else { return }
+        let (loadedStudios, loadedStaff, loadedCast, loadedTags) = await (studios, staff, cast, storyTags)
+        guard !Task.isCancelled, creditsGeneration == generation else { return }
+        content.tagSplit = loadedTags
+        guard flags.isCreditsCastV1Enabled else { return }
         content.studios = loadedStudios
         content.staff = loadedStaff
         content.cast = loadedCast
@@ -805,11 +856,14 @@ struct AnimeDetailPage: View {
 
     private func loadWatchLinks() async {
         guard preview == nil else { return }
-        let snapshot = await availability.resolveWatchLinks(animeId: anime.id,
-                                                            originalLanguage: anime.inferredOriginalLanguageCode,
-                                                            progress: entry?.progress)
-        guard !Task.isCancelled, let snapshot else { return }
-        watchLinks = snapshot
+        async let linksTask = availability.resolveWatchLinks(animeId: anime.id,
+                                                             originalLanguage: anime.inferredOriginalLanguageCode,
+                                                             progress: entry?.progress)
+        async let externalTask = catalog.fetchExternalLinks(mediaType: "ANIME", mediaId: anime.id)
+        let (snapshot, externalLinks) = await (linksTask, externalTask)
+        guard !Task.isCancelled else { return }
+        if let snapshot { watchLinks = snapshot }
+        content.trailerURL = DetailTrailerRule.officialTrailerURL(from: externalLinks)
     }
 
     nonisolated static func webURL(_ raw: String) -> URL? {
@@ -971,42 +1025,59 @@ struct DetailSeasonsSection: View {
     let material: ArtworkMaterial
     let onOpen: (Int) -> Void
 
-    private var all: [LadderSeason] { numbered + extras }
+    @State private var showsExtras = false
+
+    private var primaryRow: [LadderSeason] { numbered.isEmpty ? extras : numbered }
+    private var collapsibleExtras: [LadderSeason] { numbered.isEmpty ? [] : extras }
     private var seasonCount: Int { numbered.filter { $0.number != nil }.count }
 
     var body: some View {
+        let german = KuroLocale.isGerman
         VStack(alignment: .leading, spacing: 0) {
             DetailSectionHeading(title: KuroLocale.text("Seasons", "Staffeln"), size: 18, tracking: -0.7,
-                                 note: showsNumbers ? DetailPageCopy.seasonsCount(seasonCount, german: KuroLocale.isGerman) : nil)
+                                 note: showsNumbers ? DetailPageCopy.seasonsCount(seasonCount, german: german) : nil)
                 .padding(.bottom, 12)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 8) {
-                    ForEach(all) { season in
-                        VStack(spacing: 0) {
-                            tile(season)
-                                .containerRelativeFrame(.horizontal, count: all.count > 2 ? 5 : 2, span: all.count > 2 ? 2 : 1, spacing: 8)
-                            // The selection thread: a stem from the current tile down to its dot.
-                            ZStack(alignment: .bottom) {
-                                if season.isCurrent {
-                                    Rectangle().fill(DetailInk.threadStem).frame(width: 1, height: 18)
-                                    Circle().fill(material.base.color).frame(width: 6, height: 6)
-                                        .overlay(Circle().strokeBorder(Color(hex: "F1F3EF"), lineWidth: 3).frame(width: 12, height: 12))
-                                        .offset(y: 3)
-                                }
-                            }
-                            .frame(height: 18)
-                        }
-                    }
-                }
-                .padding(.top, 2)
-                .padding(.horizontal, 1)
-            }
-            .scrollClipDisabled()
-            // The dot and its halo sit over the rule (the rule is drawn first).
-            .zIndex(1)
+            seasonRow(primaryRow)
             Rectangle().fill(DetailInk.thread).frame(height: 1)
+            if !collapsibleExtras.isEmpty {
+                KuroFoldButton(
+                    isExpanded: $showsExtras,
+                    expandLabel: german ? "OVAs & Nebengeschichten (\(collapsibleExtras.count))" : "OVAs & side stories (\(collapsibleExtras.count))",
+                    collapseLabel: german ? "OVAs ausblenden" : "Hide OVAs & side stories"
+                )
+                if showsExtras {
+                    seasonRow(collapsibleExtras)
+                        .padding(.bottom, 8)
+                }
+            }
         }
         .padding(.bottom, 0)
+    }
+
+    private func seasonRow(_ entries: [LadderSeason]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 8) {
+                ForEach(entries) { season in
+                    VStack(spacing: 0) {
+                        tile(season)
+                            .containerRelativeFrame(.horizontal, count: entries.count > 2 ? 5 : 2, span: entries.count > 2 ? 2 : 1, spacing: 8)
+                        ZStack(alignment: .bottom) {
+                            if season.isCurrent {
+                                Rectangle().fill(DetailInk.threadStem).frame(width: 1, height: 18)
+                                Circle().fill(material.base.color).frame(width: 6, height: 6)
+                                    .overlay(Circle().strokeBorder(Color(hex: "F1F3EF"), lineWidth: 3).frame(width: 12, height: 12))
+                                    .offset(y: 3)
+                            }
+                        }
+                        .frame(height: 18)
+                    }
+                }
+            }
+            .padding(.top, 2)
+            .padding(.horizontal, 1)
+        }
+        .scrollClipDisabled()
+        .zIndex(1)
     }
 
     /// Numbers only for a proven chain with more than one numbered season: a lone TV entry beside a
@@ -1264,6 +1335,8 @@ struct DetailSourceCard: View {
     let seasonNumber: Int?
     /// "Where this season meets the manga" open or closed (F3, `DetailFold.coverage`).
     @Binding var showsCoverage: Bool
+    var currentMangaProgress: Int? = nil
+    var onBookmarkChapter: ((Int) -> Void)? = nil
     /// F2: the page scrolls the card back into view after the guide folds, when needed.
     var onCollapse: () -> Void = {}
     let onOpen: () -> Void
@@ -1271,6 +1344,26 @@ struct DetailSourceCard: View {
     private var mapped: SeriesDetailBundle.Coverage? {
         guard let coverage, coverage.mappingState == "exact" || coverage.mappingState == "partial" else { return nil }
         return coverage
+    }
+
+    static func parsedChapterNumber(from label: String?) -> Int? {
+        guard let label else { return nil }
+        let pattern = #"(?:Ch(?:ap(?:ter)?)?\.?|Kap(?:itel)?\.?)\s*(\d+)"#
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+            let range = NSRange(label.startIndex..<label.endIndex, in: label)
+            if let match = regex.firstMatch(in: label, range: range),
+               let capRange = Range(match.range(at: 1), in: label),
+               let value = Int(label[capRange]), value > 0 {
+                return value
+            }
+        }
+        return nil
+    }
+
+    private var continueChapter: Int? {
+        if let next = Self.parsedChapterNumber(from: mapped?.readNext) { return next }
+        if let ends = Self.parsedChapterNumber(from: mapped?.endsAt) { return ends + 1 }
+        return nil
     }
 
     var body: some View {
@@ -1343,6 +1436,29 @@ struct DetailSourceCard: View {
                             Text(KuroLocale.text("Some chapters differ from the anime.", "Einige Kapitel weichen vom Anime ab."))
                                 .font(.detailSF(10, relativeTo: .footnote))
                                 .foregroundStyle(DetailInk.author)
+                        }
+                        if let chapter = continueChapter,
+                           let onBookmarkChapter,
+                           (currentMangaProgress ?? 0) < max(0, chapter - 1) {
+                            Button {
+                                KuroAccessibility.impactHaptic(.light)
+                                onBookmarkChapter(chapter)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "bookmark")
+                                        .font(.detailSF(11, .medium, relativeTo: .footnote))
+                                    Text(german ? "Lesezeichen ab Kap. \(chapter)" : "Bookmark at Ch. \(chapter)")
+                                        .font(.detailSF(11, .medium, relativeTo: .footnote))
+                                }
+                                .foregroundStyle(Color.kuroInk)
+                                .padding(.horizontal, 12)
+                                .frame(minHeight: 36)
+                                .background(Capsule(style: .continuous).fill(Color.kuroControlFill))
+                                .overlay(Capsule(style: .continuous).strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                                .contentShape(Capsule())
+                            }
+                            .buttonStyle(KuroPressStyle())
+                            .padding(.top, 4)
                         }
                     }
                     .padding(.horizontal, 4)
@@ -1466,6 +1582,76 @@ struct DetailCreditsList: View {
             if let footer { footer }
         }
         .padding(.top, 30)
+    }
+}
+
+// MARK: - Story Themes Strip (Spoiler-Safe)
+
+struct DetailThemesStrip: View {
+    let split: CatalogStore.TitleTagSplit
+    var bookish: Bool = false
+    @State private var showSpoilers = false
+
+    var body: some View {
+        if !split.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                if !split.safe.isEmpty {
+                    FlowLayout(spacing: 6) {
+                        ForEach(split.safe, id: \.self) { tag in
+                            tagChip(tag, spoiler: false)
+                        }
+                    }
+                }
+                if !split.spoilers.isEmpty {
+                    let count = split.spoilers.count
+                    let closedTitle = KuroLocale.text(
+                        "Show story tags (\(count))",
+                        "Handlungs-Tags anzeigen (\(count))"
+                    )
+                    let openTitle = KuroLocale.text(
+                        "Hide story tags",
+                        "Handlungs-Tags ausblenden"
+                    )
+                    KuroFoldButton(isExpanded: $showSpoilers, expandLabel: closedTitle, collapseLabel: openTitle) { title, open in
+                        HStack(spacing: 6) {
+                            Image(systemName: open ? "eye.slash" : "eye")
+                                .font(.detailSF(10, relativeTo: .footnote))
+                            Text(title)
+                                .font(.detailSF(10, .medium, relativeTo: .footnote))
+                            Spacer(minLength: 0)
+                        }
+                        .foregroundStyle(DetailInk.disclosure)
+                        .frame(minHeight: 44)
+                    }
+                    if showSpoilers {
+                        FlowLayout(spacing: 6) {
+                            ForEach(split.spoilers, id: \.self) { tag in
+                                tagChip(tag, spoiler: true)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
+                }
+            }
+            .padding(.top, 6)
+            .padding(.bottom, bookish ? 12 : 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func tagChip(_ name: String, spoiler: Bool) -> some View {
+        Text(name)
+            .font(.detailSF(10, spoiler ? .regular : .medium, relativeTo: .footnote))
+            .foregroundStyle(spoiler ? DetailInk.disclosure : Color.kuroInk)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(Capsule(style: .continuous).fill(spoiler ? Color.clear : Color.kuroControlFill))
+            .overlay(
+                Capsule(style: .continuous).strokeBorder(
+                    Color.kuroKeyRim,
+                    style: spoiler ? StrokeStyle(lineWidth: 1, dash: [3, 2]) : StrokeStyle(lineWidth: 1)
+                )
+            )
     }
 }
 

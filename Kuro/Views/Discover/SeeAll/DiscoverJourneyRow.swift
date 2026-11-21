@@ -78,9 +78,10 @@ struct DiscoverJourneyRow: View {
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 HomeArtwork(url: card.media.imageURL.flatMap { URL(string: $0) }, maxPixelSize: 160,
-                            placeholder: HomeInk.posterFill)
+                            placeholder: HomeInk.posterFill, seedHex: card.media.coverImageColor,
+                            usesMaterialWash: true)
                     .frame(width: 40, height: 60)
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     if showsKind {
                         Text(DiscoverMenuCopy.kindKicker(card.media.kind))
@@ -98,6 +99,7 @@ struct DiscoverJourneyRow: View {
                     if let meta {
                         Text(meta)
                             .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                            .monospacedDigit()
                             .foregroundStyle(Color.kuroMuted)
                             .lineLimit(1)
                     }

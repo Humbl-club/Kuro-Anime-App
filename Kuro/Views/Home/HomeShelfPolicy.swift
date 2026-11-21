@@ -88,6 +88,20 @@ enum HomeShelfPolicy {
         return result
     }
 
+    /// Separates active titles from titles whose catalogue status is `HIATUS` so long-paused serials stay calm.
+    static func splitHiatusCards(_ cards: [HomeCard]) -> (active: [HomeCard], onHiatus: [HomeCard]) {
+        var active: [HomeCard] = []
+        var onHiatus: [HomeCard] = []
+        for card in cards {
+            if card.catalogueStatus?.uppercased() == "HIATUS" {
+                onHiatus.append(card)
+            } else {
+                active.append(card)
+            }
+        }
+        return (active, onHiatus)
+    }
+
     /// Paused / on hold.
     static func isPaused(listType: String) -> Bool {
         switch listType.uppercased() {
@@ -130,6 +144,22 @@ enum HomeShelfPolicy {
     static func scenes(_ cards: [HomeCard]) -> (scenes: [HomeCard], alsoWatching: [HomeCard]) {
         let active = cards.filter { isInProgress(listType: $0.listType) }
         return (Array(active.prefix(sceneCount)), Array(active.dropFirst(sceneCount)))
+    }
+
+    /// Actionable-first hero split for HomeView: floats titles with unwatched units ahead of
+    /// caught-up titles, and promotes 2 hero scenes only when at least 2 active titles have an
+    /// unwatched unit ready (otherwise 1 hero leads so caught-up secondaries sit in the 2-up grid).
+    static func prioritizedScenes(
+        _ cards: [HomeCard],
+        isCaughtUp: (HomeCard) -> Bool
+    ) -> (scenes: [HomeCard], alsoWatching: [HomeCard]) {
+        let active = cards.filter { isInProgress(listType: $0.listType) }
+        guard !active.isEmpty else { return ([], []) }
+        let actionable = active.filter { !isCaughtUp($0) }
+        let caughtUp = active.filter { isCaughtUp($0) }
+        let ordered = actionable + caughtUp
+        let heroCap = actionable.count >= sceneCount ? sceneCount : 1
+        return (Array(ordered.prefix(heroCap)), Array(ordered.dropFirst(heroCap)))
     }
 
     /// Splits a Planned-only shelf across up to `foldLimit` items (`sceneCount` lead scene cards +

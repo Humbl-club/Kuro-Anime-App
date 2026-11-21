@@ -513,6 +513,7 @@ struct CreateClubSheet: View {
     @State private var name = ""
     @State private var description = ""
     @State private var sharingLevel = ClubFormRules.defaultSharingLevel
+    @State private var selectedCrest: ClubCrest = .knot
     @State private var isSubmitting = false
     @State private var errorText: String? = nil
     @State private var confirmDiscard = false
@@ -547,7 +548,11 @@ struct CreateClubSheet: View {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                     ClubSheetTitle(kicker: KuroLocale.text("New club", "Neuer Club"),
                                    title: KuroLocale.text("Start a club.", "Gründe einen Club."),
-                                   showsSeal: true)
+                                   showsSeal: false)
+
+                    livePreviewCard(german: german)
+
+                    crestPicker(german: german)
 
                     ClubFormField(label: KuroLocale.text("Name", "Name"),
                                   prompt: KuroLocale.text("Friday anime night", "Anime-Abend am Freitag"),
@@ -570,7 +575,7 @@ struct CreateClubSheet: View {
                             .foregroundStyle(Color.kuroInkSecondary)
                             .accessibilityAddTraits(.isHeader)
 
-                        VStack(spacing: 0) {
+                        VStack(spacing: 8) {
                             ForEach(sharingLevels, id: \.self) { level in
                                 ClubChoiceRow(
                                     title: ClubsListCardRules.audienceLabel(sharingLevel: level, german: german),
@@ -579,9 +584,6 @@ struct CreateClubSheet: View {
                                 ) {
                                     KuroAccessibility.selectionHaptic()
                                     sharingLevel = level
-                                }
-                                if level != sharingLevels.last {
-                                    Rectangle().fill(Color.kuroHairline).frame(height: 1)
                                 }
                             }
                         }
@@ -620,6 +622,98 @@ struct CreateClubSheet: View {
         .onDisappear { actionScope.deactivate(); isSubmitting = false }
     }
 
+    private func livePreviewCard(german: Bool) -> some View {
+        let previewTitle = trimmedName.isEmpty
+            ? KuroLocale.text("Friday anime night", "Anime-Abend am Freitag")
+            : trimmedName
+        let audience = ClubsListCardRules.audienceLabel(sharingLevel: sharingLevel, german: german)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                ClubSeal(ring: ClubSeal.compactRing, crest: selectedCrest)
+                Text(KuroLocale.text("YOUR PRIVATE CLUB", "DEIN PRIVATER CLUB"))
+                    .font(.kuroCustom(9, weight: .medium, relativeTo: .caption2, maxSize: 16))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.white.opacity(0.65))
+                Spacer(minLength: 8)
+            }
+            Text(previewTitle)
+                .font(.kuroEditorial(size: 22))
+                .foregroundStyle(Color.white.opacity(trimmedName.isEmpty ? 0.55 : 0.95))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            if !trimmedDescription.isEmpty {
+                Text(trimmedDescription)
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.white.opacity(0.72))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(spacing: 8) {
+                Text(audience)
+                Text("·")
+                Text(KuroLocale.text("Up to 20 members", "Bis zu 20 Mitglieder"))
+            }
+            .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 20))
+            .foregroundStyle(Color.white.opacity(0.85))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.white.opacity(0.12), in: Capsule(style: .continuous))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.kuroRoom, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(KuroLocale.text("Club preview: \(previewTitle), \(audience)",
+                                            "Club-Vorschau: \(previewTitle), \(audience)"))
+    }
+
+    private func crestPicker(german: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(KuroLocale.text("Club emblem", "Club-Emblem"))
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .accessibilityAddTraits(.isHeader)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(ClubCrest.allCases) { crest in
+                        let selected = selectedCrest == crest
+                        Button {
+                            KuroAccessibility.selectionHaptic()
+                            selectedCrest = crest
+                        } label: {
+                            VStack(spacing: 5) {
+                                ZStack {
+                                    Circle()
+                                        .fill(selected ? Color.kuroControlInk : Color.kuroControlFill)
+                                        .frame(width: 44, height: 44)
+                                    if let symbol = crest.symbolName {
+                                        Image(systemName: symbol)
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundStyle(selected ? Color.white : Color.kuroControlInk)
+                                    } else {
+                                        ClubKnot()
+                                            .stroke(selected ? Color.white : Color.kuroControlInk, lineWidth: 1.0)
+                                            .frame(width: 22, height: 22)
+                                            .rotationEffect(.degrees(-12))
+                                    }
+                                }
+                                Text(crest.label(german: german))
+                                    .font(.kuroCustom(11, weight: selected ? .semibold : .regular, relativeTo: .caption2, maxSize: 18))
+                                    .foregroundStyle(selected ? Color.kuroInk : Color.kuroInkSecondary)
+                            }
+                            .frame(minWidth: 52, minHeight: 60)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(KuroPressStyle(pressedScale: 0.95))
+                        .accessibilityLabel(crest.label(german: german))
+                        .accessibilityAddTraits(selected ? [.isSelected] : [])
+                    }
+                }
+            }
+        }
+    }
+
     /// Cancel (N7): a clean form closes; unsaved input asks "Discard changes?" first.
     private func cancel() {
         switch KuroDiscardGuard.cancelStep(isDirty: isDirty) {
@@ -634,6 +728,7 @@ struct CreateClubSheet: View {
         let trimmed = trimmedName
         let desc = trimmedDescription
         let sharing = sharingLevel
+        let chosenCrest = selectedCrest
         isSubmitting = true
         errorText = nil
         focus = nil
@@ -646,6 +741,7 @@ struct CreateClubSheet: View {
                     sharingLevel: sharing
                 )
                 guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                ClubCrestStore.setCrest(chosenCrest, for: resp.club_id)
                 KuroAccessibility.successHaptic()
                 onCreated(resp)
                 dismiss()

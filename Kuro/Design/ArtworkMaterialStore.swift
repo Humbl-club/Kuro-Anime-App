@@ -31,6 +31,7 @@ import CoreGraphics
 import CryptoKit
 import Foundation
 import Observation
+import SwiftUI
 import UIKit
 
 @MainActor
@@ -107,6 +108,18 @@ final class ArtworkMaterialStore {
         }
         if !inFlight.contains(url), canRetry(url) { start(url) }
         return ArtworkMaterial.fromHex(seedHex)
+    }
+
+    /// Passive placeholder fill for thumbnails and poster wells: returns a soft derived/seeded wash
+    /// without starting new background derivations for offscreen list items.
+    func placeholderFill(for url: URL?, seedHex: String?, fallback: Color) -> Color {
+        if let url, let material = derived[url], material.method != Self.noHueMethod {
+            return material.wash.color
+        }
+        if let seedHex, let rgb = KuroRGB(hex: seedHex) {
+            return ArtworkMaterial(base: ArtworkMaterial.clamped(rgb), method: "seed-hex").wash.color
+        }
+        return fallback
     }
 
     /// True when `url` never failed, or failed at least `failureRetryInterval` ago.

@@ -2,12 +2,14 @@
 # run_local_db_tests.sh -- disposable, credential-free local database verification.
 #
 #   scripts/db/run_local_db_tests.sh [--only <substring[,substring...]>] [--report-dir <dir>] [--no-tests]
-#                                    [--exclude-pending] [--exclude-migration <basename>]...
+#                                    [--exclude-pending] [--exclude-migration <basename>]... [--fast]
 #
 #   --exclude-pending     build the fixture WITHOUT the prepared-not-deployed migrations
 #                         listed in supabase/tests/pending_migrations.txt (= deployed-chain
 #                         state; tests written for the fixed behavior then FAIL on purpose)
 #   --exclude-migration   skip one migration file by basename (repeatable)
+#   --fast                skip strict/baseline-post diagnostic replays and reuse a local
+#                         SHA-256-keyed cluster cache in /tmp/kuro-db-fastcache-* for fast RLS runs
 #
 # What it does
 #   1. refuses to run if ANY environment variable points at anything but a local
@@ -58,7 +60,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
 tests_dir="$repo/supabase/tests"
 
-only=""; report_dir="${KURO_DB_REPORT_DIR:-}"; run_tests=1; exclude_pending=0; exclude=""; qualification_sql=""; qualification_report=""
+only=""; report_dir="${KURO_DB_REPORT_DIR:-}"; run_tests=1; exclude_pending=0; exclude=""; qualification_sql=""; qualification_report=""; fast_mode=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --only) only="${2:-}"; shift 2 ;;
@@ -68,7 +70,8 @@ while [ $# -gt 0 ]; do
     --qualification-report) qualification_report="${2:-}"; shift 2 ;;
     --exclude-pending) exclude_pending=1; shift ;;
     --exclude-migration) exclude="$exclude ${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,57p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --fast) fast_mode=1; shift ;;
+    -h|--help) sed -n '2,58p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 64 ;;
   esac
 done
@@ -148,6 +151,23 @@ unset PGHOSTADDR PGSERVICE PGSERVICEFILE PGPASSWORD PGPASSFILE PGOPTIONS PGSSLMO
 export PGHOST="$tmp" PGPORT="$port" PGUSER=postgres PGDATABASE=postgres PGCONNECT_TIMEOUT=5 PSQLRC=/dev/null
 kuro_db_guard_env || exit 2   # re-check the pinned environment
 
+reap_orphan_sysv_segments() {
+  command -v ipcs >/dev/null 2>&1 || return 0
+  command -v ipcrm >/dev/null 2>&1 || return 0
+  local me
+  me="$(id -un 2>/dev/null || true)"
+  [ -n "$me" ] || return 0
+  ipcs -ma 2>/dev/null | awk -v owner="$me" '$1 == "m" && $5 == owner && $9 == "0" && $10 == "56" { print $2 }' | while read -r shmid; do
+    [ -n "$shmid" ] && ipcrm -m "$shmid" >/dev/null 2>&1 || true
+  done
+}
+
+start_pg_ctl() {
+  pg_ctl -D "$tmp/data" -l "$tmp/postgres.log" -w \
+    -o "-c listen_addresses='' -c unix_socket_directories='$tmp' -c port=$port -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=30 -c log_min_messages=warning" \
+    start >/dev/null 2>&1
+}
+
 start_cluster() {   # one initdb + start attempt; 0 on success
   rm -rf "$tmp/data"
   locale_arg="--locale=C.UTF-8"
@@ -158,21 +178,68 @@ start_cluster() {   # one initdb + start attempt; 0 on success
   initdb -D "$tmp/data" -U postgres -E UTF8 "$locale_arg" --auth-local=trust --auth-host=reject "${fixture_memory[@]}" >"$tmp/initdb.log" 2>&1 \
     || { rm -rf "$tmp/data"; locale_arg="--locale=C"; initdb -D "$tmp/data" -U postgres -E UTF8 "$locale_arg" --auth-local=trust --auth-host=reject "${fixture_memory[@]}" >"$tmp/initdb.log" 2>&1; } \
     || return 1
-  pg_ctl -D "$tmp/data" -l "$tmp/postgres.log" -w \
-    -o "-c listen_addresses='' -c unix_socket_directories='$tmp' -c port=$port -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=30 -c log_min_messages=warning" \
-    start >/dev/null 2>&1
+  start_pg_ctl
 }
-# Bounded retry ONLY for System V shared-memory exhaustion (macOS kern.sysv.shmmni is 32
-# segments host-wide and every running PostgreSQL holds one; other projects' clusters can
-# use them all). Any other failure aborts immediately.
-attempt=1; max_attempts="${KURO_DB_START_ATTEMPTS:-40}"
-until start_cluster; do
-  if grep -qs 'shmget' "$tmp/initdb.log" "$tmp/postgres.log" && [ "$attempt" -lt "$max_attempts" ]; then
-    [ "$attempt" -eq 1 ] && echo "note: no free System V shared-memory segment (host-wide limit); retrying up to $max_attempts times, 3 s apart"
-    attempt=$((attempt+1)); : > "$tmp/postgres.log"; sleep 3; continue
+
+hash_file_cmd() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$@"
+  else
+    sha256sum "$@"
   fi
-  echo "cluster setup failed (attempt $attempt):"; cat "$tmp/initdb.log" "$tmp/postgres.log" 2>/dev/null | tail -20; exit 3
-done
+}
+
+cache_dir=""
+cache_hit=0
+if [ "$fast_mode" -eq 1 ]; then
+  cache_key="$( {
+    psql --version
+    printf 'exclude=%s\n' "$exclude"
+    hash_file_cmd "$tests_dir/fixtures/00_platform_stub.sql" "$here/replay_migrations.sh"
+    while IFS= read -r sqlf; do
+      [ -n "$sqlf" ] && hash_file_cmd "$sqlf"
+    done < <(find "$repo/supabase/migrations" "$repo/supabase/prepared-migrations" -maxdepth 1 -name '*.sql' -type f 2>/dev/null | LC_ALL=C sort)
+  } | shasum -a 256 2>/dev/null | awk '{print substr($1, 1, 16)}' )"
+  [ -z "$cache_key" ] && cache_key="$( {
+    psql --version
+    printf 'exclude=%s\n' "$exclude"
+    hash_file_cmd "$tests_dir/fixtures/00_platform_stub.sql" "$here/replay_migrations.sh"
+    while IFS= read -r sqlf; do
+      [ -n "$sqlf" ] && hash_file_cmd "$sqlf"
+    done < <(find "$repo/supabase/migrations" "$repo/supabase/prepared-migrations" -maxdepth 1 -name '*.sql' -type f 2>/dev/null | LC_ALL=C sort)
+  } | sha256sum | awk '{print substr($1, 1, 16)}' )"
+  cache_dir="/tmp/kuro-db-fastcache-${cache_key}"
+fi
+
+reports="$tmp/reports"; mkdir -p "$reports"
+
+if [ "$fast_mode" -eq 1 ] && [ -n "$cache_dir" ] && [ -f "$cache_dir/READY" ] && [ -d "$cache_dir/data" ]; then
+  cp -Rc "$cache_dir/data" "$tmp/data" 2>/dev/null || cp -R "$cache_dir/data" "$tmp/data"
+  cp "$cache_dir/reports/"* "$reports/" 2>/dev/null || true
+  attempt=1; max_attempts="${KURO_DB_START_ATTEMPTS:-40}"
+  until start_pg_ctl; do
+    if grep -qs 'shmget' "$tmp/postgres.log" && [ "$attempt" -lt "$max_attempts" ]; then
+      reap_orphan_sysv_segments
+      [ "$attempt" -eq 1 ] && echo "note: no free System V shared-memory segment; reaping orphaned segments and retrying"
+      attempt=$((attempt+1)); : > "$tmp/postgres.log"; sleep 1; continue
+    fi
+    echo "cached cluster start failed (attempt $attempt):"; cat "$tmp/postgres.log" 2>/dev/null | tail -20; exit 3
+  done
+  cache_hit=1
+else
+  # Bounded retry ONLY for System V shared-memory exhaustion (macOS kern.sysv.shmmni is 32
+  # segments host-wide and every running PostgreSQL holds one; other projects' clusters can
+  # use them all). Reap dead NATTCH=0 56-byte SysV locks first; any other failure aborts.
+  attempt=1; max_attempts="${KURO_DB_START_ATTEMPTS:-40}"
+  until start_cluster; do
+    if grep -qs 'shmget' "$tmp/initdb.log" "$tmp/postgres.log" && [ "$attempt" -lt "$max_attempts" ]; then
+      reap_orphan_sysv_segments
+      [ "$attempt" -eq 1 ] && echo "note: no free System V shared-memory segment (host-wide limit); retrying up to $max_attempts times, 1 s apart"
+      attempt=$((attempt+1)); : > "$tmp/postgres.log"; sleep 1; continue
+    fi
+    echo "cluster setup failed (attempt $attempt):"; cat "$tmp/initdb.log" "$tmp/postgres.log" 2>/dev/null | tail -20; exit 3
+  done
+fi
 started=1
 [ "$attempt" -gt 1 ] && echo "note: cluster started on attempt $attempt"
 
@@ -190,8 +257,6 @@ echo "target: throwaway PostgreSQL $(psql -X -Atc 'show server_version') on unix
 fixture_memory_summary="$(psql -X -Atc "select 'main='||current_setting('shared_memory_type')||', dynamic='||current_setting('dynamic_shared_memory_type')||', buffers='||current_setting('shared_buffers')||', connections='||current_setting('max_connections')")"
 echo "fixture memory: $fixture_memory_summary"
 
-reports="$tmp/reports"; mkdir -p "$reports"
-
 new_db() {   # new_db <name> : empty database + platform stubs
   psql -X -q -v ON_ERROR_STOP=1 -d postgres -c "create database $1" || return 1
   psql -X -q -v ON_ERROR_STOP=1 -d "$1" -f "$tests_dir/fixtures/00_platform_stub.sql" >/dev/null 2>"$reports/stub-$1.log" \
@@ -199,39 +264,51 @@ new_db() {   # new_db <name> : empty database + platform stubs
 }
 
 # ---- 3/4. replay ------------------------------------------------------------
-echo
-echo "================ migration replay (supabase/migrations, $(ls "$repo"/supabase/migrations/*.sql | wc -l | tr -d ' ') files) ================"
-for mode in strict baseline-post baseline-first; do
-  db="kuro_$(echo "$mode" | tr '-' '_')"
-  new_db "$db" || exit 3
-  PGDATABASE="$db" "$here/replay_migrations.sh" "$mode" "$reports/replay-$mode.tsv" || exit 3
-done
+if [ "$cache_hit" -eq 1 ]; then
+  echo
+  echo "================ migration replay (--fast cache hit: ${cache_dir}) ================"
+elif [ "$fast_mode" -eq 1 ]; then
+  echo
+  echo "================ migration replay (fast baseline-first only, $(ls "$repo"/supabase/migrations/*.sql | wc -l | tr -d ' ') files) ================"
+  : > "$reports/replay-strict.tsv"
+  : > "$reports/replay-baseline-post.tsv"
+  new_db "kuro_baseline_first" || exit 3
+  PGDATABASE="kuro_baseline_first" "$here/replay_migrations.sh" baseline-first "$reports/replay-baseline-first.tsv" || exit 3
+else
+  echo
+  echo "================ migration replay (supabase/migrations, $(ls "$repo"/supabase/migrations/*.sql | wc -l | tr -d ' ') files) ================"
+  for mode in strict baseline-post baseline-first; do
+    db="kuro_$(echo "$mode" | tr '-' '_')"
+    new_db "$db" || exit 3
+    PGDATABASE="$db" "$here/replay_migrations.sh" "$mode" "$reports/replay-$mode.tsv" || exit 3
+  done
 
-echo
-echo "---- baseline-post (baseline, then only later files): object counts in kuro_baseline_post ----"
-PGDATABASE=kuro_baseline_post psql -X -At -F ' ' -c "
-  select 'public tables:', count(*) from pg_tables where schemaname='public'
-  union all select 'public matviews:', count(*) from pg_matviews where schemaname='public'
-  union all select 'public policies:', count(*) from pg_policies where schemaname='public'
-  union all select 'public constraints (all types):', count(*) from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname='public'"
-grep -oE 'create policy "[^"]+" on public\.[a-z_]+' "$repo/supabase/migrations/20260807000000_baseline_capture_v1.sql" \
-  | sed -E 's/create policy "([^"]+)" on public\.([a-z_]+)/\2|\1/' | sort -u > "$reports/baseline-policies-declared.txt"
-PGDATABASE=kuro_baseline_post psql -X -At -c "select tablename||'|'||policyname from pg_policies where schemaname='public'" | sort -u > "$reports/baseline-policies-present.txt"
-echo "baseline declares $(wc -l < "$reports/baseline-policies-declared.txt" | tr -d ' ') distinct policies; baseline-post has $(comm -12 "$reports/baseline-policies-declared.txt" "$reports/baseline-policies-present.txt" | wc -l | tr -d ' ') of them."
-echo "not created in baseline-post (the baseline dependency-guards them on tables/functions that only the pre-baseline chain creates, e.g. club tables and is_club_member):"
-comm -23 "$reports/baseline-policies-declared.txt" "$reports/baseline-policies-present.txt" | sed 's/^/    /'
-echo "expected here: README_baseline_capture.md's 106 constraints / 26 policies are reached only once club_rail_items and is_club_member exist."
-echo "In baseline-post they do not (pre-baseline chain files create them), so the baseline's own guards (to_regclass('public.club_rail_items'))"
-echo "skip exactly 1 FK (club_rail_item_reactions_rail_item_id_fkey) and 2 policies (club_reactions_*): 105 constraints / 24 policies is the consistent result."
-echo
-echo "---- baseline-post per-file result ----"
-cut -f1-2,4 "$reports/replay-baseline-post.tsv" | tr '\t' ' '
-echo
-echo "---- strict (empty DB, filename order): failures grouped by first error ----"
-awk -F'\t' '$1=="FAIL"{print $4}' "$reports/replay-strict.tsv" | sed -E 's/"[^"]*"/"…"/g' | sort | uniq -c | sort -rn | head -25
-echo
-echo "---- baseline-first (FIXTURE build): failing files ----"
-awk -F'\t' '$1=="FAIL"{printf "FAIL  %s\n        %s\n", $2, $4}' "$reports/replay-baseline-first.tsv"
+  echo
+  echo "---- baseline-post (baseline, then only later files): object counts in kuro_baseline_post ----"
+  PGDATABASE=kuro_baseline_post psql -X -At -F ' ' -c "
+    select 'public tables:', count(*) from pg_tables where schemaname='public'
+    union all select 'public matviews:', count(*) from pg_matviews where schemaname='public'
+    union all select 'public policies:', count(*) from pg_policies where schemaname='public'
+    union all select 'public constraints (all types):', count(*) from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname='public'"
+  grep -oE 'create policy "[^"]+" on public\.[a-z_]+' "$repo/supabase/migrations/20260807000000_baseline_capture_v1.sql" \
+    | sed -E 's/create policy "([^"]+)" on public\.([a-z_]+)/\2|\1/' | sort -u > "$reports/baseline-policies-declared.txt"
+  PGDATABASE=kuro_baseline_post psql -X -At -c "select tablename||'|'||policyname from pg_policies where schemaname='public'" | sort -u > "$reports/baseline-policies-present.txt"
+  echo "baseline declares $(wc -l < "$reports/baseline-policies-declared.txt" | tr -d ' ') distinct policies; baseline-post has $(comm -12 "$reports/baseline-policies-declared.txt" "$reports/baseline-policies-present.txt" | wc -l | tr -d ' ') of them."
+  echo "not created in baseline-post (the baseline dependency-guards them on tables/functions that only the pre-baseline chain creates, e.g. club tables and is_club_member):"
+  comm -23 "$reports/baseline-policies-declared.txt" "$reports/baseline-policies-present.txt" | sed 's/^/    /'
+  echo "expected here: README_baseline_capture.md's 106 constraints / 26 policies are reached only once club_rail_items and is_club_member exist."
+  echo "In baseline-post they do not (pre-baseline chain files create them), so the baseline's own guards (to_regclass('public.club_rail_items'))"
+  echo "skip exactly 1 FK (club_rail_item_reactions_rail_item_id_fkey) and 2 policies (club_reactions_*): 105 constraints / 24 policies is the consistent result."
+  echo
+  echo "---- baseline-post per-file result ----"
+  cut -f1-2,4 "$reports/replay-baseline-post.tsv" | tr '\t' ' '
+  echo
+  echo "---- strict (empty DB, filename order): failures grouped by first error ----"
+  awk -F'\t' '$1=="FAIL"{print $4}' "$reports/replay-strict.tsv" | sed -E 's/"[^"]*"/"…"/g' | sort | uniq -c | sort -rn | head -25
+  echo
+  echo "---- baseline-first (FIXTURE build): failing files ----"
+  awk -F'\t' '$1=="FAIL"{printf "FAIL  %s\n        %s\n", $2, $4}' "$reports/replay-baseline-first.tsv"
+fi
 
 if [ -n "$report_dir" ]; then
   mkdir -p "$report_dir" && cp "$reports"/replay-*.tsv "$report_dir"/ && echo "replay reports copied to $report_dir"
@@ -250,6 +327,26 @@ for f in $prepared_list; do
   st="$(awk -F'\t' -v f="$f" '$2==f && $3!="PRE-APPLY"{print $1}' "$reports/replay-baseline-first.tsv" | tail -1)"
   [ "$st" = "FAIL" ] && prepared_failed="$prepared_failed $f"
 done
+
+if [ "$fast_mode" -eq 1 ] && [ "$cache_hit" -eq 0 ] && [ -n "$cache_dir" ] && [ -z "${prepared_failed// /}" ]; then
+  pg_ctl -D "$tmp/data" -m fast -w stop >/dev/null 2>&1 || true
+  started=0
+  stage_dir="${cache_dir}.tmp.$$"
+  rm -rf "$stage_dir"
+  mkdir -p "$stage_dir/reports"
+  if (cp -Rc "$tmp/data" "$stage_dir/data" 2>/dev/null || cp -R "$tmp/data" "$stage_dir/data") && cp "$reports"/replay-*.tsv "$stage_dir/reports/"; then
+    touch "$stage_dir/READY"
+    rm -rf "$cache_dir"
+    mv "$stage_dir" "$cache_dir" 2>/dev/null || rm -rf "$stage_dir"
+    ls -1dt /tmp/kuro-db-fastcache-* 2>/dev/null | tail -n +3 | while read -r old; do
+      [ -n "$old" ] && rm -rf "$old"
+    done
+  else
+    rm -rf "$stage_dir"
+  fi
+  start_pg_ctl || exit 3
+  started=1
+fi
 
 # ---- requirement manifest check (F43: missing objects => BLOCKED, never PASS) ----
 # req_check <db> <file> prints one line per MISSING requirement:

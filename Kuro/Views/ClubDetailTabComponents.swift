@@ -303,6 +303,7 @@ struct JournalRailSection: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var visibleWidth: CGFloat = 0
     @State private var openNoteItemId: String? = nil
+    @State private var revealedSpoilerIds: Set<String> = []
 
     var body: some View {
         let german = KuroLocale.isGerman
@@ -433,7 +434,22 @@ struct JournalRailSection: View {
     }
 
     private func expandedNoteCard(item: ClubRailItem, note: ClubRoomCopy.Note, text: String, german: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let parsed = ClubSpoilerGate.parse(
+            note: text,
+            serverIsSpoiler: item.is_spoiler,
+            serverThroughUnit: item.spoiler_through_unit
+        )
+        let mask = revealedSpoilerIds.contains(item.id)
+            ? nil
+            : ClubSpoilerGate.maskReason(
+                item: item,
+                viewerStatus: item.my_status,
+                viewerProgress: item.my_progress,
+                german: german
+            )
+        let displayedText = parsed.cleanText.isEmpty ? text : parsed.cleanText
+
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Text("\(item.title_display) · \(note.author ?? KuroLocale.text("Member note", "Mitgliedsnotiz"))")
                     .font(.kuroCustom(9, weight: .medium, relativeTo: .caption2, maxSize: 18))
@@ -454,11 +470,20 @@ struct JournalRailSection: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(KuroLocale.text("Close note", "Notiz schließen"))
             }
-            Text(KuroLocale.text("“\(text)”", "„\(text)“"))
-                .font(.kuroEditorial(size: 16))
-                .tracking(-0.2)
-                .foregroundStyle(Color.kuroInk)
-                .fixedSize(horizontal: false, vertical: true)
+            if let mask {
+                JournalSpoilerNoteMask(reason: mask, compactFont: 11) {
+                    KuroAccessibility.impactHaptic(.light)
+                    withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
+                        _ = revealedSpoilerIds.insert(item.id)
+                    }
+                }
+            } else {
+                Text(KuroLocale.text("“\(displayedText)”", "„\(displayedText)“"))
+                    .font(.kuroEditorial(size: 16))
+                    .tracking(-0.2)
+                    .foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -730,12 +755,7 @@ struct JournalRailTile: View {
                                       "Notiz von \(note?.author ?? "einem Mitglied"), kann spoilern. Zum Lesen doppeltippen."))
                 .accessibilityValue(KuroFold.accessibilityValue(expanded: isNoteOpen, german: german))
                 if inlineTextExpanded, isNoteOpen, let text = note?.text {
-                    Text(KuroLocale.text("“\(text)”", "„\(text)“"))
-                        .font(.kuroEditorial(size: 15))
-                        .tracking(-0.2)
-                        .foregroundStyle(Color.kuroInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .transition(.opacity)
+                    JournalInlineSpoilerNote(item: item, rawText: text, german: german)
                 }
             }
             .id(note?.text ?? "")
@@ -764,9 +784,76 @@ struct JournalMilestoneCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct JournalSpoilerNoteMask: View {
+    let reason: String
+    let compactFont: CGFloat
+    let onReveal: () -> Void
+
+    var body: some View {
+        Button(action: onReveal) {
+            HStack(spacing: 8) {
+                Image(systemName: "eye.slash")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.kuroMuted)
+                Text(reason)
+                    .font(.kuroCustom(compactFont, weight: .medium, relativeTo: .caption1, maxSize: 20))
+                    .foregroundStyle(Color.kuroInk)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+            .background(Color.black.opacity(0.04), in: Capsule())
+            .overlay(Capsule().strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct JournalInlineSpoilerNote: View {
+    let item: ClubRailItem
+    let rawText: String
+    let german: Bool
+    @State private var revealed = false
+
+    var body: some View {
+        let parsed = ClubSpoilerGate.parse(
+            note: rawText,
+            serverIsSpoiler: item.is_spoiler,
+            serverThroughUnit: item.spoiler_through_unit
+        )
+        let mask = revealed
+            ? nil
+            : ClubSpoilerGate.maskReason(
+                item: item,
+                viewerStatus: item.my_status,
+                viewerProgress: item.my_progress,
+                german: german
+            )
+        let displayedText = parsed.cleanText.isEmpty ? rawText : parsed.cleanText
+
+        if let mask {
+            JournalSpoilerNoteMask(reason: mask, compactFont: 11) {
+                KuroAccessibility.impactHaptic(.light)
+                withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
+                    revealed = true
+                }
+            }
+        } else {
+            Text(KuroLocale.text("“\(displayedText)”", "„\(displayedText)“"))
+                .font(.kuroEditorial(size: 15))
+                .tracking(-0.2)
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .transition(.opacity)
+        }
     }
 }
 
@@ -1047,8 +1134,8 @@ struct JournalPollsContent: View {
             }
             .padding(12)
             .frame(minHeight: 44)
-            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())

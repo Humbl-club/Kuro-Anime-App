@@ -31,7 +31,7 @@ struct DiscoverUsabilitySnapshotTests {
     func issues() async throws {
         await Self.seedArtwork()
         let backend = Self.trackedBackend()
-        let harness = try DCDiscoverHarness(responder: DUFixture.responder(), libraryBackend: backend)
+        let harness = try DCDiscoverHarness(responder: Self.snapshotResponder(), libraryBackend: backend)
         await harness.signIn()
         try? await harness.graph.library.refresh()
         let visits = try Self.visitDefaults()
@@ -275,6 +275,27 @@ struct DiscoverUsabilitySnapshotTests {
             FakeLibraryBackend.entry(.anime, 43, rowId: 43, status: .planning, progress: 0)
         ], for: LifecycleFixtures.userA)
         return backend
+    }
+
+    private static func snapshotResponder() -> StubServer.Responder {
+        let base = DUFixture.responder()
+        let iso = ISO8601DateFormatter()
+        let now = Date()
+        let airingPayload = """
+        [
+          {"id":8,"next_airing_at":"\(iso.string(from: now.addingTimeInterval(1_800)))","next_episode_number":7},
+          {"id":45,"next_airing_at":"\(iso.string(from: now.addingTimeInterval(-2_700)))","next_episode_number":14},
+          {"id":46,"next_airing_at":"\(iso.string(from: now.addingTimeInterval(6 * 86_400)))","next_episode_number":9},
+          {"id":47,"next_airing_at":"\(iso.string(from: now.addingTimeInterval(3_600)))","next_episode_number":5}
+        ]
+        """
+        return { request in
+            if request.resource == "anime",
+               request.query("select")?.contains("next_airing_at") == true {
+                return .json(airingPayload)
+            }
+            return base(request)
+        }
     }
 
     private static func visitDefaults() throws -> UserDefaults {

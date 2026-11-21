@@ -109,6 +109,14 @@ enum HomeCalendarPresentation {
         coverage == .failed && !offline && !items.contains(where: copy.isAhead)
     }
 
+    /// Whether Home shows the Coming up glance at all (owner, 2026-11-20): only when something is
+    /// actually still to come, or when a failed read can be retried. Titles in progress alone never
+    /// raise it: watching a finished series (Black Clover) must not print "Nothing scheduled".
+    static func showsComingUp(items: [ReleaseScheduleItem], copy: ReleaseCopy, offline: Bool,
+                              coverage: ReleaseScheduleCoverage) -> Bool {
+        items.contains(where: copy.isAhead) || offersRetry(items: items, copy: copy, offline: offline, coverage: coverage)
+    }
+
     // MARK: Prototype calendar card (PROTOTYPE_SPEC.md §4 "Calendar", "Dates to come")
 
     /// Day groups the card shows before "Next N dates" (the prototype's four).

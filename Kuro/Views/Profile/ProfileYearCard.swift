@@ -22,7 +22,10 @@ struct ProfileYearCard: View {
 
     var body: some View {
         let artwork = year.mostTime?.artwork
+        let hasArtwork = artwork != nil
         let material = artwork.map { materials.material(for: $0, seedHex: nil) } ?? .neutral
+        let lightSurface = !hasArtwork
+        let cardShape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         VStack(alignment: .leading, spacing: 6) {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -38,10 +41,10 @@ struct ProfileYearCard: View {
                                 .accessibilityHidden(true)
                             yearTab.padding(.leading, 12)
                         }
-                        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5))
+                        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 14, topTrailingRadius: 14, style: .continuous))
                     }
-                    foot(showsYear: artwork == nil)
-                    factRow(Self.factLine(year, german: german))
+                    foot(showsYear: !hasArtwork, onLight: lightSurface)
+                    factRow(Self.factLine(year, german: german), onLight: lightSurface)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(ProfileStatsCopy.yearSpoken(year, german: german))
@@ -57,21 +60,36 @@ struct ProfileYearCard: View {
                             Text("›").accessibilityHidden(true)
                         }
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22))
-                        .foregroundStyle(HomeInk.footFact)
+                        .foregroundStyle(lightSurface ? Color.kuroInkSecondary : HomeInk.footFact)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(HomeContactStyle())
                     .padding(.horizontal, 14)
-                    .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Double(0x0D) / 255)).frame(height: 1) }
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(lightSurface ? Color.kuroHairline : Color.white.opacity(Double(0x0D) / 255))
+                            .frame(height: lightSurface ? 0.5 : 1)
+                    }
                     .accessibilityLabel(ProfileStatsCopy.mostTime(most.title, german: german))
                     .accessibilityHint(KuroLocale.text("Opens the title", "Öffnet den Titel"))
                 }
             }
-            .background(LinearGradient(colors: [material.base.color, material.deep.color],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing))
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .shadow(color: Color(hex: "19221B", opacity: Double(0x0A) / 255), radius: 1, y: 1)
+            .background {
+                if lightSurface {
+                    Color.white
+                } else {
+                    LinearGradient(colors: [material.base.color, material.deep.color],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
+            }
+            .clipShape(cardShape)
+            .overlay {
+                if lightSurface {
+                    cardShape.strokeBorder(HomeInk.glanceBorder, lineWidth: 1)
+                }
+            }
+            .shadow(color: lightSurface ? HomeInk.glanceShadow : Color.black.opacity(0.06), radius: 2, y: 1)
             .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil, value: material)
 
             Text(ProfileStatsCopy.yearNote(year.year, german: german))
@@ -103,37 +121,45 @@ struct ProfileYearCard: View {
         .padding(.horizontal, 8)
         .frame(minHeight: 31)
         .fixedSize(horizontal: false, vertical: true)
-        .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8))
+        .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous))
     }
 
-    private func foot(showsYear: Bool) -> some View {
+    private func foot(showsYear: Bool, onLight: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if showsYear {
                 Text("\(ProfileStatsCopy.yearTab(german: german)) \(String(year.year))")
-                    .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 16))
-                    .tracking(1.7)
+                    .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
+                    .tracking(1.05)
                     .textCase(.uppercase)
-                    .foregroundStyle(Color(hex: "C6CECA"))
+                    .foregroundStyle(onLight ? HomeInk.kicker : Color(hex: "C6CECA"))
             }
             Text(ProfileStatsCopy.yearTitle(year.titles, german: german))
                 .font(.kuroCustom(17, weight: .semibold, relativeTo: .headline, maxSize: 34))
                 .tracking(-0.35)
-                .foregroundStyle(HomeInk.footTitle)
+                .foregroundStyle(onLight ? Color.kuroInk : HomeInk.footTitle)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
-        .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Double(0x18) / 255)).frame(height: 1) }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(onLight ? Color.kuroHairline : Color.white.opacity(Double(0x18) / 255))
+                .frame(height: onLight ? 0.5 : 1)
+        }
     }
 
-    private func factRow(_ text: String) -> some View {
+    private func factRow(_ text: String, onLight: Bool) -> some View {
         Text(text)
             .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 22))
-            .foregroundStyle(HomeInk.footFact)
+            .foregroundStyle(onLight ? Color.kuroInkSecondary : HomeInk.footFact)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
             .padding(.horizontal, 14)
-            .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Double(0x0D) / 255)).frame(height: 1) }
+            .overlay(alignment: .top) {
+                Rectangle()
+                    .fill(onLight ? Color.kuroHairline : Color.white.opacity(Double(0x0D) / 255))
+                    .frame(height: onLight ? 0.5 : 1)
+            }
     }
 }

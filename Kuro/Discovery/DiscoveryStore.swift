@@ -142,6 +142,38 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         return nil
     }
 
+    /// Zero-I/O deduplicated pool of in-memory Discover cards for 0 ms Search typing previews and
+    /// the idle Popular strip (no extra network call).
+    func cachedSearchPreviewCards() -> (anime: [AnimeCard], manga: [MangaCard]) {
+        var animeSeen: Set<Int> = []
+        var mangaSeen: Set<Int> = []
+        var animeOut: [AnimeCard] = []
+        var mangaOut: [MangaCard] = []
+        for entry in discoverBundleCache.values.sorted(by: { $0.storedAt > $1.storedAt }) {
+            let bundle = entry.value
+            let animePools = [
+                bundle.anime.trending, bundle.anime.currentSeason, bundle.anime.essentials,
+                bundle.anime.newToYou, bundle.anime.newlyAdded, bundle.anime.classics,
+                bundle.anime.topRated,
+            ]
+            for pool in animePools {
+                for card in pool where animeSeen.insert(card.id).inserted {
+                    animeOut.append(card)
+                }
+            }
+            let mangaPools = [
+                bundle.manga.trending, bundle.manga.essentials, bundle.manga.newToYou,
+                bundle.manga.newlyAdded, bundle.manga.classics, bundle.manga.topRated,
+            ]
+            for pool in mangaPools {
+                for card in pool where mangaSeen.insert(card.id).inserted {
+                    mangaOut.append(card)
+                }
+            }
+        }
+        return (animeOut, mangaOut)
+    }
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {
@@ -269,6 +301,72 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     }
 
     // MARK: - Server-driven Discover sections (Anime)
+
+    /// Direct cover-guaranteed "Just added" query over `public.anime` used when `discover_bundle`'s
+    /// raw `newly_added` rail contains unhydrated rows without a renderable cover image.
+    func fetchRenderableNewlyAddedAnime(limit: Int = 20) async -> [AnimeCard] {
+        let clamped = max(1, min(40, limit))
+        do {
+            let client = try requiredClient()
+            let rows: [AnimeCard] = try await client
+                .from("anime")
+                .select("id,title_english,title_romaji,title_native,cover_image_large,cover_image_medium,banner_image,format,status,episode_count:episodes,season_year,start_date_year,average_score,popularity,trending,favourites,genres,created_at")
+                .eq("is_adult", value: false)
+                .not("cover_image_large", operator: .is, value: "null")
+                .not("cover_image_large", operator: .ilike, value: "%anilist.co%")
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(clamped * 2)
+                .execute()
+                .value
+            let filtered = rows.filter { card in
+                let genres = Set((card.genres ?? []).map { $0.lowercased() })
+                let format = card.format?.uppercased() ?? ""
+                return ImagePipeline.hasRenderableArtwork(card.imageURL)
+                    && !genres.contains("hentai")
+                    && !genres.contains("ecchi")
+                    && !["SPECIAL", "MUSIC", "TV_SHORT"].contains(format)
+            }
+            return Array(filtered.prefix(clamped))
+        } catch {
+            #if DEBUG
+            print("❌ fetchRenderableNewlyAddedAnime error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    /// Direct cover-guaranteed "Just added" query over `public.manga` used when `discover_bundle`'s
+    /// raw `newly_added` rail contains unhydrated rows without a renderable cover image.
+    func fetchRenderableNewlyAddedManga(limit: Int = 20) async -> [MangaCard] {
+        let clamped = max(1, min(40, limit))
+        do {
+            let client = try requiredClient()
+            let rows: [MangaCard] = try await client
+                .from("manga")
+                .select("id,title_english,title_romaji,title_native,cover_image_large,cover_image_medium,format,status,chapter_count:chapters,start_date_year,average_score,popularity,trending,favourites,genres,created_at")
+                .eq("is_adult", value: false)
+                .not("cover_image_large", operator: .is, value: "null")
+                .not("cover_image_large", operator: .ilike, value: "%anilist.co%")
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(clamped * 2)
+                .execute()
+                .value
+            let filtered = rows.filter { card in
+                let genres = Set((card.genres ?? []).map { $0.lowercased() })
+                return ImagePipeline.hasRenderableArtwork(card.imageURL)
+                    && !genres.contains("hentai")
+                    && !genres.contains("ecchi")
+            }
+            return Array(filtered.prefix(clamped))
+        } catch {
+            #if DEBUG
+            print("❌ fetchRenderableNewlyAddedManga error: \(error)")
+            #endif
+            return []
+        }
+    }
 
     func fetchTrendingAnime(limit: Int = 20, onlyAiring: Bool = false, genre: String? = nil) async -> [Anime] {
         do {

@@ -254,7 +254,10 @@ struct FirstRunSnapshotTests {
 
     /// Two because-you rows completed by the catalogue (the busy references show two cards).
     private static func busy(_ medium: MediaKind, catalog: CatalogStore) async -> [TasteCard] {
-        await TasteCardDetails.hydrate(Array(cards(medium, premise: true, banner: false).prefix(2)), catalog: catalog)
+        await TasteCardDetails.hydrate(
+            Array(cards(medium, premise: true, banner: false, provenance: medium == .manga ? "Berserk" : "Mushishi").prefix(2)),
+            catalog: catalog
+        )
     }
 
     // MARK: Collection and Search
@@ -386,7 +389,8 @@ struct FirstRunSnapshotTests {
 
     /// The fixtures as cards. `banner`: the anime fixture's banner (a bundle row, or a because-you row
     /// whose title the bundle also holds); because-you rows on their own carry none.
-    private static func cards(_ medium: MediaKind, premise: Bool, banner: Bool) -> [TasteCard] {
+    private static func cards(_ medium: MediaKind, premise: Bool, banner: Bool,
+                              provenance: String? = nil) -> [TasteCard] {
         (medium == .anime ? animeFixtures : mangaFixtures).map { fixture in
             TasteCard(
                 media: Media(id: fixture.id, kind: medium, title: fixture.title, imageURL: artURL(fixture.cover),
@@ -394,7 +398,8 @@ struct FirstRunSnapshotTests {
                              genres: [fixture.genre], statusRaw: nil, formatRaw: fixture.format,
                              popularityValue: nil, trendingValue: nil, createdAtValue: nil),
                 bannerURL: banner ? fixture.banner.map(artURL) : nil,
-                premise: premise ? fixture.premise : nil
+                premise: premise ? fixture.premise : nil,
+                provenance: provenance
             )
         }
     }

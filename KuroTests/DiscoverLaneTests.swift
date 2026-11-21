@@ -366,6 +366,47 @@ struct DiscoverCopyAndLayoutTests {
         #expect(EditorialSearchView.shouldRunSearch(query: "", hasFilters: true))
     }
 
+    @Test("Live preview matches from char 1: prefix ranks before substring, respects scope, empty on blank")
+    func localPreviewMatches() throws {
+        func makeAnime(_ id: Int, _ english: String, romaji: String? = nil, popularity: Int = 100) throws -> AnimeCard {
+            let romajiJSON = romaji.map { "\"\($0)\"" } ?? "null"
+            let json = """
+            {"id":\(id),"title_english":"\(english)","title_romaji":\(romajiJSON),"popularity":\(popularity)}
+            """
+            return try JSONDecoder().decode(AnimeCard.self, from: Data(json.utf8))
+        }
+        func makeManga(_ id: Int, _ english: String, popularity: Int = 100) throws -> MangaCard {
+            let json = """
+            {"id":\(id),"title_english":"\(english)","popularity":\(popularity)}
+            """
+            return try JSONDecoder().decode(MangaCard.self, from: Data(json.utf8))
+        }
+        let anime = [
+            try makeAnime(1, "Frieren", popularity: 500),
+            try makeAnime(2, "Fullmetal Alchemist", popularity: 900),
+            try makeAnime(3, "Mob Psycho 100", popularity: 600),
+            try makeAnime(4, "Attack on Titan", romaji: "Shingeki no Kyojin", popularity: 800),
+        ]
+        let manga = [
+            try makeManga(10, "Freaks of Nature", popularity: 300),
+            try makeManga(11, "Berserk", popularity: 950),
+        ]
+
+        #expect(EditorialSearchView.localPreviewMatches(query: "  ", scope: .all, anime: anime, manga: manga).isEmpty)
+
+        // Single-char "f": Fullmetal (prefix 900), Frieren (prefix 500), Freaks (prefix 300).
+        let fHits = EditorialSearchView.localPreviewMatches(query: "f", scope: .all, anime: anime, manga: manga)
+        #expect(fHits.map(\.id) == ["anime-2", "anime-1", "manga-10"])
+
+        // Substring vs prefix ("s": Shingeki romaji prefix on anime-4 ranks above Berserk substring).
+        let sHits = EditorialSearchView.localPreviewMatches(query: "s", scope: .all, anime: anime, manga: manga)
+        #expect(sHits.first?.id == "anime-4")
+
+        // Scope isolation.
+        let mangaOnly = EditorialSearchView.localPreviewMatches(query: "f", scope: .manga, anime: anime, manga: manga)
+        #expect(mangaOnly.map(\.id) == ["manga-10"])
+    }
+
     @Test("Section titles are sentence case and exist in both languages for every See all route")
     func routeTitles() {
         for route in EditorialDiscoverRoute.allCases {
