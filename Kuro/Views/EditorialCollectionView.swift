@@ -16,6 +16,7 @@ struct EditorialCollectionView: View {
     /// Moves the pager to its Browse page. Used where the pager has one (the live order); where it has
     /// none (series Home), "Find a title" opens the Browse route instead (spec D2, `DiscoverBrowseEntry`).
     let onOpenBrowsePage: () -> Void
+    var scrollToTopTick: Int = 0
 
     @Environment(LibraryStore.self) private var library
     @Environment(CollectionStore.self) private var collection
@@ -60,6 +61,7 @@ struct EditorialCollectionView: View {
     @State private var isLoadingAll = false
     /// The bounded read for search/sort stopped with titles still unread (shown as an honest line).
     @State private var localOrderingTruncated = false
+    @State private var scrollPosition = ScrollPosition(edge: .top)
 
     private struct ClassifyTarget: Identifiable {
         let media: Media
@@ -138,16 +140,14 @@ struct EditorialCollectionView: View {
         return folioItem(for: media)
     }
 
-    /// The rows the list shows: status (Library authority), verdict, search, then sort. A search spans
-    /// every status of the medium. Computed once per render (`body`).
-    private var plannedPoolItems: [FolioItem] {
+    private func plannedPoolItems(from loaded: [FolioItem]) -> [FolioItem] {
         guard status == .planned, !isImportedView, !isQueryActive else { return [] }
-        let rows = loadedItems.filter { status.listStatuses.contains($0.entry.status) }
+        let rows = loaded.filter { status.listStatuses.contains($0.entry.status) }
         return FolioPolicy.sorted(rows, by: sort)
     }
 
-    private var visibleItems: [FolioItem] {
-        var rows = loadedItems
+    private func filterVisibleItems(from loaded: [FolioItem]) -> [FolioItem] {
+        var rows = loaded
         if !isImportedView && !isQueryActive {
             rows = rows.filter { status.listStatuses.contains($0.entry.status) }
             if status == .completed {
@@ -220,10 +220,12 @@ struct EditorialCollectionView: View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let gutter = FolioPolicy.gutter(forWidth: width)
-            let rows = visibleItems
+            let allLoaded = loadedItems
+            let rows = filterVisibleItems(from: allLoaded)
+            let plannedPool = plannedPoolItems(from: allLoaded)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    header(gutter: gutter, canSelect: !rows.isEmpty)
+                    header(gutter: gutter, canSelect: !rows.isEmpty, plannedPool: plannedPool)
                     if upNextShows {
                         FolioUpNextSection(medium: medium, gutter: gutter, width: width,
                                            onPlanned: { upNextPlanned($0) },
@@ -236,8 +238,13 @@ struct EditorialCollectionView: View {
                     Color.clear.frame(height: KuroDesignSpacing.xl)
                 }
             }
+            .scrollPosition($scrollPosition)
             .scrollDismissesKeyboard(.interactively)
             .refreshable { await reload(refreshLibrary: true) }
+            .onChange(of: scrollToTopTick) { _, _ in
+                let animation = KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
+                withAnimation(animation) { scrollPosition.scrollTo(edge: .top) }
+            }
             .background(Color.kuroCanvasPage)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: KuroDesignSpacing.sm) {
@@ -389,7 +396,7 @@ struct EditorialCollectionView: View {
     // MARK: Header
 
     @ViewBuilder
-    private func header(gutter: CGFloat, canSelect: Bool) -> some View {
+    private func header(gutter: CGFloat, canSelect: Bool, plannedPool: [FolioItem]) -> some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             if isImportedView {
                 HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
@@ -454,9 +461,9 @@ struct EditorialCollectionView: View {
                 FolioVerdictWords(selection: $verdictFilter, unsortedCount: unsortedCompleted, gutter: gutter)
             }
 
-            if status == .planned && !isImportedView && !isSearching && !isQueryActive && !isSelecting, plannedPoolItems.count >= 2 {
+            if status == .planned && !isImportedView && !isSearching && !isQueryActive && !isSelecting, plannedPool.count >= 2 {
                 FolioPlanningTrayView(
-                    allPlannedItems: plannedPoolItems,
+                    allPlannedItems: plannedPool,
                     medium: medium,
                     accountId: activeAccount?.userId,
                     activeFilter: $planningFilter,

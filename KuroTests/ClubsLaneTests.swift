@@ -397,7 +397,7 @@ struct ClubsLaneRuleTests {
         #expect(ClubRailCardMetrics.width(containerWidth: 320) == 112)
         #expect(ClubRailCardMetrics.width(containerWidth: 390) == 119)
         #expect(ClubRailCardMetrics.width(containerWidth: 1024) == 144)
-        #expect(ClubRailCardMetrics.height(width: 112) == 160)
+        #expect(ClubRailCardMetrics.height(width: 112) == 168)
     }
 
     @Test("Reactions keep the server keys and draw no emoji")

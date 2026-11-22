@@ -12,9 +12,10 @@ import { createPoliteClient, PoliteLimiter } from "../_shared/polite_fetch.ts";
 import { createMangaDexClient } from "../manga-chapter-enrich/mangadex.ts";
 import { run } from "./handler.ts";
 
-// MangaUpdates and Syoboi ask for reasonable spacing between requests (~1.1 s per isolate).
+// MangaUpdates, Syoboi and Jikan ask for reasonable spacing between requests (~1.1 s per isolate).
 const mangaUpdatesLimiter = new PoliteLimiter(1_100);
 const syoboiLimiter = new PoliteLimiter(1_100);
+const jikanLimiter = new PoliteLimiter(1_100);
 
 function createPoliteFetch(limiter: PoliteLimiter, deadlineMs: number): typeof fetch {
   return async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -68,6 +69,7 @@ serve(async (req) => {
     mangaUpdates: createPoliteClient({ limiter: mangaUpdatesLimiter }),
     muOfficialGroupIds: parseGroupIds(Deno.env.get("MU_OFFICIAL_GROUP_IDS")),
     syoboiFetch: createPoliteFetch(syoboiLimiter, startedMs + budgetMs),
+    jikanFetch: createPoliteFetch(jikanLimiter, startedMs + budgetMs),
     readMangaDexLinks: async (mangaDexId) => {
       const { manga } = await dex.fetchMappedMangaDexTitle(mangaDexId, metrics, startedMs, budgetMs);
       return manga?.attributes?.links ?? null;

@@ -1,4 +1,5 @@
 import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Manga Home "Now reading" leaves (PROTOTYPE_SPEC.md §4 "Manga leaf", §5 width changes)
@@ -34,6 +35,8 @@ struct HomeMangaLeaves<Key: View>: View {
     let containerWidth: CGFloat
     let readout: (HomeCard) -> Readout
     let onOpen: (HomeCard) -> Void
+    var onSetStatus: ((HomeCard, ListStatus) -> Void)? = nil
+    var onEdit: ((HomeCard) -> Void)? = nil
     let key: (HomeCard) -> Key
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -41,11 +44,15 @@ struct HomeMangaLeaves<Key: View>: View {
     init(cards: [HomeCard], containerWidth: CGFloat,
          readout: @escaping (HomeCard) -> Readout,
          onOpen: @escaping (HomeCard) -> Void,
+         onSetStatus: ((HomeCard, ListStatus) -> Void)? = nil,
+         onEdit: ((HomeCard) -> Void)? = nil,
          @ViewBuilder key: @escaping (HomeCard) -> Key) {
         self.cards = cards
         self.containerWidth = containerWidth
         self.readout = readout
         self.onOpen = onOpen
+        self.onSetStatus = onSetStatus
+        self.onEdit = onEdit
         self.key = key
     }
 
@@ -78,6 +85,25 @@ struct HomeMangaLeaves<Key: View>: View {
             }
             .buttonStyle(HomeContactStyle())
             .accessibilityLabel(KuroLocale.text("Open \(card.title)", "\(card.title) öffnen"))
+            .contextMenu {
+                let german = KuroLocale.isGerman
+                if let onSetStatus {
+                    Button { onSetStatus(card, .completed) } label: {
+                        Label(DiscoverPlanKey.menuChoiceTitle(.completed, kind: .manga, german: german), systemImage: "checkmark.circle")
+                    }
+                    Button { onSetStatus(card, .paused) } label: {
+                        Label(DiscoverPlanKey.menuChoiceTitle(.paused, kind: .manga, german: german), systemImage: "pause.circle")
+                    }
+                    Button { onSetStatus(card, .dropped) } label: {
+                        Label(DiscoverPlanKey.menuChoiceTitle(.dropped, kind: .manga, german: german), systemImage: "xmark.circle")
+                    }
+                }
+                if let onEdit {
+                    Button { onEdit(card) } label: {
+                        Label(german ? "Eintrag bearbeiten" : "Edit entry", systemImage: "slider.horizontal.3")
+                    }
+                }
+            }
             actionRow(card, accessibility: accessibility)
         }
         .frame(width: metrics.columnWidth)

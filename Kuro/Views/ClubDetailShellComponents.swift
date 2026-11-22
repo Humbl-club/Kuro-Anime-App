@@ -211,7 +211,23 @@ struct JournalHeroSection: View {
         // iPad: the room stays full-bleed; its text keeps the readable column.
         .kuroReadableWidth()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ClubRoomBackground(cornerRadius: 24, topCornerRadius: 0).ignoresSafeArea(edges: .top))
+        .background(ClubRoomBackground(cornerRadius: 24, topCornerRadius: 0, artworkURLs: heroArtworkURLs).ignoresSafeArea(edges: .top))
+    }
+
+    private var heroArtworkURLs: [URL] {
+        var seen: Set<String> = []
+        var urls: [URL] = []
+        for rail in bundle.rails {
+            for item in rail.items {
+                guard let raw = item.cover_image_medium,
+                      ImagePipeline.hasRenderableArtwork(raw),
+                      seen.insert(raw).inserted,
+                      let url = URL(string: raw) else { continue }
+                urls.append(url)
+                if urls.count >= 3 { return urls }
+            }
+        }
+        return urls
     }
 
     private func item(_ id: String) -> ClubRailItem? {

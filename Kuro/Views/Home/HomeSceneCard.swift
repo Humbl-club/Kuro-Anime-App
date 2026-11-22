@@ -1,4 +1,5 @@
 import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Scene card (prototype Poster Home, PROTOTYPE_SPEC.md §4 "Scene card"; ref-home-busy-anime-390.png)
@@ -161,6 +162,8 @@ struct HomeSceneCard<Key: View>: View {
     let compact: Bool
     var zoomSourceID: String? = nil
     var nextRelease: ReleaseScheduleItem? = nil
+    var onSetStatus: ((ListStatus) -> Void)? = nil
+    var onEdit: (() -> Void)? = nil
     let onOpen: () -> Void
     let onSeason: () -> Void
     let onClub: () -> Void
@@ -195,6 +198,12 @@ struct HomeSceneCard<Key: View>: View {
                 .accessibilityHidden(true)
                 if let season { seasonTab(season) }
             }
+            .overlay(alignment: .topTrailing) {
+                if onSetStatus != nil || onEdit != nil {
+                    sceneStatusMenu
+                        .padding(8)
+                }
+            }
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5, style: .continuous))
             foot
             if let fact { factRow(fact) }
@@ -212,6 +221,50 @@ struct HomeSceneCard<Key: View>: View {
     }
 
     // MARK: Parts
+
+    private var sceneStatusMenu: some View {
+        let german = KuroLocale.isGerman
+        return Menu {
+            if let onSetStatus {
+                Button {
+                    KuroAccessibility.selectionHaptic()
+                    onSetStatus(.completed)
+                } label: {
+                    Label(DiscoverPlanKey.menuChoiceTitle(.completed, kind: .anime, german: german), systemImage: "checkmark.circle")
+                }
+                Button {
+                    KuroAccessibility.selectionHaptic()
+                    onSetStatus(.paused)
+                } label: {
+                    Label(DiscoverPlanKey.menuChoiceTitle(.paused, kind: .anime, german: german), systemImage: "pause.circle")
+                }
+                Button {
+                    KuroAccessibility.selectionHaptic()
+                    onSetStatus(.dropped)
+                } label: {
+                    Label(DiscoverPlanKey.menuChoiceTitle(.dropped, kind: .anime, german: german), systemImage: "xmark.circle")
+                }
+            }
+            if let onEdit {
+                Divider()
+                Button {
+                    onEdit()
+                } label: {
+                    Label(german ? "Eintrag bearbeiten" : "Edit entry", systemImage: "slider.horizontal.3")
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.white)
+                .frame(width: 30, height: 30)
+                .background(Color.black.opacity(0.45), in: Circle())
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.24), lineWidth: 0.75))
+                .frame(minWidth: 44, minHeight: 44, alignment: .topTrailing)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(german ? "\(title): Status ändern" : "\(title): Change status")
+    }
 
     private func seasonTab(_ tab: HomeSeasonTab) -> some View {
         Button(action: onSeason) {
@@ -470,8 +523,8 @@ struct HomeCaughtUpKey: View {
     }
 }
 
-/// Remote artwork filling its frame; the material's base colour or soft wash until (or unless) it
-/// loads, so thumbnails never flash blank white.
+/// Remote artwork filling its frame; pure `seedHex` wash until (or unless) it loads so 40+
+/// thumbnails never subscribe to `ArtworkMaterialStore.derived` dictionary broadcasts.
 struct HomeArtwork: View {
     let url: URL?
     let maxPixelSize: Int
@@ -479,13 +532,7 @@ struct HomeArtwork: View {
     var seedHex: String? = nil
     var usesMaterialWash: Bool = false
 
-    @Environment(ArtworkMaterialStore.self) private var materials: ArtworkMaterialStore?
-
     private var resolvedPlaceholder: Color {
-        guard seedHex != nil || usesMaterialWash else { return placeholder }
-        if let materials {
-            return materials.placeholderFill(for: url, seedHex: seedHex, fallback: placeholder)
-        }
         if let seedHex, let rgb = KuroRGB(hex: seedHex) {
             return ArtworkMaterial(base: ArtworkMaterial.clamped(rgb), method: "seed-hex").wash.color
         }

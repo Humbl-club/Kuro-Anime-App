@@ -108,6 +108,8 @@ struct DiscoverCoverTile: View {
     var position: Int = 0
     /// A stated airing slot ("Ep. 7 · 21:30") replaces the line (Airing today only).
     var airing: DiscoverAiringSlot? = nil
+    /// Ongoing/scheduled chapter metadata for Manga tiles.
+    var mangaSlot: DiscoverMangaSlot? = nil
     /// Draws bottom-leading episode status pills and latest-episode lines on This season / Just added.
     var showsEpisodeBadge: Bool = false
     /// R3: the quick action under the cover (off only where a page has its own key).
@@ -131,6 +133,15 @@ struct DiscoverCoverTile: View {
     private var german: Bool { KuroLocale.isGerman }
 
     private func episodeDisplay(now: Date) -> DiscoverIssueCopy.SeasonEpisodeDisplay? {
+        if card.media.kind == .manga, let mangaSlot {
+            return DiscoverIssueCopy.mangaChapterPresentation(
+                slot: mangaSlot,
+                now: now,
+                german: german,
+                locale: KuroLocale.locale,
+                timeZone: KuroLocale.timeZone
+            )
+        }
         guard showsEpisodeBadge, card.media.kind == .anime else { return nil }
         return DiscoverIssueCopy.seasonEpisodePresentation(
             slot: airing,
@@ -185,7 +196,7 @@ struct DiscoverCoverTile: View {
     }
 
     var body: some View {
-        if card.media.kind == .anime, airing != nil {
+        if card.media.kind == .anime, let airing, abs(airing.airingAt.timeIntervalSinceNow) <= 86_400 {
             TimelineView(.everyMinute) { context in
                 tileBody(now: context.date)
             }
@@ -216,7 +227,6 @@ struct DiscoverCoverTile: View {
                             RoundedRectangle(cornerRadius: DiscoverCoverTile.coverRadius, style: .continuous)
                                 .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5)
                         )
-                        .shadow(color: Color.black.opacity(0.10), radius: 6, y: 3)
                         .kuroZoomSource(zoomID)
                         .overlay(alignment: .topLeading) { if isNew { DiscoverNewTab() } }
                         .overlay(alignment: .bottomLeading) {

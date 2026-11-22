@@ -220,6 +220,37 @@ nonisolated enum DiscoverIssueCopy {
         return nil
     }
 
+    static func mangaChapterPresentation(
+        slot: DiscoverMangaSlot?,
+        now: Date,
+        german: Bool,
+        locale: Locale = KuroLocale.locale,
+        timeZone: TimeZone = berlin
+    ) -> SeasonEpisodeDisplay? {
+        guard let slot else { return nil }
+        if let nextAt = slot.nextChapterAt, nextAt >= now, let nextNum = slot.nextChapterNumber, nextNum > 0 {
+            let formatter = DateFormatter()
+            formatter.locale = locale
+            formatter.timeZone = timeZone
+            formatter.dateFormat = "EEE d MMM"
+            let day = formatter.string(from: nextAt)
+            return SeasonEpisodeDisplay(
+                badge: "CH. \(nextNum)",
+                line: german ? "Kap. \(nextNum) · \(day)" : "Ch. \(nextNum) · \(day)"
+            )
+        }
+        if let latest = slot.latestChapter, latest > 0 {
+            let formatted = latest.truncatingRemainder(dividingBy: 1) == 0
+                ? String(Int(latest))
+                : String(format: "%.1f", latest)
+            return SeasonEpisodeDisplay(
+                badge: german ? "KAP. \(formatted)" : "CH. \(formatted)",
+                line: german ? "Kap. \(formatted) erschienen" : "Ch. \(formatted) out"
+            )
+        }
+        return nil
+    }
+
     // MARK: Contents and Browse (usability spec §5.10)
 
     /// "In this issue · 6 sections" / "In dieser Ausgabe · 6 Rubriken" (the view sets it in capitals).

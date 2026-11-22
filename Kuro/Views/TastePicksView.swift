@@ -29,9 +29,11 @@ struct TastePicksView: View {
 
     /// The selected medium, owned by the pager (`ContentView`) so its canvas and the header follow it.
     @Binding var medium: MediaKind
+    var scrollToTopTick: Int = 0
 
-    init(medium: Binding<MediaKind>) {
+    init(medium: Binding<MediaKind>, scrollToTopTick: Int = 0) {
         self._medium = medium
+        self.scrollToTopTick = scrollToTopTick
     }
     @State private var animePicks: [TasteCard] = []
     @State private var mangaPicks: [TasteCard] = []
@@ -48,6 +50,8 @@ struct TastePicksView: View {
     @State private var plans = TastePlanController()
     @State private var browseMode: TasteBrowseMode = .deck
     @State private var inlineDeck = TasteInlineDeckController()
+    @State private var feedScrollPosition = ScrollPosition(edge: .top)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let cap = 8
 
@@ -59,47 +63,30 @@ struct TastePicksView: View {
         let german = KuroLocale.isGerman
         GeometryReader { geo in
             let width = geo.size.width
-            ScrollView(.vertical, showsIndicators: false) {
-                TastePageContent(
-                    medium: $medium,
-                    state: state,
-                    newAccount: startedAsNewAccount ?? false,
-                    switchArt: switchArt,
-                    width: width,
-                    headerAccessory: showsDeckStage ? AnyView(TasteModeSwitch(mode: $browseMode, german: german)) : nil,
-                    topStage: (showsDeckStage && browseMode == .deck) ? AnyView(
-                        TasteSwipeDeckStage(
-                            medium: medium,
-                            controller: inlineDeck,
-                            german: german,
-                            onSkip: { card in
-                                guard let taste else { return }
-                                inlineDeck.skip(card, taste: taste)
-                            },
-                            onTrack: { card, status in
-                                guard let taste, let libraryActions else { return }
-                                inlineDeck.track(card, to: status, library: library, actions: libraryActions, taste: taste, plans: plans, german: german)
-                            },
-                            onUndo: {
-                                guard let taste, let libraryActions else { return }
-                                inlineDeck.undo(actions: libraryActions, taste: taste)
-                            },
-                            onRefresh: {
-                                guard let taste else { return }
-                                Task { await inlineDeck.refresh(for: medium, taste: taste, force: true) }
-                            },
-                            onOpen: { card in
-                                let kind: MediaKind = card.mediaType.uppercased() == "MANGA" ? .manga : .anime
-                                routes.openMedia(MediaRoute(kind: kind, id: card.mediaId))
-                            }
-                        )
-                    ) : nil,
-                    retry: { Task { await load() } },
-                    onFeedback: { card, feedback in recordFeedback(feedback, card: card) }
-                )
+            if showsDeckStage && browseMode == .deck {
+                pureDeckMode(width: width, german: german)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    TastePageContent(
+                        medium: $medium,
+                        state: state,
+                        newAccount: startedAsNewAccount ?? false,
+                        switchArt: switchArt,
+                        width: width,
+                        headerAccessory: showsDeckStage ? AnyView(TasteModeSwitch(mode: $browseMode, german: german)) : nil,
+                        topStage: nil,
+                        retry: { Task { await load() } },
+                        onFeedback: { card, feedback in recordFeedback(feedback, card: card) }
+                    )
+                }
+                .scrollPosition($feedScrollPosition)
+                .scrollDisabled(false)
+                .onChange(of: scrollToTopTick) { _, _ in
+                    let animation = KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
+                    withAnimation(animation) { feedScrollPosition.scrollTo(edge: .top) }
+                }
+                .background(TastePageContent.canvas(for: medium).ignoresSafeArea())
             }
-            .scrollDisabled(false)
-            .background(TastePageContent.canvas(for: medium).ignoresSafeArea())
         }
         .tastePlanHost(plans, offerSlot: true)
         .task {
@@ -135,6 +122,52 @@ struct TastePicksView: View {
                 Task { await inlineDeck.refresh(for: medium, taste: taste, force: true) }
             }
         }
+    }
+
+    @ViewBuilder
+    private func pureDeckMode(width: CGFloat, german: Bool) -> some View {
+        let metrics = TasteMetrics(pageWidth: width)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                KuroMediumSwitch(selection: $medium, size: .compact)
+                Spacer(minLength: 6)
+                TasteModeSwitch(mode: $browseMode, german: german)
+            }
+            .padding(.horizontal, metrics.openingGutter)
+            .padding(.top, 8)
+
+            TasteSwipeDeckStage(
+                medium: medium,
+                controller: inlineDeck,
+                german: german,
+                onSkip: { card in
+                    guard let taste else { return }
+                    inlineDeck.skip(card, taste: taste)
+                },
+                onTrack: { card, status in
+                    guard let taste, let libraryActions else { return }
+                    inlineDeck.track(card, to: status, library: library, actions: libraryActions, taste: taste, plans: plans, german: german)
+                },
+                onUndo: {
+                    guard let taste, let libraryActions else { return }
+                    inlineDeck.undo(actions: libraryActions, taste: taste)
+                },
+                onRefresh: {
+                    guard let taste else { return }
+                    Task { await inlineDeck.refresh(for: medium, taste: taste, force: true) }
+                },
+                onOpen: { card in
+                    let kind: MediaKind = card.mediaType.uppercased() == "MANGA" ? .manga : .anime
+                    routes.openMedia(MediaRoute(kind: kind, id: card.mediaId))
+                }
+            )
+            .padding(.horizontal, metrics.paperGutter)
+            .padding(.bottom, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .frame(width: width, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(TastePageContent.canvas(for: medium).ignoresSafeArea())
     }
 
     private func recordFeedback(_ feedback: DiscoverFeedback, card: TasteCard) {
@@ -322,7 +355,7 @@ struct TastePageContent: View {
     private var german: Bool { germanOverride ?? KuroLocale.isGerman }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        LazyVStack(alignment: .leading, spacing: 0) {
             TasteOpening(medium: $medium, artURL: switchArt, metrics: metrics,
                          kicker: TastePageCopy.kicker(german: german),
                          headline: TastePageCopy.opening(medium: medium, german: german))
@@ -2296,6 +2329,7 @@ final class TasteInlineDeckController {
     var loadFailed = false
     var isExhausted = false
     var lastUndo: UndoRecord? = nil
+    var judgedCount: Int = 0
 
     @ObservationIgnored private var accountId: String?
     @ObservationIgnored private var emptyRetryCountByMedium: [MediaKind: Int] = [:]
@@ -2310,6 +2344,7 @@ final class TasteInlineDeckController {
         loadFailed = false
         isExhausted = false
         lastUndo = nil
+        judgedCount = 0
         emptyRetryCountByMedium = [:]
     }
 
@@ -2359,6 +2394,7 @@ final class TasteInlineDeckController {
 
     func skip(_ card: TasteDeckCard, taste: TasteStore) {
         seenKeys.insert(card.stableKey)
+        judgedCount += 1
         lastUndo = UndoRecord(card: card, previousEntry: nil, createdEntry: false)
         taste.submitSignal(mediaType: card.mediaType, mediaId: card.mediaId, action: .skip)
         Task { [weak self] in
@@ -2382,8 +2418,14 @@ final class TasteInlineDeckController {
         guard let account = actions.accountSession.current else { return }
         let previous = library.entry(for: key)
         seenKeys.insert(card.stableKey)
+        judgedCount += 1
         lastUndo = UndoRecord(card: card, previousEntry: previous, createdEntry: previous == nil)
-        taste.submitSignal(mediaType: card.mediaType, mediaId: card.mediaId, action: .known)
+        let signalAction: TasteDeckAction = status == .planning ? .love : .known
+        taste.submitSignal(mediaType: card.mediaType, mediaId: card.mediaId, action: signalAction)
+
+        plans.showFeedbackToast(TastePlanCopy.statusMessage(status, kind: kind, german: german)) { [weak self] in
+            self?.undo(actions: actions, taste: taste)
+        }
 
         let autoTotal: Int? = {
             guard status == .completed, (previous == nil || previous?.progress == 0) else { return nil }
@@ -2408,7 +2450,6 @@ final class TasteInlineDeckController {
             if actions.accountSession.isCurrent(account), case .failed = outcome {
                 plans.dismiss()
             }
-            _ = german
             await self.ensureLoaded(for: kind, taste: taste, accountId: self.accountId)
         }
     }
@@ -2417,6 +2458,7 @@ final class TasteInlineDeckController {
         guard let record = lastUndo else { return }
         lastUndo = nil
         seenKeys.remove(record.card.stableKey)
+        judgedCount = max(0, judgedCount - 1)
         if !pool.contains(where: { $0.stableKey == record.card.stableKey }) {
             pool.insert(record.card, at: 0)
         } else if let idx = pool.firstIndex(where: { $0.stableKey == record.card.stableKey }) {
@@ -2446,10 +2488,9 @@ private struct TasteModeSwitch: View {
     let german: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
-            modePill(.deck, label: german ? "Deck" : "Deck")
-            modePill(.feed, label: german ? "Feed" : "Feed")
-            Spacer(minLength: 8)
+        HStack(spacing: 6) {
+            modePill(.deck, label: "Deck")
+            modePill(.feed, label: "Feed")
         }
     }
 
@@ -2460,11 +2501,11 @@ private struct TasteModeSwitch: View {
             mode = target
         } label: {
             Text(label.uppercased())
-                .font(.kuroCustom(10, weight: selected ? .semibold : .medium, relativeTo: .caption1, maxSize: 18))
-                .tracking(1.1)
+                .font(.kuroCustom(9.5, weight: selected ? .semibold : .medium, relativeTo: .caption2, maxSize: 16))
+                .tracking(1.05)
                 .foregroundStyle(selected ? Color.kuroCanvasHome : Color.kuroInk)
-                .padding(.horizontal, 14)
-                .frame(minHeight: 34)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 30)
                 .background(
                     Capsule(style: .continuous)
                         .fill(selected ? Color.kuroInk : Color.kuroPaper)
@@ -2497,12 +2538,18 @@ private struct TasteSwipeDeckStage: View {
     private var cards: [TasteDeckCard] { controller.queue(for: medium) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 8) {
-                Text(german ? "KURATIERTES DECK" : "QUICK TRIAGE")
+                Text(german ? "KURATIERTES DECK" : "TASTE DECK")
                     .font(.kuroCustom(9, weight: .semibold, relativeTo: .caption2, maxSize: 16))
                     .tracking(1.2)
                     .foregroundStyle(Color.kuroMuted)
+                if controller.judgedCount > 0 {
+                    Text(german ? "· \(controller.judgedCount) bewertet" : "· \(controller.judgedCount) judged")
+                        .font(.kuroCustom(9.5, weight: .medium, relativeTo: .caption2, maxSize: 16))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.kuroInkSecondary)
+                }
                 Spacer(minLength: 8)
                 if controller.lastUndo != nil {
                     Button {
@@ -2512,8 +2559,8 @@ private struct TasteSwipeDeckStage: View {
                         Label(german ? "Rückgängig" : "Undo", systemImage: "arrow.uturn.backward")
                             .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 20))
                             .foregroundStyle(Color.kuroInk)
-                            .padding(.horizontal, 10)
-                            .frame(minHeight: 44)
+                            .padding(.horizontal, 8)
+                            .frame(minHeight: 36)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -2521,16 +2568,21 @@ private struct TasteSwipeDeckStage: View {
             }
 
             if let top = cards.first {
-                deckStack(Array(cards.prefix(3)))
-                    .kuroSwipeExclusionZone()
+                GeometryReader { cardGeo in
+                    let stackHeight = max(280, cardGeo.size.height)
+                    deckStack(Array(cards.prefix(3)), height: stackHeight)
+                        .kuroSwipeExclusionZone()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 actionRow(for: top)
             } else if controller.isLoading {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color.kuroPaper)
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
-                    .frame(height: 360)
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .overlay { KuroLoadingView(scope: .inline) }
             } else {
+                Spacer(minLength: 0)
                 VStack(alignment: .leading, spacing: 10) {
                     Text(controller.loadFailed
                          ? (german ? "Deck gerade nicht erreichbar." : "Deck couldn't load right now.")
@@ -2549,20 +2601,23 @@ private struct TasteSwipeDeckStage: View {
                     .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(Color.kuroPaper, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
+                .padding(18)
+                .background(Color.kuroPaper, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
+                Spacer(minLength: 0)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func deckStack(_ visible: [TasteDeckCard]) -> some View {
-        ZStack {
+    private func deckStack(_ visible: [TasteDeckCard], height: CGFloat) -> some View {
+        let usableHeight = max(240, height - 10)
+        return ZStack {
             ForEach(Array(visible.enumerated().reversed()), id: \.element.id) { index, card in
                 let isTop = index == 0
-                deckCardView(card, isTop: isTop)
-                    .scaleEffect(isTop ? 1.0 : (index == 1 ? 0.96 : 0.92))
-                    .offset(y: CGFloat(index) * 10)
+                deckCardView(card, isTop: isTop, height: usableHeight)
+                    .scaleEffect(isTop ? 1.0 : (index == 1 ? 0.965 : 0.93))
+                    .offset(y: CGFloat(index) * 8)
                     .offset(isTop ? dragOffset : .zero)
                     .rotationEffect(
                         isTop && !reduceMotion
@@ -2573,26 +2628,28 @@ private struct TasteSwipeDeckStage: View {
                     .gesture(isTop ? cardDragGesture(for: card) : nil)
             }
         }
-        .padding(.bottom, visible.count > 1 ? 14 : 0)
+        .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
     }
 
     private func cardDragGesture(for card: TasteDeckCard) -> some Gesture {
-        DragGesture(minimumDistance: 16)
+        DragGesture(minimumDistance: 12)
             .onChanged { value in
                 dragOffset = value.translation
             }
             .onEnded { value in
                 let dx = value.translation.width
                 let dy = value.translation.height
-                if dx < -85 {
+                let predictedDx = value.predictedEndTranslation.width
+                let predictedDy = value.predictedEndTranslation.height
+                if dx < -85 || predictedDx < -180 {
                     dragOffset = .zero
                     KuroAccessibility.selectionHaptic()
                     onSkip(card)
-                } else if dx > 85 {
+                } else if dx > 85 || predictedDx > 180 {
                     dragOffset = .zero
                     KuroAccessibility.successHaptic()
                     onTrack(card, .planning)
-                } else if dy < -95 && abs(dy) > abs(dx) {
+                } else if (dy < -85 || predictedDy < -180) && abs(dy) > abs(dx) {
                     dragOffset = .zero
                     KuroAccessibility.successHaptic()
                     onTrack(card, .current)
@@ -2606,7 +2663,7 @@ private struct TasteSwipeDeckStage: View {
             }
     }
 
-    private func deckCardView(_ card: TasteDeckCard, isTop: Bool) -> some View {
+    private func deckCardView(_ card: TasteDeckCard, isTop: Bool, height: CGFloat) -> some View {
         let synopsis = TextNormalization.sanitizeMediaDescription(card.synopsis)
         let activeLabel: String? = {
             guard isTop else { return nil }
@@ -2617,83 +2674,95 @@ private struct TasteSwipeDeckStage: View {
             }
             return nil
         }()
+        let posterHeight = max(160, (height * 0.62).rounded(.down))
 
         return Button {
             onOpen(card)
         } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 14) {
-                    KuroCachedAsyncImage(url: card.imageURL, maxPixelSize: 420) { phase in
-                        if case .success(let image) = phase {
-                            image.resizable().scaledToFill()
-                        } else {
-                            Color.kuroMissingArt
+            VStack(alignment: .leading, spacing: 0) {
+                ZStack(alignment: .bottomLeading) {
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: posterHeight)
+                        .overlay {
+                            KuroCachedAsyncImage(url: card.imageURL, maxPixelSize: 720) { phase in
+                                if case .success(let image) = phase {
+                                    image.resizable().scaledToFill()
+                                } else {
+                                    Color.kuroMissingArt
+                                }
+                            }
                         }
+                        .clipped()
+                    LinearGradient(
+                        colors: [.clear, Color.black.opacity(0.45)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                    .allowsHitTesting(false)
+
+                    if let score = card.averageScore, score > 0 {
+                        Text(String(format: "%.1f ★", Double(score) / 10.0))
+                            .font(.kuroCustom(11, weight: .semibold, relativeTo: .caption1, maxSize: 18))
+                            .monospacedDigit()
+                            .foregroundStyle(Color.white)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.62), in: Capsule(style: .continuous))
+                            .padding(12)
                     }
-                    .frame(width: 108, height: 158)
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 0.5))
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(KuroCardText.sanitizeTitleForCard(card.title))
-                            .font(.kuroTitle(weight: .semibold))
-                            .foregroundStyle(Color.kuroInk)
-                            .lineLimit(3)
-                            .multilineTextAlignment(.leading)
-
-                        if !card.captionLine.isEmpty {
-                            Text(card.captionLine)
-                                .font(.kuroMeta())
-                                .foregroundStyle(Color.kuroInkSecondary)
-                                .lineLimit(2)
-                        }
-
-                        let chips = card.metaChips
-                        if !chips.isEmpty {
-                            Text(chips.joined(separator: " · "))
-                                .font(.kuroCustom(10, weight: .medium, relativeTo: .caption2, maxSize: 18))
-                                .monospacedDigit()
-                                .foregroundStyle(Color.kuroMuted)
-                                .lineLimit(1)
-                        }
-
-                        if let score = card.averageScore, score > 0 {
-                            Text(String(format: "%.1f ★", Double(score) / 10.0))
-                                .font(.kuroCustom(11, weight: .semibold, relativeTo: .caption1, maxSize: 20))
-                                .monospacedDigit()
-                                .foregroundStyle(Color.kuroInk)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                if let synopsis, !synopsis.isEmpty {
-                    Text(synopsis)
-                        .font(.kuroBody())
-                        .foregroundStyle(Color.kuroInkSecondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(KuroCardText.sanitizeTitleForCard(card.title))
+                        .font(.kuroTitle(weight: .semibold))
+                        .foregroundStyle(Color.kuroInk)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
+
+                    let chips = card.metaChips
+                    let metaParts = [card.captionLine, chips.joined(separator: " · ")].filter { !$0.isEmpty }
+                    if !metaParts.isEmpty {
+                        Text(metaParts.joined(separator: " · "))
+                            .font(.kuroMeta())
+                            .monospacedDigit()
+                            .foregroundStyle(Color.kuroMuted)
+                            .lineLimit(1)
+                    }
+
+                    if let synopsis, !synopsis.isEmpty {
+                        Text(synopsis)
+                            .font(.kuroBody())
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .lineLimit(height > 460 ? 3 : 2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.kuroPaper, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
-            .shadow(color: Color.black.opacity(isTop ? 0.08 : 0.03), radius: isTop ? 10 : 4, y: 4)
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .background(Color.kuroPaper)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
+            .shadow(color: Color.black.opacity(isTop ? 0.08 : 0.02), radius: isTop ? 8 : 3, y: 3)
             .overlay(alignment: .topTrailing) {
                 if let activeLabel {
                     Text(activeLabel)
-                        .font(.kuroCustom(11, weight: .bold, relativeTo: .caption1, maxSize: 20))
+                        .font(.kuroCustom(12, weight: .bold, relativeTo: .caption1, maxSize: 20))
                         .tracking(1.4)
                         .foregroundStyle(Color.kuroCanvasHome)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
                         .background(Color.kuroInk, in: Capsule(style: .continuous))
-                        .padding(12)
+                        .padding(14)
                 }
             }
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
     }

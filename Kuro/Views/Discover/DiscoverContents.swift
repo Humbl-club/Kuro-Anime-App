@@ -14,8 +14,10 @@ import SwiftUI
 struct DiscoverQuickFindBar: View {
     let canSearch: Bool
     let canFilter: Bool
+    var canSchedule: Bool = false
     let onSearch: () -> Void
     let onFilter: () -> Void
+    var onSchedule: (() -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -27,14 +29,49 @@ struct DiscoverQuickFindBar: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 8) {
                 if canSearch { searchButton }
-                if canFilter { filterButton(fullWidth: true) }
+                HStack(spacing: 8) {
+                    if canSchedule { scheduleButton(fullWidth: !canFilter) }
+                    if canFilter { filterButton(fullWidth: !canSchedule) }
+                }
             }
         } else {
             HStack(spacing: 8) {
                 if canSearch { searchButton }
-                if canFilter { filterButton(fullWidth: !canSearch) }
+                if canSchedule { scheduleButton(fullWidth: false) }
+                if canFilter { filterButton(fullWidth: !canSearch && !canSchedule) }
             }
         }
+    }
+
+    private func scheduleButton(fullWidth: Bool) -> some View {
+        Button {
+            guard TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps) else { return }
+            KuroAccessibility.impactHaptic(.light)
+            onSchedule?()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "calendar")
+                    .font(.kuroCustom(13, weight: .semibold, relativeTo: .footnote, maxSize: 22))
+                    .foregroundStyle(Color.kuroControlInk)
+                    .accessibilityHidden(true)
+                Text(german ? "Plan" : "Schedule")
+                    .font(.kuroCustom(13, weight: .semibold, relativeTo: .footnote, maxSize: 22))
+                    .foregroundStyle(Color.kuroControlInk)
+                    .lineLimit(1)
+                if fullWidth {
+                    Spacer(minLength: 4)
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 46)
+            .frame(maxWidth: fullWidth ? .infinity : nil, alignment: .leading)
+            .background(Color.kuroControlFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(HomeContactStyle())
+        .accessibilityLabel(german ? "7-Tage-Release-Kalender" : "7-day release schedule")
     }
 
     private var searchButton: some View {

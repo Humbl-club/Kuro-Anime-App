@@ -69,6 +69,7 @@ struct DiscoverIssueRail: View {
     var ownCards: [TasteCard] = []
     var refinePool: [TasteCard] = []
     var airingSlots: [Int: DiscoverAiringSlot] = [:]
+    var mangaSlots: [Int: DiscoverMangaSlot] = [:]
     var showsEpisodeBadge: Bool = false
     var onSeeAll: (() -> Void)? = nil
     /// See all with the rail's refinement selected (R6); falls back to `onSeeAll`.
@@ -109,6 +110,7 @@ struct DiscoverIssueRail: View {
                                 height: cover.height,
                                 position: index,
                                 airing: card.media.kind == .anime ? airingSlots[card.media.id] : nil,
+                                mangaSlot: card.media.kind == .manga ? mangaSlots[card.media.id] : nil,
                                 showsEpisodeBadge: showsEpisodeBadge
                             )
                                 .transition(DiscoverCardMotion.transition(motion: motion))

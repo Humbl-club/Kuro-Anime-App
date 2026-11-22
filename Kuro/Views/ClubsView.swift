@@ -26,6 +26,7 @@ struct ClubsView: View {
     @State private var actionScope = AccountActionScope()
 
     @Binding var pendingJoinCode: String?
+    var scrollToTopTick: Int = 0
 
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
@@ -41,9 +42,12 @@ struct ClubsView: View {
     @State private var containerWidth: CGFloat = 0
     /// The page's measured height: the failed / offline states sit where Discover's do (× 0.8).
     @State private var containerHeight: CGFloat = 0
+    @State private var scrollPosition = ScrollPosition(edge: .top)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(pendingJoinCode: Binding<String?> = .constant(nil)) {
+    init(pendingJoinCode: Binding<String?> = .constant(nil), scrollToTopTick: Int = 0) {
         _pendingJoinCode = pendingJoinCode
+        self.scrollToTopTick = scrollToTopTick
     }
 
     private var listState: ClubsListState {
@@ -71,6 +75,11 @@ struct ClubsView: View {
                     .padding(.top, ClubRoomLayout.top)
                     .padding(.bottom, KuroDesignSpacing.lg)
                     .kuroReadableWidth()
+            }
+            .scrollPosition($scrollPosition)
+            .onChange(of: scrollToTopTick) { _, _ in
+                let animation = KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
+                withAnimation(animation) { scrollPosition.scrollTo(edge: .top) }
             }
             .refreshable {
                 guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }

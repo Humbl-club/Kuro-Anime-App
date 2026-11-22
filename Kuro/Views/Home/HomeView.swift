@@ -70,6 +70,7 @@ struct HomeView: View {
     /// `TastePageCopy.latchNewAccount` over the whole Library, held by the pager (`ContentView`) so
     /// its background and this page agree; nil when not known (previews, fixtures).
     private let newAccountLatch: Bool?
+    private let scrollToTopTick: Int
 
     init(skipNetworkLoad: Bool = false, onOpenImport: (() -> Void)? = nil,
          onFindTitle: ((String) -> Void)? = nil,
@@ -78,6 +79,7 @@ struct HomeView: View {
          onExploreTaste: (() -> Void)? = nil,
          onOpenClubs: (() -> Void)? = nil,
          newAccountLatch: Bool? = nil,
+         scrollToTopTick: Int = 0,
          progressToasts: HomeProgressToasts? = nil) {
         self.skipNetworkLoad = skipNetworkLoad
         self.onOpenImport = onOpenImport
@@ -87,161 +89,169 @@ struct HomeView: View {
         self.onExploreTaste = onExploreTaste
         self.onOpenClubs = onOpenClubs
         self.newAccountLatch = newAccountLatch
+        self.scrollToTopTick = scrollToTopTick
         // A caller's slot (fixtures render the toast after a real +1); otherwise Home's own.
         self._progressToasts = State(initialValue: progressToasts ?? HomeProgressToasts())
         self._scheduleChecked = State(initialValue: skipNetworkLoad)
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            let currentMedium = home.medium
+        homeOverlayStage
+            // The account's release schedule: on first appearance, after an account change and after a
+            // Library change reached Home (a new revision). `ReleasesStore` caches per account for five
+            // minutes and drops that cache on membership changes, so a repeat costs nothing.
+            // Also on every return to the foreground: the store's five-minute answer is re-read when it is
+            // stale or holds a release whose moment has passed, so the next unit appears.
+            .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)|\(scenePhase == .active)") {
+                guard !skipNetworkLoad, scenePhase == .active else { return }
+                await releases.loadSchedule()
+                guard !Task.isCancelled else { return }
+                scheduleChecked = true
+            }
+            .sheet(isPresented: $showImportChooser) {
+                ImportSourceChooser { destination in
+                    showImportChooser = false
+                    onImportNavigation?(destination)
+                }
+            }
+            // N10: a deep link collapses this page's own sheets too.
+            .kuroNavigationLayer("home.import", isPresented: $showImportChooser)
+            .sheet(isPresented: $showImportRecovery) {
+                ImportWorkflowSheet(imports: imports, job: importRecoveryJob) { destination in
+                    showImportRecovery = false
+                    onImportNavigation?(destination)
+                }
+            }
+            .kuroNavigationLayer("home.importRecovery", isPresented: $showImportRecovery)
+            .task {
+                await performInitialLoad()
+            }
+    }
+
+    private var homeOverlayStage: some View {
+        homeScrollStage
+            // Outside the scroll view, so the new-account block's Plan toast sits at the screen foot.
+            .tastePlanHost(plans)
+            // The +1 toast, in the same slot: one result toast on Home at a time.
+            .overlay(alignment: .bottom) {
+                // The release alert offer (W3a) shares this foot slot, above the toast.
+                ReleaseAlertOfferStack(hasToast: progressToasts.toast != nil || plans.toast != nil) { progressToast }
+            }
+            .kuroAnimation(KuroMotion.contact, value: progressToasts.toast?.id)
+            .onChange(of: plans.toast?.id) { _, id in if id != nil { progressToasts.dismiss() } }
+            .onChange(of: plans.inFlight.isEmpty) { _, empty in
+                if !empty && showsNewAccount { starterPlanHold = true }
+            }
+            .onChange(of: home.medium) { _, _ in
+                progressToasts.dismiss()
+                starterPlanHold = false
+                plannedStartUndo = nil
+            }
+            .onAppear {
+                resetPresentationForAccount()
+                actionScope.activate(session: libraryActions.accountSession)
+            }
+            .onChange(of: home.privacyEpoch) { _, _ in resetPresentationForAccount() }
+            // Leaving `.loaded` (sign-out, account switch, reload) ends the Plan toast and its Undo.
+            .onChange(of: library.loadState) { _, state in
+                if state != .loaded { plans.dismiss(); progressToasts.dismiss(); plannedStartUndo = nil }
+            }
+            // The private club room's clubs (`ClubsStore` keeps a 60 s window, so a revisit costs nothing).
+            .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)") {
+                guard !skipNetworkLoad else { return }
+                await clubs.refreshMyClubsIfStale()
+            }
+            .onDisappear {
+                actionScope.deactivate()
+                starterPlanHold = false
+            }
+    }
+
+    private var homeScrollStage: some View {
+        homeScrollReader
+            // The container is measured outside anything the content can widen: a frame with both bounds
+            // takes the proposed size whatever its child asks. Measured on the scroll view itself, a
+            // fixed-width child laid out from the 375 pt fallback (the manga leaves' grid) held the scroll
+            // view at 374 pt on a 320 pt phone, so the page never shrank to the real column.
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
+            .tint(Color.kuroInk)
+    }
+
+    private var homeScrollReader: some View {
+        let currentMedium = home.medium
+        let initialOffset = currentMedium == "manga" ? scrollMemory.manga : scrollMemory.anime
+        return ScrollViewReader { proxy in
             HomeMediumScroll(
-                initialOffset: currentMedium == "manga" ? scrollMemory.manga : scrollMemory.anime,
-                onOffsetChange: { value in
-                    if currentMedium == "manga" {
-                        scrollMemory.manga = value
-                    } else {
-                        scrollMemory.anime = value
-                    }
-                }
+                initialOffset: initialOffset,
+                scrollToTopTick: scrollToTopTick,
+                onOffsetChange: { value in recordScrollOffset(value, medium: currentMedium) },
+                onRefresh: refreshAction
             ) {
-                VStack(alignment: .leading, spacing: 12) {
-                    mediumSwitch
-                    importRecoveryBanner
-                    if let conflict = library.progressConflict {
-                        KuroProgressConflictBanner(
-                            localPosition: conflict.localPosition,
-                            serverPosition: conflict.serverPosition,
-                            onKeepServer: {
-                                let origin = actionScope.capture(session: libraryActions.accountSession)
-                                perform(origin: origin) {
-                                    await libraryActions.resolveProgressConflict(reapply: false, expected: conflict)
-                                }
-                            },
-                            onUseMine: {
-                                let origin = actionScope.capture(session: libraryActions.accountSession)
-                                perform(origin: origin) {
-                                    await libraryActions.resolveProgressConflict(reapply: true, expected: conflict)
-                                }
-                            }
-                        )
+                homeFeedStack(proxy: proxy)
+            }
+            .id(currentMedium)
+        }
+    }
+
+    @ViewBuilder
+    private func homeFeedStack(proxy: ScrollViewProxy) -> some View {
+        LazyVStack(alignment: .leading, spacing: 12) {
+            mediumSwitch
+            importRecoveryBanner
+            if let conflict = library.progressConflict {
+                KuroProgressConflictBanner(
+                    localPosition: conflict.localPosition,
+                    serverPosition: conflict.serverPosition,
+                    onKeepServer: {
+                        let origin = actionScope.capture(session: libraryActions.accountSession)
+                        perform(origin: origin) {
+                            await libraryActions.resolveProgressConflict(reapply: false, expected: conflict)
+                        }
+                    },
+                    onUseMine: {
+                        let origin = actionScope.capture(session: libraryActions.accountSession)
+                        perform(origin: origin) {
+                            await libraryActions.resolveProgressConflict(reapply: true, expected: conflict)
+                        }
                     }
-                    shelfBody(proxy: proxy)
-                    if showsFooter {
-                        // The page footer, last in the scroll content (PROTOTYPE_SPEC.md §4 "Footer"),
-                        // on the paper feed's side padding.
-                        HomeFooter()
-                            .padding(.horizontal, HomeFeedInsets.feed)
-                    }
-                }
-                .padding(.horizontal, gutter)
-                .padding(.top, 7)
-                .padding(.bottom, showsFooter ? 0 : 40)
-                .frame(maxWidth: .infinity, minHeight: showsInvitation ? invitationHeight : 0, alignment: .topLeading)
-                .kuroReadableWidth()
+                )
             }
-            .id(home.medium)
-        }
-        // The container is measured outside anything the content can widen: a frame with both bounds
-        // takes the proposed size whatever its child asks. Measured on the scroll view itself, a
-        // fixed-width child laid out from the 375 pt fallback (the manga leaves' grid) held the scroll
-        // view at 374 pt on a 320 pt phone, so the page never shrank to the real column.
-        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-        .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
-        .background(Color.clear)
-        .tint(Color.kuroInk)
-        // Outside the scroll view, so the new-account block's Plan toast sits at the screen foot.
-        .tastePlanHost(plans)
-        // The +1 toast, in the same slot: one result toast on Home at a time.
-        .overlay(alignment: .bottom) {
-            // The release alert offer (W3a) shares this foot slot, above the toast.
-            ReleaseAlertOfferStack(hasToast: progressToasts.toast != nil || plans.toast != nil) { progressToast }
-        }
-        .kuroAnimation(KuroMotion.contact, value: progressToasts.toast?.id)
-        .onChange(of: plans.toast?.id) { _, id in if id != nil { progressToasts.dismiss() } }
-        .onChange(of: plans.inFlight.isEmpty) { _, empty in
-            if !empty && showsNewAccount { starterPlanHold = true }
-        }
-        .onChange(of: home.medium) { _, _ in
-            progressToasts.dismiss()
-            starterPlanHold = false
-            plannedStartUndo = nil
-        }
-        .onAppear {
-            resetPresentationForAccount()
-            actionScope.activate(session: libraryActions.accountSession)
-        }
-        .onChange(of: home.privacyEpoch) { _, _ in resetPresentationForAccount() }
-        // Leaving `.loaded` (sign-out, account switch, reload) ends the Plan toast and its Undo.
-        .onChange(of: library.loadState) { _, state in
-            if state != .loaded { plans.dismiss(); progressToasts.dismiss(); plannedStartUndo = nil }
-        }
-        // The private club room's clubs (`ClubsStore` keeps a 60 s window, so a revisit costs nothing).
-        .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)") {
-            guard !skipNetworkLoad else { return }
-            await clubs.refreshMyClubsIfStale()
-        }
-        .onDisappear {
-            actionScope.deactivate()
-            starterPlanHold = false
-        }
-        // The account's release schedule: on first appearance, after an account change and after a
-        // Library change reached Home (a new revision). `ReleasesStore` caches per account for five
-        // minutes and drops that cache on membership changes, so a repeat costs nothing.
-        // Also on every return to the foreground: the store's five-minute answer is re-read when it is
-        // stale or holds a release whose moment has passed, so the next unit appears.
-        .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)|\(scenePhase == .active)") {
-            guard !skipNetworkLoad, scenePhase == .active else { return }
-            await releases.loadSchedule()
-            guard !Task.isCancelled else { return }
-            scheduleChecked = true
-        }
-        .sheet(isPresented: $showImportChooser) {
-            ImportSourceChooser { destination in
-                showImportChooser = false
-                onImportNavigation?(destination)
+            shelfBody(proxy: proxy)
+            if showsFooter {
+                // The page footer, last in the scroll content (PROTOTYPE_SPEC.md §4 "Footer"),
+                // on the paper feed's side padding.
+                HomeFooter()
+                    .padding(.horizontal, HomeFeedInsets.feed)
             }
         }
-        // N10: a deep link collapses this page's own sheets too.
-        .kuroNavigationLayer("home.import", isPresented: $showImportChooser)
-        .sheet(isPresented: $showImportRecovery) {
-            ImportWorkflowSheet(imports: imports, job: importRecoveryJob) { destination in
-                showImportRecovery = false
-                onImportNavigation?(destination)
-            }
+        .padding(.horizontal, gutter)
+        .padding(.top, 7)
+        .padding(.bottom, showsFooter ? 0 : 40)
+        .frame(maxWidth: .infinity, minHeight: showsInvitation ? invitationHeight : 0, alignment: .topLeading)
+        .kuroReadableWidth()
+    }
+
+    private var refreshAction: (@MainActor @Sendable () async -> Void)? {
+        guard !skipNetworkLoad else { return nil }
+        return { await performRefresh() }
+    }
+
+    private func recordScrollOffset(_ value: CGFloat, medium: String) {
+        if medium == "manga" {
+            scrollMemory.manga = value
+        } else {
+            scrollMemory.anime = value
         }
-        .kuroNavigationLayer("home.importRecovery", isPresented: $showImportRecovery)
-        .task {
-            guard !skipNetworkLoad else { return }
-            home.restoreMedium()
-            #if DEBUG
-            if let raw = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--kuro-home-medium=") }),
-               let value = raw.split(separator: "=", maxSplits: 1).last {
-                home.selectMedium(String(value))
-            }
-            if ProcessInfo.processInfo.arguments.contains("--kuro-show-import") {
-                showImportChooser = true
-            }
-            if ProcessInfo.processInfo.arguments.contains("--kuro-seed-samples") {
-                let samples: [(MediaKind, Int, ListStatus)] = [
-                    (.anime, 117, .current),
-                    (.anime, 758, .planning),
-                    (.anime, 4525, .planning),
-                    (.manga, 5, .current),
-                    (.manga, 11, .planning)
-                ]
-                for sample in samples {
-                    let outcome = await libraryActions.save(MediaKey(kind: sample.0, id: sample.1), status: sample.2)
-                    if case .failed(let error) = outcome {
-                        print("Home sample \(sample.1) was not saved: \(error)")
-                    }
-                }
-            }
-            #endif
-            await home.load()
-            await home.drain()
-            _ = try? await imports.discoverPendingImports()
-        }
+    }
+
+    private func performRefresh() async {
+        await home.drain()
+        async let homeLoad: Void = home.load()
+        async let scheduleLoad = releases.loadSchedule(force: true)
+        async let clubsLoad: Void = clubs.refreshMyClubsIfStale()
+        async let libraryLoad: Void? = try? library.refresh()
+        _ = await (homeLoad, scheduleLoad, clubsLoad, libraryLoad)
     }
 
     // MARK: State
@@ -263,6 +273,38 @@ struct HomeView: View {
         progressToasts.dismiss()
         newAccountArt = [:]
         showImportRecovery = false; importRecoveryJob = nil; showImportChooser = false
+    }
+
+    private func performInitialLoad() async {
+        guard !skipNetworkLoad else { return }
+        home.restoreMedium()
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--kuro-home-medium=") }),
+           let value = raw.split(separator: "=", maxSplits: 1).last {
+            home.selectMedium(String(value))
+        }
+        if ProcessInfo.processInfo.arguments.contains("--kuro-show-import") {
+            showImportChooser = true
+        }
+        if ProcessInfo.processInfo.arguments.contains("--kuro-seed-samples") {
+            let samples: [(MediaKind, Int, ListStatus)] = [
+                (.anime, 117, .current),
+                (.anime, 758, .planning),
+                (.anime, 4525, .planning),
+                (.manga, 5, .current),
+                (.manga, 11, .planning)
+            ]
+            for sample in samples {
+                let outcome = await libraryActions.save(MediaKey(kind: sample.0, id: sample.1), status: sample.2)
+                if case .failed(let error) = outcome {
+                    print("Home sample \(sample.1) was not saved: \(error)")
+                }
+            }
+        }
+        #endif
+        await home.load()
+        await home.drain()
+        _ = try? await imports.discoverPendingImports()
     }
 
     private var mediumKind: MediaKind { home.medium == "manga" ? .manga : .anime }
@@ -977,6 +1019,7 @@ struct HomeView: View {
     }
 
     private func animeScene(_ card: HomeCard) -> some View {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
         let state = keyState(card)
         let units = availableUnits(card)
         let fact = HomeSceneFact.make(
@@ -995,6 +1038,8 @@ struct HomeView: View {
             compact: compactColumn,
             zoomSourceID: zID,
             nextRelease: nextReleaseForCard(card),
+            onSetStatus: { status in setCardStatus(card, to: status, origin: origin) },
+            onEdit: { editCard(card) },
             onOpen: { open(card, zoomSourceID: zID) },
             // The season overview is a journey (navigation contract N8): its rows push titles.
             onSeason: { routes.openPage(HomeSeasonJourney.page(for: card)) },
@@ -1037,11 +1082,68 @@ struct HomeView: View {
     // MARK: Manga ("Now reading" leaves: equal covers, the chapter count and the solid manga key)
 
     private func mangaLeaves(_ cards: [HomeCard]) -> some View {
-        HomeMangaLeaves(cards: cards, containerWidth: contentWidth,
-                        readout: { card in mangaReadout(card) },
-                        onOpen: { open($0) }) { card in
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        return HomeMangaLeaves(cards: cards, containerWidth: contentWidth,
+                               readout: { card in mangaReadout(card) },
+                               onOpen: { open($0) },
+                               onSetStatus: { card, status in setCardStatus(card, to: status, origin: origin) },
+                               onEdit: { card in editCard(card) }) { card in
             advanceKey(card, style: .dark)
         }
+    }
+
+    private func setCardStatus(_ card: HomeCard, to status: ListStatus, origin: AccountActionScope.Ticket?) {
+        let renderedKind = mediumKind
+        let key = MediaKey(kind: renderedKind, id: card.mediaId)
+        let cap = renderedKind == .manga ? card.chapters : card.episodes
+        let progressEdit: FieldChange<Int> = {
+            if status == .completed, let cap, cap > 0, home.displayedProgress(for: card) < cap {
+                return .set(cap)
+            }
+            return .unchanged
+        }()
+        performTicketed(origin: origin) { ticket in
+            let outcome = await libraryActions.apply(
+                LibraryEdit(status: .set(status), progress: progressEdit),
+                to: key,
+                createIfMissing: status
+            )
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            let german = KuroLocale.isGerman
+            if case .failed = outcome {
+                KuroAccessibility.errorHaptic()
+                progressToasts.show(HomeProgressToastCopy.message(.failed, german: german), undo: nil)
+                return
+            }
+            KuroAccessibility.successHaptic()
+            plans.dismiss()
+            let label = DiscoverPlanKey.menuChoiceTitle(status, kind: renderedKind, german: german)
+            progressToasts.show("\(card.title): \(label)", undo: nil)
+            if !skipNetworkLoad {
+                await home.load()
+            }
+        }
+    }
+
+    private func editCard(_ card: HomeCard) {
+        let media = Media(
+            id: card.mediaId,
+            kind: mediumKind,
+            title: card.title,
+            imageURL: card.coverImage ?? card.bannerImage,
+            year: "",
+            displayDescription: "",
+            episodes: card.episodes,
+            chapters: card.chapters,
+            rating: nil,
+            genres: nil,
+            statusRaw: card.catalogueStatus,
+            formatRaw: card.format,
+            popularityValue: nil,
+            trendingValue: nil,
+            createdAtValue: nil
+        )
+        routes.presentTrackingEditor(TrackingEditorRequest(media: media))
     }
 
     /// One leaf's "Ch. N" readout: the same count, caught-up rule and spoken label as the key,
@@ -1663,12 +1765,16 @@ private final class HomeScrollMemory {
 /// offset in the account-keyed reference box; each medium restores its own offset on remount.
 private struct HomeMediumScroll<Content: View>: View {
     let initialOffset: CGFloat
+    var scrollToTopTick: Int = 0
     let onOffsetChange: (CGFloat) -> Void
+    var onRefresh: (@MainActor @Sendable () async -> Void)? = nil
     @ViewBuilder let content: () -> Content
     @State private var position = ScrollPosition(edge: .top)
     @State private var restored = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        ScrollView { content() }
+        baseScroll
             .scrollContentBackground(.hidden)
             .scrollPosition($position)
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
@@ -1676,10 +1782,24 @@ private struct HomeMediumScroll<Content: View>: View {
             } action: { _, value in
                 if restored { onOffsetChange(value) }
             }
+            .onChange(of: scrollToTopTick) { _, _ in
+                let animation = KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
+                withAnimation(animation) { position.scrollTo(edge: .top) }
+            }
             .task {
                 position.scrollTo(y: initialOffset)
                 restored = true
             }
+    }
+
+    @ViewBuilder
+    private var baseScroll: some View {
+        if let onRefresh {
+            ScrollView { content() }
+                .refreshable { await onRefresh() }
+        } else {
+            ScrollView { content() }
+        }
     }
 }
 

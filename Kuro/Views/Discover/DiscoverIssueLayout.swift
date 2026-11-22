@@ -21,20 +21,20 @@ nonisolated enum DiscoverIssueLayout {
 
     /// Top of the content under the header (Home's 7).
     static let top: CGFloat = 7
-    /// Between the opening blocks (opening row → switch is 6; switch → story → glance → contents 12).
-    static let openingToSwitch: CGFloat = 6
-    static let openingStack: CGFloat = 12
-    /// Above the first section after the contents line, then between sections (the calendar's 32).
-    static let firstSection: CGFloat = 28
-    static let section: CGFloat = 32
+    /// Between the opening blocks (tightened so switch, bar, moods and lead sit crisp).
+    static let openingToSwitch: CGFloat = 4
+    static let openingStack: CGFloat = 10
+    /// Above the first section after the contents line, then between sections.
+    static let firstSection: CGFloat = 22
+    static let section: CGFloat = 26
     /// Section heading → its content (the calendar heading's 17).
     static let headingToContent: CGFloat = 17
     /// Heading → purpose line, and purpose line → content (usability spec §5.6).
     static let headingToPurpose: CGFloat = 6
     static let purposeToContent: CGFloat = 14
     /// Above the mood keys and above the end block (usability spec §4).
-    static let moods: CGFloat = 12
-    static let end: CGFloat = 32
+    static let moods: CGFloat = 10
+    static let end: CGFloat = 26
     /// Each section claims its shown titles plus this many unclaimed ones as its refill reserve (§5.1).
     static let reserve = 6
     /// At most this many sections on the page; the rest are More lists (R7, D7).

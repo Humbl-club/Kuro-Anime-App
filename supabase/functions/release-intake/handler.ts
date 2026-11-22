@@ -24,6 +24,7 @@ import {
 } from "../bulk-import-anime/persistence.ts";
 import { groupIsAniListOwned, readCutoverModes } from "../_shared/catalogue/field_groups.ts";
 import { runAiringWindow } from "./airing.ts";
+import { runJikanSchedule } from "./jikan_schedule.ts";
 import { type MangaDexLinkReader, runMangaReleases } from "./manga.ts";
 import { runSyoboiAiring } from "./syoboi.ts";
 
@@ -36,6 +37,7 @@ export interface ReleaseIntakeDeps {
   /** Official-publisher MangaUpdates group ids whose release dates may be used (default none). */
   muOfficialGroupIds?: number[];
   syoboiFetch?: typeof fetch;
+  jikanFetch?: typeof fetch;
   now?: () => number;
 }
 
@@ -52,8 +54,8 @@ function clampInt(raw: unknown, fallback: number, min: number, max: number): num
 // deno-lint-ignore no-explicit-any
 export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Response> {
   const mode = String(payload?.mode ?? "").trim().toLowerCase();
-  if (mode !== "airing" && mode !== "manga" && mode !== "syoboi") {
-    return json({ success: false, error: "mode must be 'airing', 'manga' or 'syoboi'" }, 400);
+  if (mode !== "airing" && mode !== "manga" && mode !== "syoboi" && mode !== "jikan") {
+    return json({ success: false, error: "mode must be 'airing', 'manga', 'syoboi' or 'jikan'" }, 400);
   }
   const now = deps.now ?? Date.now;
   const supabase = deps.supabase;
@@ -106,6 +108,16 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
         nowMs: startedMs,
         writeNextAiring: groupIsAniListOwned("episodes", modes),
         fetchFn: deps.syoboiFetch,
+        nowFn: now,
+      });
+    } else if (mode === "jikan") {
+      results = await runJikanSchedule(supabase, {
+        maxPages: payload?.maxPages === undefined ? undefined : clampInt(payload.maxPages, 8, 1, 12),
+        dryRun,
+        deadlineMs,
+        nowMs: startedMs,
+        writeNextAiring: groupIsAniListOwned("episodes", modes),
+        fetchFn: deps.jikanFetch,
         nowFn: now,
       });
     } else {

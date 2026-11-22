@@ -289,8 +289,9 @@ enum HomeMediumWordInk {
     }
 }
 
-/// Softly blurred, saturated artwork depiction over a rich two-stop atmospheric base gradient,
-/// used behind Discover mood pills and "Add to list" / "Plan to watch" action capsules.
+/// Lightweight pre-downsampled atmospheric artwork wash over a two-stop base gradient,
+/// used behind Discover mood pills and "Add to list" / "Plan to watch" action capsules without
+/// per-frame GPU blur or offscreen drawingGroup passes.
 struct KuroBlurredArtworkFill: View {
     let raw: String?
     var top: Color = Color(hex: "202430")
@@ -300,39 +301,34 @@ struct KuroBlurredArtworkFill: View {
     var frostedLight: Bool = false
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                if frostedLight {
-                    Color.white
-                    if let raw, let url = URL(string: raw), !raw.isEmpty {
-                        HomeArtwork(url: url, maxPixelSize: 240, placeholder: .clear)
-                            .frame(width: geo.size.width, height: geo.size.height)
-                            .scaleEffect(1.45)
-                            .saturation(1.35)
-                            .blur(radius: 14)
-                            .opacity(0.45)
-                    }
-                    Color.white.opacity(0.76)
-                } else {
-                    LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    if let raw, let url = URL(string: raw), !raw.isEmpty {
-                        HomeArtwork(url: url, maxPixelSize: 240, placeholder: .clear)
-                            .frame(width: geo.size.width, height: geo.size.height)
-                            .scaleEffect(1.38)
-                            .saturation(1.28)
-                            .blur(radius: 14)
-                            .opacity(0.68)
-                    }
-                    LinearGradient(
-                        colors: [top.opacity(leadingScrim), Color.black.opacity(trailingScrim)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+        ZStack {
+            if frostedLight {
+                Color.white
+                if let raw, let url = URL(string: raw), !raw.isEmpty {
+                    Color.clear
+                        .overlay {
+                            HomeArtwork(url: url, maxPixelSize: 180, placeholder: .clear)
+                        }
+                        .clipped()
+                        .opacity(0.24)
                 }
+                Color.white.opacity(0.76)
+            } else {
+                LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+                if let raw, let url = URL(string: raw), !raw.isEmpty {
+                    Color.clear
+                        .overlay {
+                            HomeArtwork(url: url, maxPixelSize: 180, placeholder: .clear)
+                        }
+                        .clipped()
+                        .opacity(0.42)
+                }
+                LinearGradient(
+                    colors: [top.opacity(leadingScrim), Color.black.opacity(trailingScrim)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
             }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .clipped()
-            .drawingGroup()
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

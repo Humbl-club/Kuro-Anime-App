@@ -162,11 +162,11 @@
 
 **Approved welcome reference (2026-09-25):** Max confirmed GitHub `b943e457` on `codex/kuro-onboarding-no-tv` as the intended welcome/onboarding: painted scene, grouped wordmark/headline, TV removed. Preserve that composition; the separate local 72%-height composition edits remain untouched and are not the approved baseline. Email/auth logic matches the reference; improvement proposals concern the form and signed-in experience. The GitHub upload is verified, while TestFlight/public release and installed visual equivalence remain unverified. The detailed review now consolidates market, monetization and design decisions; no app implementation.
 
-**Last updated:** 2026-11-21 (Build 29 smoothness, live chapters & episode countdowns live on Supabase; TestFlight Build 29 uploaded)
+**Last updated:** 2026-11-22 (Build 30 smoothness, Taste Deck/Feed split, Discover 7-day schedule & Clubs collage overhaul; live `release-intake` & manga cleanup on Supabase; TestFlight Build 30 packaging next)
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 323 app Swift files, 48 package Swift files and 271 SQL migrations are in the repo today.
+**Current inventory:** 324 app Swift files, 48 package Swift files and 271 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2445,3 +2445,11 @@ Refined the existing components across all three areas to feel calmer and closer
 - **Taste `Deck · Feed` Mode:** Signed-in users get a swipeable 3-card triage deck on Taste (`Skip`, `Completed`, `Watching/Reading`, `Plan`, plus `Undo`) right above their curated `For You` feed.
 - **What was tested (`migrations=271`):** **307/307** Edge Function tests (Deno), **199/199** Swift package tests, **235/235** iOS simulator tests (`21` suites), **197/197** local database security assertions (`114`, `125`, `126`, `132`), and live Supabase deployment + initial backfill verification.
 - **TestFlight Build 29 uploaded:** Built, signed, and uploaded version `1.0 (29)` from local branch `release/testflight-29` (`47b61932`, tag `testflight-29`, branched from `kuro/tracker-gaps` `5fb1fd37`; home-screen widget excluded as in builds 25–28 until `group.com.Kuro.app` is registered). Delivery UUID: `f728d490-3bd6-48c6-b3ad-fcff3f395d13` (`30,180,830 bytes`). Physical-device testing remains open (`installed_native_qualification: PENDING`), and local commits stay unpushed.
+
+### 2026-11-22 — Build 30: Faster Paging & Images, Pure Taste Deck, Full Discover Schedule & Clubs Artwork Collage
+- **Smoother Scrolling & Paging:** Switched the main horizontal pager to native UIKit pan detection so vertical scrolls never stutter or fight sideways swipes, removed per-row swipe overhead in Collection, moved cover image downsampling off the main thread with instant memory cache hits, and cut expensive background blurs/shadows across Home and Discover.
+- **Pure `Deck` vs Pure `Feed` on Taste:** `Deck` is now the clean default (one full-height focus stage with 4 quick action buttons and no mixed feed underneath), `Feed` holds the curated rails cleanly on its own toggle, and `Plan` correctly logs and confirms with Undo.
+- **Discover Live Schedule & 7-Day Calendar:** Discover adds live `"Airing & coming up."` anime and `"Chapters out & upcoming."` manga cards, a dedicated 7-day schedule view, tighter header spacing, and medium selection sync across Home, Taste, and Collection.
+- **Clubs Collage & Easier Daily Controls:** Club cards and Home/Journal banners now show real title poster collages under a dark readability scrim, tapping the section title in the header opens a 1-tap switcher or scrolls back to the top, Home supports pull-to-refresh and inline/context status menus, and Collection/Home manga rows show unread new-chapter badges (`+N new`).
+- **Backend Maintenance (`bkdifromsqxkndnllmdj` Live):** Deployed updated `release-intake` with a volume-aware sanity guard and Jikan fallback schedule mode, cleaned all 31 falsely low manga `latest_chapter` entries (`31 -> 0`, leaving *Slime* links untouched), and scheduled a 6-hourly Jikan fallback job (`kuro-release-intake-jikan-6h`). On 2026-11-22 `api.jikan.moe` had an upstream TCP timeout, so initial Jikan backfill stayed deferred while Syoboi continues supplying 55 upcoming 7-day anime slots alongside 7 upcoming and 1,783 fresh releasing manga.
+- **What was tested (`324` app Swift / `48` package Swift / `271` migrations):** **310/310** Edge Function tests, **199/199** Swift package tests, **1,401/1,401** serial iOS simulator tests (`206` suites on `iPhone 17 Pro`), and architecture/navigation/migration/policy gates all pass.

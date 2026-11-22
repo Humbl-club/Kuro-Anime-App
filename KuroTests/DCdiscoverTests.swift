@@ -170,6 +170,42 @@ struct DCDiscoverCopyTests {
         #expect(DiscoverIssueCopy.glanceTitle(german: true) == EditorialDiscoverRoute.animeAiringToday.title(german: true))
     }
 
+    @Test("Manga chapter presentation formats scheduled upcoming chapters and latest ongoing chapters")
+    func mangaChapterPresentation() throws {
+        let now = try date("2026-11-22T12:00:00Z")
+        let nextAt = try date("2026-11-25T00:00:00Z")
+        let upcomingSlot = DiscoverMangaSlot(
+            mangaId: 1,
+            latestChapter: 253,
+            latestChapterAt: nil,
+            nextChapterNumber: 254,
+            nextChapterAt: nextAt
+        )
+        let upcoming = DiscoverIssueCopy.mangaChapterPresentation(
+            slot: upcomingSlot,
+            now: now,
+            german: false,
+            locale: Locale(identifier: "en_GB"),
+            timeZone: berlin
+        )
+        #expect(upcoming?.badge == "CH. 254")
+        #expect(upcoming?.line?.hasPrefix("Ch. 254 · ") == true)
+
+        let freshSlot = DiscoverMangaSlot(
+            mangaId: 2,
+            latestChapter: 1198,
+            latestChapterAt: now,
+            nextChapterNumber: nil,
+            nextChapterAt: nil
+        )
+        let freshEn = DiscoverIssueCopy.mangaChapterPresentation(slot: freshSlot, now: now, german: false, timeZone: berlin)
+        let freshDe = DiscoverIssueCopy.mangaChapterPresentation(slot: freshSlot, now: now, german: true, timeZone: berlin)
+        #expect(freshEn?.badge == "CH. 1198")
+        #expect(freshEn?.line == "Ch. 1198 out")
+        #expect(freshDe?.badge == "KAP. 1198")
+        #expect(freshDe?.line == "Kap. 1198 erschienen")
+    }
+
     @Test("Contents: numbered jump links with counts or \"{n} new\"; shown from two sections (usability §5.10)")
     func contents() {
         let one = [DiscoverContents.Entry(id: "s0", name: "New to you", count: 8)]

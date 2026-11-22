@@ -442,6 +442,19 @@ struct HomeLayoutPolicyTests {
         #expect(manga.nextChapterNumber == 1199)
         #expect(manga.chapterText == "1198 OUT")
     }
+
+    @Test("KuroRootPanPolicy fails vertical drags immediately and favors horizontal pager drags")
+    func rootPanDirectionalPolicy() {
+        #expect(!KuroRootPanPolicy.shouldBeginHorizontalPan(
+            translation: CGPoint(x: 2, y: 18),
+            velocity: CGPoint(x: 12, y: 260)
+        ))
+        #expect(KuroRootPanPolicy.shouldBeginHorizontalPan(
+            translation: CGPoint(x: 18, y: 3),
+            velocity: CGPoint(x: 240, y: 20)
+        ))
+        #expect(KuroRootPanPolicy.effectiveHorizontalTranslation(dx: 24, vx: 300) > 60)
+    }
 }
 
 // MARK: - Fixture renders (evidence; PNGs only with TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1)

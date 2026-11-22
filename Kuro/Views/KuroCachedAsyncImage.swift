@@ -49,22 +49,39 @@ struct KuroCachedAsyncImage<Content: View>: View {
         }
     }
 
+    private var resolvedMaxPixelSize: Int {
+#if canImport(UIKit)
+        let scaleInt = max(1, Int(displayScale))
+        return (maxPixelSize ?? 900) * scaleInt
+#else
+        return maxPixelSize ?? 900
+#endif
+    }
+
+    private var effectivePhase: AsyncImagePhase {
+        if case .success = phase { return phase }
+#if canImport(UIKit)
+        if let url, let cached = ImagePipeline.shared.cachedImageSync(url: url, maxPixelSize: resolvedMaxPixelSize) {
+            return .success(Image(uiImage: cached))
+        }
+#endif
+        return phase
+    }
+
     var body: some View {
-        content(phase)
+        content(effectivePhase)
             .task(id: url) {
                 guard let url else {
                     phase = .empty
                     return
                 }
 
-                // Estimate a reasonable decode size; most covers are portrait.
-                let maxPx: Int
+                let maxPx = resolvedMaxPixelSize
 #if canImport(UIKit)
-                let scaleInt = max(1, Int(displayScale))
-                // `maxPixelSize` is interpreted in points; convert to pixels for downsampling.
-                maxPx = (maxPixelSize ?? 900) * scaleInt
-#else
-                maxPx = maxPixelSize ?? 900
+                if let cached = ImagePipeline.shared.cachedImageSync(url: url, maxPixelSize: maxPx) {
+                    phase = .success(Image(uiImage: cached))
+                    return
+                }
 #endif
 
                 let started = ContinuousClock.now

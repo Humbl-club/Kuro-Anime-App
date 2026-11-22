@@ -58,14 +58,15 @@ struct EditorialDiscoverView: View {
     /// This visit's claims (R2, D5); rebuilt only at the build points, never mid-visit.
     @State private var build = DiscoverIssueBuild.empty
     @State private var hasBuilt = false
-    /// Scroll geometry per section anchor (pinned index, "seen" for visit memory).
-    @State private var sectionGeometry: [String: DiscoverSectionGeometry] = [:]
-    @State private var contentsPassed = false
-    @State private var reachedEnd = false
-    @State private var maxDepth = 0
-    @State private var visit = DiscoverVisitSession()
-    /// The tallies already reported by `discover_visit_end` this visit (a resumed visit reports deltas).
-    @State private var reportedTally = DiscoverVisitSession.Tally()
+    /// Non-observed scroll metrics & seen ledger so 120 Hz scroll never invalidates `EditorialDiscoverView.body`.
+    @State private var scrollTracker = DiscoverScrollTracker()
+    /// Observed ONLY by `DiscoverPinnedIndexOverlayView`.
+    @State private var pinnedState = DiscoverPinnedIndexState()
+    /// Baseline snapshot taken at `beginVisit()` for NEW badges.
+    @State private var visitBaseline = DiscoverVisitLedger()
+    /// Cached mood artwork & merged airing slots, updated on load/build/issue change instead of per-frame.
+    @State private var cachedMoodArtwork: [DiscoverMood: String] = [:]
+    @State private var cachedAiringSlots: [Int: DiscoverAiringSlot] = [:]
     /// "Like {title}": the seed's title for the issue's medium (nil: three mood keys).
     @State private var likeSeed: DiscoverLikeSeed? = nil
     @State private var localScroll = ScrollPosition(edge: .top)
@@ -134,7 +135,9 @@ struct EditorialDiscoverView: View {
         !vm.newToYouManga.isEmpty ||
         !vm.trendingManga.isEmpty ||
         !vm.topRatedManga.isEmpty ||
-        !vm.newlyAddedManga.isEmpty
+        !vm.newlyAddedManga.isEmpty ||
+        !vm.upcomingAnime.isEmpty ||
+        !vm.upcomingManga.isEmpty
     }
 
     /// Browse is a pager page in the live order; where the pager has none (series Home), Discover
@@ -144,9 +147,9 @@ struct EditorialDiscoverView: View {
     /// A visit runs while Discover is the current page and the app is active (D18).
     private var visitIsLive: Bool { isCurrent && scenePhase == .active }
 
-    /// Stated slots for the Airing today rail: the catalogue read, then the reader's own upcoming
-    /// airings (the same `next_airing_at`) for titles the read has not covered.
-    private var airingSlots: [Int: DiscoverAiringSlot] {
+    private var airingSlots: [Int: DiscoverAiringSlot] { cachedAiringSlots }
+
+    private func recomputeMergedAiringSlots() -> [Int: DiscoverAiringSlot] {
         var slots = discovery.airingSlots
         for airing in releases.upcomingAirings where slots[airing.anime_id] == nil {
             slots[airing.anime_id] = DiscoverAiringSlot(
@@ -156,6 +159,11 @@ struct EditorialDiscoverView: View {
             )
         }
         return slots
+    }
+
+    private func refreshDerivedCache() {
+        cachedAiringSlots = recomputeMergedAiringSlots()
+        cachedMoodArtwork = computeMoodArtworkForCurrentMedium()
     }
 
     var body: some View {
@@ -181,7 +189,9 @@ struct EditorialDiscoverView: View {
                                                      visible: geometry.containerSize.height,
                                                      content: geometry.contentSize.height)
                 } action: { _, depth in
-                    maxDepth = max(maxDepth, depth)
+                    if depth > scrollTracker.maxDepth {
+                        scrollTracker.maxDepth = depth
+                    }
                 }
                 .refreshable {
                     // Pull-to-refresh is user-initiated: also re-read the Library projection
@@ -202,7 +212,7 @@ struct EditorialDiscoverView: View {
                 }
             }
             .overlay(alignment: .top) {
-                pinnedIndex
+                pinnedIndexOverlay
             }
             .overlay(alignment: .top) {
                 if let bannerMessage {
@@ -230,15 +240,20 @@ struct EditorialDiscoverView: View {
             .onChange(of: selectedMediaType) { _, _ in
                 // A new issue is a new build (D5); the seed follows the medium.
                 rebuild()
+                refreshDerivedCache()
                 Task { await loadLikeSeed() }
+            }
+            .onChange(of: releases.upcomingAirings.count) { _, _ in
+                cachedAiringSlots = recomputeMergedAiringSlots()
             }
             .onChange(of: library.loadState) { _, state in
                 // The Library answered after the first build: build once more while nothing was done
                 // on the page yet (owned titles leave the personal sections, R2), never mid-visit.
                 guard state == .loaded,
-                      DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: maxDepth)
+                      DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: scrollTracker.maxDepth)
                 else { return }
                 rebuild()
+                refreshDerivedCache()
                 Task { await loadLikeSeed() }
             }
             .onChange(of: visitIsLive, initial: true) { _, live in
@@ -307,7 +322,7 @@ struct EditorialDiscoverView: View {
         let compact = DiscoverIssueLayout.isCompact(column: column)
         let sections = visibleSections
         let lead = visibleLead
-        return VStack(alignment: .leading, spacing: 0) {
+        return LazyVStack(alignment: .leading, spacing: 0) {
             Group {
                 if !networkMonitor.isConnected {
                     DiscoverOfflineBand(retry: { Task { await refreshSections(force: true) } })
@@ -324,8 +339,10 @@ struct EditorialDiscoverView: View {
                 DiscoverQuickFindBar(
                     canSearch: onOpenSearch != nil,
                     canFilter: true,
+                    canSchedule: true,
                     onSearch: { onOpenSearch?() },
-                    onFilter: { routes.openBrowse() }
+                    onFilter: { routes.openBrowse() },
+                    onSchedule: { openSchedule(initialIsManga: selectedMediaType == .manga) }
                 )
                 .padding(.top, DiscoverIssueLayout.openingStack)
             }
@@ -334,7 +351,7 @@ struct EditorialDiscoverView: View {
             DiscoverMoodKeys(
                 kind: moodKind,
                 likeTitle: likeSeed?.kind == moodKind ? likeSeed?.title : nil,
-                moodArtwork: moodArtworkForCurrentMedium,
+                moodArtwork: cachedMoodArtwork,
                 column: column,
                 gutter: gutter,
                 onOpen: openMood
@@ -359,14 +376,55 @@ struct EditorialDiscoverView: View {
                         .onGeometryChange(for: Bool.self) { proxy in
                             proxy.frame(in: .scrollView).maxY <= 0
                         } action: { passed in
-                            let animation = KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
-                            withAnimation(animation) { contentsPassed = passed }
+                            if pinnedState.contentsPassed != passed {
+                                let animation = KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
+                                withAnimation(animation) { pinnedState.contentsPassed = passed }
+                            }
                         }
                 }
             }
             .padding(.horizontal, gutter)
 
+            if selectedMediaType == .manga {
+                let scheduleCards = vm.upcomingManga.map { TasteCard(manga: $0) }
+                if !scheduleCards.isEmpty {
+                    DiscoverIssueRail(
+                        anchor: "discover.schedule.manga",
+                        title: german ? "Neue & kommende Kapitel." : "Chapters out & upcoming.",
+                        purpose: german ? "Aktuelle Kapitel laufender Reihen." : "Latest ongoing chapters and upcoming drops.",
+                        cards: scheduleCards,
+                        total: scheduleCards.count,
+                        exactCount: false,
+                        column: column,
+                        gutter: gutter,
+                        mangaSlots: vm.mangaSlots,
+                        onSeeAll: { openSchedule(initialIsManga: true) }
+                    )
+                    .padding(.top, DiscoverIssueLayout.firstSection)
+                }
+            } else {
+                let scheduleCards = vm.upcomingAnime.map { TasteCard(anime: $0) }
+                if !scheduleCards.isEmpty {
+                    DiscoverIssueRail(
+                        anchor: "discover.schedule.anime",
+                        title: german ? "Läuft & demnächst." : "Airing & coming up.",
+                        purpose: german ? "Nächste Folgen in den nächsten 7 Tagen." : "Next episodes over the next 7 days.",
+                        cards: scheduleCards,
+                        total: scheduleCards.count,
+                        exactCount: false,
+                        column: column,
+                        gutter: gutter,
+                        airingSlots: cachedAiringSlots,
+                        showsEpisodeBadge: true,
+                        onSeeAll: { openSchedule(initialIsManga: false) }
+                    )
+                    .padding(.top, DiscoverIssueLayout.firstSection)
+                }
+            }
+
             ForEach(Array(sections.enumerated()), id: \.element.id) { index, built in
+                let hasDedicatedScheduleRail = (selectedMediaType == .manga && !vm.upcomingManga.isEmpty)
+                    || (selectedMediaType != .manga && !vm.upcomingAnime.isEmpty)
                 sectionView(built, gutter: gutter, column: column)
                     .environment(\.discoverSection, sectionContext(built))
                     .background(alignment: .top) { jumpTarget(anchor(built.section)) }
@@ -375,10 +433,13 @@ struct EditorialDiscoverView: View {
                                                      viewport: proxy.bounds(of: .scrollView)?.height ?? 0,
                                                      band: DiscoverPinnedIndex.bandHeight)
                     } action: { geometry in
-                        sectionGeometry[anchor(built.section)] = geometry
+                        let id = anchor(built.section)
+                        if pinnedState.sectionGeometry[id] != geometry {
+                            pinnedState.sectionGeometry[id] = geometry
+                        }
                         if geometry.halfVisible { markSeen(built) }
                     }
-                    .padding(.top, index == 0 ? DiscoverIssueLayout.firstSection : DiscoverIssueLayout.section)
+                    .padding(.top, (index == 0 && !hasDedicatedScheduleRail) ? DiscoverIssueLayout.firstSection : DiscoverIssueLayout.section)
             }
 
             DiscoverIssueEnd(
@@ -397,7 +458,7 @@ struct EditorialDiscoverView: View {
                     let viewport = proxy.bounds(of: .scrollView)?.height ?? 0
                     return viewport > 0 && frame.minY < viewport
                 } action: { visible in
-                    if visible { reachedEnd = true }
+                    if visible { scrollTracker.reachedEnd = true }
                 }
 
             HomeFooter()
@@ -513,14 +574,14 @@ struct EditorialDiscoverView: View {
     }
 
     private func newKeys(_ built: DiscoverIssueBuild.Built) -> Set<MediaKey> {
-        visit.baseline.newKeys(section: built.section.id, shown: shownKeys(built))
+        visitBaseline.newKeys(section: built.section.id, shown: shownKeys(built))
     }
 
     private func newMarker(_ built: DiscoverIssueBuild.Built) -> String? {
         let count = newKeys(built).count
         guard count > 0 else { return nil }
         let now = Date()
-        return DiscoverIssueCopy.newSince(count, lastVisit: visit.baseline.lastVisitDate(section: built.section.id) ?? now,
+        return DiscoverIssueCopy.newSince(count, lastVisit: visitBaseline.lastVisitDate(section: built.section.id) ?? now,
                                           now: now, german: KuroLocale.isGerman)
     }
 
@@ -704,24 +765,37 @@ struct EditorialDiscoverView: View {
     // MARK: Pinned index and jumps
 
     @ViewBuilder
-    private var pinnedIndex: some View {
+    private var pinnedIndexOverlay: some View {
         let sections = visibleSections
-        if contentsPassed, sections.count >= 2 {
+        if sections.count >= 2 {
             let german = KuroLocale.isGerman
             let entries = sections.map { built in
                 DiscoverPinnedEntry(id: anchor(built.section),
                                     word: DiscoverIssueCopy.pinnedWord(built.section, issue: selectedMediaType, german: german),
                                     hasNew: !newKeys(built).isEmpty)
             }
-            DiscoverPinnedIndex(entries: entries,
-                                current: DiscoverSectionGeometry.current(order: entries.map(\.id), geometry: sectionGeometry),
-                                canvas: canvas,
-                                onJump: { target in
-                                    feedback.trackJump("pinned", target: target)
-                                    pendingJump = target
-                                })
-                .transition(.opacity)
+            DiscoverPinnedIndexOverlayView(
+                state: pinnedState,
+                entries: entries,
+                canvas: canvas,
+                onJump: { target in
+                    feedback.trackJump("pinned", target: target)
+                    pendingJump = target
+                }
+            )
         }
+    }
+
+    private func openSchedule(initialIsManga: Bool) {
+        let title = KuroLocale.isGerman ? "Release-Kalender" : "Release schedule"
+        let page = DiscoverSchedulePage(
+            initialIsManga: initialIsManga,
+            initialAnime: vm.upcomingAnime,
+            initialAnimeSlots: cachedAiringSlots,
+            initialManga: vm.upcomingManga,
+            initialMangaSlots: vm.mangaSlots
+        )
+        routes.openPage(.seeAll(AnyJourneyPage(id: "discover:schedule", title: title) { page }))
     }
 
     /// Scrolls a section's heading under the pinned band (settle; instant under Reduce Motion).
@@ -741,8 +815,8 @@ struct EditorialDiscoverView: View {
 
     /// "Like {title}": the Library's latest well-rated Completed title of the issue's medium (D9), with
     /// its title from the catalogue (cached). Without one the key is not shown.
-    /// Per-mood blurred artwork URLs drawn from the active medium's renderable pools.
-    private var moodArtworkForCurrentMedium: [DiscoverMood: String] {
+    /// Per-mood artwork URLs drawn from the active medium's renderable pools.
+    private func computeMoodArtworkForCurrentMedium() -> [DiscoverMood: String] {
         let likeArt = likeSeed?.kind == moodKind ? likeSeed?.imageURL : nil
         let moods = DiscoverMoodKeys.moods(hasSeed: likeSeed?.kind == moodKind)
         let candidates: [(genres: [String], length: Int?, format: String?, score: Double?, art: String)]
@@ -765,7 +839,10 @@ struct EditorialDiscoverView: View {
     private func loadLikeSeed() async {
         let kind = moodKind
         guard let key = discovery.likeLastLovedSeed(medium: kind) else {
-            if likeSeed?.kind == kind { likeSeed = nil }
+            if likeSeed?.kind == kind {
+                likeSeed = nil
+                cachedMoodArtwork = computeMoodArtworkForCurrentMedium()
+            }
             return
         }
         if likeSeed?.key == key { return }
@@ -788,6 +865,7 @@ struct EditorialDiscoverView: View {
             title: KuroCardText.sanitizeTitleForCard(loadedTitle),
             imageURL: loadedArt
         )
+        cachedMoodArtwork = computeMoodArtworkForCurrentMedium()
     }
 
     // MARK: See all and More lists
@@ -933,36 +1011,39 @@ struct EditorialDiscoverView: View {
     private func beginVisit() {
         guard let userId = identity.currentUserId else { return }
         let now = Date()
-        let starts = visit.begin(userId: userId, defaults: visitDefaults, now: now)
+        let starts = scrollTracker.visit.begin(userId: userId, defaults: visitDefaults, now: now)
         if starts {
+            visitBaseline = scrollTracker.visit.baseline
             feedback.resetSession()
-            reportedTally = DiscoverVisitSession.Tally()
-            maxDepth = 0
-            reachedEnd = false
+            scrollTracker.reportedTally = DiscoverVisitSession.Tally()
+            scrollTracker.maxDepth = 0
+            scrollTracker.reachedEnd = false
             // A new visit is a new build (D5), once the page has content; on a new rail day it reads
             // the new day's bundle first (`refreshSections` builds when it lands).
             switch DiscoverPageRules.visitStart(hasBuilt: hasBuilt, bundleIsToday: discovery.hasCurrentDayBundle(now: now)) {
             case .readNewIssue?: Task { await refreshSections(force: false) }
-            case .rebuild?: rebuild()
+            case .rebuild?:
+                rebuild()
+                refreshDerivedCache()
             case nil: break
             }
         }
     }
 
     private func endVisit() {
-        guard let summary = visit.end(defaults: visitDefaults, now: Date()) else { return }
+        guard let summary = scrollTracker.visit.end(defaults: visitDefaults, now: Date()) else { return }
         // A visit resumed within 30 minutes ends again: each event carries only what happened since
         // the last one, so summing events never double-counts (depth and sections reached are maxima).
         let now = DiscoverVisitSession.Tally(taps: feedback.taps, plans: feedback.planned,
                                              hides: feedback.hidden, seen: feedback.seen)
-        let delta = now.minus(reportedTally)
-        reportedTally = now
+        let delta = now.minus(scrollTracker.reportedTally)
+        scrollTracker.reportedTally = now
         telemetry?.trackInteractionEvent("discover_visit_end", surface: "discover", result: "ended", extra: [
             "issue": selectedMediaType.rawValue.lowercased(),
             "sections_total": visibleSections.count,
             "sections_reached": summary.sectionsSeen,
-            "reached_end": reachedEnd,
-            "depth_pct": min(100, maxDepth * 10),
+            "reached_end": scrollTracker.reachedEnd,
+            "depth_pct": min(100, scrollTracker.maxDepth * 10),
             "taps": delta.taps,
             "plans": delta.plans,
             "hides": delta.hides,
@@ -973,8 +1054,8 @@ struct EditorialDiscoverView: View {
 
     /// A section at least half on screen counts as seen this visit (its shown titles, §5.8).
     private func markSeen(_ built: DiscoverIssueBuild.Built) {
-        guard visit.active else { return }
-        visit.seen[built.section.id] = shownKeys(built)
+        guard scrollTracker.visit.active else { return }
+        scrollTracker.visit.seen[built.section.id] = shownKeys(built)
     }
 
     // MARK: Loading
@@ -993,11 +1074,23 @@ struct EditorialDiscoverView: View {
         let hadContentBefore = hasAnyContent
 
         // List state for badges/progress comes from the Library projection (session refresh +
-        // realtime hints); only the server bundle is fetched here.
+        // realtime hints); only the server bundle and upcoming schedule are fetched here.
         async let dailyFeatureResult = discovery.fetchDailyFeature()
+        async let upcomingAnimeResult = discovery.fetchUpcomingAnimeSchedule(days: 7, limit: 60)
+        async let upcomingMangaResult = discovery.fetchUpcomingAndFreshManga(limit: 40)
         let bundle = force
             ? await discovery.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
             : await discovery.ensureDiscoverBundle(limit: 30, hours: 24)
+
+        let (upcomingAnimeCards, upcomingAnimeSlots) = await upcomingAnimeResult
+        let (upcomingMangaCards, upcomingMangaSlots) = await upcomingMangaResult
+        if !upcomingAnimeCards.isEmpty {
+            vm.upcomingAnime = upcomingAnimeCards
+        }
+        if !upcomingMangaCards.isEmpty {
+            vm.upcomingManga = upcomingMangaCards
+            vm.mangaSlots = upcomingMangaSlots
+        }
 
         let gotAnyNew = bundle.map { b in
             !(b.anime.essentials.isEmpty && b.anime.classics.isEmpty && b.anime.newToYou.isEmpty &&
@@ -1112,6 +1205,10 @@ struct EditorialDiscoverView: View {
         // the franchise components (silent while the prepared reader is not deployed) are read side by
         // side and the page builds once more while nothing was done on it yet (D5), as for the Library.
         rebuild()
+        refreshDerivedCache()
+        if !upcomingAnimeSlots.isEmpty {
+            cachedAiringSlots.merge(upcomingAnimeSlots) { _, new in new }
+        }
         let hiddenBefore = taste.discoverHidden
         let franchisesBefore = discovery.knownFranchiseCount
         let rawAnimeNewlyCount = bundle?.anime.newlyAdded.count ?? 0
@@ -1145,8 +1242,12 @@ struct EditorialDiscoverView: View {
         }
         let newlyGrew = vm.newlyAdded.count != animeNewlyCountBefore || vm.newlyAddedManga.count != mangaNewlyCountBefore
         if taste.discoverHidden != hiddenBefore || discovery.knownFranchiseCount != franchisesBefore || newlyGrew,
-           DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: maxDepth) {
+           DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: scrollTracker.maxDepth) {
             rebuild()
+        }
+        refreshDerivedCache()
+        if !upcomingAnimeSlots.isEmpty {
+            cachedAiringSlots.merge(upcomingAnimeSlots) { _, new in new }
         }
         await loadLikeSeed()
 
@@ -1222,6 +1323,42 @@ struct DiscoverLikeSeed: Equatable {
     let kind: MediaKind
     let title: String
     let imageURL: String?
+}
+
+/// Non-observed scroll tracking state so 120 Hz vertical scrolling never invalidates `EditorialDiscoverView.body`.
+private final class DiscoverScrollTracker {
+    var reachedEnd = false
+    var maxDepth = 0
+    var visit = DiscoverVisitSession()
+    var reportedTally = DiscoverVisitSession.Tally()
+}
+
+/// Isolated observable holder for the pinned section index so only `DiscoverPinnedIndexOverlayView`
+/// re-renders when a section heading crosses the top band.
+@MainActor
+@Observable
+private final class DiscoverPinnedIndexState {
+    var contentsPassed = false
+    var sectionGeometry: [String: DiscoverSectionGeometry] = [:]
+}
+
+private struct DiscoverPinnedIndexOverlayView: View {
+    let state: DiscoverPinnedIndexState
+    let entries: [DiscoverPinnedEntry]
+    let canvas: Color
+    let onJump: (String) -> Void
+
+    var body: some View {
+        if state.contentsPassed {
+            DiscoverPinnedIndex(
+                entries: entries,
+                current: DiscoverSectionGeometry.current(order: entries.map(\.id), geometry: state.sectionGeometry),
+                canvas: canvas,
+                onJump: onJump
+            )
+            .transition(.opacity)
+        }
+    }
 }
 
 // MARK: - See all

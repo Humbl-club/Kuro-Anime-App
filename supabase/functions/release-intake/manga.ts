@@ -103,6 +103,25 @@ export function parseLatestChapterValue(rawLatest: unknown, status: unknown): nu
   return Number.isFinite(n) && n > 0 && n <= 99_999 ? n : null;
 }
 
+/**
+ * Rejects volume-scoped MangaUpdates `latest_chapter` values (e.g. Vagabond v.37 ch.2 -> 2,
+ * Yotsuba&! v.15 ch.7 -> 7) or numbers below already-known total chapters.
+ */
+export function sanitizeLatestChapter(
+  rawLatest: number | null,
+  knownVolumes: number | null,
+  knownChapters: number | null,
+): number | null {
+  if (rawLatest === null || !Number.isFinite(rawLatest) || rawLatest <= 0) return null;
+  if (knownVolumes !== null && Number.isFinite(knownVolumes) && knownVolumes >= 3 && rawLatest < knownVolumes) {
+    return null;
+  }
+  if (knownChapters !== null && Number.isFinite(knownChapters) && knownChapters > 0 && rawLatest < knownChapters) {
+    return null;
+  }
+  return rawLatest;
+}
+
 /** MangaDex links.mu is a base36 slug (e.g. "pb8uwds" -> 55099564912). Null when not decodable. */
 export function decodeMuSlug(slug: unknown): number | null {
   if (typeof slug !== "string") return null;
@@ -420,9 +439,14 @@ export async function runMangaReleases(
       // Volume count and latest_chapter only move upward. manga.chapters stays untouched.
       const patch: Record<string, number | string> = {};
       const volumes = parseVolumeCount(s?.status);
+      const effectiveVolumes = volumes ?? candidate.volumes ?? null;
       if (opts.writeVolumes !== false && volumes !== null && (candidate.volumes == null || volumes > Number(candidate.volumes))) patch.volumes = volumes;
-      const muLatest = parseLatestChapterValue(s?.latest_chapter, s?.status) ?? 0;
-      const officialLatest = dated.length > 0 ? Math.max(...dated.map((d) => d.number)) : 0;
+      const muLatest = sanitizeLatestChapter(parseLatestChapterValue(s?.latest_chapter, s?.status), effectiveVolumes, candidate.chapters) ?? 0;
+      const officialLatest = sanitizeLatestChapter(
+        dated.length > 0 ? Math.max(...dated.map((d) => d.number)) : null,
+        effectiveVolumes,
+        candidate.chapters,
+      ) ?? 0;
       const bestLatest = Math.max(muLatest, officialLatest);
       if (bestLatest > 0 && bestLatest > Number(candidate.latest_chapter ?? 0)) {
         patch.latest_chapter = bestLatest;

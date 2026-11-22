@@ -683,7 +683,8 @@ private struct FolioIndexRow: View {
         } else if item.media.kind == .manga,
                   item.media.statusRaw?.uppercased() == "RELEASING",
                   let out = item.total, out > 0, item.progress < out {
-            Text(german ? "Kap. \(item.progress) · \(out) ersch." : "Ch. \(item.progress) · \(out) out")
+            let unread = out - item.progress
+            Text(german ? "Kap. \(item.progress) / \(out) · +\(unread) neu" : "Ch. \(item.progress) / \(out) · +\(unread) new")
                 .font(.kuroMeta())
                 .monospacedDigit()
                 .foregroundStyle(Color.kuroInkSecondary)
@@ -774,7 +775,7 @@ private struct FolioStatusPillMenu: View {
                     lineWidth: 0.75
                 )
             )
-            .frame(minHeight: 34)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .menuStyle(.button)
@@ -791,143 +792,10 @@ private struct FolioSwipeIndexRow<Content: View>: View {
     let actions: FolioRowActions
     @ViewBuilder let content: () -> Content
 
-    @State private var offsetX: CGFloat = 0
-    @GestureState private var dragX: CGFloat = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var german: Bool { KuroLocale.isGerman }
-    private let revealWidth: CGFloat = 136
-
-    private var effectiveOffset: CGFloat {
-        isSelecting ? 0 : max(-revealWidth, min(revealWidth, offsetX + dragX))
-    }
-
     var body: some View {
-        ZStack {
-            if effectiveOffset > 2 {
-                HStack(spacing: 6) {
-                    if item.entry.status != .completed {
-                        swipeActionButton(
-                            title: german ? "Fertig" : "Done",
-                            symbol: "checkmark",
-                            fill: Color.kuroControlInk,
-                            foreground: .white
-                        ) {
-                            closeAndRun { actions.setStatus(item, .completed) }
-                        }
-                    }
-                    if item.entry.status != .current {
-                        swipeActionButton(
-                            title: item.media.kind == .manga ? (german ? "Lesen" : "Reading") : (german ? "Schauen" : "Watching"),
-                            symbol: item.media.kind == .manga ? "book" : "play",
-                            fill: Color.kuroControlFill,
-                            foreground: .kuroInk
-                        ) {
-                            closeAndRun { actions.setStatus(item, .current) }
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, gutter)
-            } else if effectiveOffset < -2 {
-                HStack(spacing: 6) {
-                    Spacer()
-                    if item.entry.status != .paused {
-                        swipeActionButton(
-                            title: german ? "Pause" : "Pause",
-                            symbol: "pause",
-                            fill: Color.kuroControlFill,
-                            foreground: .kuroInk
-                        ) {
-                            closeAndRun { actions.setStatus(item, .paused) }
-                        }
-                    }
-                    if item.entry.status != .dropped {
-                        swipeActionButton(
-                            title: german ? "Abbruch" : "Drop",
-                            symbol: "xmark",
-                            fill: Color.kuroControlInk.opacity(0.82),
-                            foreground: .white
-                        ) {
-                            closeAndRun { actions.setStatus(item, .dropped) }
-                        }
-                    }
-                }
-                .padding(.horizontal, gutter)
-            }
-
-            content()
-                .background(Color.kuroCanvasPage)
-                .offset(x: effectiveOffset)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if abs(offsetX) > 1 {
-                        withAnimation(reduceMotion ? nil : KuroMotion.contact) { offsetX = 0 }
-                    }
-                }
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 18, coordinateSpace: .local)
-                        .updating($dragX) { value, state, _ in
-                            guard !isSelecting else { return }
-                            let dx = value.translation.width
-                            let dy = value.translation.height
-                            guard abs(dx) > abs(dy) * 1.35 else { return }
-                            state = dx
-                        }
-                        .onEnded { value in
-                            guard !isSelecting else { return }
-                            let dx = value.translation.width
-                            let dy = value.translation.height
-                            guard abs(dx) > abs(dy) * 1.25 else {
-                                withAnimation(reduceMotion ? nil : KuroMotion.contact) { offsetX = 0 }
-                                return
-                            }
-                            let target = offsetX + dx
-                            withAnimation(reduceMotion ? nil : KuroMotion.contact) {
-                                if target > 64 {
-                                    offsetX = revealWidth
-                                } else if target < -64 {
-                                    offsetX = -revealWidth
-                                } else {
-                                    offsetX = 0
-                                }
-                            }
-                        }
-                )
-        }
-        .clipped()
-        .kuroSwipeExclusionZone()
-        .onChange(of: isSelecting) { _, selecting in
-            if selecting { offsetX = 0 }
-        }
-    }
-
-    private func closeAndRun(_ block: @escaping () -> Void) {
-        KuroAccessibility.impactHaptic(.light)
-        withAnimation(reduceMotion ? nil : KuroMotion.contact) { offsetX = 0 }
-        block()
-    }
-
-    private func swipeActionButton(
-        title: String,
-        symbol: String,
-        fill: Color,
-        foreground: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .semibold))
-                Text(title)
-                    .font(.kuroCustom(10, weight: .medium, relativeTo: .caption2, maxSize: 16))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(foreground)
-            .frame(width: 60, height: 54)
-            .background(fill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.95))
+        // Keep vertical scrolling locked at 120 Hz: avoid per-row DragGesture + UIViewRepresentable exclusion zones.
+        // Quick status switching lives on FolioStatusPillMenu (44 pt hit target), contextMenu, and accessibility actions.
+        content()
     }
 }
 

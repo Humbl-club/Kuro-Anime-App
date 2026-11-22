@@ -59,24 +59,32 @@ nonisolated struct ClubRoomMetrics: Equatable, Sendable {
     }
 }
 
-/// The dark room: `#252b28` under a radial `#444a46` glow from the top-left, a hairline border, the
-/// inset top highlight, and the prototype's tight drop (`0 10px 20px -14px #10171066`): the negative
-/// spread keeps it to a thin shade under the bottom edge, never a halo on the sides or top.
+/// The dark room: `#18181A` under optional pre-downsampled club cover artwork washes, a radial glow
+/// from the top-left, a hairline border, inset top highlight, and an opaque surface drop shadow.
 /// `topCornerRadius` (the club page's full-bleed hero: square top, rounded foot) draws the same room on
 /// an uneven shape; without it the room is the plain rounded rectangle Home has always drawn.
 struct ClubRoomBackground: View {
     var cornerRadius: CGFloat = 24
     var topCornerRadius: CGFloat? = nil
+    var artworkURLs: [URL] = []
 
     var body: some View {
         if let topCornerRadius {
-            ClubRoomSurface(shape: UnevenRoundedRectangle(topLeadingRadius: topCornerRadius,
-                                                          bottomLeadingRadius: cornerRadius,
-                                                          bottomTrailingRadius: cornerRadius,
-                                                          topTrailingRadius: topCornerRadius,
-                                                          style: .continuous))
+            ClubRoomSurface(
+                shape: UnevenRoundedRectangle(
+                    topLeadingRadius: topCornerRadius,
+                    bottomLeadingRadius: cornerRadius,
+                    bottomTrailingRadius: cornerRadius,
+                    topTrailingRadius: topCornerRadius,
+                    style: .continuous
+                ),
+                artworkURLs: artworkURLs
+            )
         } else {
-            ClubRoomSurface(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            ClubRoomSurface(
+                shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                artworkURLs: artworkURLs
+            )
         }
     }
 }
@@ -84,28 +92,58 @@ struct ClubRoomBackground: View {
 /// The room's layers on any insettable shape (one recipe for the rounded room and the hero's foot).
 private struct ClubRoomSurface<S: InsettableShape>: View {
     let shape: S
+    let artworkURLs: [URL]
 
     var body: some View {
+        let backdropURLs = Array(artworkURLs.prefix(3))
         shape
             .fill(ClubRoomPalette.room)
+            .overlay {
+                if !backdropURLs.isEmpty {
+                    HStack(spacing: 0) {
+                        ForEach(Array(backdropURLs.enumerated()), id: \.offset) { _, url in
+                            Color.clear
+                                .overlay {
+                                    KuroCachedAsyncImage(url: url, maxPixelSize: 180) { phase in
+                                        if case .success(let image) = phase {
+                                            image.resizable().scaledToFill()
+                                        } else {
+                                            Color.clear
+                                        }
+                                    }
+                                }
+                                .clipped()
+                        }
+                    }
+                    .opacity(0.55)
+                    .overlay(
+                        LinearGradient(
+                            stops: [
+                                .init(color: ClubRoomPalette.room.opacity(0.42), location: 0.0),
+                                .init(color: ClubRoomPalette.room.opacity(0.78), location: 0.50),
+                                .init(color: ClubRoomPalette.room.opacity(0.92), location: 1.0),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(shape)
+                    .allowsHitTesting(false)
+                }
+            }
             .overlay(
-                RadialGradient(colors: [ClubRoomPalette.glow, ClubRoomPalette.glow.opacity(0)],
+                RadialGradient(colors: [ClubRoomPalette.glow.opacity(backdropURLs.isEmpty ? 1 : 0.45), ClubRoomPalette.glow.opacity(0)],
                                center: .topLeading, startRadius: 0, endRadius: 260)
                     .clipShape(shape)
+                    .allowsHitTesting(false)
             )
             .overlay(shape.strokeBorder(ClubRoomPalette.border, lineWidth: 1))
             .overlay(alignment: .top) {
                 shape.stroke(Color.white.opacity(0x21 / 255.0), lineWidth: 1)
                     .mask(Rectangle().frame(height: 2).frame(maxHeight: .infinity, alignment: .top))
+                    .allowsHitTesting(false)
             }
-            .background(
-                // The spread of −14 pt: the drop's shape is inset 14 pt on every side, moved down 10 pt
-                // and blurred, so only its lower edge shows below the room.
-                shape.fill(ClubRoomPalette.drop)
-                    .padding(14)
-                    .offset(y: 10)
-                    .blur(radius: 10)
-            )
+            .shadow(color: ClubRoomPalette.drop.opacity(0.55), radius: 8, x: 0, y: 5)
     }
 }
 

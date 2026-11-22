@@ -157,7 +157,7 @@ struct DiscoverMoodKeys: View {
                 .padding(.horizontal, gutter)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    LazyHStack(spacing: 10) {
                         ForEach(moods, id: \.self) { mood in
                             compactPill(mood)
                         }
@@ -220,7 +220,6 @@ struct DiscoverMoodKeys: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
-            .shadow(color: palette.bottom.opacity(0.22), radius: 6, y: 3)
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(HomeContactStyle())
@@ -281,7 +280,6 @@ struct DiscoverMoodKeys: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
-            .shadow(color: palette.bottom.opacity(0.22), radius: 6, y: 3)
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(HomeContactStyle())

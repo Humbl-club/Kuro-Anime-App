@@ -35,6 +35,11 @@ final class DiscoverViewModel {
     var topRatedManga: [MangaCard] = []
     var newlyAddedManga: [MangaCard] = []
 
+    // Dedicated Live Release Schedule rails (Anime 7-day airing + Manga chapters out & upcoming)
+    var upcomingAnime: [AnimeCard] = []
+    var upcomingManga: [MangaCard] = []
+    var mangaSlots: [Int: DiscoverMangaSlot] = [:]
+
     var sections: [DiscoverVMSection] {
         [
             .featured(featured),
