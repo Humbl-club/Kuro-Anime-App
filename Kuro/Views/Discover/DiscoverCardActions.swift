@@ -80,13 +80,354 @@ private struct DiscoverCardMenuModifier: ViewModifier {
 }
 
 /// The card's Plan key on Discover (R3): stamps on a confirmed add, restores on a failure (R4 beat 2).
+/// Landscape cover stories keep the full `TastePlanKey`; portrait tiles and index rows use a calm
+/// compact capsule pill inside a 44 pt hit target so 27 cards on a page don't shout with boxes.
 struct DiscoverPlanKey: View {
     let card: TasteCard
     var variant: TastePlanKey.Variant = .leaf
     var compact: Bool = true
+    var trailingAligned: Bool = false
+    /// The corner badge face (cover tiles and index rows): a 30 pt circle in a 44 pt target.
+    var badge: Bool = false
+    /// True when placed inside a light `#FFFFFF` placard rather than a dark material foot.
+    var onLightSurface: Bool = false
+
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @Environment(\.kuroRoutes) private var routes
+    @Environment(GuestSession.self) private var guest: GuestSession?
+    @Environment(\.tasteGerman) private var germanOverride
+    @Environment(TastePlanController.self) private var hostController: TastePlanController?
+    @Environment(BannerCenter.self) private var banner: BannerCenter?
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @State private var localController = TastePlanController()
+    @State private var showRemoveConfirm = false
+
+    private static let savedLeafFace = Color.kuroControlInk
+
+    static func compactLabel(action: TastePlanAction, status: ListStatus?, kind: MediaKind, german: Bool) -> String {
+        switch status {
+        case nil:
+            return german ? "Liste" : "Add"
+        case .planning:
+            return german ? "Geplant" : "Planned"
+        case .some(let tracked):
+            return DiscoverIssueCopy.statusWord(tracked, progress: 0, kind: kind, german: german)
+        }
+    }
+
+    static func landscapeLabel(status: ListStatus?, kind: MediaKind, german: Bool) -> String {
+        switch status {
+        case nil:
+            return german ? "Zur Liste" : "Add to list"
+        case .planning:
+            return german ? "Geplant" : "Planned"
+        case .some(let tracked):
+            return DiscoverIssueCopy.statusWord(tracked, progress: 0, kind: kind, german: german)
+        }
+    }
+
+    static func menuChoiceTitle(_ status: ListStatus, kind: MediaKind, german: Bool) -> String {
+        switch (status, kind, german) {
+        case (.current, .anime, false): return "Watching"
+        case (.current, .anime, true): return "Schaue ich"
+        case (.current, .manga, false): return "Reading"
+        case (.current, .manga, true): return "Lese ich"
+        case (.planning, .anime, false): return "Plan to watch"
+        case (.planning, .anime, true): return "Will ich schauen"
+        case (.planning, .manga, false): return "Plan to read"
+        case (.planning, .manga, true): return "Will ich lesen"
+        case (.completed, _, false): return "Completed"
+        case (.completed, _, true): return "Abgeschlossen"
+        case (.paused, _, false): return "Paused"
+        case (.paused, _, true): return "Pausiert"
+        case (.dropped, _, false): return "Dropped"
+        case (.dropped, _, true): return "Abgebrochen"
+        default: return DiscoverIssueCopy.statusWord(status, progress: 0, kind: kind, german: german)
+        }
+    }
+
+    static func spokenMenuLabel(status: ListStatus?, kind: MediaKind, title: String, german: Bool) -> String {
+        guard let status else {
+            return german ? "\(title) zur Liste hinzufügen" : "Add \(title) to list"
+        }
+        let word = DiscoverIssueCopy.statusWord(status, progress: 0, kind: kind, german: german)
+        return german ? "\(title), \(word). Status ändern" : "\(title), \(word). Change status"
+    }
 
     var body: some View {
-        TastePlanKey(card: card, variant: variant, compact: compact, stampsOnConfirm: true)
+        let entry = library.entry(for: card.key)
+        let status = entry?.status
+        let german = germanOverride ?? KuroLocale.isGerman
+        let controller = hostController ?? localController
+        Group {
+            if guest?.isGuest == true || !TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps) {
+                Button {
+                    guard TastePlanKey.acceptsTap(suppressCardTaps: suppressCardTaps) else { return }
+                    KuroAccessibility.impactHaptic(.light)
+                    _ = GuestGate.allows(.plan(card.key, title: card.media.title), guest: guest, routes: routes)
+                } label: {
+                    keyLabel(status: status, controller: controller, german: german)
+                }
+                .buttonStyle(KuroPressStyle(pressedScale: badge ? 0.94 : 0.97))
+            } else {
+                Menu {
+                    Self.statusMenuContent(
+                        card: card,
+                        entry: entry,
+                        status: status,
+                        library: library,
+                        libraryActions: libraryActions,
+                        controller: controller,
+                        routes: routes,
+                        german: german,
+                        onRequestNonBareRemove: { showRemoveConfirm = true }
+                    )
+                } label: {
+                    keyLabel(status: status, controller: controller, german: german)
+                }
+                .menuStyle(.button)
+                .buttonStyle(KuroPressStyle(pressedScale: badge ? 0.94 : 0.97))
+            }
+        }
+        .accessibilityLabel(Self.spokenMenuLabel(status: status, kind: card.media.kind, title: card.media.title, german: german))
+        .accessibilityHint(status == nil
+                           ? KuroLocale.text("Choose list status", "Listenstatus wählen")
+                           : KuroLocale.text("Changes list status", "Ändert Listenstatus"))
+        .accessibilityAddTraits(status != nil ? [.isSelected] : [])
+        .confirmationDialog(
+            german ? "„\(card.media.title)“ von deiner Liste entfernen?"
+                   : "Remove “\(card.media.title)” from your list?",
+            isPresented: $showRemoveConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(german ? "Entfernen" : "Remove", role: .destructive) {
+                controller.removeEntry(card, library: library, actions: libraryActions, german: german, forceNonBare: true)
+            }
+            Button(german ? "Abbrechen" : "Cancel", role: .cancel) {}
+        } message: {
+            Text(german ? "Status, Fortschritt und Notizen werden gelöscht."
+                        : "Your status, progress and notes will be deleted.")
+        }
+        .onChange(of: localController.toast?.id) { _, _ in
+            guard hostController == nil, let message = localController.toast?.message else { return }
+            banner?.show(message)
+        }
+    }
+
+    @ViewBuilder
+    static func statusMenuContent(
+        card: TasteCard,
+        entry: LibraryEntry?,
+        status: ListStatus?,
+        library: LibraryStore,
+        libraryActions: LibraryActions,
+        controller: TastePlanController,
+        routes: KuroRoutes,
+        german: Bool,
+        onRequestNonBareRemove: @escaping () -> Void
+    ) -> some View {
+        let kind = card.media.kind
+        let primaryChoices: [(ListStatus, String)] = [
+            (.current, kind == .manga ? "book" : "play"),
+            (.completed, "checkmark.circle"),
+            (.planning, "bookmark"),
+        ]
+        ForEach(primaryChoices, id: \.0) { choice, symbol in
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                controller.setStatus(card, to: choice, library: library, actions: libraryActions, german: german)
+            } label: {
+                Label(Self.menuChoiceTitle(choice, kind: kind, german: german),
+                      systemImage: status == choice ? "checkmark" : symbol)
+            }
+        }
+        if let entry {
+            let secondaryChoices: [(ListStatus, String)] = [
+                (.paused, "pause.circle"),
+                (.dropped, "xmark.circle"),
+            ]
+            ForEach(secondaryChoices, id: \.0) { choice, symbol in
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    controller.setStatus(card, to: choice, library: library, actions: libraryActions, german: german)
+                } label: {
+                    Label(Self.menuChoiceTitle(choice, kind: kind, german: german),
+                          systemImage: status == choice ? "checkmark" : symbol)
+                }
+            }
+            Divider()
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                routes.presentTrackingEditor(TrackingEditorRequest(media: card.media))
+            } label: {
+                Label(german ? "Details bearbeiten…" : "Edit details…", systemImage: "slider.horizontal.3")
+            }
+            Button(role: .destructive) {
+                KuroAccessibility.impactHaptic(.light)
+                if TastePlanController.isBareEntry(entry) {
+                    controller.removeEntry(card, library: library, actions: libraryActions, german: german)
+                } else {
+                    onRequestNonBareRemove()
+                }
+            } label: {
+                Label(german ? "Von Liste entfernen" : "Remove from list", systemImage: "trash")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func keyLabel(status: ListStatus?, controller: TastePlanController, german: Bool) -> some View {
+        if badge {
+            badgeFace(status: status, controller: controller)
+        } else if variant == .landscape {
+            landscapeFace(status: status, controller: controller, german: german)
+        } else {
+            compactPillFace(status: status, controller: controller, german: german)
+        }
+    }
+
+    /// The glyph a tracked badge shows: what the title is on the list as.
+    static func badgeSymbol(status: ListStatus?, kind: MediaKind) -> String {
+        switch status {
+        case nil: return "plus"
+        case .planning: return "bookmark.fill"
+        case .current, .repeating: return kind == .manga ? "book.fill" : "play.fill"
+        case .some: return "checkmark"
+        }
+    }
+
+    /// The corner quick-add badge (2026-11-20 Discover pass): a 30 pt circle in a 44 pt target that
+    /// floats on the cover's bottom-trailing corner. White with a crisp `plus` when the title is not on
+    /// the list; near-black with the status glyph once it is. Opens the same 3-choice status menu.
+    private func badgeFace(status: ListStatus?, controller: TastePlanController) -> some View {
+        let saved = status != nil
+        let stamp = TastePlanKey.stampTokens(controller.stampCounts[card.key])
+        return ZStack {
+            Circle()
+                .fill(saved ? Color.kuroControlInk : Color.white)
+                .overlay(Circle().strokeBorder(saved ? Color.white.opacity(0.18) : Color.black.opacity(0.16),
+                                               lineWidth: saved ? 0.5 : 1))
+                .shadow(color: Color.black.opacity(saved ? 0.22 : 0.28), radius: saved ? 4 : 5, y: saved ? 1.5 : 2)
+                .frame(width: 30, height: 30)
+            ZStack {
+                Image(systemName: Self.badgeSymbol(status: status, kind: card.media.kind))
+                    .font(.system(size: saved ? 11 : 13, weight: .semibold))
+                    .kuroRestore(trigger: stamp.restore)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .kuroConfirmStamp(trigger: stamp.confirm)
+            }
+            .foregroundStyle(saved ? Color.white : Color.kuroControlInk)
+            .accessibilityHidden(true)
+            .sensoryFeedback(.success, trigger: stamp.confirm)
+            .sensoryFeedback(.warning, trigger: stamp.failure)
+        }
+        .frame(width: 44, height: 44)
+        .contentShape(Circle())
+        .kuroAnimation(KuroMotion.contact, value: status)
+    }
+
+    private func landscapeFace(status: ListStatus?, controller: TastePlanController, german: Bool) -> some View {
+        let saved = status != nil
+        let stamp = TastePlanKey.stampTokens(controller.stampCounts[card.key])
+        let label = Self.landscapeLabel(status: status, kind: card.media.kind, german: german)
+        let artRaw = card.bannerURL ?? card.media.imageURL
+        let foreground: Color = (saved || onLightSurface) ? .white : .kuroControlInk
+        let border: Color = saved
+            ? Color.white.opacity(0.26)
+            : (onLightSurface ? Color.white.opacity(0.20) : Color.white.opacity(0.92))
+
+        return HStack(spacing: 6) {
+            Text(label)
+                .font(.kuroCustom(12, weight: .semibold, relativeTo: .caption1, maxSize: 20))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+            Spacer(minLength: 4)
+            ZStack {
+                Image(systemName: saved ? "checkmark" : "plus")
+                    .font(.system(size: 13, weight: .semibold))
+                    .kuroRestore(trigger: stamp.restore)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .kuroConfirmStamp(trigger: stamp.confirm)
+            }
+            .frame(width: 22, height: 28)
+            .accessibilityHidden(true)
+            .sensoryFeedback(.success, trigger: stamp.confirm)
+            .sensoryFeedback(.warning, trigger: stamp.failure)
+        }
+        .foregroundStyle(foreground)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .background {
+            if saved {
+                Color.kuroControlInk
+            } else if onLightSurface {
+                KuroBlurredArtworkFill(
+                    raw: artRaw,
+                    top: Color(hex: "222634"),
+                    bottom: Color(hex: "151821"),
+                    leadingScrim: 0.56,
+                    trailingScrim: 0.38
+                )
+            } else {
+                KuroBlurredArtworkFill(raw: artRaw, frostedLight: true)
+            }
+        }
+        .clipShape(Capsule(style: .continuous))
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(border, lineWidth: 1)
+        )
+        .kuroAnimation(KuroMotion.contact, value: status)
+    }
+
+    private func compactPillFace(status: ListStatus?, controller: TastePlanController, german: Bool) -> some View {
+        let action = TastePlanAction.action(for: library.entry(for: card.key))
+        let isDarkFace = status == .planning || status == .current || status == .repeating
+        let isTrackedOther = status != nil && !isDarkFace
+        let label = Self.compactLabel(action: action, status: status, kind: card.media.kind, german: german)
+        let stamp = TastePlanKey.stampTokens(controller.stampCounts[card.key])
+
+        return HStack(spacing: 4) {
+            if isDarkFace {
+                ZStack {
+                    Image(systemName: status == .planning ? "bookmark.fill" : (card.media.kind == .manga ? "book.fill" : "play.fill"))
+                        .font(.system(size: 8.5, weight: .semibold))
+                        .kuroRestore(trigger: stamp.restore)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .kuroConfirmStamp(trigger: stamp.confirm)
+                }
+                .frame(width: 11, height: 11)
+                .accessibilityHidden(true)
+                .sensoryFeedback(.success, trigger: stamp.confirm)
+                .sensoryFeedback(.warning, trigger: stamp.failure)
+            } else {
+                Image(systemName: isTrackedOther ? "checkmark" : "plus")
+                    .font(.system(size: 9, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            Text(label)
+                .font(.kuroCustom(10.5, weight: .medium, relativeTo: .caption1, maxSize: 20))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .foregroundStyle(isDarkFace ? Color.white : Color.kuroInk)
+        .padding(.horizontal, 10)
+        .frame(height: 28)
+        .background(
+            isDarkFace ? Self.savedLeafFace : (isTrackedOther ? Color.black.opacity(0.055) : Color.white.opacity(0.80)),
+            in: Capsule()
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(isDarkFace ? Self.savedLeafFace : Color.black.opacity(0.10), lineWidth: 1)
+        )
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: trailingAligned ? .trailing : .leading)
+        .contentShape(Rectangle())
+        .kuroAnimation(KuroMotion.contact, value: status)
     }
 }
 

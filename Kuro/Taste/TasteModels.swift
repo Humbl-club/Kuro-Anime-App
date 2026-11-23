@@ -306,7 +306,8 @@ extension TasteDeckCard {
             favourites: nil,
             genreList: genres,
             createdAt: nil,
-            rank: nil
+            rank: nil,
+            coverImageColor: coverImageColor
         )
     }
 }

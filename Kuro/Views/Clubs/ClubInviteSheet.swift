@@ -10,6 +10,7 @@ import UIKit
 struct ClubInviteSheet: View {
     let clubName: String
     let code: String
+    var clubId: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var didCopy = false
@@ -18,30 +19,10 @@ struct ClubInviteSheet: View {
         let german = KuroLocale.isGerman
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(KuroLocale.text("Invite code", "Einladungscode"))
-                        .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
-                        .tracking(1.05)
-                        .textCase(.uppercase)
-                        .foregroundStyle(HomeInk.kicker)
-                        .accessibilityAddTraits(.isHeader)
+                VStack(alignment: .leading, spacing: 20) {
+                    screeningTicket(german: german)
 
-                    Text(verbatim: code)
-                        .font(.kuroCustom(24, weight: .medium, design: .monospaced, relativeTo: .title2, maxSize: 44))
-                        .tracking(3)
-                        .foregroundStyle(Color.kuroInk)
-                        .textSelection(.enabled)
-                        .padding(.top, 8)
-                        .accessibilityLabel(KuroLocale.text("Invite code", "Einladungscode"))
-                        .accessibilityValue(code.map(String.init).joined(separator: " "))
-
-                    Text(clubName)
-                        .font(.kuroEditorial(size: 17))
-                        .foregroundStyle(Color.kuroMuted)
-                        .padding(.top, 6)
-                        .accessibilityHidden(true)
-
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Button {
                             UIPasteboard.general.string = code
                             KuroAccessibility.successHaptic()
@@ -64,7 +45,6 @@ struct ClubInviteSheet: View {
                         }
                         .buttonStyle(HomeContactStyle())
                     }
-                    .padding(.top, 20)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -84,22 +64,96 @@ struct ClubInviteSheet: View {
         .presentationDragIndicator(.visible)
         .presentationDetents([.medium, .large])
     }
+
+    private func screeningTicket(german: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
+                    ClubSeal(ring: ClubSeal.compactRing, crest: ClubCrestStore.crest(for: clubId))
+                        .accessibilityHidden(true)
+                    Text(KuroLocale.text("PRIVATE SCREENING PASS", "PRIVATER CLUB-PASS"))
+                        .font(.kuroCustom(9, weight: .medium, relativeTo: .caption2, maxSize: 16))
+                        .tracking(1.3)
+                        .foregroundStyle(ClubRoomPalette.kicker)
+                    Spacer(minLength: 8)
+                }
+
+                Text(clubName)
+                    .font(.kuroEditorial(size: 24))
+                    .foregroundStyle(ClubRoomPalette.text)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(18)
+
+            // Tear-off perforation with side ticket cutouts.
+            ZStack {
+                ClubTicketPerforation()
+                    .stroke(Color.white.opacity(0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                    .frame(height: 1)
+                    .padding(.horizontal, 14)
+
+                HStack {
+                    Circle()
+                        .fill(Color.kuroCanvasHome)
+                        .frame(width: 16, height: 16)
+                        .offset(x: -8)
+                    Spacer()
+                    Circle()
+                        .fill(Color.kuroCanvasHome)
+                        .frame(width: 16, height: 16)
+                        .offset(x: 8)
+                }
+            }
+            .frame(height: 16)
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(KuroLocale.text("Invite code", "Einladungscode"))
+                    .font(.kuroCustom(9, weight: .medium, relativeTo: .caption2, maxSize: 18))
+                    .tracking(1.2)
+                    .textCase(.uppercase)
+                    .foregroundStyle(ClubRoomPalette.kicker)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text(verbatim: code)
+                    .font(.kuroCustom(26, weight: .semibold, design: .monospaced, relativeTo: .title2, maxSize: 44))
+                    .tracking(3.2)
+                    .foregroundStyle(Color.white)
+                    .textSelection(.enabled)
+                    .accessibilityLabel(KuroLocale.text("Invite code", "Einladungscode"))
+                    .accessibilityValue(code.map(String.init).joined(separator: " "))
+            }
+            .padding(18)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.kuroControlInk, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.14), radius: 14, y: 6)
+    }
 }
 
-/// The light paper key face (the `KuroKeyFace(.light)` recipe at full width): 44 pt, radius 7.
+private struct ClubTicketPerforation: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        return path
+    }
+}
+
+/// Neutral light gallery key face: 44 pt, radius 10.
 struct ClubPaperKeyFace: ViewModifier {
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         content
-            .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 26))
-            .foregroundStyle(Color(hex: "29352C"))
-            .padding(.horizontal, 10)
+            .font(.kuroCustom(13, weight: .semibold, relativeTo: .footnote, maxSize: 26))
+            .foregroundStyle(Color.kuroControlInk)
+            .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, minHeight: 44)
             .background(
-                shape.fill(LinearGradient(colors: [.kuroKeyLightTop, .kuroKeyLightBottom], startPoint: .top, endPoint: .bottom))
-                    .shadow(color: Color(hex: "142319", opacity: Double(0x12) / 255), radius: 0.5, y: 1)
+                shape.fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.06), radius: 2, y: 1)
             )
-            .overlay(shape.strokeBorder(Color(hex: "202823", opacity: Double(0x26) / 255), lineWidth: 1))
+            .overlay(shape.strokeBorder(Color.kuroKeyRim, lineWidth: 1))
             .contentShape(shape)
     }
 }

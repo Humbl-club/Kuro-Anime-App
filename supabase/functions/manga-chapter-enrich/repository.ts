@@ -490,19 +490,27 @@ export async function updateMangaSyncFields(
   candidate: CandidateRow,
   maxImportedNumber: number | null,
 ) {
+  const nowIso = new Date().toISOString();
   const updatePayload: Record<string, unknown> = {
-    last_synced_at: new Date().toISOString(),
+    last_synced_at: nowIso,
   };
 
   if (maxImportedNumber && maxImportedNumber > 0) {
     const existing = candidate.chapters ?? 0;
     updatePayload.chapters = Math.max(existing, maxImportedNumber);
+    updatePayload.latest_chapter = maxImportedNumber;
+    updatePayload.latest_chapter_at = nowIso;
   }
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from("manga")
     .update(updatePayload)
     .eq("id", candidate.id);
+  if (error && (error.code === "PGRST204" || error.code === "42703")) {
+    delete updatePayload.latest_chapter;
+    delete updatePayload.latest_chapter_at;
+    ({ error } = await supabase.from("manga").update(updatePayload).eq("id", candidate.id));
+  }
   if (error) throw error;
 }
 

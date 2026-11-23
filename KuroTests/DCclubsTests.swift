@@ -308,4 +308,18 @@ struct DCclubsTests {
                 == "Join my club \u{201C}Friday\u{201D} in Kuro: kuro://join/Qw3rTy12. Or enter the code Qw3rTy12 in the app.")
         #expect(ClubInviteCode.normalize(ClubInviteCopy.shareText(clubName: "Friday", code: "Qw3rTy12", german: true)) == "Qw3rTy12")
     }
+
+    @Test("Club crests offer 6 emblems and ClubCrestStore persists per club id in isolated defaults")
+    func clubCrestsPersistPerClub() throws {
+        let suite = "clubs-crest-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        #expect(ClubCrest.allCases.count == 6)
+        #expect(ClubCrestStore.crest(for: "club-alpha", defaults: defaults) == .knot)
+        ClubCrestStore.setCrest(.moon, for: "club-alpha", defaults: defaults)
+        #expect(ClubCrestStore.crest(for: "club-alpha", defaults: defaults) == .moon)
+        #expect(ClubCrestStore.crest(for: "club-beta", defaults: defaults) == .knot)
+        #expect(ClubCrestStore.crest(for: nil, defaults: defaults) == .knot)
+    }
 }

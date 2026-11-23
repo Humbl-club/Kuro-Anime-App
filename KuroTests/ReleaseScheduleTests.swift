@@ -224,6 +224,42 @@ struct ReleaseCopyTests {
         #expect(Self.german().sourceAttribution(row) == "über AniList")
         #expect(Self.english().sourceAttribution(Self.item(.chapter, 1, at: nil, basis: .estimated, source: "unknown")) == nil)
     }
+
+    @Test("Live minute countdown phrases and liveLine")
+    func liveCountdowns() {
+        let en = Self.english(Self.utc)
+        let de = Self.german()
+
+        let airingNow = Self.precise(.episode, 8, at: Self.now.addingTimeInterval(-300), basis: .confirmed, precision: .instant, medium: .anime)
+        #expect(en.countdownPhrase(airingNow) == "airing now")
+        #expect(de.countdownPhrase(airingNow) == "läuft jetzt")
+        #expect(en.liveLine(airingNow) == "Ep. 8 · airing now")
+
+        let elapsed = Self.precise(.episode, 8, at: Self.now.addingTimeInterval(-2400), basis: .confirmed, precision: .instant, medium: .anime)
+        #expect(en.countdownPhrase(elapsed) == nil)
+
+        let mins = Self.precise(.episode, 8, at: Self.now.addingTimeInterval(42 * 60), basis: .confirmed, precision: .instant, medium: .anime)
+        #expect(en.countdownPhrase(mins) == "in 42m")
+        #expect(de.countdownPhrase(mins) == "in 42 Min.")
+        #expect(en.liveLine(mins) == "Ep. 8 · in 42m")
+
+        let hours = Self.precise(.episode, 9, at: Self.now.addingTimeInterval(3 * 3600 + 15 * 60), basis: .confirmed, precision: .instant, medium: .anime)
+        #expect(en.countdownPhrase(hours) == "in 3h 15m")
+
+        let days = Self.precise(.episode, 10, at: Self.now.addingTimeInterval(2 * 86_400 + 14 * 3600), basis: .confirmed, precision: .instant, medium: .anime)
+        #expect(en.countdownPhrase(days) == "2d 14h")
+        #expect(en.liveLine(days) == "Ep. 10 · 2d 14h")
+
+        let weekPlus = Self.precise(.episode, 11, at: Self.now.addingTimeInterval(9 * 86_400), basis: .confirmed, precision: .instant, medium: .anime)
+        #expect(en.countdownPhrase(weekPlus) == "Fri · 9d")
+
+        let estimated = Self.precise(.episode, 12, at: Self.now.addingTimeInterval(30 * 60), basis: .estimated, precision: .instant, confidence: 0.9, medium: .anime)
+        #expect(en.liveLine(estimated) == "Ep. 12 · ~in 30m")
+
+        let dayOnly = Self.precise(.chapter, 1199, at: Self.firstOfNovember, basis: .announced, precision: .day, medium: .manga)
+        #expect(en.countdownPhrase(dayOnly) == nil)
+        #expect(en.liveLine(dayOnly) == "Ch. 1199 · Sun 1 Nov")
+    }
 }
 
 @MainActor

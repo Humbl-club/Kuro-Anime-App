@@ -18,6 +18,7 @@ struct HomeAlsoWatchingTile<Key: View>: View {
     let stamp: HomeSeasonTab?
     let readout: HomeProgressReadout
     let compact: Bool
+    var zoomSourceID: String? = nil
     let onOpen: () -> Void
     @ViewBuilder let key: () -> Key
 
@@ -70,17 +71,18 @@ struct HomeAlsoWatchingTile<Key: View>: View {
     }
 
     private var poster: some View {
-        HomeArtwork(url: posterURL, maxPixelSize: 300, placeholder: HomeInk.posterFill)
+        HomeArtwork(url: posterURL, maxPixelSize: 300, placeholder: HomeInk.posterFill, usesMaterialWash: true)
             .frame(width: 44, height: 66)
             .background {
                 // `0 3px 7px -4px #22222255`: cast by a shape 4 pt smaller, so it shows below only.
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(HomeInk.posterFill)
                     .padding(4)
                     .shadow(color: Color(hex: "222222", opacity: Double(0x55) / 255), radius: 3.5, y: 3)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.black.opacity(Double(0x0B) / 255), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.black.opacity(Double(0x0B) / 255), lineWidth: 1))
+            .kuroZoomSource(zoomSourceID)
             .overlay(alignment: .bottomTrailing) {
                 if let stamp {
                     HStack(alignment: .lastTextBaseline, spacing: 2) {
@@ -94,7 +96,7 @@ struct HomeAlsoWatchingTile<Key: View>: View {
                     .foregroundStyle(HomeInk.tabInk)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 3)
-                    .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 5))
+                    .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 5, style: .continuous))
                 }
             }
             .homeEntrance()
@@ -172,6 +174,7 @@ struct HomeAlsoWatchingHeading: View {
             Spacer(minLength: 8)
             Text(Self.countLine(count))
                 .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                .monospacedDigit()
                 .foregroundStyle(Color.kuroMuted)
         }
         // The heading row's 21 pt line box (SF 15/21), so its 25 / 12 margins measure as in the CSS.

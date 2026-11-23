@@ -42,9 +42,10 @@ struct ClubSummary: Equatable, Identifiable, Sendable {
     /// The newest rail item *with* a cover. Not necessarily the preview's item, so the room never
     /// shows it beside the preview's title.
     let latestCover: String?
+    let coverImages: [String]
 
     init(id: String, name: String, lastActivityAt: Date?, memberNames: [String] = [], memberCount: Int? = nil,
-         activityPreview: String? = nil, latestCover: String? = nil) {
+         activityPreview: String? = nil, latestCover: String? = nil, coverImages: [String] = []) {
         self.id = id
         self.name = name
         self.lastActivityAt = lastActivityAt
@@ -52,6 +53,7 @@ struct ClubSummary: Equatable, Identifiable, Sendable {
         self.memberCount = memberCount
         self.activityPreview = activityPreview
         self.latestCover = latestCover
+        self.coverImages = coverImages
     }
 
     /// nil for an archived club or one without a name: Home never invents a club name.
@@ -61,7 +63,8 @@ struct ClubSummary: Equatable, Identifiable, Sendable {
         self.init(id: row.id, name: name,
                   lastActivityAt: row.last_activity_at.flatMap(ClubsStore.parseISO8601),
                   memberNames: row.member_names ?? [], memberCount: row.member_count,
-                  activityPreview: row.activity_preview, latestCover: row.cover_images?.first)
+                  activityPreview: row.activity_preview, latestCover: row.cover_images?.first,
+                  coverImages: row.cover_images ?? [])
     }
 }
 
@@ -278,6 +281,15 @@ struct HomeClubRoom: View {
     /// threshold, spec D15).
     static func isCompact(width: CGFloat) -> Bool { width > 0 && width <= ClubRoomMetrics.compactRoomWidth }
 
+    private var roomArtworkURLs: [URL] {
+        let candidates = club.coverImages.isEmpty ? [club.latestCover].compactMap { $0 } : club.coverImages
+        return candidates
+            .filter { ImagePipeline.hasRenderableArtwork($0) }
+            .compactMap(URL.init(string:))
+            .prefix(3)
+            .map { $0 }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             masthead
@@ -303,7 +315,7 @@ struct HomeClubRoom: View {
         .padding(.horizontal, compact ? 12 : 16)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background { ClubRoomBackground(cornerRadius: radius) }
+        .background { ClubRoomBackground(cornerRadius: radius, artworkURLs: roomArtworkURLs) }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { roomWidth = $0 }
         .accessibilityElement(children: .contain)
     }
@@ -313,7 +325,7 @@ struct HomeClubRoom: View {
     private var masthead: some View {
         Button { routes.openClub(club.id) } label: {
             HStack(alignment: .center, spacing: compact ? 8 : 10) {
-                ClubSeal(ring: ClubSeal.ring(compact: compact))
+                ClubSeal(ring: ClubSeal.ring(compact: compact), crest: ClubCrestStore.crest(for: club.id))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(KuroLocale.text("Your private club", "Dein privater Club"))

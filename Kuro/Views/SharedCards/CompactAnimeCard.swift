@@ -48,7 +48,7 @@ struct CompactAnimeCard: View {
                         }
                     }
                     .frame(width: cardWidth, height: imageHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                     if let rating = media.rating, rating > 0 {
                         KuroScoreBadge(score: rating)

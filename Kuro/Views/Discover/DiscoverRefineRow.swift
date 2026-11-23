@@ -1,3 +1,4 @@
+import KuroCore
 import SwiftUI
 
 // MARK: - Local refinement and the one rail (Discover + Clubs redesign §6.2 item 8; usability R6, D10)
@@ -67,6 +68,9 @@ struct DiscoverIssueRail: View {
     /// claimed ten nor repeats a series another section shows (R2).
     var ownCards: [TasteCard] = []
     var refinePool: [TasteCard] = []
+    var airingSlots: [Int: DiscoverAiringSlot] = [:]
+    var mangaSlots: [Int: DiscoverMangaSlot] = [:]
+    var showsEpisodeBadge: Bool = false
     var onSeeAll: (() -> Void)? = nil
     /// See all with the rail's refinement selected (R6); falls back to `onSeeAll`.
     var onSeeAllRefined: ((DiscoverRailFilter) -> Void)? = nil
@@ -100,11 +104,21 @@ struct DiscoverIssueRail: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: DiscoverIssueLayout.railSpacing) {
                         ForEach(Array(rail.enumerated()), id: \.element.id) { index, card in
-                            DiscoverCoverTile(card: card, width: cover.width, height: cover.height, position: index)
+                            DiscoverCoverTile(
+                                card: card,
+                                width: cover.width,
+                                height: cover.height,
+                                position: index,
+                                airing: card.media.kind == .anime ? airingSlots[card.media.id] : nil,
+                                mangaSlot: card.media.kind == .manga ? mangaSlots[card.media.id] : nil,
+                                showsEpisodeBadge: showsEpisodeBadge
+                            )
                                 .transition(DiscoverCardMotion.transition(motion: motion))
                         }
                     }
                     .padding(.horizontal, gutter)
+                    // Room for the covers' soft drop inside the horizontal scroll's clip.
+                    .padding(.vertical, 6)
                 }
                 .kuroSwipeExclusionZone()
             }

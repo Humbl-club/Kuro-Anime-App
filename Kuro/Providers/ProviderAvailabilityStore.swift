@@ -88,12 +88,21 @@ final class ProviderAvailabilityStore: AccountScopedState {
     let catalog: CatalogStore
     /// The app's runtime flags (composition's single instance): `streaming_availability_v1`.
     @ObservationIgnored let flags: FeatureFlags
+    /// Scoped defaults used to read account audio preferences (`sub`/`dub`).
+    @ObservationIgnored let userDefaults: UserDefaults
 
-    init(client: SupabaseClient?, accountSession: AccountSessionCoordinator, catalog: CatalogStore, flags: FeatureFlags) {
+    init(
+        client: SupabaseClient?,
+        accountSession: AccountSessionCoordinator,
+        catalog: CatalogStore,
+        flags: FeatureFlags,
+        userDefaults: UserDefaults = .standard
+    ) {
         self.client = client
         self.accountSession = accountSession
         self.catalog = catalog
         self.flags = flags
+        self.userDefaults = userDefaults
     }
 
     /// The SDK client, or `MissingSupabaseConfiguration` when the app has none.

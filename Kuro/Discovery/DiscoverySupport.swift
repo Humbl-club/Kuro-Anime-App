@@ -14,6 +14,14 @@ nonisolated struct DiscoverAiringSlot: Equatable, Sendable {
     let episode: Int?
 }
 
+nonisolated struct DiscoverMangaSlot: Equatable, Sendable {
+    let mangaId: Int
+    let latestChapter: Double?
+    let latestChapterAt: Date?
+    let nextChapterNumber: Int?
+    let nextChapterAt: Date?
+}
+
 /// Orders the "Airing today" rail by air time without inventing one.
 ///
 /// The `discover_bundle` rail is the anime whose `next_airing_at` falls on the current Berlin day,

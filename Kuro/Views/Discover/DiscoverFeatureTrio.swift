@@ -29,6 +29,8 @@ struct DiscoverFeatureTrio: View {
     var feature: Bool = true
     /// This season's first block, the Airing-today glance (D8), between the purpose and the covers.
     var glance: AnyView? = nil
+    var airingSlots: [Int: DiscoverAiringSlot] = [:]
+    var showsEpisodeBadge: Bool = false
     let onSeeAll: () -> Void
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -60,8 +62,14 @@ struct DiscoverFeatureTrio: View {
                 // row 14 pt wider than the column and shifting the whole issue off centre.
                 HStack(alignment: .top, spacing: DiscoverIssueLayout.trioSpacing) {
                     ForEach(Array(trio.enumerated()), id: \.element.id) { index, card in
-                        DiscoverCoverTile(card: card, width: coverWidth, height: (coverWidth * 1.5).rounded(),
-                                          position: index + (lead == nil ? 0 : 1))
+                        DiscoverCoverTile(
+                            card: card,
+                            width: coverWidth,
+                            height: (coverWidth * 1.5).rounded(),
+                            position: index + (lead == nil ? 0 : 1),
+                            airing: card.media.kind == .anime ? airingSlots[card.media.id] : nil,
+                            showsEpisodeBadge: showsEpisodeBadge
+                        )
                             .transition(DiscoverCardMotion.transition(motion: motion))
                     }
                 }
@@ -100,6 +108,10 @@ struct DiscoverCoverTile: View {
     var position: Int = 0
     /// A stated airing slot ("Ep. 7 · 21:30") replaces the line (Airing today only).
     var airing: DiscoverAiringSlot? = nil
+    /// Ongoing/scheduled chapter metadata for Manga tiles.
+    var mangaSlot: DiscoverMangaSlot? = nil
+    /// Draws bottom-leading episode status pills and latest-episode lines on This season / Just added.
+    var showsEpisodeBadge: Bool = false
     /// R3: the quick action under the cover (off only where a page has its own key).
     var showsPlanKey: Bool = true
 
@@ -110,10 +122,65 @@ struct DiscoverCoverTile: View {
     @Environment(\.discoverKindKicker) private var kindKicker
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroZoomNamespace) private var zoomNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var zoomID: String? {
+        guard zoomNamespace != nil, !reduceMotion else { return nil }
+        return "discover-tile-\(section?.id ?? "rail")-\(position)-\(card.id)"
+    }
 
     private var german: Bool { KuroLocale.isGerman }
 
-    private var line: String? {
+    private func episodeDisplay(now: Date) -> DiscoverIssueCopy.SeasonEpisodeDisplay? {
+        if card.media.kind == .manga, let mangaSlot {
+            return DiscoverIssueCopy.mangaChapterPresentation(
+                slot: mangaSlot,
+                now: now,
+                german: german,
+                locale: KuroLocale.locale,
+                timeZone: KuroLocale.timeZone
+            )
+        }
+        guard showsEpisodeBadge, card.media.kind == .anime else { return nil }
+        return DiscoverIssueCopy.seasonEpisodePresentation(
+            slot: airing,
+            now: now,
+            german: german,
+            locale: KuroLocale.locale,
+            timeZone: KuroLocale.timeZone
+        )
+    }
+
+    private func captionLine(now: Date, episodeDisplay: DiscoverIssueCopy.SeasonEpisodeDisplay?) -> String? {
+        if let airing, airing.airingAt > now {
+            let item = ReleaseScheduleItem(
+                medium: .anime,
+                mediaId: card.media.id,
+                title: card.media.title,
+                coverImage: card.media.imageURL,
+                unitKind: .episode,
+                unitNumber: airing.episode.map(Double.init),
+                unitLabel: airing.episode.map { "Ep. \($0)" },
+                releaseAt: airing.airingAt,
+                basis: .confirmed,
+                confidence: nil,
+                source: "anilist",
+                sourceURL: nil,
+                isPast: false,
+                precision: .instant
+            )
+            if let countdown = ReleaseCopy(now: now, german: german, locale: KuroLocale.locale, timeZone: KuroLocale.timeZone)
+                .countdownPhrase(item) {
+                if let episode = airing.episode, episode > 0 {
+                    return german ? "Folge \(episode) · \(countdown)" : "Ep. \(episode) · \(countdown)"
+                }
+                return countdown
+            }
+        }
+        if let epLine = episodeDisplay?.line {
+            return epLine
+        }
         if let airing {
             return DiscoverFrameCopy.line(kind: card.media.kind, year: card.media.year, episodes: nil, chapters: nil,
                                           statusRaw: nil, formatRaw: nil, airing: airing, german: german,
@@ -129,38 +196,74 @@ struct DiscoverCoverTile: View {
     }
 
     var body: some View {
-        let line = line
+        if card.media.kind == .anime, let airing, abs(airing.airingAt.timeIntervalSinceNow) <= 86_400 {
+            TimelineView(.everyMinute) { context in
+                tileBody(now: context.date)
+            }
+        } else {
+            tileBody(now: Date())
+        }
+    }
+
+    @ViewBuilder
+    private func tileBody(now: Date) -> some View {
+        let epDisplay = episodeDisplay(now: now)
+        let line = captionLine(now: now, episodeDisplay: epDisplay)
         let isNew = section?.newKeys.contains(card.key) ?? false
         VStack(alignment: .leading, spacing: 0) {
             Button {
                 guard !suppressCardTaps else { return }
                 KuroAccessibility.impactHaptic(.light)
                 feedback?.trackOpen(card.key, slot: section.map { DiscoverCardSlot(section: $0.id, position: position) }, via: "card")
-                routes.openMedia(MediaRoute(card.key))
+                routes.openMedia(MediaRoute(card.key, zoomSourceID: zoomID))
             } label: {
                 VStack(alignment: .leading, spacing: 0) {
                     HomeArtwork(url: card.media.imageURL.flatMap { URL(string: $0) }, maxPixelSize: 360,
-                                placeholder: HomeInk.posterFill)
+                                placeholder: HomeInk.posterFill, seedHex: card.media.coverImageColor,
+                                usesMaterialWash: true)
                         .frame(width: width, height: height)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .shadow(color: Color(hex: "242C25", opacity: Double(0x14) / 255), radius: 1.5, y: 2)
+                        .clipShape(RoundedRectangle(cornerRadius: DiscoverCoverTile.coverRadius, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DiscoverCoverTile.coverRadius, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5)
+                        )
+                        .kuroZoomSource(zoomID)
                         .overlay(alignment: .topLeading) { if isNew { DiscoverNewTab() } }
+                        .overlay(alignment: .bottomLeading) {
+                            if let badge = epDisplay?.badge {
+                                Text(badge)
+                                    .font(.kuroCustom(8, weight: .bold, relativeTo: .caption2, maxSize: 14))
+                                    .tracking(0.25)
+                                    .monospacedDigit()
+                                    .foregroundStyle(Color.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2.5)
+                                    .background(Color.kuroControlInk.opacity(0.86), in: Capsule(style: .continuous))
+                                    .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.20), lineWidth: 0.5))
+                                    .frame(maxWidth: max(48, width - 42), alignment: .leading)
+                                    .padding(5)
+                                    .accessibilityHidden(true)
+                            }
+                        }
                     if kindKicker {
                         DiscoverKindKicker(kind: card.media.kind)
-                            .padding(.top, 8)
+                            .padding(.top, 9)
                     }
                     Text(KuroCardText.sanitizeTitleForCard(card.media.title))
-                        .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 24))
+                        .font(.kuroCustom(13, weight: .semibold, relativeTo: .footnote, maxSize: 24))
+                        .tracking(-0.1)
                         .foregroundStyle(Color.kuroInk)
                         // Two lines reserved and one line of facts always: every tile of a rail or
-                        // trio has the same height, so the Plan keys share one baseline and the
-                        // rail's measured height never clips a key (R3).
+                        // trio has the same height (the corner badge sits on the cover, R3).
                         .lineLimit(2, reservesSpace: true)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, kindKicker ? 3 : 8)
+                        .padding(.top, kindKicker ? 3 : 9)
                     Text(line ?? " ")
-                        .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                        .font(.kuroCustom(11, relativeTo: .caption2, maxSize: 20))
+                        .monospacedDigit()
                         .foregroundStyle(Color.kuroMuted)
                         .lineLimit(1)
                         .padding(.top, 2)
@@ -175,14 +278,22 @@ struct DiscoverCoverTile: View {
                                                                kindKicker: kindKicker, line: line, isNew: isNew)))
             .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
             .discoverMenu(for: DiscoverCardItem(card: card, position: position))
-            if showsPlanKey {
-                DiscoverPlanKey(card: card, variant: .leaf, compact: true)
-                    .frame(width: width)
-                    .padding(.top, 6)
+            .overlay(alignment: .topLeading) {
+                // The quick add floats on the cover's corner, a sibling of the open button (never
+                // nested in it); only the badge itself takes touches.
+                if showsPlanKey {
+                    DiscoverPlanKey(card: card, variant: .leaf, compact: true, badge: true)
+                        .padding(.trailing, 1)
+                        .padding(.bottom, 1)
+                        .frame(width: width, height: height, alignment: .bottomTrailing)
+                }
             }
         }
         .frame(width: width, alignment: .topLeading)
     }
+
+    /// The cover's continuous corner radius (2026-11-20: 8 pt, was 4).
+    static let coverRadius: CGFloat = 8
 }
 
 /// The ANIME / MANGA kicker over a card's title on the All issue (§5.11): 8 pt, 1.05, `kuroMuted`.

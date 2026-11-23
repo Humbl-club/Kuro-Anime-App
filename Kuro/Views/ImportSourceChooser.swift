@@ -50,8 +50,6 @@ struct ImportSourceChooser: View {
     /// From confirming the AniList sheet until the coordinator returns (covers the gap before its own
     /// processing flag is set).
     @State private var aniListInFlight = false
-    /// The review handed to Concierge (an item sheet, so the prompt is never read stale).
-    @State private var conciergeReview: ConciergeReview?
     /// From the Undo tap until the coordinator's undo finishes: closing would cancel it mid-write.
     @State private var undoInFlight = false
     /// From the Retry tap until the resend finishes (covers the gap before the coordinator's own
@@ -115,20 +113,6 @@ struct ImportSourceChooser: View {
                             Task { @MainActor in
                                 await task.value
                                 undoInFlight = false
-                            }
-                        },
-                        onReview: {
-                            guard case .needsReview(_, _, _, let importText) = result else { return }
-                            owner?.dismissImportResult()
-                            if journey != nil {
-                                // §1/N9: opened from a journey page (Profile), the review is pushed onto
-                                // that journey (Back returns to the page) and the chooser closes; never a
-                                // second content sheet stacked on this tool.
-                                routes.openPage(ShellJourneyPages.concierge(prompt: importText, review: true,
-                                                                            onImportNavigation: onNavigate))
-                                dismiss()
-                            } else {
-                                conciergeReview = ConciergeReview(text: importText)
                             }
                         },
                         onSeeLists: { onNavigate(.fullCollection) }
@@ -210,7 +194,13 @@ struct ImportSourceChooser: View {
                                 .foregroundStyle(Color.kuroInkSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
+                        .padding(14)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .background(Color.kuroControlFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.05), lineWidth: 0.5)
+                        )
                     }
                 }
             }
@@ -296,25 +286,6 @@ struct ImportSourceChooser: View {
                 onNavigate(destination)
             }
         }
-        .sheet(item: $conciergeReview) { review in
-            // The same review Profile hands to Concierge, presented here only outside a journey
-            // (Onboarding, the pager's Collection / Home), which has no stack to push it onto.
-            NavigationStack {
-                ConciergeView(assistantEnabled: true, initialPrompt: review.text) { destination in
-                    conciergeReview = nil
-                    onNavigate(destination)
-                }
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(isGerman ? "Fertig" : "Done") { conciergeReview = nil }
-                            .font(.kuroBody(weight: .light))
-                    }
-                }
-                // The review sheet's own presentation context (ConciergeView reads its routes).
-                .routePresenter()
-            }
-            .presentationDragIndicator(.visible)
-        }
     }
 
     /// A fresh coordinator (the chooser's own; `stop()` tears the old one down for good).
@@ -374,42 +345,60 @@ struct ImportSourceChooser: View {
         .accessibilityElement(children: .combine)
     }
 
+    private func sourceIcon(for kicker: String) -> String {
+        switch kicker {
+        case "AniList": return "arrow.down.circle"
+        case "MAL": return "link"
+        case "Interrupted", "Unterbrochen": return "arrow.clockwise"
+        default: return "doc.text"
+        }
+    }
+
     private func sourceButton(kicker: String, title: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                ImportEyebrow(text: kicker)
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: sourceIcon(for: kicker))
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.kuroControlInk)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white, in: Circle())
+                    .overlay(Circle().strokeBorder(Color.black.opacity(0.06), lineWidth: 0.5))
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    ImportEyebrow(text: kicker)
                     Text(title)
                         .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 8)
-                    Image(systemName: "arrow.right")
-                        .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 20))
-                        .foregroundStyle(Color.kuroInk)
-                        .accessibilityHidden(true)
                 }
-                Rectangle()
-                    .fill(Color.kuroInk)
-                    .frame(height: 1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.kuroControlInk)
+                    .frame(width: 30, height: 30)
+                    .background(Color.white, in: Circle())
+                    .overlay(Circle().strokeBorder(Color.black.opacity(0.06), lineWidth: 0.5))
+                    .accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-            .contentShape(Rectangle())
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+            .background(Color.kuroControlFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.black.opacity(0.05), lineWidth: 0.5)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(HomeContactStyle())
         .accessibilityLabel(label)
     }
 }
 
-/// An import text handed to the Concierge review sheet.
-private struct ConciergeReview: Identifiable {
-    let id = UUID()
-    let text: String
-}
-
 /// The coordinator's import result inside the chooser: what was saved (with Undo while the server
-/// still offers it) or the review the import needs. Same content as Profile's card.
+/// still offers it). Same content as Profile's card.
 private struct ImportChooserResultCard: View {
     let result: ProfileImportResult
     let isGermanLocale: Bool
@@ -419,7 +408,6 @@ private struct ImportChooserResultCard: View {
     let isBusy: Bool
     let onDismiss: () -> Void
     let onUndo: () -> Void
-    let onReview: () -> Void
     let onSeeLists: () -> Void
 
     var body: some View {
@@ -457,15 +445,11 @@ private struct ImportChooserResultCard: View {
                 .accessibilityLabel(isGermanLocale ? "Hinweis schließen" : "Dismiss")
             }
 
-            if isReview {
-                primaryButton(isGermanLocale ? "Im Concierge prüfen" : "Review in Concierge", action: onReview)
-            } else {
-                primaryButton(primaryTitle, action: onSeeLists)
-                if result.undoSessionId != nil {
-                    KuroInkButton(isGermanLocale ? "Import rückgängig machen" : "Undo import", role: .secondary,
-                                  action: onUndo)
-                        .disabled(isBusy)
-                }
+            primaryButton(primaryTitle, action: onSeeLists)
+            if !isReview, result.undoSessionId != nil {
+                KuroInkButton(isGermanLocale ? "Import rückgängig machen" : "Undo import", role: .secondary,
+                              action: onUndo)
+                    .disabled(isBusy)
             }
         }
         .padding(.vertical, 12)

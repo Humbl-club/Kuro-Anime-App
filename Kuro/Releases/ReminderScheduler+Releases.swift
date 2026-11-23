@@ -141,6 +141,36 @@ extension ReminderScheduler {
         userDefaults.set(keys.map { "\($0.kind.rawValue):\($0.id)" }.sorted(), forKey: key)
     }
 
+    private nonisolated static func mangaDayAlertsKey(_ userId: String) -> String {
+        "com.kuro.releaseNotifications.mangaDayAlerts.\(userId.lowercased())"
+    }
+
+    private nonisolated static func audioVariantKey(_ userId: String) -> String {
+        "com.kuro.releaseNotifications.audioVariant.\(userId.lowercased())"
+    }
+
+    /// Account-scoped opt-in for morning (09:00 local) alerts on confirmed day-precision manga releases.
+    func mangaDayAlertsPreference(for context: AccountContext) -> Bool {
+        userDefaults.bool(forKey: Self.mangaDayAlertsKey(context.userId))
+    }
+
+    func setMangaDayAlertsPreference(_ enabled: Bool, for context: AccountContext) {
+        guard accountSession.isCurrent(context) else { return }
+        userDefaults.set(enabled, forKey: Self.mangaDayAlertsKey(context.userId))
+    }
+
+    /// Account-scoped preferred audio variant ("sub" default or "dub") for airing preferences.
+    func preferredAudioVariant(for context: AccountContext) -> String {
+        let raw = userDefaults.string(forKey: Self.audioVariantKey(context.userId))?.lowercased()
+        return raw == "dub" ? "dub" : "sub"
+    }
+
+    func setPreferredAudioVariant(_ variant: String, for context: AccountContext) {
+        guard accountSession.isCurrent(context) else { return }
+        let normalized = variant.lowercased() == "dub" ? "dub" : "sub"
+        userDefaults.set(normalized, forKey: Self.audioVariantKey(context.userId))
+    }
+
     /// Account deletion: the account's choices go with it.
     func removeReleaseNotificationPreferences(userId: String) {
         userDefaults.removeObject(forKey: Self.preferenceKey(userId))
@@ -148,6 +178,8 @@ extension ReminderScheduler {
         userDefaults.removeObject(forKey: Self.allowedKey(userId))
         userDefaults.removeObject(forKey: Self.offeredKey(userId))
         userDefaults.removeObject(forKey: Self.offerDeclinedKey(userId))
+        userDefaults.removeObject(forKey: Self.mangaDayAlertsKey(userId))
+        userDefaults.removeObject(forKey: Self.audioVariantKey(userId))
     }
 
     // MARK: Legacy cleanup

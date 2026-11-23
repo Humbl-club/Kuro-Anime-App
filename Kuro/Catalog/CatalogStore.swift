@@ -336,21 +336,61 @@ final class CatalogStore: MemoryPressureTrimmable {
         let name: String
         let category: String?
         let isAdult: Bool
+        let isGeneralSpoiler: Bool
+        let isMediaSpoiler: Bool
+
+        init(id: Int, name: String, category: String?, isAdult: Bool, isGeneralSpoiler: Bool = false, isMediaSpoiler: Bool = false) {
+            self.id = id
+            self.name = name
+            self.category = category
+            self.isAdult = isAdult
+            self.isGeneralSpoiler = isGeneralSpoiler
+            self.isMediaSpoiler = isMediaSpoiler
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(Int.self, forKey: .id)
+            name = try c.decode(String.self, forKey: .name)
+            category = try c.decodeIfPresent(String.self, forKey: .category)
+            isAdult = try c.decodeIfPresent(Bool.self, forKey: .isAdult) ?? false
+            isGeneralSpoiler = try c.decodeIfPresent(Bool.self, forKey: .isGeneralSpoiler) ?? false
+            isMediaSpoiler = try c.decodeIfPresent(Bool.self, forKey: .isMediaSpoiler) ?? false
+        }
 
         enum CodingKeys: String, CodingKey {
             case id, name, category
             case isAdult = "is_adult"
+            case isGeneralSpoiler = "is_general_spoiler"
+            case isMediaSpoiler = "is_media_spoiler"
         }
     }
 
     struct TagEdge: Decodable {
         let rank: Int?
         let tagId: Int?
+        let isSpoiler: Bool
         let tags: TagNode?
+
+        init(rank: Int?, tagId: Int? = nil, isSpoiler: Bool = false, tags: TagNode?) {
+            self.rank = rank
+            self.tagId = tagId
+            self.isSpoiler = isSpoiler
+            self.tags = tags
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            rank = try c.decodeIfPresent(Int.self, forKey: .rank)
+            tagId = try c.decodeIfPresent(Int.self, forKey: .tagId)
+            isSpoiler = try c.decodeIfPresent(Bool.self, forKey: .isSpoiler) ?? false
+            tags = try c.decodeIfPresent(TagNode.self, forKey: .tags)
+        }
 
         enum CodingKeys: String, CodingKey {
             case rank
             case tagId = "tag_id"
+            case isSpoiler = "is_spoiler"
             case tags
         }
     }
@@ -375,31 +415,103 @@ final class CatalogStore: MemoryPressureTrimmable {
         }
     }
 
-    static func isBlockedTag(_ t: TagNode) -> Bool {
-        if t.isAdult { return true }
-        // Keep it simple: AniList already flags adult tags; category filters can be layered later.
-        return false
+    struct TitleTagSplit: Equatable, Sendable {
+        let safe: [String]
+        let spoilers: [String]
+
+        static let empty = TitleTagSplit(safe: [], spoilers: [])
+        var isEmpty: Bool { safe.isEmpty && spoilers.isEmpty }
     }
 
-    /// Returns top non-adult tags for a specific anime (used for "sub-genres" on detail pages).
+    static func isBlockedTag(_ t: TagNode) -> Bool {
+        t.isAdult
+    }
+
+    static func isSpoilerTag(edge: TagEdge, node: TagNode) -> Bool {
+        edge.isSpoiler || node.isGeneralSpoiler || node.isMediaSpoiler
+    }
+
+    /// Splits tag edges into non-spoiler and spoiler names ordered by descending rank, deduplicated.
+    static func splitStoryTags(_ edges: [TagEdge], safeLimit: Int = 8, spoilerLimit: Int = 8) -> TitleTagSplit {
+        let ranked = edges
+            .compactMap { edge -> (name: String, rank: Int, isSpoiler: Bool)? in
+                guard let node = edge.tags, !isBlockedTag(node) else { return nil }
+                let clean = node.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !clean.isEmpty else { return nil }
+                return (clean, edge.rank ?? 0, isSpoilerTag(edge: edge, node: node))
+            }
+            .sorted { lhs, rhs in
+                if lhs.rank != rhs.rank { return lhs.rank > rhs.rank }
+                return lhs.name < rhs.name
+            }
+
+        var safe: [String] = []
+        var spoilers: [String] = []
+        var seen = Set<String>()
+        for item in ranked {
+            let key = item.name.lowercased()
+            guard seen.insert(key).inserted else { continue }
+            if item.isSpoiler {
+                if spoilers.count < spoilerLimit { spoilers.append(item.name) }
+            } else {
+                if safe.count < safeLimit { safe.append(item.name) }
+            }
+        }
+        return TitleTagSplit(safe: safe, spoilers: spoilers)
+    }
+
+    func fetchStoryTagSplit(kind: MediaKind, id: Int, safeLimit: Int = 8, spoilerLimit: Int = 8) async -> TitleTagSplit {
+        do {
+            let client = try requiredClient()
+            let edges: [TagEdge]
+            if kind == .anime {
+                let rows: [AnimeTagSampleRow] = try await client
+                    .from("anime")
+                    .select("id,anime_tags(rank,tags(id,name,category,is_adult,is_general_spoiler,is_media_spoiler))")
+                    .eq("id", value: id)
+                    .limit(1)
+                    .execute()
+                    .value
+                edges = rows.first?.animeTags ?? []
+            } else {
+                let rows: [MangaTagSampleRow] = try await client
+                    .from("manga")
+                    .select("id,manga_tags(rank,tags(id,name,category,is_adult,is_general_spoiler,is_media_spoiler))")
+                    .eq("id", value: id)
+                    .limit(1)
+                    .execute()
+                    .value
+                edges = rows.first?.mangaTags ?? []
+            }
+            return Self.splitStoryTags(edges, safeLimit: safeLimit, spoilerLimit: spoilerLimit)
+        } catch {
+            #if DEBUG
+            print("❌ story tag fetch: \(error)")
+            #endif
+            return .empty
+        }
+    }
+
+    /// Returns top non-adult, non-spoiler tags for a specific anime (used for "sub-genres" on detail pages).
     func fetchTopTagsForAnime(animeId: Int, limit: Int = 12) async -> [TagFacet] {
         do {
             let client = try requiredClient()
             let rows: [AnimeTagSampleRow] = try await client
                 .from("anime")
-                .select("id,anime_tags(rank,tags(id,name,category,is_adult))")
+                .select("id,anime_tags(rank,tags(id,name,category,is_adult,is_general_spoiler,is_media_spoiler))")
                 .eq("id", value: animeId)
                 .limit(1)
                 .execute()
                 .value
             guard let row = rows.first else { return [] }
             let tags = row.animeTags
-                .compactMap { edge -> (id: Int, name: String, category: String?, isAdult: Bool, rank: Int)? in
+                .compactMap { edge -> (id: Int, name: String, category: String?, blocked: Bool, rank: Int)? in
                     guard let node = edge.tags else { return nil }
                     let r = edge.rank ?? 0
-                    return (node.id, node.name, node.category, node.isAdult, r)
+                    let blocked = Self.isBlockedTag(node) || Self.isSpoilerTag(edge: edge, node: node)
+                    return (node.id, node.name, node.category, blocked, r)
                 }
-                .filter { !$0.isAdult }
+                .filter { !$0.blocked }
                 .sorted { $0.rank > $1.rank }
                 .prefix(limit)
                 .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }
@@ -412,25 +524,26 @@ final class CatalogStore: MemoryPressureTrimmable {
         }
     }
 
-    /// Returns top non-adult tags for a specific manga (used for "sub-genres" on detail pages).
+    /// Returns top non-adult, non-spoiler tags for a specific manga (used for "sub-genres" on detail pages).
     func fetchTopTagsForManga(mangaId: Int, limit: Int = 12) async -> [TagFacet] {
         do {
             let client = try requiredClient()
             let rows: [MangaTagSampleRow] = try await client
                 .from("manga")
-                .select("id,manga_tags(rank,tags(id,name,category,is_adult))")
+                .select("id,manga_tags(rank,tags(id,name,category,is_adult,is_general_spoiler,is_media_spoiler))")
                 .eq("id", value: mangaId)
                 .limit(1)
                 .execute()
                 .value
             guard let row = rows.first else { return [] }
             let tags = row.mangaTags
-                .compactMap { edge -> (id: Int, name: String, category: String?, isAdult: Bool, rank: Int)? in
+                .compactMap { edge -> (id: Int, name: String, category: String?, blocked: Bool, rank: Int)? in
                     guard let node = edge.tags else { return nil }
                     let r = edge.rank ?? 0
-                    return (node.id, node.name, node.category, node.isAdult, r)
+                    let blocked = Self.isBlockedTag(node) || Self.isSpoilerTag(edge: edge, node: node)
+                    return (node.id, node.name, node.category, blocked, r)
                 }
-                .filter { !$0.isAdult }
+                .filter { !$0.blocked }
                 .sorted { $0.rank > $1.rank }
                 .prefix(limit)
                 .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }

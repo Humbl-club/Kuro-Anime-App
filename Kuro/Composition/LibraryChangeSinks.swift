@@ -46,7 +46,7 @@ final class HomeLibrarySink: LibraryChangeSink {
     weak var store: HomeStore?
     func libraryDidChange(_ change: LibraryChange) {
         // Flag-off / never-mounted Home does not make calls to an undeployed contract.
-        if store?.bundle != nil { store?.libraryDidChange(change) }
+        if store?.anime != nil || store?.manga != nil { store?.libraryDidChange(change) }
     }
 }
 

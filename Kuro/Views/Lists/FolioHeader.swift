@@ -1,4 +1,5 @@
 import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Folio header: status strip, density, sort, search, select
@@ -386,6 +387,7 @@ enum FolioNoticeUndo: Equatable {
     case advance
     case upNextPlan(UpNextPlanReceipt)
     case upNextDismiss(DiscoverFeedbackReceipt)
+    case statusChange(key: MediaKey, previousStatus: ListStatus, previousProgress: Int)
 }
 
 struct FolioNoticeBar: View {

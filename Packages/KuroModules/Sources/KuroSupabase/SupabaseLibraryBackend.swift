@@ -23,13 +23,14 @@ public struct SupabaseLibraryBackend: LibraryBackend {
     private let transport: any LibraryRowTransport
     private let fence: (any LibraryFenceTransport)?
     private let fenceEnabled: @Sendable () -> Bool
+    private let startOffsetEnabled: @Sendable () -> Bool
     private let pageSize: Int
     private let maxPages: Int
 
     /// `pageSize` 1000 equals Supabase's default `max_rows`. A page shorter than `pageSize` ends a
     /// table, so the project's `max_rows` must not be lowered below this value.
     public init(transport: any LibraryRowTransport) {
-        self.init(transport: transport, fence: nil, fenceEnabled: { false }, pageSize: 1000, maxPages: 100)
+        self.init(transport: transport, fence: nil, fenceEnabled: { false }, startOffsetEnabled: { false }, pageSize: 1000, maxPages: 100)
     }
 
     public init(
@@ -37,28 +38,40 @@ public struct SupabaseLibraryBackend: LibraryBackend {
         fence: (any LibraryFenceTransport)?,
         fenceEnabled: @escaping @Sendable () -> Bool
     ) {
-        self.init(transport: transport, fence: fence, fenceEnabled: fenceEnabled, pageSize: 1000, maxPages: 100)
+        self.init(transport: transport, fence: fence, fenceEnabled: fenceEnabled, startOffsetEnabled: { false }, pageSize: 1000, maxPages: 100)
+    }
+
+    public init(
+        transport: any LibraryRowTransport,
+        fence: (any LibraryFenceTransport)?,
+        fenceEnabled: @escaping @Sendable () -> Bool,
+        startOffsetEnabled: @escaping @Sendable () -> Bool
+    ) {
+        self.init(transport: transport, fence: fence, fenceEnabled: fenceEnabled, startOffsetEnabled: startOffsetEnabled, pageSize: 1000, maxPages: 100)
     }
 
     init(transport: any LibraryRowTransport, pageSize: Int, maxPages: Int) {
-        self.init(transport: transport, fence: nil, fenceEnabled: { false }, pageSize: pageSize, maxPages: maxPages)
+        self.init(transport: transport, fence: nil, fenceEnabled: { false }, startOffsetEnabled: { false }, pageSize: pageSize, maxPages: maxPages)
     }
 
     init(
         transport: any LibraryRowTransport,
         fence: (any LibraryFenceTransport)?,
         fenceEnabled: @escaping @Sendable () -> Bool,
+        startOffsetEnabled: @escaping @Sendable () -> Bool = { false },
         pageSize: Int,
         maxPages: Int
     ) {
         self.transport = transport
         self.fence = fence
         self.fenceEnabled = fenceEnabled
+        self.startOffsetEnabled = startOffsetEnabled
         self.pageSize = max(1, pageSize)
         self.maxPages = max(1, maxPages)
     }
 
     private var usesFence: Bool { fence != nil && fenceEnabled() }
+    private var usesStartOffset: Bool { startOffsetEnabled() }
 
     // MARK: LibraryBackend
 
@@ -66,7 +79,10 @@ public struct SupabaseLibraryBackend: LibraryBackend {
         let userId = UserIdText.value(for: account)
         var entries: [LibraryEntry] = []
         for kind in [MediaKind.anime, .manga] {
-            entries += try await fetchTable(ListTable(kind, includeFenceColumns: usesFence), userId: userId)
+            entries += try await fetchTable(
+                ListTable(kind, includeFenceColumns: usesFence, includeStartOffset: usesStartOffset),
+                userId: userId
+            )
         }
         return entries
     }
@@ -80,12 +96,12 @@ public struct SupabaseLibraryBackend: LibraryBackend {
         account: AccountContext
     ) async throws -> LibraryWriteResult {
         if let error = edit.validationError { throw error }
-        let table = ListTable(key.kind, includeFenceColumns: usesFence)
+        let table = ListTable(key.kind, includeFenceColumns: usesFence, includeStartOffset: usesStartOffset)
         let userId = UserIdText.value(for: account)
         if usesFence, edit.touchesProgress || edit.touchesStatus {
             return try await editThroughFence(edit, key: key, table: table, userId: userId, createIfMissing: createIfMissing, mutationId: mutationId, baseRevision: baseRevision)
         }
-        let body = Self.body(for: edit, kind: key.kind)
+        let body = Self.body(for: edit, kind: key.kind, includeStartOffset: usesStartOffset)
 
         // Never send `PATCH {}`.
         if body.isEmpty {
@@ -121,7 +137,7 @@ public struct SupabaseLibraryBackend: LibraryBackend {
     }
 
     public func insertIfMissing(_ key: MediaKey, status: ListStatus, account: AccountContext) async throws -> LibraryWriteResult {
-        let table = ListTable(key.kind, includeFenceColumns: usesFence)
+        let table = ListTable(key.kind, includeFenceColumns: usesFence, includeStartOffset: usesStartOffset)
         let userId = UserIdText.value(for: account)
         let body: [String: LibraryJSONValue] = [
             "user_id": .string(userId),
@@ -215,8 +231,9 @@ public struct SupabaseLibraryBackend: LibraryBackend {
             throw LibraryError.unavailable(message: "progress fence outcome \(item.outcome)")
         }
 
-        let side = edit.patchBodyOmittingProgress
-        let sideBody = Self.body(for: side, kind: key.kind)
+        var side = edit.patchBodyOmittingProgress
+        side.progressLabel = edit.progressLabel
+        let sideBody = Self.body(for: side, kind: key.kind, includeStartOffset: usesStartOffset)
         let confirmed: LibraryRow
         if sideBody.isEmpty {
             guard let fresh = try await selectOne(table, userId: userId, mediaId: key.id) else {
@@ -258,7 +275,7 @@ public struct SupabaseLibraryBackend: LibraryBackend {
         account: AccountContext
     ) async throws {
         guard let fence else { throw LibraryError.unavailable(message: "revision fence is not configured") }
-        let table = ListTable(key.kind, includeFenceColumns: true)
+        let table = ListTable(key.kind, includeFenceColumns: true, includeStartOffset: usesStartOffset)
         let userId = UserIdText.value(for: account)
         guard let row = try await selectOne(table, userId: userId, mediaId: key.id) else { return }
         guard let lifecycle = row.lifecycleId, let revision = row.serverRevision else {
@@ -368,10 +385,21 @@ public struct SupabaseLibraryBackend: LibraryBackend {
     // MARK: Mapping rules
 
     /// Only the edited columns. `status`/`progress` can never be cleared (validated before).
-    static func body(for edit: LibraryEdit, kind: MediaKind) -> [String: LibraryJSONValue] {
+    static func body(for edit: LibraryEdit, kind: MediaKind, includeStartOffset: Bool = false) -> [String: LibraryJSONValue] {
         var body: [String: LibraryJSONValue] = [:]
         if case .set(let status) = edit.status { body["list_type"] = .string(dbListType(for: status, kind: kind)) }
         if case .set(let progress) = edit.progress { body["progress"] = .int(progress) }
+        switch edit.progressLabel {
+        case .set(let label): body["progress_label"] = .string(label.trimmingCharacters(in: .whitespacesAndNewlines))
+        case .clear: body["progress_label"] = .null
+        case .unchanged: break
+        }
+        if kind == .manga, case .set(let volumes) = edit.volumesProgress {
+            body["volumes_progress"] = .int(volumes)
+        }
+        if includeStartOffset, case .set(let startedAt) = edit.startedAtProgress {
+            body["started_at_progress"] = .int(startedAt)
+        }
         switch edit.rating {
         case .set(let rating): body["rating"] = .int(rating.value)
         case .clear: body["rating"] = .null
@@ -481,10 +509,12 @@ public struct SupabaseLibraryBackend: LibraryBackend {
 struct ListTable: Sendable {
     let kind: MediaKind
     let includeFenceColumns: Bool
+    let includeStartOffset: Bool
 
-    init(_ kind: MediaKind, includeFenceColumns: Bool = false) {
+    init(_ kind: MediaKind, includeFenceColumns: Bool = false, includeStartOffset: Bool = false) {
         self.kind = kind
         self.includeFenceColumns = includeFenceColumns
+        self.includeStartOffset = includeStartOffset
     }
 
     var name: String { kind == .anime ? "anime_user_lists" : "manga_user_lists" }
@@ -497,6 +527,9 @@ struct ListTable: Sendable {
             base += ",server_revision,lifecycle_id,progress_label,unit_id,score_raw,score_scale,entry_private,source_custom_lists,source_hidden,source_list_options"
             if kind == .manga { base += ",volumes_progress" }
         }
+        if includeStartOffset {
+            base += ",started_at_progress"
+        }
         return base
     }
 
@@ -505,14 +538,16 @@ struct ListTable: Sendable {
     private func sourceMetadata(from row: LibraryRow) -> LibrarySourceMetadata {
         guard includeFenceColumns else {
             return LibrarySourceMetadata(
-                repeatCount: row.repeatCount, startedRaw: row.startedRaw, finishedRaw: row.finishedRaw
+                repeatCount: row.repeatCount, startedRaw: row.startedRaw, finishedRaw: row.finishedRaw,
+                startedAtProgress: includeStartOffset ? row.startedAtProgress : nil
             )
         }
         return LibrarySourceMetadata(
             volumesProgress: row.volumesProgress, repeatCount: row.repeatCount, scoreRaw: row.scoreRaw?.value,
             scoreScale: row.scoreScale, startedRaw: row.startedRaw, finishedRaw: row.finishedRaw,
             isPrivate: row.entryPrivate, customLists: row.sourceCustomLists, hiddenFromStatusLists: row.sourceHidden,
-            sourceListOptions: row.sourceListOptions
+            sourceListOptions: row.sourceListOptions,
+            startedAtProgress: includeStartOffset ? row.startedAtProgress : nil
         )
     }
 

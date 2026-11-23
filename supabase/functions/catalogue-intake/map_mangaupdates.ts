@@ -29,6 +29,47 @@ export function isMuAdult(r: MuRecord): boolean {
   return r.genres.some((g) => /^(adult|hentai)$/i.test(g.trim()));
 }
 
+export type MuAnimeSpan = {
+  startVolume: number | null;
+  startChapter: number | null;
+  endVolume: number | null;
+  endChapter: number | null;
+  nextChapter: number | null;
+  rawStart: string | null;
+  rawEnd: string | null;
+};
+
+function extractUnitNumber(raw: string | null | undefined, pattern: RegExp): number | null {
+  if (!raw) return null;
+  const match = pattern.exec(raw);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
+/** Parses MangaUpdates strings like `"Vol 1, Chap 1"` / `"Ends at Vol 8, Chap 63"` into numeric bounds. */
+export function parseMuAnimeSpan(start: string | null | undefined, end: string | null | undefined): MuAnimeSpan | null {
+  const rawStart = start?.trim() || null;
+  const rawEnd = end?.trim() || null;
+  if (!rawStart && !rawEnd) return null;
+  const startVolume = extractUnitNumber(rawStart, /\bVol(?:ume)?\.?\s*(\d+)/i);
+  const startChapter = extractUnitNumber(rawStart, /\bChap(?:ter)?\.?\s*(\d+)/i);
+  const endVolume = extractUnitNumber(rawEnd, /\bVol(?:ume)?\.?\s*(\d+)/i);
+  const endChapter = extractUnitNumber(rawEnd, /\bChap(?:ter)?\.?\s*(\d+)/i);
+  if (startVolume === null && startChapter === null && endVolume === null && endChapter === null) {
+    return null;
+  }
+  return {
+    startVolume,
+    startChapter,
+    endVolume,
+    endChapter,
+    nextChapter: endChapter !== null ? endChapter + 1 : null,
+    rawStart,
+    rawEnd,
+  };
+}
+
 export function toSourceValues(r: MuRecord): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const set = (k: string, v: unknown) => {
@@ -43,6 +84,8 @@ export function toSourceValues(r: MuRecord): Record<string, unknown> {
   set("start_date_year", r.year);
   set("country_of_origin", r.type ? COUNTRY[r.type.trim().toLowerCase()] : null);
   if (r.genres.length > 0) out.is_adult = isMuAdult(r);
+  const span = parseMuAnimeSpan(r.animeStart, r.animeEnd);
+  if (span) out.anime_adaptation_span = span;
   return out;
 }
 

@@ -89,7 +89,7 @@ struct GridAnimeCard: View {
                         }
                     }
                     .frame(width: cardWidth, height: imageHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                     HStack(alignment: .top) {
                         Spacer()

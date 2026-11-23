@@ -138,6 +138,7 @@ export type MuRecord = {
   year: number | null;
   /** First line of MangaUpdates' status text ("43 Volumes (Ongoing)"). */
   status: string;
+  latestChapter: number | null;
   completed: boolean;
   genres: string[];
   categories: { category: string; votes: number; votesPlus: number; votesMinus: number }[];
@@ -146,12 +147,24 @@ export type MuRecord = {
   related: { relationType: string; seriesId: number; name: string }[];
   bayesianRating: number | null;
   ratingVotes: number | null;
+  /** Optional anime adaptation span strings reported by MangaUpdates (`d.anime.start` / `d.anime.end`). */
+  animeStart?: string | null;
+  animeEnd?: string | null;
 };
 
 type J = Record<string, unknown>;
 const arr = (v: unknown): J[] => (Array.isArray(v) ? v.filter((x): x is J => !!x && typeof x === "object") : []);
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const numOrNull = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+function parseLatestChapter(rawLatest: unknown, status: string): number | null {
+  const direct = numOrNull(rawLatest);
+  if (direct !== null && direct > 0 && direct <= 99_999) return direct;
+  const m = status.match(/\b([1-9][0-9]{0,4})\+?\s+chapters?\b/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) && n > 0 && n <= 99_999 ? n : null;
+}
 
 export function parseMuSeries(json: unknown): MuRecord | null {
   const d = json as J | null;
@@ -161,6 +174,7 @@ export function parseMuSeries(json: unknown): MuRecord | null {
     const seen = new Set<string>();
     return items.filter((i) => (seen.has(`${idOf(i)}|${i.type}`) ? false : (seen.add(`${idOf(i)}|${i.type}`), true)));
   };
+  const statusText = str(d.status).split("\n")[0].trim();
   return {
     seriesId,
     title: d.title,
@@ -168,7 +182,8 @@ export function parseMuSeries(json: unknown): MuRecord | null {
     associated: arr(d.associated).map((a) => str(a.title)).filter(Boolean),
     type: typeof d.type === "string" ? d.type : null,
     year: asYear(d.year),
-    status: str(d.status).split("\n")[0].trim(),
+    status: statusText,
+    latestChapter: parseLatestChapter(d.latest_chapter, statusText),
     completed: d.completed === true,
     genres: arr(d.genres).map((g) => str(g.genre)).filter(Boolean),
     categories: arr(d.categories)
@@ -188,6 +203,8 @@ export function parseMuSeries(json: unknown): MuRecord | null {
       .filter((r) => r.relationType && Number.isSafeInteger(r.seriesId)),
     bayesianRating: numOrNull(d.bayesian_rating),
     ratingVotes: numOrNull(d.rating_votes),
+    animeStart: str((d.anime as J | undefined)?.start).trim() || null,
+    animeEnd: str((d.anime as J | undefined)?.end).trim() || null,
   };
 }
 
@@ -296,9 +313,35 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
   const results: Record<string, number> = { requests: 0, matched: 0, corroborated: 0, proposed: 0, conflicts: 0, searched: 0, records_fetched: 0, records_written: 0, missing_ids: 0, items_failed: 0 };
   let stoppedEarly: "budget" | "rate_limited" | "source_error" | undefined;
   const conflicts: Conflict[] = [];
+  const kuroBySeriesKey = new Map<string, number[]>();
+  const rememberSeriesLink = (sourceKey: string, kuroId: number) => {
+    const list = kuroBySeriesKey.get(sourceKey) ?? [];
+    if (!list.includes(kuroId)) list.push(kuroId);
+    kuroBySeriesKey.set(sourceKey, list);
+  };
   const persistRecord = async (r: MuRecord) => {
     const w = await upsertRecords(ctx.supabase, [{ source: "mangaupdates", sourceKey: String(r.seriesId), medium: "manga", payload: r, licence: MU_LICENCE }], nowIso, { touch: true });
     results.records_written += w.written;
+    if (r.latestChapter != null && r.latestChapter > 0) {
+      const kuroIds = kuroBySeriesKey.get(String(r.seriesId)) ?? [];
+      if (kuroIds.length > 0) {
+        const { data: mangaRows, error: mErr } = await ctx.supabase
+          .from("manga")
+          .select("id, latest_chapter")
+          .in("id", kuroIds);
+        if (!mErr && Array.isArray(mangaRows)) {
+          for (const mr of mangaRows as { id: number; latest_chapter?: number | null }[]) {
+            const cur = Number(mr.latest_chapter ?? 0);
+            if (r.latestChapter > cur) {
+              await ctx.supabase
+                .from("manga")
+                .update({ latest_chapter: r.latestChapter, latest_chapter_at: nowIso })
+                .eq("id", mr.id);
+            }
+          }
+        }
+      }
+    }
   };
 
   // 1. Matching.
@@ -379,6 +422,9 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
       lastProcessed = row.id;
     }
     const applied = await applyLinks(ctx.supabase, "manga", candidates, nowIso);
+    for (const c of candidates) {
+      if (c.status === "accepted") rememberSeriesLink(c.sourceKey, c.kuroId);
+    }
     conflicts.push(...applied.conflicts);
     results.matched += applied.accepted - corroborated;
     results.corroborated += corroborated;
@@ -400,7 +446,7 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
   while (!stoppedEarly && guard++ < 100 && results.requests < maxRequests) {
     const { data: page, error } = await ctx.supabase
       .from("catalogue_id_links")
-      .select("id, source_key")
+      .select("id, kuro_id, source_key")
       .eq("kind", "manga")
       .eq("source", "mangaupdates")
       .eq("status", "accepted")
@@ -411,6 +457,10 @@ export async function runMangaUpdates(ctx: RunContext): Promise<HandlerOutcome> 
     if (!page || page.length === 0) {
       next.fetch_after_link = 0;
       break;
+    }
+    for (const p of page as { kuro_id?: unknown; source_key: unknown }[]) {
+      const kid = Number(p.kuro_id);
+      if (Number.isInteger(kid) && kid > 0) rememberSeriesLink(String(p.source_key), kid);
     }
     const keys = page.map((p: { source_key: string }) => String(p.source_key));
     const existing = await readExistingRecords(ctx.supabase, "mangaupdates", "manga", keys);

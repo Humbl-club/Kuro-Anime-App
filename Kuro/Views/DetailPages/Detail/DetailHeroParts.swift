@@ -88,10 +88,22 @@ struct DetailNextReleaseRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let copy = ReleaseCopy.current()
+        if previewBellOn == nil && item.effectivePrecision == .instant && item.releaseAt != nil {
+            TimelineView(.everyMinute) { context in
+                content(copy: ReleaseCopy.current(now: context.date), useCountdown: true)
+            }
+        } else {
+            content(copy: ReleaseCopy.current(), useCountdown: false)
+        }
+    }
+
+    @ViewBuilder
+    private func content(copy: ReleaseCopy, useCountdown: Bool) -> some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
                              : AnyLayout(HStackLayout(alignment: .center, spacing: 10))
+        let rightBadge = (useCountdown ? copy.countdownPhrase(item) : nil)
+            ?? DetailNextRelease.dayCount(copy.daysFromToday(item), german: copy.german)
         layout {
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -109,9 +121,10 @@ struct DetailNextReleaseRow: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                if !stacked, let days = DetailNextRelease.dayCount(copy.daysFromToday(item), german: copy.german) {
-                    Text(days)
-                        .font(.detailSF(10, relativeTo: .caption1))
+                if !stacked, let rightBadge {
+                    Text(rightBadge)
+                        .font(.detailSF(10, .medium, relativeTo: .caption1))
+                        .monospacedDigit()
                         .foregroundStyle(HomeInk.footFact)
                         .lineLimit(1)
                         .fixedSize()
@@ -120,9 +133,10 @@ struct DetailNextReleaseRow: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(copy.accessibilityLine(item))
             .accessibilityValue(DetailNextRelease.spokenValue(item, copy: copy))
-            if stacked, let days = DetailNextRelease.dayCount(copy.daysFromToday(item), german: copy.german) {
-                Text(days)
-                    .font(.detailSF(10, relativeTo: .caption1))
+            if stacked, let rightBadge {
+                Text(rightBadge)
+                    .font(.detailSF(10, .medium, relativeTo: .caption1))
+                    .monospacedDigit()
                     .foregroundStyle(HomeInk.footFact)
                     .accessibilityHidden(true)
             }
@@ -224,7 +238,7 @@ struct DetailSeasonTab: View {
             .padding(.horizontal, 8)
             .frame(minHeight: 31)
             .fixedSize(horizontal: false, vertical: true)
-            .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8))
+            .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous))
             .shadow(color: Color.white.opacity(Double(0x65) / 255), radius: 0, y: -1)
             .frame(minWidth: 44, minHeight: 44, alignment: .bottomLeading)
             .contentShape(Rectangle())
@@ -334,5 +348,51 @@ enum DetailReminderToast {
             return KuroToastState(kind: .error, title: DetailReminderRule.toast(change, german: german),
                                   subtitle: nil, actionTitle: nil, onAction: nil)
         }
+    }
+}
+
+// MARK: Official Trailer / PV Rule & Pill (Tier 1.2)
+
+nonisolated enum DetailTrailerRule {
+    static func officialTrailerURL(from links: [ExternalLink]) -> URL? {
+        for link in links where !link.isDisabled {
+            let trimmed = link.url.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let url = URL(string: trimmed),
+                  let scheme = url.scheme?.lowercased(), scheme == "https",
+                  let host = url.host?.lowercased() else { continue }
+            let siteLower = (link.site ?? "").lowercased()
+            let isYouTube = host == "youtu.be" || host == "youtube.com" || host == "www.youtube.com" || host == "m.youtube.com"
+            if isYouTube || siteLower.contains("trailer") {
+                return url
+            }
+        }
+        return nil
+    }
+}
+
+struct DetailTrailerPill: View {
+    let german: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            KuroAccessibility.impactHaptic(.light)
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "play.fill")
+                    .font(.detailSF(10, .semibold, relativeTo: .caption2))
+                Text(german ? "Trailer ansehen" : "Watch trailer")
+                    .font(.detailSF(11, .medium, relativeTo: .footnote))
+            }
+            .foregroundStyle(Color.kuroInk)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 36)
+            .background(Capsule(style: .continuous).fill(Color.kuroControlFill))
+            .overlay(Capsule(style: .continuous).strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(KuroPressStyle())
+        .accessibilityLabel(german ? "Offiziellen Trailer auf YouTube ansehen" : "Watch official trailer on YouTube")
     }
 }

@@ -49,8 +49,8 @@ struct ImportCatalogMatchPicker: View {
                 }
                 .padding(.horizontal, 12)
                 .frame(minHeight: 44)
-                .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
+                .background(HomeInk.glanceFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.glanceBorder, lineWidth: 1))
                 if busy {
                     KuroStateView(.loading, title: g ? "Katalog wird durchsucht." : "Searching the catalogue.", layout: .inline)
                 }

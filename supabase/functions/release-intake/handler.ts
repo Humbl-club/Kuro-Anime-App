@@ -24,7 +24,9 @@ import {
 } from "../bulk-import-anime/persistence.ts";
 import { groupIsAniListOwned, readCutoverModes } from "../_shared/catalogue/field_groups.ts";
 import { runAiringWindow } from "./airing.ts";
+import { runJikanSchedule } from "./jikan_schedule.ts";
 import { type MangaDexLinkReader, runMangaReleases } from "./manga.ts";
+import { runSyoboiAiring } from "./syoboi.ts";
 
 export interface ReleaseIntakeDeps {
   // deno-lint-ignore no-explicit-any
@@ -34,6 +36,8 @@ export interface ReleaseIntakeDeps {
   readMangaDexLinks: MangaDexLinkReader;
   /** Official-publisher MangaUpdates group ids whose release dates may be used (default none). */
   muOfficialGroupIds?: number[];
+  syoboiFetch?: typeof fetch;
+  jikanFetch?: typeof fetch;
   now?: () => number;
 }
 
@@ -50,8 +54,8 @@ function clampInt(raw: unknown, fallback: number, min: number, max: number): num
 // deno-lint-ignore no-explicit-any
 export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Response> {
   const mode = String(payload?.mode ?? "").trim().toLowerCase();
-  if (mode !== "airing" && mode !== "manga") {
-    return json({ success: false, error: "mode must be 'airing' or 'manga'" }, 400);
+  if (mode !== "airing" && mode !== "manga" && mode !== "syoboi" && mode !== "jikan") {
+    return json({ success: false, error: "mode must be 'airing', 'manga', 'syoboi' or 'jikan'" }, 400);
   }
   const now = deps.now ?? Date.now;
   const supabase = deps.supabase;
@@ -60,7 +64,7 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
   const startedMs = now();
   const deadlineMs = startedMs + timeBudgetMs;
   const lockKey = `release-intake:${mode}`;
-  const mediaType = mode === "airing" ? "ANIME" : "MANGA";
+  const mediaType = mode === "manga" ? "MANGA" : "ANIME";
   const runId = dryRun ? null : await startImportRun(supabase, mediaType, `release_intake_${mode}`, payload);
 
   const lock = await acquireImportLock(supabase, lockKey, clampInt(payload?.lockTtlSeconds, 900, 60, 3600));
@@ -92,11 +96,35 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
         nowMs: startedMs,
         writeNextAiring: groupIsAniListOwned("episodes", modes),
       });
+    } else if (mode === "syoboi") {
+      results = await runSyoboiAiring(supabase, {
+        limit: clampInt(payload?.limit, 250, 1, 500),
+        discover: payload?.discover === true ? true : payload?.discover === false ? false : undefined,
+        days: payload?.days === undefined ? undefined : clampInt(payload.days, 14, 1, 14),
+        maxDiscoverTids: payload?.maxDiscoverTids === undefined ? undefined : clampInt(payload.maxDiscoverTids, 120, 1, 200),
+        staleSweep: payload?.staleSweep !== false,
+        dryRun,
+        deadlineMs,
+        nowMs: startedMs,
+        writeNextAiring: groupIsAniListOwned("episodes", modes),
+        fetchFn: deps.syoboiFetch,
+        nowFn: now,
+      });
+    } else if (mode === "jikan") {
+      results = await runJikanSchedule(supabase, {
+        maxPages: payload?.maxPages === undefined ? undefined : clampInt(payload.maxPages, 8, 1, 12),
+        dryRun,
+        deadlineMs,
+        nowMs: startedMs,
+        writeNextAiring: groupIsAniListOwned("episodes", modes),
+        fetchFn: deps.jikanFetch,
+        nowFn: now,
+      });
     } else {
       const ids = Array.isArray(payload?.mangaIds)
-        ? payload.mangaIds.map(Number).filter((n: number) => Number.isInteger(n) && n > 0).slice(0, 40)
+        ? payload.mangaIds.map(Number).filter((n: number) => Number.isInteger(n) && n > 0).slice(0, 60)
         : null;
-      const limit = clampInt(payload?.limit, 15, 1, 40);
+      const limit = clampInt(payload?.limit, 15, 1, 60);
       results = await runMangaReleases(supabase, deps.mangaUpdates, deps.readMangaDexLinks, {
         limit,
         offset: clampInt(payload?.offset, Math.floor(startedMs / 3_600_000) * limit, 0, Number.MAX_SAFE_INTEGER),

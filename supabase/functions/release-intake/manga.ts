@@ -90,7 +90,37 @@ export type MangaResult = {
   sampleRows: ReleaseEventRow[];
 };
 
-type Candidate = { id: number; chapters: number | null; volumes: number | null };
+type Candidate = { id: number; chapters: number | null; volumes: number | null; latest_chapter?: number | null };
+
+/** Parses MU series `latest_chapter` or fallback status text (`"16 Chapters (Ongoing)"`). */
+export function parseLatestChapterValue(rawLatest: unknown, status: unknown): number | null {
+  const direct = parseChapterNumber(rawLatest);
+  if (direct !== null && direct <= 99_999) return direct;
+  if (typeof status !== "string") return null;
+  const m = status.match(/\b([1-9][0-9]{0,4})\+?\s+chapters?\b/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) && n > 0 && n <= 99_999 ? n : null;
+}
+
+/**
+ * Rejects volume-scoped MangaUpdates `latest_chapter` values (e.g. Vagabond v.37 ch.2 -> 2,
+ * Yotsuba&! v.15 ch.7 -> 7) or numbers below already-known total chapters.
+ */
+export function sanitizeLatestChapter(
+  rawLatest: number | null,
+  knownVolumes: number | null,
+  knownChapters: number | null,
+): number | null {
+  if (rawLatest === null || !Number.isFinite(rawLatest) || rawLatest <= 0) return null;
+  if (knownVolumes !== null && Number.isFinite(knownVolumes) && knownVolumes >= 3 && rawLatest < knownVolumes) {
+    return null;
+  }
+  if (knownChapters !== null && Number.isFinite(knownChapters) && knownChapters > 0 && rawLatest < knownChapters) {
+    return null;
+  }
+  return rawLatest;
+}
 
 /** MangaDex links.mu is a base36 slug (e.g. "pb8uwds" -> 55099564912). Null when not decodable. */
 export function decodeMuSlug(slug: unknown): number | null {
@@ -162,7 +192,7 @@ export function dedupeReleases(
 // deno-lint-ignore no-explicit-any
 async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candidate[]> {
   if (opts.mangaIds && opts.mangaIds.length > 0) {
-    const { data, error } = await supabase.from("manga").select("id, chapters, volumes").in("id", opts.mangaIds);
+    const { data, error } = await supabase.from("manga").select("id, chapters, volumes, latest_chapter").in("id", opts.mangaIds);
     if (error) throw new Error(`manga lookup failed: ${error.message ?? error}`);
     return (data ?? []) as Candidate[];
   }
@@ -179,7 +209,7 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
 
   const rows: Candidate[] = [];
   if (trackedIds.length > 0) {
-    const { data, error } = await supabase.from("manga").select("id, chapters, volumes, status").in("id", trackedIds).eq("status", "RELEASING");
+    const { data, error } = await supabase.from("manga").select("id, chapters, volumes, latest_chapter, status").in("id", trackedIds).eq("status", "RELEASING");
     if (error) throw new Error(`manga lookup failed: ${error.message ?? error}`);
     const byId = new Map<number, Candidate>(((data ?? []) as Candidate[]).map((r) => [Number(r.id), r]));
     for (const id of trackedIds) {
@@ -187,8 +217,18 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
       if (row) rows.push(row);
     }
   }
-  // Then RELEASING titles that already have a verified MangaDex link (the only ones the mapping
-  // chain can resolve), most popular first, then the remaining popular RELEASING titles.
+
+  // Then RELEASING titles that have an accepted MangaUpdates link in catalogue_id_links or active MangaDex link,
+  // most popular first, then remaining popular RELEASING titles.
+  const { data: muLinks, error: muLinksError } = await supabase
+    .from("catalogue_id_links")
+    .select("kuro_id")
+    .eq("kind", "manga")
+    .eq("source", "mangaupdates")
+    .eq("status", "accepted")
+    .limit(5000);
+  if (muLinksError) throw new Error(`catalogue_id_links lookup failed: ${muLinksError.message ?? muLinksError}`);
+
   const { data: links, error: linksError } = await supabase
     .from("manga_source_links")
     .select("manga_id")
@@ -196,12 +236,18 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
     .eq("status", "active")
     .limit(5000);
   if (linksError) throw new Error(`manga_source_links lookup failed: ${linksError.message ?? linksError}`);
-  const linkedIds = [...new Set(((links ?? []) as { manga_id: number }[]).map((r) => Number(r.manga_id)))];
+
+  const linkedIds = [
+    ...new Set([
+      ...((links ?? []) as { manga_id: number }[]).map((r) => Number(r.manga_id)),
+      ...((muLinks ?? []) as { kuro_id: number }[]).map((r) => Number(r.kuro_id)),
+    ]),
+  ];
   const linked: Candidate[] = [];
   for (let i = 0; i < linkedIds.length; i += 300) {
     const { data, error } = await supabase
       .from("manga")
-      .select("id, chapters, volumes, popularity")
+      .select("id, chapters, volumes, latest_chapter, popularity")
       .in("id", linkedIds.slice(i, i + 300))
       .eq("status", "RELEASING");
     if (error) throw new Error(`linked manga lookup failed: ${error.message ?? error}`);
@@ -211,7 +257,7 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
   linked.sort((a: any, b: any) => (Number(b.popularity) || 0) - (Number(a.popularity) || 0));
   const { data: popular, error: popularError } = await supabase
     .from("manga")
-    .select("id, chapters, volumes")
+    .select("id, chapters, volumes, latest_chapter")
     .eq("status", "RELEASING")
     .order("popularity", { ascending: false })
     .limit(200);
@@ -224,6 +270,25 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
     }
   }
   return rows;
+}
+
+// deno-lint-ignore no-explicit-any
+async function acceptedMuIds(supabase: any, mangaIds: number[]): Promise<Map<number, number>> {
+  const map = new Map<number, number>();
+  if (mangaIds.length === 0) return map;
+  const { data, error } = await supabase
+    .from("catalogue_id_links")
+    .select("kuro_id, source_key")
+    .eq("kind", "manga")
+    .eq("source", "mangaupdates")
+    .eq("status", "accepted")
+    .in("kuro_id", mangaIds);
+  if (error) throw new Error(`catalogue_id_links lookup failed: ${error.message ?? error}`);
+  for (const r of (data ?? []) as { kuro_id: number; source_key: string }[]) {
+    const sid = Number(r.source_key);
+    if (Number.isSafeInteger(sid) && sid > 0) map.set(Number(r.kuro_id), sid);
+  }
+  return map;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -272,26 +337,42 @@ export async function runMangaReleases(
   const start = opts.mangaIds ? 0 : ((opts.offset % all.length) + all.length) % all.length;
   const batch: Candidate[] = [];
   for (let i = 0; i < Math.min(opts.limit, all.length); i++) batch.push(all[(start + i) % all.length]);
-  const dexIds = await mangaDexIds(supabase, batch.map((c) => c.id));
+  const batchIds = batch.map((c) => c.id);
+  const directMuIds = await acceptedMuIds(supabase, batchIds);
+  const dexIds = await mangaDexIds(supabase, batchIds.filter((id) => !directMuIds.has(id)));
 
   for (const candidate of batch) {
-    const dexId = dexIds.get(candidate.id);
-    if (!dexId) {
-      result.unmapped++;
-      continue;
-    }
-    try {
-      const links = await readMangaDexLinks(dexId);
-      const slug = links?.mu;
-      const seriesId = decodeMuSlug(slug);
-      if (seriesId === null) {
-        result.noMuLink++;
+    let seriesId = directMuIds.get(candidate.id) ?? null;
+    let slug = seriesId !== null ? seriesId.toString(36) : null;
+    if (seriesId === null) {
+      const dexId = dexIds.get(candidate.id);
+      if (!dexId) {
+        result.unmapped++;
         continue;
       }
+      try {
+        const links = await readMangaDexLinks(dexId);
+        slug = links?.mu ?? null;
+        seriesId = decodeMuSlug(slug);
+        if (seriesId === null || !slug) {
+          result.noMuLink++;
+          continue;
+        }
+      } catch (e) {
+        if (isPoliteCleanStop(e) || (e instanceof Error && e.message === "Time budget reached")) {
+          result.stoppedEarly = isPoliteCleanStop(e) ? (e as { kind: string }).kind : "budget";
+          break;
+        }
+        console.error("release-intake manga dex links failed:", candidate.id, e instanceof Error ? e.message : e);
+        result.errors++;
+        continue;
+      }
+    }
+    try {
+      const muSlug = String(slug).toLowerCase();
       const series = await mu.request(`${MU_API}/series/${seriesId}`, { method: "GET" }, opts.deadlineMs);
       // deno-lint-ignore no-explicit-any
       const s = series.json as any;
-      const muSlug = String(slug).toLowerCase();
       if (series.status !== 200 || Number(s?.series_id) !== seriesId || !isMuSeriesPage(s?.url, muSlug)) {
         result.muMismatch++;
         continue;
@@ -355,14 +436,38 @@ export async function runMangaReleases(
       result.events += rows.length;
       if (result.sampleRows.length < 5) result.sampleRows.push(...rows.slice(0, 5 - result.sampleRows.length));
 
-      // Volume count only moves upward. manga.chapters is not written (MU latest_chapter is
-      // scanlation-derived; see the header).
-      const patch: Record<string, number> = {};
+      // Volume count and latest_chapter only move upward. manga.chapters stays untouched.
+      const patch: Record<string, number | string> = {};
       const volumes = parseVolumeCount(s?.status);
+      const effectiveVolumes = volumes ?? candidate.volumes ?? null;
       if (opts.writeVolumes !== false && volumes !== null && (candidate.volumes == null || volumes > Number(candidate.volumes))) patch.volumes = volumes;
+      const muLatest = sanitizeLatestChapter(parseLatestChapterValue(s?.latest_chapter, s?.status), effectiveVolumes, candidate.chapters) ?? 0;
+      const officialLatest = sanitizeLatestChapter(
+        dated.length > 0 ? Math.max(...dated.map((d) => d.number)) : null,
+        effectiveVolumes,
+        candidate.chapters,
+      ) ?? 0;
+      const bestLatest = Math.max(muLatest, officialLatest);
+      if (bestLatest > 0 && bestLatest > Number(candidate.latest_chapter ?? 0)) {
+        patch.latest_chapter = bestLatest;
+        patch.latest_chapter_at = observedAt;
+      }
+      if (isEstimate(estimate)) {
+        patch.next_chapter_number = Math.round(estimate.nextNumber);
+        patch.next_chapter_at = `${estimate.nextDate}T00:00:00Z`;
+      }
       if (Object.keys(patch).length > 0) {
         if (!opts.dryRun) {
-          const { error } = await supabase.from("manga").update(patch).eq("id", candidate.id);
+          let { error } = await supabase.from("manga").update(patch).eq("id", candidate.id);
+          if (error && (error.code === "PGRST204" || error.code === "42703")) {
+            delete patch.latest_chapter;
+            delete patch.latest_chapter_at;
+            if (Object.keys(patch).length > 0) {
+              ({ error } = await supabase.from("manga").update(patch).eq("id", candidate.id));
+            } else {
+              error = null;
+            }
+          }
           if (error) throw new Error(`manga count update failed: ${error.message ?? error}`);
         }
         result.mangaPatched++;

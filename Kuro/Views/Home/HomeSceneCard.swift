@@ -1,4 +1,5 @@
 import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Scene card (prototype Poster Home, PROTOTYPE_SPEC.md §4 "Scene card"; ref-home-busy-anime-390.png)
@@ -15,48 +16,48 @@ import SwiftUI
 // The artwork, the title and the key are three separate targets (never nested); the season tab is a
 // fourth that opens the season overview.
 
-/// The prototype's measured component inks (PROTOTYPE_SPEC.md §4). Statuses stay monochrome.
+/// Home's component inks: neutral monochrome on gallery white (2026-11-20; the prototype's sage
+/// casts are retired). Statuses stay monochrome.
 enum HomeInk {
-    /// Opening kicker `#666c68`.
-    static let kicker = Color(hex: "666C68")
-    /// Quiet card border `#dce1dc`.
-    static let quietBorder = Color(hex: "DCE1DC")
-    /// Glance title and count `#303932`.
-    static let glanceInk = Color(hex: "303932")
-    /// Glance caption, count label and arrow `#687064`.
-    static let glanceMuted = Color(hex: "687064")
-    /// Glance card fill `#fffefa`.
-    static let glanceFill = Color(hex: "FFFEFA")
-    /// Glance border `#29312918`.
-    static let glanceBorder = Color(hex: "293129", opacity: Double(0x18) / 255)
-    /// Glance shadow `#29312905`.
-    static let glanceShadow = Color(hex: "293129", opacity: Double(0x05) / 255)
-    /// Season tab and S stamp face `#f3f4f4`, ink `#26372c`.
-    static let tabFace = Color(hex: "F3F4F4")
-    static let tabInk = Color(hex: "26372C")
-    /// Scene foot title `#fafafa`; readout secondary `#dce3df`; footer fact `#dce2df`.
+    /// Opening kicker.
+    static let kicker = Color(hex: "6B6B6B")
+    /// Quiet card border.
+    static let quietBorder = Color.black.opacity(0.09)
+    /// Glance title and count.
+    static let glanceInk = Color(hex: "18181A")
+    /// Glance caption, count label and arrow.
+    static let glanceMuted = Color(hex: "6B6B6B")
+    /// Glance card fill.
+    static let glanceFill = Color(hex: "FFFFFF")
+    /// Glance border.
+    static let glanceBorder = Color.black.opacity(0.09)
+    /// Glance shadow.
+    static let glanceShadow = Color.black.opacity(0.03)
+    /// Season tab and S stamp face, and its ink.
+    static let tabFace = Color(hex: "F4F4F5")
+    static let tabInk = Color(hex: "18181A")
+    /// Scene foot title; readout secondary; footer fact.
     static let footTitle = Color(hex: "FAFAFA")
-    static let footSecondary = Color(hex: "DCE3DF")
-    static let footFact = Color(hex: "DCE2DF")
-    /// Scene scrub: track `#ffffff1c`, trace `#e9eeee`.
+    static let footSecondary = Color.white.opacity(0.78)
+    static let footFact = Color.white.opacity(0.78)
+    /// Scene scrub: track, trace.
     static let footTrack = Color.white.opacity(Double(0x1C) / 255)
-    static let footTrace = Color(hex: "E9EEEE")
-    /// Caught-up key glyph on the scene foot `#b9c5c1`, elsewhere `#767b77` (`.step:disabled`).
-    static let caughtUpOnArt = Color(hex: "B9C5C1")
-    static let caughtUpOnPaper = Color(hex: "767B77")
-    /// Also watching: unit `#5b635c`, scrub track `#d7d9d7`, trace `#626962`, poster fill `#e9e9e6`.
-    static let tileUnit = Color(hex: "5B635C")
-    static let tileTrack = Color(hex: "D7D9D7")
-    static let tileTrace = Color(hex: "626962")
-    static let posterFill = Color(hex: "E9E9E6")
-    /// Medium switch: unselected word `#6e786f`, underline `#203027`, hairline `#20302744`, the
-    /// selected word's fill under its artwork `#253a2a`.
-    static let switchUnselected = Color(hex: "6E786F")
-    static let switchMark = Color(hex: "203027")
-    static let switchHairline = Color(hex: "203027", opacity: Double(0x44) / 255)
-    static let switchUnlit = Color(hex: "253A2A")
-    /// Calendar heading summary `#656c66`.
-    static let calendarSummary = Color(hex: "656C66")
+    static let footTrace = Color.white.opacity(0.92)
+    /// Caught-up key glyph on the scene foot, elsewhere.
+    static let caughtUpOnArt = Color.white.opacity(0.7)
+    static let caughtUpOnPaper = Color(hex: "7A7A7C")
+    /// Also watching: unit, scrub track, trace, poster fill.
+    static let tileUnit = Color(hex: "5C5C5E")
+    static let tileTrack = Color.black.opacity(0.10)
+    static let tileTrace = Color.kuroControlInk
+    static let posterFill = Color(hex: "EDEDEF")
+    /// Medium switch: unselected word, underline, hairline, the selected word's fill under its artwork.
+    static let switchUnselected = Color(hex: "8E8E93")
+    static let switchMark = Color(hex: "18181A")
+    static let switchHairline = Color.black.opacity(0.12)
+    static let switchUnlit = Color(hex: "18181A")
+    /// Calendar heading summary.
+    static let calendarSummary = Color(hex: "6B6B6B")
 }
 
 /// Layout rules shared by the scene card and the Also watching tile (pure).
@@ -159,6 +160,10 @@ struct HomeSceneCard<Key: View>: View {
     let readout: HomeProgressReadout
     let fact: HomeSceneFact?
     let compact: Bool
+    var zoomSourceID: String? = nil
+    var nextRelease: ReleaseScheduleItem? = nil
+    var onSetStatus: ((ListStatus) -> Void)? = nil
+    var onEdit: (() -> Void)? = nil
     let onOpen: () -> Void
     let onSeason: () -> Void
     let onClub: () -> Void
@@ -175,12 +180,13 @@ struct HomeSceneCard<Key: View>: View {
                         .aspectRatio(HomeSceneMetrics.artworkAspect, contentMode: .fit)
                         .overlay { HomeArtwork(url: artURL, maxPixelSize: 1200, placeholder: material.base.color) }
                         .clipped()
+                        .kuroZoomSource(zoomSourceID)
                         .overlay {
                             // `::after`: a 1 pt light rim and a soft shade toward the foot.
                             ZStack {
                                 LinearGradient(colors: [.clear, Color.black.opacity(0.18)],
                                                startPoint: .center, endPoint: .bottom)
-                                UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5)
+                                UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5, style: .continuous)
                                     .strokeBorder(Color.white.opacity(Double(0x25) / 255), lineWidth: 1)
                             }
                             .allowsHitTesting(false)
@@ -192,20 +198,73 @@ struct HomeSceneCard<Key: View>: View {
                 .accessibilityHidden(true)
                 if let season { seasonTab(season) }
             }
-            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5))
+            .overlay(alignment: .topTrailing) {
+                if onSetStatus != nil || onEdit != nil {
+                    sceneStatusMenu
+                        .padding(8)
+                }
+            }
+            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5, style: .continuous))
             foot
             if let fact { factRow(fact) }
+            if let nextRelease {
+                releaseStrip(nextRelease)
+            }
         }
         .background(
             LinearGradient(colors: [material.base.color, material.deep.color],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         .shadow(color: Color(hex: "19221B", opacity: Double(0x0A) / 255), radius: 1, y: 1)
         .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil, value: material)
     }
 
     // MARK: Parts
+
+    private var sceneStatusMenu: some View {
+        let german = KuroLocale.isGerman
+        return Menu {
+            if let onSetStatus {
+                Button {
+                    KuroAccessibility.selectionHaptic()
+                    onSetStatus(.completed)
+                } label: {
+                    Label(DiscoverPlanKey.menuChoiceTitle(.completed, kind: .anime, german: german), systemImage: "checkmark.circle")
+                }
+                Button {
+                    KuroAccessibility.selectionHaptic()
+                    onSetStatus(.paused)
+                } label: {
+                    Label(DiscoverPlanKey.menuChoiceTitle(.paused, kind: .anime, german: german), systemImage: "pause.circle")
+                }
+                Button {
+                    KuroAccessibility.selectionHaptic()
+                    onSetStatus(.dropped)
+                } label: {
+                    Label(DiscoverPlanKey.menuChoiceTitle(.dropped, kind: .anime, german: german), systemImage: "xmark.circle")
+                }
+            }
+            if let onEdit {
+                Divider()
+                Button {
+                    onEdit()
+                } label: {
+                    Label(german ? "Eintrag bearbeiten" : "Edit entry", systemImage: "slider.horizontal.3")
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.white)
+                .frame(width: 30, height: 30)
+                .background(Color.black.opacity(0.45), in: Circle())
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.24), lineWidth: 0.75))
+                .frame(minWidth: 44, minHeight: 44, alignment: .topTrailing)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(german ? "\(title): Status ändern" : "\(title): Change status")
+    }
 
     private func seasonTab(_ tab: HomeSeasonTab) -> some View {
         Button(action: onSeason) {
@@ -226,7 +285,7 @@ struct HomeSceneCard<Key: View>: View {
             // The measured face: 31 pt tall (padding 7/8), the word and number centred in it.
             .frame(minHeight: 31)
             .fixedSize(horizontal: false, vertical: true)
-            .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8))
+            .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous))
             .shadow(color: Color.white.opacity(Double(0x65) / 255), radius: 0, y: -1)
             .frame(minWidth: 44, minHeight: 44, alignment: .bottomLeading)
             .contentShape(Rectangle())
@@ -326,6 +385,30 @@ struct HomeSceneCard<Key: View>: View {
         .padding(.trailing, compact ? 10 : 12)
         .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Double(0x0D) / 255)).frame(height: 1) }
     }
+
+    @ViewBuilder
+    private func releaseStrip(_ item: ReleaseScheduleItem) -> some View {
+        let copy = ReleaseCopy.current()
+        if item.isDisplayable && copy.isAhead(item) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                    .font(.kuroCustom(compact ? 8 : 9, weight: .medium, relativeTo: .caption2, maxSize: 16))
+                    .foregroundStyle(HomeInk.footSecondary)
+                    .accessibilityHidden(true)
+                KuroReleaseLine(
+                    item,
+                    font: .kuroCustom(compact ? 9 : 10, weight: .medium, relativeTo: .caption2, maxSize: 20),
+                    color: HomeInk.footFact,
+                    liveCountdown: true
+                )
+            }
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+            .padding(.leading, compact ? 11 : 14)
+            .padding(.trailing, compact ? 10 : 12)
+            .padding(.vertical, 3)
+            .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Double(0x0D) / 255)).frame(height: 1) }
+        }
+    }
 }
 
 /// "Ep." over "4 / 5" over the scrub, white on the material foot.
@@ -353,6 +436,7 @@ struct HomeSceneReadoutView: View {
                 if let total = readout.total {
                     Text(" / \(total)")
                         .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 20))
+                        .monospacedDigit()
                         .foregroundStyle(HomeInk.footSecondary.opacity(0.8))
                         .lineLimit(1)
                 }
@@ -378,34 +462,31 @@ struct HomeScrub: View {
     var body: some View {
         if let fraction {
             GeometryReader { geo in
+                let clamped = min(1, max(0, fraction))
                 ZStack(alignment: .leading) {
-                    Rectangle().fill(track)
-                    Rectangle().fill(trace)
-                        .frame(width: geo.size.width * min(1, max(0, fraction)))
+                    Capsule(style: .continuous).fill(track)
+                    Capsule(style: .continuous).fill(trace)
+                        .frame(width: clamped > 0 ? max(4, geo.size.width * clamped) : 0)
                 }
             }
-            .frame(height: 1)
+            .frame(height: 2.5)
             .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
                        ? .timingCurve(0.22, 0.8, 0.24, 1, duration: 0.28) : nil, value: fraction)
             .accessibilityHidden(true)
         } else {
-            Color.clear.frame(height: 1).accessibilityHidden(true)
+            Color.clear.frame(height: 2.5).accessibilityHidden(true)
         }
     }
 }
 
-/// A caught-up key: the prototype's disabled `.step`, 44 × 44, not interactive. Its face loses fill and
-/// border, but on Poster screens the key's shadows stay (`.phone[data-switch=poster] .step:before`
-/// outranks `.step:disabled::before`): a 34 × 34 radius-7 ghost with a 1 pt `#ffffff35` top highlight
-/// inside and a `0 1 2 #14231912` shadow outside, around a quiet ✓.
+/// A caught-up key: the prototype's disabled `.step`, 44 × 44, not interactive.
 struct HomeCaughtUpKey: View {
     let onArt: Bool
     let accessibilityText: String
 
     var body: some View {
-        // The prototype's thin 12 pt check (`M4 10l4 4 8-8`).
         Image(systemName: "checkmark")
-            .font(.kuroCustom(12, weight: .light, relativeTo: .body, maxSize: 20))
+            .font(.kuroCustom(12, weight: .semibold, relativeTo: .body, maxSize: 20))
             .foregroundStyle(onArt ? HomeInk.caughtUpOnArt : HomeInk.caughtUpOnPaper)
             .frame(width: 44, height: 44)
             .background { ghostFace.accessibilityHidden(true) }
@@ -414,43 +495,58 @@ struct HomeCaughtUpKey: View {
             .accessibilityValue(KuroAdvanceCopy.caughtUpLabel(title: nil, german: KuroLocale.isGerman))
     }
 
+    @ViewBuilder
     private var ghostFace: some View {
-        let shape = RoundedRectangle(cornerRadius: 7)
-        return ZStack {
-            // The outside shadow only (the face itself has no fill): an opaque face casts it, then the
-            // face is cut away.
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        if !onArt {
             shape
-                .fill(Color.black)
-                .shadow(color: Color(hex: "142319", opacity: Double(0x12) / 255), radius: 1, y: 1)
-                .mask {
-                    Rectangle().padding(-6)
-                        .overlay { shape.blendMode(.destinationOut) }
-                        .compositingGroup()
-                }
-            shape.strokeBorder(
-                LinearGradient(colors: [Color.white.opacity(Double(0x35) / 255), .clear],
-                               startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.1)),
-                lineWidth: 1)
+                .fill(Color.kuroControlFill)
+                .overlay(shape.strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                .frame(width: 34, height: 34)
+        } else {
+            ZStack {
+                shape
+                    .fill(Color.black)
+                    .shadow(color: Color(hex: "142319", opacity: Double(0x12) / 255), radius: 1, y: 1)
+                    .mask {
+                        Rectangle().padding(-6)
+                            .overlay { shape.blendMode(.destinationOut) }
+                            .compositingGroup()
+                    }
+                shape.strokeBorder(
+                    LinearGradient(colors: [Color.white.opacity(Double(0x35) / 255), .clear],
+                                   startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.1)),
+                    lineWidth: 1)
+            }
+            .frame(width: 34, height: 34)
         }
-        .frame(width: 34, height: 34)
     }
 }
 
-/// Remote artwork filling its frame; the material's base colour until (or unless) it loads, so the
-/// window never flashes white.
+/// Remote artwork filling its frame; pure `seedHex` wash until (or unless) it loads so 40+
+/// thumbnails never subscribe to `ArtworkMaterialStore.derived` dictionary broadcasts.
 struct HomeArtwork: View {
     let url: URL?
     let maxPixelSize: Int
     let placeholder: Color
+    var seedHex: String? = nil
+    var usesMaterialWash: Bool = false
+
+    private var resolvedPlaceholder: Color {
+        if let seedHex, let rgb = KuroRGB(hex: seedHex) {
+            return ArtworkMaterial(base: ArtworkMaterial.clamped(rgb), method: "seed-hex").wash.color
+        }
+        return placeholder
+    }
 
     var body: some View {
         if let url {
             KuroCachedAsyncImage(url: url, maxPixelSize: maxPixelSize) { phase in
                 if case .success(let image) = phase { image.resizable().scaledToFill() }
-                else { placeholder }
+                else { resolvedPlaceholder }
             }
         } else {
-            placeholder
+            resolvedPlaceholder
         }
     }
 }

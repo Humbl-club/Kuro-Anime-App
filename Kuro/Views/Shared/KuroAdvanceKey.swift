@@ -71,7 +71,8 @@ struct KuroAdvanceKey: View {
     /// 34 pt faces; the manga leaf's cap is 10 pt (PROTOTYPE_SPEC §4 "Manga leaf").
     private var glyphFont: Font {
         let face = KuroKeyFace(style: style)
-        return .kuroCustom(face.glyphSize, weight: .light, relativeTo: .body, maxSize: face.glyphSize + 8)
+        // A crisp semibold cap (2026-11-20 modern key pass), replacing the thin prototype stroke.
+        return .kuroCustom(face.glyphSize, weight: .semibold, relativeTo: .body, maxSize: face.glyphSize + 8)
     }
 
     var body: some View {
@@ -123,37 +124,39 @@ struct KuroKeyFace {
     var glyphSize: CGFloat = 15
     var glyphOpacity: Double = 1
 
-    /// `#20282326`: the light and material key border.
-    private static let raisedBorder = Color(hex: "202823", opacity: Double(0x26) / 255)
-    /// `inset 0 1px #ffffff35` (light / material) and `#ffffff1f` (manga leaf).
-    private static let raisedHighlight = Color.white.opacity(Double(0x35) / 255)
-    /// `0 1px 2px #14231912` (light / material) and `#28372a14` (manga leaf).
-    private static let raisedDrop = Color(hex: "142319", opacity: Double(0x12) / 255)
-    /// The manga leaf key (`--mp-key`).
-    private static let leaf = Color(hex: "2B342E")
-    /// Pressed: `inset 0 2px 3px #151d2430`.
-    static let pressedInset = Color(hex: "151D24", opacity: Double(0x30) / 255)
+    /// Neutral hairline border of the light and material keys (black at 10 %).
+    private static let raisedBorder = Color.black.opacity(0.10)
+    /// A faint top highlight (light / material) and the manga leaf's softer one.
+    private static let raisedHighlight = Color.white.opacity(0.22)
+    /// A soft neutral drop (black at 6 %).
+    private static let raisedDrop = Color.black.opacity(0.06)
+    /// The manga leaf key: near-black, matching the selected control ink.
+    private static let leaf = Color.kuroControlInk
+    /// Pressed: a neutral inner shade.
+    static let pressedInset = Color.black.opacity(0.18)
 
     init(style: KuroAdvanceKey.Style) {
         switch style {
         case .light:
             size = 34; radius = 7
+            glyphSize = 14
             top = .kuroKeyLightTop; bottom = .kuroKeyLightBottom
             border = Self.raisedBorder; highlight = Self.raisedHighlight; drop = Self.raisedDrop
-            ink = Color(hex: "29352C")
+            ink = Color.kuroControlInk
         case .dark:
             // 38 pt `::before` plus its 1 pt border on each side: a 40 pt face, as rendered.
             size = 40; radius = 6
-            glyphSize = 10; glyphOpacity = 0.75
+            glyphSize = 12; glyphOpacity = 0.92
             top = Self.leaf; bottom = Self.leaf
-            border = Self.leaf; highlight = Color.white.opacity(Double(0x1F) / 255)
-            drop = Color(hex: "28372A", opacity: Double(0x14) / 255)
-            ink = Color(hex: "F8FAF7")
+            border = Self.leaf; highlight = Color.white.opacity(0.10)
+            drop = Color.black.opacity(0.08)
+            ink = Color.white
         case .ink:
             size = 34; radius = 7
+            glyphSize = 14
             top = .kuroKeyDarkTop; bottom = .kuroKeyDarkBottom
             border = Self.raisedBorder; highlight = Self.raisedHighlight; drop = Self.raisedDrop
-            ink = Color(hex: "F8FAF7")
+            ink = Color.white
         case .material(let material):
             size = 34; radius = 7
             top = material.base.color; bottom = material.deep.color
@@ -238,5 +241,58 @@ nonisolated enum KuroAdvanceCopy {
     private static func trimmedName(_ title: String?) -> String? {
         guard let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
         return trimmed
+    }
+}
+
+/// Monochrome outbox progress conflict banner (server vs. local edit resolution).
+struct KuroProgressConflictBanner: View {
+    let localPosition: Int
+    let serverPosition: Int
+    let onKeepServer: () -> Void
+    let onUseMine: () -> Void
+
+    var body: some View {
+        let german = KuroLocale.isGerman
+        VStack(alignment: .leading, spacing: 8) {
+            Text(german
+                 ? "Fortschritt auf einem anderen Gerät auf \(serverPosition) aktualisiert (lokal \(localPosition))."
+                 : "Updated to \(serverPosition) on another device (your change: \(localPosition)).")
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    onKeepServer()
+                }) {
+                    Text(german ? "\(serverPosition) behalten" : "Keep \(serverPosition)")
+                        .font(.kuroMeta(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 44)
+                        .overlay(Capsule().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(KuroPressStyle())
+
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    onUseMine()
+                }) {
+                    Text(german ? "Meine \(localPosition) nutzen" : "Use \(localPosition)")
+                        .font(.kuroMeta(weight: .semibold))
+                        .foregroundStyle(Color.kuroWhite)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 44)
+                        .background(Capsule().fill(Color.kuroControlInk))
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(KuroPressStyle())
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(KuroDesignSpacing.md)
+        .background(Color.kuroCanvasQuiet, in: RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous).strokeBorder(Color.kuroHairline, lineWidth: 1))
     }
 }

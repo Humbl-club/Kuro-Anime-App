@@ -328,4 +328,17 @@ struct ClubDetailLifecycleRulesTests {
         #expect(ClubsListCardRules.memberInitials(sharingLevel: "progress", memberNames: names) == ["A", "B", "C"])
         #expect(ClubsListCardRules.memberInitials(sharingLevel: "status", memberNames: nil) == [])
     }
+
+    @Test("Club rail poster cards derive bounded 2:3 sizes from the measured column")
+    func clubRailPosterMetrics() {
+        for containerWidth in [CGFloat(320), 390, 680] {
+            let w = ClubRailCardMetrics.width(containerWidth: containerWidth)
+            let h = ClubRailCardMetrics.height(width: w)
+            #expect(w >= 112 && w <= 144)
+            #expect(h == (w * 1.5).rounded())
+        }
+        let fallbackWidth = ClubRailCardMetrics.width(containerWidth: 0)
+        #expect(fallbackWidth == 120)
+        #expect(ClubRailCardMetrics.height(width: fallbackWidth) == 180)
+    }
 }

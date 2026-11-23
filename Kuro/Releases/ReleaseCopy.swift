@@ -178,6 +178,49 @@ nonisolated struct ReleaseCopy {
         return undatedFallback ? "\(unit) · \(datesToCome)" : unit
     }
 
+    /// Compact live countdown string for instant releases (`"airing now"`, `"in 42m"`, `"in 3h 15m"`,
+    /// `"2d 14h"`, `"Fri · 9d"`). Returns nil when precision is coarser than `.instant` or already elapsed.
+    func countdownPhrase(_ item: ReleaseScheduleItem) -> String? {
+        guard item.isDisplayable, item.effectivePrecision == .instant, let date = item.releaseAt else {
+            return nil
+        }
+        let delta = date.timeIntervalSince(now)
+        if delta <= 0 && delta > -1800 {
+            return german ? "läuft jetzt" : "airing now"
+        }
+        guard delta > 0 else { return nil }
+        if delta < 3600 {
+            let minutes = max(1, Int(ceil(delta / 60)))
+            return german ? "in \(minutes) Min." : "in \(minutes)m"
+        }
+        if delta < 86_400 {
+            let hours = Int(delta) / 3600
+            let minutes = (Int(delta) % 3600) / 60
+            return minutes > 0 ? "in \(hours)h \(minutes)m" : "in \(hours)h"
+        }
+        if delta < 7 * 86_400 {
+            let days = Int(delta) / 86_400
+            let hours = (Int(delta) % 86_400) / 3600
+            return hours > 0 ? "\(days)d \(hours)h" : "\(days)d"
+        }
+        let days = max(7, daysFromToday(item) ?? Int(delta / 86_400))
+        let weekday = ReleaseFormatterCache.shared.formatter("EEE", locale: locale, timeZone: timeZone).string(from: date)
+        return "\(weekday) · \(days)d"
+    }
+
+    /// Live minute-ticking schedule line (`"Ep. 8 · 2d 14h"` or `"Ep. 8 · in 42m"`), falling back to
+    /// `line(...)` / `datePhrase(...)` when precision is coarser than `.instant` or past the airing window.
+    func liveLine(_ item: ReleaseScheduleItem, includeUnit: Bool = true, undatedFallback: Bool = false) -> String {
+        if let countdown = countdownPhrase(item) {
+            let when = item.basis == .estimated ? "~\(countdown)" : countdown
+            return [includeUnit ? unitLabel(item) : nil, when].compactMap { $0 }.joined(separator: " · ")
+        }
+        if includeUnit {
+            return line(item, undatedFallback: undatedFallback)
+        }
+        return datePhrase(item) ?? (undatedFallback ? datesToCome : "")
+    }
+
     /// Full words for VoiceOver: "Episode 7, Thursday 15 October, 18:30".
     func accessibilityLine(_ item: ReleaseScheduleItem) -> String {
         let unit = unitSpokenLabel(item)

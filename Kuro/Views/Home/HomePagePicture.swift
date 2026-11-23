@@ -2,15 +2,15 @@ import KuroCore
 import SwiftUI
 import UIKit
 
-/// The one Home field: mountain when the shelf is empty (or nothing is in progress), the first
-/// in-progress title's art when it is not.
+/// The one Home field: mountain when the shelf is empty (or has no lead cover), the lead
+/// in-progress or first planned title's art when it is not.
 /// Pinned behind the status bar and header on Home; the selected Anime/Manga word masks the same image.
 struct HomePagePicture: View {
     @Environment(HomeStore.self) private var home
     var isActive: Bool = true
     var magnify: CGFloat = 1.7
 
-    /// The first title in progress; a planned title never stands for the shelf.
+    /// The first title in progress, falling back to the first planned title.
     private var coverCard: HomeCard? {
         HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
     }
@@ -67,10 +67,12 @@ struct HomePagePictureFill: View {
 
     @Environment(HomeStore.self) private var home
     var fallback: Fallback = .solid
+    /// When set, forces the word fill to match the prioritized lead card displayed below.
+    var leadOverride: HomeCard? = nil
 
-    /// The first title in progress; a planned title never stands for the shelf.
+    /// The prioritized hero card (or fallback to first in-progress / planned card).
     private var coverCard: HomeCard? {
-        HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
+        leadOverride ?? HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
     }
 
     var body: some View {
@@ -104,6 +106,7 @@ struct KuroArtWordFill: View {
                     Image(uiImage: art)
                         .resizable()
                         .scaledToFill()
+                        .saturation(1.20)
                     // Non-linear (sRGB) compositing: black at 1 − k scales every encoded channel by k.
                     Color.black.opacity(1 - multiplier)
                     // Highlights only: no channel lighter than the ceiling, so a white sky or page in
@@ -154,6 +157,7 @@ struct KuroPosterMediumSwitch<Fill: View>: View {
     /// The content column's width (the word size follows it, never the screen).
     let contentWidth: CGFloat
     let onSelect: (MediaKind) -> Void
+    /// Artwork-masked or tonal fill clipped inside the selected word's letterforms.
     let fill: Fill
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -206,9 +210,6 @@ struct KuroPosterMediumSwitch<Fill: View>: View {
                     }
                     .padding(.top, wordTop)
                 Spacer(minLength: 4)
-                // A fixed rule that fades in place on the hairline: it never travels between the words.
-                // Its bottom row is the hairline's row (`ref-home-new-anime-390.png` rows 133–134 over
-                // hairline row 134), so the two overlap into one 2 pt stroke.
                 Rectangle()
                     .fill(HomeInk.switchMark)
                     .frame(width: 28, height: 2)
@@ -285,5 +286,51 @@ enum HomeMediumWordInk {
             total += 0.299 * Double(pixels[index]) + 0.587 * Double(pixels[index + 1]) + 0.114 * Double(pixels[index + 2])
         }
         return total / Double(sampleWidth * sampleHeight) / 255
+    }
+}
+
+/// Lightweight pre-downsampled atmospheric artwork wash over a two-stop base gradient,
+/// used behind Discover mood pills and "Add to list" / "Plan to watch" action capsules without
+/// per-frame GPU blur or offscreen drawingGroup passes.
+struct KuroBlurredArtworkFill: View {
+    let raw: String?
+    var top: Color = Color(hex: "202430")
+    var bottom: Color = Color(hex: "141720")
+    var leadingScrim: Double = 0.56
+    var trailingScrim: Double = 0.34
+    var frostedLight: Bool = false
+
+    var body: some View {
+        ZStack {
+            if frostedLight {
+                Color.white
+                if let raw, let url = URL(string: raw), !raw.isEmpty {
+                    Color.clear
+                        .overlay {
+                            HomeArtwork(url: url, maxPixelSize: 180, placeholder: .clear)
+                        }
+                        .clipped()
+                        .opacity(0.24)
+                }
+                Color.white.opacity(0.76)
+            } else {
+                LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+                if let raw, let url = URL(string: raw), !raw.isEmpty {
+                    Color.clear
+                        .overlay {
+                            HomeArtwork(url: url, maxPixelSize: 180, placeholder: .clear)
+                        }
+                        .clipped()
+                        .opacity(0.42)
+                }
+                LinearGradient(
+                    colors: [top.opacity(leadingScrim), Color.black.opacity(trailingScrim)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

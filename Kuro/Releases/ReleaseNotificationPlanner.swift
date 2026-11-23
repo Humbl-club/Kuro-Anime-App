@@ -46,6 +46,22 @@ nonisolated enum ReleaseNotificationPlanner {
         return at.timeIntervalSince(now) > minimumLead
     }
 
+    /// Computes a local `09:00` morning reminder date on `item.releaseAt`'s calendar day when
+    /// `item` is a confirmed day-precision release (no exact broadcast timestamp) and `09:00`
+    /// remains at least `minimumLead` ahead of `now`.
+    static func dayMorningFireDate(_ item: ReleaseScheduleItem, now: Date, timeZone: TimeZone) -> Date? {
+        guard !item.showsTime, item.basis == .confirmed, item.precision == .day,
+              item.isDisplayable, !item.isPast, let at = item.releaseAt else { return nil }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = timeZone
+        var comps = cal.dateComponents([.year, .month, .day], from: at)
+        comps.hour = 9
+        comps.minute = 0
+        comps.second = 0
+        guard let morning = cal.date(from: comps), morning.timeIntervalSince(now) > minimumLead else { return nil }
+        return morning
+    }
+
     static func plan(
         items: [ReleaseScheduleItem],
         following: Set<MediaKey>,
@@ -54,27 +70,37 @@ nonisolated enum ReleaseNotificationPlanner {
         german: Bool,
         locale: Locale,
         timeZone: TimeZone,
-        limit: Int = planLimit
+        limit: Int = planLimit,
+        allowConfirmedDay: Bool = false
     ) -> [PlannedReleaseNotification] {
         guard limit > 0 else { return [] }
-        let eligible = items
-            .filter { following.contains($0.key) && !muted.contains($0.key) && isEligible($0, now: now) }
+        let eligible: [(item: ReleaseScheduleItem, fire: Date)] = items
+            .compactMap { item in
+                guard following.contains(item.key) && !muted.contains(item.key) else { return nil }
+                if let instant = fireDate(item, now: now) {
+                    return (item, instant)
+                }
+                if allowConfirmedDay, let morning = dayMorningFireDate(item, now: now, timeZone: timeZone) {
+                    return (item, morning)
+                }
+                return nil
+            }
             .sorted { lhs, rhs in
-                let l = lhs.releaseAt ?? .distantFuture, r = rhs.releaseAt ?? .distantFuture
-                return l != r ? l < r : identifier(lhs) < identifier(rhs)
+                lhs.fire != rhs.fire ? lhs.fire < rhs.fire : identifier(lhs.item) < identifier(rhs.item)
             }
         var seen = Set<String>()
         var perKey: [MediaKey: Int] = [:]
         var planned: [PlannedReleaseNotification] = []
-        for item in eligible {
-            guard let fire = item.releaseAt, perKey[item.key, default: 0] < perTitle else { continue }
+        for entry in eligible {
+            let item = entry.item
+            guard perKey[item.key, default: 0] < perTitle else { continue }
             let id = identifier(item)
             guard seen.insert(id).inserted else { continue }
             perKey[item.key, default: 0] += 1
             let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
             planned.append(PlannedReleaseNotification(
                 id: id, key: item.key, title: title.isEmpty ? "Kuro" : title,
-                body: ReleaseReminderCopy.body(item, german: german), fireDate: fire,
+                body: ReleaseReminderCopy.body(item, german: german), fireDate: entry.fire,
                 userInfo: ReleaseNotificationLink.userInfo(for: item.key)))
             if planned.count == limit { break }
         }

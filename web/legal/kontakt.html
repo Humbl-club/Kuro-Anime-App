@@ -1,31 +1,25 @@
 <!doctype html>
 <!--
-  ENTWURF / DRAFT FOR LEGAL REVIEW.
   Kontaktformular: zweiter schneller Kontaktweg nach § 5 Abs. 1 Nr. 2 DDG (neben der E-Mail-Adresse).
   Sendet an die Supabase Edge Function `contact-submit` (supabase/functions/contact-submit/handler.ts).
-  Der eingebettete Schlüssel ist der ÖFFENTLICHE anon key (auch in der App, Config/Shared.xcconfig);
-  er erlaubt nur, was die Function und die RLS erlauben.
-  Das Inline-Skript ist per CSP-Hash freigegeben (vercel.json, script-src 'sha256-…'). Nach JEDER
-  Änderung am Skript den Hash neu berechnen (Befehl in PLACEHOLDERS.md, Abschnitt 4), sonst blockiert
-  der Browser das Skript.
+  Das Inline-Skript ist per CSP-Hash freigegeben (vercel.json, script-src 'sha256-…').
 -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
 <title>Kontakt · Kuro</title>
 <meta name="description" content="Kontaktformular für die Kuro-App. Contact form for the Kuro app.">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-<div class="draft" role="note">Entwurf zur rechtlichen Prüfung · Draft for legal review.</div>
 <header class="site"><div class="wrap">
   <a class="wordmark" href="/">KURO</a>
   <nav class="site" aria-label="Rechtliches">
     <a href="/datenschutz">Datenschutz</a>
     <a href="/impressum">Impressum</a>
     <a href="/nutzungsbedingungen">Nutzungsbedingungen</a>
+    <a href="/quellen">Quellen</a>
     <a href="/kontakt" aria-current="page">Kontakt</a>
   </nav>
 </div></header>

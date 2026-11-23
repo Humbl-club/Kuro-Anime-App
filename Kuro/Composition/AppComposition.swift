@@ -138,7 +138,11 @@ final class AppComposition {
             notificationCenter: LiveNotificationCenter(),
             flags: flags,
             interactionTelemetry: InteractionTelemetry(analytics: .shared, client: client),
-            libraryBackend: Self.libraryBackend(client: client, fenceEnabled: { flags.seriesFoundationFenceEnabled() }),
+            libraryBackend: Self.libraryBackend(
+                client: client,
+                fenceEnabled: { flags.seriesFoundationFenceEnabled() },
+                startOffsetEnabled: { flags.continuityStartOffsetEnabled() }
+            ),
             clubChannels: nil,
             clubRefreshDebounce: ClubRealtimeCoordinator.defaultRefreshDebounce,
             userListChannels: SupabaseUserListChannelFactory(client: client),
@@ -286,6 +290,35 @@ final class AppComposition {
         let home = HomeStore(client: client, accountSession: accountSession, library: wiring.store,
             outbox: progressOutbox,
             progressWritesEnabled: { shell.flags.seriesFoundationV1Enabled })
+        home.cardSeedLookup = { [weak catalog = publicData.catalog, weak discovery = publicData.discovery] key in
+            switch key.kind {
+            case .anime:
+                if let anime = catalog?.animeDetailCache[key.id] {
+                    return HomeCardSeed(
+                        title: anime.displayTitle,
+                        coverImage: anime.coverImageLarge ?? anime.coverImageMedium,
+                        bannerImage: anime.bannerImage,
+                        format: anime.format,
+                        episodes: anime.episodeCount,
+                        chapters: nil,
+                        volumes: nil
+                    )
+                }
+            case .manga:
+                if let manga = catalog?.mangaDetailCache[key.id] {
+                    return HomeCardSeed(
+                        title: manga.displayTitle,
+                        coverImage: manga.coverImageLarge ?? manga.coverImageMedium,
+                        bannerImage: nil,
+                        format: manga.format,
+                        episodes: nil,
+                        chapters: manga.chapterCount,
+                        volumes: manga.volumeCount
+                    )
+                }
+            }
+            return discovery?.cachedHomeCardSeed(for: key)
+        }
         let libraryActions = makeLibraryActions(
             accountSession: accountSession,
             library: wiring.store,
@@ -706,7 +739,8 @@ final class AppComposition {
             client: client,
             accountSession: accountSession,
             catalog: catalog,
-            flags: flags
+            flags: flags,
+            userDefaults: userDefaults
         )
         return PersonalDataOwners(
             reminders: reminders,
@@ -721,11 +755,17 @@ final class AppComposition {
     /// every operation reports `.unavailable`.
     static func libraryBackend(
         client: SupabaseClient?,
-        fenceEnabled: @escaping @Sendable () -> Bool = { false }
+        fenceEnabled: @escaping @Sendable () -> Bool = { false },
+        startOffsetEnabled: @escaping @Sendable () -> Bool = { false }
     ) -> any LibraryBackend {
         guard let client else { return UnconfiguredLibraryBackend() }
         let transport = PostgrestLibraryTransport(client: client)
-        return SupabaseLibraryBackend(transport: transport, fence: transport, fenceEnabled: fenceEnabled)
+        return SupabaseLibraryBackend(
+            transport: transport,
+            fence: transport,
+            fenceEnabled: fenceEnabled,
+            startOffsetEnabled: startOffsetEnabled
+        )
     }
 
     /// A store over `backend` with the Releases, Collection, Concierge and Clubs sinks; connect the

@@ -6,6 +6,7 @@ import { PoliteLimiter } from "../_shared/polite_fetch.ts";
 import { createSourceClient } from "../_shared/catalogue/source_http.ts";
 import { fakeSupabase, queuedFetch } from "./fake_supabase.ts";
 import { muFetch, muMatch, parseMuSearch, parseMuSeries, runMangaUpdates } from "./mangaupdates.ts";
+import { parseMuAnimeSpan, toSourceValues } from "./map_mangaupdates.ts";
 import searchBerserk from "./fixtures/mu_search_berserk.json" with { type: "json" };
 import searchSolo from "./fixtures/mu_search_sololeveling.json" with { type: "json" };
 import seriesBerserk from "./fixtures/mu_series_berserk.json" with { type: "json" };
@@ -294,4 +295,53 @@ Deno.test("aRecordFetchServerErrorStopsAndCountsThenIsSkippedAfterThreeRuns", as
   assert.equal(fourth.stoppedEarly, undefined);
   assert.equal(fourth.results.records_fetched, 1);
   assert.deepEqual(fourth.results.failed_items, [{ key: "f:111", reason: "skipped_after_repeated_failures" }]);
+});
+
+Deno.test("parsesAnimeAdaptationSpanFromMangaUpdatesRecord", () => {
+  const parsed = parseMuSeries({
+    series_id: 99123,
+    title: "Chainsaw Man",
+    type: "Manga",
+    year: "2018",
+    status: "18 Volumes (Ongoing)",
+    completed: false,
+    genres: [{ genre: "Action" }],
+    anime: { start: "Vol 1, Chap 1", end: "Vol 5, Chap 38" },
+  });
+  assert.ok(parsed);
+  assert.equal(parsed.animeStart, "Vol 1, Chap 1");
+  assert.equal(parsed.animeEnd, "Vol 5, Chap 38");
+
+  const span = parseMuAnimeSpan(parsed.animeStart, parsed.animeEnd);
+  assert.deepEqual(span, {
+    startVolume: 1,
+    startChapter: 1,
+    endVolume: 5,
+    endChapter: 38,
+    nextChapter: 39,
+    rawStart: "Vol 1, Chap 1",
+    rawEnd: "Vol 5, Chap 38",
+  });
+  const values = toSourceValues(parsed);
+  assert.deepEqual(values.anime_adaptation_span, span);
+  assert.equal(parseMuAnimeSpan(null, "Ends before finale"), null);
+});
+
+Deno.test("parsesLatestChapterFromDirectFieldOrStatus", () => {
+  const withDirect = parseMuSeries({
+    series_id: 55099564912,
+    title: "One Piece",
+    status: "115 Volumes (Ongoing)",
+    latest_chapter: 1198,
+    completed: false,
+  });
+  assert.equal(withDirect?.latestChapter, 1198);
+
+  const fromStatus = parseMuSeries({
+    series_id: 10001137810,
+    title: "Ongoing Example",
+    status: "3 Volumes // 16 Chapters + 2 Extras (Ongoing)",
+    completed: false,
+  });
+  assert.equal(fromStatus?.latestChapter, 16);
 });

@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261121100000",
+    "name": "search_synonyms_and_cold_index_v1",
+    "file": "supabase/migrations/20261121100000_search_synonyms_and_cold_index_v1.sql",
+    "md5": "22903078c1a97d5150383e2ca97f15a6",
+    "sha256": "b92dc40bfbeb52f6a4130bba130ce1c07b23839a05e19172dc0742b40750bf33",
+    "bytes": 42680
+  },
+  "started_at": "2026-11-21T00:56:09.418041+00:00",
+  "finished_at": "2026-11-21T00:56:38.820898+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261121100000",
+      "name": "search_synonyms_and_cold_index_v1",
+      "n": 1,
+      "s1_md5": "22903078c1a97d5150383e2ca97f15a6",
+      "s1_len": 42680
+    }
+  ]
+}

@@ -171,7 +171,18 @@ final class FakeLibraryBackend: LibraryBackend {
     /// The stored row after the server applied `edit` (fields it does not name stay unchanged).
     private static func apply(_ edit: LibraryEdit, to entry: inout LibraryEntry) {
         if case .set(let status) = edit.status { entry.status = status }
-        if case .set(let progress) = edit.progress { entry.progress = progress }
+        if case .set(let progress) = edit.progress {
+            entry.progress = progress
+            if case .unchanged = edit.progressLabel {
+                entry.progressLabel = nil
+                entry.unitId = nil
+            }
+        }
+        switch edit.progressLabel {
+        case .set(let label): entry.progressLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .clear: entry.progressLabel = nil
+        case .unchanged: break
+        }
         switch edit.rating {
         case .set(let rating): entry.rating = rating
         case .clear: entry.rating = nil
@@ -189,9 +200,13 @@ final class FakeLibraryBackend: LibraryBackend {
         }
         // Like `LibraryEdit.applying`: metadata is created only when the edit names one of these fields,
         // so a plain edit never turns unknown dates into known-empty ones.
-        guard !(edit.repeatCount == .unchanged && edit.startedOn == .unchanged && edit.finishedOn == .unchanged
-                && edit.startedRawVerbatim == nil && edit.finishedRawVerbatim == nil) else { return }
+        guard !(edit.repeatCount == .unchanged && edit.volumesProgress == .unchanged
+                && edit.startedAtProgress == .unchanged && edit.startedOn == .unchanged
+                && edit.finishedOn == .unchanged && edit.startedRawVerbatim == nil
+                && edit.finishedRawVerbatim == nil) else { return }
         var metadata = entry.sourceMetadata ?? LibrarySourceMetadata()
+        if case .set(let vol) = edit.volumesProgress { metadata.volumesProgress = vol }
+        if case .set(let start) = edit.startedAtProgress { metadata.startedAtProgress = start }
         if case .set(let count) = edit.repeatCount { metadata.repeatCount = count }
         switch edit.startedOn {
         case .set(let date): metadata.startedRaw = date.raw

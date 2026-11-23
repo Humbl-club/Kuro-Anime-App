@@ -38,8 +38,8 @@ struct KuroMediumSwitch: View {
     /// The switch's own width (0 until the first layout).
     @State private var containerWidth: CGFloat = 0
 
-    /// The prototype's selected-word fill under its artwork (`#253a2a`).
-    private static let unlitFill = Color(hex: "253A2A")
+    /// The selected-word ink fallback.
+    private static let unlitFill = Color.kuroControlInk
     /// The widest switch on a phone ≤ 360 pt (360 less the 16 pt small-phone gutters).
     static let smallPhoneContainer: CGFloat = 328
 
@@ -107,7 +107,7 @@ struct KuroMediumSwitch: View {
                     .minimumScaleFactor(0.75)
                     .foregroundStyle(selected ? selectedFill : AnyShapeStyle(Color.kuroMuted))
                 ZStack(alignment: .leading) {
-                    Color.clear.frame(height: 2)
+                    Color.clear.frame(width: size == .large ? 28 : 20, height: 2)
                     if selected {
                         let rule = Rectangle()
                             .fill(Color.kuroInk)

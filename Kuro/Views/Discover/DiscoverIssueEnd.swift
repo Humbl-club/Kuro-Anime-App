@@ -34,12 +34,17 @@ struct DiscoverIssueEnd: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Rectangle().fill(Color.kuroHairline).frame(height: 1).accessibilityHidden(true)
-            Text(verbatim: "KURO")
-                .font(.kuroCustom(24, weight: .bold, relativeTo: .title2, maxSize: 36))
-                .tracking(2)
-                .foregroundStyle(Color.kuroInk.opacity(0.3))
-                .opacity(sealShown ? 1 : 0)
+            Rectangle()
+                .fill(Color.kuroControlInk)
+                .frame(width: 24, height: 1.5)
                 .padding(.top, 24)
+                .accessibilityHidden(true)
+            Text(verbatim: "KURO")
+                .font(.kuroCustom(11, weight: .bold, relativeTo: .caption1, maxSize: 18))
+                .tracking(2.4)
+                .foregroundStyle(Color.kuroInkSecondary)
+                .opacity(sealShown ? 1 : 0)
+                .padding(.top, 10)
                 .accessibilityHidden(true)
                 .onAppear {
                     guard !sealShown else { return }
@@ -50,8 +55,7 @@ struct DiscoverIssueEnd: View {
                     }
                 }
             Text(DiscoverIssueCopy.endTitle(german: german))
-                .font(.kuroCustom(24, weight: .semibold, relativeTo: .title2, maxSize: 40))
-                .tracking(-0.85)
+                .font(.kuroEditorial(size: 26, weight: .regular))
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
@@ -71,8 +75,8 @@ struct DiscoverIssueEnd: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 if browseOffered {
-                    DiscoverLinkRow(kicker: DiscoverIssueCopy.browseKicker(german: german),
-                                    title: DiscoverIssueCopy.browseTitle(german: german), action: onBrowse)
+                    DiscoverLinkRow(kicker: DiscoverIssueCopy.filterExploreKicker(german: german),
+                                    title: DiscoverIssueCopy.filterExploreTitle(german: german), action: onBrowse)
                 }
                 DiscoverLinkRow(kicker: DiscoverIssueCopy.searchKicker(german: german),
                                 title: DiscoverIssueCopy.searchTitle(german: german), action: onSearch)

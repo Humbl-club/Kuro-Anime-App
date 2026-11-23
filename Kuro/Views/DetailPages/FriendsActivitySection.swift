@@ -1,5 +1,6 @@
 import SwiftUI
 import KuroCore
+import KuroLibrary
 
 // MARK: - Friends Activity Section for Media Detail Views
 // Shows friend-level social activity for a title: who's tracking it, comments,
@@ -33,6 +34,7 @@ struct FriendsActivitySection: View {
 
     @Environment(ClubsStore.self) private var clubs
     @Environment(SocialActivityStore.self) private var social
+    @Environment(LibraryStore.self) private var library: LibraryStore?
     @State private var activity: SocialActivityStore.FriendActivityResponse?
     @State private var isLoading = true
     @State private var commentText = ""
@@ -43,6 +45,7 @@ struct FriendsActivitySection: View {
     /// The newest activity load; an older one never publishes (or ends the loading state).
     @State private var loadToken = 0
     @State private var containsSpoilers = false
+    @State private var gateToMyProgress = false
     @State private var revealed: Set<String> = []
     @State private var loadingMore = false
     @State private var actionScope = AccountActionScope()
@@ -70,6 +73,42 @@ struct FriendsActivitySection: View {
         default: return "Spoiler"
         }
     }
+
+    static func commentMaskReason(
+        text: String,
+        spoilerScope: String?,
+        viewerStatus: ListStatus?,
+        viewerProgress: Int,
+        isManga: Bool,
+        german: Bool
+    ) -> (cleanText: String, mask: String?) {
+        let serverFlag = spoilerScope != nil && spoilerScope != "none"
+        let parsed = ClubSpoilerGate.parse(note: text, serverIsSpoiler: serverFlag, serverThroughUnit: nil)
+        if viewerStatus == .completed {
+            return (parsed.cleanText, nil)
+        }
+        if let gate = parsed.unitGate {
+            let current = max(0, viewerProgress)
+            if current >= gate {
+                return (parsed.cleanText, nil)
+            }
+            let unit = isManga ? (german ? "Kap." : "Ch.") : (german ? "F." : "Ep.")
+            let mask = german
+                ? "Spoiler bis \(unit) \(gate) · Du bist bei \(current)"
+                : "Spoiler through \(unit) \(gate) · You're at \(current)"
+            return (parsed.cleanText, mask)
+        }
+        if parsed.isSpoiler {
+            return (parsed.cleanText, spoilerLabel(spoilerScope, german: german))
+        }
+        return (parsed.cleanText, nil)
+    }
+
+    private var isMangaMedia: Bool { mediaType.uppercased() == "MANGA" }
+    private var viewerEntry: LibraryEntry? {
+        library?.entry(for: MediaKey(kind: isMangaMedia ? .manga : .anime, id: mediaId))
+    }
+    private var viewerProgress: Int { max(0, viewerEntry?.progress ?? 0) }
 
     private var hasClubs: Bool {
         !clubs.myClubs.isEmpty
@@ -293,7 +332,7 @@ struct FriendsActivitySection: View {
                     .foregroundColor(.kuroInkQuiet)
                     .frame(width: 20, height: 20)
                     .background(
-                        RoundedRectangle(cornerRadius: KuroRadius.xs)
+                        RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
                             .fill(Color.kuroBlack06)
                     )
                 }
@@ -321,9 +360,15 @@ struct FriendsActivitySection: View {
 
                 if comment.is_own {
                     Button {
+                        let parsedOwn = ClubSpoilerGate.parse(
+                            note: comment.text,
+                            serverIsSpoiler: comment.spoiler_scope != nil && comment.spoiler_scope != "none",
+                            serverThroughUnit: nil
+                        )
                         isEditing = true
-                        commentText = comment.text
-                        containsSpoilers = comment.spoiler_scope != nil && comment.spoiler_scope != "none"
+                        commentText = parsedOwn.cleanText
+                        containsSpoilers = parsedOwn.isSpoiler || parsedOwn.unitGate != nil
+                        gateToMyProgress = parsedOwn.unitGate != nil
                     } label: {
                         Image(systemName: "pencil")
                             .font(.kuroCustom(10, weight: .regular, maxSize: 16))
@@ -353,11 +398,20 @@ struct FriendsActivitySection: View {
                 if prototypeStyle && !comment.is_own { reactionTally(comment) }
             }
 
-            if comment.spoiler_scope != nil && comment.spoiler_scope != "none" && !comment.is_own && !revealed.contains(comment.id) {
+            let evaluation = Self.commentMaskReason(
+                text: comment.text,
+                spoilerScope: comment.spoiler_scope,
+                viewerStatus: viewerEntry?.status,
+                viewerProgress: viewerProgress,
+                isManga: isMangaMedia,
+                german: KuroLocale.isGerman
+            )
+
+            if let maskLabel = evaluation.mask, !comment.is_own, !revealed.contains(comment.id) {
                 if prototypeStyle {
                     Button { revealed.insert(comment.id) } label: {
                         HStack {
-                            Text(Self.spoilerLabel(comment.spoiler_scope, german: KuroLocale.isGerman))
+                            Text(maskLabel)
                             Spacer()
                             Text(KuroLocale.text("Reveal", "Anzeigen"))
                                 .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 20))
@@ -372,12 +426,12 @@ struct FriendsActivitySection: View {
                     .padding(.top, 8)
                     .accessibilityHint(KuroLocale.text("Reveals a club member's spoiler", "Zeigt den Spoiler eines Clubmitglieds"))
                 } else {
-                Button(KuroLocale.text("Spoiler · Reveal", "Spoiler · Anzeigen")) { revealed.insert(comment.id) }
+                Button("\(maskLabel) · \(KuroLocale.text("Reveal", "Anzeigen"))") { revealed.insert(comment.id) }
                     .font(.kuroCaption()).frame(minHeight: 44)
                     .accessibilityHint(KuroLocale.text("Reveals a club member's spoiler", "Zeigt den Spoiler eines Clubmitglieds"))
                 }
             } else {
-                Text(comment.text)
+                Text(evaluation.cleanText)
                     .font(prototypeStyle ? .kuroCustom(13, relativeTo: .callout, maxSize: 28) : .kuroBody(weight: .light))
                     .foregroundColor(prototypeStyle ? Color(hex: "405646") : .kuroBlack80).lineSpacing(prototypeStyle ? 5 : 4)
                     // The prototype's 8 pt margin plus the 13/20.8 line's half-leading.
@@ -550,10 +604,14 @@ struct FriendsActivitySection: View {
                         .accessibilityLabel(KuroLocale.text("Posting", "Wird gesendet"))
                 } else {
                     Button {
-                        let text = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let spoiler = editorial ? (containsSpoilers ? "story" : "none") : nil
+                        let rawDraft = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let gatePrefix = (editorial && containsSpoilers && gateToMyProgress && viewerProgress > 0)
+                            ? "[\(isMangaMedia ? "ch" : "ep"):\(viewerProgress)] "
+                            : ""
+                        let payload = String((gatePrefix + rawDraft).prefix(500))
+                        let spoiler = editorial ? ((containsSpoilers || !gatePrefix.isEmpty) ? "story" : "none") : nil
                         launchAction(origin: origin, permission: permission) { ticket in
-                            await submitComment(text: text, spoilerScope: spoiler, origin: ticket, permission: permission)
+                            await submitComment(text: payload, draftMatch: rawDraft, spoilerScope: spoiler, origin: ticket, permission: permission)
                         }
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
@@ -574,6 +632,8 @@ struct FriendsActivitySection: View {
                     Button {
                         isEditing = false
                         commentText = ""
+                        containsSpoilers = false
+                        gateToMyProgress = false
                     } label: {
                         Text(KuroLocale.text("Cancel", "Abbrechen"))
                             .font(.kuroCaption(weight: .light))
@@ -587,7 +647,24 @@ struct FriendsActivitySection: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.kuroBlack08, lineWidth: 0.8))
-            if editorial { Toggle(KuroLocale.text("Contains spoilers", "Enthält Spoiler"), isOn: $containsSpoilers).font(.kuroCaption()).frame(minHeight: 44) }
+            if editorial {
+                Toggle(KuroLocale.text("Contains spoilers", "Enthält Spoiler"), isOn: $containsSpoilers)
+                    .font(.kuroCaption())
+                    .frame(minHeight: 44)
+                    .onChange(of: containsSpoilers) { _, on in
+                        if !on { gateToMyProgress = false }
+                    }
+                if containsSpoilers && viewerProgress > 0 {
+                    Toggle(
+                        isMangaMedia
+                            ? KuroLocale.text("Gate to Ch. \(viewerProgress)", "Sperren bis Kap. \(viewerProgress)")
+                            : KuroLocale.text("Gate to Ep. \(viewerProgress)", "Sperren bis F. \(viewerProgress)"),
+                        isOn: $gateToMyProgress
+                    )
+                    .font(.kuroCaption())
+                    .frame(minHeight: 44)
+                }
+            }
         }
     }
 
@@ -657,6 +734,7 @@ struct FriendsActivitySection: View {
         isSubmitting = false
         commentText = ""
         containsSpoilers = false
+        gateToMyProgress = false
         isEditing = false
         revealed = []
     }
@@ -707,7 +785,7 @@ struct FriendsActivitySection: View {
         catch { if token == loadToken { errorText = KuroLocale.text("Couldn't load more thoughts. Try again.", "Weitere Gedanken konnten nicht geladen werden. Versuch es noch einmal.") } }
     }
 
-    private func submitComment(text: String, spoilerScope: String?, origin: AccountActionScope.Ticket,
+    private func submitComment(text: String, draftMatch: String? = nil, spoilerScope: String?, origin: AccountActionScope.Ticket,
                                permission: Int) async {
         guard !text.isEmpty, mayPublish(origin, permission: permission) else { return }
         isSubmitting = true
@@ -721,9 +799,11 @@ struct FriendsActivitySection: View {
             )
             guard mayPublish(origin, permission: permission) else { return }
             // Clear the draft only if it is still the text that was saved (never a newer draft).
-            if commentText.trimmingCharacters(in: .whitespacesAndNewlines) == text {
+            if commentText.trimmingCharacters(in: .whitespacesAndNewlines) == (draftMatch ?? text) {
                 commentText = ""
                 isEditing = false
+                containsSpoilers = false
+                gateToMyProgress = false
             }
         } catch is CancellationError {
             // Dropped by the store (the account changed while saving): no error over a newer state.

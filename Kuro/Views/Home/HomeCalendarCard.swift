@@ -37,6 +37,8 @@ struct HomeCalendarCard: View {
     var now: Date
     /// The medium when Home knows it (the groups may be empty while loading).
     var medium: MediaKind?
+    /// Enables minute-ticking countdowns on upcoming `.instant` releases (off for static fixtures).
+    var liveCountdown: Bool
 
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -54,7 +56,7 @@ struct HomeCalendarCard: View {
          coverFor: @escaping (ReleaseScheduleItem) -> String? = { $0.coverImage },
          titleFor: @escaping (ReleaseScheduleItem) -> String = { $0.title },
          seasonFor: @escaping (ReleaseScheduleItem) -> String? = { _ in nil },
-         now: Date = Date(), medium: MediaKind? = nil) {
+         now: Date = Date(), medium: MediaKind? = nil, liveCountdown: Bool = false) {
         self.groups = groups
         self.coverage = coverage
         self.coverFor = coverFor
@@ -62,6 +64,7 @@ struct HomeCalendarCard: View {
         self.seasonFor = seasonFor
         self.now = now
         self.medium = medium
+        self.liveCountdown = liveCountdown
     }
 
     private var isManga: Bool { (medium ?? groups.first?.items.first?.medium) == .manga }
@@ -365,7 +368,7 @@ struct HomeCalendarCard: View {
                 if !dynamicTypeSize.isAccessibilitySize {
                     rowWhen(item)
                         .multilineTextAlignment(.trailing)
-                        .frame(maxWidth: 62, alignment: .trailing) // `.release-when` max-width 62
+                        .frame(maxWidth: liveCountdown ? 78 : 62, alignment: .trailing) // `.release-when`
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Image(systemName: "chevron.right")
@@ -385,10 +388,21 @@ struct HomeCalendarCard: View {
         .accessibilityAddTraits(.isButton)
     }
 
+    @ViewBuilder
     private func rowWhen(_ item: ReleaseScheduleItem) -> some View {
-        Text(HomeCalendarPresentation.rowWhen(item, copy: copy))
-            .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
-            .foregroundStyle(Color(hex: "58665B"))
+        if liveCountdown && item.effectivePrecision == .instant && item.releaseAt != nil {
+            TimelineView(.everyMinute) { context in
+                let liveCopy = ReleaseCopy.current(now: context.date)
+                Text(liveCopy.countdownPhrase(item) ?? HomeCalendarPresentation.rowWhen(item, copy: liveCopy))
+                    .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                    .monospacedDigit()
+                    .foregroundStyle(Color(hex: "58665B"))
+            }
+        } else {
+            Text(HomeCalendarPresentation.rowWhen(item, copy: copy))
+                .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                .foregroundStyle(Color(hex: "58665B"))
+        }
     }
 
     // MARK: Next dates

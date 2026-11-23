@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261121200000",
+    "name": "live_chapters_and_airing_schedule_v1",
+    "file": "supabase/migrations/20261121200000_live_chapters_and_airing_schedule_v1.sql",
+    "md5": "eb657f8d7afae772c799ba91307f8da5",
+    "sha256": "8e3129b5fdafdcafc5a452c092d8369cb57dd5ccfe21ccef85367549d9c52c10",
+    "bytes": 18006
+  },
+  "started_at": "2026-11-21T17:38:08.635565+00:00",
+  "finished_at": "2026-11-21T17:38:52.130906+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261121200000",
+      "name": "live_chapters_and_airing_schedule_v1",
+      "n": 1,
+      "s1_md5": "eb657f8d7afae772c799ba91307f8da5",
+      "s1_len": 18006
+    }
+  ]
+}

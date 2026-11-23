@@ -5,43 +5,35 @@ import SwiftUI
 // Clubs invitation (`ClubsView`), the club-detail room (hero, initial state, art strip) and Home's club
 // room (`HomeClubRoom`), so a club keeps one room colour from Home and the invitation to its detail page.
 
-/// The club room's colours. No foundation token carries them (`kuroRoom` is the older neutral
-/// charcoal `#222222`).
+/// The club room's monochrome gallery palette (2026-11-20 neutral charcoal pass).
 enum ClubRoomPalette {
-    static let room = Color(hex: "252B28")
-    static let glow = Color(hex: "444A46")
-    static let border = Color(hex: "535A55", opacity: Double(0x4C) / 255)
-    static let text = Color(hex: "F0F4EF")
-    static let kicker = Color(hex: "C0CBBB")
-    static let seal = Color(hex: "899C8C")
-    static let note = Color(hex: "F5F6EF")
-    static let noteInk = Color(hex: "2E342C")
-    static let quiet = Color(hex: "E9EDE2")
-    static let quietBorder = Color(hex: "CCD4C3")
-    static let quietInk = Color(hex: "59664E")
-    static let footer = Color(hex: "B4C2A9")
-    static let footerRule = Color(hex: "C5D2B8", opacity: Double(0x1C) / 255)
-    /// The room's drop colour (`#10171066`).
-    static let drop = Color(hex: "101710", opacity: Double(0x66) / 255)
-    /// The seal's knot (`#d2dacd`).
-    static let sealKnot = Color(hex: "D2DACD")
-    /// Member initials: ink, the rim against the room, and the three positional fills
-    /// (`.member-stack>span:nth-child(1|2|3)`).
-    static let memberInk = Color(hex: "33412E")
-    static let memberRim = Color(hex: "2F3730")
-    static let memberFills: [Color] = [Color(hex: "D0D8CB"), Color(hex: "ADBBA6"), Color(hex: "899A82")]
-    /// The light note card: its border, drop, the time-ago and "{title} ›" inks, and the cover's drop.
+    static let room = Color(hex: "18181A")
+    static let glow = Color(hex: "2C2C30")
+    static let border = Color.white.opacity(0.12)
+    static let text = Color(hex: "F7F7F8")
+    static let kicker = Color.white.opacity(0.62)
+    static let seal = Color.white.opacity(0.38)
+    static let note = Color(hex: "FAFAFB")
+    static let noteInk = Color(hex: "18181A")
+    static let quiet = Color(hex: "F0F0F2")
+    static let quietBorder = Color.black.opacity(0.10)
+    static let quietInk = Color(hex: "4A4A4E")
+    static let footer = Color.white.opacity(0.58)
+    static let footerRule = Color.white.opacity(0.12)
+    static let drop = Color.black.opacity(0.32)
+    static let sealKnot = Color.white.opacity(0.85)
+    static let memberInk = Color(hex: "18181A")
+    static let memberRim = Color(hex: "18181A")
+    static let memberFills: [Color] = [Color(hex: "ECECEF"), Color(hex: "D6D6DC"), Color(hex: "BABCBE")]
     static let noteBorder = Color.white.opacity(Double(0x88) / 255)
     static let noteShadow = Color.black.opacity(Double(0x22) / 255)
-    static let noteMeta = Color(hex: "656E65")
-    static let noteLink = Color(hex: "66705D")
-    static let noteArtShadow = Color(hex: "252B26", opacity: Double(0x25) / 255)
-    /// The room's own rows on the dark fill: first line and second line (also the failure copy).
-    static let rowInk = Color(hex: "F1F5ED")
-    static let rowSecondary = Color(hex: "C1CDB7")
-    /// The manga leaf's solid key (`--mp-key`), used for the room's primary action.
-    static let key = Color(hex: "2B342E")
-    static let keyInk = Color(hex: "F8FAF7")
+    static let noteMeta = Color(hex: "6B6B70")
+    static let noteLink = Color(hex: "3A3A3E")
+    static let noteArtShadow = Color.black.opacity(0.18)
+    static let rowInk = Color(hex: "F4F4F6")
+    static let rowSecondary = Color.white.opacity(0.66)
+    static let key = Color(hex: "2A2A2E")
+    static let keyInk = Color(hex: "FAFAFB")
 }
 
 /// The room's metrics by its own width (PROTOTYPE_SPEC §5, 390 → 320). A room at most
@@ -67,24 +59,32 @@ nonisolated struct ClubRoomMetrics: Equatable, Sendable {
     }
 }
 
-/// The dark room: `#252b28` under a radial `#444a46` glow from the top-left, a hairline border, the
-/// inset top highlight, and the prototype's tight drop (`0 10px 20px -14px #10171066`): the negative
-/// spread keeps it to a thin shade under the bottom edge, never a halo on the sides or top.
+/// The dark room: `#18181A` under optional pre-downsampled club cover artwork washes, a radial glow
+/// from the top-left, a hairline border, inset top highlight, and an opaque surface drop shadow.
 /// `topCornerRadius` (the club page's full-bleed hero: square top, rounded foot) draws the same room on
 /// an uneven shape; without it the room is the plain rounded rectangle Home has always drawn.
 struct ClubRoomBackground: View {
     var cornerRadius: CGFloat = 24
     var topCornerRadius: CGFloat? = nil
+    var artworkURLs: [URL] = []
 
     var body: some View {
         if let topCornerRadius {
-            ClubRoomSurface(shape: UnevenRoundedRectangle(topLeadingRadius: topCornerRadius,
-                                                          bottomLeadingRadius: cornerRadius,
-                                                          bottomTrailingRadius: cornerRadius,
-                                                          topTrailingRadius: topCornerRadius,
-                                                          style: .continuous))
+            ClubRoomSurface(
+                shape: UnevenRoundedRectangle(
+                    topLeadingRadius: topCornerRadius,
+                    bottomLeadingRadius: cornerRadius,
+                    bottomTrailingRadius: cornerRadius,
+                    topTrailingRadius: topCornerRadius,
+                    style: .continuous
+                ),
+                artworkURLs: artworkURLs
+            )
         } else {
-            ClubRoomSurface(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            ClubRoomSurface(
+                shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                artworkURLs: artworkURLs
+            )
         }
     }
 }
@@ -92,39 +92,118 @@ struct ClubRoomBackground: View {
 /// The room's layers on any insettable shape (one recipe for the rounded room and the hero's foot).
 private struct ClubRoomSurface<S: InsettableShape>: View {
     let shape: S
+    let artworkURLs: [URL]
 
     var body: some View {
+        let backdropURLs = Array(artworkURLs.prefix(3))
         shape
             .fill(ClubRoomPalette.room)
+            .overlay {
+                if !backdropURLs.isEmpty {
+                    HStack(spacing: 0) {
+                        ForEach(Array(backdropURLs.enumerated()), id: \.offset) { _, url in
+                            Color.clear
+                                .overlay {
+                                    KuroCachedAsyncImage(url: url, maxPixelSize: 180) { phase in
+                                        if case .success(let image) = phase {
+                                            image.resizable().scaledToFill()
+                                        } else {
+                                            Color.clear
+                                        }
+                                    }
+                                }
+                                .clipped()
+                        }
+                    }
+                    .opacity(0.55)
+                    .overlay(
+                        LinearGradient(
+                            stops: [
+                                .init(color: ClubRoomPalette.room.opacity(0.42), location: 0.0),
+                                .init(color: ClubRoomPalette.room.opacity(0.78), location: 0.50),
+                                .init(color: ClubRoomPalette.room.opacity(0.92), location: 1.0),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(shape)
+                    .allowsHitTesting(false)
+                }
+            }
             .overlay(
-                RadialGradient(colors: [ClubRoomPalette.glow, ClubRoomPalette.glow.opacity(0)],
+                RadialGradient(colors: [ClubRoomPalette.glow.opacity(backdropURLs.isEmpty ? 1 : 0.45), ClubRoomPalette.glow.opacity(0)],
                                center: .topLeading, startRadius: 0, endRadius: 260)
                     .clipShape(shape)
+                    .allowsHitTesting(false)
             )
             .overlay(shape.strokeBorder(ClubRoomPalette.border, lineWidth: 1))
             .overlay(alignment: .top) {
                 shape.stroke(Color.white.opacity(0x21 / 255.0), lineWidth: 1)
                     .mask(Rectangle().frame(height: 2).frame(maxHeight: .infinity, alignment: .top))
+                    .allowsHitTesting(false)
             }
-            .background(
-                // The spread of −14 pt: the drop's shape is inset 14 pt on every side, moved down 10 pt
-                // and blurred, so only its lower edge shows below the room.
-                shape.fill(ClubRoomPalette.drop)
-                    .padding(14)
-                    .offset(y: 10)
-                    .blur(radius: 10)
-            )
+            .shadow(color: ClubRoomPalette.drop.opacity(0.55), radius: 8, x: 0, y: 5)
     }
 }
 
-// MARK: - Seal
+// MARK: - Seal & crests
 
-/// The club seal: the prototype's 36 pt ring (30 on small phones) around its 28 pt knot (two
-/// nested squares and four ticks, stroke #d2dacd at 0.9 on a 40 pt grid), turned −12°. The turn
-/// does not change layout, as a CSS transform does not. One seal for every club surface (Home's
-/// room, the Clubs list and empty page, the club page and the create sheets; spec D15).
+/// Minimal geometric club emblems selectable when starting a club.
+enum ClubCrest: String, CaseIterable, Identifiable, Sendable {
+    case knot, torii, moon, diamond, flame, lantern
+
+    var id: String { rawValue }
+
+    func label(german: Bool) -> String {
+        switch self {
+        case .knot: return german ? "Siegel" : "Seal"
+        case .torii: return german ? "Säule" : "Arch"
+        case .moon: return german ? "Mond" : "Moon"
+        case .diamond: return german ? "Karo" : "Diamond"
+        case .flame: return german ? "Flamme" : "Flame"
+        case .lantern: return german ? "Stern" : "Spark"
+        }
+    }
+
+    var symbolName: String? {
+        switch self {
+        case .knot: return nil
+        case .torii: return "building.columns"
+        case .moon: return "moon.stars"
+        case .diamond: return "suit.diamond"
+        case .flame: return "flame"
+        case .lantern: return "sparkles"
+        }
+    }
+}
+
+/// Device persistence for per-club crest emblems (`ClubCrest`).
+enum ClubCrestStore {
+    private static func storageKey(_ clubId: String) -> String {
+        "kuro.club.crest.\(clubId.lowercased())"
+    }
+
+    static func crest(for clubId: String?, defaults: UserDefaults = .standard) -> ClubCrest {
+        guard let clubId = clubId?.trimmingCharacters(in: .whitespacesAndNewlines), !clubId.isEmpty,
+              let raw = defaults.string(forKey: storageKey(clubId)),
+              let crest = ClubCrest(rawValue: raw) else {
+            return .knot
+        }
+        return crest
+    }
+
+    static func setCrest(_ crest: ClubCrest, for clubId: String, defaults: UserDefaults = .standard) {
+        let trimmed = clubId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        defaults.set(crest.rawValue, forKey: storageKey(trimmed))
+    }
+}
+
+/// The club seal: 36 pt ring (30 on small phones) framing `ClubKnot` (default) or another chosen `ClubCrest`.
 struct ClubSeal: View {
     let ring: CGFloat
+    var crest: ClubCrest = .knot
 
     /// Measured on Home's room: 36 pt (G§14.2).
     static let regularRing: CGFloat = 36
@@ -136,12 +215,18 @@ struct ClubSeal: View {
     var body: some View {
         ZStack {
             Circle().strokeBorder(ClubRoomPalette.seal, lineWidth: 1)
-            ClubKnot()
-                .stroke(ClubRoomPalette.sealKnot, lineWidth: 0.9 * 28 / 40)
-                .frame(width: 28, height: 28)
+            if let symbol = crest.symbolName {
+                Image(systemName: symbol)
+                    .font(.system(size: ring * 0.42, weight: .medium))
+                    .foregroundStyle(ClubRoomPalette.sealKnot)
+            } else {
+                ClubKnot()
+                    .stroke(ClubRoomPalette.sealKnot, lineWidth: 0.9 * 28 / 40)
+                    .frame(width: ring * (28.0 / 36.0), height: ring * (28.0 / 36.0))
+            }
         }
         .frame(width: ring, height: ring)
-        .rotationEffect(.degrees(-12))
+        .rotationEffect(crest == .knot ? .degrees(-12) : .zero)
     }
 }
 

@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261112100500",
+    "name": "anilist_id_private_v1",
+    "file": "supabase/prepared-migrations/20261112100500_anilist_id_private_v1.sql",
+    "md5": "54997922610fa32fb416002283a5dfbb",
+    "sha256": "97792b1a4a44f9774807a328a838dda26dd4c163a2ca465523b7c88545e0be32",
+    "bytes": 20107
+  },
+  "started_at": "2026-11-23T22:07:06.182729+00:00",
+  "finished_at": "2026-11-23T22:07:12.552479+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261112100500",
+      "name": "anilist_id_private_v1",
+      "n": 1,
+      "s1_md5": "54997922610fa32fb416002283a5dfbb",
+      "s1_len": 20107
+    }
+  ]
+}

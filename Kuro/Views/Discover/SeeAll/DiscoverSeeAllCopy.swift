@@ -93,6 +93,10 @@ enum DiscoverMoodCopy {
         case .short: return german ? "Etwas Kurzes" : "Something short"
         case .cozy: return german ? "Gemütlich" : "Cozy"
         case .intense: return german ? "Intensiv" : "Intense"
+        case .action: return german ? "Volle Action" : "Big action"
+        case .heartfelt: return german ? "Herzergreifend" : "Heartfelt"
+        case .mindBending: return german ? "Verzwickt" : "Mind-bending"
+        case .acclaimed: return german ? "Gefeiert" : "Acclaimed"
         case .likeLastLoved:
             if let seedTitle, !seedTitle.isEmpty { return german ? "Wie \(seedTitle)" : "Like \(seedTitle)" }
             return german ? "Wie dein Favorit" : "Like your favourite"
@@ -105,6 +109,10 @@ enum DiscoverMoodCopy {
         case .short: return german ? "Für einen Abend oder ein Wochenende" : "An evening or a weekend"
         case .cozy: return german ? "Ruhig, warm, sanft" : "Slow, warm, gentle"
         case .intense: return german ? "Düster und packend" : "Dark and gripping"
+        case .action: return german ? "Kämpfe, Einsatz, Tempo" : "Fights, stakes, momentum"
+        case .heartfelt: return german ? "Liebe und Sehnsucht" : "Love and longing"
+        case .mindBending: return german ? "Wendungen, die bleiben" : "Twists that stay with you"
+        case .acclaimed: return german ? "Am besten bewertet" : "The highest rated"
         case .likeLastLoved: return german ? "Weil du es beendet hast" : "Because you finished it"
         }
     }
@@ -117,6 +125,10 @@ enum DiscoverMoodCopy {
                           : "Short enough for an evening or a weekend."
         case .cozy: return german ? "Warme, entspannte Geschichten zum Abschalten." : "Warm, low-stakes stories to unwind with."
         case .intense: return german ? "Düstere, ernste Geschichten, die packen." : "Dark, serious stories that grip."
+        case .action: return german ? "Große Kämpfe und hoher Einsatz." : "Big fights and high stakes."
+        case .heartfelt: return german ? "Geschichten über Liebe, die nachklingen." : "Love stories that linger."
+        case .mindBending: return german ? "Psychologische Geschichten voller Wendungen." : "Psychological stories full of turns."
+        case .acclaimed: return german ? "Was Fans am höchsten bewerten." : "What fans rate the highest."
         case .likeLastLoved:
             let title = seedTitle ?? (german ? "deinem Favoriten" : "your favourite")
             return german ? "Nah an \(title) in Ton und Themen." : "Close to \(title) in tone and themes."
@@ -144,6 +156,10 @@ enum DiscoverMoodCopy {
         case .short: return german ? "Nichts Kurzes mehr, das du noch nicht kennst." : "Nothing short left that you haven't seen."
         case .cozy: return german ? "Nichts Gemütliches mehr, das du noch nicht kennst." : "Nothing cozy left that you haven't seen."
         case .intense: return german ? "Nichts Intensives mehr, das du noch nicht kennst." : "Nothing intense left that you haven't seen."
+        case .action: return german ? "Keine Action mehr, die du noch nicht kennst." : "No action left that you haven't seen."
+        case .heartfelt: return german ? "Nichts Herzergreifendes mehr, das du noch nicht kennst." : "Nothing heartfelt left that you haven't seen."
+        case .mindBending: return german ? "Nichts Verzwicktes mehr, das du noch nicht kennst." : "Nothing mind-bending left that you haven't seen."
+        case .acclaimed: return german ? "Nichts Gefeiertes mehr, das du noch nicht kennst." : "Nothing acclaimed left that you haven't seen."
         case .likeLastLoved:
             let title = seedTitle ?? (german ? "deinen Favoriten" : "your favourite")
             return german ? "Nichts wie \(title) mehr, das du noch nicht kennst." : "Nothing like \(title) left that you haven't seen."

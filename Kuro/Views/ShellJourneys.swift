@@ -61,8 +61,8 @@ enum ShellLinkPolicy {
         case .club(let id): return .openJourney(.club(id: id))
         case .collection: return .switchPage(.collection)
         case .discover: return .switchPage(.discover)
-        case .concierge(let prompt):
-            return conciergeInPager ? .openConciergePage(prompt: prompt) : .openConciergeSheet(prompt: prompt)
+        case .concierge:
+            return .switchPage(.discover)
         case .joinClub(let code): return .joinClub(code: code)
         case .authCallback: return .none
         }

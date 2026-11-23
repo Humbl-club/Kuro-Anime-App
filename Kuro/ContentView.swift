@@ -187,7 +187,7 @@ struct KuroMainView: View {
             }
             return tasteDeck
                 ? [.taste, .discover, .browse, .collection, .clubs]
-                : [.concierge, .discover, .browse, .collection, .clubs]
+                : [.discover, .browse, .collection, .clubs]
         }
     }
 
@@ -209,8 +209,8 @@ struct KuroMainView: View {
 	@State private var discoverScroll = ScrollPosition(edge: .top)
 	/// Counts header-title taps on Discover (scroll to top, usability §5.10).
 	@State private var discoverTopTick = 0
-	/// Every swipe-exclusion frame reported in `kuro_root` space (filtered to the viewport on use).
-	@State private var swipeExclusions: [CGRect] = []
+	/// Per-section scroll-to-top ticks triggered from the header wordmark or section menu.
+	@State private var sectionTopTicks: [Section: Int] = [:]
     /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
     @State private var rootSize: CGSize = .zero
     @State private var suppressCardTaps = false
@@ -273,7 +273,6 @@ struct KuroMainView: View {
                                                             entryCount: library.allEntries.count)
     }
     private let swipeThreshold: CGFloat = 40
-    private let swipeEdgeMargin: CGFloat = KuroGesturePolicy.edgeMarginPt
 
     private var conciergeEditorialV1Enabled: Bool {
         // Concierge has fully migrated to the editorial shell.
@@ -301,15 +300,37 @@ struct KuroMainView: View {
 
     // MARK: - Swipe conflict helpers (deduplicated from onChanged/onEnded)
 
-    /// The root container's measured width (0 until the first layout; then no drag is excluded).
+    /// The root container's measured width (0 until the first layout).
     private var rootWidth: CGFloat { rootSize.width }
 
-    /// Returns true when the drag starts inside an exclusion zone and is NOT on a screen edge.
-    private func isSwipeExcluded(start: CGPoint) -> Bool {
-        let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
-        let viewport = CGRect(origin: .zero, size: rootSize)
-        let expanded = swipeExclusions.filter { $0.intersects(viewport) }.map { $0.insetBy(dx: -14, dy: -14) }
-        return expanded.contains(where: { $0.contains(start) }) && !edgeAllowed
+    private func triggerScrollToTop() {
+        KuroAccessibility.impactHaptic(.light)
+        if selection == .discover {
+            discoverTopTick += 1
+        } else {
+            sectionTopTicks[selection, default: 0] += 1
+        }
+    }
+
+    private func commitPagerStep(_ step: Int) {
+        guard let currentIndex = swipeOrder.firstIndex(of: selection) else { return }
+        let nextIndex = currentIndex + step
+        guard swipeOrder.indices.contains(nextIndex) else {
+            KuroAccessibility.impactHaptic(.rigid)
+            guard !reduceMotion else { return }
+            let bounceDirection: CGFloat = step > 0 ? -1 : 1
+            withAnimation(KuroMotion.contact) {
+                edgeBounceOffset = bounceDirection * 12
+            }
+            withAnimation(KuroMotion.settle.delay(0.12)) {
+                edgeBounceOffset = 0
+            }
+            return
+        }
+        pageChosen = true
+        selection = swipeOrder[nextIndex]
+        mountedSections.insert(selection)
+        KuroAccessibility.impactHaptic(.light)
     }
 
     private func scheduleTapSuppressionReset(delayNs: UInt64 = 120_000_000) {
@@ -320,14 +341,6 @@ struct KuroMainView: View {
             suppressCardTaps = false
             pagerTapGate.isSuppressed = false
         }
-    }
-
-    private func isFastFlingOverride(_ value: DragGesture.Value) -> Bool {
-        let dx = abs(value.translation.width)
-        let dy = abs(value.translation.height)
-        let predictedDx = abs(value.predictedEndTranslation.width)
-        guard dx > dy * KuroGesturePolicy.fastFlingDirectionRatio else { return false }
-        return predictedDx >= KuroGesturePolicy.fastFlingPredictedDxPt
     }
     
     var body: some View {
@@ -361,7 +374,7 @@ struct KuroMainView: View {
                         onPicture: homeInvitation,
                         tasteMedium: tasteMedium,
                         discoverIssue: discoverIssue,
-                        onTitleTap: selection == .discover ? { discoverTopTick += 1 } : nil
+                        onTitleTap: { triggerScrollToTop() }
                     )
                 }
 
@@ -407,6 +420,7 @@ struct KuroMainView: View {
                             discoverIssue: $discoverIssue,
                             discoverScroll: $discoverScroll,
                             discoverTopTick: discoverTopTick,
+                            sectionTopTicks: sectionTopTicks,
                             onDiscoverSearch: {
                                 // The end block's Search (usability §5.7): the same sheet as the header's,
                                 // scoped to the issue, dropped while the pager is mid-swipe (N9).
@@ -417,14 +431,57 @@ struct KuroMainView: View {
                             },
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
-	                    .offset(x: edgeBounceOffset)
-	                    .background(Color.clear)
-	                    // Full-bleed for the Deck: the pager reaches the screen's
-	                    // bottom edge; other sections restore the inset as padding.
-	                    .ignoresSafeArea(.container, edges: .bottom)
-	                }
-	            }
-	        }
+                    .offset(x: edgeBounceOffset)
+                    .background(Color.clear)
+                    // Extend the pager to the screen's bottom edge; individual sections restore
+                    // `bottomInset` cleanly inside the pager.
+                    .ignoresSafeArea(.container, edges: .bottom)
+                    .background(
+                        KuroRootPagerPanOverlay(
+                            isEnabled: keyboardShortcutsEnabled,
+                            swipeThreshold: swipeThreshold,
+                            onSuppressTaps: {
+                                guard flags.isSwipeTapGuardEnabled else { return }
+                                if !suppressCardTaps {
+                                    suppressCardTaps = true
+                                }
+                                pagerTapGate.isSuppressed = true
+                                if !didTrackSuppressionThisGesture {
+                                    didTrackSuppressionThisGesture = true
+                                    interactionTelemetry.trackInteractionEvent(
+                                        "card_tap_suppressed_during_swipe",
+                                        surface: "root_pager",
+                                        result: "active"
+                                    )
+                                }
+                            },
+                            onSwipeEnded: { fastFlick in
+                                didTrackSuppressionThisGesture = false
+                                guard flags.isSwipeTapGuardEnabled else {
+                                    suppressCardTaps = false
+                                    pagerTapGate.isSuppressed = false
+                                    return
+                                }
+                                if suppressCardTaps {
+                                    let delayNs: UInt64 = fastFlick ? 280_000_000 : 120_000_000
+                                    scheduleTapSuppressionReset(delayNs: delayNs)
+                                }
+                            },
+                            onCommitDirection: { step in
+                                commitPagerStep(step)
+                            }
+                        )
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                    )
+                }
+            }
+        }
+        .background {
+            if keyboardShortcutsEnabled {
+                keyboardShortcutCommands
+            }
+        }
 	        .coordinateSpace(name: "kuro_root")
             .onGeometryChange(for: CGSize.self) { proxy in
                 proxy.size
@@ -432,11 +489,6 @@ struct KuroMainView: View {
                 rootSize = size
             }
             .environment(\.kuroPagerWidth, rootSize.width)
-	        .onPreferenceChange(KuroSwipeExclusionPreferenceKey.self) { v in
-	            if v != swipeExclusions {
-	                swipeExclusions = v
-	            }
-	        }
             .onAppear { latchHomeNewAccount() }
             .onChange(of: library.loadState) { _, state in
                 // Leaving `.loaded` (sign-out, account switch, reload) ends the decision; it is made
@@ -477,87 +529,25 @@ struct KuroMainView: View {
                     autoSelect(.home)
                 }
             }
-	        .simultaneousGesture(
-            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
-                    .onChanged { value in
-                        guard flags.isSwipeTapGuardEnabled else { return }
-                        guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
-                        let excluded = isSwipeExcluded(start: value.startLocation)
-                        if excluded && !isFastFlingOverride(value) { return }
-
-                        let dx = abs(value.translation.width)
-                        let dy = abs(value.translation.height)
-                        let predictedDx = abs(value.predictedEndTranslation.width)
-                        let velocityHint = abs(value.predictedEndTranslation.width - value.translation.width)
-                        guard dx > 12, dx > dy * 1.1 else { return }
-                        guard predictedDx > 18 || velocityHint > 20 || dx > 24 else { return }
-                        if !suppressCardTaps {
-                            suppressCardTaps = true
-                        }
-                        pagerTapGate.isSuppressed = true
-                        if !didTrackSuppressionThisGesture {
-                            didTrackSuppressionThisGesture = true
-                            interactionTelemetry.trackInteractionEvent(
-                                "card_tap_suppressed_during_swipe",
-                                surface: "root_pager",
-                                result: "active"
-                            )
-                        }
-                    }
-	                .onEnded { value in
-                        let shouldManageSuppression = flags.isSwipeTapGuardEnabled
-                        defer { didTrackSuppressionThisGesture = false }
-                        if shouldManageSuppression && suppressCardTaps {
-                            scheduleTapSuppressionReset()
-                        }
-                        // Fast intentional flings override BOTH the rail-drag guards
-                        // and the exclusion zones — checked first so a full-page
-                        // exclusion zone (the deck card rail-marks every horizontal
-                        // drag) can never trap paging.
-                        let fastFling = isFastFlingOverride(value)
-                        if !fastFling {
-                            guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
-                            guard !KuroGestureCoordinator.shared.recentlyDraggedRail(withinMs: KuroGesturePolicy.postSwipeTapCooldownMs) else { return }
-                            guard !isSwipeExcluded(start: value.startLocation) else { return }
-                        }
-
-	                    let dx = value.translation.width
-	                    let dy = value.translation.height
-	                    guard abs(dx) > abs(dy) * 0.85 else { return }
-
-	                    let predictedDx = value.predictedEndTranslation.width
-	                    let effectiveDx = abs(predictedDx) > abs(dx) ? predictedDx : dx
-	                    guard abs(effectiveDx) >= swipeThreshold else { return }
-
-	                    guard let currentIndex = swipeOrder.firstIndex(of: selection) else { return }
-	                    let nextIndex = currentIndex + (effectiveDx < 0 ? 1 : -1)
-	                    guard swipeOrder.indices.contains(nextIndex) else {
-	                        KuroAccessibility.impactHaptic(.rigid)
-                            // Reduce Motion: the haptic alone marks the edge; no travel.
-                            guard !reduceMotion else { return }
-	                        let bounceDirection: CGFloat = effectiveDx < 0 ? -1 : 1
-	                        // No overshoot (rulebook §8): a short push, then a settle back.
-	                        withAnimation(KuroMotion.contact) {
-	                            edgeBounceOffset = bounceDirection * 12
-	                        }
-	                        withAnimation(KuroMotion.settle.delay(0.12)) {
-	                            edgeBounceOffset = 0
-	                        }
-	                        return
-	                    }
-	                    selection = swipeOrder[nextIndex]
-	                    KuroAccessibility.impactHaptic(.light)
-
-                        guard shouldManageSuppression else {
-                            suppressCardTaps = false
-                            pagerTapGate.isSuppressed = false
-                            return
-                        }
-                        let delayNs: UInt64 = abs(predictedDx) > 220 ? 280_000_000 : 120_000_000
-                        scheduleTapSuppressionReset(delayNs: delayNs)
-	                }
-	        )
-	            .onChange(of: selection, initial: true) { _, newValue in navigation?.pagerSelection = newValue }
+            .onChange(of: home.medium) { _, newMedium in
+                let targetKind: MediaKind = newMedium == "manga" ? .manga : .anime
+                if tasteMedium != targetKind {
+                    tasteMedium = targetKind
+                }
+                if UserDefaults.standard.string(forKey: "kuro.folio.medium") != newMedium {
+                    UserDefaults.standard.set(newMedium, forKey: "kuro.folio.medium")
+                }
+            }
+            .onChange(of: tasteMedium) { _, newKind in
+                let raw = newKind.rawValue
+                if home.medium != raw {
+                    home.selectMedium(raw)
+                }
+                if UserDefaults.standard.string(forKey: "kuro.folio.medium") != raw {
+                    UserDefaults.standard.set(raw, forKey: "kuro.folio.medium")
+                }
+            }
+            .onChange(of: selection, initial: true) { _, newValue in navigation?.pagerSelection = newValue }
 	            .onChange(of: selection) { _, newValue in
                     // Any page change the flag rule did not make itself is a choice (paging, header,
                     // VoiceOver adjust, onboarding, import navigation, Profile's Collection link).
@@ -804,6 +794,55 @@ struct KuroMainView: View {
 }
 
 extension KuroMainView {
+    private var keyboardShortcutsEnabled: Bool {
+        !showOnboarding && !showSearchSheet && !showProfileSheet && !showConciergeSheet && navigation?.slot.presented == nil
+    }
+
+    @ViewBuilder
+    private var keyboardShortcutCommands: some View {
+        ZStack {
+            Button("") {
+                openQuickSearchShortcut()
+            }
+            .keyboardShortcut("k", modifiers: .command)
+
+            sectionShortcut("1", index: 0)
+            sectionShortcut("2", index: 1)
+            sectionShortcut("3", index: 2)
+            sectionShortcut("4", index: 3)
+        }
+        .frame(width: 0, height: 0)
+        .clipped()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func sectionShortcut(_ key: KeyEquivalent, index: Int) -> some View {
+        if swipeOrder.indices.contains(index) {
+            Button("") {
+                let target = swipeOrder[index]
+                pageChosen = true
+                selection = target
+                mountedSections.insert(target)
+            }
+            .keyboardShortcut(key, modifiers: .command)
+        }
+    }
+
+    private func openQuickSearchShortcut() {
+        switch selection {
+        case .discover:
+            pendingSearchScope = discoverIssue == .manga ? .manga : (discoverIssue == .anime ? .anime : .all)
+        case .home:
+            pendingSearchScope = flags.seriesHomeNativeV1Enabled ? (home.medium == "manga" ? .manga : .anime) : .all
+        default:
+            pendingSearchScope = .all
+        }
+        searchSession += 1
+        showSearchSheet = true
+    }
+
     /// The page after `series_home_native_v1` hydrates or flips; `nil` keeps the current page.
     /// Flag on: Home only while nothing chose a page yet (a start argument, a deep link, onboarding or
     /// the user's own paging win), otherwise only when the current page left the order. Flag off: a
@@ -853,6 +892,7 @@ private struct KuroSectionPager: View {
     /// Discover's scroll position, header scroll-to-top tick and gated Search (`KuroMainView`).
     @Binding var discoverScroll: ScrollPosition
     var discoverTopTick: Int = 0
+    var sectionTopTicks: [Section: Int] = [:]
     var onDiscoverSearch: () -> Void = {}
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
@@ -871,9 +911,9 @@ private struct KuroSectionPager: View {
             HStack(spacing: 0) {
                 ForEach(order, id: \.self) { section in
                     page(for: section)
-                        // The Deck keeps the full height (its art reaches the screen's
-                        // bottom edge); other pages restore their safe-area edge here.
-                        .padding(.bottom, section == .taste ? 0 : bottomInset)
+                        // Restore the bottom safe-area inset for every pager section so bottom
+                        // toasts and scroll ends clear the Home Indicator cleanly.
+                        .padding(.bottom, bottomInset)
                         .frame(width: width, height: height)
                 }
             }
@@ -891,8 +931,8 @@ private struct KuroSectionPager: View {
     private func page(for section: Section) -> some View {
         let sectionIdx = order.firstIndex(of: section) ?? 0
         let distance = abs(selectionIndex - sectionIdx)
-        // Mount current page + immediate neighbors; unmount distant pages to save memory.
-        let shouldMount = distance <= 1 || mountedSections.contains(section)
+        // Mount only the active page and its immediate neighbors to keep layout and 120 Hz scrolling lean.
+        let shouldMount = distance <= 1
 
         if shouldMount {
             Group {
@@ -902,12 +942,13 @@ private struct KuroSectionPager: View {
                 } else {
                 switch section {
                 case .taste:
-                    TastePicksView(medium: $tasteMedium)
+                    TastePicksView(medium: $tasteMedium, scrollToTopTick: sectionTopTicks[.taste, default: 0])
                 case .home:
                     HomeView(onOpenImport: onOpenImport, onFindTitle: onFindTitle,
                              onOpenCollection: onOpenCollection, onImportNavigation: onImportNavigation,
                              onExploreTaste: onExploreTaste, onOpenClubs: onOpenClubs,
-                             newAccountLatch: homeNewAccountLatch)
+                             newAccountLatch: homeNewAccountLatch,
+                             scrollToTopTick: sectionTopTicks[.home, default: 0])
                 case .concierge:
                     ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt,
                                   onImportNavigation: onImportNavigation)
@@ -918,9 +959,11 @@ private struct KuroSectionPager: View {
                 case .browse:
                     BrowseView()
                 case .collection:
-                    EditorialCollectionView(onOpenBrowsePage: onOpenBrowse)
+                    EditorialCollectionView(onOpenBrowsePage: onOpenBrowse,
+                                            scrollToTopTick: sectionTopTicks[.collection, default: 0])
                 case .clubs:
-                    ClubsView(pendingJoinCode: $pendingJoinCode)
+                    ClubsView(pendingJoinCode: $pendingJoinCode,
+                              scrollToTopTick: sectionTopTicks[.clubs, default: 0])
                 }
                 }
             }
@@ -1180,56 +1223,89 @@ struct KuroHeaderNew: View {
 
     private var inkColor: Color { Color.kuroInk }
 
-    /// The centred page name with its position dots: one adjustable VoiceOver control.
+    /// The centred page name with its position dots: 1-tap section switcher Menu + scroll-to-top,
+    /// while remaining one adjustable VoiceOver control.
     private var sectionControl: some View {
-        VStack(spacing: 5) {
-            HeaderPageName(
-                current: displayedSection.spokenName,
-                previous: previousSection?.spokenName,
-                progress: titleProgress,
-                forward: isForwardTransition,
-                onPicture: onPicture
-            )
-
-            // Smaller position dots (3 pt).
-            HStack(spacing: 4) {
-                ForEach(swipeOrder, id: \.self) { section in
-                    ZStack {
-                        Circle()
-                            .fill(section == selection
-                                  ? inkColor
-                                  : inkColor.opacity(onPicture ? 0.28 : 0.18))
-                            .frame(width: 3, height: 3)
-
-                        // Badge dot for Clubs when unseen activity exists (monochrome).
-                        if section == .clubs && clubs.hasUnseenClubActivity && selection != .clubs {
-                            Circle()
-                                .fill(Color.kuroBlack70)
-                                .frame(width: 5, height: 5)
-                                .offset(x: 4, y: -3)
-                        }
+        let german = KuroLocale.isGerman
+        return Menu {
+            if let onTitleTap {
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    onTitleTap()
+                } label: {
+                    Label(german ? "Nach oben scrollen" : "Scroll to top", systemImage: "arrow.up.to.line")
+                }
+                Divider()
+            }
+            ForEach(swipeOrder, id: \.self) { target in
+                Button {
+                    guard target != selection else {
+                        onTitleTap?()
+                        return
+                    }
+                    KuroAccessibility.selectionHaptic()
+                    selection = target
+                } label: {
+                    if target == selection {
+                        Label(target.spokenName, systemImage: "checkmark")
+                    } else if target == .clubs && clubs.hasUnseenClubActivity {
+                        Label(target.spokenName, systemImage: "circle.fill")
+                    } else {
+                        Text(target.spokenName)
                     }
                 }
             }
-            .animation(playsMotion ? KuroMotion.settle : nil, value: selection)
-            .accessibilityHidden(true)
+        } label: {
+            VStack(spacing: 5) {
+                HStack(spacing: 3) {
+                    HeaderPageName(
+                        current: displayedSection.spokenName,
+                        previous: previousSection?.spokenName,
+                        progress: titleProgress,
+                        forward: isForwardTransition,
+                        onPicture: onPicture
+                    )
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 7.5, weight: .semibold))
+                        .foregroundStyle(inkColor.opacity(0.45))
+                        .accessibilityHidden(true)
+                }
+
+                // Position indicators (active pill capsule vs. 3 pt dots).
+                HStack(spacing: 4) {
+                    ForEach(swipeOrder, id: \.self) { section in
+                        ZStack {
+                            Capsule(style: .continuous)
+                                .fill(section == selection
+                                      ? Color.kuroControlInk
+                                      : inkColor.opacity(onPicture ? 0.30 : 0.20))
+                                .frame(width: section == selection ? 12 : 3, height: 3)
+
+                            // Badge dot for Clubs when unseen activity exists (monochrome).
+                            if section == .clubs && clubs.hasUnseenClubActivity && selection != .clubs {
+                                Circle()
+                                    .fill(Color.kuroControlInk)
+                                    .frame(width: 5, height: 5)
+                                    .offset(x: 4, y: -3)
+                            }
+                        }
+                    }
+                }
+                .animation(playsMotion ? KuroMotion.settle : nil, value: selection)
+                .accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
-        .frame(minHeight: 44)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            guard let onTitleTap else { return }
-            KuroAccessibility.impactHaptic(.light)
-            onTitleTap()
-        }
+        .buttonStyle(.plain)
         // One adjustable control: VoiceOver swipes up/down (and Switch Control) page the app.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(onTitleTap == nil ? KuroLocale.text("Section", "Bereich")
-                                              : DiscoverIssueCopy.headerScrollToTop(german: KuroLocale.isGerman))
-        .accessibilityAddTraits(onTitleTap == nil ? [] : .isButton)
+        .accessibilityLabel(german ? "\(selection.spokenName), Bereich wählen" : "\(selection.spokenName), switch section")
+        .accessibilityAddTraits(.isButton)
         .accessibilityAction { onTitleTap?() }
         .accessibilityValue(sectionAccessibilityValue)
-        .accessibilityHint(KuroLocale.text("Swipe up or down to change sections.",
-                                           "Zum Wechseln nach oben oder unten wischen."))
+        .accessibilityHint(KuroLocale.text("Tap to jump sections or swipe up or down.",
+                                           "Tippen zum Wechseln oder nach oben/unten wischen."))
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: moveSection(by: 1)
@@ -1274,6 +1350,7 @@ struct KuroHeaderNew: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(KuroHeaderIconButtonStyle())
+            .keyboardShortcut("f", modifiers: .command)
             .accessibilityLabel(KuroLocale.text("Search", "Suche"))
             .accessibilityHint(KuroLocale.text("Opens search", "Öffnet die Suche"))
             .accessibilityIdentifier("header.search")
@@ -1325,13 +1402,21 @@ struct KuroHeaderNew: View {
             ZStack {
                 HStack(spacing: 0) {
                     if layout.showsWordmark {
-                        Text("KURO")
-                            .font(Self.wordmarkFont)
-                            .tracking(KuroHeaderRowLayout.wordmarkTracking)
-                            .foregroundStyle(inkColor)
-                            .lineLimit(1)
-                            .fixedSize()
-                            .accessibilitySortPriority(3)
+                        Button {
+                            onTitleTap?()
+                        } label: {
+                            Text("KURO")
+                                .font(Self.wordmarkFont)
+                                .tracking(KuroHeaderRowLayout.wordmarkTracking)
+                                .foregroundStyle(inkColor)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(KuroLocale.text("KURO, scroll to top", "KURO, nach oben scrollen"))
+                        .accessibilitySortPriority(3)
                     }
                     Spacer(minLength: 0)
                     HStack(spacing: 0) {

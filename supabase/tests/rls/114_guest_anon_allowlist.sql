@@ -95,7 +95,7 @@ select tests.ok('W5: no SECURITY INVOKER allowlisted function calls a public fun
 -- ---- A3. re-run the migration body inside rolled-back sub-transactions ------------------------------------------
 -- The migration file is the SUBJECT: strip its begin/commit, run it from a plpgsql EXECUTE under a savepoint,
 -- return what we find (or the error text), and let the exception block roll everything back.
-\set w5mig `sed -e '/^begin;$/d' -e '/^commit;$/d' supabase/prepared-migrations/20261118110000_guest_anon_allowlist_v1.sql`
+\set w5mig `sed -e '/^begin;$/d' -e '/^commit;$/d' supabase/migrations/20261118110000_guest_anon_allowlist_v1.sql`
 select set_config('w5.mig', :'w5mig', false);
 create function pg_temp.w5_rerun(p_setup text, p_check text) returns text language plpgsql as $f$
 declare v text;

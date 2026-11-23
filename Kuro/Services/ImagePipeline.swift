@@ -43,6 +43,18 @@ actor ImagePipeline {
         return host == "anilist.co" || host.hasSuffix(".anilist.co")
     }
 
+    /// True when `raw` is a non-empty HTTP(S) URL not pointing at a retired AniList host.
+    nonisolated static func hasRenderableArtwork(_ raw: String?) -> Bool {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty,
+              let url = URL(string: raw),
+              let scheme = url.scheme?.lowercased(),
+              (scheme == "https" || scheme == "http"),
+              !isBlockedSource(url)
+        else { return false }
+        return true
+    }
+
     /// The bucket a request decodes at: nil (full image) stays nil; otherwise the requested size is
     /// clamped to [min, max] and rounded up to the next bucket.
     nonisolated static func pixelBucket(for requested: Int?) -> Int? {
@@ -74,7 +86,7 @@ actor ImagePipeline {
     }
 
 #if canImport(UIKit)
-    private let memory = NSCache<NSString, UIImage>()
+    nonisolated(unsafe) private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage?, Never>] = [:]
     /// One running download per URL, shared by the decodes of every size bucket.
     private var inFlightData: [URL: Task<Data?, Never>] = [:]
@@ -94,6 +106,14 @@ actor ImagePipeline {
 
     func clearMemoryCache() {
         memory.removeAllObjects()
+    }
+
+    /// Synchronous thread-safe `NSCache` lookup so scrolling views render cached covers on frame 0
+    /// without placeholder flash or actor hop.
+    nonisolated func cachedImageSync(url: URL, maxPixelSize: Int? = nil) -> UIImage? {
+        guard !Self.isBlockedSource(url) else { return nil }
+        let bucket = Self.pixelBucket(for: maxPixelSize)
+        return cachedImage(url: url, bucket: bucket)
     }
 
     /// Warms the caches for `urls` (at most `maxPrefetchFanout` new loads per call). `maxPixelSize`
@@ -136,7 +156,7 @@ actor ImagePipeline {
     }
 
     /// The best cached decode that may serve `bucket` (same size or larger, or the full image).
-    private func cachedImage(url: URL, bucket: Int?) -> UIImage? {
+    private nonisolated func cachedImage(url: URL, bucket: Int?) -> UIImage? {
         for key in Self.servingKeys(url: url, bucket: bucket) {
             if let image = memory.object(forKey: key as NSString) { return image }
         }
@@ -183,19 +203,25 @@ actor ImagePipeline {
         let request = Self.request(for: url)
         let decodePixelSize = maxPixelSize
 
-        // Fast path: decode from URLCache first to avoid network/decode jitter.
-        if let cached = urlCache.cachedResponse(for: request),
-           let image = decodeImage(data: cached.data, maxPixelSize: decodePixelSize) {
-            store(image, url: url, requested: maxPixelSize)
-            KuroPerf.end(perf, message: "disk cache hit")
-            return image
+        // Fast path: decode off-actor from URLCache so multiple covers downsample in parallel.
+        if let cached = urlCache.cachedResponse(for: request) {
+            let cachedData = cached.data
+            if let image = await Task.detached(priority: .userInitiated, operation: {
+                Self.decodeImageSync(data: cachedData, maxPixelSize: decodePixelSize)
+            }).value {
+                store(image, url: url, requested: maxPixelSize)
+                KuroPerf.end(perf, message: "disk cache hit")
+                return image
+            }
         }
 
         guard let data = await sharedData(for: url, request: request) else {
             KuroPerf.end(perf, message: "download failed")
             return nil
         }
-        guard let image = decodeImage(data: data, maxPixelSize: decodePixelSize) else {
+        guard let image = await Task.detached(priority: .userInitiated, operation: {
+            Self.decodeImageSync(data: data, maxPixelSize: decodePixelSize)
+        }).value else {
             KuroPerf.end(perf, message: "decode failed")
             return nil
         }
@@ -236,9 +262,9 @@ actor ImagePipeline {
         return data
     }
 
-    private func decodeImage(data: Data, maxPixelSize: Int?) -> UIImage? {
+    nonisolated private static func decodeImageSync(data: Data, maxPixelSize: Int?) -> UIImage? {
         if let maxPixelSize {
-            return downsample(data: data, maxPixelSize: maxPixelSize)
+            return downsampleSync(data: data, maxPixelSize: maxPixelSize)
         }
         return UIImage(data: data)
     }
@@ -248,7 +274,7 @@ actor ImagePipeline {
         return max(1, px * 4)
     }
 
-    private func downsample(data: Data, maxPixelSize: Int) -> UIImage? {
+    nonisolated private static func downsampleSync(data: Data, maxPixelSize: Int) -> UIImage? {
         guard maxPixelSize > 0 else { return UIImage(data: data) }
         let options: [CFString: Any] = [
             kCGImageSourceShouldCache: false,

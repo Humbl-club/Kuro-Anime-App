@@ -34,6 +34,8 @@ final class FeatureFlags {
     @ObservationIgnored private let launchArguments: [String]
     /// Thread-safe copy of `series_foundation_v1` for the library writer, which is not on the main actor.
     @ObservationIgnored nonisolated private let revisionFence = RevisionFenceSwitch()
+    /// Thread-safe copy of `continuity_start_offset_v1` (off until prepared migration `20261121110000` is applied).
+    @ObservationIgnored nonisolated private let continuityStartOffset = RevisionFenceSwitch()
 
     // MARK: - Convenience accessors
 
@@ -78,6 +80,8 @@ final class FeatureFlags {
     /// (absent row = off). Raise it only after prepared migration 20261112100000 is applied: until then the column
     /// does not exist and every detail read would fail.
     var catalogueSourceCreditV1Enabled: Bool { evaluate("catalogue_source_credit_v1") }
+    /// Wave 3 continuity bridge: selects/writes `started_at_progress` once prepared migration 20261121110000 is applied.
+    var continuityStartOffsetV1Enabled: Bool { evaluate("continuity_start_offset_v1") }
 
     // MARK: - Init
 
@@ -94,6 +98,11 @@ final class FeatureFlags {
     /// Live `series_foundation_v1` value. The library backend reads this off the main actor.
     nonisolated func seriesFoundationFenceEnabled() -> Bool {
         revisionFence.isOn
+    }
+
+    /// Live `continuity_start_offset_v1` value. The library backend reads this off the main actor.
+    nonisolated func continuityStartOffsetEnabled() -> Bool {
+        continuityStartOffset.isOn
     }
 
     // MARK: - Fetch from server
@@ -317,6 +326,7 @@ final class FeatureFlags {
 
     private func publishRevisionFence() {
         revisionFence.set(evaluate("series_foundation_v1"))
+        continuityStartOffset.set(evaluate("continuity_start_offset_v1"))
     }
 
     // MARK: - Evaluation

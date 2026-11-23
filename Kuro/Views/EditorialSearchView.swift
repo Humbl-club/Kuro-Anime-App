@@ -29,6 +29,8 @@ struct EditorialSearchView: View {
     @State private var selectedRefinements: Set<SearchRefinement> = []
     /// A qualifying query is waiting for its debounce or first page: no "no results" yet.
     @State private var isAwaitingResults = false
+    /// Quick-add status changes inside Search share one Undo toast host.
+    @State private var plans = TastePlanController()
     @FocusState private var isFieldFocused: Bool
 
     init(initialScope: SearchScope = .all) {
@@ -109,6 +111,52 @@ struct EditorialSearchView: View {
         Self.shouldRunSearch(query: trimmedQuery, hasFilters: activeSearchFilters != nil)
     }
 
+    private var hasActiveQueryOrFilter: Bool {
+        !trimmedQuery.isEmpty || activeSearchFilters != nil
+    }
+
+    private var cachedPreviewPool: (anime: [AnimeCard], manga: [MangaCard]) {
+        discovery.cachedSearchPreviewCards()
+    }
+
+    private var idleTrendingCards: [TasteCard] {
+        let pool = cachedPreviewPool
+        switch scope {
+        case .anime:
+            return Array(pool.anime.prefix(10).map(TasteCard.init(anime:)))
+        case .manga:
+            return Array(pool.manga.prefix(10).map(TasteCard.init(manga:)))
+        case .all:
+            let anime = pool.anime.prefix(6).map(TasteCard.init(anime:))
+            let manga = pool.manga.prefix(4).map(TasteCard.init(manga:))
+            var merged: [TasteCard] = []
+            for idx in 0..<max(anime.count, manga.count) {
+                if idx < anime.count { merged.append(anime[idx]) }
+                if idx < manga.count { merged.append(manga[idx]) }
+            }
+            return merged
+        }
+    }
+
+    private var displayedResults: [EditorialSearchResultItem] {
+        let query = trimmedQuery
+        let pool = cachedPreviewPool
+        let localPreview = selectedRefinements.isEmpty
+            ? Self.localPreviewMatches(query: query, scope: scope, anime: pool.anime, manga: pool.manga)
+            : []
+        if query.count == 1 && activeSearchFilters == nil {
+            return localPreview
+        }
+        guard showsSearchContent else { return [] }
+        let server = serverResults
+        if server.isEmpty {
+            return (search.isSearching || isAwaitingResults) ? localPreview : []
+        }
+        guard !localPreview.isEmpty else { return server }
+        let seen = Set(server.map(\.id))
+        return server + localPreview.filter { !seen.contains($0.id) }
+    }
+
     private var serverResults: [EditorialSearchResultItem] {
         let anime = search.searchAnimeItems.map {
             EditorialSearchResultItem(
@@ -147,6 +195,7 @@ struct EditorialSearchView: View {
                 )
                 .padding(.horizontal, gutter)
                 .padding(.top, KuroDesignSpacing.sm)
+                .padding(.bottom, 6)
 
                 DiscoverWordPicker(
                     options: SearchScope.allCases.map { ($0, $0.title(german: KuroLocale.isGerman)) },
@@ -160,11 +209,11 @@ struct EditorialSearchView: View {
                     selectedRefinements: $selectedRefinements,
                     gutter: gutter
                 )
-                .padding(.bottom, KuroDesignSpacing.sm)
+                .padding(.bottom, KuroDesignSpacing.xs)
 
                 Rectangle()
                     .fill(Color.kuroHairline)
-                    .frame(height: 1)
+                    .frame(height: 0.5)
 
                 ReleaseAlertOfferStack(hasToast: banner.message != nil) {
                     if let transientBannerMessage = banner.message {
@@ -176,7 +225,7 @@ struct EditorialSearchView: View {
 
                 ScrollView(.vertical, showsIndicators: false) {
                     resultsContent(gutter: gutter)
-                        .padding(.bottom, KuroDesignSpacing.xl)
+                        .padding(.bottom, KuroDesignSpacing.xxl + 32)
                 }
                 .scrollDisabled(false)
                 .scrollDismissesKeyboard(.interactively)
@@ -193,6 +242,7 @@ struct EditorialSearchView: View {
             .frame(maxWidth: .infinity)
         }
         .background(Color.kuroCanvasPage)
+        .tastePlanHost(plans, offerSlot: false)
         .onChange(of: searchText) { _, _ in
             debounceSearch()
         }
@@ -207,9 +257,16 @@ struct EditorialSearchView: View {
             discovery.loadRecentSearches()
         }
         .task {
-            // Place the cursor once the sheet has settled.
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            // Focus without waiting on network; warm the preview pool in parallel if empty.
+            async let warmPool: Void = {
+                let cached = discovery.cachedSearchPreviewCards()
+                if cached.anime.isEmpty && cached.manga.isEmpty {
+                    _ = await discovery.ensureDiscoverBundle()
+                }
+            }()
+            try? await Task.sleep(nanoseconds: 250_000_000)
             if trimmedQuery.isEmpty { isFieldFocused = true }
+            _ = await warmPool
         }
         .onDisappear {
             searchTask?.cancel()
@@ -220,10 +277,13 @@ struct EditorialSearchView: View {
 
     @ViewBuilder
     private func resultsContent(gutter: CGFloat) -> some View {
-        let results = serverResults
-        if !showsSearchContent {
+        let results = displayedResults
+        let awaitingServer = showsSearchContent && (search.isSearching || isAwaitingResults)
+        if !hasActiveQueryOrFilter {
             SearchIdleState(
                 recentSearches: discovery.recentSearches,
+                trendingCards: idleTrendingCards,
+                showsMediumOnPopular: scope == .all,
                 gutter: gutter,
                 onPick: { query in
                     searchText = query
@@ -232,7 +292,7 @@ struct EditorialSearchView: View {
                 onRemove: { discovery.removeRecentSearch($0) },
                 onClear: { discovery.clearRecentSearches() }
             )
-        } else if results.isEmpty && (search.isSearching || isAwaitingResults) {
+        } else if results.isEmpty && awaitingServer {
             VStack(spacing: 0) {
                 ForEach(0..<6, id: \.self) { _ in
                     SearchResultSkeletonRow()
@@ -242,6 +302,16 @@ struct EditorialSearchView: View {
             .padding(.top, KuroDesignSpacing.sm)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(KuroLocale.text("Searching", "Suche läuft"))
+        } else if results.isEmpty && trimmedQuery.count == 1 && activeSearchFilters == nil {
+            Text(KuroLocale.text(
+                "Type one more character to search the catalogue…",
+                "Gib ein weiteres Zeichen ein, um im Katalog zu suchen …"
+            ))
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroMuted)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, gutter)
+            .padding(.top, KuroDesignSpacing.lg)
         } else if results.isEmpty && search.errorMessage != nil {
             KuroStateView(
                 networkMonitor.isConnected ? .failed(hasCachedContent: false) : .offline(hasCachedContent: false),
@@ -269,6 +339,21 @@ struct EditorialSearchView: View {
             }
         } else {
             LazyVStack(alignment: .leading, spacing: 0) {
+                if !trimmedQuery.isEmpty && serverResults.isEmpty && awaitingServer {
+                    HStack(spacing: 8) {
+                        Text(KuroLocale.text("Instant matches", "Soforttreffer"))
+                            .font(.kuroMicro(weight: .semibold))
+                            .tracking(0.9)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Color.kuroMuted)
+                        Spacer(minLength: 8)
+                        KuroBusyMark(width: 24)
+                            .accessibilityHidden(true)
+                    }
+                    .padding(.horizontal, gutter)
+                    .padding(.top, 10)
+                    .padding(.bottom, 4)
+                }
                 ForEach(Array(results.enumerated()), id: \.element.id) { index, item in
                     SearchResultRow(media: item.media, query: searchText, showsMedium: scope == .all) {
                         discovery.recordRecentSearch(searchText)
@@ -276,12 +361,12 @@ struct EditorialSearchView: View {
                     .padding(.horizontal, gutter)
                     .onAppear {
                         // Infinite scroll: when the last row appears, try the next page.
-                        if index == results.count - 1, search.hasMoreSearch, !search.isSearching {
+                        if showsSearchContent, index == results.count - 1, search.hasMoreSearch, !search.isSearching {
                             Task { await loadMore() }
                         }
                     }
                 }
-                if search.isSearching {
+                if search.isSearching && !serverResults.isEmpty {
                     KuroBusyMark(width: 44)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .accessibilityElement(children: .ignore)
@@ -298,7 +383,7 @@ struct EditorialSearchView: View {
         searchTask?.cancel()
         isAwaitingResults = Self.shouldRunSearch(query: trimmedQuery, hasFilters: activeSearchFilters != nil)
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            try? await Task.sleep(nanoseconds: 150_000_000)
             if !Task.isCancelled {
                 await runSearch(reset: true)
             }
@@ -352,6 +437,81 @@ struct EditorialSearchView: View {
         return trimmed.count >= 2
     }
 
+    /// 0 ms local preview over the cached Discover catalogue while typing (from character 1).
+    static func localPreviewMatches(
+        query: String,
+        scope: SearchScope,
+        anime: [AnimeCard],
+        manga: [MangaCard],
+        limit: Int = 12
+    ) -> [EditorialSearchResultItem] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, limit > 0 else { return [] }
+
+        func acronym(of title: String) -> String {
+            let words = title.components(separatedBy: CharacterSet.alphanumerics.inverted)
+                .map { $0.lowercased() }
+                .filter { $0.count >= 2 && $0.allSatisfy(\.isLetter) }
+            guard words.count >= 3, words.count <= 10 else { return "" }
+            return String(words.compactMap(\.first))
+        }
+
+        let loweredQuery = trimmed.lowercased()
+
+        func matchRank(_ titles: [String?]) -> Double? {
+            let candidates = titles.compactMap { raw -> String? in
+                guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+                return value
+            }
+            var best: Double?
+            for candidate in candidates {
+                if let range = candidate.range(of: trimmed, options: [.caseInsensitive, .diacriticInsensitive]) {
+                    let rank: Double = range.lowerBound == candidate.startIndex ? 2.0 : 1.0
+                    if best.map({ rank > $0 }) ?? true { best = rank }
+                    continue
+                }
+                if loweredQuery.count >= 3, acronym(of: candidate) == loweredQuery {
+                    let rank = 1.8
+                    if best.map({ rank > $0 }) ?? true { best = rank }
+                }
+            }
+            return best
+        }
+
+        var items: [EditorialSearchResultItem] = []
+        if scope == .all || scope == .anime {
+            for card in anime {
+                if let rank = matchRank([card.title, card.titleEnglish, card.titleRomaji]) {
+                    items.append(EditorialSearchResultItem(
+                        id: "anime-\(card.id)",
+                        media: card,
+                        rank: rank,
+                        popularity: card.popularity ?? 0
+                    ))
+                }
+            }
+        }
+        if scope == .all || scope == .manga {
+            for card in manga {
+                if let rank = matchRank([card.title, card.titleEnglish, card.titleRomaji]) {
+                    items.append(EditorialSearchResultItem(
+                        id: "manga-\(card.id)",
+                        media: card,
+                        rank: rank,
+                        popularity: card.popularity ?? 0
+                    ))
+                }
+            }
+        }
+
+        items.sort { lhs, rhs in
+            if lhs.rank != rhs.rank { return lhs.rank > rhs.rank }
+            if lhs.popularity != rhs.popularity { return lhs.popularity > rhs.popularity }
+            return lhs.media.title.localizedCaseInsensitiveCompare(rhs.media.title) == .orderedAscending
+        }
+        return Array(items.prefix(limit))
+    }
+
     /// The field prompt for the scope.
     static func prompt(for scope: SearchScope, german: Bool) -> String {
         switch scope {
@@ -377,27 +537,58 @@ struct EditorialSearchView: View {
 
 // MARK: - Refinements
 
-/// Refinement words (multi-select): ink words with an underline mark (rulebook §14.6).
+/// Refinement chips (multi-select): tactile neutral capsules distinct from scope words.
 struct EditorialSearchFilterStrip: View {
     let refinements: [EditorialSearchView.SearchRefinement]
     @Binding var selectedRefinements: Set<EditorialSearchView.SearchRefinement>
     var gutter: CGFloat = KuroDesignSpacing.padding
 
+    private func symbol(for refinement: EditorialSearchView.SearchRefinement) -> String {
+        switch refinement {
+        case .trending: return "flame"
+        case .new, .newSeason: return "sparkles"
+        case .classics: return "building.columns"
+        case .hiddenGems: return "suit.diamond"
+        case .airing: return "dot.radiowaves.left.and.right"
+        }
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: KuroDesignSpacing.lg) {
+            HStack(spacing: 8) {
                 ForEach(refinements, id: \.self) { refinement in
-                    DiscoverWordButton(
-                        title: refinement.title(german: KuroLocale.isGerman),
-                        isSelected: selectedRefinements.contains(refinement)
-                    ) {
-                        if selectedRefinements.contains(refinement) {
+                    let isSelected = selectedRefinements.contains(refinement)
+                    Button {
+                        if isSelected {
                             selectedRefinements.remove(refinement)
                         } else {
                             selectedRefinements.insert(refinement)
                         }
                         KuroAccessibility.impactHaptic(.light)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: symbol(for: refinement))
+                                .font(.system(size: 11, weight: .semibold))
+                                .accessibilityHidden(true)
+                            Text(refinement.title(german: KuroLocale.isGerman))
+                                .font(.kuroCustom(12.5, weight: .medium, relativeTo: .footnote, maxSize: 22))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(isSelected ? Color.white : Color.kuroControlInk)
+                        .padding(.horizontal, 12)
+                        .frame(height: 34)
+                        .background(isSelected ? Color.kuroControlInk : Color.kuroControlFill,
+                                    in: Capsule(style: .continuous))
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .strokeBorder(isSelected ? Color.kuroControlInk : Color.black.opacity(0.05), lineWidth: 0.5)
+                        )
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(KuroPressStyle(pressedScale: 0.96))
+                    .kuroAnimation(KuroMotion.contact, value: isSelected)
+                    .accessibilityAddTraits(isSelected ? [.isSelected] : [])
                     .accessibilityHint(KuroLocale.text("Narrows the results", "Grenzt die Ergebnisse ein"))
                 }
             }
@@ -411,7 +602,7 @@ struct EditorialSearchFilterStrip: View {
 
 // MARK: - Search Bar
 
-/// The field: magnifier, text, a labelled clear key, a hairline that turns ink while focused.
+/// Rounded gallery-white search field on `#f4f4f5`, with clear button and focus outline.
 struct EditorialSearchBar: View {
     @Binding var searchText: String
     var prompt: String = KuroLocale.text("Search anime and manga", "Anime und Manga suchen")
@@ -421,12 +612,12 @@ struct EditorialSearchBar: View {
     var body: some View {
         HStack(spacing: KuroDesignSpacing.sm) {
             Image(systemName: "magnifyingglass")
-                .font(.kuroBody(weight: .regular))
-                .foregroundStyle(Color.kuroInkQuiet)
+                .font(.kuroCustom(15, weight: .semibold, relativeTo: .body, maxSize: 24))
+                .foregroundStyle(isFocused.wrappedValue ? Color.kuroControlInk : Color.kuroInkSecondary)
                 .accessibilityHidden(true)
 
             TextField("", text: $searchText, prompt: Text(prompt).foregroundStyle(Color.kuroInkQuiet))
-                .font(.kuroTitleName(weight: .regular))
+                .font(.kuroBody(weight: .regular))
                 .foregroundStyle(Color.kuroInk)
                 .focused(isFocused)
                 .textFieldStyle(.plain)
@@ -438,11 +629,12 @@ struct EditorialSearchBar: View {
 
             if !searchText.isEmpty {
                 Button {
+                    KuroAccessibility.selectionHaptic()
                     searchText = ""
                     isFocused.wrappedValue = true
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.kuroMeta(weight: .medium))
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(Color.kuroInkQuiet)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
@@ -451,23 +643,25 @@ struct EditorialSearchBar: View {
                 .accessibilityLabel(KuroLocale.text("Clear search", "Suche leeren"))
             }
         }
-        .frame(minHeight: 52)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(isFocused.wrappedValue ? Color.kuroInk : Color.kuroHairline)
-                .frame(height: 1)
-        }
-        .kuroAnimation(KuroMotion.settle, value: isFocused.wrappedValue)
+        .padding(.leading, 14)
+        .padding(.trailing, searchText.isEmpty ? 14 : 2)
+        .frame(minHeight: 48)
+        .background(Color.kuroControlFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(isFocused.wrappedValue ? Color.kuroControlInk.opacity(0.28) : Color.clear, lineWidth: 1)
+        )
+        .kuroAnimation(KuroMotion.contact, value: isFocused.wrappedValue)
     }
 }
 
 // MARK: - Idle state
 
-/// The empty query: this account's recent searches (this device) and, where the pager has no
-/// Browse page, the catalogue entry. A child
-/// view so `routes` is the search sheet's own presenter (Browse opens on top of the sheet).
+/// Empty query: recent searches as compact chips, cached Trending strip, and (when offered) Browse.
 private struct SearchIdleState: View {
     let recentSearches: [String]
+    let trendingCards: [TasteCard]
+    let showsMediumOnPopular: Bool
     let gutter: CGFloat
     let onPick: (String) -> Void
     let onRemove: (String) -> Void
@@ -478,77 +672,178 @@ private struct SearchIdleState: View {
     @Environment(GuestSession.self) private var guest: GuestSession?
 
     var body: some View {
+        let german = KuroLocale.isGerman
         VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
-            if recentSearches.isEmpty {
-                // No history: the refinements above, then the empty mark and one invitation (spec §5.3).
-                KuroEmptyView(headline: SearchIdleCopy.noHistory(german: KuroLocale.isGerman)) {
-                    // Only where the pager has no Browse page (spec D2).
+            if recentSearches.isEmpty && trendingCards.isEmpty {
+                // No history and no cached posters: clean empty mark + optional Browse button.
+                KuroEmptyView(headline: SearchIdleCopy.noHistory(german: german)) {
                     if DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) {
-                        KuroOutlineButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern")) {
+                        KuroOutlineButton(KuroLocale.text("Explore by genre & year", "Nach Genre & Jahr entdecken")) {
                             routes.openBrowse()
                         }
                         .accessibilityIdentifier("search.browseEntry")
                     }
                 }
             } else {
-                VStack(alignment: .leading, spacing: 0) {
-                    KuroSectionHeader(
-                        KuroLocale.text("Recent.", "Zuletzt gesucht."),
-                        size: .title,
-                        actionTitle: KuroLocale.text("Clear", "Löschen"),
-                        action: onClear
-                    )
-                    .padding(.horizontal, gutter)
+                if !recentSearches.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        KuroSectionHeader(
+                            KuroLocale.text("Recent", "Zuletzt"),
+                            size: .title,
+                            actionTitle: KuroLocale.text("Clear", "Löschen"),
+                            action: onClear
+                        )
+                        .padding(.horizontal, gutter)
 
-                    ForEach(recentSearches, id: \.self) { query in
-                        HStack(spacing: KuroDesignSpacing.sm) {
-                            Button {
-                                KuroAccessibility.impactHaptic(.light)
-                                onPick(query)
-                            } label: {
-                                Text(query)
-                                    .font(.kuroBody(weight: .regular))
-                                    .foregroundStyle(Color.kuroInk)
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(KuroPressStyle())
-                            .accessibilityHint(KuroLocale.text("Searches again", "Sucht erneut"))
+                        FlowLayout(spacing: 8) {
+                            ForEach(recentSearches, id: \.self) { query in
+                                HStack(spacing: 2) {
+                                    Button {
+                                        KuroAccessibility.impactHaptic(.light)
+                                        onPick(query)
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "clock.arrow.circlepath")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundStyle(Color.kuroMuted)
+                                                .accessibilityHidden(true)
+                                            Text(query)
+                                                .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 22))
+                                                .foregroundStyle(Color.kuroInk)
+                                                .lineLimit(1)
+                                        }
+                                        .padding(.leading, 12)
+                                        .padding(.trailing, 4)
+                                        .frame(minHeight: 40)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(HomeContactStyle())
+                                    .accessibilityHint(KuroLocale.text("Searches again", "Sucht erneut"))
 
-                            Button {
-                                onRemove(query)
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .font(.kuroMeta(weight: .regular))
-                                    .foregroundStyle(Color.kuroInkQuiet)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
+                                    Button {
+                                        onRemove(query)
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundStyle(Color.kuroInkQuiet)
+                                            .frame(width: 32, height: 40)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(KuroLocale.text("Remove \(query)", "\(query) entfernen"))
+                                }
+                                .background(Color.kuroControlFill, in: Capsule(style: .continuous))
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(KuroLocale.text("Remove \(query)", "\(query) entfernen"))
                         }
                         .padding(.horizontal, gutter)
-                        .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .fill(Color.kuroHairline)
-                                .frame(height: 1)
-                                .padding(.horizontal, gutter)
-                        }
                     }
                 }
-            }
 
-            // Only where the pager has no Browse page (spec D2); with no history it sits in the empty block.
-            if !recentSearches.isEmpty && DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) {
-                KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
-                    routes.openBrowse()
+                if !trendingCards.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(KuroLocale.text("Popular right now", "Gerade beliebt"))
+                            .font(.kuroCustom(19, weight: .semibold, relativeTo: .title3, maxSize: 32))
+                            .tracking(-0.5)
+                            .foregroundStyle(Color.kuroInk)
+                            .padding(.horizontal, gutter)
+                            .accessibilityAddTraits(.isHeader)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHStack(alignment: .top, spacing: 14) {
+                                ForEach(trendingCards) { card in
+                                    SearchIdlePosterTile(card: card, showsMedium: showsMediumOnPopular)
+                                }
+                            }
+                            .padding(.horizontal, gutter)
+                            .padding(.vertical, 4)
+                        }
+                        .kuroSwipeExclusionZone()
+                    }
                 }
-                .accessibilityIdentifier("search.browseEntry")
-                .padding(.horizontal, gutter)
+
+                if DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) {
+                    KuroInkButton(KuroLocale.text("Explore by genre & year", "Nach Genre & Jahr entdecken"), role: .secondary) {
+                        routes.openBrowse()
+                    }
+                    .accessibilityIdentifier("search.browseEntry")
+                    .padding(.horizontal, gutter)
+                }
             }
         }
-        .padding(.top, recentSearches.isEmpty ? 0 : KuroDesignSpacing.lg)
+        .padding(.top, recentSearches.isEmpty && trendingCards.isEmpty ? 0 : KuroDesignSpacing.md)
+    }
+}
+
+/// Poster card inside Search's idle Popular strip: cover + corner quick-add badge + title + year.
+private struct SearchIdlePosterTile: View {
+    let card: TasteCard
+    let showsMedium: Bool
+
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
+
+    private let width: CGFloat = 106
+    private let height: CGFloat = 158
+
+    private var factsLine: String? {
+        DiscoverIssueCopy.facts(kind: card.media.kind, year: card.media.year, formatRaw: card.media.formatRaw,
+                                episodes: nil, chapters: nil, length: false, german: KuroLocale.isGerman,
+                                kindShown: showsMedium)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                guard !suppressCardTaps else { return }
+                KuroAccessibility.impactHaptic(.light)
+                routes.openMedia(MediaRoute(card.key))
+            } label: {
+                VStack(alignment: .leading, spacing: 0) {
+                    HomeArtwork(url: card.media.imageURL.flatMap(URL.init(string:)), maxPixelSize: 320,
+                                placeholder: HomeInk.posterFill, seedHex: card.media.coverImageColor,
+                                usesMaterialWash: true)
+                        .frame(width: width, height: height)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5)
+                        )
+                        .shadow(color: Color.black.opacity(0.10), radius: 5, y: 2.5)
+                    if showsMedium {
+                        DiscoverKindKicker(kind: card.media.kind)
+                            .padding(.top, 8)
+                    }
+                    Text(KuroCardText.sanitizeTitleForCard(card.media.title))
+                        .font(.kuroCustom(13, weight: .semibold, relativeTo: .footnote, maxSize: 22))
+                        .tracking(-0.1)
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(2, reservesSpace: true)
+                        .multilineTextAlignment(.leading)
+                        .padding(.top, showsMedium ? 3 : 8)
+                    Text(factsLine ?? " ")
+                        .font(.kuroCustom(11, relativeTo: .caption2, maxSize: 18))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.kuroMuted)
+                        .lineLimit(1)
+                        .padding(.top, 2)
+                        .accessibilityHidden(factsLine == nil)
+                }
+                .frame(width: width, alignment: .topLeading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(HomeArtworkPressStyle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(DiscoverCardSpoken.label(title: card.media.title, kind: card.media.kind,
+                                                         kindKicker: showsMedium, line: factsLine, isNew: false))
+            .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
+            .overlay(alignment: .topLeading) {
+                DiscoverPlanKey(card: card, variant: .leaf, compact: true, badge: true)
+                    .padding(.trailing, 1)
+                    .padding(.bottom, 1)
+                    .frame(width: width, height: height, alignment: .bottomTrailing)
+            }
+        }
+        .frame(width: width, alignment: .topLeading)
     }
 }
 
@@ -587,7 +882,7 @@ private struct SearchNoResultsState: View {
 
             // Only where the pager has no Browse page (spec D2).
             if DiscoverBrowseEntry.isOffered(flags: flags, guest: guest?.isGuest == true) {
-                KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
+                KuroInkButton(KuroLocale.text("Explore by genre & year", "Nach Genre & Jahr entdecken"), role: .secondary) {
                     routes.openBrowse()
                 }
             }
@@ -639,66 +934,70 @@ struct SearchResultRow: View {
 
     private func highlightedTitle(_ title: String, query: String) -> Text {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return Text(title) }
-        guard let r = title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) else { return Text(title) }
-        let prefix = String(title[..<r.lowerBound])
-        let match = String(title[r])
-        let suffix = String(title[r.upperBound...])
-        return Text("\(prefix)\(Text(match).fontWeight(.semibold))\(suffix)")
+        guard !q.isEmpty else { return Text(title).foregroundColor(Color.kuroInk) }
+        guard let r = title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) else {
+            return Text(title).foregroundColor(Color.kuroInk)
+        }
+        let prefix = Text(String(title[..<r.lowerBound])).foregroundColor(Color.kuroInkSecondary)
+        let match = Text(String(title[r])).fontWeight(.bold).foregroundColor(Color.kuroInk)
+        let suffix = Text(String(title[r.upperBound...])).foregroundColor(Color.kuroInkSecondary)
+        return Text("\(prefix)\(match)\(suffix)")
     }
 
     var body: some View {
         let thumb = min(thumbWidth, 72)
-        Button {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            onOpen?()
-            routes.openMedia(MediaRoute(media.libraryKey))
-        } label: {
-            HStack(alignment: .center, spacing: KuroDesignSpacing.md) {
-                DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 180)
-                    .frame(width: thumb, height: floor(thumb / KuroCardMetrics.imageAspectRatio))
-                    .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
+        HStack(alignment: .center, spacing: 10) {
+            Button {
+                guard !suppressCardTaps else { return }
+                KuroAccessibility.impactHaptic(.light)
+                onOpen?()
+                routes.openMedia(MediaRoute(media.libraryKey))
+            } label: {
+                HStack(alignment: .center, spacing: KuroDesignSpacing.md) {
+                    DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 180)
+                        .frame(width: thumb, height: floor(thumb / KuroCardMetrics.imageAspectRatio))
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5)
+                        )
 
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-                    highlightedTitle(media.title, query: query)
-                        .font(.kuroBody(weight: .regular))
-                        .foregroundStyle(Color.kuroInk)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    if !line.isEmpty {
-                        Text(line)
-                            .font(.kuroMeta())
-                            .foregroundStyle(Color.kuroInkQuiet)
-                            .lineLimit(1)
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                        highlightedTitle(media.title, query: query)
+                            .font(.kuroBody(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        if !line.isEmpty {
+                            Text(line)
+                                .font(.kuroMeta())
+                                .foregroundStyle(Color.kuroInkQuiet)
+                                .lineLimit(1)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                if isSaved {
-                    Image(systemName: "checkmark")
-                        .font(.kuroMeta(weight: .medium))
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .accessibilityHidden(true)
-                }
+                .padding(.vertical, KuroDesignSpacing.sm)
+                .frame(minHeight: 68)
+                .contentShape(Rectangle())
             }
-            .padding(.vertical, KuroDesignSpacing.sm)
-            .frame(minHeight: 64)
-            .contentShape(Rectangle())
+            .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text([media.title, line].filter { !$0.isEmpty }.joined(separator: ", ")))
+            .accessibilityValue(isSaved ? KuroLocale.text("On your list", "Auf deiner Liste") : "")
+            .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
+            .accessibilityAddTraits(.isButton)
+            .contextMenu {
+                DiscoverFrameMenu(media: media, isSaved: isSaved, hasClubs: !clubs.myClubs.isEmpty)
+            }
+
+            // Quick-add status badge stays a sibling of the row button (never nested inside it).
+            DiscoverPlanKey(card: TasteCard(displayable: media), variant: .leaf, compact: true, badge: true)
         }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color.kuroHairline)
-                .frame(height: 1)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text([media.title, line].filter { !$0.isEmpty }.joined(separator: ", ")))
-        .accessibilityValue(isSaved ? KuroLocale.text("On your list", "Auf deiner Liste") : "")
-        .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
-        .accessibilityAddTraits(.isButton)
-        .contextMenu {
-            DiscoverFrameMenu(media: media, isSaved: isSaved, hasClubs: !clubs.myClubs.isEmpty)
+                .frame(height: 0.5)
         }
     }
 }

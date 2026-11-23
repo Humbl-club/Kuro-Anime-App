@@ -1,6 +1,9 @@
 import Foundation
 
 enum KuroCardText {
+    private static let trailingYearRegex = try? NSRegularExpression(pattern: #"\s*\(\s*(?:19|20)\d{2}\s*\)\s*$"#)
+    private static let multiWhitespaceRegex = try? NSRegularExpression(pattern: #"\s+"#)
+
     static let countFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
@@ -15,11 +18,10 @@ enum KuroCardText {
     static func sanitizeTitleForCard(_ raw: String) -> String {
         var t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         // Remove "(2011)" / "(1999)" style suffixes; the year is shown in the metadata line.
-        t = t.replacingOccurrences(
-            of: #"\s*\(\s*(?:19|20)\d{2}\s*\)\s*$"#,
-            with: "",
-            options: .regularExpression
-        )
+        if let trailingYearRegex {
+            let range = NSRange(t.startIndex..<t.endIndex, in: t)
+            t = trailingYearRegex.stringByReplacingMatches(in: t, range: range, withTemplate: "")
+        }
         // Encourage elegant breaks for long subtitles.
         if t.count >= 22 {
             if let range = t.range(of: ": ") {
@@ -28,7 +30,36 @@ enum KuroCardText {
                 t.replaceSubrange(range, with: "\n")
             }
         }
-        t = t.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        if let multiWhitespaceRegex {
+            let range = NSRange(t.startIndex..<t.endIndex, in: t)
+            t = multiWhitespaceRegex.stringByReplacingMatches(in: t, range: range, withTemplate: " ")
+        }
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Balances the trailing words of multi-word editorial headlines by pairing a short trailing word
+    /// with its predecessor using a non-breaking space so headlines never end on a single-word orphan line.
+    static func balancedHeadline(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+        let prefix: String
+        let lastLine: String
+        if let newline = trimmed.lastIndex(of: "\n") {
+            let next = trimmed.index(after: newline)
+            prefix = String(trimmed[..<next])
+            lastLine = String(trimmed[next...])
+        } else {
+            prefix = ""
+            lastLine = trimmed
+        }
+        let words = lastLine.split(separator: " ", omittingEmptySubsequences: true)
+        guard words.count >= 3 else { return trimmed }
+        let previous = words[words.count - 2]
+        let last = words[words.count - 1]
+        guard !last.contains("\u{00A0}"), last.count <= 10, previous.count + 1 + last.count <= 18 else {
+            return trimmed
+        }
+        let balancedLine = (words.dropLast(2).map(String.init) + ["\(previous)\u{00A0}\(last)"]).joined(separator: " ")
+        return prefix + balancedLine
     }
 }

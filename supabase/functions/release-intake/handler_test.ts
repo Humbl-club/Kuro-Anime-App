@@ -10,7 +10,7 @@ import { createPoliteClient, PoliteLimiter } from "../_shared/polite_fetch.ts";
 import { queryFake as baseQueryFake, type FakeOptions } from "../_shared/test_query_fake.ts";
 import { FIELD_GROUP_NAMES } from "../_shared/catalogue/field_groups.ts";
 import { run } from "./handler.ts";
-import { decodeMuSlug, dedupeReleases, isMuSeriesPage, muSeriesUrl, parseChapterNumber, parseVolumeCount } from "./manga.ts";
+import { decodeMuSlug, dedupeReleases, isMuSeriesPage, muSeriesUrl, parseChapterNumber, parseVolumeCount, sanitizeLatestChapter } from "./manga.ts";
 import type { ReleaseEventRow } from "./contract.ts";
 
 // The run reads public.catalogue_cutover once (Task 15, fail closed). Existing tests keep every group on
@@ -664,4 +664,41 @@ Deno.test("manga: the volume count is not written while the facts group is new",
   assert.equal(res.status, 200, JSON.stringify(out));
   assert.equal(out.results.processed, 1, "the title was processed");
   assert.equal(fake.tables.manga[0].volumes, null);
+});
+
+Deno.test("manga: resolves directly from catalogue_id_links without MangaDex and writes monotonic latest_chapter", async () => {
+  const { fake } = mangaFake({
+    manga: [{ id: 5, status: "RELEASING", popularity: 100, chapters: null, volumes: 114, latest_chapter: 1190 }],
+    manga_source_links: [],
+    catalogue_id_links: [
+      { kind: "manga", kuro_id: 5, source: "mangaupdates", source_key: "55099564912", status: "accepted" },
+    ],
+  });
+  let dexCalls = 0;
+  const c = clients([], [{ body: ONE_PIECE_SERIES }, { body: weeklyReleases("2026-10-25", 10, 1196) }]);
+  const res = await run({ mode: "manga" }, {
+    supabase: fake.client,
+    ...c,
+    muOfficialGroupIds: [OFFICIAL_GROUP],
+    readMangaDexLinks: () => {
+      dexCalls++;
+      return Promise.resolve(null);
+    },
+  });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(dexCalls, 0);
+  assert.equal(out.results.processed, 1);
+  assert.equal(fake.tables.manga[0].latest_chapter, 1196);
+  assert.equal(fake.tables.manga[0].chapters, null);
+  assert.equal(fake.tables.manga[0].volumes, 115);
+  assert.equal(fake.tables.manga[0].next_chapter_number, 1197);
+});
+
+Deno.test("manga: sanitizeLatestChapter rejects volume-scoped low MU chapter numbers (Vagabond, Yotsuba)", () => {
+  assert.equal(sanitizeLatestChapter(2, 37, 327), null);
+  assert.equal(sanitizeLatestChapter(7, 15, null), null);
+  assert.equal(sanitizeLatestChapter(100, null, 200), null);
+  assert.equal(sanitizeLatestChapter(1198, 110, null), 1198);
+  assert.equal(sanitizeLatestChapter(2, 1, null), 2);
 });

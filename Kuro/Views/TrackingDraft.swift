@@ -23,6 +23,10 @@ import KuroLibrary
 struct TrackingDraft: Equatable {
     var status: ListStatus
     var progress: Int
+    /// Fractional manga chapter flag (`.5` stored in `progressLabel`).
+    var hasHalfUnit: Bool
+    /// Completed manga volumes (`0...99999`).
+    var volumesProgress: Int
     /// 0 = unrated; otherwise 1...10.
     var score: Int
     var notes: String
@@ -34,6 +38,8 @@ struct TrackingDraft: Equatable {
     var repeatCount: Int
     var startedOn: PartialDate?
     var finishedOn: PartialDate?
+    private(set) var originalHasHalfUnit: Bool
+    private(set) var originalVolumesProgress: Int
     private(set) var originalRepeatCount: Int
     private(set) var originalStartedOn: PartialDate?
     private(set) var originalFinishedOn: PartialDate?
@@ -46,6 +52,12 @@ struct TrackingDraft: Equatable {
     /// them editable. They become the baseline, so adopting them is not a change. No-op when already known
     /// or when `entry` does not know them either.
     mutating func adoptDates(from entry: LibraryEntry) {
+        if originalVolumesProgress == 0, let storedVolumes = entry.sourceMetadata?.volumesProgress,
+           volumesProgress == originalVolumesProgress {
+            let clamped = max(0, storedVolumes)
+            volumesProgress = clamped
+            originalVolumesProgress = clamped
+        }
         guard !datesKnown, entry.datesKnown else { return }
         repeatCount = entry.repeatCount
         startedOn = entry.startedOn
@@ -69,6 +81,20 @@ struct TrackingDraft: Equatable {
     init(entry: LibraryEntry?, initialStatus: ListStatus? = nil, projectionLoaded: Bool = true) {
         status = entry?.status ?? initialStatus ?? .planning
         progress = entry?.progress ?? 0
+        let trimmedLabel = entry?.progressLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let halfMatch: Bool = {
+            guard entry?.key.kind == .manga,
+                  let label = trimmedLabel,
+                  label.hasSuffix(".5"),
+                  let parsed = Double(label),
+                  Int(parsed) == (entry?.progress ?? 0) else { return false }
+            return true
+        }()
+        hasHalfUnit = halfMatch
+        originalHasHalfUnit = halfMatch
+        let storedVolumes = max(0, entry?.sourceMetadata?.volumesProgress ?? 0)
+        volumesProgress = storedVolumes
+        originalVolumesProgress = storedVolumes
         score = entry?.rating?.value ?? 0
         notes = entry?.notes ?? ""
         originalRating = entry?.rating
@@ -93,6 +119,8 @@ struct TrackingDraft: Equatable {
     func hasChanges(from baseline: TrackingDraft) -> Bool {
         status != baseline.status
             || progress != baseline.progress
+            || hasHalfUnit != baseline.hasHalfUnit
+            || volumesProgress != baseline.volumesProgress
             || score != baseline.score
             || notes.trimmingCharacters(in: .whitespacesAndNewlines)
                 != baseline.notes.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -111,9 +139,23 @@ struct TrackingDraft: Equatable {
 
     /// The edit a save sends. `maxProgress` is the known episode/chapter total (0 = unknown).
     func edit(maxProgress: Int) -> LibraryEdit {
-        LibraryEdit(
+        let resolved = resolvedProgress(maxProgress: maxProgress)
+        let effectiveHalf = hasHalfUnit && (maxProgress == 0 || resolved < maxProgress)
+        let labelChange: FieldChange<String> = if effectiveHalf {
+            .set("\(resolved).5")
+        } else if originalHasHalfUnit {
+            .clear
+        } else {
+            .unchanged
+        }
+        let volumesChange: FieldChange<Int> = volumesProgress == originalVolumesProgress
+            ? .unchanged
+            : .set(max(0, volumesProgress))
+        return LibraryEdit(
             status: .set(status),
-            progress: .set(resolvedProgress(maxProgress: maxProgress)),
+            progress: .set(resolved),
+            progressLabel: labelChange,
+            volumesProgress: volumesChange,
             rating: ratingChange,
             notes: notesChange,
             verdict: .unchanged,

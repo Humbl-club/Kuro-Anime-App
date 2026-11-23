@@ -210,7 +210,8 @@ extension BecauseYouCard {
             formatRaw: format,
             popularityValue: nil,
             trendingValue: nil,
-            createdAtValue: nil
+            createdAtValue: nil,
+            coverImageColor: coverImageColor
         )
     }
 }
@@ -235,7 +236,8 @@ extension TonightShelfCard {
             formatRaw: format,
             popularityValue: nil,
             trendingValue: nil,
-            createdAtValue: nil
+            createdAtValue: nil,
+            coverImageColor: coverImageColor
         )
     }
 }

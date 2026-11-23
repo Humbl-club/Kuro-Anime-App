@@ -63,6 +63,7 @@ struct DiscoverPageHeading: View {
             }
             Text(summary)
                 .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
+                .monospacedDigit()
                 .foregroundStyle(HomeInk.calendarSummary)
                 .multilineTextAlignment(alignment)
                 .fixedSize(horizontal: false, vertical: true)
@@ -76,7 +77,7 @@ struct DiscoverPurposeLine: View {
     let text: String
 
     var body: some View {
-        Text(text)
+        Text(KuroCardText.balancedHeadline(text))
             .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 24))
             .foregroundStyle(Color.kuroMuted)
             .lineLimit(2)
@@ -118,6 +119,7 @@ struct DiscoverTextAction: View {
         } label: {
             Text(title)
                 .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 26))
+                .monospacedDigit()
                 .foregroundStyle(Color.kuroInk)
                 .frame(minHeight: 44, alignment: .leading)
                 .contentShape(Rectangle())

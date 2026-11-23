@@ -269,3 +269,24 @@ Deno.test("mangaPopularityUsesMangaUpdatesVotesAndMangaListAdds", async () => {
   await compose({ supabase: db.client }, "manga", [5]);
   assert.equal(shadow(db, "popularity", 5)?.value, (muRecord.ratingVotes ?? 0) + 50);
 });
+
+Deno.test("animeComposeDerivesSeasonAndStatusFromDates", async () => {
+  const db = fakeSupabase({
+    tables: {
+      anime: [{ id: 9, is_adult: false }],
+      catalogue_id_links: [link("anime", 9, "ann", "9001")],
+      catalogue_source_records: [
+        rec("ann", "9001", "anime", {
+          ...annRecord,
+          id: 9001,
+          type: "TV",
+          vintage: "2026-10-05",
+        }),
+      ],
+    },
+  });
+  await compose({ supabase: db.client, now: () => Date.UTC(2026, 10, 19) }, "anime", [9]);
+  assert.equal(shadow(db, "season", 9)?.value, "FALL");
+  assert.equal(shadow(db, "season_year", 9)?.value, 2026);
+  assert.equal(shadow(db, "status", 9)?.value, "RELEASING");
+});

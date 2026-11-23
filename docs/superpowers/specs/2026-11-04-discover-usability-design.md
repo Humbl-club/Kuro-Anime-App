@@ -945,3 +945,22 @@ The integrator also:
 - runs the full `KuroTests` and `DiscoverUsabilityUITests` once on `7FC4B58A-430C-457D-A017-6B0095723F3F`
 - runs `SKIP_IOS_BUILD=1 SKIP_IOS_TEST=1 scripts/quality-gates/run_all.sh` after the Rule 1/2 docs are updated
 - commits the after renders
+
+---
+
+## 16. 2026-11-19 Existing-Parts Polish Amendment
+
+Owner-directed existing-parts polish preserving all R1–R8 invariants, pure rules (`DiscoverMoodKeys.moods`/`columns`, `DiscoverContents.*`, `TastePlanKey.stampTokens`/`acceptsTap`), VoiceOver labels (`LiveWalkthroughUITests`), and `.kuroSwipeExclusionZone()` root-pager guards:
+- `DiscoverMoodKeys`: uses a single-row horizontal warm-paper pill strip at standard sizes (with vertical 1-column fallback at `isAccessibilitySize`), eliminating the empty 4th grid cell when unseeded.
+- `DiscoverContentsLine`: uses a compact horizontal numbered jump strip under `"IN THIS ISSUE · N SECTIONS"` at standard sizes (keeping vertical rows at `isAccessibilitySize`), bringing `"New to you."` into the opening viewport alongside `DiscoverPinnedIndex` on scroll.
+- `DiscoverPlanKey` (`DiscoverCardActions.swift`): renders a compact capsule pill (`+ Plan` / `Planned` / status word inside `44pt` hit targets, `trailingAligned` on `DiscoverIndexRow`) for `.leaf` portrait tiles and index rows while keeping `TastePlanKey` `.landscape` intact on cover stories and on `TastePicksView`.
+- `DiscoverCoverStory`: softens bannerless `.feature` cover-only spreads to `material.wash` + `1pt material.edge` warm paper cards with `Color.kuroInk`, reserving the dark `material.base → material.deep` band for `.lead` ("Today's pick"), `.gem`, and banner stories.
+
+### Phase 2 Functional Refinement (2026-11-19)
+
+- **AniList-Style Curated Section Order (`DiscoverIssueSections`):**
+  - **All:** `This season` → `Trending` → `Essential anime` → `Because you…` / `New to you` → `Just added` (`.newlyAdded` rail) → `Manga new to you` (capped at 6; `Classics` + `Essential manga` + `Top rated` in `More lists`; flagged realm rails behind their flag).
+  - **Anime:** `This season` → `Trending` → `Essential anime` → `New to you` → `Just added` → `Classics`.
+  - **Manga:** `Trending manga` → `Manga just added` (`.newlyAddedManga` rail) → `Essential manga` → `Manga new to you` → `Manga classics`.
+- **Top Search + Filters Quick-Find Bar (`DiscoverQuickFindBar`):** Mounted directly beneath `DiscoverIssueSwitch`, giving 1-tap access to Search (`onOpenSearch`) and full catalogue filters (`routes.openBrowse()` → `BrowseView`), stacking vertically at `isAccessibilitySize` and honoring `kuroSuppressCardTaps`.
+- **3-Choice Quick-Add Status Menu (`DiscoverPlanKey`, `TastePlanController`):** Tapping `+ Add` / `Add to list` (or a tracked status pill) opens a fast menu with **Watching / Reading**, **Plan to watch / Plan to read**, and **Completed** (plus **Edit details…** and bare-entry **Remove from list** when tracked). Updates preserve existing progress/notes via `LibraryActions.apply`, show localized status toasts with account-scoped **Undo**, and honor `GuestGate` and `kuroSuppressCardTaps`.

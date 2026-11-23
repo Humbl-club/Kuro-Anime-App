@@ -325,14 +325,16 @@ extension View {
 
 private struct KuroRootNavigationModifier: ViewModifier {
     let coordinator: KuroNavigationCoordinator
+    @Namespace private var zoomNamespace
 
     func body(content: Content) -> some View {
         @Bindable var slot = coordinator.slot
         content
             .environment(\.kuroRoutes, coordinator.routes)
             .environment(\.kuroNavigation, coordinator)
+            .environment(\.kuroZoomNamespace, zoomNamespace)
             .sheet(item: $slot.presented) { presentation in
-                SlotPresentationView(presentation: presentation)
+                SlotPresentationView(presentation: presentation, zoomNamespace: zoomNamespace)
             }
             .background(KuroPresenterProbe { coordinator.rootController = $0 })
     }

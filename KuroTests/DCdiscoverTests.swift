@@ -170,6 +170,42 @@ struct DCDiscoverCopyTests {
         #expect(DiscoverIssueCopy.glanceTitle(german: true) == EditorialDiscoverRoute.animeAiringToday.title(german: true))
     }
 
+    @Test("Manga chapter presentation formats scheduled upcoming chapters and latest ongoing chapters")
+    func mangaChapterPresentation() throws {
+        let now = try date("2026-11-22T12:00:00Z")
+        let nextAt = try date("2026-11-25T00:00:00Z")
+        let upcomingSlot = DiscoverMangaSlot(
+            mangaId: 1,
+            latestChapter: 253,
+            latestChapterAt: nil,
+            nextChapterNumber: 254,
+            nextChapterAt: nextAt
+        )
+        let upcoming = DiscoverIssueCopy.mangaChapterPresentation(
+            slot: upcomingSlot,
+            now: now,
+            german: false,
+            locale: Locale(identifier: "en_GB"),
+            timeZone: berlin
+        )
+        #expect(upcoming?.badge == "CH. 254")
+        #expect(upcoming?.line?.hasPrefix("Ch. 254 · ") == true)
+
+        let freshSlot = DiscoverMangaSlot(
+            mangaId: 2,
+            latestChapter: 1198,
+            latestChapterAt: now,
+            nextChapterNumber: nil,
+            nextChapterAt: nil
+        )
+        let freshEn = DiscoverIssueCopy.mangaChapterPresentation(slot: freshSlot, now: now, german: false, timeZone: berlin)
+        let freshDe = DiscoverIssueCopy.mangaChapterPresentation(slot: freshSlot, now: now, german: true, timeZone: berlin)
+        #expect(freshEn?.badge == "CH. 1198")
+        #expect(freshEn?.line == "Ch. 1198 out")
+        #expect(freshDe?.badge == "KAP. 1198")
+        #expect(freshDe?.line == "Kap. 1198 erschienen")
+    }
+
     @Test("Contents: numbered jump links with counts or \"{n} new\"; shown from two sections (usability §5.10)")
     func contents() {
         let one = [DiscoverContents.Entry(id: "s0", name: "New to you", count: 8)]
@@ -289,23 +325,25 @@ struct DCDiscoverSectionTests {
                         trendingManga: true, topRatedManga: true, newlyAddedManga: true)
     }
 
-    @Test("All: the D7 candidates in order; Because-You replaces New to you; realm rails only behind their flag")
+    @Test("All: curated AniList-style order; Because-You replaces New to you; realm rails only behind their flag")
     func allIssue() {
         #expect(Sections.candidates(full(.all, realm: false))
-                == [.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics])
+                == [.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou, .classics])
         #expect(Sections.candidates(full(.all, realm: false, becauseYou: true))
-                == [.becauseYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics])
+                == [.currentSeason, .trending, .essentials, .becauseYou, .newlyAdded, .mangaNewToYou, .classics])
         #expect(Sections.candidates(full(.all, realm: true))
-                == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .mangaNewToYou, .trending, .classics])
-        // The cap keeps six: Classics, then Manga new to you leave first (D7).
+                == [.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .newlyAdded, .hiddenGem, .mangaNewToYou, .classics])
+        // The cap keeps six: Classics leaves first on realm:false, then Manga new to you & Hidden gem on realm:true (D7).
+        #expect(Sections.main(full(.all, realm: false))
+                == [.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou])
         #expect(Sections.main(full(.all, realm: true))
-                == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
+                == [.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .newlyAdded])
         #expect(Sections.main(full(.all, realm: false)).count == 6)
-        // More lists: Essential manga first (details-songs §14.2), Top rated, Just added, then the dropped.
+        // More lists: Essential manga first (details-songs §14.2), Top rated, then the dropped.
         let dropped = Sections.cap(Sections.candidates(full(.all, realm: true))).dropped
-        #expect(dropped == [.mangaNewToYou, .classics])
+        #expect(dropped == [.hiddenGem, .mangaNewToYou, .classics])
         #expect(Sections.moreLists(full(.all, realm: true), dropped: dropped)
-                == [.route(.mangaEssentials), .route(.animeTopRated), .route(.animeNewlyAdded),
+                == [.route(.mangaEssentials), .route(.animeTopRated), .hiddenGem,
                     .route(.mangaNewToYou), .route(.animeClassics)])
         #expect(Sections.drawsMangaNewToYouAsRail(.all))
         #expect(!Sections.drawsMangaNewToYouAsRail(.manga))
@@ -314,25 +352,25 @@ struct DCDiscoverSectionTests {
     @Test("Anime: no manga sections, Because-You never replaces New to you; the gem must match the issue")
     func animeIssue() {
         #expect(Sections.main(full(.anime, realm: false, becauseYou: true))
-                == [.newToYou, .currentSeason, .essentials, .trending, .classics])
+                == [.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .classics])
         #expect(Sections.main(full(.anime, realm: true))
-                == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
+                == [.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .newlyAdded])
         var mangaGem = full(.anime, realm: true)
         mangaGem.hiddenGemKind = .manga
         #expect(!Sections.main(mangaGem).contains(.hiddenGem))
-        #expect(Sections.moreLists(full(.anime, realm: true), dropped: [.classics])
-                == [.route(.animeTopRated), .route(.animeNewlyAdded), .route(.animeClassics)])
+        #expect(Sections.moreLists(full(.anime, realm: true), dropped: [.hiddenGem, .classics])
+                == [.route(.animeTopRated), .hiddenGem, .route(.animeClassics)])
     }
 
-    @Test("Manga: Manga new to you leads; no anime sections and no realm rails for an anime gem")
+    @Test("Manga: Trending & Just added lead; no anime sections and no realm rails for an anime gem")
     func mangaIssue() {
         #expect(Sections.main(full(.manga, realm: true, becauseYou: true))
-                == [.mangaNewToYou, .essentialsManga, .trendingManga, .classicsManga])
+                == [.trendingManga, .newlyAddedManga, .essentialsManga, .mangaNewToYou, .classicsManga])
         var mangaGem = full(.manga, realm: true)
         mangaGem.hiddenGemKind = .manga
-        #expect(Sections.main(mangaGem) == [.mangaNewToYou, .essentialsManga, .hiddenGem, .trendingManga, .classicsManga])
+        #expect(Sections.main(mangaGem) == [.trendingManga, .newlyAddedManga, .essentialsManga, .mangaNewToYou, .hiddenGem, .classicsManga])
         #expect(Sections.moreLists(full(.manga, realm: false), dropped: [])
-                == [.route(.mangaTopRated), .route(.mangaNewlyAdded)])
+                == [.route(.mangaTopRated)])
     }
 
     @Test("Empty rails are skipped, whatever the issue")

@@ -79,7 +79,9 @@ enum CatalogColumns {
     static let mangaCard: [String] = [
         "id", "title_english", "title_romaji", "title_native",
         "cover_image_large", "cover_image_medium",
-        "format", "status", "chapters", "volumes", "start_date_year",
+        "format", "status", "chapters", "volumes",
+        "latest_chapter", "next_chapter_number", "next_chapter_at",
+        "start_date_year",
         "average_score", "popularity", "trending", "favourites", "genres",
         "is_adult", "created_at", "updated_at",
     ]

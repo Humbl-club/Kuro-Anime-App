@@ -124,7 +124,7 @@ private struct SeriesSeasonPanel: View {
             }
         }
         .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(isSelected ? Color.kuroInk : Color.clear)
@@ -143,7 +143,7 @@ private struct SeriesDiscussionHeading: View {
                 if case .success(let image) = phase { image.resizable().scaledToFill() }
                 else { Color.kuroMissingArt }
             }.frame(width: dynamicTypeSize.isAccessibilitySize ? 44 : 105, height: dynamicTypeSize.isAccessibilitySize ? 66 : 145)
-                .clipped().clipShape(RoundedRectangle(cornerRadius: 3)).accessibilityHidden(true)
+                .clipped().clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous)).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
                 Text(KuroLocale.text("Your clubs · private", "Deine Clubs · privat")).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                 Text(KuroLocale.text("Between us.", "Unter uns.")).font(.kuroHeadline()).fixedSize(horizontal: false, vertical: true)
@@ -171,7 +171,8 @@ private struct SeriesDiscussionMaterial: ViewModifier {
         UnevenRoundedRectangle(topLeadingRadius: medium == "manga" ? 5 : 22,
             bottomLeadingRadius: medium == "manga" ? 5 : 8,
             bottomTrailingRadius: medium == "manga" ? 5 : 8,
-            topTrailingRadius: medium == "manga" ? 19 : 22)
+            topTrailingRadius: medium == "manga" ? 19 : 22,
+            style: .continuous)
     }
 }
 

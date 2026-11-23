@@ -21,11 +21,13 @@ protocol MediaDisplayable {
     var popularityValue: Int? { get }
     var trendingValue: Int? { get }
     var createdAtValue: Date? { get }
+    var coverImageColor: String? { get }
 }
 
 extension MediaDisplayable {
     /// Stable identity across mixed feeds (anime + manga).
     var stableKey: String { "\(kind.rawValue)-\(id)" }
+    var coverImageColor: String? { nil }
 }
 
 // MARK: - Media struct for UI components
@@ -46,6 +48,7 @@ struct Media: MediaDisplayable {
     let popularityValue: Int?
     let trendingValue: Int?
     let createdAtValue: Date?
+    var coverImageColor: String? = nil
 }
 
 // MARK: - Extensions to make existing models conform to MediaDisplayable
@@ -186,6 +189,7 @@ struct AnimeCard: Identifiable, Codable, Sendable, MediaDisplayable {
     let createdAt: Date?
     // Present only for search RPCs (used for keyset pagination).
     let rank: Double?
+    var coverImageColor: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -207,6 +211,7 @@ struct AnimeCard: Identifiable, Codable, Sendable, MediaDisplayable {
         case genreList = "genres"
         case createdAt = "created_at"
         case rank
+        case coverImageColor = "cover_image_color"
     }
 
     // MediaDisplayable
@@ -245,6 +250,7 @@ struct MangaCard: Identifiable, Codable, Sendable, MediaDisplayable {
     let createdAt: Date?
     // Present only for search RPCs (used for keyset pagination).
     let rank: Double?
+    var coverImageColor: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -264,6 +270,7 @@ struct MangaCard: Identifiable, Codable, Sendable, MediaDisplayable {
         case genreList = "genres"
         case createdAt = "created_at"
         case rank
+        case coverImageColor = "cover_image_color"
     }
 
     // MediaDisplayable

@@ -183,6 +183,10 @@ struct Manga: Identifiable, Codable {
     // Numbers
     let chapterCount: Int?
     let volumeCount: Int?
+    let latestChapter: Double?
+    let latestChapterAt: Date?
+    let nextChapterNumber: Int?
+    let nextChapterAt: Date?
     
     // Release
     let startDateYear: Int?
@@ -229,6 +233,10 @@ struct Manga: Identifiable, Codable {
         case synopsisEnhancedUpdatedAt = "synopsis_enhanced_updated_at"
         case synopsisEnhancedState = "synopsis_enhanced_state"
         case chapterCount = "chapters", volumeCount = "volumes"
+        case latestChapter = "latest_chapter"
+        case latestChapterAt = "latest_chapter_at"
+        case nextChapterNumber = "next_chapter_number"
+        case nextChapterAt = "next_chapter_at"
         case startDateYear = "start_date_year"
         case startDateMonth = "start_date_month"
         case averageScore = "average_score"
@@ -254,6 +262,9 @@ struct Manga: Identifiable, Codable {
     var chapterText: String {
         if let chapters = chapterCount {
             return "\(chapters) CH"
+        }
+        if let latestChapter, latestChapter > 0 {
+            return "\(Int(floor(latestChapter))) OUT"
         }
         return "ONGOING"
     }

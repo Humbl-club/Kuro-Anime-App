@@ -348,7 +348,15 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
             (edit, autoFilled) = original.fillingEmptyDates(
                 current: confirmed, creating: creating, today: PartialDate.day(of: now(), in: calendar))
         }
-        if (edit.touchesProgress || edit.touchesStatus), progressAvailable,
+        let jumpsWithFractionalLabel: Bool = {
+            guard case .set(let label) = edit.progressLabel, Int(label) == nil else { return false }
+            if case .set(let target) = edit.progress, let current = entry(for: key)?.progress {
+                return target != current
+            }
+            return false
+        }()
+        if (edit.touchesProgress || edit.touchesStatus || !edit.progressLabel.isUnchanged), progressAvailable,
+           !jumpsWithFractionalLabel,
            let row = entry(for: key), let lifecycle = row.lifecycleId, row.revision != nil,
            let lease = currentLease() {
             // Reserve the online fields before the first suspension. Admit progress immediately,

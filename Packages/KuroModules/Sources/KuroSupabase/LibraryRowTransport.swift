@@ -33,6 +33,7 @@ public struct LibraryRow: Sendable, Equatable, Decodable {
     public let sourceCustomLists: [String]?
     public let sourceHidden: Bool?
     public let sourceListOptions: String?
+    public let startedAtProgress: Int?
 
 
     public init(
@@ -60,7 +61,8 @@ public struct LibraryRow: Sendable, Equatable, Decodable {
         entryPrivate: Bool? = nil,
         sourceCustomLists: [String]? = nil,
         sourceHidden: Bool? = nil,
-        sourceListOptions: String? = nil
+        sourceListOptions: String? = nil,
+        startedAtProgress: Int? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -87,6 +89,7 @@ public struct LibraryRow: Sendable, Equatable, Decodable {
         self.sourceCustomLists = sourceCustomLists
         self.sourceHidden = sourceHidden
         self.sourceListOptions = sourceListOptions
+        self.startedAtProgress = startedAtProgress
 
     }
 
@@ -113,6 +116,7 @@ public struct LibraryRow: Sendable, Equatable, Decodable {
         case sourceCustomLists = "source_custom_lists"
         case sourceHidden = "source_hidden"
         case sourceListOptions = "source_list_options"
+        case startedAtProgress = "started_at_progress"
 
     }
 }

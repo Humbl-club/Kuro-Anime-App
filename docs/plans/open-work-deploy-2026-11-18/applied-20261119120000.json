@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261119120000",
+    "name": "catalogue_intake_match_and_season_v1",
+    "file": "supabase/migrations/20261119120000_catalogue_intake_match_and_season_v1.sql",
+    "md5": "70bdb634310395dc4853bea8d94fcc8f",
+    "sha256": "e305fd9b399dff1437d4844525d6468cf86e1ef55d8d4b62ac24ef1a417ecaa7",
+    "bytes": 7979
+  },
+  "started_at": "2026-11-20T00:51:47.255512+00:00",
+  "finished_at": "2026-11-20T00:51:48.926499+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261119120000",
+      "name": "catalogue_intake_match_and_season_v1",
+      "n": 1,
+      "s1_md5": "70bdb634310395dc4853bea8d94fcc8f",
+      "s1_len": 7979
+    }
+  ]
+}

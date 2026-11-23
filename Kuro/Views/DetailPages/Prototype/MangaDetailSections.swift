@@ -52,6 +52,8 @@ struct MangaDetailContent {
     var similar: [SimilarTitle] = []
     /// Renders: the bell's state without the release store (nil: the store's answer).
     var reminderOn: Bool? = nil
+    /// Story tags split into spoiler-free and spoiler-gated themes (max 8 each).
+    var tagSplit: CatalogStore.TitleTagSplit = .empty
 }
 
 /// The manga sheet's measured colours.
@@ -151,16 +153,43 @@ struct MangaDetailPage: View {
         return DetailMoreLikeThisRule.filtered(items, key: \.key, excluding: ownLadder)
     }
 
-    /// Year · format · status · volumes · chapters (finished) · score (details-songs §7.2).
+    /// Year · format · status · volumes · chapters (finished / out now) · score (details-songs §7.2).
     private var facts: [DetailFacts.Part] {
-        DetailFacts.manga(year: manga.startDateYear, format: manga.format, status: manga.status,
+        var parts = DetailFacts.manga(year: manga.startDateYear, format: manga.format, status: manga.status,
                           volumes: manga.volumeCount, chapters: manga.chapterCount,
                           averageScore: manga.averageScore, german: german, locale: KuroLocale.locale)
+        if manga.chapterCount == nil, let latest = manga.latestChapter, latest > 0 {
+            let out = Int(floor(latest))
+            let label = german ? "\(out) Kap. da" : "\(out) ch out"
+            let insertAt = parts.last?.isScore == true ? parts.count - 1 : parts.count
+            parts.insert(DetailFacts.Part(text: label, isScore: false), at: insertAt)
+        }
+        return parts
     }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { MangaDetailSections.bookmarkTotal(chapterCount: manga.chapterCount) }
+    private var bookmarkCaption: String? {
+        if let total {
+            return MangaDetailSections.bookmarkCaption(total: total,
+                                                       releasing: manga.status?.uppercased() == "RELEASING",
+                                                       german: german)
+        }
+        if let latest = manga.latestChapter, latest > 0 {
+            let out = Int(floor(latest))
+            let unread = max(0, out - progress)
+            if unread > 0 {
+                return german ? "\(out) Kap. erschienen · \(unread) ungelesen" : "\(out) chapters out · \(unread) unread"
+            }
+            return german ? "\(out) Kap. erschienen" : "\(out) chapters out"
+        }
+        return MangaDetailSections.bookmarkCaption(total: nil,
+                                                   releasing: manga.status?.uppercased() == "RELEASING",
+                                                   german: german)
+    }
     private var upcoming: [ReleaseScheduleItem] {
-        DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil) ?? content.schedule)
+        DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil)
+                                          ?? (content.schedule.isEmpty ? nil : content.schedule)
+                                          ?? DetailNextReleaseSection.seed(for: manga))
     }
     private var nextChapter: Int? {
         MangaDetailSections.nextChapter(progress: progress, chapterCount: manga.chapterCount, status: manga.status,
@@ -358,15 +387,18 @@ struct MangaDetailPage: View {
                 }
             }
         case .story:
-            DetailStorySection(eyebrow: MangaDetailCopy.seriesOverview(german: german),
-                               hook: hook,
-                               synopsis: manga.hasMeaningfulSynopsis ? manga.displayDescription : copy?.synopsis?.detailNonEmpty,
-                               aboutTitle: DetailPageCopy.aboutTitle(isSeason: false, german: german),
-                               expectation: nil,
-                               serifHook: true,
-                               premise: hook == nil ? nil : copy?.premise?.detailNonEmpty,
-                               expanded: folds.binding(page: DetailFold.page(manga.libraryKey), section: DetailFold.story),
-                               onCollapse: { foldCollapsed(.story, proxy: proxy) })
+            VStack(alignment: .leading, spacing: 0) {
+                DetailStorySection(eyebrow: MangaDetailCopy.seriesOverview(german: german),
+                                   hook: hook,
+                                   synopsis: manga.hasMeaningfulSynopsis ? manga.displayDescription : copy?.synopsis?.detailNonEmpty,
+                                   aboutTitle: DetailPageCopy.aboutTitle(isSeason: false, german: german),
+                                   expectation: nil,
+                                   serifHook: true,
+                                   premise: hook == nil ? nil : copy?.premise?.detailNonEmpty,
+                                   expanded: folds.binding(page: DetailFold.page(manga.libraryKey), section: DetailFold.story),
+                                   onCollapse: { foldCollapsed(.story, proxy: proxy) })
+                DetailThemesStrip(split: content.tagSplit, bookish: true)
+            }
         case .clubPresence:
             DetailClubPresence(names: DetailBetweenUs.rosterNames(roster), count: clubPeople) {
                 // Reduce Motion: the jump is instant (prototype §6).
@@ -377,9 +409,7 @@ struct MangaDetailPage: View {
             .padding(.bottom, 15)
         case .progress:
             MangaBookmarkCard(progress: progress, total: total,
-                              caption: MangaDetailSections.bookmarkCaption(total: total,
-                                                                           releasing: manga.status?.uppercased() == "RELEASING",
-                                                                           german: german),
+                              caption: bookmarkCaption,
                               material: material)
                 .padding(.top, 16)
                 .overlay(alignment: .top) {
@@ -410,7 +440,11 @@ struct MangaDetailPage: View {
                                                               section: DetailFold.adaptationGuide),
                                     onCollapse: { foldCollapsed(.source, proxy: proxy) },
                                     officialSite: content.adaptationSite,
-                                    onOpenSite: { openOfficialSite(adaptation) }) { id in
+                                    onOpenSite: { openOfficialSite(adaptation) },
+                                    currentMangaProgress: entry?.progress,
+                                    onBookmarkChapter: { nextChapter in
+                                        bookmarkAdaptationChapter(nextChapter: nextChapter, origin: origin)
+                                    }) { id in
                     // The adaptation (and a guide's season) is always an anime: pushed in the journey.
                     routes.openPage(DetailNavigation.seasonPage(id: id))
                 }
@@ -625,6 +659,31 @@ struct MangaDetailPage: View {
         DetailShare.present(url: url, subject: manga.displayTitle)
     }
 
+    private func bookmarkAdaptationChapter(nextChapter: Int, origin: AccountActionScope.Ticket?) {
+        let targetKey = manga.libraryKey
+        guard GuestGate.allows(.plan(targetKey, title: manga.displayTitle), guest: guest, routes: routes) else { return }
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.bookmarkAdaptationHandoff(key: targetKey, nextChapter: nextChapter)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            if outcome.change != nil {
+                KuroAccessibility.successHaptic()
+                showToast(KuroToastState(
+                    kind: .success,
+                    title: KuroLocale.text("Continue from Ch. \(nextChapter).", "Weiter bei Kap. \(nextChapter)."),
+                    subtitle: nil, actionTitle: nil, onAction: nil
+                ))
+            } else {
+                KuroAccessibility.errorHaptic()
+                showToast(KuroToastState(
+                    kind: .error,
+                    title: KuroLocale.text("Not saved. Try again.", "Nicht gespeichert. Versuch es erneut."),
+                    subtitle: nil, actionTitle: nil, onAction: nil
+                ))
+            }
+        }
+    }
+
     @MainActor
     private func showToast(_ next: KuroToastState) {
         toastTask?.cancel()
@@ -665,7 +724,12 @@ struct MangaDetailPage: View {
             content.bundle = bundle
         }
         #endif
-        await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "MANGA", mediaId: manga.id, ladder: ladder, reason: "detail_open")
+        pending.remove(.ladder)
+        // Post-paint background enqueue: never block the detail skeleton on a server write RPC.
+        let refreshMangaId = manga.id
+        Task { [catalog] in
+            await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "MANGA", mediaId: refreshMangaId, ladder: ladder, reason: "detail_open")
+        }
     }
 
     #if canImport(Supabase)
@@ -680,16 +744,22 @@ struct MangaDetailPage: View {
         defer { pending.remove(.credits) }
         let generation = UUID()
         creditsGeneration = generation
+        async let storyTags = catalog.fetchStoryTagSplit(kind: .manga, id: manga.id)
         guard flags.isCreditsCastV1Enabled else {
             // The flag turned off: the sections go with it.
             content.authors = []
             content.characters = []
+            let loadedTags = await storyTags
+            guard !Task.isCancelled, creditsGeneration == generation else { return }
+            content.tagSplit = loadedTags
             return
         }
         async let authors = catalog.fetchAuthorsForManga(mangaId: manga.id)
         async let cast = catalog.fetchCharactersForManga(mangaId: manga.id)
-        let (loadedAuthors, loadedCast) = await (authors, cast)
-        guard !Task.isCancelled, creditsGeneration == generation, flags.isCreditsCastV1Enabled else { return }
+        let (loadedAuthors, loadedCast, loadedTags) = await (authors, cast, storyTags)
+        guard !Task.isCancelled, creditsGeneration == generation else { return }
+        content.tagSplit = loadedTags
+        guard flags.isCreditsCastV1Enabled else { return }
         content.authors = loadedAuthors
         content.characters = loadedCast
     }
@@ -703,10 +773,12 @@ struct MangaDetailPage: View {
     }
 
     /// "More like this." once per account and title; an empty answer hides the section.
+    /// Yields briefly so above-the-fold hero/chapters/read-links win the initial connection burst.
     private func loadSimilar() async {
         guard preview == nil, let recommendations else { return }
         let key = DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id)
         if similarKey != key { similar = []; similarKey = nil }
+        do { try await Task.sleep(for: .milliseconds(120)) } catch { return }
         let items = await recommendations.fetchSimilar(kind: .manga, id: manga.id, limit: 12)
         guard !Task.isCancelled, key == DetailMoreLikeThisRule.stateKey(account: accountId, kind: .manga, id: manga.id) else { return }
         similar = items
@@ -1037,8 +1109,20 @@ struct MangaChaptersSection: View {
         let german = KuroLocale.isGerman
         VStack(alignment: .leading, spacing: 0) {
             DetailSectionHeading(title: KuroLocale.text("Chapters", "Kapitel"))
+            if total == nil, let latest = manga.latestChapter, latest > 0 {
+                let out = Int(floor(latest))
+                let unread = isTracked ? max(0, out - progress) : 0
+                let summary = unread > 0
+                    ? (german ? "\(out) Kapitel erschienen · \(unread) ungelesen" : "\(out) chapters out · \(unread) unread")
+                    : (german ? "\(out) Kapitel erschienen" : "\(out) chapters out")
+                Text(summary)
+                    .font(.detailSF(10, relativeTo: .footnote))
+                    .monospacedDigit()
+                    .foregroundStyle(DetailInk.progressCaption)
+                    .padding(.top, 4)
+            }
             if let nextRelease {
-                KuroReleaseLine(nextRelease, font: .detailSF(10, relativeTo: .footnote), color: DetailInk.progressCaption)
+                KuroReleaseLine(nextRelease, font: .detailSF(10, relativeTo: .footnote), color: DetailInk.progressCaption, liveCountdown: true)
                     .padding(.top, 4)
             }
             if let upNext {
@@ -1265,6 +1349,8 @@ struct MangaAdaptationCard: View {
     /// The adaptation's official site ("Official anime site ↗"), when its external links have one.
     var officialSite: URL? = nil
     var onOpenSite: () -> Void = {}
+    var currentMangaProgress: Int? = nil
+    var onBookmarkChapter: ((Int) -> Void)? = nil
     let onOpen: (Int) -> Void
     @State private var choice: Int?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -1455,6 +1541,32 @@ struct MangaAdaptationCard: View {
                 .font(.detailSF(11, relativeTo: .footnote))
                 .foregroundStyle(MangaInk.guideText)
                 .fixedSize(horizontal: false, vertical: true)
+            let continueChapter = DetailSourceCard.parsedChapterNumber(from: guide.readNext)
+                ?? DetailSourceCard.parsedChapterNumber(from: guide.endsAt).map { $0 + 1 }
+            if (guide.mappingState == "exact" || guide.mappingState == "partial"),
+               let chapter = continueChapter,
+               let onBookmarkChapter,
+               (currentMangaProgress ?? 0) < max(0, chapter - 1) {
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    onBookmarkChapter(chapter)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bookmark")
+                            .font(.detailSF(11, .medium, relativeTo: .footnote))
+                        Text(german ? "Lesezeichen ab Kap. \(chapter)" : "Bookmark at Ch. \(chapter)")
+                            .font(.detailSF(11, .medium, relativeTo: .footnote))
+                    }
+                    .foregroundStyle(Color.kuroInk)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 44)
+                    .background(Capsule(style: .continuous).fill(Color.kuroControlFill))
+                    .overlay(Capsule(style: .continuous).strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(KuroPressStyle())
+                .padding(.top, 4)
+            }
             if let id = guide.animeId, id != item.mediaId {
                 Button { onOpen(id) } label: {
                     Text(KuroLocale.text("Open this season →", "Diese Staffel öffnen →"))

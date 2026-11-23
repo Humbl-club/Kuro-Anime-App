@@ -24,8 +24,14 @@ struct ClubRoomCard: View {
     private var compact: Bool { HomeClubRoom.isCompact(width: roomWidth) }
     private var german: Bool { KuroLocale.isGerman }
 
+    private var allCoverURLs: [URL] {
+        (club.cover_images ?? [])
+            .filter { ImagePipeline.hasRenderableArtwork($0) }
+            .compactMap(URL.init(string:))
+    }
+
     private var covers: [URL] {
-        (club.cover_images ?? []).compactMap(URL.init(string:)).prefix(compact ? 2 : 3).map { $0 }
+        Array(allCoverURLs.prefix(compact ? 3 : 4))
     }
 
     private var initials: [String] {
@@ -46,7 +52,7 @@ struct ClubRoomCard: View {
         .padding(.horizontal, compact ? 12 : 16)
         .padding(.bottom, ClubsListCardRules.recentLine(club.activity_preview, german: german) == nil ? 16 : 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background { ClubRoomBackground(cornerRadius: 24) }
+        .background { ClubRoomBackground(cornerRadius: 24, artworkURLs: Array(allCoverURLs.prefix(3))) }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { roomWidth = $0 }
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
@@ -57,7 +63,7 @@ struct ClubRoomCard: View {
     private var masthead: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         HStack(alignment: .center, spacing: compact ? 8 : 10) {
-            ClubSeal(ring: ClubSeal.ring(compact: compact))
+            ClubSeal(ring: ClubSeal.ring(compact: compact), crest: ClubCrestStore.crest(for: club.id))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(ClubsListCardRules.audienceLabel(sharingLevel: club.sharing_level, german: german))
@@ -97,16 +103,17 @@ struct ClubRoomCard: View {
     }
 
     private var fan: some View {
-        HStack(spacing: ClubRoomLayout.fanOverlap) {
+        let coverW = compact ? ClubRoomLayout.fanCover.width : 36
+        let coverH = compact ? ClubRoomLayout.fanCover.height : 52
+        return HStack(spacing: -8) {
             ForEach(Array(covers.enumerated()), id: \.offset) { _, url in
-                KuroCachedAsyncImage(url: url, maxPixelSize: 120) { phase in
+                KuroCachedAsyncImage(url: url, maxPixelSize: 180) { phase in
                     if case .success(let image) = phase { image.resizable().scaledToFill() }
                     else { HomeInk.posterFill }
                 }
-                .frame(width: ClubRoomLayout.fanCover.width, height: ClubRoomLayout.fanCover.height)
-                .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 2, style: .continuous).strokeBorder(ClubRoomPalette.memberRim, lineWidth: 1.5))
-                .shadow(color: Color.black.opacity(Double(0x2A) / 255), radius: 1.5, x: -2, y: 0)
+                .frame(width: coverW, height: coverH)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(ClubRoomPalette.memberRim, lineWidth: 1.5))
             }
         }
         .padding(.leading, 8)
@@ -128,6 +135,7 @@ struct ClubRoomCard: View {
             if !meta.isEmpty {
                 Text(meta)
                     .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                    .monospacedDigit()
                     .foregroundStyle(ClubRoomPalette.rowSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -149,6 +157,7 @@ struct ClubRoomCard: View {
                 if let ago {
                     Text(ago)
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                        .monospacedDigit()
                         .foregroundStyle(ClubRoomPalette.rowSecondary)
                 }
             }
@@ -186,7 +195,7 @@ struct ClubRoomSkeleton: View {
                             Capsule().fill(deep).frame(width: 150, height: 16)
                         }
                         Spacer(minLength: 0)
-                        RoundedRectangle(cornerRadius: 2).fill(block).frame(width: 30, height: 44)
+                        RoundedRectangle(cornerRadius: 2, style: .continuous).fill(block).frame(width: 30, height: 44)
                     }
                     HStack(spacing: 8) {
                         Circle().fill(block).frame(width: 22, height: 22)

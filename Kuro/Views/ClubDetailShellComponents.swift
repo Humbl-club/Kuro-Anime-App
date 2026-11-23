@@ -164,7 +164,7 @@ struct JournalHeroSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: compact ? 8 : 10) {
-                ClubSeal(ring: ClubSeal.ring(compact: compact))
+                ClubSeal(ring: ClubSeal.ring(compact: compact), crest: ClubCrestStore.crest(for: bundle.club.id))
                     .accessibilityHidden(true)
                 Text(ClubRoomCopy.heroKicker(sharingLevel: bundle.club.sharing_level, german: german))
                     .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))
@@ -211,7 +211,23 @@ struct JournalHeroSection: View {
         // iPad: the room stays full-bleed; its text keeps the readable column.
         .kuroReadableWidth()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ClubRoomBackground(cornerRadius: 24, topCornerRadius: 0).ignoresSafeArea(edges: .top))
+        .background(ClubRoomBackground(cornerRadius: 24, topCornerRadius: 0, artworkURLs: heroArtworkURLs).ignoresSafeArea(edges: .top))
+    }
+
+    private var heroArtworkURLs: [URL] {
+        var seen: Set<String> = []
+        var urls: [URL] = []
+        for rail in bundle.rails {
+            for item in rail.items {
+                guard let raw = item.cover_image_medium,
+                      ImagePipeline.hasRenderableArtwork(raw),
+                      seen.insert(raw).inserted,
+                      let url = URL(string: raw) else { continue }
+                urls.append(url)
+                if urls.count >= 3 { return urls }
+            }
+        }
+        return urls
     }
 
     private func item(_ id: String) -> ClubRailItem? {
@@ -435,38 +451,31 @@ struct ClubKeyRow: View {
     }
 
     private func keyFace(title: String, glyph: String, iconOver: Bool) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         let content = Group {
             Image(systemName: glyph)
-                .font(.kuroCustom(iconOver ? 13 : 15, weight: .regular, relativeTo: .subheadline, maxSize: 24))
+                .font(.kuroCustom(iconOver ? 11 : 12, weight: .medium, relativeTo: .footnote, maxSize: 22))
                 .accessibilityHidden(true)
             Text(title)
                 .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 24))
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-                .multilineTextAlignment(iconOver ? .center : .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         return Group {
             if iconOver {
                 VStack(spacing: 2) { content }
             } else {
-                HStack(spacing: 8) { content }
+                HStack(spacing: 6) { content }
             }
         }
-        .foregroundStyle(Color(hex: "29352C"))
-        .padding(.horizontal, iconOver ? 4 : 10)
+        .foregroundStyle(Color.kuroInk)
+        .padding(.horizontal, iconOver ? 6 : 12)
         .padding(.vertical, iconOver ? 5 : 0)
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: iconOver ? .center : .leading)
-        .background(
-            shape.fill(LinearGradient(colors: [.kuroKeyLightTop, .kuroKeyLightBottom], startPoint: .top, endPoint: .bottom))
-                .shadow(color: Color(hex: "142319", opacity: Double(0x12) / 255), radius: 0.5, y: 1)
-        )
-        .overlay(shape.strokeBorder(Color(hex: "202823", opacity: Double(0x26) / 255), lineWidth: 1))
-        .overlay(alignment: .top) {
-            shape.stroke(Color.white.opacity(Double(0x90) / 255), lineWidth: 1)
-                .mask(Rectangle().frame(height: 2).frame(maxHeight: .infinity, alignment: .top))
-        }
-        .contentShape(shape)
+        .frame(maxWidth: .infinity, minHeight: 36, alignment: .center)
+        .background(Color.white.opacity(0.76), in: shape)
+        .overlay(shape.strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
     }
 }
 

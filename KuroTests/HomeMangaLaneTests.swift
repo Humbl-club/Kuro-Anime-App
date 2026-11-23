@@ -386,6 +386,75 @@ struct HomeLayoutPolicyTests {
             }
         }
     }
+
+    @Test("KuroGestureCoordinator.contains matches exclusion rects with vertical padding")
+    func exclusionZoneHitTesting() {
+        let zones = [CGRect(x: 0, y: 120, width: 390, height: 180), CGRect.zero]
+        #expect(KuroGestureCoordinator.contains(CGPoint(x: 12, y: 180), in: zones))
+        #expect(KuroGestureCoordinator.contains(CGPoint(x: 200, y: 112), in: zones, verticalPadding: 10))
+        #expect(!KuroGestureCoordinator.contains(CGPoint(x: 200, y: 95), in: zones, verticalPadding: 10))
+        #expect(!KuroGestureCoordinator.contains(CGPoint(x: 1, y: 1), in: [CGRect.zero]))
+    }
+
+    @Test("HomeCard and Manga decode live latest_chapter and airing schedule fields")
+    func liveChapterAndAiringModelDecoding() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let homeJSON = """
+        {
+          "media_id": 21,
+          "list_type": "CURRENT",
+          "progress": 1190,
+          "server_revision": 4,
+          "lifecycle_id": "life-1",
+          "title": "One Piece",
+          "latest_chapter": 1198.5,
+          "next_episode_number": 1123,
+          "next_airing_at": "2026-11-22T15:00:00Z",
+          "next_chapter_number": 1199,
+          "next_chapter_at": "2026-11-24T00:00:00Z"
+        }
+        """.data(using: .utf8)!
+        let homeCard = try decoder.decode(HomeCard.self, from: homeJSON)
+        #expect(homeCard.latestChapter == 1198.5)
+        #expect(homeCard.nextEpisodeNumber == 1123)
+        #expect(homeCard.nextAiringAt != nil)
+        #expect(homeCard.nextChapterNumber == 1199)
+        #expect(homeCard.nextChapterAt != nil)
+
+        let mangaJSON = """
+        {
+          "id": 30013,
+          "title_english": "One Piece",
+          "chapters": null,
+          "latest_chapter": 1198.5,
+          "latest_chapter_at": "2026-11-21T08:00:00Z",
+          "next_chapter_number": 1199,
+          "next_chapter_at": "2026-11-24T00:00:00Z",
+          "is_adult": false,
+          "created_at": "2026-01-01T00:00:00Z",
+          "updated_at": "2026-11-21T08:00:00Z"
+        }
+        """.data(using: .utf8)!
+        let manga = try decoder.decode(Manga.self, from: mangaJSON)
+        #expect(manga.latestChapter == 1198.5)
+        #expect(manga.nextChapterNumber == 1199)
+        #expect(manga.chapterText == "1198 OUT")
+    }
+
+    @Test("KuroRootPanPolicy fails vertical drags immediately and favors horizontal pager drags")
+    func rootPanDirectionalPolicy() {
+        #expect(!KuroRootPanPolicy.shouldBeginHorizontalPan(
+            translation: CGPoint(x: 2, y: 18),
+            velocity: CGPoint(x: 12, y: 260)
+        ))
+        #expect(KuroRootPanPolicy.shouldBeginHorizontalPan(
+            translation: CGPoint(x: 18, y: 3),
+            velocity: CGPoint(x: 240, y: 20)
+        ))
+        #expect(KuroRootPanPolicy.effectiveHorizontalTranslation(dx: 24, vx: 300) > 60)
+    }
 }
 
 // MARK: - Fixture renders (evidence; PNGs only with TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1)

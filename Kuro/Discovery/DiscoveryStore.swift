@@ -95,6 +95,85 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// `discoverUndeployedRetryInterval`).
     @ObservationIgnored var undeployedDiscoverContracts: [String: Date] = [:]
 
+    /// Zero-I/O metadata lookup over the in-memory Discover bundle for 0 ms optimistic Home inserts.
+    func cachedHomeCardSeed(for key: MediaKey) -> HomeCardSeed? {
+        for entry in discoverBundleCache.values {
+            let bundle = entry.value
+            switch key.kind {
+            case .anime:
+                let pools = [
+                    bundle.anime.currentSeason, bundle.anime.trending, bundle.anime.essentials,
+                    bundle.anime.newToYou, bundle.anime.newlyAdded, bundle.anime.classics,
+                    bundle.anime.topRated, bundle.anime.airingToday,
+                ]
+                for pool in pools {
+                    if let card = pool.first(where: { $0.id == key.id }) {
+                        return HomeCardSeed(
+                            title: card.title,
+                            coverImage: card.imageURL,
+                            bannerImage: card.bannerImage,
+                            format: card.format,
+                            episodes: card.episodes,
+                            chapters: nil,
+                            volumes: nil
+                        )
+                    }
+                }
+            case .manga:
+                let pools = [
+                    bundle.manga.trending, bundle.manga.newlyAdded, bundle.manga.essentials,
+                    bundle.manga.newToYou, bundle.manga.classics, bundle.manga.topRated,
+                ]
+                for pool in pools {
+                    if let card = pool.first(where: { $0.id == key.id }) {
+                        return HomeCardSeed(
+                            title: card.title,
+                            coverImage: card.imageURL,
+                            bannerImage: nil,
+                            format: card.format,
+                            episodes: nil,
+                            chapters: card.chapters,
+                            volumes: nil
+                        )
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Zero-I/O deduplicated pool of in-memory Discover cards for 0 ms Search typing previews and
+    /// the idle Popular strip (no extra network call).
+    func cachedSearchPreviewCards() -> (anime: [AnimeCard], manga: [MangaCard]) {
+        var animeSeen: Set<Int> = []
+        var mangaSeen: Set<Int> = []
+        var animeOut: [AnimeCard] = []
+        var mangaOut: [MangaCard] = []
+        for entry in discoverBundleCache.values.sorted(by: { $0.storedAt > $1.storedAt }) {
+            let bundle = entry.value
+            let animePools = [
+                bundle.anime.trending, bundle.anime.currentSeason, bundle.anime.essentials,
+                bundle.anime.newToYou, bundle.anime.newlyAdded, bundle.anime.classics,
+                bundle.anime.topRated,
+            ]
+            for pool in animePools {
+                for card in pool where animeSeen.insert(card.id).inserted {
+                    animeOut.append(card)
+                }
+            }
+            let mangaPools = [
+                bundle.manga.trending, bundle.manga.essentials, bundle.manga.newToYou,
+                bundle.manga.newlyAdded, bundle.manga.classics, bundle.manga.topRated,
+            ]
+            for pool in mangaPools {
+                for card in pool where mangaSeen.insert(card.id).inserted {
+                    mangaOut.append(card)
+                }
+            }
+        }
+        return (animeOut, mangaOut)
+    }
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {
@@ -222,6 +301,72 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     }
 
     // MARK: - Server-driven Discover sections (Anime)
+
+    /// Direct cover-guaranteed "Just added" query over `public.anime` used when `discover_bundle`'s
+    /// raw `newly_added` rail contains unhydrated rows without a renderable cover image.
+    func fetchRenderableNewlyAddedAnime(limit: Int = 20) async -> [AnimeCard] {
+        let clamped = max(1, min(40, limit))
+        do {
+            let client = try requiredClient()
+            let rows: [AnimeCard] = try await client
+                .from("anime")
+                .select("id,title_english,title_romaji,title_native,cover_image_large,cover_image_medium,banner_image,format,status,episode_count:episodes,season_year,start_date_year,average_score,popularity,trending,favourites,genres,created_at")
+                .eq("is_adult", value: false)
+                .not("cover_image_large", operator: .is, value: "null")
+                .not("cover_image_large", operator: .ilike, value: "%anilist.co%")
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(clamped * 2)
+                .execute()
+                .value
+            let filtered = rows.filter { card in
+                let genres = Set((card.genres ?? []).map { $0.lowercased() })
+                let format = card.format?.uppercased() ?? ""
+                return ImagePipeline.hasRenderableArtwork(card.imageURL)
+                    && !genres.contains("hentai")
+                    && !genres.contains("ecchi")
+                    && !["SPECIAL", "MUSIC", "TV_SHORT"].contains(format)
+            }
+            return Array(filtered.prefix(clamped))
+        } catch {
+            #if DEBUG
+            print("❌ fetchRenderableNewlyAddedAnime error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    /// Direct cover-guaranteed "Just added" query over `public.manga` used when `discover_bundle`'s
+    /// raw `newly_added` rail contains unhydrated rows without a renderable cover image.
+    func fetchRenderableNewlyAddedManga(limit: Int = 20) async -> [MangaCard] {
+        let clamped = max(1, min(40, limit))
+        do {
+            let client = try requiredClient()
+            let rows: [MangaCard] = try await client
+                .from("manga")
+                .select("id,title_english,title_romaji,title_native,cover_image_large,cover_image_medium,format,status,chapter_count:chapters,start_date_year,average_score,popularity,trending,favourites,genres,created_at")
+                .eq("is_adult", value: false)
+                .not("cover_image_large", operator: .is, value: "null")
+                .not("cover_image_large", operator: .ilike, value: "%anilist.co%")
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(clamped * 2)
+                .execute()
+                .value
+            let filtered = rows.filter { card in
+                let genres = Set((card.genres ?? []).map { $0.lowercased() })
+                return ImagePipeline.hasRenderableArtwork(card.imageURL)
+                    && !genres.contains("hentai")
+                    && !genres.contains("ecchi")
+            }
+            return Array(filtered.prefix(clamped))
+        } catch {
+            #if DEBUG
+            print("❌ fetchRenderableNewlyAddedManga error: \(error)")
+            #endif
+            return []
+        }
+    }
 
     func fetchTrendingAnime(limit: Int = 20, onlyAiring: Bool = false, genre: String? = nil) async -> [Anime] {
         do {
@@ -521,6 +666,254 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
             #if DEBUG
             print("❌ airing slots read: \(error)")
             #endif
+        }
+    }
+
+    private struct UpcomingAnimeScheduleRow: Decodable {
+        let id: Int
+        let titleEnglish: String?
+        let titleRomaji: String?
+        let titleNative: String?
+        let coverImageLarge: String?
+        let coverImageMedium: String?
+        let bannerImage: String?
+        let format: String?
+        let status: String?
+        let episodeCount: Int?
+        let seasonYear: Int?
+        let startDateYear: Int?
+        let averageScore: Int?
+        let popularity: Int?
+        let trending: Int?
+        let favourites: Int?
+        let genreList: [String]?
+        let createdAt: Date?
+        let nextAiringAt: Date?
+        let nextEpisodeNumber: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case titleEnglish = "title_english"
+            case titleRomaji = "title_romaji"
+            case titleNative = "title_native"
+            case coverImageLarge = "cover_image_large"
+            case coverImageMedium = "cover_image_medium"
+            case bannerImage = "banner_image"
+            case format
+            case status
+            case episodeCount = "episode_count"
+            case seasonYear = "season_year"
+            case startDateYear = "start_date_year"
+            case averageScore = "average_score"
+            case popularity
+            case trending
+            case favourites
+            case genreList = "genres"
+            case createdAt = "created_at"
+            case nextAiringAt = "next_airing_at"
+            case nextEpisodeNumber = "next_episode_number"
+        }
+
+        var asAnimeCard: AnimeCard {
+            AnimeCard(
+                id: id,
+                titleEnglish: titleEnglish,
+                titleRomaji: titleRomaji,
+                titleNative: titleNative,
+                coverImageLarge: coverImageLarge,
+                coverImageMedium: coverImageMedium,
+                bannerImage: bannerImage,
+                format: format,
+                status: status,
+                episodeCount: episodeCount,
+                seasonYear: seasonYear,
+                startDateYear: startDateYear,
+                averageScore: averageScore,
+                popularity: popularity,
+                trending: trending,
+                favourites: favourites,
+                genreList: genreList,
+                createdAt: createdAt,
+                rank: nil
+            )
+        }
+    }
+
+    private struct MangaScheduleRow: Decodable {
+        let id: Int
+        let titleEnglish: String?
+        let titleRomaji: String?
+        let titleNative: String?
+        let coverImageLarge: String?
+        let coverImageMedium: String?
+        let format: String?
+        let status: String?
+        let chapterCount: Int?
+        let startDateYear: Int?
+        let averageScore: Int?
+        let popularity: Int?
+        let trending: Int?
+        let favourites: Int?
+        let genreList: [String]?
+        let createdAt: Date?
+        let latestChapter: Double?
+        let latestChapterAt: Date?
+        let nextChapterNumber: Int?
+        let nextChapterAt: Date?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case titleEnglish = "title_english"
+            case titleRomaji = "title_romaji"
+            case titleNative = "title_native"
+            case coverImageLarge = "cover_image_large"
+            case coverImageMedium = "cover_image_medium"
+            case format
+            case status
+            case chapterCount = "chapter_count"
+            case startDateYear = "start_date_year"
+            case averageScore = "average_score"
+            case popularity
+            case trending
+            case favourites
+            case genreList = "genres"
+            case createdAt = "created_at"
+            case latestChapter = "latest_chapter"
+            case latestChapterAt = "latest_chapter_at"
+            case nextChapterNumber = "next_chapter_number"
+            case nextChapterAt = "next_chapter_at"
+        }
+
+        var asMangaCard: MangaCard {
+            let derivedTotal = chapterCount ?? latestChapter.map { Int(floor($0)) }
+            return MangaCard(
+                id: id,
+                titleEnglish: titleEnglish,
+                titleRomaji: titleRomaji,
+                titleNative: titleNative,
+                coverImageLarge: coverImageLarge,
+                coverImageMedium: coverImageMedium,
+                format: format,
+                status: status,
+                chapterCount: derivedTotal,
+                startDateYear: startDateYear,
+                averageScore: averageScore,
+                popularity: popularity,
+                trending: trending,
+                favourites: favourites,
+                genreList: genreList,
+                createdAt: createdAt,
+                rank: nil
+            )
+        }
+    }
+
+    /// Reads releasing anime with confirmed upcoming `next_airing_at` within the next `days` days,
+    /// sorted chronologically soonest-first. Public catalogue data.
+    func fetchUpcomingAnimeSchedule(days: Int = 7, limit: Int = 60, now: Date = Date()) async -> (cards: [AnimeCard], slots: [Int: DiscoverAiringSlot]) {
+        let clampedLimit = max(1, min(100, limit))
+        let windowEnd = now.addingTimeInterval(TimeInterval(max(1, days) * 86_400))
+        let isoNow = now.ISO8601Format()
+        let isoEnd = windowEnd.ISO8601Format()
+        do {
+            let client = try requiredClient()
+            let rows: [UpcomingAnimeScheduleRow] = try await client
+                .from("anime")
+                .select("id,title_english,title_romaji,title_native,cover_image_large,cover_image_medium,banner_image,format,status,episode_count:episodes,season_year,start_date_year,average_score,popularity,trending,favourites,genres,created_at,next_airing_at,next_episode_number")
+                .eq("is_adult", value: false)
+                .eq("status", value: "RELEASING")
+                .gte("next_airing_at", value: isoNow)
+                .lte("next_airing_at", value: isoEnd)
+                .order("next_airing_at", ascending: true)
+                .limit(clampedLimit * 2)
+                .execute()
+                .value
+
+            var cards: [AnimeCard] = []
+            var slots: [Int: DiscoverAiringSlot] = [:]
+            for row in rows {
+                let card = row.asAnimeCard
+                let genres = Set((card.genres ?? []).map { $0.lowercased() })
+                let format = card.format?.uppercased() ?? ""
+                guard ImagePipeline.hasRenderableArtwork(card.imageURL),
+                      !genres.contains("hentai"),
+                      !genres.contains("ecchi"),
+                      !["SPECIAL", "MUSIC", "TV_SHORT"].contains(format),
+                      let airingAt = row.nextAiringAt else { continue }
+                let slot = DiscoverAiringSlot(animeId: row.id, airingAt: airingAt, episode: row.nextEpisodeNumber)
+                airingSlots[row.id] = slot
+                slots[row.id] = slot
+                cards.append(card)
+                if cards.count >= clampedLimit { break }
+            }
+            return (cards, slots)
+        } catch {
+            #if DEBUG
+            print("❌ fetchUpcomingAnimeSchedule error: \(error)")
+            #endif
+            return ([], [:])
+        }
+    }
+
+    /// Reads ongoing manga with upcoming scheduled chapters (`next_chapter_at >= now`) first,
+    /// followed by popular ongoing manga with freshly observed `latest_chapter` values.
+    func fetchUpcomingAndFreshManga(limit: Int = 40, now: Date = Date()) async -> (cards: [MangaCard], slots: [Int: DiscoverMangaSlot]) {
+        let clampedLimit = max(1, min(80, limit))
+        let isoNow = now.ISO8601Format()
+        do {
+            let client = try requiredClient()
+            let cols = "id,title_english,title_romaji,title_native,cover_image_large,cover_image_medium,format,status,chapter_count:chapters,start_date_year,average_score,popularity,trending,favourites,genres,created_at,latest_chapter,latest_chapter_at,next_chapter_number,next_chapter_at"
+            async let upcomingRead: [MangaScheduleRow] = client
+                .from("manga")
+                .select(cols)
+                .eq("is_adult", value: false)
+                .eq("status", value: "RELEASING")
+                .gte("next_chapter_at", value: isoNow)
+                .order("next_chapter_at", ascending: true)
+                .limit(20)
+                .execute()
+                .value
+            async let freshRead: [MangaScheduleRow] = client
+                .from("manga")
+                .select(cols)
+                .eq("is_adult", value: false)
+                .eq("status", value: "RELEASING")
+                .not("latest_chapter", operator: .is, value: "null")
+                .order("latest_chapter_at", ascending: false, nullsFirst: false)
+                .order("popularity", ascending: false, nullsFirst: false)
+                .limit(clampedLimit * 2)
+                .execute()
+                .value
+
+            let upcoming = (try? await upcomingRead) ?? []
+            let fresh = try await freshRead
+            var seen: Set<Int> = []
+            var cards: [MangaCard] = []
+            var slots: [Int: DiscoverMangaSlot] = [:]
+
+            for row in upcoming + fresh {
+                guard seen.insert(row.id).inserted else { continue }
+                let card = row.asMangaCard
+                let genres = Set((card.genres ?? []).map { $0.lowercased() })
+                guard ImagePipeline.hasRenderableArtwork(card.imageURL),
+                      !genres.contains("hentai"),
+                      !genres.contains("ecchi") else { continue }
+                cards.append(card)
+                slots[row.id] = DiscoverMangaSlot(
+                    mangaId: row.id,
+                    latestChapter: row.latestChapter,
+                    latestChapterAt: row.latestChapterAt,
+                    nextChapterNumber: row.nextChapterNumber,
+                    nextChapterAt: row.nextChapterAt
+                )
+                if cards.count >= clampedLimit { break }
+            }
+            return (cards, slots)
+        } catch {
+            #if DEBUG
+            print("❌ fetchUpcomingAndFreshManga error: \(error)")
+            #endif
+            return ([], [:])
         }
     }
 

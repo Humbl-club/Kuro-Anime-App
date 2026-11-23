@@ -134,7 +134,7 @@ extension DiscoveryStore {
                   limit: Int = 24) async -> DiscoverPage? {
         let context = accountSession.current
         let limit = max(1, min(60, limit))
-        if discoverContractAvailable(.mood), cursor == nil || cursor.map(Self.isOffsetCursor) == true {
+        if mood.isServerMood, discoverContractAvailable(.mood), cursor == nil || cursor.map(Self.isOffsetCursor) == true {
             let offset = cursor.flatMap(Self.offset) ?? 0
             do {
                 let client = try requiredDiscoverClient()
@@ -161,9 +161,13 @@ extension DiscoveryStore {
             return await browseFallback(
                 medium: medium, sort: .popular, genre: nil, status: DiscoverStatusFilter.finished.catalogStatus,
                 length: .short, format: nil, cursor: cursor, limit: limit)
-        case .cozy, .intense:
+        case .cozy, .intense, .action, .heartfelt, .mindBending:
             return await browseFallback(
                 medium: medium, sort: .popular, genre: mood.fallbackGenre, status: nil,
+                length: nil, format: nil, cursor: cursor, limit: limit)
+        case .acclaimed:
+            return await browseFallback(
+                medium: medium, sort: .topRated, genre: nil, status: nil,
                 length: nil, format: nil, cursor: cursor, limit: limit)
         case .likeLastLoved:
             return await likeLastLovedFallback(medium: medium, cursor: cursor, limit: limit)
@@ -290,32 +294,35 @@ extension DiscoveryStore {
             cursorDate = date
             cursorId = id
         }
+        let requestLimit = sort == .newlyAdded ? min(120, limit * 2) : limit
         switch medium {
         case .anime:
             let range = length?.episodeRange
             guard let rows = await browseAnimePage(
                 genre: genre, status: status, minEpisodes: range?.min, maxEpisodes: range?.max, sort: sort,
                 cursorInt: cursorInt, cursorDate: cursorDate, cursorId: cursorId, format: format?.uppercased(),
-                limit: limit) else { return nil }
-            let next: DiscoverPageCursor? = rows.count < limit ? nil : rows.last.map {
+                limit: requestLimit) else { return nil }
+            let next: DiscoverPageCursor? = rows.count < requestLimit ? nil : rows.last.map {
                 Self.browseCursor(sort: sort, int: Self.sortValue(sort, popularity: $0.popularity, trending: $0.trending,
                                                                   score: $0.averageScore),
                                   date: $0.createdAt, id: $0.id)
             }
-            return DiscoverPage(items: rows.map { DiscoverPageItem(card: .anime($0), franchiseId: nil, serverListStatus: nil) },
+            let visible = sort == .newlyAdded ? rows.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) } : rows
+            return DiscoverPage(items: visible.map { DiscoverPageItem(card: .anime($0), franchiseId: nil, serverListStatus: nil) },
                                 next: next, reason: nil, origin: .fallback)
         case .manga:
             let range = length?.chapterRange
             guard let rows = await browseMangaPage(
                 genre: genre, status: status, minChapters: range?.min, maxChapters: range?.max, sort: sort,
                 cursorInt: cursorInt, cursorDate: cursorDate, cursorId: cursorId, format: format?.uppercased(),
-                limit: limit) else { return nil }
-            let next: DiscoverPageCursor? = rows.count < limit ? nil : rows.last.map {
+                limit: requestLimit) else { return nil }
+            let next: DiscoverPageCursor? = rows.count < requestLimit ? nil : rows.last.map {
                 Self.browseCursor(sort: sort, int: Self.sortValue(sort, popularity: $0.popularity, trending: $0.trending,
                                                                   score: $0.averageScore),
                                   date: $0.createdAt, id: $0.id)
             }
-            return DiscoverPage(items: rows.map { DiscoverPageItem(card: .manga($0), franchiseId: nil, serverListStatus: nil) },
+            let visible = sort == .newlyAdded ? rows.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) } : rows
+            return DiscoverPage(items: visible.map { DiscoverPageItem(card: .manga($0), franchiseId: nil, serverListStatus: nil) },
                                 next: next, reason: nil, origin: .fallback)
         }
     }

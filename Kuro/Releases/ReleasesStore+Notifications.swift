@@ -122,6 +122,24 @@ extension ReleasesStore {
         allowedReleaseNotificationKeys = reminders.allowedReleaseNotificationKeys(for: context)
         // Default off (spec D14): only an explicit Profile toggle turns every watched title on.
         releaseNotificationsEnabled = permission == .authorized && reminders.releaseNotificationPreference(for: context) == true
+        mangaDayAlertsEnabled = reminders.mangaDayAlertsPreference(for: context)
+        preferredAudioVariant = reminders.preferredAudioVariant(for: context)
+    }
+
+    func setMangaDayAlertsEnabled(_ enabled: Bool) async {
+        guard let context = accountSession.current else { return }
+        reminders.setMangaDayAlertsPreference(enabled, for: context)
+        mangaDayAlertsEnabled = enabled
+        if releaseNotificationsEnabled || !allowedReleaseNotificationKeys.isEmpty {
+            await syncReleaseNotificationsNow()
+        }
+    }
+
+    func setPreferredAudioVariant(_ variant: String) {
+        guard let context = accountSession.current else { return }
+        let normalized = variant.lowercased() == "dub" ? "dub" : "sub"
+        reminders.setPreferredAudioVariant(normalized, for: context)
+        preferredAudioVariant = normalized
     }
 
     /// Foreground / bootstrap: state, then (when on) the schedule (cached 5 min) and the plan.
@@ -155,7 +173,8 @@ extension ReleasesStore {
         let following = watching.union(allowedReleaseNotificationKeys.intersection(followed))
         return ReleaseNotificationPlanner.plan(
             items: scheduleItems(for: nil, now: now), following: following, muted: mutedReleaseNotificationKeys,
-            now: now, german: KuroLocale.isGerman, locale: KuroLocale.locale, timeZone: KuroLocale.timeZone)
+            now: now, german: KuroLocale.isGerman, locale: KuroLocale.locale, timeZone: KuroLocale.timeZone,
+            allowConfirmedDay: mangaDayAlertsEnabled)
     }
 
     /// Re-plans once when the Library reaches `.loaded` (one observation at a time).

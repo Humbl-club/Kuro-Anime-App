@@ -50,24 +50,28 @@ struct MediaRoute {
 
     let key: MediaKey
     let preloaded: Preloaded?
+    var zoomSourceID: String? = nil
 
-    init(_ key: MediaKey) {
+    init(_ key: MediaKey, zoomSourceID: String? = nil) {
         self.key = key
         self.preloaded = nil
+        self.zoomSourceID = zoomSourceID
     }
 
-    init(kind: MediaKind, id: Int) {
-        self.init(MediaKey(kind: kind, id: id))
+    init(kind: MediaKind, id: Int, zoomSourceID: String? = nil) {
+        self.init(MediaKey(kind: kind, id: id), zoomSourceID: zoomSourceID)
     }
 
-    init(anime: Anime) {
+    init(anime: Anime, zoomSourceID: String? = nil) {
         self.key = MediaKey(kind: .anime, id: anime.id)
         self.preloaded = .anime(anime)
+        self.zoomSourceID = zoomSourceID
     }
 
-    init(manga: Manga) {
+    init(manga: Manga, zoomSourceID: String? = nil) {
         self.key = MediaKey(kind: .manga, id: manga.id)
         self.preloaded = .manga(manga)
+        self.zoomSourceID = zoomSourceID
     }
 }
 
@@ -297,6 +301,25 @@ extension EnvironmentValues {
         get { self[KuroRoutesKey.self] }
         set { self[KuroRoutesKey.self] = newValue }
     }
+
+    /// Namespace shared with the nearest outer sheet presenter for native zoom transitions.
+    @Entry var kuroZoomNamespace: Namespace.ID? = nil
+}
+
+private struct KuroZoomSourceModifier: ViewModifier {
+    let id: String?
+
+    @Environment(\.kuroZoomNamespace) private var namespace
+    @Environment(\.kuroJourney) private var journey
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        if let id, let namespace, journey == nil, !reduceMotion {
+            content.matchedTransitionSource(id: id, in: namespace)
+        } else {
+            content
+        }
+    }
 }
 
 // MARK: - Presenter
@@ -349,6 +372,7 @@ final class PresentationSlot {
 
 private struct RoutePresenter: ViewModifier {
     @State private var slot = PresentationSlot()
+    @Namespace private var zoomNamespace
     @Environment(\.kuroJourney) private var journey
 
     func body(content: Content) -> some View {
@@ -356,8 +380,9 @@ private struct RoutePresenter: ViewModifier {
         let _ = { slot.journey = journey }()
         content
             .environment(\.kuroRoutes, slot.routes)
+            .environment(\.kuroZoomNamespace, journey == nil ? zoomNamespace : nil)
             .sheet(item: $slot.presented) { presentation in
-                SlotPresentationView(presentation: presentation)
+                SlotPresentationView(presentation: presentation, zoomNamespace: zoomNamespace)
             }
     }
 }
@@ -365,11 +390,19 @@ private struct RoutePresenter: ViewModifier {
 /// What a slot's sheet shows.
 struct SlotPresentationView: View {
     let presentation: SlotPresentation
+    var zoomNamespace: Namespace.ID? = nil
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         switch presentation {
         case .journey(let navigator):
-            JourneyHost(navigator: navigator)
+            if let sourceID = navigator.zoomSourceID, let zoomNamespace, !reduceMotion {
+                JourneyHost(navigator: navigator)
+                    .navigationTransition(.zoom(sourceID: sourceID, in: zoomNamespace))
+            } else {
+                JourneyHost(navigator: navigator)
+            }
         case .tool(let route):
             ToolDestinationView(route: route)
                 .kuroLeavesJourney()
@@ -409,5 +442,10 @@ extension View {
     /// a journey it forwards to the journey.
     func routePresenter() -> some View {
         modifier(RoutePresenter())
+    }
+
+    /// Registers a matched zoom-transition source when outside a journey and motion is enabled.
+    func kuroZoomSource(_ id: String?) -> some View {
+        modifier(KuroZoomSourceModifier(id: id))
     }
 }

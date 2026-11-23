@@ -1,7 +1,17 @@
 // Offline tests for the pure precedence policy (catalogue Task 7).
 // Run: cd supabase/functions/_shared && deno test --no-prompt catalogue/
 import { strict as assert } from "node:assert";
-import { composeAdult, mapRelations, pick, PRECEDENCE, type RawRelation } from "./precedence.ts";
+import {
+  classifyRefreshTier,
+  composeAdult,
+  deriveAnimeSeason,
+  deriveAnimeStatus,
+  mapRelations,
+  pick,
+  PRECEDENCE,
+  prioritizeRefreshTier,
+  type RawRelation,
+} from "./precedence.ts";
 
 Deno.test("firstSourceWithValueWins", () => {
   // feature "Precedence picks...": native title from wikidata, then ann.
@@ -110,4 +120,38 @@ Deno.test("derivativeWorkIsAdaptationOnlyAcrossMedia", () => {
   );
   assert.deepEqual(out.relations.map((r) => [r.type, r.target_id]), [["ADAPTATION", 1]]);
   assert.equal(out.dropped, 1);
+});
+
+Deno.test("deriveAnimeSeasonMapsCalendarQuarters", () => {
+  assert.deepEqual(deriveAnimeSeason({ year: 2027, month: 1, day: 8 }), { season: "WINTER", season_year: 2027 });
+  assert.deepEqual(deriveAnimeSeason({ year: 2026, month: 4, day: 1 }), { season: "SPRING", season_year: 2026 });
+  assert.deepEqual(deriveAnimeSeason({ year: 2026, month: 7, day: null }), { season: "SUMMER", season_year: 2026 });
+  assert.deepEqual(deriveAnimeSeason({ year: 2026, month: 10, day: 5 }), { season: "FALL", season_year: 2026 });
+  assert.equal(deriveAnimeSeason({ year: 2026, month: null, day: null }), null);
+});
+
+Deno.test("deriveAnimeStatusHandlesUpcomingReleasingFinishedAndMovies", () => {
+  const now = Date.UTC(2026, 10, 19); // 2026-11-19
+  assert.equal(deriveAnimeStatus({ year: 2027, month: 1, day: 8 }, null, "TV", now), "NOT_YET_RELEASED");
+  assert.equal(deriveAnimeStatus({ year: 2026, month: 10, day: 5 }, null, "TV", now), "RELEASING");
+  assert.equal(
+    deriveAnimeStatus({ year: 2023, month: 9, day: 29 }, { year: 2024, month: 3, day: 22 }, "TV", now),
+    "FINISHED",
+  );
+  assert.equal(deriveAnimeStatus({ year: 2026, month: 8, day: 1 }, null, "MOVIE", now), "FINISHED");
+});
+
+Deno.test("prioritizeRefreshTierOrdersHotWarmCold", () => {
+  const now = Date.UTC(2026, 10, 19);
+  const items = [
+    { id: 1, status: "FINISHED", createdAtMs: Date.UTC(2020, 0, 1) }, // cold
+    { id: 2, status: "FINISHED", createdAtMs: Date.UTC(2020, 0, 1), inUserList: true }, // warm
+    { id: 3, status: "NOT_YET_RELEASED", createdAtMs: Date.UTC(2026, 1, 1) }, // hot
+    { id: 4, status: "FINISHED", createdAtMs: now - 5 * 86_400_000 }, // hot (newly added)
+  ];
+  assert.equal(classifyRefreshTier(items[0], now), "cold");
+  assert.equal(classifyRefreshTier(items[1], now), "warm");
+  assert.equal(classifyRefreshTier(items[2], now), "hot");
+  assert.equal(classifyRefreshTier(items[3], now), "hot");
+  assert.deepEqual(prioritizeRefreshTier(items, now).map((x) => x.id), [3, 4, 2, 1]);
 });

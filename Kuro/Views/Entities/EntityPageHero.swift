@@ -280,7 +280,7 @@ struct EntityTrackedGlance: View {
                                 EntityCover(imageURL: work.media.imageURL,
                                             kind: EntityCover.kindWord(kind: work.media.kind, formatRaw: work.media.formatRaw, german: german),
                                             title: work.media.title, width: 28, height: 42, cornerRadius: 2)
-                                    .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(HomeInk.glanceFill, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: 2, style: .continuous).strokeBorder(HomeInk.glanceFill, lineWidth: 1))
                             }
                         }
                         Text("›")

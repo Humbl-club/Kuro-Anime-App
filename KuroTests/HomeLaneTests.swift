@@ -35,8 +35,9 @@ struct HomeLaneTests {
         #expect(split.planned.map(\.mediaId) == [1, 3])
         #expect(split.paused.map(\.mediaId) == [5], "paused titles get their own labelled row")
         #expect(split.saved.isEmpty)
-        #expect(HomeShelfPolicy.leadCard(cards)?.mediaId == 2, "a planned title never stands for the shelf")
-        #expect(HomeShelfPolicy.leadCard(try [Self.card(1, "PLANNING")]) == nil)
+        #expect(HomeShelfPolicy.leadCard(cards)?.mediaId == 2, "an in-progress title always wins over a planned one")
+        #expect(HomeShelfPolicy.leadCard(try [Self.card(1, "PLANNING")])?.mediaId == 1,
+                "a planned-only shelf lights the medium switch with its first planned card")
         #expect(HomeShelfPolicy.isInProgress(listType: "current"))
         #expect(!HomeShelfPolicy.isInProgress(listType: "PLANNING"))
     }
@@ -137,6 +138,18 @@ struct HomeLaneTests {
         let undated = ReleaseScheduleItem(medium: .manga, mediaId: 1, title: "M", unitKind: .chapter, unitNumber: 3,
                                           releaseAt: nil, basis: .announced, source: "mangaupdates")
         #expect(HomeCalendarPresentation.glanceCaption(items: [undated], copy: en, coverage: .failed) == "Dates still to come")
+        // 2026-11-20: Coming up shows only for something still to come or a retryable failure; an
+        // answered empty schedule (a finished series in progress) hides the glance entirely.
+        #expect(!HomeCalendarPresentation.showsComingUp(items: [], copy: en, offline: false, coverage: .complete))
+        #expect(!HomeCalendarPresentation.showsComingUp(items: [], copy: en, offline: false, coverage: .pending))
+        #expect(!HomeCalendarPresentation.showsComingUp(items: [], copy: en, offline: false, coverage: .nextSevenDays))
+        #expect(!HomeCalendarPresentation.showsComingUp(items: [], copy: en, offline: true, coverage: .failed))
+        #expect(HomeCalendarPresentation.showsComingUp(items: [], copy: en, offline: false, coverage: .failed))
+        #expect(HomeCalendarPresentation.showsComingUp(items: [undated], copy: en, offline: false, coverage: .complete))
+        let aired = ReleaseScheduleItem(medium: .anime, mediaId: 2, title: "A", unitKind: .episode, unitNumber: 170,
+                                        releaseAt: now.addingTimeInterval(-86_400), basis: .confirmed, source: "anilist")
+        #expect(!HomeCalendarPresentation.showsComingUp(items: [aired], copy: en, offline: false, coverage: .complete),
+                "an aired row is not something coming up")
     }
 
     @Test("The original story names a source only when the bundle knows one")
@@ -290,5 +303,58 @@ struct HomeLaneTests {
         await graph.home.advance(s2)
         #expect(graph.home.displayedProgress(for: s1) == 3)
         #expect(graph.home.displayedProgress(for: s2) == 3)
+    }
+
+    @Test("HomeShelfPolicy.prioritizedScenes floats unwatched titles ahead and caps quiet caught-up heroes at one")
+    func prioritizedScenesRules() throws {
+        let c1 = try Self.seasonCard(1, series: nil, ordinal: nil) // caught up
+        let c2 = try Self.seasonCard(2, series: nil, ordinal: nil) // caught up
+        let c3 = try Self.seasonCard(3, series: nil, ordinal: nil) // actionable
+        let c4 = try Self.seasonCard(4, series: nil, ordinal: nil) // actionable
+
+        // 0 actionable -> 1 hero scene + 1 Also watching
+        let zeroActionable = HomeShelfPolicy.prioritizedScenes([c1, c2]) { _ in true }
+        #expect(zeroActionable.scenes.map(\.mediaId) == [1])
+        #expect(zeroActionable.alsoWatching.map(\.mediaId) == [2])
+
+        // 1 actionable -> floats c3 to hero slot (only 1 hero so c1 moves to compact 2-up grid)
+        let oneActionable = HomeShelfPolicy.prioritizedScenes([c1, c2, c3]) { $0.mediaId != 3 }
+        #expect(oneActionable.scenes.map(\.mediaId) == [3])
+        #expect(oneActionable.alsoWatching.map(\.mediaId) == [1, 2])
+
+        // 2+ actionable -> both hero slots filled by actionable titles
+        let twoActionable = HomeShelfPolicy.prioritizedScenes([c1, c3, c2, c4]) { card in
+            card.mediaId == 1 || card.mediaId == 2
+        }
+        #expect(twoActionable.scenes.map(\.mediaId) == [3, 4])
+        #expect(twoActionable.alsoWatching.map(\.mediaId) == [1, 2])
+    }
+
+    @Test("ProfileCanon.topEntries selects up to 4 completed or rated entries sorted by rating then completed status")
+    func profileCanonTopEntries() {
+        let now = Date()
+        func makeEntry(_ kind: MediaKind, _ id: Int, status: ListStatus, rating: Int? = nil, updatedAt: Date) -> LibraryEntry {
+            LibraryEntry(
+                key: MediaKey(kind: kind, id: id),
+                rowId: id,
+                status: status,
+                progress: 0,
+                rating: rating.flatMap { UserRating(value: $0) },
+                notes: nil,
+                verdict: nil,
+                createdAt: updatedAt,
+                updatedAt: updatedAt,
+                sourceMetadata: nil
+            )
+        }
+        let ePlannedUnrated = makeEntry(.anime, 1, status: .planning, updatedAt: now)
+        let eRatedHigh = makeEntry(.anime, 2, status: .current, rating: 9, updatedAt: now.addingTimeInterval(-60))
+        let eCompletedRated = makeEntry(.manga, 3, status: .completed, rating: 10, updatedAt: now.addingTimeInterval(-120))
+        let eCompletedNoRating = makeEntry(.anime, 4, status: .completed, updatedAt: now.addingTimeInterval(-10))
+        let eRatedLow = makeEntry(.manga, 5, status: .completed, rating: 7, updatedAt: now)
+        let eRatedOlder = makeEntry(.anime, 6, status: .completed, rating: 8, updatedAt: now)
+
+        let top = ProfileCanon.topEntries([ePlannedUnrated, eRatedHigh, eCompletedRated, eCompletedNoRating, eRatedLow, eRatedOlder], limit: 4)
+        #expect(top.map(\.key.id) == [3, 2, 6, 5])
     }
 }

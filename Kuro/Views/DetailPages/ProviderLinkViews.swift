@@ -62,6 +62,17 @@ struct ProviderSelectionSheet: View {
                             .accessibilityLabel(link.accessibilityLabel)
                         }
                     }
+
+                    if !links.isEmpty {
+                        Text(KuroLocale.text(
+                            "Streaming availability data powered by JustWatch",
+                            "Streaming-Daten bereitgestellt von JustWatch"
+                        ))
+                        .font(.kuroCustom(11, weight: .regular, relativeTo: .caption2, maxSize: 16))
+                        .foregroundStyle(Color.kuroMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
+                    }
                 }
                 .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.top, KuroSpacing.md)

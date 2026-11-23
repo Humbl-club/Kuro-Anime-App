@@ -44,6 +44,18 @@ enum HomeOpeningLine {
         }
     }
 
+    /// Kicker for a shelf holding planned titles when nothing is currently in progress.
+    static func plannedKicker(medium: MediaKind, german: Bool = KuroLocale.isGerman) -> String {
+        if german { return "Vorgemerkt" }
+        return medium == .manga ? "Plan to read" : "Plan to watch"
+    }
+
+    /// Right-aligned opening headline for a Planned-only shelf.
+    static func plannedHeadline(count: Int, german: Bool = KuroLocale.isGerman) -> String {
+        if german { return count == 1 ? "1 bereit zum Starten." : "\(count) bereit zum Starten." }
+        return count == 1 ? "1 ready to start." : "\(count) ready to start."
+    }
+
     /// The caught-up quiet card's line (amendment 3).
     static func quietLine(german: Bool = KuroLocale.isGerman) -> String {
         german ? "Heute nichts Neues. Bleib in deinem Tempo." : "Nothing new today. Stay at your own pace."
@@ -80,6 +92,7 @@ struct HomeOpeningLineView: View {
             Text(headline)
                 .font(.kuroCustom(compact ? 13 : 14, weight: .semibold, relativeTo: .subheadline, maxSize: 28))
                 .tracking(-0.3)
+                .monospacedDigit()
                 .foregroundStyle(Color.kuroInk)
                 .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
                 .fixedSize(horizontal: false, vertical: true)
@@ -103,7 +116,7 @@ struct HomeQuietCard: View {
             // 10 pt padding around the prototype's 15.4 pt line.
             .padding(.vertical, 12)
             .padding(.horizontal, 12)
-            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
     }
 }

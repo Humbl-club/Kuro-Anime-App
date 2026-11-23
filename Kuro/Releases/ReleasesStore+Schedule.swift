@@ -312,13 +312,20 @@ extension ReleasesStore {
     // MARK: Library change
 
     /// A membership or status change: the account's schedule answer is stale. A title that left (or
-    /// was completed/dropped) leaves `schedule` at once; an added one appears on the next load.
+    /// was completed/dropped) leaves `schedule` at once; an added/active/planned/paused title
+    /// triggers a coalesced refresh when the schedule contract is active so Coming up stays synced.
     func scheduleMembershipDidChange(_ change: LibraryChange) {
         let prefix = change.account.userId.lowercased() + "|user|"
         for key in scheduleCache.keys where key.hasPrefix(prefix) { scheduleCache[key] = nil }
         let status = change.current?.status
         if change.current == nil || status == .completed || status == .dropped {
             schedule.removeAll { $0.key == change.key }
+        } else if scheduleSource == .schedule || !scheduleCoverageByMedium.isEmpty,
+                  let status, status == .current || status == .repeating || status == .planning || status == .paused {
+            scheduleRefreshTask?.cancel()
+            scheduleRefreshTask = Task { [weak self] in
+                _ = await self?.loadSchedule(force: true)
+            }
         }
     }
 

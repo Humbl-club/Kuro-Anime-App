@@ -715,3 +715,82 @@ private struct FoundationSchemaTransport: LibraryRowTransport {
     #expect(library.loadState == .loaded)
     #expect(library.allEntries.isEmpty)
 }
+
+@Test func startOffsetFlagGatesStartedAtProgressSelectAndPatch() async throws {
+    let json = #"{"id":1,"user_id":"a","manga_id":7,"list_type":"READING","progress":70,"created_at":"2026-10-08T00:00:00Z","updated_at":"2026-10-08T00:00:00Z","server_revision":3,"lifecycle_id":"00000000-0000-0000-0000-000000000007","progress_label":"70.5","volumes_progress":7,"started_at_progress":63}"#
+    let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+    let row = try decoder.decode(LibraryRow.self, from: Data(json.utf8))
+
+    let disabledTransport = RecordingTransport([.success([]), .success([row]), .success([row])])
+    let disabledBackend = SupabaseLibraryBackend(transport: disabledTransport)
+    let withoutFlag = try await disabledBackend.fetchAll(for: Rows.account)
+    #expect(withoutFlag.first?.sourceMetadata?.startedAtProgress == nil)
+    if case .select(let req)? = disabledTransport.requests.last {
+        #expect(!req.columns.contains("started_at_progress"))
+    }
+    _ = try await disabledBackend.edit(
+        LibraryEdit(progress: .set(64), startedAtProgress: .set(63)),
+        key: MediaKey(kind: .manga, id: 7),
+        createIfMissing: nil,
+        mutationId: UUID(),
+        baseRevision: nil,
+        account: Rows.account
+    )
+    #expect(Rows.patchBody(disabledTransport.requests.last)?["started_at_progress"] == nil)
+
+    let enabledTransport = RecordingTransport([.success([]), .success([row]), .success([row])])
+    let enabledBackend = SupabaseLibraryBackend(
+        transport: enabledTransport,
+        fence: nil,
+        fenceEnabled: { false },
+        startOffsetEnabled: { true }
+    )
+    let withFlag = try await enabledBackend.fetchAll(for: Rows.account)
+    #expect(withFlag.first?.sourceMetadata?.startedAtProgress == 63)
+    #expect(effectiveUnitsConsumed(progress: 70, startedAt: withFlag.first?.sourceMetadata?.startedAtProgress) == 7)
+    if case .select(let req)? = enabledTransport.requests.last {
+        #expect(req.columns.contains("started_at_progress"))
+    }
+    _ = try await enabledBackend.edit(
+        LibraryEdit(
+            status: .set(.current),
+            progress: .set(70),
+            progressLabel: .set("70.5"),
+            volumesProgress: .set(7),
+            startedAtProgress: .set(63)
+        ),
+        key: MediaKey(kind: .manga, id: 7),
+        createIfMissing: nil,
+        mutationId: UUID(),
+        baseRevision: nil,
+        account: Rows.account
+    )
+    let patchBody = Rows.patchBody(enabledTransport.requests.last)
+    #expect(patchBody?["progress_label"] == .string("70.5"))
+    #expect(patchBody?["volumes_progress"] == .int(7))
+    #expect(patchBody?["started_at_progress"] == .int(63))
+
+    if let saved = withFlag.first {
+        let restored = LibraryEdit.restoring(saved)
+        #expect(restored.progressLabel == .set("70.5"))
+        #expect(restored.startedAtProgress == .set(63))
+        #expect(restored.volumesProgress == .unchanged)
+    }
+
+    let fencedTransport = RecordingTransport([.success([]), .success([row])])
+    let fencedBackend = SupabaseLibraryBackend(
+        transport: fencedTransport,
+        fence: RecordingFence(outcome: "applied"),
+        fenceEnabled: { true },
+        startOffsetEnabled: { true }
+    )
+    let fencedEntries = try await fencedBackend.fetchAll(for: Rows.account)
+    if let fencedSaved = fencedEntries.first {
+        let restored = LibraryEdit.restoring(fencedSaved)
+        #expect(restored.progressLabel == .set("70.5"))
+        #expect(restored.volumesProgress == .set(7))
+        #expect(restored.startedAtProgress == .set(63))
+    } else {
+        Issue.record("Expected fenced row to be projected")
+    }
+}

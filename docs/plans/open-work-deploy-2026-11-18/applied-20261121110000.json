@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261121110000",
+    "name": "continuity_candidates_and_start_offset_v1",
+    "file": "supabase/migrations/20261121110000_continuity_candidates_and_start_offset_v1.sql",
+    "md5": "f9a4e10f71a624e15bc06c3f2f5b23a9",
+    "sha256": "9528b64d6392367337650c31163d77d748d95b4d2bbbf164a14886da24111579",
+    "bytes": 3237
+  },
+  "started_at": "2026-11-21T00:57:04.417343+00:00",
+  "finished_at": "2026-11-21T00:57:05.038611+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261121110000",
+      "name": "continuity_candidates_and_start_offset_v1",
+      "n": 1,
+      "s1_md5": "f9a4e10f71a624e15bc06c3f2f5b23a9",
+      "s1_len": 3237
+    }
+  ]
+}

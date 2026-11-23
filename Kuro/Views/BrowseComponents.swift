@@ -115,7 +115,7 @@ struct BrowseControlBar: View {
 
                     Menu {
                         Button(KuroLocale.text("Any status", "Jeder Status")) { selectedStatusFilter = nil }
-                        ForEach(BrowseView.StatusFilter.allCases, id: \.self) { s in
+                        ForEach(BrowseView.StatusFilter.visibleCases(anime: showAnime), id: \.self) { s in
                             Button(s.title(german: german, anime: showAnime)) { selectedStatusFilter = s }
                         }
                     } label: {
@@ -127,9 +127,7 @@ struct BrowseControlBar: View {
 
                     Menu {
                         Button(KuroLocale.text("Any length", "Jede Länge")) { selectedLengthFilter = nil }
-                        let valid = BrowseView.LengthFilter.allCases.filter { f in
-                            (showAnime && f != .manga200) || (!showAnime && f == .manga200)
-                        }
+                        let valid = BrowseView.LengthFilter.allCases.filter { $0.applies(toAnime: showAnime) }
                         ForEach(valid, id: \.self) { l in
                             Button(l.title(german: german)) { selectedLengthFilter = l }
                         }
@@ -145,9 +143,14 @@ struct BrowseControlBar: View {
                         ForEach(allGenres, id: \.self) { g in
                             Button(BrowseView.genreTitle(g, german: german)) { selectedGenre = g }
                         }
+                        Divider()
+                        ForEach(BrowseView.curatedTags, id: \.self) { tag in
+                            let key = "tag:\(tag)"
+                            Button(BrowseView.genreOrTagTitle(key, german: german)) { selectedGenre = key }
+                        }
                     } label: {
                         BrowseMenuWord(
-                            title: selectedGenre.map { BrowseView.genreTitle($0, german: german) } ?? KuroLocale.text("All genres", "Alle Genres"),
+                            title: selectedGenre.map { BrowseView.genreOrTagTitle($0, german: german) } ?? KuroLocale.text("All genres", "Alle Genres"),
                             isActive: selectedGenre != nil
                         )
                     }
@@ -166,7 +169,7 @@ struct BrowseControlBar: View {
 
                     Menu {
                         Button(KuroLocale.text("Any format", "Jedes Format")) { selectedFormat = nil }
-                        ForEach(BrowseView.FormatFilter.allCases, id: \.self) { f in
+                        ForEach(BrowseView.FormatFilter.allCases.filter { $0.applies(toAnime: showAnime) }, id: \.self) { f in
                             Button(f.title(german: german)) { selectedFormat = f }
                         }
                     } label: {
@@ -291,9 +294,14 @@ struct BrowseFiltersSheet: View {
             get: { draft.showAnime ? .anime : .manga },
             set: { next in
                 draft.showAnime = next == .anime
-                // A length that does not exist for the other medium is dropped.
-                if let length = draft.length, (draft.showAnime && length == .manga200) || (!draft.showAnime && length != .manga200) {
+                if let length = draft.length, !length.applies(toAnime: draft.showAnime) {
                     draft.length = nil
+                }
+                if let status = draft.status, !status.applies(toAnime: draft.showAnime) {
+                    draft.status = nil
+                }
+                if let format = draft.format, !format.applies(toAnime: draft.showAnime) {
+                    draft.format = nil
                 }
             }
         )
@@ -318,7 +326,7 @@ struct BrowseFiltersSheet: View {
                         DiscoverWordButton(title: KuroLocale.text("Any", "Alle"), isSelected: draft.status == nil) {
                             draft.status = nil
                         }
-                        ForEach(BrowseView.StatusFilter.allCases, id: \.self) { s in
+                        ForEach(BrowseView.StatusFilter.visibleCases(anime: draft.showAnime), id: \.self) { s in
                             DiscoverWordButton(title: s.title(german: german, anime: draft.showAnime), isSelected: draft.status == s) {
                                 draft.status = s
                             }
@@ -329,9 +337,7 @@ struct BrowseFiltersSheet: View {
                         DiscoverWordButton(title: KuroLocale.text("Any", "Alle"), isSelected: draft.length == nil) {
                             draft.length = nil
                         }
-                        let valid = BrowseView.LengthFilter.allCases.filter { f in
-                            (draft.showAnime && f != .manga200) || (!draft.showAnime && f == .manga200)
-                        }
+                        let valid = BrowseView.LengthFilter.allCases.filter { $0.applies(toAnime: draft.showAnime) }
                         ForEach(valid, id: \.self) { l in
                             DiscoverWordButton(title: l.title(german: german), isSelected: draft.length == l) {
                                 draft.length = l
@@ -346,6 +352,15 @@ struct BrowseFiltersSheet: View {
                         ForEach(allGenres, id: \.self) { g in
                             DiscoverWordButton(title: BrowseView.genreTitle(g, german: german), isSelected: draft.genre == g) {
                                 draft.genre = g
+                            }
+                        }
+                    }
+
+                    group(KuroLocale.text("Themes & demographics", "Themen & Zielgruppen")) {
+                        ForEach(BrowseView.curatedTags, id: \.self) { tag in
+                            let key = "tag:\(tag)"
+                            DiscoverWordButton(title: BrowseView.genreOrTagTitle(key, german: german), isSelected: draft.genre == key) {
+                                draft.genre = draft.genre == key ? nil : key
                             }
                         }
                     }
@@ -365,7 +380,7 @@ struct BrowseFiltersSheet: View {
                         DiscoverWordButton(title: KuroLocale.text("Any", "Alle"), isSelected: draft.format == nil) {
                             draft.format = nil
                         }
-                        ForEach(BrowseView.FormatFilter.allCases, id: \.self) { f in
+                        ForEach(BrowseView.FormatFilter.allCases.filter { $0.applies(toAnime: draft.showAnime) }, id: \.self) { f in
                             DiscoverWordButton(title: f.title(german: german), isSelected: draft.format == f) {
                                 draft.format = f
                             }

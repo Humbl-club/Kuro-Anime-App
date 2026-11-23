@@ -389,16 +389,16 @@ struct DiscoverIssueTests {
                 #expect(main.count <= DiscoverIssueLayout.sectionCap, "\(issue) realm \(realm): \(main.count) sections")
             }
         }
-        #expect(Sections.main(full(.all, realm: false)) == [.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics])
-        #expect(Sections.main(full(.all, realm: true)) == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
-        #expect(Sections.main(full(.anime, realm: true)) == [.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending])
-        #expect(Sections.main(full(.manga, realm: true)) == [.mangaNewToYou, .essentialsManga, .hiddenGem, .trendingManga, .classicsManga])
+        #expect(Sections.main(full(.all, realm: false)) == [.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou])
+        #expect(Sections.main(full(.all, realm: true)) == [.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .newlyAdded])
+        #expect(Sections.main(full(.anime, realm: true)) == [.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .newlyAdded])
+        #expect(Sections.main(full(.manga, realm: true)) == [.trendingManga, .newlyAddedManga, .essentialsManga, .mangaNewToYou, .hiddenGem, .classicsManga])
         // Nothing becomes unreachable: every dropped section is a More list.
         let dropped = Sections.cap(Sections.candidates(full(.anime, realm: true))).dropped
-        #expect(dropped == [.classics])
+        #expect(dropped == [.hiddenGem, .classics])
         #expect(Sections.moreLists(full(.anime, realm: true), dropped: dropped).contains(.route(.animeClassics)))
         // The drop order beyond the shipped lists: Hidden gem, then Tonight's shelf.
-        #expect(Sections.cap([.newToYou, .tonightShelf, .currentSeason, .essentials, .hiddenGem, .trending], limit: 4).dropped
+        #expect(Sections.cap([.currentSeason, .trending, .essentials, .newToYou, .tonightShelf, .hiddenGem], limit: 4).dropped
                 == [.tonightShelf, .hiddenGem])
         #expect(Sections.moreLists(full(.all, realm: false), dropped: [.hiddenGem, .tonightShelf]).suffix(2) == [.hiddenGem, .tonightShelf])
     }
@@ -426,14 +426,14 @@ struct DiscoverIssueTests {
         #expect(!Sections.Section.trending.isCanon)
     }
 
-    @Test("Pinned words EN / DE (§8): Essentials / Kanon, Trending / Im Trend; Manga beside New on All")
+    @Test("Pinned words EN / DE (§8): Essentials / Kanon, Trending / Im Trend, Just added / Frisch; Manga beside New on All")
     func pinnedWords() {
-        let en = [Sections.Section.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics]
+        let en = [Sections.Section.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou, .classics]
             .map { DiscoverIssueCopy.pinnedWord($0, issue: .all, german: false) }
-        #expect(en == ["New", "Season", "Essentials", "Manga", "Trending", "Classics"])
-        let de = [Sections.Section.newToYou, .currentSeason, .essentials, .mangaNewToYou, .trending, .classics]
+        #expect(en == ["Season", "Trending", "Essentials", "New", "Just added", "Manga", "Classics"])
+        let de = [Sections.Section.currentSeason, .trending, .essentials, .newToYou, .newlyAdded, .mangaNewToYou, .classics]
             .map { DiscoverIssueCopy.pinnedWord($0, issue: .all, german: true) }
-        #expect(de == ["Neu", "Season", "Kanon", "Manga", "Im Trend", "Klassiker"])
+        #expect(de == ["Season", "Im Trend", "Kanon", "Neu", "Frisch", "Manga", "Klassiker"])
         #expect(DiscoverIssueCopy.pinnedWord(.mangaNewToYou, issue: .manga, german: false) == "New")
         #expect(DiscoverIssueCopy.pinnedWord(.tonightShelf, german: true) == "Regal")
         #expect(DiscoverIssueCopy.pinnedWord(.hiddenGem, german: false) == "Gem")
@@ -508,10 +508,16 @@ struct DiscoverIssueTests {
         #expect(DiscoverIssueCopy.headerScrollToTop(german: true) == "Entdecken. Nach oben")
     }
 
-    @Test("Mood keys (§5.4): four with a seed, three without; one column at accessibility sizes or compact German")
+    @Test("Mood keys (§5.4, 2026-11-20): Like leads with a seed, seven without; one column at accessibility sizes or compact German")
     func moodKeys() {
-        #expect(DiscoverMoodKeys.moods(hasSeed: true) == [.short, .cozy, .intense, .likeLastLoved])
-        #expect(DiscoverMoodKeys.moods(hasSeed: false) == [.short, .cozy, .intense])
+        #expect(DiscoverMoodKeys.moods(hasSeed: true) == [.likeLastLoved, .short, .cozy, .intense, .action, .heartfelt,
+                                                          .mindBending, .acclaimed])
+        #expect(DiscoverMoodKeys.moods(hasSeed: false) == [.short, .cozy, .intense, .action, .heartfelt, .mindBending, .acclaimed])
+        #expect(DiscoverMood.allCases.filter(\.isServerMood) == [.likeLastLoved, .short, .cozy, .intense],
+                "client moods never reach the prepared mood reader")
+        #expect(DiscoverMood.action.fallbackGenre == "Action")
+        #expect(DiscoverMood.mindBending.rawValue == "mind_bending")
+        #expect(DiscoverIssueCopy.moodTitle(.acclaimed, likeTitle: nil, german: true) == "Gefeiert")
         #expect(DiscoverMoodKeys.columns(accessibility: false, compact: false, german: true) == 2)
         #expect(DiscoverMoodKeys.columns(accessibility: true, compact: false, german: false) == 1)
         #expect(DiscoverMoodKeys.columns(accessibility: false, compact: true, german: true) == 1)
@@ -851,5 +857,188 @@ struct DiscoverReviewFixTests {
                                         length: false, german: false, kindShown: true) == "2018")
         #expect(DiscoverIssueCopy.facts(kind: .manga, year: "2018", formatRaw: "MANGA", episodes: nil, chapters: nil,
                                         length: false, german: false) == "2018 · Manga")
+    }
+
+    @Test("Discover compact leaf plan key labels and quick-menu status copy stay concise in EN and DE")
+    func discoverPlanKeyCompactLabels() {
+        #expect(DiscoverPlanKey.compactLabel(action: .plan, status: nil, kind: .anime, german: false) == "Add")
+        #expect(DiscoverPlanKey.compactLabel(action: .plan, status: nil, kind: .manga, german: true) == "Liste")
+        #expect(DiscoverPlanKey.compactLabel(action: .unplan, status: .planning, kind: .anime, german: false) == "Planned")
+        #expect(DiscoverPlanKey.compactLabel(action: .unplan, status: .planning, kind: .anime, german: true) == "Geplant")
+        #expect(DiscoverPlanKey.compactLabel(action: .edit, status: .current, kind: .anime, german: false) == "Watching")
+        #expect(DiscoverPlanKey.compactLabel(action: .edit, status: .completed, kind: .manga, german: true) == "Abgeschlossen")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.current, kind: .anime, german: false) == "Watching")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.current, kind: .manga, german: false) == "Reading")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.planning, kind: .anime, german: false) == "Plan to watch")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.planning, kind: .manga, german: false) == "Plan to read")
+        #expect(DiscoverPlanKey.menuChoiceTitle(.completed, kind: .anime, german: true) == "Abgeschlossen")
+    }
+
+    @Test("Quick-add menu setStatus saves Watching/Completed, preserves existing progress, and supports Undo")
+    func quickAddSetStatusAndUndo() async throws {
+        let harness = try FacadeHarness()
+        let service = harness.service
+        await harness.signIn()
+        let card = try TasteCard(anime: FirstRunLaneTests.animeCard(77, title: "Frieren"))
+        let plans = TastePlanController()
+
+        // 1. Untracked -> Watching, then Undo removes the bare row.
+        let addWatching = plans.setStatus(card, to: .current, library: service.library, actions: service.libraryActions, german: false)
+        await addWatching?.value
+        #expect(service.library.entry(for: card.key)?.status == .current)
+        #expect(plans.toast?.message == "Added to Watching.")
+        #expect(plans.toast?.undo?.step == .removeNew(.current))
+
+        let undoAdd = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        await undoAdd?.value
+        #expect(service.library.entry(for: card.key) == nil)
+
+        // 2. Existing Watching entry -> Completed preserves progress and Undo restores .current.
+        let savePlan = plans.setStatus(card, to: .planning, library: service.library, actions: service.libraryActions, german: false)
+        await savePlan?.value
+        let markCompleted = plans.setStatus(card, to: .completed, library: service.library, actions: service.libraryActions, german: false)
+        await markCompleted?.value
+        #expect(service.library.entry(for: card.key)?.status == .completed)
+        #expect(plans.toast?.message == "Marked as Completed.")
+        #expect(plans.toast?.undo?.step == .restoreStatus(.planning))
+
+        let undoSwitch = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        await undoSwitch?.value
+        #expect(service.library.entry(for: card.key)?.status == .planning)
+
+        // 3. Removing a bare entry removes it and Undo re-adds the same status.
+        let remove = plans.removeEntry(card, library: service.library, actions: service.libraryActions, german: false)
+        await remove?.value
+        #expect(service.library.entry(for: card.key) == nil)
+        #expect(plans.toast?.undo?.step == .readdBare(.planning))
+
+        let undoRemove = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        await undoRemove?.value
+        #expect(service.library.entry(for: card.key)?.status == .planning)
+
+        await harness.settleSinks()
+        await harness.tearDown()
+    }
+
+    @Test("Renderable artwork guard accepts Kuro Storage HTTPS URLs and rejects empty or retired AniList hosts")
+    func renderableArtworkGuard() {
+        #expect(ImagePipeline.hasRenderableArtwork("https://cdn.kuro.example/covers/123.jpg"))
+        #expect(ImagePipeline.hasRenderableArtwork("  https://bkdifromsqxkndnllmdj.supabase.co/storage/v1/object/public/media/a.jpg  "))
+        #expect(!ImagePipeline.hasRenderableArtwork(nil))
+        #expect(!ImagePipeline.hasRenderableArtwork(""))
+        #expect(!ImagePipeline.hasRenderableArtwork("   "))
+        #expect(!ImagePipeline.hasRenderableArtwork("https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1.jpg"))
+        #expect(!ImagePipeline.hasRenderableArtwork("ftp://cdn.kuro.example/cover.jpg"))
+    }
+
+    @Test("Season episode presentation formats elapsed (D10), today, weekly cycle, and premiere slots")
+    func seasonEpisodePresentation() throws {
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = berlin
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-11-20T12:00:00Z"))
+        let en = Locale(identifier: "en_US_POSIX")
+        let de = Locale(identifier: "de_DE")
+
+        // Elapsed slot never reads upcoming (Spec D10).
+        let elapsed = DiscoverAiringSlot(animeId: 45, airingAt: now.addingTimeInterval(-1_800), episode: 7)
+        let elapsedEN = DiscoverIssueCopy.seasonEpisodePresentation(slot: elapsed, now: now, german: false, locale: en, timeZone: berlin)
+        #expect(elapsedEN == .init(badge: "EP. 7 NEW", line: "Ep. 7 out now"))
+        let elapsedDE = DiscoverIssueCopy.seasonEpisodePresentation(slot: elapsed, now: now, german: true, locale: de, timeZone: berlin)
+        #expect(elapsedDE == .init(badge: "FOLGE 7 NEU", line: "Folge 7 jetzt da"))
+
+        // Later today.
+        let today = DiscoverAiringSlot(animeId: 8, airingAt: now.addingTimeInterval(3_600), episode: 7)
+        let todayEN = DiscoverIssueCopy.seasonEpisodePresentation(slot: today, now: now, german: false, locale: en, timeZone: berlin)
+        #expect(todayEN?.badge == "EP. 7 TODAY")
+        #expect(todayEN?.line?.hasPrefix("Ep. 7 · ") == true)
+
+        // Weekly future slot >= 5d ahead shows latest episode out (`ep - 1`) + next episode weekday.
+        let weekly = DiscoverAiringSlot(animeId: 46, airingAt: now.addingTimeInterval(6 * 86_400), episode: 7)
+        let weeklyEN = DiscoverIssueCopy.seasonEpisodePresentation(slot: weekly, now: now, german: false, locale: en, timeZone: berlin)
+        #expect(weeklyEN?.badge == "EP. 6 NEW")
+        #expect(weeklyEN?.line?.hasPrefix("Ep. 6 out · Ep. 7 ") == true)
+
+        // Premiere (`episode == 1`).
+        let premiere = DiscoverAiringSlot(animeId: 47, airingAt: now.addingTimeInterval(3 * 86_400), episode: 1)
+        let premiereEN = DiscoverIssueCopy.seasonEpisodePresentation(slot: premiere, now: now, german: false, locale: en, timeZone: berlin)
+        #expect(premiereEN?.badge == "EP. 1 SOON")
+        #expect(premiereEN?.line?.hasPrefix("Ep. 1 · ") == true)
+    }
+
+    @Test("Mood palettes are distinct across all 8 moods and selectArtwork avoids duplicate URLs")
+    func moodPalettesAndUniqueArtwork() {
+        let palettes = DiscoverMood.allCases.map { DiscoverMoodKeys.palette(for: $0) }
+        #expect(Set(palettes.map(\.topHex)).count == DiscoverMood.allCases.count)
+
+        let candidates: [(genres: [String], length: Int?, format: String?, score: Double?, art: String)] = [
+            (["Action", "Adventure"], 24, "TV", 8.4, "https://cdn.kuro.example/action.jpg"),
+            (["Slice of Life", "Comedy"], 12, "TV", 8.2, "https://cdn.kuro.example/cozy.jpg"),
+            (["Thriller", "Mystery"], 13, "TV", 8.7, "https://cdn.kuro.example/intense.jpg"),
+            (["Romance", "Drama"], 22, "TV", 8.5, "https://cdn.kuro.example/romance.jpg"),
+            (["Psychological", "Sci-Fi"], 26, "TV", 8.9, "https://cdn.kuro.example/mind.jpg"),
+            (["Drama"], nil, "MOVIE", 9.1, "https://cdn.kuro.example/short_movie.jpg"),
+            (["Fantasy"], 28, "TV", 9.4, "https://cdn.kuro.example/top.jpg"),
+            (["Horror"], 12, "TV", 7.8, "https://s4.anilist.co/blocked.jpg"),
+        ]
+        let selected = DiscoverMoodKeys.selectArtwork(
+            moods: DiscoverMood.allCases,
+            likeArtwork: "https://cdn.kuro.example/seed.jpg",
+            candidates: candidates
+        )
+        #expect(selected[.likeLastLoved] == "https://cdn.kuro.example/seed.jpg")
+        #expect(selected.values.contains("https://s4.anilist.co/blocked.jpg") == false)
+        #expect(Set(selected.values).count == selected.count)
+    }
+
+    @Test("Balanced editorial headlines pair short trailing words while preserving multiline breaks")
+    func balancedEditorialHeadlines() {
+        #expect(KuroCardText.balancedHeadline("Frieren") == "Frieren")
+        #expect(KuroCardText.balancedHeadline("Solo Leveling") == "Solo Leveling")
+        #expect(KuroCardText.balancedHeadline("Turn to something new.") == "Turn to something\u{00A0}new.")
+        #expect(
+            KuroCardText.balancedHeadline("Frieren:\nBeyond Journey's End")
+                == "Frieren:\nBeyond Journey's\u{00A0}End"
+        )
+        #expect(
+            KuroCardText.balancedHeadline("Eine ungewöhnliche Freundschaftsversammlung")
+                == "Eine ungewöhnliche Freundschaftsversammlung"
+        )
+    }
+
+    @Test("MediaRoute carries optional zoomSourceID without altering JourneyPage dedupe identity")
+    func zoomSourcePreservesJourneyIdentity() {
+        let plain = MediaRoute(kind: .anime, id: 42)
+        let zoomed = MediaRoute(kind: .anime, id: 42, zoomSourceID: "discover-tile-trending-0-anime-42")
+        #expect(plain.zoomSourceID == nil)
+        #expect(zoomed.zoomSourceID == "discover-tile-trending-0-anime-42")
+        #expect(JourneyPage.media(plain) == JourneyPage.media(zoomed))
+        #expect(JourneyPage.media(plain).hashValue == JourneyPage.media(zoomed).hashValue)
+    }
+
+    @Test("AnimeCard and MangaCard decode cover_image_color and default cleanly when omitted")
+    func coverImageColorDecoding() throws {
+        let animeJSON = ##"[{"id":7,"title_english":"Frieren","cover_image_color":"#4a6b5d"}]"##
+        let mangaJSON = ##"[{"id":9,"title_english":"Vagabond"}]"##
+        let anime = try JSONDecoder().decode([AnimeCard].self, from: Data(animeJSON.utf8)).first
+        let manga = try JSONDecoder().decode([MangaCard].self, from: Data(mangaJSON.utf8)).first
+        #expect(anime?.coverImageColor == "#4a6b5d")
+        #expect(manga?.coverImageColor == nil)
+    }
+
+    @Test("ArtworkMaterialStore placeholderFill tints valid hex seeds passively without invoking loader")
+    func passivePlaceholderTinting() {
+        var loaderCalls = 0
+        let store = ArtworkMaterialStore(cacheDirectory: nil) { _ in
+            loaderCalls += 1
+            return nil
+        }
+        let url = URL(string: "https://cdn.kuro.example/poster/7.jpg")
+        let fallback = Color.gray
+        let tinted = store.placeholderFill(for: url, seedHex: "#3b6e8c", fallback: fallback)
+        let missed = store.placeholderFill(for: url, seedHex: "invalid", fallback: fallback)
+        #expect(loaderCalls == 0)
+        #expect(tinted != fallback)
+        #expect(missed == fallback)
     }
 }

@@ -140,3 +140,82 @@ export function mapRelations(
   relations.sort((a, b) => a.target_id - b.target_id || a.type.localeCompare(b.type));
   return { relations, dropped };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Anime season / status derivation and Hot/Warm/Cold refresh tiering (pure)
+
+export type AnimeSeason = "WINTER" | "SPRING" | "SUMMER" | "FALL";
+export type DerivedAnimeStatus = "NOT_YET_RELEASED" | "RELEASING" | "FINISHED";
+export type PartialDate = { year: number; month: number | null; day: number | null };
+
+/** Calendar-quarter season matching Postgres `current_season_name()`: Jan-Mar WINTER, Apr-Jun SPRING, Jul-Sep SUMMER, Oct-Dec FALL. */
+export function deriveAnimeSeason(start: PartialDate | null): { season: AnimeSeason; season_year: number } | null {
+  if (!start || !Number.isInteger(start.year) || !start.month || start.month < 1 || start.month > 12) return null;
+  const season: AnimeSeason =
+    start.month <= 3 ? "WINTER" : start.month <= 6 ? "SPRING" : start.month <= 9 ? "SUMMER" : "FALL";
+  return { season, season_year: start.year };
+}
+
+function dateBoundsMs(d: PartialDate): { earliest: number; latest: number } {
+  const startMonth = (d.month ?? 1) - 1;
+  const startDay = d.day ?? 1;
+  const earliest = Date.UTC(d.year, startMonth, startDay);
+  const endMonth = d.month ? d.month - 1 : 11;
+  const endDay = d.day ?? new Date(Date.UTC(d.year, endMonth + 1, 0)).getUTCDate();
+  const latest = Date.UTC(d.year, endMonth, endDay, 23, 59, 59, 999);
+  return { earliest, latest };
+}
+
+/**
+ * Derives anime release status from canonical start/end dates and format when no source gives a status string.
+ * Conservative on incomplete dates: year-only dates in the current year return null rather than guessing.
+ */
+export function deriveAnimeStatus(
+  start: PartialDate | null,
+  end: PartialDate | null,
+  format: string | null,
+  nowMs: number,
+): DerivedAnimeStatus | null {
+  if (end) {
+    const eb = dateBoundsMs(end);
+    if (eb.latest < nowMs) return "FINISHED";
+  }
+  if (!start) return null;
+  const sb = dateBoundsMs(start);
+  if (sb.earliest > nowMs) return "NOT_YET_RELEASED";
+  if (format?.toUpperCase() === "MOVIE" && sb.latest + 7 * 86_400_000 < nowMs) {
+    return "FINISHED";
+  }
+  if (sb.latest <= nowMs) return "RELEASING";
+  return null;
+}
+
+export type RefreshTierItem = {
+  status?: string | null;
+  createdAtMs?: number | null;
+  inUserList?: boolean;
+  inCuratedRail?: boolean;
+};
+
+export type RefreshTier = "hot" | "warm" | "cold";
+
+const HOT_NEW_WINDOW_MS = 30 * 86_400_000;
+
+/** Classifies a title into Hot (ongoing/upcoming/recent), Warm (user list / curated), or Cold (older finished back-catalogue). */
+export function classifyRefreshTier(item: RefreshTierItem, nowMs: number): RefreshTier {
+  const status = item.status?.toUpperCase() ?? "";
+  if (status === "RELEASING" || status === "NOT_YET_RELEASED") return "hot";
+  if (item.createdAtMs != null && nowMs - item.createdAtMs <= HOT_NEW_WINDOW_MS) return "hot";
+  if (item.inUserList || item.inCuratedRail) return "warm";
+  return "cold";
+}
+
+const TIER_RANK: Record<RefreshTier, number> = { hot: 0, warm: 1, cold: 2 };
+
+/** Stable sort putting Hot titles first, then Warm, then Cold so new seasons and ongoing manga refresh first. */
+export function prioritizeRefreshTier<T extends RefreshTierItem>(items: readonly T[], nowMs: number): T[] {
+  return items
+    .map((item, idx) => ({ item, idx, rank: TIER_RANK[classifyRefreshTier(item, nowMs)] }))
+    .sort((a, b) => a.rank - b.rank || a.idx - b.idx)
+    .map((x) => x.item);
+}

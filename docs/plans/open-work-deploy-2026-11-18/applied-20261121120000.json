@@ -1,0 +1,26 @@
+{
+  "migration": {
+    "version": "20261121120000",
+    "name": "club_note_spoiler_gates_v1",
+    "file": "supabase/migrations/20261121120000_club_note_spoiler_gates_v1.sql",
+    "md5": "4beba55d93728db6ab1ccd8dd9f88c9a",
+    "sha256": "c84c1f8daf0efa93515a3271e5a6415aef55bc36bb1b719ce084598d42ba449c",
+    "bytes": 21141
+  },
+  "started_at": "2026-11-21T00:57:26.982523+00:00",
+  "finished_at": "2026-11-21T00:57:27.433690+00:00",
+  "api_result": [
+    {
+      "similarity": 0
+    }
+  ],
+  "verify": [
+    {
+      "version": "20261121120000",
+      "name": "club_note_spoiler_gates_v1",
+      "n": 1,
+      "s1_md5": "4beba55d93728db6ab1ccd8dd9f88c9a",
+      "s1_len": 21139
+    }
+  ]
+}

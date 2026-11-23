@@ -14,7 +14,7 @@ struct HomeCompositionSnapshotTests {
         let release: [KuroMainView.Section] = [.taste, .home, .discover, .collection, .clubs]
         #expect(KuroMainView.Section.pagerOrder(tasteDeck: true, seriesHome: true) == release)
         #expect(KuroMainView.Section.pagerOrder(tasteDeck: false, seriesHome: true) == release)
-        #expect(KuroMainView.Section.pagerOrder(tasteDeck: false, seriesHome: false) == [.concierge, .discover, .browse, .collection, .clubs])
+        #expect(KuroMainView.Section.pagerOrder(tasteDeck: false, seriesHome: false) == [.discover, .browse, .collection, .clubs])
     }
 
     @Test("Exact numeric unit cursor survives decoding and the next RPC body")

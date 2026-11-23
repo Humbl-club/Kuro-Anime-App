@@ -1,0 +1,2154 @@
+{
+  "run_id": "2026-11-23-manga",
+  "medium": "manga",
+  "generated_at": "2026-11-23T22:07:54.888Z",
+  "rpc": "catalogue_shadow_report_v1",
+  "report": {
+    "adult": {
+      "newly_adult": 816,
+      "review_size": 2382,
+      "becomes_non_adult": 0
+    },
+    "tiers": {
+      "all": 42104,
+      "top1k": 1000,
+      "top5k": 5000,
+      "curated": 429,
+      "in_lists": 13
+    },
+    "groups": {
+      "adult": {
+        "all": {
+          "total": 42104,
+          "agreed": 24805,
+          "covered": 25621,
+          "compared": 25621,
+          "disagree_sample": [
+            {
+              "id": 104,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 131,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 132,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 150,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 185,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 216,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 275,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 799,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 848,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 855,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 860,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 1323,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2472,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2484,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2492,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2494,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2546,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2553,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2561,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2573,
+              "today": false,
+              "shadow": true
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 657,
+          "covered": 668,
+          "compared": 668,
+          "disagree_sample": [
+            {
+              "id": 104,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 131,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 132,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 150,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 185,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 216,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 275,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 799,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 848,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 855,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 860,
+              "today": false,
+              "shadow": true
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 3127,
+          "covered": 3231,
+          "compared": 3231,
+          "disagree_sample": [
+            {
+              "id": 104,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 131,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 132,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 150,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 185,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 216,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 275,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 799,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 848,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 855,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 860,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 1323,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2472,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2484,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2492,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2494,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2546,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2553,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2561,
+              "today": false,
+              "shadow": true
+            },
+            {
+              "id": 2573,
+              "today": false,
+              "shadow": true
+            }
+          ]
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 339,
+          "covered": 340,
+          "compared": 340,
+          "disagree_sample": [
+            {
+              "id": 132,
+              "today": false,
+              "shadow": true
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 12,
+          "covered": 12,
+          "compared": 12,
+          "disagree_sample": []
+        }
+      },
+      "titles": {
+        "all": {
+          "total": 42104,
+          "agreed": 6354,
+          "covered": 26535,
+          "compared": 10621,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            },
+            {
+              "id": 96,
+              "today": "JoJo's Bizarre Adventure Part 6: Stone Ocean",
+              "shadow": "Stone Ocean"
+            },
+            {
+              "id": 118,
+              "today": "Noragami: Stray God",
+              "shadow": "Noragami"
+            },
+            {
+              "id": 125,
+              "today": "Ajin: Demi-Human",
+              "shadow": "Ajin"
+            },
+            {
+              "id": 127,
+              "today": "JoJo’s Bizarre Adventure: Part 8—JoJolion",
+              "shadow": "JoJolion"
+            },
+            {
+              "id": 128,
+              "today": "Mashle: Magic and Muscles",
+              "shadow": "Mashle"
+            },
+            {
+              "id": 133,
+              "today": "Nisekoi: False Love",
+              "shadow": "Nisekoi"
+            },
+            {
+              "id": 136,
+              "today": "GTO: Great Teacher Onizuka",
+              "shadow": "Great Teacher Onizuka"
+            },
+            {
+              "id": 156,
+              "today": "Boruto: Naruto Next Generations",
+              "shadow": "Boruto"
+            },
+            {
+              "id": 164,
+              "today": "Mushoku Tensei: Jobless Reincarnation",
+              "shadow": "Mushoku Tensei"
+            },
+            {
+              "id": 167,
+              "today": "JoJo's Bizarre Adventure Part 1: Phantom Blood",
+              "shadow": "Phantom Blood"
+            },
+            {
+              "id": 168,
+              "today": "Onani Master Kurosawa",
+              "shadow": "Onanii Master Kurosawa"
+            },
+            {
+              "id": 177,
+              "today": "Jagaaan",
+              "shadow": "Jagaaaaaan"
+            },
+            {
+              "id": 179,
+              "today": "Seraph of the End: Vampire Reign",
+              "shadow": "Seraph of the End"
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 623,
+          "covered": 772,
+          "compared": 722,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            },
+            {
+              "id": 96,
+              "today": "JoJo's Bizarre Adventure Part 6: Stone Ocean",
+              "shadow": "Stone Ocean"
+            },
+            {
+              "id": 118,
+              "today": "Noragami: Stray God",
+              "shadow": "Noragami"
+            },
+            {
+              "id": 125,
+              "today": "Ajin: Demi-Human",
+              "shadow": "Ajin"
+            },
+            {
+              "id": 127,
+              "today": "JoJo’s Bizarre Adventure: Part 8—JoJolion",
+              "shadow": "JoJolion"
+            },
+            {
+              "id": 128,
+              "today": "Mashle: Magic and Muscles",
+              "shadow": "Mashle"
+            },
+            {
+              "id": 133,
+              "today": "Nisekoi: False Love",
+              "shadow": "Nisekoi"
+            },
+            {
+              "id": 136,
+              "today": "GTO: Great Teacher Onizuka",
+              "shadow": "Great Teacher Onizuka"
+            },
+            {
+              "id": 156,
+              "today": "Boruto: Naruto Next Generations",
+              "shadow": "Boruto"
+            },
+            {
+              "id": 164,
+              "today": "Mushoku Tensei: Jobless Reincarnation",
+              "shadow": "Mushoku Tensei"
+            },
+            {
+              "id": 167,
+              "today": "JoJo's Bizarre Adventure Part 1: Phantom Blood",
+              "shadow": "Phantom Blood"
+            },
+            {
+              "id": 168,
+              "today": "Onani Master Kurosawa",
+              "shadow": "Onanii Master Kurosawa"
+            },
+            {
+              "id": 177,
+              "today": "Jagaaan",
+              "shadow": "Jagaaaaaan"
+            },
+            {
+              "id": 179,
+              "today": "Seraph of the End: Vampire Reign",
+              "shadow": "Seraph of the End"
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 2032,
+          "covered": 3605,
+          "compared": 2671,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            },
+            {
+              "id": 96,
+              "today": "JoJo's Bizarre Adventure Part 6: Stone Ocean",
+              "shadow": "Stone Ocean"
+            },
+            {
+              "id": 118,
+              "today": "Noragami: Stray God",
+              "shadow": "Noragami"
+            },
+            {
+              "id": 125,
+              "today": "Ajin: Demi-Human",
+              "shadow": "Ajin"
+            },
+            {
+              "id": 127,
+              "today": "JoJo’s Bizarre Adventure: Part 8—JoJolion",
+              "shadow": "JoJolion"
+            },
+            {
+              "id": 128,
+              "today": "Mashle: Magic and Muscles",
+              "shadow": "Mashle"
+            },
+            {
+              "id": 133,
+              "today": "Nisekoi: False Love",
+              "shadow": "Nisekoi"
+            },
+            {
+              "id": 136,
+              "today": "GTO: Great Teacher Onizuka",
+              "shadow": "Great Teacher Onizuka"
+            },
+            {
+              "id": 156,
+              "today": "Boruto: Naruto Next Generations",
+              "shadow": "Boruto"
+            },
+            {
+              "id": 164,
+              "today": "Mushoku Tensei: Jobless Reincarnation",
+              "shadow": "Mushoku Tensei"
+            },
+            {
+              "id": 167,
+              "today": "JoJo's Bizarre Adventure Part 1: Phantom Blood",
+              "shadow": "Phantom Blood"
+            },
+            {
+              "id": 168,
+              "today": "Onani Master Kurosawa",
+              "shadow": "Onanii Master Kurosawa"
+            },
+            {
+              "id": 177,
+              "today": "Jagaaan",
+              "shadow": "Jagaaaaaan"
+            },
+            {
+              "id": 179,
+              "today": "Seraph of the End: Vampire Reign",
+              "shadow": "Seraph of the End"
+            }
+          ]
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 300,
+          "covered": 380,
+          "compared": 362,
+          "disagree_sample": [
+            {
+              "id": 13,
+              "today": "SPY x FAMILY",
+              "shadow": "Spy × Family"
+            },
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            },
+            {
+              "id": 76,
+              "today": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+              "shadow": "Steel Ball Run"
+            },
+            {
+              "id": 85,
+              "today": "Uzumaki: Spiral into Horror",
+              "shadow": "Uzumaki"
+            },
+            {
+              "id": 88,
+              "today": "Three Days of Happiness",
+              "shadow": "I Sold My Life for Ten Thousand Yen Per Year"
+            },
+            {
+              "id": 89,
+              "today": "Frieren: Beyond Journey’s End",
+              "shadow": "Frieren"
+            },
+            {
+              "id": 96,
+              "today": "JoJo's Bizarre Adventure Part 6: Stone Ocean",
+              "shadow": "Stone Ocean"
+            },
+            {
+              "id": 118,
+              "today": "Noragami: Stray God",
+              "shadow": "Noragami"
+            },
+            {
+              "id": 125,
+              "today": "Ajin: Demi-Human",
+              "shadow": "Ajin"
+            },
+            {
+              "id": 127,
+              "today": "JoJo’s Bizarre Adventure: Part 8—JoJolion",
+              "shadow": "JoJolion"
+            },
+            {
+              "id": 128,
+              "today": "Mashle: Magic and Muscles",
+              "shadow": "Mashle"
+            },
+            {
+              "id": 133,
+              "today": "Nisekoi: False Love",
+              "shadow": "Nisekoi"
+            },
+            {
+              "id": 136,
+              "today": "GTO: Great Teacher Onizuka",
+              "shadow": "Great Teacher Onizuka"
+            },
+            {
+              "id": 168,
+              "today": "Onani Master Kurosawa",
+              "shadow": "Onanii Master Kurosawa"
+            },
+            {
+              "id": 179,
+              "today": "Seraph of the End: Vampire Reign",
+              "shadow": "Seraph of the End"
+            },
+            {
+              "id": 190,
+              "today": "Classroom of the Elite",
+              "shadow": "Classroom of the Elite: Year 1"
+            },
+            {
+              "id": 198,
+              "today": "The Legend of the Northern Blade",
+              "shadow": "Legend of the Northern Blade"
+            },
+            {
+              "id": 208,
+              "today": "JoJo's Bizarre Adventure Part 5: Golden Wind",
+              "shadow": "Golden Wind"
+            },
+            {
+              "id": 221,
+              "today": "Our Dreams at Dusk: Shimanami Tasogare",
+              "shadow": "Our Dreams at Dusk"
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 11,
+          "covered": 13,
+          "compared": 13,
+          "disagree_sample": [
+            {
+              "id": 19,
+              "today": "Omniscient Reader",
+              "shadow": "Omniscient Reader's Viewpoint"
+            },
+            {
+              "id": 26,
+              "today": "Hunter x Hunter",
+              "shadow": "Hunter × Hunter"
+            }
+          ]
+        }
+      },
+      "identity": {
+        "all": {
+          "total": 42104,
+          "agreed": 0,
+          "covered": 28122,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 910,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 4110,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 0,
+          "covered": 409,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 0,
+          "covered": 13,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_format": {
+        "all": {
+          "total": 42104,
+          "agreed": 22438,
+          "covered": 23931,
+          "compared": 23931,
+          "disagree_sample": [
+            {
+              "id": 95,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 2694,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 2956,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 2971,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3062,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3255,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3282,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3369,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3635,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3762,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4056,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4104,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4140,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4160,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4291,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4306,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4505,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4522,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4669,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4863,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 262,
+          "covered": 263,
+          "compared": 263,
+          "disagree_sample": [
+            {
+              "id": 95,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 2128,
+          "covered": 2152,
+          "compared": 2152,
+          "disagree_sample": [
+            {
+              "id": 95,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 2694,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 2956,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 2971,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3062,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3255,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3282,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3369,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3635,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 3762,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4056,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4104,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4140,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4160,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4291,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4306,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4505,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4522,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 4669,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            },
+            {
+              "id": 7437,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            }
+          ]
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 190,
+          "covered": 191,
+          "compared": 191,
+          "disagree_sample": [
+            {
+              "id": 95,
+              "today": "ONE_SHOT",
+              "shadow": "MANGA"
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 12,
+          "covered": 12,
+          "compared": 12,
+          "disagree_sample": []
+        }
+      },
+      "facts_status": {
+        "all": {
+          "total": 42104,
+          "agreed": 22170,
+          "covered": 23716,
+          "compared": 23715,
+          "disagree_sample": [
+            {
+              "id": 14,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 19,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 26,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 89,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 99,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 140,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 186,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 213,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 220,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 225,
+              "today": "FINISHED",
+              "shadow": "RELEASING"
+            },
+            {
+              "id": 251,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 260,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 268,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 803,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 813,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 822,
+              "today": "FINISHED",
+              "shadow": "RELEASING"
+            },
+            {
+              "id": 2497,
+              "today": "CANCELLED",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 2527,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 2533,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 2547,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 247,
+          "covered": 263,
+          "compared": 263,
+          "disagree_sample": [
+            {
+              "id": 14,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 19,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 26,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 89,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 99,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 140,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 186,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 213,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 220,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 225,
+              "today": "FINISHED",
+              "shadow": "RELEASING"
+            },
+            {
+              "id": 251,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 260,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 268,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 803,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 813,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 822,
+              "today": "FINISHED",
+              "shadow": "RELEASING"
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 2010,
+          "covered": 2144,
+          "compared": 2144,
+          "disagree_sample": [
+            {
+              "id": 14,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 19,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 26,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 89,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 99,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 140,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 186,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 213,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 220,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 225,
+              "today": "FINISHED",
+              "shadow": "RELEASING"
+            },
+            {
+              "id": 251,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 260,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 268,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 803,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 813,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 822,
+              "today": "FINISHED",
+              "shadow": "RELEASING"
+            },
+            {
+              "id": 2497,
+              "today": "CANCELLED",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 2527,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 2533,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 2547,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            }
+          ]
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 182,
+          "covered": 191,
+          "compared": 191,
+          "disagree_sample": [
+            {
+              "id": 14,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 19,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 26,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 89,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 99,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 140,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 213,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 220,
+              "today": "RELEASING",
+              "shadow": "FINISHED"
+            },
+            {
+              "id": 225,
+              "today": "FINISHED",
+              "shadow": "RELEASING"
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 10,
+          "covered": 12,
+          "compared": 12,
+          "disagree_sample": [
+            {
+              "id": 19,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            },
+            {
+              "id": 26,
+              "today": "RELEASING",
+              "shadow": "HIATUS"
+            }
+          ]
+        }
+      },
+      "titles_native": {
+        "all": {
+          "total": 42104,
+          "agreed": 0,
+          "covered": 6938,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 717,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 2504,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 0,
+          "covered": 354,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 0,
+          "covered": 13,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_episodes": {
+        "all": {
+          "total": 42104,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 0,
+          "covered": 0,
+          "compared": 0,
+          "disagree_sample": []
+        }
+      },
+      "facts_start_year": {
+        "all": {
+          "total": 42104,
+          "agreed": 22725,
+          "covered": 25835,
+          "compared": 25833,
+          "disagree_sample": [
+            {
+              "id": 143,
+              "today": 2020,
+              "shadow": 2025
+            },
+            {
+              "id": 147,
+              "today": 2007,
+              "shadow": 2006
+            },
+            {
+              "id": 167,
+              "today": 1986,
+              "shadow": 1987
+            },
+            {
+              "id": 223,
+              "today": 2005,
+              "shadow": 2006
+            },
+            {
+              "id": 226,
+              "today": 2006,
+              "shadow": 2005
+            },
+            {
+              "id": 236,
+              "today": 2019,
+              "shadow": 2018
+            },
+            {
+              "id": 267,
+              "today": 1989,
+              "shadow": 1988
+            },
+            {
+              "id": 270,
+              "today": 2000,
+              "shadow": 1999
+            },
+            {
+              "id": 288,
+              "today": 2006,
+              "shadow": 2012
+            },
+            {
+              "id": 302,
+              "today": 2016,
+              "shadow": 2017
+            },
+            {
+              "id": 332,
+              "today": 1972,
+              "shadow": 1989
+            },
+            {
+              "id": 342,
+              "today": 1999,
+              "shadow": 2001
+            },
+            {
+              "id": 353,
+              "today": 2009,
+              "shadow": 2012
+            },
+            {
+              "id": 416,
+              "today": 2012,
+              "shadow": 2014
+            },
+            {
+              "id": 419,
+              "today": 2017,
+              "shadow": 2018
+            },
+            {
+              "id": 438,
+              "today": 2018,
+              "shadow": 2021
+            },
+            {
+              "id": 481,
+              "today": 2018,
+              "shadow": 2019
+            },
+            {
+              "id": 495,
+              "today": 2010,
+              "shadow": 2018
+            },
+            {
+              "id": 501,
+              "today": 2018,
+              "shadow": 2020
+            },
+            {
+              "id": 502,
+              "today": 2004,
+              "shadow": 2003
+            }
+          ]
+        },
+        "top1k": {
+          "total": 1000,
+          "agreed": 636,
+          "covered": 674,
+          "compared": 674,
+          "disagree_sample": [
+            {
+              "id": 143,
+              "today": 2020,
+              "shadow": 2025
+            },
+            {
+              "id": 147,
+              "today": 2007,
+              "shadow": 2006
+            },
+            {
+              "id": 167,
+              "today": 1986,
+              "shadow": 1987
+            },
+            {
+              "id": 223,
+              "today": 2005,
+              "shadow": 2006
+            },
+            {
+              "id": 226,
+              "today": 2006,
+              "shadow": 2005
+            },
+            {
+              "id": 236,
+              "today": 2019,
+              "shadow": 2018
+            },
+            {
+              "id": 267,
+              "today": 1989,
+              "shadow": 1988
+            },
+            {
+              "id": 270,
+              "today": 2000,
+              "shadow": 1999
+            },
+            {
+              "id": 288,
+              "today": 2006,
+              "shadow": 2012
+            },
+            {
+              "id": 302,
+              "today": 2016,
+              "shadow": 2017
+            },
+            {
+              "id": 332,
+              "today": 1972,
+              "shadow": 1989
+            },
+            {
+              "id": 342,
+              "today": 1999,
+              "shadow": 2001
+            },
+            {
+              "id": 353,
+              "today": 2009,
+              "shadow": 2012
+            },
+            {
+              "id": 416,
+              "today": 2012,
+              "shadow": 2014
+            },
+            {
+              "id": 419,
+              "today": 2017,
+              "shadow": 2018
+            },
+            {
+              "id": 438,
+              "today": 2018,
+              "shadow": 2021
+            },
+            {
+              "id": 481,
+              "today": 2018,
+              "shadow": 2019
+            },
+            {
+              "id": 495,
+              "today": 2010,
+              "shadow": 2018
+            },
+            {
+              "id": 501,
+              "today": 2018,
+              "shadow": 2020
+            },
+            {
+              "id": 502,
+              "today": 2004,
+              "shadow": 2003
+            }
+          ]
+        },
+        "top5k": {
+          "total": 5000,
+          "agreed": 3013,
+          "covered": 3259,
+          "compared": 3259,
+          "disagree_sample": [
+            {
+              "id": 143,
+              "today": 2020,
+              "shadow": 2025
+            },
+            {
+              "id": 147,
+              "today": 2007,
+              "shadow": 2006
+            },
+            {
+              "id": 167,
+              "today": 1986,
+              "shadow": 1987
+            },
+            {
+              "id": 223,
+              "today": 2005,
+              "shadow": 2006
+            },
+            {
+              "id": 226,
+              "today": 2006,
+              "shadow": 2005
+            },
+            {
+              "id": 236,
+              "today": 2019,
+              "shadow": 2018
+            },
+            {
+              "id": 267,
+              "today": 1989,
+              "shadow": 1988
+            },
+            {
+              "id": 270,
+              "today": 2000,
+              "shadow": 1999
+            },
+            {
+              "id": 288,
+              "today": 2006,
+              "shadow": 2012
+            },
+            {
+              "id": 302,
+              "today": 2016,
+              "shadow": 2017
+            },
+            {
+              "id": 332,
+              "today": 1972,
+              "shadow": 1989
+            },
+            {
+              "id": 342,
+              "today": 1999,
+              "shadow": 2001
+            },
+            {
+              "id": 353,
+              "today": 2009,
+              "shadow": 2012
+            },
+            {
+              "id": 416,
+              "today": 2012,
+              "shadow": 2014
+            },
+            {
+              "id": 419,
+              "today": 2017,
+              "shadow": 2018
+            },
+            {
+              "id": 438,
+              "today": 2018,
+              "shadow": 2021
+            },
+            {
+              "id": 481,
+              "today": 2018,
+              "shadow": 2019
+            },
+            {
+              "id": 495,
+              "today": 2010,
+              "shadow": 2018
+            },
+            {
+              "id": 501,
+              "today": 2018,
+              "shadow": 2020
+            },
+            {
+              "id": 502,
+              "today": 2004,
+              "shadow": 2003
+            }
+          ]
+        },
+        "curated": {
+          "total": 429,
+          "agreed": 326,
+          "covered": 345,
+          "compared": 345,
+          "disagree_sample": [
+            {
+              "id": 143,
+              "today": 2020,
+              "shadow": 2025
+            },
+            {
+              "id": 147,
+              "today": 2007,
+              "shadow": 2006
+            },
+            {
+              "id": 223,
+              "today": 2005,
+              "shadow": 2006
+            },
+            {
+              "id": 226,
+              "today": 2006,
+              "shadow": 2005
+            },
+            {
+              "id": 236,
+              "today": 2019,
+              "shadow": 2018
+            },
+            {
+              "id": 267,
+              "today": 1989,
+              "shadow": 1988
+            },
+            {
+              "id": 270,
+              "today": 2000,
+              "shadow": 1999
+            },
+            {
+              "id": 288,
+              "today": 2006,
+              "shadow": 2012
+            },
+            {
+              "id": 302,
+              "today": 2016,
+              "shadow": 2017
+            },
+            {
+              "id": 332,
+              "today": 1972,
+              "shadow": 1989
+            },
+            {
+              "id": 342,
+              "today": 1999,
+              "shadow": 2001
+            },
+            {
+              "id": 419,
+              "today": 2017,
+              "shadow": 2018
+            },
+            {
+              "id": 503,
+              "today": 2018,
+              "shadow": 2017
+            },
+            {
+              "id": 714,
+              "today": 2018,
+              "shadow": 2019
+            },
+            {
+              "id": 955,
+              "today": 1998,
+              "shadow": 1999
+            },
+            {
+              "id": 1350,
+              "today": 2018,
+              "shadow": 2019
+            },
+            {
+              "id": 1358,
+              "today": 2002,
+              "shadow": 2003
+            },
+            {
+              "id": 1536,
+              "today": 2001,
+              "shadow": 2002
+            },
+            {
+              "id": 2063,
+              "today": 2014,
+              "shadow": 2018
+            }
+          ]
+        },
+        "in_lists": {
+          "total": 13,
+          "agreed": 13,
+          "covered": 13,
+          "compared": 13,
+          "disagree_sample": []
+        }
+      }
+    },
+    "medium": "manga",
+    "sample": 20,
+    "generated_at": "2026-11-23T22:07:54.97052+00:00",
+    "identity_gate": {
+      "accepted_links": 33812,
+      "proposed_links": 2418,
+      "proposed_only_titles": 1353,
+      "orphan_accepted_links": 0,
+      "duplicate_accepted_links": 0
+    },
+    "invalid_shadow_values": 0
+  },
+  "evaluation": {
+    "gates": [
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "in_lists",
+        "threshold": 1,
+        "value": 1,
+        "n": 13,
+        "status": "insufficient",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "curated",
+        "threshold": 1,
+        "value": 0.9533799533799534,
+        "n": 429,
+        "status": "fail",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "linked_share",
+        "tier": "top5k",
+        "threshold": 0.85,
+        "value": 0.822,
+        "n": 5000,
+        "status": "fail",
+        "note": "accepted non-AniList link"
+      },
+      {
+        "group": "identity",
+        "metric": "duplicate_accepted_links",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 42104,
+        "status": "pass"
+      },
+      {
+        "group": "identity",
+        "metric": "orphan_accepted_links",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 42104,
+        "status": "pass",
+        "note": "accepted links whose target title no longer exists"
+      },
+      {
+        "group": "data",
+        "metric": "invalid_shadow_values",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": null,
+        "status": "pass",
+        "note": "shadow values that are not a valid integer/boolean for their field"
+      },
+      {
+        "group": "identity",
+        "metric": "title_match_precision",
+        "tier": "sample",
+        "threshold": 0.99,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "needs the 200-title owner-reviewed sample; not computable from the shadow report"
+      },
+      {
+        "group": "titles",
+        "metric": "display_title_of_linked",
+        "tier": "all",
+        "threshold": 1,
+        "value": 0.9435673138468104,
+        "n": 28122,
+        "status": "fail"
+      },
+      {
+        "group": "titles",
+        "metric": "native_title",
+        "tier": "top5k",
+        "threshold": 0.95,
+        "value": 0.5008,
+        "n": 5000,
+        "status": "fail"
+      },
+      {
+        "group": "facts",
+        "metric": "start_year_exact",
+        "tier": "all",
+        "threshold": 0.98,
+        "value": 0.8796887701776797,
+        "n": 25833,
+        "status": "fail"
+      },
+      {
+        "group": "facts",
+        "metric": "format_mapped",
+        "tier": "all",
+        "threshold": 0.97,
+        "value": 0.9376123020350173,
+        "n": 23931,
+        "status": "fail"
+      },
+      {
+        "group": "adult",
+        "metric": "becomes_non_adult",
+        "tier": "all",
+        "threshold": 0,
+        "value": 0,
+        "n": 25621,
+        "status": "pass",
+        "note": "newly adult (to list for review): 816; review list size: 2382"
+      },
+      {
+        "group": "relations",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": ">= 90% of today's SEQUEL/PREQUEL pairs among linked titles reproduced (not in the shadow report yet)"
+      },
+      {
+        "group": "popularity",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "Spearman >= 0.7 on top 5k (Task 10)"
+      },
+      {
+        "group": "tags",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "median top-5 tag overlap >= 60% (Task 11)"
+      },
+      {
+        "group": "episodes",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "next airing within 24 h of the provider (Task 9, gate L1)"
+      },
+      {
+        "group": "synopsis",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "own synopsis on >= 95% of top 5k (Task 12, gate L2)"
+      },
+      {
+        "group": "images",
+        "metric": "not_measured",
+        "tier": "-",
+        "threshold": null,
+        "value": null,
+        "n": 0,
+        "status": "insufficient",
+        "note": "licensed or Kuro artwork on 100% of visible titles (Task 13, gate L3)"
+      }
+    ],
+    "summary": {
+      "identity": "fail",
+      "data": "pass",
+      "titles": "fail",
+      "facts": "fail",
+      "adult": "pass",
+      "relations": "insufficient",
+      "popularity": "insufficient",
+      "tags": "insufficient",
+      "episodes": "insufficient",
+      "synopsis": "insufficient",
+      "images": "insufficient"
+    },
+    "min_compared": 30
+  }
+}

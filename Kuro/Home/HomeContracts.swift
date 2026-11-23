@@ -1,4 +1,16 @@
 import Foundation
+import KuroCore
+import KuroLibrary
+
+struct HomeCardSeed: Equatable, Sendable {
+    let title: String
+    let coverImage: String?
+    let bannerImage: String?
+    let format: String?
+    let episodes: Int?
+    let chapters: Int?
+    let volumes: Int?
+}
 
 struct HomeMaterial: Codable, Equatable, Sendable {
     let imageDigest: String?
@@ -39,6 +51,67 @@ struct HomeCard: Codable, Equatable, Identifiable, Sendable {
     let sectionKind: String?
     let sectionName: String?
     let material: HomeMaterial?
+    let latestChapter: Double?
+    let nextEpisodeNumber: Int?
+    let nextAiringAt: Date?
+    let nextChapterNumber: Int?
+    let nextChapterAt: Date?
+
+    init(
+        mediaId: Int,
+        listType: String,
+        progress: Int,
+        progressLabel: String?,
+        volumesProgress: Int?,
+        serverRevision: Int64,
+        lifecycleId: String,
+        unitId: String?,
+        title: String,
+        bannerImage: String?,
+        coverImage: String?,
+        format: String?,
+        episodes: Int?,
+        chapters: Int?,
+        volumes: Int?,
+        catalogueStatus: String?,
+        seriesId: String?,
+        sectionOrdinal: Int?,
+        sectionKind: String?,
+        sectionName: String?,
+        material: HomeMaterial?,
+        latestChapter: Double? = nil,
+        nextEpisodeNumber: Int? = nil,
+        nextAiringAt: Date? = nil,
+        nextChapterNumber: Int? = nil,
+        nextChapterAt: Date? = nil
+    ) {
+        self.mediaId = mediaId
+        self.listType = listType
+        self.progress = progress
+        self.progressLabel = progressLabel
+        self.volumesProgress = volumesProgress
+        self.serverRevision = serverRevision
+        self.lifecycleId = lifecycleId
+        self.unitId = unitId
+        self.title = title
+        self.bannerImage = bannerImage
+        self.coverImage = coverImage
+        self.format = format
+        self.episodes = episodes
+        self.chapters = chapters
+        self.volumes = volumes
+        self.catalogueStatus = catalogueStatus
+        self.seriesId = seriesId
+        self.sectionOrdinal = sectionOrdinal
+        self.sectionKind = sectionKind
+        self.sectionName = sectionName
+        self.material = material
+        self.latestChapter = latestChapter
+        self.nextEpisodeNumber = nextEpisodeNumber
+        self.nextAiringAt = nextAiringAt
+        self.nextChapterNumber = nextChapterNumber
+        self.nextChapterAt = nextChapterAt
+    }
 
     enum CodingKeys: String, CodingKey {
         case mediaId = "media_id"
@@ -59,6 +132,11 @@ struct HomeCard: Codable, Equatable, Identifiable, Sendable {
         case sectionKind = "section_kind"
         case sectionName = "section_name"
         case material
+        case latestChapter = "latest_chapter"
+        case nextEpisodeNumber = "next_episode_number"
+        case nextAiringAt = "next_airing_at"
+        case nextChapterNumber = "next_chapter_number"
+        case nextChapterAt = "next_chapter_at"
     }
 
     var seasonStamp: String? {
@@ -72,6 +150,37 @@ struct HomeCard: Codable, Equatable, Identifiable, Sendable {
         if sectionKind == "film" { return "Film" }
         guard let sectionOrdinal else { return nil }
         return sectionName ?? "Season \(sectionOrdinal)"
+    }
+
+    func updating(listType: String, progress: Int) -> HomeCard {
+        HomeCard(
+            mediaId: mediaId,
+            listType: listType,
+            progress: progress,
+            progressLabel: progressLabel,
+            volumesProgress: volumesProgress,
+            serverRevision: serverRevision,
+            lifecycleId: lifecycleId,
+            unitId: unitId,
+            title: title,
+            bannerImage: bannerImage,
+            coverImage: coverImage,
+            format: format,
+            episodes: episodes,
+            chapters: chapters,
+            volumes: volumes,
+            catalogueStatus: catalogueStatus,
+            seriesId: seriesId,
+            sectionOrdinal: sectionOrdinal,
+            sectionKind: sectionKind,
+            sectionName: sectionName,
+            material: material,
+            latestChapter: latestChapter,
+            nextEpisodeNumber: nextEpisodeNumber,
+            nextAiringAt: nextAiringAt,
+            nextChapterNumber: nextChapterNumber,
+            nextChapterAt: nextChapterAt
+        )
     }
 }
 
@@ -182,6 +291,80 @@ struct HomeBundle: Decodable, Equatable, Sendable {
             scheduleState: scheduleState,
             nextCursor: cursor,
             club: club,upcomingTotal:upcomingTotal,eventsCursor:eventsCursor,pendingTotal:pendingTotal,pendingCursor:pendingCursor
+        )
+    }
+
+    /// Optimistic local patch when a Library row is added, changes status, or is removed.
+    /// Keeps `homeRevision` unchanged so the authoritative server refresh always supersedes it.
+    func applyingLibraryChange(mediaId: Int, status: ListStatus?, progress: Int?, seed: HomeCardSeed? = nil) -> HomeBundle? {
+        let targetListType: String?
+        switch status {
+        case nil, .completed, .dropped:
+            targetListType = nil
+        case .current:
+            targetListType = medium == "manga" ? "READING" : "WATCHING"
+        case .repeating:
+            targetListType = "REPEATING"
+        case .planning:
+            targetListType = "PLANNING"
+        case .paused:
+            targetListType = "PAUSED"
+        }
+
+        let exists = active.contains(where: { $0.mediaId == mediaId })
+        let patched: [HomeCard]
+        if exists {
+            if let nextType = targetListType {
+                patched = active.map { card in
+                    card.mediaId == mediaId ? card.updating(listType: nextType, progress: progress ?? card.progress) : card
+                }
+            } else {
+                patched = active.filter { $0.mediaId != mediaId }
+            }
+        } else if let nextType = targetListType, let seed {
+            let optimistic = HomeCard(
+                mediaId: mediaId,
+                listType: nextType,
+                progress: progress ?? 0,
+                progressLabel: nil,
+                volumesProgress: nil,
+                serverRevision: 0,
+                lifecycleId: "",
+                unitId: nil,
+                title: seed.title,
+                bannerImage: seed.bannerImage,
+                coverImage: seed.coverImage,
+                format: seed.format,
+                episodes: seed.episodes,
+                chapters: seed.chapters,
+                volumes: seed.volumes,
+                catalogueStatus: nil,
+                seriesId: nil,
+                sectionOrdinal: nil,
+                sectionKind: nil,
+                sectionName: nil,
+                material: nil
+            )
+            patched = [optimistic] + active
+        } else {
+            return nil
+        }
+
+        guard patched != active else { return nil }
+        return HomeBundle(
+            medium: medium,
+            windowDays: windowDays,
+            homeRevision: homeRevision,
+            active: patched,
+            upcoming: upcoming,
+            pending: pending,
+            scheduleState: scheduleState,
+            nextCursor: nextCursor,
+            club: club,
+            upcomingTotal: upcomingTotal,
+            eventsCursor: eventsCursor,
+            pendingTotal: pendingTotal,
+            pendingCursor: pendingCursor
         )
     }
 

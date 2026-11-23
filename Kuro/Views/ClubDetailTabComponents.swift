@@ -33,6 +33,7 @@ struct JournalTabBar: View {
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .kuroTrailingOverflowFade()
+        .kuroSwipeExclusionZone()
         .background(Color.kuroCanvasHome)
         .overlay(alignment: .bottom) {
             // Inset to the gutter like Home's switch rule; the pinned background stays full width.
@@ -141,7 +142,7 @@ nonisolated enum ClubRailCardMetrics {
     }
 
     static func height(width: CGFloat) -> CGFloat {
-        (width / 0.7).rounded()
+        (width * 1.5).rounded()
     }
 }
 
@@ -300,20 +301,47 @@ struct JournalRailSection: View {
     var onScrollToNote: (() -> Void)? = nil
     @Environment(FeatureFlags.self) private var flags
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    /// One column below a 300 pt column or at accessibility sizes (spec §7.3.1, §7.7).
-    private var columns: Int {
-        let column = min(containerWidth, KuroReadableWidth.maxWidth) - gutter * 2
-        return dynamicTypeSize.isAccessibilitySize || (column > 0 && column < 300) ? 1 : 2
-    }
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var visibleWidth: CGFloat = 0
+    @State private var openNoteItemId: String? = nil
+    @State private var revealedSpoilerIds: Set<String> = []
 
     var body: some View {
         let german = KuroLocale.isGerman
         let notes = ClubRoomCopy.notes(in: rail, members: members)
+        let effectiveWidth = min(containerWidth > 0 ? containerWidth : 390, KuroReadableWidth.maxWidth)
+        let cardWidth = ClubRailCardMetrics.width(containerWidth: effectiveWidth)
+        let coverHeight = ClubRailCardMetrics.height(width: cardWidth)
         VStack(alignment: .leading, spacing: 0) {
-            ClubSubHeading(title: rail.title,
-                           count: ClubRoomCopy.titleCount(rail.items.count, german: german)
-                               + (rail.is_locked ? ClubRoomCopy.locked(german: german) : ""))
+            HStack(alignment: .center, spacing: 8) {
+                ClubSubHeading(title: rail.title,
+                               count: ClubRoomCopy.titleCount(rail.items.count, german: german)
+                                   + (rail.is_locked ? ClubRoomCopy.locked(german: german) : ""))
+                if let onAddItem, !rail.items.isEmpty {
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        onAddItem()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 10, weight: .semibold))
+                                .accessibilityHidden(true)
+                            Text(KuroLocale.text("Add", "Titel"))
+                                .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 20))
+                        }
+                        .foregroundStyle(Color.kuroInk)
+                        .padding(.horizontal, 10)
+                        .frame(height: 28)
+                        .background(Color.white.opacity(0.76), in: Capsule())
+                        .overlay(Capsule().strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(HomeContactStyle())
+                    .fixedSize()
+                    .accessibilityLabel(ClubRoomCopy.addToRail(rail.title, german: german))
+                }
+            }
 
             if let desc = rail.description?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
                 Text(desc)
@@ -326,10 +354,15 @@ struct JournalRailSection: View {
             if rail.items.isEmpty {
                 HomeQuietCard(text: KuroLocale.text("Nothing here yet.", "Hier ist noch nichts."))
                     .padding(.top, 12)
-            } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: compact ? 12 : 16, alignment: .top),
-                                         count: columns),
-                          alignment: .leading, spacing: compact ? 14 : 16) {
+                if let onAddItem {
+                    ClubTextAction(title: ClubRoomCopy.addToRail(rail.title, german: german)) {
+                        KuroAccessibility.impactHaptic(.light)
+                        onAddItem()
+                    }
+                    .padding(.top, 6)
+                }
+            } else if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 16) {
                     ForEach(rail.items) { item in
                         JournalRailTile(
                             item: item,
@@ -338,6 +371,10 @@ struct JournalRailSection: View {
                             viewerId: viewerId,
                             members: members,
                             showsReactions: flags.isClubsReactionsV1Enabled,
+                            cardWidth: nil,
+                            coverHeight: nil,
+                            isNoteOpen: openNoteItemId == item.id,
+                            onToggleNote: { toggleNote(for: item.id) },
                             onError: onError,
                             onScrollToNote: onScrollToNote
                         )
@@ -346,28 +383,121 @@ struct JournalRailSection: View {
                     }
                 }
                 .padding(.top, 12)
-            }
-
-            if let onAddItem {
-                ClubTextAction(title: ClubRoomCopy.addToRail(rail.title, german: german)) {
-                    KuroAccessibility.impactHaptic(.light)
-                    onAddItem()
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: KuroRailPeek.spacing) {
+                        ForEach(rail.items) { item in
+                            JournalRailTile(
+                                item: item,
+                                note: notes.first { $0.itemId == item.id },
+                                placement: ClubRoomRules.notePlacement(itemId: item.id, note: item.note, firstNoteItemId: firstNoteItemId),
+                                viewerId: viewerId,
+                                members: members,
+                                showsReactions: flags.isClubsReactionsV1Enabled,
+                                cardWidth: cardWidth,
+                                coverHeight: coverHeight,
+                                isNoteOpen: openNoteItemId == item.id,
+                                onToggleNote: { toggleNote(for: item.id) },
+                                onError: onError,
+                                onScrollToNote: onScrollToNote
+                            )
+                            .opacity(itemOpacity?(item) ?? 1.0)
+                            .kuroAnimation(KuroMotion.settle, value: itemOpacity?(item) ?? 1.0)
+                        }
+                    }
+                    .padding(.top, 4)
+                    .padding(.bottom, 6)
                 }
-                .padding(.top, 6)
+                .scrollClipDisabled()
+                .detailRailBleed(visible: $visibleWidth, gutter: gutter)
+                .kuroSwipeExclusionZone()
+                .padding(.top, 10)
+
+                if let openId = openNoteItemId,
+                   let activeItem = rail.items.first(where: { $0.id == openId }),
+                   ClubRoomRules.notePlacement(itemId: activeItem.id, note: activeItem.note, firstNoteItemId: firstNoteItemId) == .inline,
+                   let activeNote = notes.first(where: { $0.itemId == openId }),
+                   !activeNote.text.isEmpty {
+                    expandedNoteCard(item: activeItem, note: activeNote, text: activeNote.text, german: german)
+                        .padding(.top, 10)
+                        .transition(.opacity)
+                }
             }
         }
         .padding(.horizontal, gutter)
         .padding(.top, 18)
-        .padding(.bottom, 4)
+        .padding(.bottom, 6)
+    }
+
+    private func toggleNote(for itemId: String) {
+        withAnimation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil) {
+            openNoteItemId = (openNoteItemId == itemId) ? nil : itemId
+        }
+    }
+
+    private func expandedNoteCard(item: ClubRailItem, note: ClubRoomCopy.Note, text: String, german: Bool) -> some View {
+        let parsed = ClubSpoilerGate.parse(
+            note: text,
+            serverIsSpoiler: item.is_spoiler,
+            serverThroughUnit: item.spoiler_through_unit
+        )
+        let mask = revealedSpoilerIds.contains(item.id)
+            ? nil
+            : ClubSpoilerGate.maskReason(
+                item: item,
+                viewerStatus: item.my_status,
+                viewerProgress: item.my_progress,
+                german: german
+            )
+        let displayedText = parsed.cleanText.isEmpty ? text : parsed.cleanText
+
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text("\(item.title_display) · \(note.author ?? KuroLocale.text("Member note", "Mitgliedsnotiz"))")
+                    .font(.kuroCustom(9, weight: .medium, relativeTo: .caption2, maxSize: 18))
+                    .tracking(0.8)
+                    .textCase(.uppercase)
+                    .foregroundStyle(HomeInk.kicker)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Button {
+                    toggleNote(for: item.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.kuroMuted)
+                        .frame(width: 44, height: 32, alignment: .trailing)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(KuroLocale.text("Close note", "Notiz schließen"))
+            }
+            if let mask {
+                JournalSpoilerNoteMask(reason: mask, compactFont: 11) {
+                    KuroAccessibility.impactHaptic(.light)
+                    withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
+                        _ = revealedSpoilerIds.insert(item.id)
+                    }
+                }
+            } else {
+                Text(KuroLocale.text("“\(displayedText)”", "„\(displayedText)“"))
+                    .font(.kuroEditorial(size: 16))
+                    .tracking(-0.2)
+                    .foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
     }
 }
 
-// MARK: - Rail tile (Home's Also-watching tile grammar)
+// MARK: - Rail tile (Poster rail card / AX vertical row)
 
-/// One rail title: a 44 × 66 cover, the title (12 pt medium, 3 lines), the viewer's own progress
-/// ("You · Ep. 7 of 24"), who else ("Mina, Jules watching", else "Added by …"), the note link (D11) and
-/// the live reaction row. The cover and text open the title (N9); the note link and the reactions are
-/// their own targets; long press keeps the existing menu.
+/// One rail title: sharp 2 : 3 poster cover (`cardWidth × coverHeight`), reserved 2-line title,
+/// viewer's own progress ("You · Ep. 7 of 24"), who else, the note link (D11), and reactions.
 struct JournalRailTile: View {
     let item: ClubRailItem
     let note: ClubRoomCopy.Note?
@@ -375,13 +505,16 @@ struct JournalRailTile: View {
     let viewerId: String?
     let members: [ClubMember]
     let showsReactions: Bool
+    var cardWidth: CGFloat? = nil
+    var coverHeight: CGFloat? = nil
+    var isNoteOpen: Bool = false
+    var onToggleNote: (() -> Void)? = nil
     var onError: ((String) -> Void)? = nil
     var onScrollToNote: (() -> Void)? = nil
 
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var libraryActions
     @State private var actionScope = AccountActionScope()
-    @State private var noteOpen = false
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -417,31 +550,100 @@ struct JournalRailTile: View {
 
     var body: some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
+        Group {
+            if let cardWidth, let coverHeight {
+                posterCard(width: cardWidth, height: coverHeight, origin: origin)
+            } else {
+                verticalRow(origin: origin)
+            }
+        }
+        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear { actionScope.deactivate() }
+    }
+
+    private func posterCard(width: CGFloat, height: CGFloat, origin: AccountActionScope.Ticket?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
                 open(origin: origin)
             } label: {
-                HStack(alignment: .top, spacing: 9) {
-                    cover
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(item.title_display)
-                            .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 26))
+                VStack(alignment: .leading, spacing: 0) {
+                    cover(width: width, height: height)
+                    Text(item.title_display)
+                        .font(.kuroCustom(12.5, weight: .medium, relativeTo: .footnote, maxSize: 26))
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(2, reservesSpace: true)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+                    if let progressText {
+                        Text(progressText)
+                            .font(.kuroCustom(10, weight: .medium, relativeTo: .caption2, maxSize: 20))
                             .foregroundStyle(Color.kuroInk)
-                            .lineLimit(3)
+                            .lineLimit(1)
+                            .padding(.top, 3)
+                    } else if let othersText {
+                        Text(othersText)
+                            .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                            .foregroundStyle(HomeInk.tileUnit)
+                            .lineLimit(1)
+                            .padding(.top, 3)
+                    }
+                    if progressText != nil, let othersText {
+                        Text(othersText)
+                            .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                            .foregroundStyle(HomeInk.tileUnit)
+                            .lineLimit(1)
+                            .padding(.top, 1)
+                    }
+                }
+                .frame(width: width, alignment: .topLeading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(HomeArtworkPressStyle())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
+            .accessibilityHint(KuroLocale.text("Opens the title.", "Öffnet den Titel."))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { open(origin: origin) }
+            .contextMenu { cardContextMenu }
+
+            if placement != .none || showsReactions {
+                VStack(alignment: .leading, spacing: 2) {
+                    noteLink(inlineTextExpanded: false)
+                    if showsReactions {
+                        ClubReactionMenu(item: item, onError: onError)
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .frame(width: width, alignment: .topLeading)
+    }
+
+    private func verticalRow(origin: AccountActionScope.Ticket?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                open(origin: origin)
+            } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    cover(width: 60, height: 90)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.title_display)
+                            .font(.kuroCustom(14, weight: .medium, relativeTo: .subheadline, maxSize: 28))
+                            .foregroundStyle(Color.kuroInk)
+                            .lineLimit(4)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                         if let progressText {
                             Text(progressText)
-                                .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
-                                .foregroundStyle(HomeInk.tileUnit)
-                                .fixedSize(horizontal: false, vertical: true)
+                                .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
+                                .foregroundStyle(Color.kuroInk)
                         }
                         if let othersText {
                             Text(othersText)
-                                .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                                .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 22))
                                 .foregroundStyle(HomeInk.tileUnit)
                                 .lineLimit(2)
-                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -454,33 +656,32 @@ struct JournalRailTile: View {
             .accessibilityLabel(accessibilityText)
             .accessibilityHint(KuroLocale.text("Opens the title.", "Öffnet den Titel."))
             .accessibilityAddTraits(.isButton)
-            // A4: the combined element activates programmatically.
             .accessibilityAction { open(origin: origin) }
-            .contextMenu {
-                Button(action: {
-                    guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
-                    KuroAccessibility.impactHaptic(.light)
-                    LibraryViewActions.toggleTracked(libraryKey, actions: libraryActions)
-                }) {
-                    Label(
-                        isInCollection
-                            ? KuroLocale.text("Remove from list", "Von der Liste entfernen")
-                            : (mediaKind == .manga ? KuroLocale.text("Plan to read", "Vormerken") : KuroLocale.text("Plan to watch", "Vormerken")),
-                        systemImage: isInCollection ? "minus.circle" : "plus.circle"
-                    )
-                }
-            }
+            .contextMenu { cardContextMenu }
 
-            VStack(alignment: .leading, spacing: 4) {
-                noteLink
-                if showsReactions {
-                    ClubReactionMenu(item: item, onError: onError)
-                }
+            noteLink(inlineTextExpanded: true)
+            if showsReactions {
+                ClubReactionMenu(item: item, onError: onError)
             }
-            .padding(.leading, ClubRoomLayout.tileCover.width + 9)
         }
-        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
-        .onDisappear { actionScope.deactivate() }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var cardContextMenu: some View {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        Button(action: {
+            guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
+            KuroAccessibility.impactHaptic(.light)
+            LibraryViewActions.toggleTracked(libraryKey, actions: libraryActions)
+        }) {
+            Label(
+                isInCollection
+                    ? KuroLocale.text("Remove from list", "Von der Liste entfernen")
+                    : (mediaKind == .manga ? KuroLocale.text("Plan to read", "Vormerken") : KuroLocale.text("Plan to watch", "Vormerken")),
+                systemImage: isInCollection ? "minus.circle" : "plus.circle"
+            )
+        }
     }
 
     private func open(origin: AccountActionScope.Ticket?) {
@@ -490,29 +691,29 @@ struct JournalRailTile: View {
         routes.openMedia(MediaRoute(libraryKey))
     }
 
-    private var cover: some View {
-        HomeInk.posterFill
-            .frame(width: ClubRoomLayout.tileCover.width, height: ClubRoomLayout.tileCover.height)
+    private func cover(width: CGFloat, height: CGFloat) -> some View {
+        let kindWord = mediaKind == .manga ? "Manga" : "Anime"
+        return Color.clear
+            .frame(width: width, height: height)
             .overlay {
-                KuroCachedAsyncImage(url: URL(string: item.cover_image_medium ?? ""), maxPixelSize: 200) { phase in
-                    if case .success(let image) = phase { image.resizable().scaledToFill() }
-                    else { HomeInk.posterFill }
+                if let raw = item.cover_image_medium, let url = URL(string: raw), !raw.isEmpty {
+                    KuroCachedAsyncImage(url: url, maxPixelSize: 360) { phase in
+                        if case .success(let image) = phase { image.resizable().scaledToFill() }
+                        else { KuroBrandedTile(kind: kindWord, title: item.title_display, cornerRadius: 5) }
+                    }
+                } else {
+                    KuroBrandedTile(kind: kindWord, title: item.title_display, cornerRadius: 5)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.black.opacity(Double(0x0B) / 255), lineWidth: 1))
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color(hex: "222222", opacity: Double(0x55) / 255))
-                    .padding(4)
-                    .offset(y: 3)
-                    .blur(radius: 3.5)
-            )
+            .background(HomeInk.posterFill)
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
+            .shadow(color: Color(hex: "222222", opacity: Double(0x18) / 255), radius: 2, y: 2)
             .accessibilityHidden(true)
     }
 
     @ViewBuilder
-    private var noteLink: some View {
+    private func noteLink(inlineTextExpanded: Bool) -> some View {
         switch placement {
         case .none:
             EmptyView()
@@ -525,7 +726,7 @@ struct JournalRailTile: View {
                     .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
                     .foregroundStyle(Color.kuroInk)
                     .underline(color: Color.kuroInk.opacity(0.25))
-                    .frame(minHeight: 32, alignment: .leading)
+                    .frame(minHeight: 36, alignment: .leading)
                     .contentShape(Rectangle())
             }
             .buttonStyle(HomeContactStyle())
@@ -534,41 +735,31 @@ struct JournalRailTile: View {
             VStack(alignment: .leading, spacing: 6) {
                 Button {
                     KuroAccessibility.impactHaptic(.light)
-                    withAnimation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil) {
-                        noteOpen.toggle()
-                    }
+                    onToggleNote?()
                 } label: {
-                    // The same 10 pt text link as "{name}'s note ↑" (spec §7.3.1 line 3), the chevron
-                    // after it; no fill or border, so both note links read as one kind of thing.
-                    // The chevron is part of the text, so it ends the last line when a narrow tile wraps.
-                    let chevron = Text(Image(systemName: noteOpen ? "chevron.up" : "chevron.down"))
+                    let chevron = Text(Image(systemName: isNoteOpen ? "chevron.up" : "chevron.down"))
                         .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 14))
                     let words = Text(ClubRoomCopy.noteInline(author: note?.author, german: german))
                         .underline(color: Color.kuroInk.opacity(0.25))
                     Text("\(words)\u{00A0}\(chevron)")
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
+                        .lineLimit(inlineTextExpanded ? 3 : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(Color.kuroInk)
-                    .frame(minHeight: 44, alignment: .leading)
-                    .contentShape(Rectangle())
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(minHeight: 36, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(HomeContactStyle())
-                .accessibilityLabel(noteOpen
+                .accessibilityLabel(isNoteOpen
                     ? ClubRoomCopy.noteInline(author: note?.author, german: german)
                     : KuroLocale.text("Note by \(note?.author ?? "a member"), may contain spoilers. Double tap to read.",
                                       "Notiz von \(note?.author ?? "einem Mitglied"), kann spoilern. Zum Lesen doppeltippen."))
-                .accessibilityValue(KuroFold.accessibilityValue(expanded: noteOpen, german: german))
-                if noteOpen, let text = note?.text {
-                    Text(KuroLocale.text("“\(text)”", "„\(text)“"))
-                        .font(.kuroEditorial(size: 15))
-                        .tracking(-0.2)
-                        .foregroundStyle(Color.kuroInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .transition(.opacity)
+                .accessibilityValue(KuroFold.accessibilityValue(expanded: isNoteOpen, german: german))
+                if inlineTextExpanded, isNoteOpen, let text = note?.text {
+                    JournalInlineSpoilerNote(item: item, rawText: text, german: german)
                 }
             }
-            // An edited note starts hidden again.
             .id(note?.text ?? "")
         }
     }
@@ -595,9 +786,76 @@ struct JournalMilestoneCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct JournalSpoilerNoteMask: View {
+    let reason: String
+    let compactFont: CGFloat
+    let onReveal: () -> Void
+
+    var body: some View {
+        Button(action: onReveal) {
+            HStack(spacing: 8) {
+                Image(systemName: "eye.slash")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.kuroMuted)
+                Text(reason)
+                    .font(.kuroCustom(compactFont, weight: .medium, relativeTo: .caption1, maxSize: 20))
+                    .foregroundStyle(Color.kuroInk)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+            .background(Color.black.opacity(0.04), in: Capsule())
+            .overlay(Capsule().strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct JournalInlineSpoilerNote: View {
+    let item: ClubRailItem
+    let rawText: String
+    let german: Bool
+    @State private var revealed = false
+
+    var body: some View {
+        let parsed = ClubSpoilerGate.parse(
+            note: rawText,
+            serverIsSpoiler: item.is_spoiler,
+            serverThroughUnit: item.spoiler_through_unit
+        )
+        let mask = revealed
+            ? nil
+            : ClubSpoilerGate.maskReason(
+                item: item,
+                viewerStatus: item.my_status,
+                viewerProgress: item.my_progress,
+                german: german
+            )
+        let displayedText = parsed.cleanText.isEmpty ? rawText : parsed.cleanText
+
+        if let mask {
+            JournalSpoilerNoteMask(reason: mask, compactFont: 11) {
+                KuroAccessibility.impactHaptic(.light)
+                withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
+                    revealed = true
+                }
+            }
+        } else {
+            Text(KuroLocale.text("“\(displayedText)”", "„\(displayedText)“"))
+                .font(.kuroEditorial(size: 15))
+                .tracking(-0.2)
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .transition(.opacity)
+        }
     }
 }
 
@@ -878,8 +1136,8 @@ struct JournalPollsContent: View {
             }
             .padding(12)
             .frame(minHeight: 44)
-            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
+            .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(HomeInk.quietBorder, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())
