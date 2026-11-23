@@ -1,25 +1,23 @@
 import Foundation
 
 // MARK: - Legal and credit links (one place)
-// `privacy` is the link the app has always shown (confirm it is live before release,
-// docs/app-store-metadata.md). `terms` stays nil until the owner confirms a real Terms page: an
-// invented URL is never shipped, and Profile hides the row while it is nil. Source hosts are fixed
-// per source (spec §3.3a).
+// All legal pages are served from `legalSiteBase` (Vercel project kuro-legal). Switch `legalSiteBase`
+// once a custom domain is attached, together with `ALLOWED_ORIGINS` in
+// `supabase/functions/contact-submit/handler.ts`. Source hosts are fixed per source (spec §3.3a).
 
 enum KuroLegalLinks {
-    static let privacy = URL(string: "https://kuro.app/privacy")
-    /// The legal site's hostname that resolves today (Vercel project kuro-legal; `kuro.app` did not
-    /// resolve on 2026-11-02). Switch it once the final domain is attached, together with the CORS
-    /// list in supabase/functions/contact-submit/handler.ts.
+    /// Production legal site hostname (Vercel project kuro-legal).
     static let legalSiteBase = "https://kuro-legal.vercel.app"
+
+    static let privacy = URL(string: legalSiteBase + "/privacy")
 
     /// The privacy policy's contact-form section (Art. 13 GDPR information at the point of
     /// collection): the German section for German, the English one otherwise.
     static func privacyContactForm(german: Bool) -> URL? {
         URL(string: legalSiteBase + (german ? "/datenschutz#kontaktformular" : "/datenschutz#contact-form"))
     }
-    /// Owner request: set the confirmed Terms of service URL here; nil hides the row.
-    static let terms: URL? = nil
+
+    static let terms: URL? = URL(string: legalSiteBase + "/terms")
 }
 
 /// A catalogue or release source Kuro credits (spec D11, sources.md).

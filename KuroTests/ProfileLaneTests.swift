@@ -236,9 +236,8 @@ struct ProfileLaneTests {
             #expect(source.url?.host()?.hasSuffix(source.host) == true)
             #expect(!source.use(german: true).isEmpty && source.use(german: true) != source.use(german: false))
         }
-        #expect(KuroLegalLinks.privacy?.absoluteString == "https://kuro.app/privacy")
-        // No invented Terms URL ships: the row stays hidden until the owner confirms the real page.
-        #expect(KuroLegalLinks.terms == nil)
+        #expect(KuroLegalLinks.privacy?.absoluteString == "https://kuro-legal.vercel.app/privacy")
+        #expect(KuroLegalLinks.terms?.absoluteString == "https://kuro-legal.vercel.app/terms")
     }
 
     // MARK: Editor and imports
