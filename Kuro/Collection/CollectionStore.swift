@@ -126,6 +126,20 @@ final class CollectionStore: AccountScopedState {
     @ObservationIgnored var collectionRefreshDeferred = false
     @ObservationIgnored private var collectionRefreshScopeGeneration = 0
 
+    /// Account-scoped in-memory cache per `(medium, status)` so switching between Watching / Planned /
+    /// Completed renders in 0 ms without blanking to a skeleton. Cleared on account switch/sign-out
+    /// and selectively invalidated on Library mutations.
+    private struct FeedCacheKey: Hashable, Sendable {
+        let medium: MediaKind?
+        let status: ListStatus?
+    }
+    private struct CachedFeedPage: Sendable {
+        let snapshot: CollectionPagingSnapshot
+        let cachedAt: Date
+    }
+    @ObservationIgnored private var cachedFeeds: [FeedCacheKey: CachedFeedPage] = [:]
+    @ObservationIgnored static let feedCacheTTL: TimeInterval = 120
+
     // MARK: AccountScopedState
 
     /// Cancels the in-flight feed fetch and the sink's refresh; the bumped generation also rejects
@@ -157,6 +171,7 @@ final class CollectionStore: AccountScopedState {
         selectionSource = nil
         importedTitleKeys = nil; importedAccount = nil; importedMedia = []; importedOffset = 0; importedHasMore = false
         collectionRefreshDeferred = false
+        cachedFeeds.removeAll()
         resetCollectionFeedPaging()
         currentCollectionStatusFilter = nil
         isCollectionLoading = false
@@ -182,7 +197,12 @@ final class CollectionStore: AccountScopedState {
     }
 
     // MARK: - Collection feed (anime + manga interleaved)
-    func fetchCollectionFeed(status: ListStatus? = nil) async {
+    func fetchCollectionFeed(
+        status: ListStatus? = nil,
+        preferCache: Bool = false,
+        preserveExisting: Bool = false,
+        invalidateSiblingCaches: Bool = true
+    ) async {
         if importedTitleKeys != nil { await fetchImportedTitles(medium: nil, reset: true); return }
         seriesScope = nil
         currentCollectionStatusFilter = status
@@ -191,9 +211,37 @@ final class CollectionStore: AccountScopedState {
 
         collectionFeedFetchInFlight?.cancel()
         let context = accountSession.current
+        guard let context, accountSession.isCurrent(context) else { return }
+
+        let cacheKey = FeedCacheKey(medium: feedMedium, status: status)
+        if preferCache, let cached = cachedFeeds[cacheKey] {
+            restoreCollectionSnapshot(cached.snapshot)
+            collectionErrorMessage = nil
+            isCollectionLoading = false
+            if Date().timeIntervalSince(cached.cachedAt) < Self.feedCacheTTL {
+                return
+            }
+            // Stale-while-revalidate quietly in the background without blanking visible rows.
+            let t = Task { [weak self] in
+                guard let self else { return }
+                await self._fetchCollectionFeedImpl(status: status, generation: gen, context: context, preserveExisting: true)
+            }
+            collectionFeedFetchInFlight = t
+            collectionFeedFetchInFlightGeneration = gen
+            await t.value
+            if collectionFeedFetchInFlightGeneration == gen { collectionFeedFetchInFlight = nil }
+            return
+        }
+
+        if !preferCache && invalidateSiblingCaches {
+            // Explicit refresh (pull-to-refresh, realtime sync, or import) invalidates sibling status
+            // tabs so switching back within TTL never displays pre-refresh rows.
+            cachedFeeds.removeAll()
+        }
+
         let t = Task { [weak self] in
             guard let self else { return }
-            await self._fetchCollectionFeedImpl(status: status, generation: gen, context: context)
+            await self._fetchCollectionFeedImpl(status: status, generation: gen, context: context, preserveExisting: preserveExisting)
         }
         collectionFeedFetchInFlight = t
         collectionFeedFetchInFlightGeneration = gen
@@ -210,13 +258,8 @@ final class CollectionStore: AccountScopedState {
         let feedCursorRowId: Int?
     }
 
-    private func _fetchCollectionFeedImpl(status: ListStatus?, generation: Int, context: AccountContext?) async {
-        guard let context, accountSession.isCurrent(context), generation == collectionFeedFetchGeneration else { return }
-        isCollectionLoading = true
-        collectionErrorMessage = nil
-        defer { if accountSession.isCurrent(context), generation == collectionFeedFetchGeneration { isCollectionLoading = false } }
-
-        let snapshot = CollectionPagingSnapshot(
+    private func currentPagingSnapshot() -> CollectionPagingSnapshot {
+        CollectionPagingSnapshot(
             feed: collectionFeedItems,
             banners: feedBanners,
             feedHasMore: hasMoreCollectionFeed,
@@ -224,19 +267,60 @@ final class CollectionStore: AccountScopedState {
             feedCursorSourceRank: collectionFeedCursorSourceRank,
             feedCursorRowId: collectionFeedCursorRowId
         )
+    }
+
+    private func storeCurrentFeedInCache(medium: MediaKind?, status: ListStatus?) {
+        let key = FeedCacheKey(medium: medium, status: status)
+        cachedFeeds[key] = CachedFeedPage(snapshot: currentPagingSnapshot(), cachedAt: Date())
+    }
+
+    /// True when the `(medium, status)` feed already has an in-memory snapshot ready for 0 ms switching.
+    func hasCachedFeed(medium: MediaKind?, status: ListStatus?) -> Bool {
+        cachedFeeds[FeedCacheKey(medium: medium, status: status)] != nil
+    }
+
+    private func _fetchCollectionFeedImpl(
+        status: ListStatus?,
+        generation: Int,
+        context: AccountContext?,
+        preserveExisting: Bool = false
+    ) async {
+        guard let context, accountSession.isCurrent(context), generation == collectionFeedFetchGeneration else { return }
+        let requestedMedium = feedMedium
+        if !preserveExisting {
+            isCollectionLoading = true
+        }
+        collectionErrorMessage = nil
+        defer { if accountSession.isCurrent(context), generation == collectionFeedFetchGeneration { isCollectionLoading = false } }
+
+        let snapshot = currentPagingSnapshot()
 
         do {
-            resetCollectionFeedPaging()
-
-            let listTypes = feedListTypes(status: status, medium: feedMedium)
-
-            _ = try await fetchNextCollectionFeedPage(
-                limit: 90,
-                listTypeAnime: listTypes.anime,
-                listTypeManga: listTypes.manga,
-                generation: generation,
-                context: context
-            )
+            let listTypes = feedListTypes(status: status, medium: requestedMedium)
+            if preserveExisting {
+                let fresh = try await fetchFreshFirstCollectionPage(
+                    limit: 90,
+                    listTypeAnime: listTypes.anime,
+                    listTypeManga: listTypes.manga,
+                    generation: generation,
+                    context: context
+                )
+                guard let fresh, accountSession.isCurrent(context), generation == collectionFeedFetchGeneration else { return }
+                restoreCollectionSnapshot(fresh)
+                storeCurrentFeedInCache(medium: requestedMedium, status: status)
+            } else {
+                resetCollectionFeedPaging()
+                let ok = try await fetchNextCollectionFeedPage(
+                    limit: 90,
+                    listTypeAnime: listTypes.anime,
+                    listTypeManga: listTypes.manga,
+                    generation: generation,
+                    context: context
+                )
+                if ok, accountSession.isCurrent(context), generation == collectionFeedFetchGeneration {
+                    storeCurrentFeedInCache(medium: requestedMedium, status: status)
+                }
+            }
         } catch {
             guard accountSession.isCurrent(context), generation == collectionFeedFetchGeneration else { return }
             collectionErrorMessage = "Failed to load collection: \(error.localizedDescription)"
@@ -245,6 +329,51 @@ final class CollectionStore: AccountScopedState {
             #endif
             restoreCollectionSnapshot(snapshot)
         }
+    }
+
+    private func fetchFreshFirstCollectionPage(
+        limit: Int,
+        listTypeAnime: String?,
+        listTypeManga: String?,
+        generation: Int,
+        context: AccountContext?
+    ) async throws -> CollectionPagingSnapshot? {
+        guard generation == collectionFeedFetchGeneration, !Task.isCancelled else { return nil }
+        let perf = KuroPerf.begin("rpc.collection_feed_page")
+        let params = RPCCollectionFeedPageParams(
+            p_limit: max(1, min(120, limit)),
+            p_cursor_updated_at: nil,
+            p_cursor_source_rank: nil,
+            p_cursor_row_id: nil,
+            p_list_type_anime: listTypeAnime,
+            p_list_type_manga: listTypeManga
+        )
+        let client = try requiredClient()
+        let rows: [CollectionFeedRow] = try await client
+            .rpc("collection_feed_page", params: params)
+            .execute()
+            .value
+        if Task.isCancelled || generation != collectionFeedFetchGeneration || !accountSession.isCurrent(context) {
+            KuroPerf.end(perf, message: "cancelled")
+            return nil
+        }
+        let items = rows.map(\.media)
+        var banners: [MediaKey: String] = [:]
+        for row in rows {
+            if let banner = row.banner_image, !banner.isEmpty {
+                banners[MediaKey(kind: row.media.kind, id: row.id)] = banner
+            }
+        }
+        let last = rows.last
+        KuroPerf.end(perf, message: "ok \(rows.count)")
+        return CollectionPagingSnapshot(
+            feed: items,
+            banners: banners,
+            feedHasMore: rows.count == params.p_limit,
+            feedCursorUpdatedAt: last?.list_updated_at,
+            feedCursorSourceRank: last?.source_rank,
+            feedCursorRowId: last?.list_row_id
+        )
     }
 
     private func restoreCollectionSnapshot(_ snapshot: CollectionPagingSnapshot) {
@@ -419,6 +548,7 @@ final class CollectionStore: AccountScopedState {
             collectionFeedCursorSourceRank = last.source_rank
             collectionFeedCursorRowId = last.list_row_id
         }
+        storeCurrentFeedInCache(medium: feedMedium, status: currentCollectionStatusFilter)
         KuroPerf.end(perf, message: "ok \(rows.count)")
         return true
     }
@@ -433,6 +563,7 @@ final class CollectionStore: AccountScopedState {
         guard accountSession.isCurrent(change.account) else { return }
         startSeriesMembershipRead(for: change)   // W6; nothing while collection_series_grouping_v1 is off
         guard !change.isProgressOnly else { return }
+        invalidateCachedFeeds(for: change)
         // Profile's "Your lists" covers are re-read on its next open.
         listPreviewLoadedAt = nil
         if change.kind == .removed {
@@ -443,6 +574,20 @@ final class CollectionStore: AccountScopedState {
             return
         }
         refreshCollectionPages()
+    }
+
+    private func invalidateCachedFeeds(for change: LibraryChange) {
+        let affectedStatuses: Set<ListStatus> = Set([change.previous?.status, change.current?.status].compactMap { $0 })
+        cachedFeeds = cachedFeeds.filter { key, _ in
+            let mediumMatches = key.medium == nil || key.medium == change.key.kind
+            guard mediumMatches else { return true }
+            if let status = key.status {
+                // Keep untouched status tabs warm (e.g. Completed stays 0 ms when editing Planned).
+                return !affectedStatuses.contains(status) && !affectedStatuses.isEmpty
+            }
+            // "All statuses" feed is always invalidated when any title in the medium changes.
+            return false
+        }
     }
 
     /// Which filter the deferred refresh reads. `.active` keeps `currentCollectionStatusFilter`.
@@ -550,7 +695,7 @@ final class CollectionStore: AccountScopedState {
             let activeSeries = self.seriesScope
             if let activeSeries {
                 await self.fetchSeriesPage(medium: activeSeries.medium, status: activeSeries.status, query: activeSeries.query, reset: true)
-            } else { await self.fetchCollectionFeed(status: filter) }
+            } else { await self.fetchCollectionFeed(status: filter, invalidateSiblingCaches: false) }
         }
         collectionChangeTask = task
         return task
@@ -558,6 +703,7 @@ final class CollectionStore: AccountScopedState {
 
     func publishImport(for context: AccountContext) async throws {
         guard accountSession.isCurrent(context) else { throw CancellationError() }
+        cachedFeeds.removeAll()
         await refreshCollectionPages().value
         guard accountSession.isCurrent(context), !Task.isCancelled else { throw CancellationError() }
         if let message = collectionErrorMessage { throw LibraryError.unavailable(message: message) }
@@ -628,6 +774,24 @@ final class CollectionStore: AccountScopedState {
 
     private func dropFromCollectionPages(_ key: MediaKey) {
         collectionFeedItems.removeAll { $0.kind == key.kind && $0.id == key.id }
+        for (cacheKey, entry) in cachedFeeds {
+            let filtered = entry.snapshot.feed.filter { !($0.kind == key.kind && $0.id == key.id) }
+            if filtered.count != entry.snapshot.feed.count {
+                var banners = entry.snapshot.banners
+                banners.removeValue(forKey: key)
+                cachedFeeds[cacheKey] = CachedFeedPage(
+                    snapshot: CollectionPagingSnapshot(
+                        feed: filtered,
+                        banners: banners,
+                        feedHasMore: entry.snapshot.feedHasMore,
+                        feedCursorUpdatedAt: entry.snapshot.feedCursorUpdatedAt,
+                        feedCursorSourceRank: entry.snapshot.feedCursorSourceRank,
+                        feedCursorRowId: entry.snapshot.feedCursorRowId
+                    ),
+                    cachedAt: entry.cachedAt
+                )
+            }
+        }
         guard (key.kind == .manga ? "manga" : "anime") == seriesScope?.medium else { return }
         seriesGroups = seriesGroups.compactMap { group in
             let children = group.children.filter { $0.mediaId != key.id }

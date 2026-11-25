@@ -307,7 +307,7 @@ struct KuroBlurredArtworkFill: View {
                 if let raw, let url = URL(string: raw), !raw.isEmpty {
                     Color.clear
                         .overlay {
-                            HomeArtwork(url: url, maxPixelSize: 180, placeholder: .clear)
+                            HomeArtwork(url: url, maxPixelSize: 60, placeholder: .clear)
                         }
                         .clipped()
                         .opacity(0.24)
@@ -318,7 +318,7 @@ struct KuroBlurredArtworkFill: View {
                 if let raw, let url = URL(string: raw), !raw.isEmpty {
                     Color.clear
                         .overlay {
-                            HomeArtwork(url: url, maxPixelSize: 180, placeholder: .clear)
+                            HomeArtwork(url: url, maxPixelSize: 60, placeholder: .clear)
                         }
                         .clipped()
                         .opacity(0.42)

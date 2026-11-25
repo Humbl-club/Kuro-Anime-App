@@ -124,7 +124,7 @@ struct FolioArtwork: View {
     let width: CGFloat
     let height: CGFloat
     var cornerRadius: CGFloat = 3
-    var maxPixelSize: Int = 480
+    var maxPixelSize: Int = 210
     /// Top-biased crop for covers shown in a non-cover ratio (rulebook §6).
     var topBiased: Bool = false
 
@@ -467,7 +467,7 @@ private struct FolioSceneCell: View {
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 FolioArtwork(url: item.banner ?? item.media.imageURL, width: width, height: sceneHeight,
-                             cornerRadius: 5, maxPixelSize: 900, topBiased: item.banner == nil)
+                             cornerRadius: 5, maxPixelSize: 360, topBiased: item.banner == nil)
                     .overlay(alignment: .topTrailing) {
                         if isSelecting { FolioSelectionMark(selected: isSelected).padding(8) }
                     }
@@ -593,7 +593,7 @@ private struct FolioIndexRow: View {
                             .foregroundStyle(isSelected ? Color.kuroInk : Color.kuroInkQuiet)
                             .accessibilityHidden(true)
                     }
-                    FolioArtwork(url: item.media.imageURL, width: 40, height: 56, cornerRadius: 2, maxPixelSize: 140, topBiased: true)
+                    FolioArtwork(url: item.media.imageURL, width: 40, height: 56, cornerRadius: 2, maxPixelSize: 80, topBiased: true)
                     if dynamicTypeSize.isAccessibilitySize {
                         // Accessibility sizes: the numeral moves under the title instead of squeezing it.
                         VStack(alignment: .leading, spacing: 3) {

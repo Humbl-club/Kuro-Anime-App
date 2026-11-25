@@ -37,26 +37,28 @@ extension KuroMotion {
                                             endControlPoint: UnitPoint(x: 0.25, y: 1))
 }
 
+extension EnvironmentValues {
+    /// App-level Low Power Mode flag, observed once at the root (`KuroRootView`) so scrolling cells
+    /// never spawn per-view `NotificationCenter` streams.
+    @Entry var kuroLowPowerMode: Bool? = nil
+}
+
 /// Hands its content whether decorative motion may play, from Reduce Motion and Low Power Mode.
-/// Low Power Mode is observed live (an async notification sequence, no Combine), so turning it on
-/// stops running motion at once.
+/// Reads the single root-observed `\.kuroLowPowerMode` environment flag (falling back to
+/// `ProcessInfo` in previews/tests without the root modifier) — zero per-card `.task` churn.
 struct KuroMotionAllowance<Content: View>: View {
     let content: (Bool) -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+    @Environment(\.kuroLowPowerMode) private var rootLowPower
 
     init(@ViewBuilder content: @escaping (Bool) -> Content) {
         self.content = content
     }
 
     var body: some View {
+        let lowPower = rootLowPower ?? ProcessInfo.processInfo.isLowPowerModeEnabled
         content(KuroMotion.playsMotion(reduceMotion: reduceMotion, lowPower: lowPower))
-            .task {
-                for await _ in NotificationCenter.default.notifications(named: .NSProcessInfoPowerStateDidChange) {
-                    lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
-                }
-            }
     }
 }
 

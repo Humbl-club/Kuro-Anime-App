@@ -97,22 +97,33 @@ struct DiscoverFeedbackToastView: View {
                 .font(.kuroCustom(12, weight: .semibold, relativeTo: .footnote, maxSize: 22))
                 .foregroundStyle(Color.white)
                 .lineLimit(1)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.16))
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.75)
+                        )
+                )
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.97))
+        .buttonStyle(KuroPressStyle(pressedScale: 0.96))
     }
 
     private var dismissButton: some View {
         Button(action: onDismiss) {
             Image(systemName: "xmark")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.8))
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.75))
+                .frame(width: 26, height: 26)
+                .background(Color.white.opacity(0.08), in: Circle())
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(KuroPressStyle(pressedScale: 0.97))
+        .buttonStyle(KuroPressStyle(pressedScale: 0.94))
         .accessibilityLabel(DiscoverMenuCopy.dismiss(german: german))
     }
 }

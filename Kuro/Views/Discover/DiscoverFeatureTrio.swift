@@ -195,20 +195,15 @@ struct DiscoverCoverTile: View {
                                        kindShown: kindKicker)
     }
 
-    var body: some View {
-        if card.media.kind == .anime, let airing, abs(airing.airingAt.timeIntervalSinceNow) <= 86_400 {
-            TimelineView(.everyMinute) { context in
-                tileBody(now: context.date)
-            }
-        } else {
-            tileBody(now: Date())
-        }
+    private var needsLiveMinuteTick: Bool {
+        guard card.media.kind == .anime, let airing else { return false }
+        return abs(airing.airingAt.timeIntervalSinceNow) <= 86_400
     }
 
-    @ViewBuilder
-    private func tileBody(now: Date) -> some View {
-        let epDisplay = episodeDisplay(now: now)
-        let line = captionLine(now: now, episodeDisplay: epDisplay)
+    var body: some View {
+        let initialNow = Date()
+        let initialEpDisplay = episodeDisplay(now: initialNow)
+        let initialLine = captionLine(now: initialNow, episodeDisplay: initialEpDisplay)
         let isNew = section?.newKeys.contains(card.key) ?? false
         VStack(alignment: .leading, spacing: 0) {
             Button {
@@ -218,7 +213,7 @@ struct DiscoverCoverTile: View {
                 routes.openMedia(MediaRoute(card.key, zoomSourceID: zoomID))
             } label: {
                 VStack(alignment: .leading, spacing: 0) {
-                    HomeArtwork(url: card.media.imageURL.flatMap { URL(string: $0) }, maxPixelSize: 360,
+                    HomeArtwork(url: card.media.imageURL.flatMap { URL(string: $0) }, maxPixelSize: 210,
                                 placeholder: HomeInk.posterFill, seedHex: card.media.coverImageColor,
                                 usesMaterialWash: true)
                         .frame(width: width, height: height)
@@ -230,21 +225,12 @@ struct DiscoverCoverTile: View {
                         .kuroZoomSource(zoomID)
                         .overlay(alignment: .topLeading) { if isNew { DiscoverNewTab() } }
                         .overlay(alignment: .bottomLeading) {
-                            if let badge = epDisplay?.badge {
-                                Text(badge)
-                                    .font(.kuroCustom(8, weight: .bold, relativeTo: .caption2, maxSize: 14))
-                                    .tracking(0.25)
-                                    .monospacedDigit()
-                                    .foregroundStyle(Color.white)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.75)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2.5)
-                                    .background(Color.kuroControlInk.opacity(0.86), in: Capsule(style: .continuous))
-                                    .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.20), lineWidth: 0.5))
-                                    .frame(maxWidth: max(48, width - 42), alignment: .leading)
-                                    .padding(5)
-                                    .accessibilityHidden(true)
+                            if needsLiveMinuteTick {
+                                TimelineView(.everyMinute) { context in
+                                    episodeBadgeView(episodeDisplay(now: context.date)?.badge)
+                                }
+                            } else {
+                                episodeBadgeView(initialEpDisplay?.badge)
                             }
                         }
                     if kindKicker {
@@ -261,13 +247,14 @@ struct DiscoverCoverTile: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, kindKicker ? 3 : 9)
-                    Text(line ?? " ")
-                        .font(.kuroCustom(11, relativeTo: .caption2, maxSize: 20))
-                        .monospacedDigit()
-                        .foregroundStyle(Color.kuroMuted)
-                        .lineLimit(1)
-                        .padding(.top, 2)
-                        .accessibilityHidden(line == nil)
+                    if needsLiveMinuteTick {
+                        TimelineView(.everyMinute) { context in
+                            let liveEp = episodeDisplay(now: context.date)
+                            captionView(captionLine(now: context.date, episodeDisplay: liveEp))
+                        }
+                    } else {
+                        captionView(initialLine)
+                    }
                 }
                 .frame(width: width, alignment: .topLeading)
                 .contentShape(Rectangle())
@@ -275,7 +262,7 @@ struct DiscoverCoverTile: View {
             .buttonStyle(HomeArtworkPressStyle())
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text(DiscoverCardSpoken.label(title: card.media.title, kind: card.media.kind,
-                                                               kindKicker: kindKicker, line: line, isNew: isNew)))
+                                                               kindKicker: kindKicker, line: initialLine, isNew: isNew)))
             .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
             .discoverMenu(for: DiscoverCardItem(card: card, position: position))
             .overlay(alignment: .topLeading) {
@@ -290,6 +277,36 @@ struct DiscoverCoverTile: View {
             }
         }
         .frame(width: width, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func episodeBadgeView(_ badge: String?) -> some View {
+        if let badge {
+            Text(badge)
+                .font(.kuroCustom(8, weight: .bold, relativeTo: .caption2, maxSize: 14))
+                .tracking(0.25)
+                .monospacedDigit()
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2.5)
+                .background(Color.kuroControlInk.opacity(0.86), in: Capsule(style: .continuous))
+                .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.20), lineWidth: 0.5))
+                .frame(maxWidth: max(48, width - 42), alignment: .leading)
+                .padding(5)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func captionView(_ line: String?) -> some View {
+        Text(line ?? " ")
+            .font(.kuroCustom(11, relativeTo: .caption2, maxSize: 20))
+            .monospacedDigit()
+            .foregroundStyle(Color.kuroMuted)
+            .lineLimit(1)
+            .padding(.top, 2)
+            .accessibilityHidden(line == nil)
     }
 
     /// The cover's continuous corner radius (2026-11-20: 8 pt, was 4).

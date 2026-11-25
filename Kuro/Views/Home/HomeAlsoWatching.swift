@@ -71,7 +71,7 @@ struct HomeAlsoWatchingTile<Key: View>: View {
     }
 
     private var poster: some View {
-        HomeArtwork(url: posterURL, maxPixelSize: 300, placeholder: HomeInk.posterFill, usesMaterialWash: true)
+        HomeArtwork(url: posterURL, maxPixelSize: 80, placeholder: HomeInk.posterFill, usesMaterialWash: true)
             .frame(width: 44, height: 66)
             .background {
                 // `0 3px 7px -4px #22222255`: cast by a shape 4 pt smaller, so it shows below only.

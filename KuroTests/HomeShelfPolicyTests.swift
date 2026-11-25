@@ -182,4 +182,37 @@ struct HomeShelfPolicyTests {
         store.cancelAccountWork()
         await harness.tearDown()
     }
+
+    @Test("Home highlights float releasing titles with new episodes or new chapters ahead of backlog and caught-up titles")
+    func newUnitsFloatAheadForAnimeAndManga() throws {
+        // Server order (most recently updated first):
+        // 1: caught-up releasing anime
+        // 2: finished backlog anime (actionable, not new)
+        // 3: releasing anime with new episode available
+        // 4: another releasing anime with new episode available
+        let a1 = try HomeLaneTests.card(1, "WATCHING")
+        let a2 = try HomeLaneTests.card(2, "WATCHING")
+        let a3 = try HomeLaneTests.card(3, "WATCHING")
+        let a4 = try HomeLaneTests.card(4, "WATCHING")
+
+        let animeLanes = HomeShelfPolicy.prioritizedScenes(
+            [a1, a2, a3, a4],
+            hasNewUnit: { $0.mediaId == 3 || $0.mediaId == 4 },
+            isCaughtUp: { $0.mediaId == 1 }
+        )
+        #expect(animeLanes.scenes.map(\.mediaId) == [3, 4])
+        #expect(animeLanes.alsoWatching.map(\.mediaId) == [2, 1])
+
+        // Manga leaves: releasing manga with new chapters out floats ahead of backlog and caught-up manga.
+        let m1 = try HomeLaneTests.card(10, "READING")
+        let m2 = try HomeLaneTests.card(20, "READING")
+        let m3 = try HomeLaneTests.card(30, "READING")
+        let m4 = try HomeLaneTests.card(40, "READING")
+        let orderedManga = HomeShelfPolicy.prioritizedInProgress(
+            [m1, m2, m3, m4],
+            hasNewUnit: { $0.mediaId == 30 },
+            isCaughtUp: { $0.mediaId == 10 }
+        )
+        #expect(orderedManga.map(\.mediaId) == [30, 20, 40, 10])
+    }
 }

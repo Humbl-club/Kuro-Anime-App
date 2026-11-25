@@ -627,4 +627,67 @@ struct CollectionContractTests {
         await harness.tearDown()
     }
 
+    @Test("Collection per-(medium, status) cache makes Planned <-> Completed switching 0-RPC, invalidates only affected statuses on mutation, and clears on account switch")
+    func statusCacheAndSelectiveInvalidation() async throws {
+        let harness = try FacadeHarness()
+        harness.server.respond { request in
+            guard request.resource == Self.feed else { return .emptyArray }
+            switch request.jsonObject?["p_list_type_anime"] as? String {
+            case "PLANNING":
+                return CollectionPages.feedPage(for: request, total: 2, offset: 100)
+            case "COMPLETED":
+                return CollectionPages.feedPage(for: request, total: 3, offset: 200)
+            default:
+                return CollectionPages.feedPage(for: request, total: 1, offset: 300)
+            }
+        }
+        await harness.signIn(Self.userA)
+        let service = harness.service
+        let collection = service.collection
+        collection.feedMedium = .anime
+
+        // First visit to Planned and Completed fetches once each.
+        await collection.fetchCollectionFeed(status: .planning, preferCache: true)
+        #expect(collection.collectionFeedItems.map(\.id) == [101, 102])
+        #expect(harness.count(Self.feed) == 1)
+
+        await collection.fetchCollectionFeed(status: .completed, preferCache: true)
+        #expect(collection.collectionFeedItems.map(\.id) == [201, 202, 203])
+        #expect(harness.count(Self.feed) == 2)
+
+        // Switching back to Planned hits cache with 0 extra network requests.
+        await collection.fetchCollectionFeed(status: .planning, preferCache: true)
+        #expect(collection.collectionFeedItems.map(\.id) == [101, 102])
+        #expect(harness.count(Self.feed) == 2, "cached status switch sends 0 RPCs")
+
+        // Moving a title from Planned -> Watching invalidates Planned (and refreshes active filter),
+        // while leaving the untouched Completed cache warm.
+        let plannedEntry = FakeLibraryBackend.entry(.anime, 101, status: .planning)
+        let watchingEntry = FakeLibraryBackend.entry(.anime, 101, status: .current)
+        let accountA = try #require(service.accountSession.current)
+        collection.libraryDidChange(LibraryChange(
+            key: MediaKey(kind: .anime, id: 101),
+            kind: .updated,
+            previous: plannedEntry,
+            current: watchingEntry,
+            mutationId: UUID(),
+            account: accountA
+        ))
+        #expect(collection.hasCachedFeed(medium: .anime, status: .completed), "untouched Completed cache stays warm")
+        #expect(!collection.hasCachedFeed(medium: .anime, status: .planning), "affected Planned cache invalidated")
+        await harness.settleSinks()
+        #expect(collection.hasCachedFeed(medium: .anime, status: .completed),
+                "sink refresh of active Planned filter preserves untouched Completed cache")
+
+        // Explicit non-cached refresh (pull-to-refresh / realtime) clears sibling caches so no stale tabs linger.
+        await collection.fetchCollectionFeed(status: .planning, preferCache: false, preserveExisting: true)
+        #expect(!collection.hasCachedFeed(medium: .anime, status: .completed))
+
+        // Account switch A -> B clears all private cached feeds.
+        await service.session.applySession(userId: Self.userB, email: "b@example.com")
+        #expect(!collection.hasCachedFeed(medium: .anime, status: .completed))
+        #expect(!collection.hasCachedFeed(medium: .anime, status: .planning))
+        await harness.tearDown()
+    }
+
 }

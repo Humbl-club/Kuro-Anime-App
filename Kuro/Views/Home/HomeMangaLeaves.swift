@@ -286,7 +286,7 @@ private struct HomeLeafCover: View {
 
     var body: some View {
         if let raw, let url = URL(string: raw) {
-            KuroCachedAsyncImage(url: url, maxPixelSize: 400) { phase in
+            KuroCachedAsyncImage(url: url, maxPixelSize: 160) { phase in
                 if case .success(let image) = phase { image.resizable().scaledToFill() }
                 else { Color.kuroMissingArt }
             }

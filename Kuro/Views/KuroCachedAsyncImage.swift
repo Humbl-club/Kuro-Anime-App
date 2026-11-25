@@ -16,6 +16,7 @@ struct KuroCachedAsyncImage<Content: View>: View {
     @Environment(\.displayScale) private var displayScale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: AsyncImagePhase = .empty
+    @State private var loadedURL: URL? = nil
 
     init(
         url: URL?,
@@ -59,19 +60,21 @@ struct KuroCachedAsyncImage<Content: View>: View {
     }
 
     private var effectivePhase: AsyncImagePhase {
-        if case .success = phase { return phase }
+        if loadedURL == url, case .success = phase { return phase }
 #if canImport(UIKit)
         if let url, let cached = ImagePipeline.shared.cachedImageSync(url: url, maxPixelSize: resolvedMaxPixelSize) {
             return .success(Image(uiImage: cached))
         }
 #endif
-        return phase
+        if loadedURL == url { return phase }
+        return .empty
     }
 
     var body: some View {
         content(effectivePhase)
             .task(id: url) {
                 guard let url else {
+                    loadedURL = nil
                     phase = .empty
                     return
                 }
@@ -79,13 +82,24 @@ struct KuroCachedAsyncImage<Content: View>: View {
                 let maxPx = resolvedMaxPixelSize
 #if canImport(UIKit)
                 if let cached = ImagePipeline.shared.cachedImageSync(url: url, maxPixelSize: maxPx) {
-                    phase = .success(Image(uiImage: cached))
+                    // Frame 0 already rendered synchronously via `effectivePhase`. Latch the Image once
+                    // in view-owned state so mounted tabs/cards cannot drop back to `.empty` if
+                    // `NSCache` evicts on app backgrounding or memory warnings.
+                    let needsLatch: Bool = {
+                        guard loadedURL == url, case .success = phase else { return true }
+                        return false
+                    }()
+                    if needsLatch {
+                        loadedURL = url
+                        phase = .success(Image(uiImage: cached))
+                    }
                     return
                 }
 #endif
 
                 let started = ContinuousClock.now
                 let ui = await ImagePipeline.shared.image(url: url, maxPixelSize: maxPx)
+                guard !Task.isCancelled else { return }
                 let shouldCrossfade = (ContinuousClock.now - started) >= .milliseconds(16) && !reduceMotion
 #if canImport(UIKit)
                 if let ui {
@@ -93,18 +107,21 @@ struct KuroCachedAsyncImage<Content: View>: View {
                     if shouldCrossfade {
                         var crossfadeTransaction = transaction
                         if crossfadeTransaction.animation == nil {
-                            crossfadeTransaction.animation = .easeOut(duration: 0.18)
+                            crossfadeTransaction.animation = .easeOut(duration: 0.16)
                         }
                         withTransaction(crossfadeTransaction) {
+                            loadedURL = url
                             phase = .success(img)
                         }
                     } else {
                         withTransaction(transaction) {
+                            loadedURL = url
                             phase = .success(img)
                         }
                     }
                 } else {
                     withTransaction(transaction) {
+                        loadedURL = url
                         phase = .failure(URLError(.cannotDecodeContentData))
                     }
                 }

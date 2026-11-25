@@ -62,6 +62,8 @@ struct KuroRootPagerPanOverlay: UIViewControllerRepresentable {
     var onSuppressTaps: () -> Void
     var onSwipeEnded: (_ fastFlick: Bool) -> Void
     var onCommitDirection: (_ step: Int) -> Void
+    var onDragChanged: (_ translationX: CGFloat) -> Void = { _ in }
+    var onDragCancelled: () -> Void = {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -134,6 +136,7 @@ struct KuroRootPagerPanOverlay: UIViewControllerRepresentable {
         weak var hostController: UIViewController?
         var panRecognizer: UIPanGestureRecognizer?
         private var didSuppressThisGesture = false
+        private var isTrackingHorizontalDrag = false
 
         init(parent: KuroRootPagerPanOverlay) {
             self.parent = parent
@@ -213,6 +216,7 @@ struct KuroRootPagerPanOverlay: UIViewControllerRepresentable {
             }
 
             didSuppressThisGesture = false
+            isTrackingHorizontalDrag = false
             return true
         }
 
@@ -234,9 +238,14 @@ struct KuroRootPagerPanOverlay: UIViewControllerRepresentable {
             case .began, .changed:
                 let dx = abs(translation.x)
                 let dy = abs(translation.y)
-                guard dx > 12, dx > dy * 1.1 else { return }
+                if !isTrackingHorizontalDrag {
+                    guard dx > 8, dx > dy * 1.1 else { return }
+                    guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
+                    isTrackingHorizontalDrag = true
+                }
+                parent.onDragChanged(translation.x)
                 let predictedDx = abs(KuroRootPanPolicy.effectiveHorizontalTranslation(dx: translation.x, vx: velocity.x))
-                if !didSuppressThisGesture && (predictedDx > 18 || abs(velocity.x) > 180 || dx > 24) {
+                if !didSuppressThisGesture && (predictedDx > 18 || abs(velocity.x) > 180 || dx > 20) {
                     didSuppressThisGesture = true
                     parent.onSuppressTaps()
                 }
@@ -245,10 +254,13 @@ struct KuroRootPagerPanOverlay: UIViewControllerRepresentable {
                 let dy = translation.y
                 let effectiveDx = KuroRootPanPolicy.effectiveHorizontalTranslation(dx: dx, vx: velocity.x)
                 let fastFlick = abs(velocity.x) > 700
+                let wasTracking = isTrackingHorizontalDrag
                 defer {
                     didSuppressThisGesture = false
+                    isTrackingHorizontalDrag = false
                 }
                 guard pan.state == .ended else {
+                    if wasTracking { parent.onDragCancelled() }
                     if didSuppressThisGesture { parent.onSwipeEnded(false) }
                     return
                 }
@@ -259,8 +271,9 @@ struct KuroRootPagerPanOverlay: UIViewControllerRepresentable {
                     let step = effectiveDx < 0 ? 1 : -1
                     parent.onCommitDirection(step)
                     parent.onSwipeEnded(fastFlick)
-                } else if didSuppressThisGesture {
-                    parent.onSwipeEnded(false)
+                } else {
+                    if wasTracking { parent.onDragCancelled() }
+                    if didSuppressThisGesture { parent.onSwipeEnded(false) }
                 }
             default:
                 break
@@ -280,6 +293,8 @@ struct KuroRootPagerPanOverlay: View {
     var onSuppressTaps: () -> Void
     var onSwipeEnded: (_ fastFlick: Bool) -> Void
     var onCommitDirection: (_ step: Int) -> Void
+    var onDragChanged: (_ translationX: CGFloat) -> Void = { _ in }
+    var onDragCancelled: () -> Void = {}
     var body: some View { Color.clear }
 }
 #endif

@@ -146,19 +146,46 @@ enum HomeShelfPolicy {
         return (Array(active.prefix(sceneCount)), Array(active.dropFirst(sceneCount)))
     }
 
-    /// Actionable-first hero split for HomeView: floats titles with unwatched units ahead of
-    /// caught-up titles, and promotes 2 hero scenes only when at least 2 active titles have an
-    /// unwatched unit ready (otherwise 1 hero leads so caught-up secondaries sit in the 2-up grid).
+    /// Orders in-progress titles into three stable tiers while preserving server `updated_at` order
+    /// within each tier:
+    /// 1. Currently releasing titles with a new episode or chapter available (`hasNewUnit`),
+    /// 2. Other actionable / not-caught-up titles,
+    /// 3. Known caught-up titles.
+    static func prioritizedInProgress(
+        _ cards: [HomeCard],
+        hasNewUnit: (HomeCard) -> Bool = { _ in false },
+        isCaughtUp: (HomeCard) -> Bool
+    ) -> [HomeCard] {
+        let active = cards.filter { isInProgress(listType: $0.listType) }
+        guard !active.isEmpty else { return [] }
+        var withNew: [HomeCard] = []
+        var actionable: [HomeCard] = []
+        var caughtUp: [HomeCard] = []
+        for card in active {
+            if isCaughtUp(card) {
+                caughtUp.append(card)
+            } else if hasNewUnit(card) {
+                withNew.append(card)
+            } else {
+                actionable.append(card)
+            }
+        }
+        return withNew + actionable + caughtUp
+    }
+
+    /// Actionable-first hero split for HomeView: floats releasing titles with new episodes ahead of
+    /// other unwatched titles and caught-up titles, and promotes 2 hero scenes only when at least 2
+    /// active titles have an unwatched unit ready (otherwise 1 hero leads so caught-up secondaries
+    /// sit in the 2-up grid).
     static func prioritizedScenes(
         _ cards: [HomeCard],
+        hasNewUnit: (HomeCard) -> Bool = { _ in false },
         isCaughtUp: (HomeCard) -> Bool
     ) -> (scenes: [HomeCard], alsoWatching: [HomeCard]) {
-        let active = cards.filter { isInProgress(listType: $0.listType) }
-        guard !active.isEmpty else { return ([], []) }
-        let actionable = active.filter { !isCaughtUp($0) }
-        let caughtUp = active.filter { isCaughtUp($0) }
-        let ordered = actionable + caughtUp
-        let heroCap = actionable.count >= sceneCount ? sceneCount : 1
+        let ordered = prioritizedInProgress(cards, hasNewUnit: hasNewUnit, isCaughtUp: isCaughtUp)
+        guard !ordered.isEmpty else { return ([], []) }
+        let actionableCount = ordered.filter { !isCaughtUp($0) }.count
+        let heroCap = actionableCount >= sceneCount ? sceneCount : 1
         return (Array(ordered.prefix(heroCap)), Array(ordered.dropFirst(heroCap)))
     }
 

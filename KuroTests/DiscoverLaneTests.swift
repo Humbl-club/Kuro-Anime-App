@@ -157,6 +157,45 @@ struct DiscoverBundleOncePerLaunchTests {
         #expect(!DiscoveryTransport.failedBeforeSending(URLError(.networkConnectionLost)))
         #expect(!DiscoveryTransport.failedBeforeSending(CancellationError()))
     }
+
+    @Test("Synchronous warm bundle and daily feature caches return at 0 ms on the same Berlin day and clear on sign-out")
+    func warmBundleAndDailyFeatureCache() async throws {
+        let harness = try FacadeHarness()
+        harness.server.respond { request in
+            switch request.resource {
+            case "rpc/discover_bundle": return .json(emptyBundleJSON)
+            case "rpc/fetch_daily_feature": return .emptyArray
+            default: return .emptyArray
+            }
+        }
+        await harness.signIn()
+        let discovery = harness.service.discovery
+        let now = Date()
+        let nextDay = now.addingTimeInterval(26 * 3600)
+
+        #expect(discovery.cachedCurrentDayBundle(now: now) == nil)
+        #expect(!discovery.cachedCurrentDayDailyFeature(now: now).resolved)
+
+        _ = await discovery.ensureDiscoverBundle(now: now)
+        _ = await discovery.fetchDailyFeature(now: now)
+        #expect(discovery.cachedCurrentDayBundle(now: now) != nil)
+        #expect(discovery.cachedCurrentDayDailyFeature(now: now).resolved)
+        #expect(harness.requests(to: "rpc/fetch_daily_feature").count == 1)
+
+        // Second call on same rail day uses cache (0 extra RPCs).
+        _ = await discovery.fetchDailyFeature(now: now.addingTimeInterval(120))
+        #expect(harness.requests(to: "rpc/fetch_daily_feature").count == 1)
+
+        // Crossing rail midnight expires both caches.
+        #expect(discovery.cachedCurrentDayBundle(now: nextDay) == nil)
+        #expect(!discovery.cachedCurrentDayDailyFeature(now: nextDay).resolved)
+
+        // Sign-out / clearPrivateState wipes both caches.
+        discovery.clearPrivateState()
+        #expect(discovery.cachedCurrentDayBundle(now: now) == nil)
+        #expect(!discovery.cachedCurrentDayDailyFeature(now: now).resolved)
+        await harness.tearDown()
+    }
 }
 
 @MainActor

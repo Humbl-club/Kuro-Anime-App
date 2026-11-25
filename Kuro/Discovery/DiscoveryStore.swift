@@ -87,6 +87,8 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     var discoverBundleCache: [String: TimedCache<DiscoverBundle>] = [:]
     /// In-flight bundle loads: joined only by the same key and account context.
     let discoverBundleLoads = AccountScopedLoads<String, DiscoverBundle?>()
+    /// Per-account daily feature cache (Berlin rail day), so Discover opens warm at 0 ms.
+    @ObservationIgnored private var dailyFeatureCache: [String: TimedCache<DailyFeature?>] = [:]
 
     /// Franchise component of each title read so far (`media_franchise_ids_v1`, public catalogue
     /// data: kept across sign-out, shed under memory pressure). See `DiscoveryStore+Usability.swift`.
@@ -182,6 +184,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
 
     func clearPrivateState() {
         discoverBundleCache.removeAll()
+        dailyFeatureCache.removeAll()
         recentSearches = []
         recentSearchesKey = nil
     }
@@ -227,6 +230,22 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
             return loaded.value
         }
         return await fetchDiscoverBundle(limit: limit, hours: hours)
+    }
+
+    /// Synchronous 0 ms lookup for today's already-warmed Discover bundle (nil when not cached yet).
+    func cachedCurrentDayBundle(limit: Int = 30, hours: Int = 24, now: Date = Date()) -> DiscoverBundle? {
+        let key = Self.bundleKey(user: accountSession.current?.userId, limit: limit, hours: hours)
+        guard let loaded = discoverBundleCache[key], Self.isSameRailDay(loaded.storedAt, now) else { return nil }
+        return loaded.value
+    }
+
+    /// Synchronous 0 ms lookup for today's cached daily feature resolution (nil when not resolved yet).
+    func cachedCurrentDayDailyFeature(now: Date = Date()) -> (resolved: Bool, feature: DailyFeature?) {
+        guard let userId = accountSession.current?.userId else { return (true, nil) }
+        guard let entry = dailyFeatureCache[userId], Self.isSameRailDay(entry.storedAt, now) else {
+            return (false, nil)
+        }
+        return (true, entry.value)
     }
 
     /// Whether the signed-in account's bundle was stored on `now`'s rail day (false: none yet, or one
@@ -526,16 +545,22 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
 
     /// nil on error OR empty rotation (no eligible boosts) — callers fall back
     /// to the legacy hero in both cases.
-    func fetchDailyFeature() async -> DailyFeature? {
+    func fetchDailyFeature(force: Bool = false, now: Date = Date()) async -> DailyFeature? {
         // W5: the RPC needs an account (it raises when signed out), so a guest never sends it.
-        guard accountSession.current != nil else { return nil }
+        guard let context = accountSession.current else { return nil }
+        if !force, let cached = dailyFeatureCache[context.userId], Self.isSameRailDay(cached.storedAt, now) {
+            return cached.value
+        }
         do {
             let client = try requiredClient()
             let rows: [DailyFeature] = try await client
                 .rpc("fetch_daily_feature")
                 .execute()
                 .value
-            return rows.first
+            guard accountSession.isCurrent(context) else { return nil }
+            let feature = rows.first
+            dailyFeatureCache[context.userId] = TimedCache(value: feature, storedAt: now)
+            return feature
         } catch {
             #if DEBUG
             print("❌ fetchDailyFeature error: \(error)")

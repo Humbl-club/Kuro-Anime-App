@@ -93,15 +93,15 @@ actor ImagePipeline {
     private let session: URLSession
     private let urlCache: URLCache
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Kuro", category: "image")
-    private let maxPrefetchFanout = 12
+    private let maxPrefetchFanout = 24
     private let maxInFlightCap = 40
 
     /// `session` and `urlCache` are injectable for tests; the app uses the shared ones.
     init(session: URLSession = .shared, urlCache: URLCache = .shared) {
         self.session = session
         self.urlCache = urlCache
-        // ~80MB in-memory images (roughly, cost is RGBA bytes).
-        memory.totalCostLimit = 80 * 1024 * 1024
+        // ~120MB in-memory decoded bitmaps (holds 100+ retina card covers at px480/px640).
+        memory.totalCostLimit = 120 * 1024 * 1024
     }
 
     func clearMemoryCache() {

@@ -38,6 +38,9 @@ struct KuroRootView: View {
     @State private var navigation = KuroNavigationCoordinator()
     /// The session's open/closed sections (navigation contract F3; UI state only).
     @State private var foldMemory = KuroFoldMemory()
+    /// Single root-observed Low Power Mode flag injected into `\.kuroLowPowerMode` so scrolling
+    /// cards never spawn per-cell `NotificationCenter` streams.
+    @State private var lowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
     /// Optional: test hosts without Releases keep rendering (W3a DEBUG fixture offer only).
     @Environment(ReleasesStore.self) private var releases: ReleasesStore?
 
@@ -48,6 +51,7 @@ struct KuroRootView: View {
                 // `\.kuroNavigation` gives KuroMainView's deep links their collapse.
                 .kuroRootNavigation(navigation)
                 .environment(\.kuroFoldMemory, foldMemory)
+                .environment(\.kuroLowPowerMode, lowPowerMode)
 
             if showLaunchOverlay {
                 KuroLaunchView()
@@ -75,6 +79,11 @@ struct KuroRootView: View {
         }
         // Keeps every Kuro type role in step with the user's text size while the app runs.
         .kuroDynamicTypeScale()
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .NSProcessInfoPowerStateDidChange) {
+                lowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
+            }
+        }
         #if DEBUG
         .task {
             // UI tests of the navigation contract (`--kuro-nav-fixture`, see NavigationFixture.swift):
@@ -227,6 +236,9 @@ struct KuroMainView: View {
     /// Set on appear from the signed-in account's completion (this tree is keyed by the account).
     @State private var showOnboarding = false
     @State private var edgeBounceOffset: CGFloat = 0
+    /// Isolated 120 Hz interactive drag state observed ONLY inside `KuroSectionPager`'s offset layer
+    /// so horizontal finger tracking never re-evaluates `KuroMainView`, the header, or any tab page.
+    @State private var pagerDrag = KuroPagerDragState()
     @State private var pendingJoinCode: String? = nil
     @State private var pendingConciergePrompt: String? = nil
     @State private var pendingPromptClearTask: Task<Void, Never>? = nil
@@ -316,8 +328,11 @@ struct KuroMainView: View {
         guard let currentIndex = swipeOrder.firstIndex(of: selection) else { return }
         let nextIndex = currentIndex + step
         guard swipeOrder.indices.contains(nextIndex) else {
+            let hadLiveRubberBand = abs(pagerDrag.offset) > 1
+            pagerDrag.isDragging = false
+            pagerDrag.offset = 0
             KuroAccessibility.impactHaptic(.rigid)
-            guard !reduceMotion else { return }
+            guard !reduceMotion, !hadLiveRubberBand else { return }
             let bounceDirection: CGFloat = step > 0 ? -1 : 1
             withAnimation(KuroMotion.contact) {
                 edgeBounceOffset = bounceDirection * 12
@@ -327,6 +342,8 @@ struct KuroMainView: View {
             }
             return
         }
+        pagerDrag.isDragging = false
+        pagerDrag.offset = 0
         pageChosen = true
         selection = swipeOrder[nextIndex]
         mountedSections.insert(selection)
@@ -429,7 +446,8 @@ struct KuroMainView: View {
                                 searchSession += 1
                                 showSearchSheet = true
                             },
-                            bottomInset: pagerProxy.safeAreaInsets.bottom
+                            bottomInset: pagerProxy.safeAreaInsets.bottom,
+                            dragState: pagerDrag
 	                    )
                     .offset(x: edgeBounceOffset)
                     .background(Color.clear)
@@ -469,6 +487,15 @@ struct KuroMainView: View {
                             },
                             onCommitDirection: { step in
                                 commitPagerStep(step)
+                            },
+                            onDragChanged: { dx in
+                                guard !reduceMotion else { return }
+                                pagerDrag.isDragging = true
+                                pagerDrag.offset = dx
+                            },
+                            onDragCancelled: {
+                                pagerDrag.isDragging = false
+                                pagerDrag.offset = 0
                             }
                         )
                         .allowsHitTesting(false)
@@ -559,10 +586,11 @@ struct KuroMainView: View {
                     }
 	            }
 	            .task {
-	                // Warm the Discover bundle so the first Discover render feels instant.
-                _ = await discovery.ensureDiscoverBundle(limit: 30, hours: 24)
-                // Check club notifications
-                await clubs.checkClubNotifications()
+	                // Warm the Discover bundle and daily feature concurrently so the first Discover render feels instant.
+                async let bundleWarm = discovery.ensureDiscoverBundle(limit: 30, hours: 24)
+                async let dailyWarm: DailyFeature? = guest?.isGuest == true ? nil : discovery.fetchDailyFeature()
+                async let clubsWarm: Void = clubs.checkClubNotifications()
+                _ = await (bundleWarm, dailyWarm, clubsWarm)
             }
             // Profile and Search are journeys (navigation contract §1): one sheet hosting a stack;
             // every tap inside pushes, ✕ / swipe-down collapses the whole sheet.
@@ -861,6 +889,48 @@ extension KuroMainView {
     }
 }
 
+/// Isolated 120 Hz horizontal drag state so live finger-tracking only invalidates the pager's
+/// `.offset(x:)` modifier and never re-renders the header or individual section pages.
+@MainActor
+@Observable
+private final class KuroPagerDragState {
+    var offset: CGFloat = 0
+    var isDragging: Bool = false
+}
+
+/// Applies the live pager offset (`-selectionIndex * width + dampedDrag`) in its own view layer so
+/// `KuroSectionPager` and its mounted children are not re-evaluated on every drag frame.
+private struct KuroPagerOffsetModifier: ViewModifier {
+    let selectionIndex: Int
+    let pageCount: Int
+    let width: CGFloat
+    let dragState: KuroPagerDragState
+    let reduceMotion: Bool
+
+    private var dampedDragOffset: CGFloat {
+        let raw = dragState.offset
+        guard raw != 0 else { return 0 }
+        let atLeadingEdge = selectionIndex == 0 && raw > 0
+        let atTrailingEdge = selectionIndex >= max(0, pageCount - 1) && raw < 0
+        if atLeadingEdge || atTrailingEdge {
+            // Soft rubber-band resistance at the ends of the pager.
+            return raw * 0.24
+        }
+        return max(-width, min(width, raw))
+    }
+
+    func body(content: Content) -> some View {
+        let targetX = (-CGFloat(selectionIndex) * width) + dampedDragOffset
+        let settleAnimation: Animation? = (reduceMotion || dragState.isDragging)
+            ? nil
+            : .spring(response: 0.30, dampingFraction: 0.88)
+        content
+            .offset(x: targetX)
+            .animation(settleAnimation, value: selectionIndex)
+            .animation(settleAnimation, value: dragState.offset)
+    }
+}
+
 // MARK: - Interactive section pager (keeps tabs mounted once visited)
 private struct KuroSectionPager: View {
     typealias Section = KuroMainView.Section
@@ -897,6 +967,7 @@ private struct KuroSectionPager: View {
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
     var bottomInset: CGFloat = 0
+    let dragState: KuroPagerDragState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var selectionIndex: Int {
@@ -915,15 +986,20 @@ private struct KuroSectionPager: View {
                         // toasts and scroll ends clear the Home Indicator cleanly.
                         .padding(.bottom, bottomInset)
                         .frame(width: width, height: height)
+                        .allowsHitTesting(section == selection)
+                        .accessibilityHidden(section != selection)
                 }
             }
             .environment(\.kuroSuppressCardTaps, suppressCardTaps)
             .modifier(KuroPagerTapGateModifier(gate: tapGate))
-            .offset(x: (-CGFloat(selectionIndex) * width))
+            .modifier(KuroPagerOffsetModifier(
+                selectionIndex: selectionIndex,
+                pageCount: order.count,
+                width: width,
+                dragState: dragState,
+                reduceMotion: reduceMotion
+            ))
             .clipped()
-            // Animate only when the selection changes (header-driven paging).
-            // This avoids gesture conflicts with in-page horizontal carousels.
-            .animation(reduceMotion ? nil : .snappy(duration: 0.22, extraBounce: 0.02), value: selectionIndex)
         }
     }
 
@@ -931,8 +1007,9 @@ private struct KuroSectionPager: View {
     private func page(for section: Section) -> some View {
         let sectionIdx = order.firstIndex(of: section) ?? 0
         let distance = abs(selectionIndex - sectionIdx)
-        // Mount only the active page and its immediate neighbors to keep layout and 120 Hz scrolling lean.
-        let shouldMount = distance <= 1
+        // Keep visited sections warm alongside immediate neighbors so tab switches never tear down
+        // and synchronously remount heavy SwiftUI trees mid-transition.
+        let shouldMount = mountedSections.contains(section) || distance <= 1
 
         if shouldMount {
             Group {
@@ -1087,13 +1164,36 @@ struct KuroHeaderRowLayout: Equatable {
         return ceil(base + tracking * CGFloat(max(0, text.count - 1)))
     }
 
+    private struct ResolveCacheKey: Hashable {
+        let widthBucket: Int
+        let pageNames: [String]
+        let neighbourTitle: String?
+        let contentSizeCategory: String
+        let isBoldTextEnabled: Bool
+    }
+
+    @MainActor private static var resolveCache: [ResolveCacheKey: KuroHeaderRowLayout] = [:]
+
     /// `rowWidth`: the row inside its side padding. `pageNames`: every page name in the pager (the
     /// centre is sized for the longest, so paging never moves it). `neighbourTitle`: the link's text, nil
     /// when the page has none. `traits` measures at that text size (tests); nil uses the current one.
     /// The link is only ever shown with the wordmark, and the shift never exceeds the room beside the
     /// centre, so the page name is never pushed past the leading edge.
+    @MainActor
     static func resolve(rowWidth: CGFloat, pageNames: [String], neighbourTitle: String?,
                         traits: UITraitCollection? = nil) -> KuroHeaderRowLayout {
+        let cacheKey: ResolveCacheKey? = (traits == nil && rowWidth.isFinite)
+            ? ResolveCacheKey(
+                widthBucket: Int(floor(rowWidth)),
+                pageNames: pageNames,
+                neighbourTitle: neighbourTitle,
+                contentSizeCategory: UIApplication.shared.preferredContentSizeCategory.rawValue,
+                isBoldTextEnabled: UIAccessibility.isBoldTextEnabled
+            )
+            : nil
+        if let cacheKey, let cached = resolveCache[cacheKey] {
+            return cached
+        }
         let (_, sideRoom) = metrics(rowWidth: rowWidth, pageNames: pageNames, traits: traits)
         let wordmarkWidth = measure("KURO", size: scaled(18, .headline, max: 26, traits: traits), weight: .heavy,
                                     tracking: wordmarkTracking)
@@ -1105,13 +1205,23 @@ struct KuroHeaderRowLayout: Equatable {
             return (sideRoom - shift - wordmarkGap >= wordmarkWidth, shift)
         }
         let withoutLink = fit(rightWidth: actionsWidth)
-        guard let neighbourWidth else {
-            return KuroHeaderRowLayout(showsWordmark: withoutLink.fits, showsNeighbour: false, centreShift: withoutLink.shift)
+        let resolved: KuroHeaderRowLayout
+        if let neighbourWidth {
+            let withLink = fit(rightWidth: actionsWidth + neighbourWidth)
+            if withLink.fits {
+                resolved = KuroHeaderRowLayout(showsWordmark: true, showsNeighbour: true, centreShift: withLink.shift)
+            } else {
+                // The link steps aside first, then (largest text sizes on narrow rows) the wordmark too.
+                resolved = KuroHeaderRowLayout(showsWordmark: withoutLink.fits, showsNeighbour: false, centreShift: withoutLink.shift)
+            }
+        } else {
+            resolved = KuroHeaderRowLayout(showsWordmark: withoutLink.fits, showsNeighbour: false, centreShift: withoutLink.shift)
         }
-        let withLink = fit(rightWidth: actionsWidth + neighbourWidth)
-        if withLink.fits { return KuroHeaderRowLayout(showsWordmark: true, showsNeighbour: true, centreShift: withLink.shift) }
-        // The link steps aside first, then (largest text sizes on narrow rows) the wordmark too.
-        return KuroHeaderRowLayout(showsWordmark: withoutLink.fits, showsNeighbour: false, centreShift: withoutLink.shift)
+        if let cacheKey {
+            if resolveCache.count >= 64 { resolveCache.removeAll() }
+            resolveCache[cacheKey] = resolved
+        }
+        return resolved
     }
 }
 

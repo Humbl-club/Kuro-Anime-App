@@ -13,6 +13,7 @@ struct FolioStatusStrip: View {
     let medium: MediaKind
     var gutter: CGFloat = KuroDesignSpacing.padding
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var underlineNamespace
 
     var body: some View {
         let german = KuroLocale.isGerman
@@ -42,7 +43,13 @@ struct FolioStatusStrip: View {
         return Button {
             guard !selected else { return }
             KuroAccessibility.impactHaptic(.light)
-            selection = status
+            if reduceMotion {
+                selection = status
+            } else {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                    selection = status
+                }
+            }
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -54,9 +61,15 @@ struct FolioStatusStrip: View {
                 }
                 .foregroundStyle(selected ? Color.kuroInk : Color.kuroInkQuiet)
                 .lineLimit(1)
-                Rectangle()
-                    .fill(selected ? Color.kuroInk : Color.clear)
-                    .frame(height: 2)
+                ZStack {
+                    Color.clear.frame(height: 2)
+                    if selected {
+                        Rectangle()
+                            .fill(Color.kuroInk)
+                            .frame(height: 2)
+                            .matchedGeometryEffect(id: "folio-status-underline", in: underlineNamespace)
+                    }
+                }
             }
             .frame(minHeight: 44)
             .contentShape(Rectangle())

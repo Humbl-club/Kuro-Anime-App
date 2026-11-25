@@ -1060,8 +1060,52 @@ struct EditorialDiscoverView: View {
 
     // MARK: Loading
 
+    /// Applies a loaded `DiscoverBundle` to the view model so Discover can paint immediately without
+    /// waiting on secondary enrichment RPCs.
+    private func applyBundle(_ bundle: DiscoverBundle) {
+        loadError = false
+        vm.essentials = bundle.anime.essentials
+        vm.classics = bundle.anime.classics
+        vm.newToYou = bundle.anime.newToYou
+        vm.trending = bundle.anime.trending
+        vm.topRated = bundle.anime.topRated
+        vm.newlyAdded = bundle.anime.newlyAdded.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
+        vm.airingToday = bundle.anime.airingToday
+        vm.currentSeason = bundle.anime.currentSeason
+
+        vm.essentialsManga = bundle.manga.essentials
+        vm.classicsManga = bundle.manga.classics
+        vm.newToYouManga = bundle.manga.newToYou
+        vm.trendingManga = bundle.manga.trending
+        vm.topRatedManga = bundle.manga.topRated
+        vm.newlyAddedManga = bundle.manga.newlyAdded.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
+
+        // Lead fallback: best available from the current season, else trending.
+        let featuredCandidates = vm.currentSeason.isEmpty ? vm.trending : vm.currentSeason
+        vm.featured = featuredCandidates
+            .filter { ($0.averageScore ?? 0) > 80 }
+            .sorted { ($0.averageScore ?? 0) > ($1.averageScore ?? 0) }
+            .first ?? featuredCandidates.first
+    }
+
+    private func prefetchVisibleDiscoverArtwork() {
+        // Match `DiscoverCoverTile` (`maxPixelSize: 210` pt * 3x = 630 -> `px640` bucket) so every
+        // prefetched cover is a 0 ms frame-0 synchronous `NSCache` hit during 120 Hz scroll.
+        let anime = (vm.currentSeason.prefix(10) + vm.trending.prefix(14) + vm.essentials.prefix(12) + vm.newToYou.prefix(10) + vm.newlyAdded.prefix(10))
+            .compactMap { URL(string: $0.imageURL ?? "") }
+        let manga = (vm.trendingManga.prefix(14) + vm.newlyAddedManga.prefix(10) + vm.essentialsManga.prefix(12) + vm.newToYouManga.prefix(10))
+            .compactMap { URL(string: $0.imageURL ?? "") }
+        let urls = Array((anime + manga).prefix(70))
+        if !urls.isEmpty {
+            Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 640) }
+        }
+    }
+
     /// Loads the page. `force == false` (first appearance, reconnect) reuses the launch bundle;
     /// `force == true` (pull to refresh, Try again) asks for a fresh one.
+    /// Paints immediately as soon as `discover_bundle` is ready (0 ms when launch-warmed), then
+    /// runs all secondary enrichment RPCs in ONE concurrent wave instead of blocking first paint
+    /// behind a 5-stage sequential waterfall.
     private func refreshSections(force: Bool) async {
         let perf = KuroPerf.begin("discover.refresh")
         guard !isLoadingSections else {
@@ -1073,24 +1117,34 @@ struct EditorialDiscoverView: View {
 
         let hadContentBefore = hasAnyContent
 
-        // List state for badges/progress comes from the Library projection (session refresh +
-        // realtime hints); only the server bundle and upcoming schedule are fetched here.
-        async let dailyFeatureResult = discovery.fetchDailyFeature()
+        // 0 ms warm paint if the launch warm-up already hydrated today's bundle.
+        if !force, !hasBuilt, let warmBundle = discovery.cachedCurrentDayBundle(limit: 30, hours: 24) {
+            let cachedDaily = discovery.cachedCurrentDayDailyFeature()
+            if cachedDaily.resolved {
+                vm.dailyFeature = cachedDaily.feature
+                vm.dailyFeatureResolved = true
+            }
+            applyBundle(warmBundle)
+            rebuild()
+            refreshDerivedCache()
+            prefetchVisibleDiscoverArtwork()
+        }
+
+        // Launch ALL independent enrichment reads in parallel immediately alongside the bundle.
+        let runPersonal = flags.personalizedNewToYouV1Enabled
+        let runRealm = flags.discoverRealmRailsV1Enabled
+        async let dailyFeatureResult = discovery.fetchDailyFeature(force: force)
         async let upcomingAnimeResult = discovery.fetchUpcomingAnimeSchedule(days: 7, limit: 60)
         async let upcomingMangaResult = discovery.fetchUpcomingAndFreshManga(limit: 40)
+        async let becauseYouResult: [BecauseYouCard]? = runPersonal ? discovery.fetchBecauseYouRail(limit: 12) : nil
+        async let shelfResult: [TonightShelfCard]? = runRealm ? discovery.fetchTonightShelf(limit: 12) : nil
+        async let gemResult: RealmHiddenGem? = runRealm ? discovery.fetchRealmHiddenGem() : nil
+        async let hiddenRead = taste.loadDiscoverHidden()
+
+        // Stage 1 (critical path to first paint): await ONLY the bundle, then paint immediately.
         let bundle = force
             ? await discovery.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
             : await discovery.ensureDiscoverBundle(limit: 30, hours: 24)
-
-        let (upcomingAnimeCards, upcomingAnimeSlots) = await upcomingAnimeResult
-        let (upcomingMangaCards, upcomingMangaSlots) = await upcomingMangaResult
-        if !upcomingAnimeCards.isEmpty {
-            vm.upcomingAnime = upcomingAnimeCards
-        }
-        if !upcomingMangaCards.isEmpty {
-            vm.upcomingManga = upcomingMangaCards
-            vm.mangaSlots = upcomingMangaSlots
-        }
 
         let gotAnyNew = bundle.map { b in
             !(b.anime.essentials.isEmpty && b.anime.classics.isEmpty && b.anime.newToYou.isEmpty &&
@@ -1101,70 +1155,87 @@ struct EditorialDiscoverView: View {
         } ?? false
 
         if let bundle {
-            loadError = false
-            vm.essentials = bundle.anime.essentials
-            vm.classics = bundle.anime.classics
-            vm.newToYou = bundle.anime.newToYou
-            vm.trending = bundle.anime.trending
-            vm.topRated = bundle.anime.topRated
-            vm.newlyAdded = bundle.anime.newlyAdded.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
-            vm.airingToday = bundle.anime.airingToday
-            vm.currentSeason = bundle.anime.currentSeason
-
-            vm.essentialsManga = bundle.manga.essentials
-            vm.classicsManga = bundle.manga.classics
-            vm.newToYouManga = bundle.manga.newToYou
-            vm.trendingManga = bundle.manga.trending
-            vm.topRatedManga = bundle.manga.topRated
-            vm.newlyAddedManga = bundle.manga.newlyAdded.filter { ImagePipeline.hasRenderableArtwork($0.imageURL) }
-
-            // Lead fallback: best available from the current season, else trending.
-            let featuredCandidates = vm.currentSeason.isEmpty ? vm.trending : vm.currentSeason
-            vm.featured = featuredCandidates
-                .filter { ($0.averageScore ?? 0) > 80 }
-                .sorted { ($0.averageScore ?? 0) > ($1.averageScore ?? 0) }
-                .first ?? featuredCandidates.first
-
+            applyBundle(bundle)
             if hadContentBefore && !gotAnyNew {
                 showBanner(KuroLocale.text("Couldn't refresh. Try again.", "Konnte nicht aktualisiert werden. Versuch es noch einmal."))
             }
+            if !hasBuilt || force {
+                let cachedDaily = discovery.cachedCurrentDayDailyFeature()
+                if cachedDaily.resolved {
+                    vm.dailyFeature = cachedDaily.feature
+                    vm.dailyFeatureResolved = true
+                }
+                rebuild()
+                refreshDerivedCache()
+            }
+            prefetchVisibleDiscoverArtwork()
         } else if hadContentBefore {
             showBanner(KuroLocale.text("Couldn't refresh. Try again.", "Konnte nicht aktualisiert werden. Versuch es noch einmal."))
         } else {
             loadError = true
         }
 
-        // Stated air times for Airing today, This season, and airing Just added anime (max 60).
-        if let bundle {
+        // Stage 2: run bundle-dependent enrichment in parallel with the already-in-flight RPCs.
+        let slotCandidateIds: [Int] = {
+            guard let bundle else { return [] }
             var seenSlotIds: Set<Int> = []
-            let slotCandidates = bundle.anime.airingToday.map(\.id)
+            let candidates = bundle.anime.airingToday.map(\.id)
                 + bundle.anime.currentSeason.prefix(24).map(\.id)
                 + vm.newlyAdded.filter { $0.status?.uppercased() == "RELEASING" }.prefix(16).map(\.id)
-            let slotCandidateIds = slotCandidates.filter { seenSlotIds.insert($0).inserted }
-            if !slotCandidateIds.isEmpty {
-                await discovery.loadAiringSlots(for: slotCandidateIds)
-            }
-        }
+            return candidates.filter { seenSlotIds.insert($0).inserted }
+        }()
+        let rawAnimeNewlyCount = bundle?.anime.newlyAdded.count ?? 0
+        let rawMangaNewlyCount = bundle?.manga.newlyAdded.count ?? 0
+        let animeNewlyCountBefore = vm.newlyAdded.count
+        let mangaNewlyCountBefore = vm.newlyAddedManga.count
+        let needsAnimeNewlyBackfill = bundle != nil
+            && (animeNewlyCountBefore == 0 || (animeNewlyCountBefore < 8 && animeNewlyCountBefore < rawAnimeNewlyCount))
+        let needsMangaNewlyBackfill = bundle != nil
+            && (mangaNewlyCountBefore == 0 || (mangaNewlyCountBefore < 8 && mangaNewlyCountBefore < rawMangaNewlyCount))
+        let keys = allKeys
 
-        // The One Thing: resolve alongside the bundle; nil -> the lead fallback.
-        vm.dailyFeature = await dailyFeatureResult
+        async let airingSlotsRead: Void = slotCandidateIds.isEmpty ? () : discovery.loadAiringSlots(for: slotCandidateIds)
+        async let franchiseRead: Void = discovery.loadFranchiseIds(for: keys)
+        async let newlyAnimeBackfill: [AnimeCard] = needsAnimeNewlyBackfill
+            ? discovery.fetchRenderableNewlyAddedAnime(limit: 24)
+            : []
+        async let newlyMangaBackfill: [MangaCard] = needsMangaNewlyBackfill
+            ? discovery.fetchRenderableNewlyAddedManga(limit: 24)
+            : []
+        async let likeSeedRead: Void = loadLikeSeed()
+
+        let (upcomingAnimeCards, upcomingAnimeSlots) = await upcomingAnimeResult
+        let (upcomingMangaCards, upcomingMangaSlots) = await upcomingMangaResult
+        let dailyFeature = await dailyFeatureResult
+        let becauseRail = await becauseYouResult
+        let shelf = await shelfResult
+        let gem = await gemResult
+        _ = await hiddenRead
+        await airingSlotsRead
+        await franchiseRead
+        let extraNewlyAnime = await newlyAnimeBackfill
+        let extraNewlyManga = await newlyMangaBackfill
+        await likeSeedRead
+
+        if !upcomingAnimeCards.isEmpty {
+            vm.upcomingAnime = upcomingAnimeCards
+        }
+        if !upcomingMangaCards.isEmpty {
+            vm.upcomingManga = upcomingMangaCards
+            vm.mangaSlots = upcomingMangaSlots
+        }
+        vm.dailyFeature = dailyFeature
         vm.dailyFeatureResolved = true
 
         // Discover P1, flag-gated: Because-You replaces NEW TO YOU when the taste rail clears the
-        // evidence floor (>= 4 cards). Otherwise the personalized NTY swap runs, failing that the
-        // bundle rail.
-        if flags.personalizedNewToYouV1Enabled {
-            var becauseApplied = false
-            if let rail = await discovery.fetchBecauseYouRail(limit: 12), rail.count >= 4 {
+        // evidence floor (>= 4 cards). Otherwise fall back to personalized NTY, then bundle rail.
+        if runPersonal {
+            if let rail = becauseRail, rail.count >= 4 {
                 vm.becauseYou = rail.map { $0.toMedia() }
                 vm.becauseYouReason = rail.first?.reasonTitle
-                becauseApplied = true
-            }
-            if !becauseApplied {
+            } else {
                 vm.becauseYou = []
                 vm.becauseYouReason = nil
-                // Personalized NEW TO YOU (flag-gated): swap the rail's data source.
-                // Any error or empty result quietly keeps the bundle rail.
                 if let personalized = await taste.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME"),
                    !personalized.isEmpty {
                     vm.newToYou = personalized.map { $0.toAnimeCard() }
@@ -1176,11 +1247,7 @@ struct EditorialDiscoverView: View {
         }
 
         // Stage 4 — The Shelf + Hidden Gem (flag-gated, independent of P1).
-        if flags.discoverRealmRailsV1Enabled {
-            async let shelfResult = discovery.fetchTonightShelf(limit: 12)
-            async let gemResult = discovery.fetchRealmHiddenGem()
-            let shelf = await shelfResult
-            let gem = await gemResult
+        if runRealm {
             if let shelf, !shelf.isEmpty {
                 vm.tonightShelf = shelf.map { $0.toMedia() }
                 vm.tonightShelfTitle = shelf.first?.displayName.map {
@@ -1200,56 +1267,33 @@ struct EditorialDiscoverView: View {
             vm.hiddenGem = nil
         }
 
-        // First paint: build at once from the bundle with the device memory of the account's answers
-        // (restored synchronously in `.task`) and the stem franchise rule. Then the server's answers and
-        // the franchise components (silent while the prepared reader is not deployed) are read side by
-        // side and the page builds once more while nothing was done on it yet (D5), as for the Library.
-        rebuild()
-        refreshDerivedCache()
-        if !upcomingAnimeSlots.isEmpty {
-            cachedAiringSlots.merge(upcomingAnimeSlots) { _, new in new }
-        }
-        let hiddenBefore = taste.discoverHidden
-        let franchisesBefore = discovery.knownFranchiseCount
-        let rawAnimeNewlyCount = bundle?.anime.newlyAdded.count ?? 0
-        let rawMangaNewlyCount = bundle?.manga.newlyAdded.count ?? 0
-        let animeNewlyCountBefore = vm.newlyAdded.count
-        let mangaNewlyCountBefore = vm.newlyAddedManga.count
-        let needsAnimeNewlyBackfill = bundle != nil
-            && (animeNewlyCountBefore == 0 || (animeNewlyCountBefore < 8 && animeNewlyCountBefore < rawAnimeNewlyCount))
-        let needsMangaNewlyBackfill = bundle != nil
-            && (mangaNewlyCountBefore == 0 || (mangaNewlyCountBefore < 8 && mangaNewlyCountBefore < rawMangaNewlyCount))
-        let keys = allKeys
-        async let hiddenRead = taste.loadDiscoverHidden()
-        async let franchiseRead: Void = discovery.loadFranchiseIds(for: keys)
-        async let newlyAnimeBackfill: [AnimeCard] = needsAnimeNewlyBackfill
-            ? discovery.fetchRenderableNewlyAddedAnime(limit: 24)
-            : []
-        async let newlyMangaBackfill: [MangaCard] = needsMangaNewlyBackfill
-            ? discovery.fetchRenderableNewlyAddedManga(limit: 24)
-            : []
-        _ = await hiddenRead
-        await franchiseRead
-        let extraNewlyAnime = await newlyAnimeBackfill
         if !extraNewlyAnime.isEmpty {
             var seenAnimeIds = Set(vm.newlyAdded.map(\.id))
             vm.newlyAdded.append(contentsOf: extraNewlyAnime.filter { seenAnimeIds.insert($0.id).inserted })
         }
-        let extraNewlyManga = await newlyMangaBackfill
         if !extraNewlyManga.isEmpty {
             var seenMangaIds = Set(vm.newlyAddedManga.map(\.id))
             vm.newlyAddedManga.append(contentsOf: extraNewlyManga.filter { seenMangaIds.insert($0.id).inserted })
         }
-        let newlyGrew = vm.newlyAdded.count != animeNewlyCountBefore || vm.newlyAddedManga.count != mangaNewlyCountBefore
-        if taste.discoverHidden != hiddenBefore || discovery.knownFranchiseCount != franchisesBefore || newlyGrew,
-           DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: scrollTracker.maxDepth) {
+
+        // Load franchise IDs for any dynamic/personalized cards added during Stage 2 enrichment.
+        let existingKeySet = Set(keys)
+        let additionalKeys = allKeys.filter { !existingKeySet.contains($0) }
+        if !additionalKeys.isEmpty {
+            await discovery.loadFranchiseIds(for: additionalKeys)
+        }
+
+        // One consolidated post-enrichment rebuild while the user has not interacted/scrolled past
+        // the top screen yet (preserves R2 / D5 claim stability), or if the lead hero just arrived
+        // after an initial skeleton build so the hero slot can never vanish mid-visit.
+        let leadJustArrived = build.lead == nil && leadStory != nil
+        if !hasBuilt || force || leadJustArrived || DiscoverPageRules.lateRebuildAllowed(hasBuilt: hasBuilt, taps: feedback.taps, depth: scrollTracker.maxDepth) {
             rebuild()
         }
         refreshDerivedCache()
         if !upcomingAnimeSlots.isEmpty {
             cachedAiringSlots.merge(upcomingAnimeSlots) { _, new in new }
         }
-        await loadLikeSeed()
 
         KuroPerf.end(perf, message: gotAnyNew ? "ok" : "no new data")
 
@@ -1277,16 +1321,6 @@ struct EditorialDiscoverView: View {
                 items: ladderCandidates,
                 reason: "discover_primary"
             )
-        }
-
-        // Prefetch covers at the frames' decode size so the next scroll feels instant.
-        let anime = (vm.currentSeason.prefix(10) + vm.trending.prefix(14) + vm.essentials.prefix(12) + vm.newToYou.prefix(10) + vm.newlyAdded.prefix(10))
-            .compactMap { URL(string: $0.imageURL ?? "") }
-        let manga = (vm.trendingManga.prefix(14) + vm.newlyAddedManga.prefix(10) + vm.essentialsManga.prefix(12) + vm.newToYouManga.prefix(10))
-            .compactMap { URL(string: $0.imageURL ?? "") }
-        let urls = Array((anime + manga).prefix(70))
-        if !urls.isEmpty {
-            Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) }
         }
     }
 

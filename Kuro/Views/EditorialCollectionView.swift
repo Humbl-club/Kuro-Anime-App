@@ -235,6 +235,7 @@ struct EditorialCollectionView: View {
                     }
                     content(rows: rows, width: width, gutter: gutter)
                         .padding(.top, KuroDesignSpacing.md)
+                        .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? .easeOut(duration: 0.16) : nil, value: status)
                     Color.clear.frame(height: KuroDesignSpacing.xl)
                 }
             }
@@ -318,7 +319,7 @@ struct EditorialCollectionView: View {
             } else {
                 medium = home.medium == "manga" ? .manga : .anime
             }
-            await reload()
+            await reload(preferCache: true)
             await releases.loadSchedule()
         }
         // W10: loads only while the section can show (never on a Watching landing or with the switch off);
@@ -330,7 +331,7 @@ struct EditorialCollectionView: View {
         .onChange(of: collection.requestedListFilter) { _, request in
             guard request != nil, let request = collection.consumeListRequest() else { return }
             apply(request)
-            Task { await reload() }
+            Task { await reload(preferCache: true) }
         }
         .onChange(of: storedMedium) { _, raw in
             // Onboarding's medium choice while this page is already mounted (its first load has run).
@@ -340,7 +341,7 @@ struct EditorialCollectionView: View {
         .onChange(of: medium) { _, value in
             storedMedium = value.rawValue
             resetTransientState()
-            Task { await reload() }
+            Task { await reload(preferCache: true) }
         }
         .onChange(of: status) { _, _ in
             selectedKeys.removeAll()
@@ -352,7 +353,7 @@ struct EditorialCollectionView: View {
                 isSearching = false
                 return
             }
-            Task { await reload() }
+            Task { await reload(preferCache: true) }
         }
         .onChange(of: collection.importedTitleKeys) { _, _ in
             resetTransientState()
@@ -701,7 +702,7 @@ struct EditorialCollectionView: View {
     }
 
     /// Reads the selected medium and status from the feed (the Library store keeps the tracking values).
-    private func reload(refreshLibrary: Bool = false) async {
+    private func reload(refreshLibrary: Bool = false, preferCache: Bool = false) async {
         guard let context = collection.accountSession.current else { return }
         if refreshLibrary {
             try? await library.refresh()
@@ -709,8 +710,23 @@ struct EditorialCollectionView: View {
         }
         collection.feedMedium = isImportedView ? nil : medium
         localOrderingTruncated = false
-        await collection.fetchCollectionFeed(status: feedStatus)
+        await collection.fetchCollectionFeed(
+            status: feedStatus,
+            preferCache: preferCache && !refreshLibrary,
+            preserveExisting: refreshLibrary
+        )
         guard collection.accountSession.isCurrent(context) else { return }
+        let isAnimeShelf = density.wrappedValue == .shelf && medium == .anime
+        let prefetchBucket = isAnimeShelf ? 1200 : (density.wrappedValue == .shelf ? 640 : 240)
+        let prefetchURLs = collection.displayedFeedItems.prefix(24).compactMap { item -> URL? in
+            let raw = isAnimeShelf
+                ? (collection.feedBanners[MediaKey(kind: item.kind, id: item.id)] ?? item.imageURL)
+                : item.imageURL
+            return URL(string: raw ?? "")
+        }
+        if !prefetchURLs.isEmpty {
+            Task { await ImagePipeline.shared.prefetch(urls: prefetchURLs, maxPixelSize: prefetchBucket) }
+        }
         if sort != .recent || isQueryActive { await loadAllForLocalOrdering() }
         await prepareSeriesGrouping()
         guard collection.accountSession.isCurrent(context) else { return }

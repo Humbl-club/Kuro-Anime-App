@@ -563,22 +563,24 @@ struct HomeArtworkPressStyle: ButtonStyle {
     }
 }
 
-/// The anime section entrance (§3.2): artwork rises from opacity .8 / 9 pt over 380 ms
-/// `(.2,.75,.25,1)`, once per mount (Home remounts per medium). Reduce Motion and Low Power show the
-/// final frame.
+/// The anime section entrance (§3.2): crisp settle from opacity .92 / 4 pt over 220 ms
+/// once per mount so cards feel responsive rather than staggered on scroll or remount.
+/// Reduce Motion and Low Power show the final frame immediately.
 private struct HomeEntranceModifier: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.kuroLowPowerMode) private var rootLowPower
     @State private var settled = false
 
     func body(content: Content) -> some View {
-        let plays = KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
+        let plays = KuroMotion.playsMotion(reduceMotion: reduceMotion,
+                                           lowPower: rootLowPower ?? ProcessInfo.processInfo.isLowPowerModeEnabled)
         content
-            .opacity(settled || !plays ? 1 : 0.8)
-            .offset(y: settled || !plays ? 0 : 9)
+            .opacity(settled || !plays ? 1 : 0.92)
+            .offset(y: settled || !plays ? 0 : 4)
             .onAppear {
                 guard !settled else { return }
                 if plays {
-                    withAnimation(.timingCurve(0.2, 0.75, 0.25, 1, duration: 0.38)) { settled = true }
+                    withAnimation(.timingCurve(0.2, 0.75, 0.25, 1, duration: 0.22)) { settled = true }
                 } else {
                     settled = true
                 }

@@ -426,9 +426,22 @@ struct HomeView: View {
     /// the other occupied) shows the mountain behind it.
     private var mediumSwitch: some View {
         let split = HomeShelfPolicy.partition(home.bundle?.active ?? [])
-        let leadOverride: HomeCard? = mediumKind == .anime
-            ? HomeShelfPolicy.prioritizedScenes(split.inProgress) { keyState($0).caughtUp }.scenes.first
-            : split.inProgress.first
+        let leadOverride: HomeCard? = {
+            if mediumKind == .anime {
+                return HomeShelfPolicy.prioritizedScenes(
+                    split.inProgress,
+                    hasNewUnit: { hasNewUnit($0) },
+                    isCaughtUp: { keyState($0).caughtUp }
+                ).scenes.first
+            }
+            let hiatusSplit = HomeShelfPolicy.splitHiatusCards(split.inProgress)
+            let primaryManga = hiatusSplit.active.isEmpty ? hiatusSplit.onHiatus : hiatusSplit.active
+            return HomeShelfPolicy.prioritizedInProgress(
+                primaryManga,
+                hasNewUnit: { hasNewUnit($0) },
+                isCaughtUp: { keyState($0).caughtUp }
+            ).first
+        }()
         return KuroPosterMediumSwitch(selection: mediumKind, contentWidth: contentWidth,
                                       onSelect: { home.selectMedium($0 == .manga ? "manga" : "anime") }) {
             if showsNewAccount {
@@ -564,15 +577,24 @@ struct HomeView: View {
                             .padding(.bottom, 8)
                     }
                     if mediumKind == .anime {
-                        let lanes = HomeShelfPolicy.prioritizedScenes(split.inProgress) { keyState($0).caughtUp }
+                        let lanes = HomeShelfPolicy.prioritizedScenes(
+                            split.inProgress,
+                            hasNewUnit: { hasNewUnit($0) },
+                            isCaughtUp: { keyState($0).caughtUp }
+                        )
                         animeScenes(lanes.scenes)
                         animeAlsoWatching(lanes.alsoWatching)
                     } else if containerSize.width > 0 {
                         let hiatusSplit = HomeShelfPolicy.splitHiatusCards(split.inProgress)
                         let primaryManga = hiatusSplit.active.isEmpty ? hiatusSplit.onHiatus : hiatusSplit.active
+                        let orderedManga = HomeShelfPolicy.prioritizedInProgress(
+                            primaryManga,
+                            hasNewUnit: { hasNewUnit($0) },
+                            isCaughtUp: { keyState($0).caughtUp }
+                        )
                         // The manga activity stage has no top margin: the covers start 21 pt under the
                         // opening row (the stack's 12 plus the opening's 6 and the line box).
-                        mangaLeaves(primaryManga)
+                        mangaLeaves(orderedManga)
                     } else {
                         // Covers are sized from the measured column: wait for the first measurement.
                         sceneLoadingShape
@@ -940,7 +962,8 @@ struct HomeView: View {
         // volume or season row never decides how many chapters or episodes are out.
         let candidates = [releases.nextRelease(for: key)].compactMap { $0 }
             + releases.scheduleItems(for: mediumKind).filter { $0.key == key }
-        let nextUnit = HomeShelfPolicy.nextUnitNumber(candidates, medium: mediumKind)
+        let scheduleNext = HomeShelfPolicy.nextUnitNumber(candidates, medium: mediumKind)
+        let nextUnit = scheduleNext ?? (mediumKind == .anime ? card.nextEpisodeNumber : nil)
         let policyUnits = HomeShelfPolicy.availableUnits(catalogueStatus: card.catalogueStatus, total: total, nextUnit: nextUnit)
         if mediumKind == .manga, let latest = card.latestChapter, latest > 0 {
             let latestFloor = Int(floor(latest))
@@ -948,6 +971,14 @@ struct HomeView: View {
             return max(policyUnits ?? 0, capped)
         }
         return policyUnits
+    }
+
+    private func hasNewUnit(_ card: HomeCard) -> Bool {
+        HomeShelfPolicy.hasNewUnit(
+            progress: home.displayedProgress(for: card),
+            available: availableUnits(card),
+            catalogueStatus: card.catalogueStatus
+        )
     }
 
     private func nextReleaseForCard(_ card: HomeCard) -> ReleaseScheduleItem? {

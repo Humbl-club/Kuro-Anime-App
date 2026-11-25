@@ -253,7 +253,7 @@ struct DiscoverFrame: View {
             routes.openMedia(MediaRoute(media.libraryKey))
         } label: {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 360)
+                DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 210)
                     .frame(width: width, height: floor(width / KuroCardMetrics.imageAspectRatio))
                     .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
 
@@ -337,7 +337,7 @@ struct DiscoverFrameMenu: View {
 /// failed image keeps the neutral missing-art field. Decorative for VoiceOver.
 struct DiscoverPicture: View {
     let url: URL?
-    var maxPixelSize: Int? = 360
+    var maxPixelSize: Int? = 210
 
     /// The missing-art field (`kuroMissingArt` unless a page sets its own; Discover's warm pages use
     /// Home's poster fill).

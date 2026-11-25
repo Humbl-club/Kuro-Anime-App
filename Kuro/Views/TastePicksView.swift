@@ -88,7 +88,7 @@ struct TastePicksView: View {
                 .background(TastePageContent.canvas(for: medium).ignoresSafeArea())
             }
         }
-        .tastePlanHost(plans, offerSlot: true)
+        .tastePlanHost(plans, offerSlot: true, suppressBottomToast: showsDeckStage && browseMode == .deck)
         .task {
             startedAsNewAccount = nil
             latchNewAccount()
@@ -139,6 +139,7 @@ struct TastePicksView: View {
             TasteSwipeDeckStage(
                 medium: medium,
                 controller: inlineDeck,
+                plans: plans,
                 german: german,
                 onSkip: { card in
                     guard let taste else { return }
@@ -851,6 +852,7 @@ final class TastePlanController {
         let message: String
         let undo: Undo?
         var hasCustomUndo: Bool = false
+        var isDeckUndo: Bool = false
     }
 
     struct Undo: Equatable {
@@ -1170,13 +1172,13 @@ final class TastePlanController {
         }
     }
 
-    func showFeedbackToast(_ message: String, onUndo: @escaping () -> Void) {
+    func showFeedbackToast(_ message: String, holdSeconds overrideHold: Double? = nil, isDeckUndo: Bool = false, onUndo: @escaping () -> Void) {
         dismissTask?.cancel()
-        let toast = Toast(message: message, undo: nil, hasCustomUndo: true)
+        let toast = Toast(message: message, undo: nil, hasCustomUndo: true, isDeckUndo: isDeckUndo)
         customUndoHandler = (toast.id, onUndo)
         self.toast = toast
         guard !assistiveTechnologyRunning() else { dismissTask = nil; return }
-        let hold = holdSeconds
+        let hold = overrideHold ?? holdSeconds
         dismissTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(hold))
             guard !Task.isCancelled, let self, self.toast?.id == toast.id else { return }
@@ -1201,66 +1203,128 @@ final class TastePlanController {
     }
 }
 
-/// The prototype toast (§3.4): `#282f2bf5`, 12 pt white text, radius 18, padding 5/5/5/14, inset
-/// 13/13/12 from the page foot, then "Undo" and a dismiss ×. Shared by the Taste Plan keys and the
-/// Home +1 (`HomeProgressToasts`), so every result toast reads the same.
+/// Editorial monochrome confirmation toast: crisp status icon, clean label, a clearly separated
+/// translucent capsule Undo button, compact close glyph, and swipe-to-dismiss. Shared by Home,
+/// Taste, and Discover so every confirmation pill reads as one coherent family.
 struct TastePlanToastView: View {
     let message: String
     let showsUndo: Bool
     let german: Bool
+    var compactTopPill: Bool = false
     let onUndo: () -> Void
     let onDismiss: () -> Void
 
-    init(message: String, showsUndo: Bool, german: Bool, onUndo: @escaping () -> Void,
-         onDismiss: @escaping () -> Void) {
+    @State private var dragY: CGFloat = 0
+
+    init(message: String, showsUndo: Bool, german: Bool, compactTopPill: Bool = false,
+         onUndo: @escaping () -> Void, onDismiss: @escaping () -> Void) {
         self.message = message
         self.showsUndo = showsUndo
         self.german = german
+        self.compactTopPill = compactTopPill
         self.onUndo = onUndo
         self.onDismiss = onDismiss
     }
 
-    init(toast: TastePlanController.Toast, german: Bool, onUndo: @escaping () -> Void,
-         onDismiss: @escaping () -> Void) {
+    init(toast: TastePlanController.Toast, german: Bool, compactTopPill: Bool = false,
+         onUndo: @escaping () -> Void, onDismiss: @escaping () -> Void) {
         self.init(message: toast.message, showsUndo: toast.undo != nil || toast.hasCustomUndo, german: german,
-                  onUndo: onUndo, onDismiss: onDismiss)
+                  compactTopPill: compactTopPill, onUndo: onUndo, onDismiss: onDismiss)
+    }
+
+    private var leadingIcon: String {
+        let lower = message.lowercased()
+        if lower.contains("not saved") || lower.contains("nicht gespeichert") || lower.contains("failed") || lower.contains("fehlgeschlagen") {
+            return "exclamationmark.circle.fill"
+        }
+        if lower.contains("undone") || lower.contains("rückgängig") {
+            return "arrow.uturn.backward.circle.fill"
+        }
+        return "checkmark.circle.fill"
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 8) {
+            Image(systemName: leadingIcon)
+                .font(.system(size: compactTopPill ? 13 : 14, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.86))
+                .accessibilityHidden(true)
+
             Text(message)
-                .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 22))
+                .font(.kuroCustom(compactTopPill ? 12 : 12.5, weight: .medium, relativeTo: .footnote, maxSize: 22))
                 .foregroundStyle(Color.white)
+                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: compactTopPill ? nil : .infinity, alignment: .leading)
+
             if showsUndo {
                 Button(action: onUndo) {
                     Text(TastePlanCopy.undo(german: german))
-                        .font(.kuroCustom(12, weight: .semibold, relativeTo: .footnote, maxSize: 22))
+                        .font(.kuroCustom(11.5, weight: .semibold, relativeTo: .footnote, maxSize: 20))
                         .foregroundStyle(Color.white)
-                        .padding(.horizontal, 10)
+                        .lineLimit(1)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(0.16))
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.75)
+                                )
+                        )
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(KuroPressStyle(pressedScale: 0.97))
+                .buttonStyle(KuroPressStyle(pressedScale: 0.95))
             }
+
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.8))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.76))
+                    .frame(width: 26, height: 26)
+                    .background(Color.white.opacity(0.08), in: Circle())
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(KuroPressStyle(pressedScale: 0.97))
+            .buttonStyle(KuroPressStyle(pressedScale: 0.94))
             .accessibilityLabel(TastePlanCopy.dismiss(german: german))
         }
-        .padding(.leading, 14)
-        .padding([.top, .bottom, .trailing], 5)
-        .background(Color.kuroControlInk.opacity(0.96),
-                    in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.16), radius: 15, y: 8)
-        .padding(.horizontal, 13)
-        .padding(.bottom, 12)
+        .padding(.leading, 13)
+        .padding(.trailing, 2)
+        .padding(.vertical, 0)
+        .background(
+            RoundedRectangle(cornerRadius: compactTopPill ? 22 : 20, style: .continuous)
+                .fill(Color.kuroControlInk.opacity(0.95))
+                .overlay(
+                    RoundedRectangle(cornerRadius: compactTopPill ? 22 : 20, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.75)
+                )
+        )
+        .shadow(color: Color.black.opacity(0.16), radius: compactTopPill ? 10 : 14, y: compactTopPill ? 4 : 7)
+        .offset(y: dragY)
+        .gesture(
+            DragGesture(minimumDistance: 8)
+                .onChanged { value in
+                    let dy = value.translation.height
+                    if compactTopPill {
+                        dragY = min(10, dy)
+                    } else {
+                        dragY = max(-10, dy)
+                    }
+                }
+                .onEnded { value in
+                    let shouldDismiss = compactTopPill ? value.translation.height < -22 : value.translation.height > 22
+                    if shouldDismiss {
+                        onDismiss()
+                    } else {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) { dragY = 0 }
+                    }
+                }
+        )
+        .padding(.horizontal, compactTopPill ? 10 : 14)
+        .padding(.bottom, compactTopPill ? 0 : 12)
         .accessibilityElement(children: .contain)
     }
 }
@@ -1272,6 +1336,9 @@ struct TastePlanHost: ViewModifier {
     /// Taste's own page draws the release alert offer in this slot (W3a); other pages (detail, Home)
     /// register another foot slot for it and keep the default.
     var offerSlot: Bool = false
+    /// When true (Taste Deck mode), the bottom toast overlay is suppressed so the Deck's own
+    /// non-blocking top pill displays confirmations without covering the bottom action bar.
+    var suppressBottomToast: Bool = false
 
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var actions
@@ -1282,13 +1349,17 @@ struct TastePlanHost: ViewModifier {
         content
             .environment(controller)
             .overlay(alignment: .bottom) {
-                if offerSlot {
+                if suppressBottomToast {
+                    if offerSlot {
+                        ReleaseAlertOfferStack(hasToast: false) { EmptyView() }
+                    }
+                } else if offerSlot {
                     ReleaseAlertOfferStack(hasToast: controller.toast != nil) { toastView(german: german) }
                 } else {
                     toastView(german: german)
                 }
             }
-            .kuroAnimation(KuroMotion.contact, value: controller.toast?.id)
+            .kuroAnimation(KuroMotion.settle, value: controller.toast?.id)
     }
 
     @ViewBuilder
@@ -1298,15 +1369,15 @@ struct TastePlanHost: ViewModifier {
                                onUndo: { controller.triggerUndo(library: library, actions: actions, german: german) },
                                onDismiss: { controller.dismiss() })
                 .id(toast.id)
-                .transition(.opacity)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
                 .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
         }
     }
 }
 
 extension View {
-    func tastePlanHost(_ controller: TastePlanController, offerSlot: Bool = false) -> some View {
-        modifier(TastePlanHost(controller: controller, offerSlot: offerSlot))
+    func tastePlanHost(_ controller: TastePlanController, offerSlot: Bool = false, suppressBottomToast: Bool = false) -> some View {
+        modifier(TastePlanHost(controller: controller, offerSlot: offerSlot, suppressBottomToast: suppressBottomToast))
     }
 }
 
@@ -2423,7 +2494,7 @@ final class TasteInlineDeckController {
         let signalAction: TasteDeckAction = status == .planning ? .love : .known
         taste.submitSignal(mediaType: card.mediaType, mediaId: card.mediaId, action: signalAction)
 
-        plans.showFeedbackToast(TastePlanCopy.statusMessage(status, kind: kind, german: german)) { [weak self] in
+        plans.showFeedbackToast(TastePlanCopy.statusMessage(status, kind: kind, german: german), holdSeconds: 2.0, isDeckUndo: true) { [weak self] in
             self?.undo(actions: actions, taste: taste)
         }
 
@@ -2523,8 +2594,53 @@ private struct TasteModeSwitch: View {
 }
 
 private struct TasteSwipeDeckStage: View {
+    private enum DeckExitDirection: Equatable {
+        case left
+        case right
+        case up
+        case upRight
+
+        func exitOffset(width: CGFloat, height: CGFloat) -> CGSize {
+            switch self {
+            case .left: return CGSize(width: -(width + 140), height: 28)
+            case .right: return CGSize(width: width + 140, height: -18)
+            case .up: return CGSize(width: 0, height: -(height + 160))
+            case .upRight: return CGSize(width: width * 0.72, height: -(height * 0.80))
+            }
+        }
+
+        func undoEntryOffset(width: CGFloat, height: CGFloat) -> CGSize {
+            switch self {
+            case .left: return CGSize(width: -width * 0.65, height: 18)
+            case .right: return CGSize(width: width * 0.65, height: -14)
+            case .up: return CGSize(width: 0, height: -height * 0.55)
+            case .upRight: return CGSize(width: width * 0.50, height: -height * 0.45)
+            }
+        }
+
+        var exitRotation: Double {
+            switch self {
+            case .left: return -11
+            case .right: return 11
+            case .up: return 3
+            case .upRight: return 9
+            }
+        }
+    }
+
+    private struct DepartingDeckCard: Identifiable {
+        let id = UUID()
+        let card: TasteDeckCard
+        let direction: DeckExitDirection
+        let badgeLabel: String?
+        let startOffset: CGSize
+        let startRotation: Double
+        var launched: Bool = false
+    }
+
     let medium: MediaKind
     let controller: TasteInlineDeckController
+    let plans: TastePlanController
     let german: Bool
     let onSkip: (TasteDeckCard) -> Void
     let onTrack: (TasteDeckCard, ListStatus) -> Void
@@ -2532,10 +2648,22 @@ private struct TasteSwipeDeckStage: View {
     let onRefresh: () -> Void
     let onOpen: (TasteDeckCard) -> Void
 
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dragOffset: CGSize = .zero
+    @State private var departingCards: [DepartingDeckCard] = []
+    @State private var lastExitDirection: DeckExitDirection = .right
+    @State private var undoFlyInCardId: String? = nil
+    @State private var undoFlyInOffset: CGSize = .zero
+    @State private var undoFlyInOpacity: Double = 1.0
+    @State private var deckCardSize: CGSize = CGSize(width: 340, height: 460)
 
     private var cards: [TasteDeckCard] { controller.queue(for: medium) }
+    private var topToastShowsUndo: Bool {
+        guard let toast = plans.toast else { return false }
+        return toast.undo != nil || toast.hasCustomUndo
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -2551,89 +2679,254 @@ private struct TasteSwipeDeckStage: View {
                         .foregroundStyle(Color.kuroInkSecondary)
                 }
                 Spacer(minLength: 8)
-                if controller.lastUndo != nil {
+                if controller.lastUndo != nil && !topToastShowsUndo {
                     Button {
                         KuroAccessibility.selectionHaptic()
-                        onUndo()
+                        triggerAnimatedUndo()
                     } label: {
                         Label(german ? "Rückgängig" : "Undo", systemImage: "arrow.uturn.backward")
                             .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 20))
                             .foregroundStyle(Color.kuroInk)
-                            .padding(.horizontal, 8)
+                            .padding(.horizontal, 10)
                             .frame(minHeight: 36)
-                            .contentShape(Rectangle())
+                            .background(Color.kuroPaper, in: Capsule(style: .continuous))
+                            .overlay(Capsule(style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 0.75))
+                            .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(KuroPressStyle(pressedScale: 0.95))
+                    .transition(.opacity)
                 }
             }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: topToastShowsUndo)
 
-            if let top = cards.first {
-                GeometryReader { cardGeo in
-                    let stackHeight = max(280, cardGeo.size.height)
-                    deckStack(Array(cards.prefix(3)), height: stackHeight)
-                        .kuroSwipeExclusionZone()
+            ZStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 10) {
+                    if let top = cards.first {
+                        GeometryReader { cardGeo in
+                            let stackHeight = max(280, cardGeo.size.height)
+                            ZStack(alignment: .top) {
+                                deckStack(Array(cards.prefix(3)), size: CGSize(width: cardGeo.size.width, height: stackHeight))
+                                    .kuroSwipeExclusionZone()
+
+                                // Departing cards animate smoothly in an independent non-blocking layer so
+                                // the promoted card underneath is immediately interactive at 120 Hz.
+                                ForEach(departingCards) { departing in
+                                    let targetOffset = departing.direction.exitOffset(width: cardGeo.size.width, height: stackHeight)
+                                    deckCardView(
+                                        departing.card,
+                                        isTop: true,
+                                        height: max(240, stackHeight - 10),
+                                        forcedBadge: departing.badgeLabel,
+                                        badgeOpacity: 1.0
+                                    )
+                                    .offset(departing.launched && !reduceMotion ? targetOffset : departing.startOffset)
+                                    .rotationEffect(.degrees(departing.launched && !reduceMotion ? departing.direction.exitRotation : departing.startRotation))
+                                    .scaleEffect(departing.launched ? (reduceMotion ? 0.98 : 0.94) : 1.0)
+                                    .opacity(departing.launched ? 0 : 1)
+                                    .allowsHitTesting(false)
+                                    .accessibilityHidden(true)
+                                }
+                            }
+                            .onAppear { deckCardSize = CGSize(width: cardGeo.size.width, height: stackHeight) }
+                            .onChange(of: cardGeo.size) { _, newSize in
+                                deckCardSize = CGSize(width: newSize.width, height: max(280, newSize.height))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        actionRow(for: top)
+                    } else if controller.isLoading {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.kuroPaper)
+                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .overlay { KuroLoadingView(scope: .inline) }
+                    } else {
+                        Spacer(minLength: 0)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(controller.loadFailed
+                                 ? (german ? "Deck gerade nicht erreichbar." : "Deck couldn't load right now.")
+                                 : (german ? "Gerade keine neuen Karten im Deck." : "No more deck cards right now."))
+                                .font(.kuroBody())
+                                .foregroundStyle(Color.kuroInkSecondary)
+                            Button(action: onRefresh) {
+                                Text(german ? "Deck neu laden" : "Refresh deck")
+                                    .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 22))
+                                    .foregroundStyle(Color.kuroInk)
+                                    .padding(.horizontal, 14)
+                                    .frame(minHeight: 44)
+                                    .background(Color.kuroPaper, in: Capsule(style: .continuous))
+                                    .overlay(Capsule(style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
+                            }
+                            .buttonStyle(KuroPressStyle(pressedScale: 0.96))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(18)
+                        .background(Color.kuroPaper, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
+                        Spacer(minLength: 0)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                actionRow(for: top)
-            } else if controller.isLoading {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.kuroPaper)
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay { KuroLoadingView(scope: .inline) }
-            } else {
-                Spacer(minLength: 0)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(controller.loadFailed
-                         ? (german ? "Deck gerade nicht erreichbar." : "Deck couldn't load right now.")
-                         : (german ? "Gerade keine neuen Karten im Deck." : "No more deck cards right now."))
-                        .font(.kuroBody())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                    Button(action: onRefresh) {
-                        Text(german ? "Deck neu laden" : "Refresh deck")
-                            .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 22))
-                            .foregroundStyle(Color.kuroInk)
-                            .padding(.horizontal, 14)
-                            .frame(minHeight: 44)
-                            .background(Color.kuroPaper, in: Capsule(style: .continuous))
-                            .overlay(Capsule(style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
+
+                // Non-blocking floating confirmation pill anchored cleanly at top of the
+                // deck stage — never covers or blocks the 4 bottom action buttons, and stays
+                // reachable even after judging the very last card in the deck.
+                if let toast = plans.toast {
+                    TastePlanToastView(
+                        toast: toast,
+                        german: german,
+                        compactTopPill: true,
+                        onUndo: {
+                            KuroAccessibility.selectionHaptic()
+                            if toast.isDeckUndo {
+                                plans.dismiss()
+                                triggerAnimatedUndo()
+                            } else {
+                                plans.triggerUndo(library: library, actions: libraryActions, german: german)
+                            }
+                        },
+                        onDismiss: { plans.dismiss() }
+                    )
+                    .id(toast.id)
+                    .padding(.top, 8)
+                    .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+                    .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(18)
-                .background(Color.kuroPaper, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
-                Spacer(minLength: 0)
             }
+            .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.86), value: plans.toast?.id)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onChange(of: medium) { _, _ in
+            departingCards.removeAll()
+            undoFlyInCardId = nil
+            dragOffset = .zero
+        }
+        .task(id: cards.prefix(4).map(\.stableKey)) {
+            let urls = cards.prefix(4).compactMap(\.imageURL)
+            if !urls.isEmpty {
+                await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 1200)
+            }
+        }
     }
 
-    private func deckStack(_ visible: [TasteDeckCard], height: CGFloat) -> some View {
-        let usableHeight = max(240, height - 10)
+    private func commitCard(
+        _ card: TasteDeckCard,
+        direction: DeckExitDirection,
+        badge: String,
+        fromDrag: Bool,
+        action: () -> Void
+    ) {
+        undoFlyInCardId = nil
+        let startOffset = fromDrag ? dragOffset : .zero
+        let startRotation = fromDrag && !reduceMotion ? Double(dragOffset.width / 20) : 0
+        let departing = DepartingDeckCard(
+            card: card,
+            direction: direction,
+            badgeLabel: badge,
+            startOffset: startOffset,
+            startRotation: startRotation,
+            launched: false
+        )
+        lastExitDirection = direction
+        departingCards.append(departing)
+        dragOffset = .zero
+
+        // Promote card #2 -> #1 smoothly with a spring while immediately unlocking rapid input.
+        if reduceMotion {
+            action()
+        } else {
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+                action()
+            }
+        }
+
+        // Launch the departing card after one frame commit so SwiftUI always interpolates from startOffset.
+        let departingId = departing.id
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(16))
+            let exitAnimation: Animation = reduceMotion
+                ? .easeOut(duration: 0.16)
+                : .timingCurve(0.22, 1.0, 0.36, 1.0, duration: 0.28)
+            withAnimation(exitAnimation) {
+                if let idx = departingCards.firstIndex(where: { $0.id == departingId }) {
+                    departingCards[idx].launched = true
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(310))
+            departingCards.removeAll { $0.id == departingId }
+        }
+    }
+
+    private func triggerAnimatedUndo() {
+        guard let undoneCard = controller.lastUndo?.card else {
+            onUndo()
+            return
+        }
+        departingCards.removeAll { $0.card.id == undoneCard.id }
+        if reduceMotion {
+            onUndo()
+            return
+        }
+        undoFlyInCardId = undoneCard.id
+        undoFlyInOffset = lastExitDirection.undoEntryOffset(width: deckCardSize.width, height: deckCardSize.height)
+        undoFlyInOpacity = 0.0
+        onUndo()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(16))
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) {
+                undoFlyInOffset = .zero
+                undoFlyInOpacity = 1.0
+            }
+            try? await Task.sleep(for: .milliseconds(380))
+            if undoFlyInCardId == undoneCard.id {
+                undoFlyInCardId = nil
+            }
+        }
+    }
+
+    private func deckStack(_ visible: [TasteDeckCard], size: CGSize) -> some View {
+        let usableHeight = max(240, size.height - 10)
+        let dragProgress = min(1.0, hypot(dragOffset.width, dragOffset.height) / 140.0)
         return ZStack {
             ForEach(Array(visible.enumerated().reversed()), id: \.element.id) { index, card in
                 let isTop = index == 0
+                let isUndoingTop = isTop && undoFlyInCardId == card.id
+                let cardScale: CGFloat = {
+                    if isTop { return 1.0 }
+                    if index == 1 { return 0.955 + 0.045 * dragProgress }
+                    return 0.915 + 0.04 * dragProgress
+                }()
+                let cardYOffset: CGFloat = {
+                    if isTop { return 0 }
+                    if index == 1 { return 10.0 * (1.0 - dragProgress) }
+                    return 19.0 - 9.0 * dragProgress
+                }()
+                let cardOpacity: Double = {
+                    if isUndoingTop { return undoFlyInOpacity }
+                    if isTop { return 1.0 }
+                    if index == 1 { return 0.88 + 0.12 * dragProgress }
+                    return 0.68 + 0.20 * dragProgress
+                }()
+                let activeOffset: CGSize = isUndoingTop ? undoFlyInOffset : (isTop ? dragOffset : .zero)
+                let activeTilt: Double = (isTop && !reduceMotion) ? Double(activeOffset.width / 20) : 0
+
                 deckCardView(card, isTop: isTop, height: usableHeight)
-                    .scaleEffect(isTop ? 1.0 : (index == 1 ? 0.965 : 0.93))
-                    .offset(y: CGFloat(index) * 8)
-                    .offset(isTop ? dragOffset : .zero)
-                    .rotationEffect(
-                        isTop && !reduceMotion
-                            ? .degrees(Double(dragOffset.width / 22))
-                            : .zero
-                    )
+                    .scaleEffect(cardScale)
+                    .offset(y: cardYOffset)
+                    .offset(activeOffset)
+                    .rotationEffect(.degrees(activeTilt))
+                    .opacity(cardOpacity)
                     .allowsHitTesting(isTop)
                     .gesture(isTop ? cardDragGesture(for: card) : nil)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: size.height, alignment: .top)
     }
 
     private func cardDragGesture(for card: TasteDeckCard) -> some Gesture {
-        DragGesture(minimumDistance: 12)
+        DragGesture(minimumDistance: 10)
             .onChanged { value in
+                if undoFlyInCardId != nil { undoFlyInCardId = nil }
                 dragOffset = value.translation
             }
             .onEnded { value in
@@ -2642,38 +2935,64 @@ private struct TasteSwipeDeckStage: View {
                 let predictedDx = value.predictedEndTranslation.width
                 let predictedDy = value.predictedEndTranslation.height
                 if dx < -85 || predictedDx < -180 {
-                    dragOffset = .zero
                     KuroAccessibility.selectionHaptic()
-                    onSkip(card)
+                    commitCard(card, direction: .left, badge: "SKIP", fromDrag: true) {
+                        onSkip(card)
+                    }
                 } else if dx > 85 || predictedDx > 180 {
-                    dragOffset = .zero
                     KuroAccessibility.successHaptic()
-                    onTrack(card, .planning)
+                    commitCard(card, direction: .right, badge: german ? "PLANEN" : "PLAN", fromDrag: true) {
+                        onTrack(card, .planning)
+                    }
                 } else if (dy < -85 || predictedDy < -180) && abs(dy) > abs(dx) {
-                    dragOffset = .zero
                     KuroAccessibility.successHaptic()
-                    onTrack(card, .current)
+                    let label = medium == .manga
+                        ? (german ? "LESE" : "READING")
+                        : (german ? "SCHAUE" : "WATCHING")
+                    commitCard(card, direction: .up, badge: label, fromDrag: true) {
+                        onTrack(card, .current)
+                    }
                 } else if reduceMotion {
                     dragOffset = .zero
                 } else {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                    withAnimation(.spring(response: 0.30, dampingFraction: 0.80)) {
                         dragOffset = .zero
                     }
                 }
             }
     }
 
-    private func deckCardView(_ card: TasteDeckCard, isTop: Bool, height: CGFloat) -> some View {
+    private func dragBadgeInfo(isTop: Bool) -> (label: String, opacity: Double)? {
+        guard isTop else { return nil }
+        if dragOffset.width < -20 && abs(dragOffset.width) >= abs(dragOffset.height) * 0.8 {
+            let progress = min(1.0, Double((-dragOffset.width - 20) / 65.0))
+            return ("SKIP", progress)
+        }
+        if dragOffset.width > 20 && abs(dragOffset.width) >= abs(dragOffset.height) * 0.8 {
+            let progress = min(1.0, Double((dragOffset.width - 20) / 65.0))
+            return (german ? "PLANEN" : "PLAN", progress)
+        }
+        if dragOffset.height < -24 && abs(dragOffset.height) > abs(dragOffset.width) {
+            let progress = min(1.0, Double((-dragOffset.height - 24) / 65.0))
+            let label = medium == .manga
+                ? (german ? "LESE" : "READING")
+                : (german ? "SCHAUE" : "WATCHING")
+            return (label, progress)
+        }
+        return nil
+    }
+
+    private func deckCardView(
+        _ card: TasteDeckCard,
+        isTop: Bool,
+        height: CGFloat,
+        forcedBadge: String? = nil,
+        badgeOpacity: Double = 0
+    ) -> some View {
         let synopsis = TextNormalization.sanitizeMediaDescription(card.synopsis)
-        let activeLabel: String? = {
-            guard isTop else { return nil }
-            if dragOffset.width < -36 { return "SKIP" }
-            if dragOffset.width > 36 { return "PLAN" }
-            if dragOffset.height < -44 && abs(dragOffset.height) > abs(dragOffset.width) {
-                return medium == .manga ? "READING" : "WATCHING"
-            }
-            return nil
-        }()
+        let liveBadge = dragBadgeInfo(isTop: isTop)
+        let resolvedBadgeLabel = forcedBadge ?? liveBadge?.label
+        let resolvedBadgeOpacity = forcedBadge != nil ? badgeOpacity : (liveBadge?.opacity ?? 0)
         let posterHeight = max(160, (height * 0.62).rounded(.down))
 
         return Button {
@@ -2685,7 +3004,7 @@ private struct TasteSwipeDeckStage: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: posterHeight)
                         .overlay {
-                            KuroCachedAsyncImage(url: card.imageURL, maxPixelSize: 720) { phase in
+                            KuroCachedAsyncImage(url: card.imageURL, maxPixelSize: 400) { phase in
                                 if case .success(let image) = phase {
                                     image.resizable().scaledToFill()
                                 } else {
@@ -2751,14 +3070,16 @@ private struct TasteSwipeDeckStage: View {
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.kuroLine, lineWidth: 1))
             .shadow(color: Color.black.opacity(isTop ? 0.08 : 0.02), radius: isTop ? 8 : 3, y: 3)
             .overlay(alignment: .topTrailing) {
-                if let activeLabel {
-                    Text(activeLabel)
+                if let resolvedBadgeLabel, resolvedBadgeOpacity > 0.02 {
+                    Text(resolvedBadgeLabel)
                         .font(.kuroCustom(12, weight: .bold, relativeTo: .caption1, maxSize: 20))
                         .tracking(1.4)
                         .foregroundStyle(Color.kuroCanvasHome)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(Color.kuroInk, in: Capsule(style: .continuous))
+                        .scaleEffect(0.92 + 0.08 * resolvedBadgeOpacity)
+                        .opacity(resolvedBadgeOpacity)
                         .padding(14)
                 }
             }
@@ -2775,7 +3096,9 @@ private struct TasteSwipeDeckStage: View {
                 prominent: false
             ) {
                 KuroAccessibility.selectionHaptic()
-                onSkip(card)
+                commitCard(card, direction: .left, badge: "SKIP", fromDrag: false) {
+                    onSkip(card)
+                }
             }
             deckButton(
                 title: german ? "Fertig" : "Completed",
@@ -2783,7 +3106,9 @@ private struct TasteSwipeDeckStage: View {
                 prominent: false
             ) {
                 KuroAccessibility.successHaptic()
-                onTrack(card, .completed)
+                commitCard(card, direction: .upRight, badge: german ? "FERTIG" : "COMPLETED", fromDrag: false) {
+                    onTrack(card, .completed)
+                }
             }
             deckButton(
                 title: medium == .manga ? (german ? "Lese" : "Reading") : (german ? "Schaue" : "Watching"),
@@ -2791,7 +3116,10 @@ private struct TasteSwipeDeckStage: View {
                 prominent: false
             ) {
                 KuroAccessibility.successHaptic()
-                onTrack(card, .current)
+                let label = medium == .manga ? (german ? "LESE" : "READING") : (german ? "SCHAUE" : "WATCHING")
+                commitCard(card, direction: .up, badge: label, fromDrag: false) {
+                    onTrack(card, .current)
+                }
             }
             deckButton(
                 title: german ? "Planen" : "Plan",
@@ -2799,7 +3127,9 @@ private struct TasteSwipeDeckStage: View {
                 prominent: true
             ) {
                 KuroAccessibility.successHaptic()
-                onTrack(card, .planning)
+                commitCard(card, direction: .right, badge: german ? "PLANEN" : "PLAN", fromDrag: false) {
+                    onTrack(card, .planning)
+                }
             }
         }
     }
@@ -2826,6 +3156,6 @@ private struct TasteSwipeDeckStage: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.95))
     }
 }
